@@ -5,6 +5,7 @@
 //! `connect` always runs ApiVersions on that socket before returning.
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
@@ -110,6 +111,24 @@ impl Broker {
         Req: Encodable,
         Resp: Decodable,
     {
+        self.submit(api_key, api_version, body).await?.wait().await
+    }
+
+    /// Write one request and return a handle that waits for its response.
+    ///
+    /// The write is complete when this returns. Idempotent Produce must submit
+    /// batches in `base_sequence` order on this connection; awaiting the ack
+    /// can happen later (and out of order).
+    pub(crate) async fn submit<Req, Resp>(
+        &self,
+        api_key: ApiKey,
+        api_version: i16,
+        body: &Req,
+    ) -> Result<PendingCall<Resp>>
+    where
+        Req: Encodable,
+        Resp: Decodable,
+    {
         let corr = self.alloc_corr();
         let header = RequestHeader::default()
             .with_request_api_key(api_key as i16)
@@ -136,17 +155,13 @@ impl Broker {
             return Err(e);
         }
 
-        let mut resp = rx
-            .await
-            .map_err(|_| Error::protocol("broker connection closed"))??;
-        let header = decode_response_header(&mut resp, api_key, api_version)?;
-        if header.correlation_id != corr {
-            return Err(Error::Correlation {
-                expected: corr,
-                got: header.correlation_id,
-            });
-        }
-        decode_response_body(&mut resp, api_version)
+        Ok(PendingCall {
+            rx,
+            corr,
+            api_key,
+            api_version,
+            _resp: PhantomData,
+        })
     }
 
     /// ApiVersions v3 handshake (flexible body; header is the special case).
@@ -155,6 +170,32 @@ impl Broker {
             .with_client_software_name(StrBytes::from_static_str(CLIENT_NAME))
             .with_client_software_version(StrBytes::from_string(VERSION.to_string()));
         self.call(ApiKey::ApiVersions, 3, &req).await
+    }
+}
+
+/// In-flight request whose body has already been written.
+pub(crate) struct PendingCall<Resp> {
+    rx: oneshot::Receiver<Result<bytes::Bytes>>,
+    corr: i32,
+    api_key: ApiKey,
+    api_version: i16,
+    _resp: PhantomData<fn() -> Resp>,
+}
+
+impl<Resp: Decodable> PendingCall<Resp> {
+    pub(crate) async fn wait(self) -> Result<Resp> {
+        let mut resp = self
+            .rx
+            .await
+            .map_err(|_| Error::protocol("broker connection closed"))??;
+        let header = decode_response_header(&mut resp, self.api_key, self.api_version)?;
+        if header.correlation_id != self.corr {
+            return Err(Error::Correlation {
+                expected: self.corr,
+                got: header.correlation_id,
+            });
+        }
+        decode_response_body(&mut resp, self.api_version)
     }
 }
 

@@ -508,10 +508,12 @@ fn succeed_items(items: Vec<Pending>, result: ProduceResult) {
 }
 
 struct PreparedProduce {
+    key: (String, i32),
     topic: String,
     topic_id: Uuid,
     partition: i32,
     ver: i16,
+    n: i32,
     base_sequence: i32,
     broker: crate::broker::Broker,
     req: ProduceRequest,
@@ -593,16 +595,33 @@ async fn start_sends(
         }
         match prepare_produce(client, cfg, sequences, broker, &batch.key, &batch.items).await {
             Ok(p) => {
-                *inflight_by_addr.entry(p.broker.addr).or_insert(0) += 1;
-                let addr = p.broker.addr;
-                in_flight.spawn(async move {
-                    let result = send_produce_retrying(&p).await;
-                    InFlightDone {
-                        addr,
-                        items: batch.items,
-                        result,
+                match p
+                    .broker
+                    .submit::<_, kafka_protocol::messages::ProduceResponse>(
+                        ApiKey::Produce,
+                        p.ver,
+                        &p.req,
+                    )
+                    .await
+                {
+                    Ok(call) => {
+                        if cfg.identity.is_some() {
+                            let assigned = take_base_sequence(sequences, &p.key, p.n);
+                            debug_assert_eq!(assigned, p.base_sequence);
+                        }
+                        *inflight_by_addr.entry(p.broker.addr).or_insert(0) += 1;
+                        let addr = p.broker.addr;
+                        in_flight.spawn(async move {
+                            let result = wait_produce_retrying(call, &p).await;
+                            InFlightDone {
+                                addr,
+                                items: batch.items,
+                                result,
+                            }
+                        });
                     }
-                });
+                    Err(e) => fail_items(batch.items, e),
+                }
             }
             Err(e) => fail_items(batch.items, e),
         }
@@ -634,12 +653,12 @@ async fn drain_all(
     }
 }
 
-/// Assign sequence (if idempotent) and encode. Increment happens here, not
-/// after ack. `send_produce_retrying` reuses this `base_sequence`.
+/// Peek the next sequence and encode. Increment only after the request is
+/// written (`submit`). A retry reuses this `base_sequence`.
 async fn prepare_produce(
     client: &mut Client,
     cfg: &ActorCfg,
-    sequences: &mut HashMap<(String, i32), i32>,
+    sequences: &HashMap<(String, i32), i32>,
     broker: crate::broker::Broker,
     key: &(String, i32),
     items: &[Pending],
@@ -650,11 +669,8 @@ async fn prepare_produce(
     let (topic, partition) = key;
     let ver = client.negotiated.produce;
     let topic_id = client.require_topic_id(topic, ver)?;
-    let base_sequence = if cfg.identity.is_some() {
-        take_base_sequence(sequences, key, items.len() as i32)
-    } else {
-        0
-    };
+    let n = items.len() as i32;
+    let base_sequence = sequences.get(key).copied().unwrap_or(0);
 
     let pairs = items
         .iter()
@@ -676,10 +692,12 @@ async fn prepare_produce(
         )]);
 
     Ok(PreparedProduce {
+        key: key.clone(),
         topic: topic.clone(),
         topic_id,
         partition: *partition,
         ver,
+        n,
         base_sequence,
         broker,
         req,
@@ -700,22 +718,23 @@ fn topic_produce_data(
             .with_records(Some(records))])
 }
 
-async fn send_produce_retrying(p: &PreparedProduce) -> Result<ProduceResult> {
-    // Same encoded request on every attempt: pid/epoch/base_sequence stay put.
-    let _ = p.base_sequence;
-    let mut last = Error::protocol("produce retry exhausted");
-    for attempt in 0..3 {
-        match p.broker.call(ApiKey::Produce, p.ver, &p.req).await {
-            Ok(resp) => return match_produce(&resp, p),
-            Err(e) => {
-                last = e;
-                if attempt + 1 < 3 {
-                    continue;
+async fn wait_produce_retrying(
+    first: crate::broker::PendingCall<kafka_protocol::messages::ProduceResponse>,
+    p: &PreparedProduce,
+) -> Result<ProduceResult> {
+    match first.wait().await {
+        Ok(resp) => return match_produce(&resp, p),
+        Err(e) => {
+            let mut last = e;
+            for _ in 1..3 {
+                match p.broker.call(ApiKey::Produce, p.ver, &p.req).await {
+                    Ok(resp) => return match_produce(&resp, p),
+                    Err(e) => last = e,
                 }
             }
+            Err(last)
         }
     }
-    Err(last)
 }
 
 fn match_produce(
