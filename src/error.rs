@@ -78,4 +78,16 @@ impl Error {
             Err(Self::broker(code))
         }
     }
+
+    /// Coordinator still coming up after broker start (InitProducerId, etc.).
+    pub fn coordinator_loading(code: i16) -> bool {
+        matches!(
+            ResponseError::try_from_code(code),
+            Some(
+                ResponseError::CoordinatorLoadInProgress
+                    | ResponseError::CoordinatorNotAvailable
+                    | ResponseError::NotCoordinator
+            )
+        )
+    }
 }

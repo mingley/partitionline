@@ -299,10 +299,21 @@ impl Client {
             .with_producer_id((-1).into())
             .with_producer_epoch(-1);
         let ver = self.negotiated.init_producer_id;
-        let resp: kafka_protocol::messages::InitProducerIdResponse =
-            self.seed()?.call(ApiKey::InitProducerId, ver, &req).await?;
-        Error::check(resp.error_code)?;
-        Ok((resp.producer_id.0, resp.producer_epoch))
+        let mut last = Error::protocol("InitProducerId not attempted");
+        for attempt in 0..40 {
+            let resp: kafka_protocol::messages::InitProducerIdResponse =
+                self.seed()?.call(ApiKey::InitProducerId, ver, &req).await?;
+            if resp.error_code == 0 {
+                return Ok((resp.producer_id.0, resp.producer_epoch));
+            }
+            last = Error::broker(resp.error_code);
+            if Error::coordinator_loading(resp.error_code) && attempt + 1 < 40 {
+                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                continue;
+            }
+            return Err(last);
+        }
+        Err(last)
     }
 
     /// FindCoordinator for a consumer group (`key_type = 0`).
