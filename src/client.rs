@@ -6,6 +6,8 @@ use kafka_protocol::messages::metadata_request::MetadataRequestTopic;
 use kafka_protocol::messages::{ApiKey, MetadataRequest, MetadataResponse, TopicName};
 use kafka_protocol::protocol::StrBytes;
 
+use uuid::Uuid;
+
 use crate::broker::{parse_bootstrap, Broker};
 use crate::error::{Error, Result};
 
@@ -53,6 +55,8 @@ pub struct PartitionMeta {
 pub struct TopicMeta {
     /// Topic name.
     pub name: String,
+    /// Metadata topic UUID (Metadata v10+). Used on Produce/Fetch v13+.
+    pub topic_id: Uuid,
     /// Partitions by index.
     pub partitions: HashMap<i32, PartitionMeta>,
 }
@@ -107,10 +111,10 @@ impl Client {
     async fn rebootstrap(&mut self) -> Result<()> {
         let mut last = Error::NoBootstrap;
         for (host, port) in self.bootstrap.clone() {
+            // `connect` runs ApiVersions on this socket (versions are per-connection).
             match Broker::connect(&host, port).await {
-                Ok(mut b) => match b.api_versions().await {
-                    Ok(resp) => {
-                        Error::check(resp.error_code)?;
+                Ok(b) => match b.last_api_versions() {
+                    Some(resp) => {
                         self.versions.clear();
                         for v in resp.api_keys {
                             self.versions
@@ -127,7 +131,7 @@ impl Client {
                         self.seed = Some(b);
                         return Ok(());
                     }
-                    Err(e) => last = e,
+                    None => last = Error::protocol("ApiVersions handshake missing on connect"),
                 },
                 Err(e) => last = e,
             }
@@ -142,8 +146,34 @@ impl Client {
         }
     }
 
-    fn seed(&mut self) -> Result<&mut Broker> {
-        self.seed.as_mut().ok_or(Error::NoBootstrap)
+    fn seed(&self) -> Result<Broker> {
+        self.seed.clone().ok_or(Error::NoBootstrap)
+    }
+
+    /// Cached topic row, including the Metadata UUID.
+    pub fn topic_meta(&self, topic: &str) -> Result<&TopicMeta> {
+        self.topics
+            .get(topic)
+            .ok_or_else(|| Error::UnknownPartition {
+                topic: topic.to_string(),
+                partition: -1,
+            })
+    }
+
+    /// Metadata topic UUID. Nil if the broker omitted it.
+    pub fn topic_id(&self, topic: &str) -> Result<Uuid> {
+        Ok(self.topic_meta(topic)?.topic_id)
+    }
+
+    /// Require a non-nil topic UUID when speaking Produce/Fetch v13+.
+    pub fn require_topic_id(&self, topic: &str, api_version: i16) -> Result<Uuid> {
+        let id = self.topic_id(topic)?;
+        if api_version >= 13 && id.is_nil() {
+            return Err(Error::protocol(format!(
+                "metadata has no topic_id for {topic}; cannot encode Produce/Fetch v{api_version}"
+            )));
+        }
+        Ok(id)
     }
 
     /// Metadata for `topics` (`None` = all topics).
@@ -205,8 +235,14 @@ impl Client {
                     },
                 );
             }
-            self.topics
-                .insert(name.clone(), TopicMeta { name, partitions });
+            self.topics.insert(
+                name.clone(),
+                TopicMeta {
+                    name,
+                    topic_id: t.topic_id,
+                    partitions,
+                },
+            );
         }
         Ok(resp)
     }
@@ -237,13 +273,16 @@ impl Client {
     }
 
     /// Connection to `node_id`, opening if needed.
-    pub async fn broker(&mut self, node_id: i32) -> Result<&mut Broker> {
+    ///
+    /// Each new TCP socket runs ApiVersions before it is returned. The handle
+    /// is cheap to clone and pipelines on that connection.
+    pub async fn broker(&mut self, node_id: i32) -> Result<Broker> {
         if !self.conns.contains_key(&node_id) {
             let node = self.nodes.get(&node_id).ok_or(Error::NoBootstrap)?.clone();
             let b = Broker::connect(&node.host, node.port).await?;
             self.conns.insert(node_id, b);
         }
-        Ok(self.conns.get_mut(&node_id).expect("just inserted"))
+        Ok(self.conns.get(&node_id).expect("just inserted").clone())
     }
 
     /// Partition count for a cached topic.
@@ -276,8 +315,38 @@ impl Client {
             .with_key(StrBytes::from_string(group_id.to_string()))
             .with_key_type(0);
         let ver = self.negotiated.find_coordinator;
-        let resp: kafka_protocol::messages::FindCoordinatorResponse =
-            self.seed()?.call(ApiKey::FindCoordinator, ver, &req).await?;
+        let resp: kafka_protocol::messages::FindCoordinatorResponse = self
+            .seed()?
+            .call(ApiKey::FindCoordinator, ver, &req)
+            .await?;
         Ok(resp)
+    }
+}
+
+/// Produce/Fetch v13+ carry `topic_id` and leave the name empty.
+pub fn topic_matches(
+    version: i16,
+    want_name: &str,
+    want_id: Uuid,
+    got_name: &str,
+    got_id: Uuid,
+) -> bool {
+    if version >= 13 {
+        got_id == want_id
+    } else {
+        got_name == want_name
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn v13_matches_id_ignores_empty_name() {
+        let id = Uuid::from_u128(1);
+        assert!(topic_matches(13, "orders", id, "", id));
+        assert!(!topic_matches(13, "orders", id, "orders", Uuid::nil()));
+        assert!(topic_matches(12, "orders", Uuid::nil(), "orders", Uuid::nil()));
     }
 }

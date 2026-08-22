@@ -23,8 +23,9 @@ crc32c = "0.6"
 indexmap = "2"
 
 # Pure-Rust codecs for the custom compression hook (not kafka-protocol's C features).
-lz4_flex = { version = "0.11", default-features = false, features = ["std"] }
+lz4_flex = { version = "0.11", default-features = false, features = ["std", "frame", "safe-encode", "safe-decode"] }
 snap = "1"
+uuid = "1"
 flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
 ruzstd = "0.8"
 
