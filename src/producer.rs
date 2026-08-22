@@ -1,8 +1,12 @@
 //! Produce path: kafka-protocol `ProduceRequest` + magic-v2 `RecordBatchEncoder`.
 //!
 //! Linger + batch, murmur2/sticky partitioner, Produce v9–v13, InitProducerId.
+//! The actor keeps receiving while Produce is in flight (capped per connection).
+//! Idempotent sequences are assigned when a batch is sent; a retry reuses that
+//! `base_sequence`.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::net::SocketAddr;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use bytes::{Bytes, BytesMut};
@@ -14,6 +18,7 @@ use kafka_protocol::records::{
     NO_PRODUCER_EPOCH, NO_PRODUCER_ID, NO_SEQUENCE,
 };
 use tokio::sync::{mpsc, oneshot};
+use tokio::task::JoinSet;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -206,6 +211,32 @@ struct ActorCfg {
     identity: Option<ProducerId>,
 }
 
+/// librdkafka `max.in.flight.requests.per.connection` when idempotent.
+const MAX_IN_FLIGHT_PER_CONNECTION: usize = 5;
+
+struct ReadyBatch {
+    key: (String, i32),
+    items: Vec<Pending>,
+}
+
+struct InFlightDone {
+    addr: SocketAddr,
+    items: Vec<Pending>,
+    result: Result<ProduceResult>,
+}
+
+/// Assign `base_sequence` and increment immediately. A retry of this batch
+/// must reuse the returned value, not mint a new one.
+fn take_base_sequence(
+    sequences: &mut HashMap<(String, i32), i32>,
+    key: &(String, i32),
+    n: i32,
+) -> i32 {
+    let base = sequences.get(key).copied().unwrap_or(0);
+    sequences.insert(key.clone(), base.wrapping_add(n));
+    base
+}
+
 enum Cmd {
     Send {
         rec: RecordTo,
@@ -330,53 +361,80 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
     let mut sticky: HashMap<String, Sticky> = HashMap::new();
     let mut sequences: HashMap<(String, i32), i32> = HashMap::new();
     let mut sticky_at: HashMap<String, Instant> = HashMap::new();
+    let mut ready: VecDeque<ReadyBatch> = VecDeque::new();
+    let mut in_flight: JoinSet<InFlightDone> = JoinSet::new();
+    let mut inflight_by_addr: HashMap<SocketAddr, usize> = HashMap::new();
 
     loop {
+        while let Some(joined) = in_flight.try_join_next() {
+            finish_inflight(joined, &mut inflight_by_addr);
+        }
+        move_ready(&cfg, &mut bufs, &mut ready, false);
+        start_sends(
+            &mut client,
+            &cfg,
+            &mut sequences,
+            &mut ready,
+            &mut in_flight,
+            &mut inflight_by_addr,
+        )
+        .await;
+
         let linger_deadline = bufs.values().map(|b| b.first + cfg.linger).min();
-        let cmd = if let Some(at) = linger_deadline {
-            let sleep = at.saturating_duration_since(Instant::now());
-            tokio::select! {
-                c = rx.recv() => c,
-                _ = tokio::time::sleep(sleep) => {
-                    let now = Instant::now();
-                    let due: Vec<_> = bufs
-                        .iter()
-                        .filter(|(_, b)| now >= b.first + cfg.linger)
-                        .map(|(k, _)| k.clone())
-                        .collect();
-                    flush_many(&mut client, &cfg, &mut bufs, &mut sequences, due).await;
-                    continue;
+        tokio::select! {
+            biased;
+            Some(joined) = in_flight.join_next() => {
+                finish_inflight(joined, &mut inflight_by_addr);
+            }
+            cmd = rx.recv() => {
+                let Some(cmd) = cmd else {
+                    drain_all(
+                        &mut client,
+                        &cfg,
+                        &mut bufs,
+                        &mut sequences,
+                        &mut ready,
+                        &mut in_flight,
+                        &mut inflight_by_addr,
+                    )
+                    .await;
+                    break;
+                };
+                match cmd {
+                    Cmd::Send { rec, reply } => {
+                        enqueue(
+                            &mut client,
+                            &cfg,
+                            &mut bufs,
+                            &mut sticky,
+                            &mut sticky_at,
+                            rec,
+                            reply,
+                        )
+                        .await;
+                    }
+                    Cmd::Flush { reply } => {
+                        drain_all(
+                            &mut client,
+                            &cfg,
+                            &mut bufs,
+                            &mut sequences,
+                            &mut ready,
+                            &mut in_flight,
+                            &mut inflight_by_addr,
+                        )
+                        .await;
+                        let _ = reply.send(Ok(()));
+                    }
                 }
             }
-        } else {
-            rx.recv().await
-        };
-
-        let Some(cmd) = cmd else { break };
-        match cmd {
-            Cmd::Send { rec, reply } => {
-                enqueue(
-                    &mut client,
-                    &cfg,
-                    &mut bufs,
-                    &mut sticky,
-                    &mut sticky_at,
-                    rec,
-                    reply,
-                )
-                .await;
-                let full: Vec<_> = bufs
-                    .iter()
-                    .filter(|(_, b)| b.bytes >= cfg.batch_size)
-                    .map(|(k, _)| k.clone())
-                    .collect();
-                flush_many(&mut client, &cfg, &mut bufs, &mut sequences, full).await;
-            }
-            Cmd::Flush { reply } => {
-                let keys: Vec<_> = bufs.keys().cloned().collect();
-                flush_many(&mut client, &cfg, &mut bufs, &mut sequences, keys).await;
-                let _ = reply.send(Ok(()));
-            }
+            _ = async {
+                if let Some(at) = linger_deadline {
+                    tokio::time::sleep(at.saturating_duration_since(Instant::now())).await;
+                } else {
+                    std::future::pending::<()>().await;
+                }
+            }, if linger_deadline.is_some() => {}
         }
     }
 }
@@ -450,67 +508,139 @@ fn succeed_items(items: Vec<Pending>, result: ProduceResult) {
 }
 
 struct PreparedProduce {
-    key: (String, i32),
     topic: String,
     topic_id: Uuid,
     partition: i32,
     ver: i16,
-    n: i32,
     base_sequence: i32,
     broker: crate::broker::Broker,
     req: ProduceRequest,
 }
 
-/// Flush every ready partition without waiting for one Produce before starting
-/// the next. Different leaders (and the same pipelined socket) go in flight
-/// together. Sequences are peeked here and incremented only after ack.
-async fn flush_many(
-    client: &mut Client,
+fn move_ready(
     cfg: &ActorCfg,
     bufs: &mut HashMap<(String, i32), PartitionBuf>,
-    sequences: &mut HashMap<(String, i32), i32>,
-    keys: Vec<(String, i32)>,
+    ready: &mut VecDeque<ReadyBatch>,
+    flush_all: bool,
 ) {
-    let mut prepared = Vec::new();
+    let now = Instant::now();
+    let keys: Vec<_> = bufs
+        .iter()
+        .filter(|(_, b)| flush_all || b.bytes >= cfg.batch_size || now >= b.first + cfg.linger)
+        .map(|(k, _)| k.clone())
+        .collect();
     for key in keys {
         let Some(buf) = bufs.remove(&key) else {
             continue;
         };
-        match prepare_produce(client, cfg, sequences, &key, &buf.items).await {
-            Ok(p) => prepared.push((buf.items, p)),
-            Err(e) => fail_items(buf.items, e),
-        }
-    }
-
-    let mut joins = Vec::with_capacity(prepared.len());
-    for (items, p) in prepared {
-        joins.push(async move {
-            let result = send_produce_retrying(&p).await;
-            (items, p, result)
-        });
-    }
-
-    // Poll every partition Produce concurrently (dynamic count, no extra crate).
-    let outcomes = join_all(joins).await;
-    for (items, p, result) in outcomes {
-        match result {
-            Ok(r) => {
-                if cfg.identity.is_some() {
-                    sequences.insert(p.key, p.base_sequence.wrapping_add(p.n));
-                }
-                succeed_items(items, r);
-            }
-            Err(e) => fail_items(items, e),
+        if !buf.items.is_empty() {
+            ready.push_back(ReadyBatch {
+                key,
+                items: buf.items,
+            });
         }
     }
 }
 
-/// Peek the next sequence. Do **not** increment until the batch is acked.
-/// A retry of these records reuses the same pid/epoch/base_sequence.
+fn finish_inflight(
+    joined: std::result::Result<InFlightDone, tokio::task::JoinError>,
+    inflight_by_addr: &mut HashMap<SocketAddr, usize>,
+) {
+    let Ok(done) = joined else {
+        return;
+    };
+    if let Some(n) = inflight_by_addr.get_mut(&done.addr) {
+        *n = n.saturating_sub(1);
+        if *n == 0 {
+            inflight_by_addr.remove(&done.addr);
+        }
+    }
+    match done.result {
+        Ok(r) => succeed_items(done.items, r),
+        Err(e) => fail_items(done.items, e),
+    }
+}
+
+async fn start_sends(
+    client: &mut Client,
+    cfg: &ActorCfg,
+    sequences: &mut HashMap<(String, i32), i32>,
+    ready: &mut VecDeque<ReadyBatch>,
+    in_flight: &mut JoinSet<InFlightDone>,
+    inflight_by_addr: &mut HashMap<SocketAddr, usize>,
+) {
+    let mut postponed = VecDeque::new();
+    while let Some(batch) = ready.pop_front() {
+        let (topic, partition) = &batch.key;
+        let leader = match client.leader_id(topic, *partition) {
+            Ok(id) => id,
+            Err(e) => {
+                fail_items(batch.items, e);
+                continue;
+            }
+        };
+        let broker = match client.broker(leader).await {
+            Ok(b) => b,
+            Err(e) => {
+                fail_items(batch.items, e);
+                continue;
+            }
+        };
+        let n = inflight_by_addr.get(&broker.addr).copied().unwrap_or(0);
+        if n >= MAX_IN_FLIGHT_PER_CONNECTION {
+            postponed.push_back(batch);
+            continue;
+        }
+        match prepare_produce(client, cfg, sequences, broker, &batch.key, &batch.items).await {
+            Ok(p) => {
+                *inflight_by_addr.entry(p.broker.addr).or_insert(0) += 1;
+                let addr = p.broker.addr;
+                in_flight.spawn(async move {
+                    let result = send_produce_retrying(&p).await;
+                    InFlightDone {
+                        addr,
+                        items: batch.items,
+                        result,
+                    }
+                });
+            }
+            Err(e) => fail_items(batch.items, e),
+        }
+    }
+    while let Some(batch) = postponed.pop_back() {
+        ready.push_front(batch);
+    }
+}
+
+async fn drain_all(
+    client: &mut Client,
+    cfg: &ActorCfg,
+    bufs: &mut HashMap<(String, i32), PartitionBuf>,
+    sequences: &mut HashMap<(String, i32), i32>,
+    ready: &mut VecDeque<ReadyBatch>,
+    in_flight: &mut JoinSet<InFlightDone>,
+    inflight_by_addr: &mut HashMap<SocketAddr, usize>,
+) {
+    move_ready(cfg, bufs, ready, true);
+    loop {
+        start_sends(client, cfg, sequences, ready, in_flight, inflight_by_addr).await;
+        if ready.is_empty() && in_flight.is_empty() {
+            return;
+        }
+        match in_flight.join_next().await {
+            Some(joined) => finish_inflight(joined, inflight_by_addr),
+            None => return,
+        }
+    }
+}
+
+/// Assign sequence (if idempotent) and encode. Increment happens here, not
+/// after ack. `send_produce_retrying` reuses this `base_sequence`.
 async fn prepare_produce(
     client: &mut Client,
     cfg: &ActorCfg,
-    sequences: &HashMap<(String, i32), i32>,
+    sequences: &mut HashMap<(String, i32), i32>,
+    broker: crate::broker::Broker,
     key: &(String, i32),
     items: &[Pending],
 ) -> Result<PreparedProduce> {
@@ -518,11 +648,13 @@ async fn prepare_produce(
         return Err(Error::protocol("empty produce batch"));
     }
     let (topic, partition) = key;
-    let leader = client.leader_id(topic, *partition)?;
     let ver = client.negotiated.produce;
     let topic_id = client.require_topic_id(topic, ver)?;
-    let base_sequence = sequences.get(key).copied().unwrap_or(0);
-    let n = items.len() as i32;
+    let base_sequence = if cfg.identity.is_some() {
+        take_base_sequence(sequences, key, items.len() as i32)
+    } else {
+        0
+    };
 
     let pairs = items
         .iter()
@@ -543,14 +675,11 @@ async fn prepare_produce(
             topic, topic_id, *partition, records,
         )]);
 
-    let broker = client.broker(leader).await?;
     Ok(PreparedProduce {
-        key: key.clone(),
         topic: topic.clone(),
         topic_id,
         partition: *partition,
         ver,
-        n,
         base_sequence,
         broker,
         req,
@@ -572,6 +701,8 @@ fn topic_produce_data(
 }
 
 async fn send_produce_retrying(p: &PreparedProduce) -> Result<ProduceResult> {
+    // Same encoded request on every attempt: pid/epoch/base_sequence stay put.
+    let _ = p.base_sequence;
     let mut last = Error::protocol("produce retry exhausted");
     for attempt in 0..3 {
         match p.broker.call(ApiKey::Produce, p.ver, &p.req).await {
@@ -607,38 +738,6 @@ fn match_produce(
         partition: p.partition,
         base_offset: part.base_offset,
     })
-}
-
-/// Poll a dynamic set of futures without adding a `futures` crate.
-async fn join_all<F, T>(futs: Vec<F>) -> Vec<T>
-where
-    F: Future<Output = T>,
-{
-    let mut futs: Vec<Pin<Box<F>>> = futs.into_iter().map(Box::pin).collect();
-    let mut out: Vec<Option<T>> = (0..futs.len()).map(|_| None).collect();
-    loop {
-        if out.iter().all(|s| s.is_some()) {
-            return out.into_iter().map(Option::unwrap).collect();
-        }
-        std::future::poll_fn(|cx| {
-            let mut pending = false;
-            for (i, f) in futs.iter_mut().enumerate() {
-                if out[i].is_some() {
-                    continue;
-                }
-                match f.as_mut().poll(cx) {
-                    Poll::Ready(v) => out[i] = Some(v),
-                    Poll::Pending => pending = true,
-                }
-            }
-            if pending {
-                Poll::Pending
-            } else {
-                Poll::Ready(())
-            }
-        })
-        .await;
-    }
 }
 
 /// Encode records with kafka-protocol's magic-v2 encoder.
@@ -778,6 +877,19 @@ mod tests {
             v12.windows(b"tid-test".len()).any(|w| w == b"tid-test"),
             "Produce v12 encodes the topic name"
         );
+    }
+
+    #[test]
+    fn sequence_assigned_on_send_retry_reuses() {
+        let mut seq = HashMap::new();
+        let key = ("t".into(), 0);
+        let first = take_base_sequence(&mut seq, &key, 1000);
+        let second = take_base_sequence(&mut seq, &key, 1000);
+        assert_eq!(first, 0);
+        assert_eq!(second, 1000);
+        assert_eq!(seq[&key], 2000);
+        // A retry of `first` reuses 0; it does not call take_base_sequence again.
+        assert_eq!(first, 0);
     }
 
     #[test]

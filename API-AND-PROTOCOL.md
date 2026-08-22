@@ -32,10 +32,11 @@ that we copy `ClientConfig::set("linger.ms", "50")`.
 - Record batch **magic v2** via `RecordBatchEncoder` (kafka-protocol).
 - **Produce v9–v13** (flexible). Prefer the highest the broker advertises in that range.
   v13 encodes `topic_id` (not the name). We cache Metadata UUIDs and match acks by id.
-- **Pipelined** `Broker::call` (correlate by correlation id). Several Produce in flight
-  on one connection; the actor starts every ready partition without waiting for the
-  previous leader. Idempotent `base_sequence` is assigned when the batch is built and
-  incremented only after ack; a retry reuses pid/epoch/base_sequence.
+- **Pipelined** `Broker::call` (correlate by correlation id). The produce actor
+  keeps receiving while Produce is in flight (up to 5 per connection, matching
+  librdkafka's idempotent `max.in.flight.requests.per.connection`). Idempotent
+  `base_sequence` is assigned when the batch is sent; a retry of that batch
+  reuses pid/epoch/base_sequence and does not mint a new sequence.
 - **ApiVersions on every new TCP connection**, including leader sockets. Versions are
   per-connection.
 - **InitProducerId** when `idempotent = true` (Lab A).
