@@ -214,15 +214,29 @@ struct ActorCfg {
 /// librdkafka `max.in.flight.requests.per.connection` when idempotent.
 const MAX_IN_FLIGHT_PER_CONNECTION: usize = 5;
 
+/// First write plus retries of the same encoded Produce.
+const PRODUCE_ATTEMPTS: u8 = 3;
+
 struct ReadyBatch {
     key: (String, i32),
     items: Vec<Pending>,
 }
 
-struct InFlightDone {
-    addr: SocketAddr,
-    items: Vec<Pending>,
-    result: Result<ProduceResult>,
+enum InFlightDone {
+    Finished {
+        addr: SocketAddr,
+        items: Vec<Pending>,
+        result: Result<ProduceResult>,
+    },
+    /// Transport or broker error after a write. The actor must `submit` the
+    /// same request again; do not call `Broker::call` off-thread.
+    Retry {
+        addr: SocketAddr,
+        items: Vec<Pending>,
+        prepared: PreparedProduce,
+        attempt: u8,
+        last_err: Error,
+    },
 }
 
 /// Assign `base_sequence` and increment immediately. A retry of this batch
@@ -367,7 +381,7 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
 
     loop {
         while let Some(joined) = in_flight.try_join_next() {
-            finish_inflight(joined, &mut inflight_by_addr);
+            apply_inflight(joined, &mut inflight_by_addr, &mut in_flight).await;
         }
         move_ready(&cfg, &mut bufs, &mut ready, false);
         start_sends(
@@ -384,7 +398,7 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
         tokio::select! {
             biased;
             Some(joined) = in_flight.join_next() => {
-                finish_inflight(joined, &mut inflight_by_addr);
+                apply_inflight(joined, &mut inflight_by_addr, &mut in_flight).await;
             }
             cmd = rx.recv() => {
                 let Some(cmd) = cmd else {
@@ -544,22 +558,100 @@ fn move_ready(
     }
 }
 
-fn finish_inflight(
+fn release_inflight(addr: SocketAddr, inflight_by_addr: &mut HashMap<SocketAddr, usize>) {
+    if let Some(n) = inflight_by_addr.get_mut(&addr) {
+        *n = n.saturating_sub(1);
+        if *n == 0 {
+            inflight_by_addr.remove(&addr);
+        }
+    }
+}
+
+fn spawn_produce_wait(
+    in_flight: &mut JoinSet<InFlightDone>,
+    call: crate::broker::PendingCall<kafka_protocol::messages::ProduceResponse>,
+    prepared: PreparedProduce,
+    items: Vec<Pending>,
+    attempt: u8,
+    retry: bool,
+) {
+    let addr = prepared.broker.addr;
+    in_flight.spawn(async move {
+        match wait_produce_once(call, &prepared, retry).await {
+            Ok(r) => InFlightDone::Finished {
+                addr,
+                items,
+                result: Ok(r),
+            },
+            Err(e) => InFlightDone::Retry {
+                addr,
+                items,
+                prepared,
+                attempt: attempt.saturating_add(1),
+                last_err: e,
+            },
+        }
+    });
+}
+
+async fn apply_inflight(
     joined: std::result::Result<InFlightDone, tokio::task::JoinError>,
     inflight_by_addr: &mut HashMap<SocketAddr, usize>,
+    in_flight: &mut JoinSet<InFlightDone>,
 ) {
     let Ok(done) = joined else {
         return;
     };
-    if let Some(n) = inflight_by_addr.get_mut(&done.addr) {
-        *n = n.saturating_sub(1);
-        if *n == 0 {
-            inflight_by_addr.remove(&done.addr);
+    match done {
+        InFlightDone::Finished {
+            addr,
+            items,
+            result,
+        } => {
+            release_inflight(addr, inflight_by_addr);
+            match result {
+                Ok(r) => succeed_items(items, r),
+                Err(e) => fail_items(items, e),
+            }
         }
-    }
-    match done.result {
-        Ok(r) => succeed_items(done.items, r),
-        Err(e) => fail_items(done.items, e),
+        InFlightDone::Retry {
+            addr,
+            items,
+            prepared,
+            attempt,
+            last_err,
+        } => {
+            if attempt >= PRODUCE_ATTEMPTS {
+                release_inflight(addr, inflight_by_addr);
+                fail_items(items, last_err);
+                return;
+            }
+            match prepared
+                .broker
+                .submit::<_, kafka_protocol::messages::ProduceResponse>(
+                    ApiKey::Produce,
+                    prepared.ver,
+                    &prepared.req,
+                )
+                .await
+            {
+                Ok(call) => spawn_produce_wait(in_flight, call, prepared, items, attempt, true),
+                Err(e) => {
+                    Box::pin(apply_inflight(
+                        Ok(InFlightDone::Retry {
+                            addr,
+                            items,
+                            prepared,
+                            attempt: attempt.saturating_add(1),
+                            last_err: e,
+                        }),
+                        inflight_by_addr,
+                        in_flight,
+                    ))
+                    .await;
+                }
+            }
+        }
     }
 }
 
@@ -610,15 +702,7 @@ async fn start_sends(
                             debug_assert_eq!(assigned, p.base_sequence);
                         }
                         *inflight_by_addr.entry(p.broker.addr).or_insert(0) += 1;
-                        let addr = p.broker.addr;
-                        in_flight.spawn(async move {
-                            let result = wait_produce_retrying(call, &p).await;
-                            InFlightDone {
-                                addr,
-                                items: batch.items,
-                                result,
-                            }
-                        });
+                        spawn_produce_wait(in_flight, call, p, batch.items, 0, false);
                     }
                     Err(e) => fail_items(batch.items, e),
                 }
@@ -647,7 +731,7 @@ async fn drain_all(
             return;
         }
         match in_flight.join_next().await {
-            Some(joined) => finish_inflight(joined, inflight_by_addr),
+            Some(joined) => apply_inflight(joined, inflight_by_addr, in_flight).await,
             None => return,
         }
     }
@@ -718,43 +802,40 @@ fn topic_produce_data(
             .with_records(Some(records))])
 }
 
-async fn wait_produce_retrying(
-    first: crate::broker::PendingCall<kafka_protocol::messages::ProduceResponse>,
+async fn wait_produce_once(
+    call: crate::broker::PendingCall<kafka_protocol::messages::ProduceResponse>,
     p: &PreparedProduce,
+    retry: bool,
 ) -> Result<ProduceResult> {
-    match first.wait().await {
-        Ok(resp) => return match_produce(&resp, p),
-        Err(e) => {
-            let mut last = e;
-            for _ in 1..3 {
-                match p.broker.call(ApiKey::Produce, p.ver, &p.req).await {
-                    Ok(resp) => return match_produce(&resp, p),
-                    Err(e) => last = e,
-                }
-            }
-            Err(last)
-        }
-    }
+    let resp = call.wait().await?;
+    match_produce(&resp, &p.topic, p.topic_id, p.partition, p.ver, retry)
 }
 
 fn match_produce(
     resp: &kafka_protocol::messages::ProduceResponse,
-    p: &PreparedProduce,
+    topic: &str,
+    topic_id: Uuid,
+    partition: i32,
+    ver: i16,
+    retry: bool,
 ) -> Result<ProduceResult> {
     let part = resp
         .responses
         .iter()
-        .find(|t| topic_matches(p.ver, &p.topic, p.topic_id, t.name.0.as_str(), t.topic_id))
-        .and_then(|t| {
-            t.partition_responses
-                .iter()
-                .find(|r| r.index == p.partition)
-        })
+        .find(|t| topic_matches(ver, topic, topic_id, t.name.0.as_str(), t.topic_id))
+        .and_then(|t| t.partition_responses.iter().find(|r| r.index == partition))
         .ok_or_else(|| Error::protocol("produce response missing partition"))?;
+    if part.error_code == 0 || (retry && Error::duplicate_sequence(part.error_code)) {
+        return Ok(ProduceResult {
+            topic: topic.to_string(),
+            partition,
+            base_offset: part.base_offset,
+        });
+    }
     Error::check(part.error_code)?;
     Ok(ProduceResult {
-        topic: p.topic.clone(),
-        partition: p.partition,
+        topic: topic.to_string(),
+        partition,
         base_offset: part.base_offset,
     })
 }
@@ -896,6 +977,31 @@ mod tests {
             v12.windows(b"tid-test".len()).any(|w| w == b"tid-test"),
             "Produce v12 encodes the topic name"
         );
+    }
+
+    fn produce_ack(code: i16, retry: bool) -> Result<ProduceResult> {
+        use kafka_protocol::messages::produce_response::{
+            PartitionProduceResponse, TopicProduceResponse,
+        };
+        let id = Uuid::from_u128(7);
+        let resp = kafka_protocol::messages::ProduceResponse::default().with_responses(vec![
+            TopicProduceResponse::default()
+                .with_name(TopicName(StrBytes::from_string("t".into())))
+                .with_topic_id(id)
+                .with_partition_responses(vec![PartitionProduceResponse::default()
+                    .with_index(0)
+                    .with_error_code(code)
+                    .with_base_offset(42)]),
+        ]);
+        match_produce(&resp, "t", id, 0, 13, retry)
+    }
+
+    #[test]
+    fn duplicate_sequence_is_success_on_retry_only() {
+        assert!(produce_ack(46, true).is_ok());
+        assert!(produce_ack(46, false).is_err());
+        assert!(produce_ack(0, false).is_ok());
+        assert!(produce_ack(45, true).is_err());
     }
 
     #[test]

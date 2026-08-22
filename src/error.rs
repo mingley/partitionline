@@ -79,6 +79,14 @@ impl Error {
         }
     }
 
+    /// Broker already accepted this pid/epoch/sequence (`DuplicateSequenceNumber` = 46).
+    pub fn duplicate_sequence(code: i16) -> bool {
+        matches!(
+            ResponseError::try_from_code(code),
+            Some(ResponseError::DuplicateSequenceNumber)
+        )
+    }
+
     /// Coordinator still coming up after broker start (InitProducerId, etc.).
     pub fn coordinator_loading(code: i16) -> bool {
         matches!(
