@@ -97,3 +97,18 @@ partitionline mean rec/s is **46%** of C. p50 is **2.4×** worse.
 Locked knobs on both clients: acks=all, linger=50, compression=none, idempotent=true, batch.size=1000000. Raw + three reps: [results/lab-a.md](results/lab-a.md).
 
 100 B / 10 KiB columns, fetch rec/s, and e2e p50/p99 are empty. A suite that cannot fill every must-beat column is incomplete.
+
+## Comparison table (Lab A produce, 2026-08-22, pipeline re-run)
+
+Same locked window after pipelining Produce (up to 5 in flight, sequence assigned on write). **60 s warmup + 180 s × 3.** Not a 10-minute run. The 10 s smoke is not this table. The loss table above is unchanged.
+
+acks=**all**. Latency is produce-ack / delivery-report, **microseconds**. Means of three reps.
+
+| payload | acks | linger | idem | client | rec/s | MiB/s | p50 µs | p99 µs | p999 µs |
+|---|---|---|---|---|---:|---:|---:|---:|---:|
+| 1 KiB | all | 50 | true | librdkafka 2.15.0 C | 944287 | 922.159 | 99141 | 245744 | 303591 |
+| 1 KiB | all | 50 | true | partitionline | 989840 | 966.640 | 99881 | 157503 | 185944 |
+
+**Win on rec/s and MiB/s.** partitionline mean rec/s is **105%** of C. Mean p50 is **0.7%** worse. p99 and p999 are better.
+
+Raw + three reps: [results/lab-a-pipeline.md](results/lab-a-pipeline.md), [results/published/2026-08-22-cursor-pipeline/](results/published/2026-08-22-cursor-pipeline/).
