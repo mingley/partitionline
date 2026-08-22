@@ -2,8 +2,9 @@
 //!
 //! Linger + batch, murmur2/sticky partitioner, Produce v9–v13, InitProducerId.
 //! The actor keeps receiving while Produce is in flight (capped per connection).
-//! Idempotent sequences are assigned when a batch is sent; a retry reuses that
-//! `base_sequence`.
+//! Completions are drained between submits so an ack is not held behind the
+//! next batch encode. Idempotent sequences are assigned when a batch is sent;
+//! a retry reuses that `base_sequence`.
 
 use std::collections::{HashMap, VecDeque};
 use std::net::SocketAddr;
@@ -381,9 +382,7 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
     let mut inflight_by_addr: HashMap<SocketAddr, usize> = HashMap::new();
 
     loop {
-        while let Some(joined) = in_flight.try_join_next() {
-            apply_inflight(joined, &mut inflight_by_addr, &mut in_flight).await;
-        }
+        poll_inflight(&mut in_flight, &mut inflight_by_addr).await;
         move_ready(&cfg, &mut bufs, &mut ready, false);
         start_sends(
             &mut client,
@@ -417,16 +416,28 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
                 };
                 match cmd {
                     Cmd::Send { rec, reply } => {
-                        enqueue(
-                            &mut client,
-                            &cfg,
-                            &mut bufs,
-                            &mut sticky,
-                            &mut sticky_at,
-                            rec,
-                            reply,
-                        )
-                        .await;
+                        if client.partition_count(&rec.topic).is_none() {
+                            enqueue(
+                                &mut client,
+                                &cfg,
+                                &mut bufs,
+                                &mut sticky,
+                                &mut sticky_at,
+                                rec,
+                                reply,
+                            )
+                            .await;
+                        } else {
+                            push_pending(
+                                &client,
+                                &cfg,
+                                &mut bufs,
+                                &mut sticky,
+                                &mut sticky_at,
+                                rec,
+                                reply,
+                            );
+                        }
                     }
                     Cmd::Flush { reply } => {
                         drain_all(
@@ -469,6 +480,20 @@ async fn enqueue(
             return;
         }
     }
+    push_pending(client, cfg, bufs, sticky, sticky_at, rec, reply);
+}
+
+/// Hot path: metadata already cached. Not `async` — a future per record
+/// was extra poll work on every Lab A enqueue.
+fn push_pending(
+    client: &Client,
+    cfg: &ActorCfg,
+    bufs: &mut HashMap<(String, i32), PartitionBuf>,
+    sticky: &mut HashMap<String, Sticky>,
+    sticky_at: &mut HashMap<String, Instant>,
+    rec: RecordTo,
+    reply: oneshot::Sender<Result<ProduceResult>>,
+) {
     let Some(n) = client.partition_count(&rec.topic) else {
         let _ = reply.send(Err(Error::UnknownPartition {
             topic: rec.topic.clone(),
@@ -534,6 +559,10 @@ struct PreparedProduce {
     req: ProduceRequest,
 }
 
+fn buf_ripe(buf: &PartitionBuf, cfg: &ActorCfg, now: Instant, flush_all: bool) -> bool {
+    flush_all || buf.bytes >= cfg.batch_size || now >= buf.first + cfg.linger
+}
+
 fn move_ready(
     cfg: &ActorCfg,
     bufs: &mut HashMap<(String, i32), PartitionBuf>,
@@ -541,21 +570,26 @@ fn move_ready(
     flush_all: bool,
 ) {
     let now = Instant::now();
-    let keys: Vec<_> = bufs
-        .iter()
-        .filter(|(_, b)| flush_all || b.bytes >= cfg.batch_size || now >= b.first + cfg.linger)
-        .map(|(k, _)| k.clone())
-        .collect();
-    for key in keys {
-        let Some(buf) = bufs.remove(&key) else {
-            continue;
-        };
+    bufs.retain(|key, buf| {
+        if !buf_ripe(buf, cfg, now, flush_all) {
+            return true;
+        }
         if !buf.items.is_empty() {
             ready.push_back(ReadyBatch {
-                key,
-                items: buf.items,
+                key: key.clone(),
+                items: std::mem::take(&mut buf.items),
             });
         }
+        false
+    });
+}
+
+async fn poll_inflight(
+    in_flight: &mut JoinSet<InFlightDone>,
+    inflight_by_addr: &mut HashMap<SocketAddr, usize>,
+) {
+    while let Some(joined) = in_flight.try_join_next() {
+        apply_inflight(joined, inflight_by_addr, in_flight).await;
     }
 }
 
@@ -673,6 +707,10 @@ async fn start_sends(
 ) {
     let mut postponed = VecDeque::new();
     while let Some(batch) = ready.pop_front() {
+        // Deliver any ack that arrived while the previous batch was encoded
+        // or written. Holding those oneshots until all five in-flight Produces
+        // are submitted is extra p50.
+        poll_inflight(in_flight, inflight_by_addr).await;
         let (topic, partition) = &batch.key;
         let leader = match client.leader_id(topic, *partition) {
             Ok(id) => id,
@@ -693,7 +731,7 @@ async fn start_sends(
             postponed.push_back(batch);
             continue;
         }
-        match prepare_produce(client, cfg, sequences, broker, &batch.key, &batch.items).await {
+        match prepare_produce(client, cfg, sequences, broker, &batch.key, &batch.items) {
             Ok(p) => {
                 match p
                     .broker
@@ -711,6 +749,7 @@ async fn start_sends(
                         }
                         *inflight_by_addr.entry(p.broker.addr).or_insert(0) += 1;
                         spawn_produce_wait(in_flight, call, p, batch.items, 0, false);
+                        poll_inflight(in_flight, inflight_by_addr).await;
                     }
                     Err(e) => fail_items(batch.items, e),
                 }
@@ -747,7 +786,7 @@ async fn drain_all(
 
 /// Peek the next sequence and encode. Increment only after the request is
 /// written (`submit`). A retry reuses this `base_sequence`.
-async fn prepare_produce(
+fn prepare_produce(
     client: &mut Client,
     cfg: &ActorCfg,
     sequences: &HashMap<(String, i32), i32>,
@@ -1064,6 +1103,48 @@ mod tests {
             ),
             AfterWait::Transport(_)
         ));
+    }
+
+    fn actor_cfg(linger_ms: u64, batch_size: usize) -> ActorCfg {
+        ActorCfg {
+            acks: Acks::All,
+            linger: Duration::from_millis(linger_ms),
+            batch_size,
+            compression: Compression::None,
+            timeout_ms: 30_000,
+            identity: None,
+        }
+    }
+
+    #[test]
+    fn batch_size_is_ripe_before_linger() {
+        let cfg = actor_cfg(50, 1000);
+        let now = Instant::now();
+        let full = PartitionBuf {
+            first: now,
+            bytes: 1000,
+            items: Vec::new(),
+        };
+        let partial = PartitionBuf {
+            first: now,
+            bytes: 999,
+            items: Vec::new(),
+        };
+        assert!(buf_ripe(&full, &cfg, now, false));
+        assert!(!buf_ripe(&partial, &cfg, now, false));
+    }
+
+    #[test]
+    fn linger_is_ripe_after_deadline() {
+        let cfg = actor_cfg(50, 1_000_000);
+        let now = Instant::now();
+        let aged = PartitionBuf {
+            first: now - Duration::from_millis(50),
+            bytes: 1,
+            items: Vec::new(),
+        };
+        assert!(buf_ripe(&aged, &cfg, now, false));
+        assert!(buf_ripe(&aged, &cfg, now, true));
     }
 
     #[test]
