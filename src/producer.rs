@@ -3,8 +3,9 @@
 //! Linger + batch, murmur2/sticky partitioner, Produce v9–v13, InitProducerId.
 //! The actor keeps receiving while Produce is in flight (capped per connection).
 //! Completions are drained between submits so an ack is not held behind the
-//! next batch encode. Idempotent sequences are assigned when a batch is sent;
-//! a retry reuses that `base_sequence`.
+//! next batch encode. Delivery oneshots fire in the wait task (not on the
+//! actor) so an encode in progress does not hold p50. Idempotent sequences
+//! are assigned when a batch is sent; a retry reuses that `base_sequence`.
 
 use std::collections::{HashMap, VecDeque};
 use std::net::SocketAddr;
@@ -224,10 +225,9 @@ struct ReadyBatch {
 }
 
 enum InFlightDone {
+    /// Oneshots already fired in the wait task. Actor only frees the slot.
     Finished {
         addr: SocketAddr,
-        items: Vec<Pending>,
-        result: Result<ProduceResult>,
     },
     /// `call.wait()` failed (connection/transport). The actor `submit`s the
     /// same encoded request again. A decoded ProduceResponse is never this
@@ -416,27 +416,37 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
                 };
                 match cmd {
                     Cmd::Send { rec, reply } => {
-                        if client.partition_count(&rec.topic).is_none() {
-                            enqueue(
+                        apply_send(
+                            &mut client,
+                            &cfg,
+                            &mut bufs,
+                            &mut sticky,
+                            &mut sticky_at,
+                            rec,
+                            reply,
+                        )
+                        .await;
+                        if let Some(flush) = drain_queued_sends(
+                            &mut client,
+                            &cfg,
+                            &mut bufs,
+                            &mut sticky,
+                            &mut sticky_at,
+                            &mut rx,
+                        )
+                        .await
+                        {
+                            drain_all(
                                 &mut client,
                                 &cfg,
                                 &mut bufs,
-                                &mut sticky,
-                                &mut sticky_at,
-                                rec,
-                                reply,
+                                &mut sequences,
+                                &mut ready,
+                                &mut in_flight,
+                                &mut inflight_by_addr,
                             )
                             .await;
-                        } else {
-                            push_pending(
-                                &client,
-                                &cfg,
-                                &mut bufs,
-                                &mut sticky,
-                                &mut sticky_at,
-                                rec,
-                                reply,
-                            );
+                            let _ = flush.send(Ok(()));
                         }
                     }
                     Cmd::Flush { reply } => {
@@ -463,6 +473,51 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
             }, if linger_deadline.is_some() => {}
         }
     }
+}
+
+async fn apply_send(
+    client: &mut Client,
+    cfg: &ActorCfg,
+    bufs: &mut HashMap<(String, i32), PartitionBuf>,
+    sticky: &mut HashMap<String, Sticky>,
+    sticky_at: &mut HashMap<String, Instant>,
+    rec: RecordTo,
+    reply: oneshot::Sender<Result<ProduceResult>>,
+) {
+    if client.partition_count(&rec.topic).is_none() {
+        enqueue(client, cfg, bufs, sticky, sticky_at, rec, reply).await;
+    } else {
+        push_pending(client, cfg, bufs, sticky, sticky_at, rec, reply);
+    }
+}
+
+fn any_buf_ripe(bufs: &HashMap<(String, i32), PartitionBuf>, cfg: &ActorCfg) -> bool {
+    let now = Instant::now();
+    bufs.values().any(|b| buf_ripe(b, cfg, now, false))
+}
+
+/// Pull queued `Send`s until a partition buf is ripe or the channel is empty.
+/// Stops at the first full/lingered batch so we send instead of eating 100k.
+/// `Flush` is returned for the actor to drain.
+async fn drain_queued_sends(
+    client: &mut Client,
+    cfg: &ActorCfg,
+    bufs: &mut HashMap<(String, i32), PartitionBuf>,
+    sticky: &mut HashMap<String, Sticky>,
+    sticky_at: &mut HashMap<String, Instant>,
+    rx: &mut mpsc::UnboundedReceiver<Cmd>,
+) -> Option<oneshot::Sender<Result<()>>> {
+    while !any_buf_ripe(bufs, cfg) {
+        match rx.try_recv() {
+            Ok(Cmd::Send { rec, reply }) => {
+                apply_send(client, cfg, bufs, sticky, sticky_at, rec, reply).await;
+            }
+            Ok(Cmd::Flush { reply }) => return Some(reply),
+            Err(mpsc::error::TryRecvError::Empty) => break,
+            Err(mpsc::error::TryRecvError::Disconnected) => break,
+        }
+    }
+    None
 }
 
 async fn enqueue(
@@ -620,11 +675,15 @@ fn spawn_produce_wait(
             prepared.ver,
             retry,
         ) {
-            AfterWait::Finished(result) => InFlightDone::Finished {
-                addr,
-                items,
-                result,
-            },
+            AfterWait::Finished(result) => {
+                // Fire oneshots here. If the actor is mid-encode, poll_inflight
+                // cannot run; holding the ack until that encode ends is extra p50.
+                match result {
+                    Ok(r) => succeed_items(items, r),
+                    Err(e) => fail_items(items, e),
+                }
+                InFlightDone::Finished { addr }
+            }
             AfterWait::Transport(e) => InFlightDone::Retry {
                 addr,
                 items,
@@ -645,16 +704,8 @@ async fn apply_inflight(
         return;
     };
     match done {
-        InFlightDone::Finished {
-            addr,
-            items,
-            result,
-        } => {
+        InFlightDone::Finished { addr } => {
             release_inflight(addr, inflight_by_addr);
-            match result {
-                Ok(r) => succeed_items(items, r),
-                Err(e) => fail_items(items, e),
-            }
         }
         InFlightDone::Retry {
             addr,
@@ -1132,6 +1183,24 @@ mod tests {
         };
         assert!(buf_ripe(&full, &cfg, now, false));
         assert!(!buf_ripe(&partial, &cfg, now, false));
+    }
+
+    #[test]
+    fn any_buf_ripe_when_batch_full() {
+        let cfg = actor_cfg(50, 1000);
+        let now = Instant::now();
+        let mut bufs = HashMap::new();
+        bufs.insert(
+            ("t".into(), 0),
+            PartitionBuf {
+                first: now,
+                bytes: 999,
+                items: Vec::new(),
+            },
+        );
+        assert!(!any_buf_ripe(&bufs, &cfg));
+        bufs.get_mut(&("t".into(), 0)).unwrap().bytes = 1000;
+        assert!(any_buf_ripe(&bufs, &cfg));
     }
 
     #[test]
