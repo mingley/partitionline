@@ -65,7 +65,7 @@ impl Fetcher {
             client,
             max_wait_ms: 500,
             min_bytes: 1,
-            partition_max_bytes: 1_048_576,
+            partition_max_bytes: 4_194_304,
         }
     }
 
@@ -321,9 +321,20 @@ fn unpack_fetch(
 }
 
 /// Decode one or more magic-v2 batches with the pure-Rust compression hook.
+///
+/// A Fetch `max_bytes` slice can end mid-batch. Stop at a truncated tail
+/// instead of failing the whole consume (next fetch resumes at `next_offset`).
 pub fn decode_records(mut raw: Bytes) -> Result<Vec<Record>> {
     let mut out = Vec::new();
-    while !raw.is_empty() {
+    while raw.len() >= 12 {
+        let batch_len = i32::from_be_bytes([raw[8], raw[9], raw[10], raw[11]]);
+        if batch_len < 0 {
+            return Err(Error::protocol("negative record batch length"));
+        }
+        let need = 12usize.saturating_add(batch_len as usize);
+        if raw.len() < need {
+            break;
+        }
         let set = RecordBatchDecoder::decode_with_custom_compression(
             &mut raw,
             Some(compression::decode_hook),
@@ -483,5 +494,29 @@ mod tests {
         let recs = decode_records(raw).unwrap();
         assert_eq!(recs.len(), 1);
         assert_eq!(recs[0].value.as_deref(), Some(&b"payload"[..]));
+    }
+
+    #[test]
+    fn decode_records_stops_at_truncated_tail() {
+        let a = encode_record_batch(
+            [(None, Some(Bytes::from_static(b"one")))],
+            Compression::None,
+            crate::producer::BatchIdentity::default(),
+        )
+        .unwrap();
+        let b = encode_record_batch(
+            [(None, Some(Bytes::from_static(b"two")))],
+            Compression::None,
+            crate::producer::BatchIdentity::default(),
+        )
+        .unwrap();
+        let mut raw = bytes::BytesMut::new();
+        raw.extend_from_slice(&a);
+        raw.extend_from_slice(&b);
+        raw.extend_from_slice(&[0u8; 8]); // truncated next batch
+        let recs = decode_records(raw.freeze()).unwrap();
+        assert_eq!(recs.len(), 2);
+        assert_eq!(recs[0].value.as_deref(), Some(&b"one"[..]));
+        assert_eq!(recs[1].value.as_deref(), Some(&b"two"[..]));
     }
 }

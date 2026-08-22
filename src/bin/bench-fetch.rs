@@ -93,12 +93,12 @@ async fn main() -> partitionline::Result<()> {
     let mut fetcher = Fetcher::new(client)
         .max_wait_ms(100)
         .min_bytes(1)
-        .partition_max_bytes(1_048_576);
+        .partition_max_bytes(4_194_304);
 
     eprintln!(
         "partitionline fetch: bootstrap={bootstrap} topic={topic} size={size} \
          partitions={n} from earliest (offset 0) max_wait_ms=100 \
-         partition_max_bytes=1048576"
+         partition_max_bytes=4194304"
     );
 
     let t0 = Instant::now();
