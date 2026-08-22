@@ -2,55 +2,51 @@
 
 Pure-Rust Apache Kafka client. Zero C / FFI / librdkafka. Not a wrapper.
 
-This is a **performance bet**, not a claim that Rust lacks a Kafka client. The
+This is a **performance bet**, not a claim that Rust has no Kafka client. The
 category is crowded. The production Rust client is already
-[`rdkafka` 0.39.0](https://crates.io/crates/rdkafka): **34,548,428 downloads**
-and **292 reverse dependencies** on crates.io (checked 2026-08-22). That crate
-is a librdkafka FFI binding — the same shape as the C++, Python, and Confluent
-clients, not a missing-capability hole versus the Java client.
+[`rdkafka` 0.39.0](https://crates.io/crates/rdkafka) — crates.io **2026-08-22**:
+**34,548,428 downloads**, **292 reverse dependencies**. It depends on
+[`rdkafka-sys` 4.10.0+2.12.1](https://crates.io/crates/rdkafka-sys) (vendored
+**librdkafka 2.12.1**). That FFI shape is the same as the C++, Python, and
+Confluent clients, not a missing-capability hole versus Java.
 
-Those rdkafka 0.39.0 numbers are the **baseline we have to beat**, not a reason
-this project should not exist. Partitionline is done only when it is faster than
-librdkafka on published, honest, same-hardware benches for **throughput and
-latency**. Slow-but-safe is not v1.
+Those rdkafka 0.39.0 numbers are the **README baseline we have to beat**, not a
+reason this project should not exist. The **speed bar** is librdkafka itself
+(C `rdkafka_performance`, pin **2.15.0**). Beating the Rust wrapper is not a
+win. Partitionline is not done until it is faster on published honest
+same-hardware benches for **throughput and latency**. Slow-but-safe is not v1.
 
 Other Rust-native clients already exist (`samsa`, `krafka`, `kacrab`,
-`kafkit-client`). We are another client. The bet is the hot path, not
-empty-category marketing.
+`kafkit-client`). We are another client. The bet is the hot path.
 
 ## What we reuse
 
-Wire types come from [`kafka-protocol` 0.18](https://crates.io/crates/kafka-protocol)
-(`default-features = false`, `features = ["client"]` — default features pull
-C `lz4`/`zstd`). We do not rewrite `ApiKey`, request bodies, tagged fields, or
-record-batch magic v2. Named gaps (4.1.0 schema pin, owned-only decode, #104
-intermediate `Bytes`) are in [PROTOCOL.md](PROTOCOL.md).
+[`kafka-protocol` 0.18.0](https://crates.io/crates/kafka-protocol) with
+`default-features = false, features = ["client"]`. We do not rewrite wire
+types. See [PROTOCOL.md](PROTOCOL.md) and
+[API-AND-PROTOCOL.md](API-AND-PROTOCOL.md).
 
 ## Status
 
-Early. Produce / Fetch / Metadata / classic consumer groups / admin are the v1
-slice. Gaps (SASL, TLS-on-by-default, KIP-848, …) are listed in PROTOCOL.md
-instead of being silently skipped.
+Producer first (magic v2, Produce v9–v13, linger/batch, hash/sticky,
+InitProducerId). Classic consumer groups and admin next. PLAINTEXT until after
+the produce bench. Gaps (TLS/SASL, KIP-848, transactions/EOS, …) are named in
+API-AND-PROTOCOL.md.
 
 ## How to run
 
 ```bash
-# library + unit tests (no broker)
 cargo test
-
-# local Kafka (KRaft)
 docker compose up -d
-cargo run --example produce_fetch -- --bootstrap localhost:9092
+cargo run --example produce_fetch -- localhost:9092
 ```
 
 ## How to bench
 
-See [BENCH.md](BENCH.md). Comparison is against **librdkafka C** (its own
-examples / `rdkafka-sys`) on the same machine, same broker, same topic shape.
-`rdkafka` 0.39.0 is the named Rust-side baseline we also have to beat. No
-warmup-only numbers. Scripts and raw results will be published. If we cannot
-beat C yet, the table will say so with numbers.
+See [BENCH.md](BENCH.md) (Lab A: Kafka 4.3.1, linger=50, acks=1, 60 s warmup +
+10 min × 3, C librdkafka **2.15.0**). No warmup-only numbers. Scripts and raw
+HDR/CSV will be published. A loss is published as a loss.
 
 ```bash
-./scripts/bench.sh            # prints the comparison table
+./scripts/bench.sh
 ```
