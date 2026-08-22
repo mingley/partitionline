@@ -51,11 +51,12 @@ cargo run --example produce_fetch -- localhost:9092
 
 See [BENCH.md](BENCH.md) (published Lab A: Kafka 4.3.1, linger=50, acks=all,
 60 s warmup + 180 s × 3, C librdkafka **2.15.0**). The latest same-window
-table is [results/lab-a-0f25201.md](results/lab-a-0f25201.md) (pin
-`0f25201`). Earlier windows stay at [results/lab-a.md](results/lab-a.md),
+table is [results/lab-a-4727da4.md](results/lab-a-4727da4.md) (pin
+`4727da4`). Earlier windows stay at [results/lab-a.md](results/lab-a.md),
 [results/lab-a-pipeline.md](results/lab-a-pipeline.md),
-[results/lab-a-083ae1f.md](results/lab-a-083ae1f.md), and
-[results/lab-a-cf77216.md](results/lab-a-cf77216.md). Fetch/e2e
+[results/lab-a-083ae1f.md](results/lab-a-083ae1f.md),
+[results/lab-a-cf77216.md](results/lab-a-cf77216.md), and
+[results/lab-a-0f25201.md](results/lab-a-0f25201.md). Fetch/e2e
 unmeasured. Not done. No warmup-only numbers. 10 min × 3 was the original
 ask and is not this published window.
 
