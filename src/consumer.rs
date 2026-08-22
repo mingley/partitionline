@@ -126,6 +126,9 @@ mod tests {
         let mut buf = bytes::BytesMut::new();
         req.encode(&mut buf, 11).unwrap();
         assert!(!buf.is_empty());
+        let mut buf12 = bytes::BytesMut::new();
+        req.encode(&mut buf12, 12).unwrap();
+        assert!(!buf12.is_empty());
     }
 
     #[test]
@@ -133,6 +136,7 @@ mod tests {
         let raw = encode_record_batch(
             [(None, Some(Bytes::from_static(b"payload")))],
             Compression::None,
+            crate::producer::BatchIdentity::default(),
         )
         .unwrap();
         let recs = decode_records(raw).unwrap();

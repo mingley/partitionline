@@ -17,9 +17,9 @@ async fn main() -> partitionline::Result<()> {
         .unwrap_or_else(|| "partitionline-example".into());
 
     let client = Client::connect([&bootstrap]).await?;
-    let mut producer = Producer::new(client);
+    let producer = Producer::new(client);
     let sent = producer
-        .send(
+        .send_to(
             &topic,
             0,
             None,

@@ -30,13 +30,17 @@ pub mod compression;
 pub mod consumer;
 pub mod error;
 pub mod frame;
+pub mod partitioner;
 pub mod producer;
 
 pub use client::Client;
 pub use compression::Compression;
 pub use consumer::{decode_records, Fetched, Fetcher};
 pub use error::{Error, Result};
-pub use producer::{encode_record_batch, Acks, ProduceResult, Producer};
+pub use partitioner::{hash_partition, murmur2};
+pub use producer::{
+    encode_record_batch, Acks, BatchIdentity, ProduceResult, Producer, ProducerBuilder, RecordTo,
+};
 
 /// Crate version sent as `client_software_version` on ApiVersions v3+.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

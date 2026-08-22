@@ -16,10 +16,14 @@ pub struct Negotiated {
     pub api_versions: i16,
     /// Metadata request version.
     pub metadata: i16,
-    /// Produce request version.
+    /// Produce request version (v9–v13 flexible).
     pub produce: i16,
-    /// Fetch request version.
+    /// Fetch request version (v12–v16).
     pub fetch: i16,
+    /// InitProducerId (idempotent produce).
+    pub init_producer_id: i16,
+    /// FindCoordinator.
+    pub find_coordinator: i16,
 }
 
 impl Default for Negotiated {
@@ -27,8 +31,10 @@ impl Default for Negotiated {
         Self {
             api_versions: 3,
             metadata: 12,
-            produce: 8,
-            fetch: 11,
+            produce: 9,
+            fetch: 12,
+            init_producer_id: 4,
+            find_coordinator: 4,
         }
     }
 }
@@ -113,8 +119,10 @@ impl Client {
                         self.negotiated = Negotiated {
                             api_versions: 3,
                             metadata: self.pick(ApiKey::Metadata, 12, 9),
-                            produce: self.pick(ApiKey::Produce, 8, 3),
-                            fetch: self.pick(ApiKey::Fetch, 11, 4),
+                            produce: self.pick(ApiKey::Produce, 13, 9),
+                            fetch: self.pick(ApiKey::Fetch, 16, 12),
+                            init_producer_id: self.pick(ApiKey::InitProducerId, 4, 0),
+                            find_coordinator: self.pick(ApiKey::FindCoordinator, 3, 0),
                         };
                         self.seed = Some(b);
                         return Ok(());
@@ -241,5 +249,35 @@ impl Client {
     /// Partition count for a cached topic.
     pub fn partition_count(&self, topic: &str) -> Option<i32> {
         self.topics.get(topic).map(|t| t.partitions.len() as i32)
+    }
+
+    /// InitProducerId (null transactional id). Used when `idempotent = true`.
+    pub async fn init_producer_id(&mut self) -> Result<(i64, i16)> {
+        use kafka_protocol::messages::InitProducerIdRequest;
+        let req = InitProducerIdRequest::default()
+            .with_transactional_id(None)
+            .with_transaction_timeout_ms(0)
+            .with_producer_id((-1).into())
+            .with_producer_epoch(-1);
+        let ver = self.negotiated.init_producer_id;
+        let resp: kafka_protocol::messages::InitProducerIdResponse =
+            self.seed()?.call(ApiKey::InitProducerId, ver, &req).await?;
+        Error::check(resp.error_code)?;
+        Ok((resp.producer_id.0, resp.producer_epoch))
+    }
+
+    /// FindCoordinator for a consumer group (`key_type = 0`).
+    pub async fn find_group_coordinator(
+        &mut self,
+        group_id: &str,
+    ) -> Result<kafka_protocol::messages::FindCoordinatorResponse> {
+        use kafka_protocol::messages::FindCoordinatorRequest;
+        let req = FindCoordinatorRequest::default()
+            .with_key(StrBytes::from_string(group_id.to_string()))
+            .with_key_type(0);
+        let ver = self.negotiated.find_coordinator;
+        let resp: kafka_protocol::messages::FindCoordinatorResponse =
+            self.seed()?.call(ApiKey::FindCoordinator, ver, &req).await?;
+        Ok(resp)
     }
 }
