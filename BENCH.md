@@ -1,102 +1,93 @@
 # Bench plan
 
-Partitionline is not done until it is faster than **librdkafka** on honest
-same-hardware benches for **throughput and latency**. This file is the contract
-for those benches. No warmup-only numbers. No “looks fast on my laptop”
-writeups without the table.
+This is a **performance bet**, not a claim that Rust has no Kafka client. The
+category is crowded. The README-facing baseline is
+[`rdkafka` 0.39.0](https://crates.io/crates/rdkafka) (crates.io **2026-08-22**:
+**34,548,428** downloads, **292** reverse dependencies). That crate depends on
+[`rdkafka-sys` 4.10.0+2.12.1](https://crates.io/crates/rdkafka-sys), which
+vendors **librdkafka 2.12.1**.
 
-## What we compare
+The **speed bar** is librdkafka itself, via its C
+[`rdkafka_performance`](https://github.com/confluentinc/librdkafka) example,
+pinned to **2.15.0**. Beating the Rust FFI wrapper and losing to C is **not** a
+win.
 
-Two opponents, same hardware, same broker, same topic, same payload, same
-config knobs:
+Cite: [rdkafka on crates.io](https://crates.io/crates/rdkafka),
+[confluentinc/librdkafka](https://github.com/confluentinc/librdkafka),
+[Apache Kafka downloads](https://kafka.apache.org/community/downloads/).
 
-| Opponent | What it is | Why it is here |
-|---|---|---|
-| **librdkafka C** | The C library and its own examples (`rdkafka_performance` / equivalent `rdkafka-sys` C path) | The bar. Language wrappers are not a substitute. |
-| **`rdkafka` 0.39.0** | The production Rust crate (FFI to that same C library). crates.io 2026-08-22: **34,548,428** downloads, **292** reverse deps | Named Rust-side baseline we also have to beat. FFI overhead is real; beating only the wrapper and losing to C is not victory. |
+## Must-beat metrics
 
-`samsa`, `krafka`, and `kacrab` are peers in a crowded category. They are not
-the pass/fail bar. Optional later columns, never a replacement for the C
-column.
+A published suite that cannot fill every must-beat column is incomplete.
 
-## Hardware and software pins
+| Metric | How it is measured |
+|---|---|
+| **Producer throughput** | records/s **and** MiB/s |
+| **Produce latency** | p50 / p99 / **p999**, at produce response / delivery report — not time-to-queue |
+| **Consumer fetch throughput** | records/s **and** MiB/s on a pre-filled topic |
+| **End-to-end produce-to-consume latency** | p50 / p99 from send timestamp in the payload to consumer decode |
 
-Publish these with every result file. Do not mix pins across rows of a table.
+Admin (create/delete topic, list offsets) is **informational**. It does not
+pass or fail the bar.
 
-| Pin | v1 default | Notes |
-|---|---|---|
-| Machine | one host, isolated run | Same CPU, same NUMA, same disk. Record `lscpu`, mem, `uname -a`. |
-| Kafka | **Apache Kafka 3.8.1** (KRaft, `apache/kafka:3.8.1`) | One broker unless a later suite says otherwise. |
-| Topic | `bench` · **6 partitions** · **RF=1** · `min.insync.replicas=1` | Created fresh per run. No compacted topics. |
-| linger | **5 ms** | Same on every client. |
-| acks | **1** and **all** (two rows each) | Do not hide acks=0 as a throughput win. |
-| batch.size | **1 MiB** | librdkafka default-shaped, not Java’s 16 KiB. |
-| compression | **none** and **lz4** | lz4 is the compressed row. zstd is a later row once both sides use a real encoder. |
-| Payload | **100 B, 1 KiB, 10 KiB** | Fixed-size, incompressible (or published compressible) bodies. Say which. |
-| Message count | enough that steady state is **>10 s** after warmup | See procedure. |
-| Clients | partitionline (this repo) · librdkafka C examples · rdkafka 0.39.0 | Same bootstrap, same topic. |
+## Lab A — first published suite that can fail the bar
 
-## Metrics (required columns)
+One machine. One broker **on that machine** (not a broker in another container
+or host). Same linger / batch / compression / acks on both clients.
 
-Every published table includes all of these. Missing a column means the run is
-incomplete.
+| Pin | Lab A |
+|---|---|
+| Broker | **Apache Kafka 4.3.1** ([community downloads](https://kafka.apache.org/community/downloads/)) |
+| Topic | `bench` · **6 partitions** · **RF=1** |
+| Primary payload | **1 KiB** incompressible |
+| Extra columns | **100 B** and **10 KiB** — columns, not substitutes for the 1 KiB row |
+| linger.ms | **50** |
+| acks | **1** |
+| compression | **none** |
+| idempotent | **true** |
+| C opponent | librdkafka **2.15.0** `rdkafka_performance` |
+| Rust-side baseline | rdkafka **0.39.0** (librdkafka **2.12.1** via rdkafka-sys). Reported. Not the win condition. |
+| Warmup | **60 s** — discarded |
+| Measured | **10 minutes × 3 reps** |
+| Results | scripts + raw **HDR / CSV**. If we lose, we publish the loss. |
 
-1. **Producer throughput** — records/s and MiB/s, acks=1 and acks=all.
-2. **Produce latency** — p50 / p99 / **p999**, measured at the client when the
-   produce response (or delivery report) is received. Not “time to queue.”
-3. **Consumer fetch throughput** — records/s and MiB/s on a pre-filled topic
-   (produce completed first). Isolation `read_uncommitted`.
-4. **End-to-end produce-to-consume latency** — p50 / p99 / p999 from produce
-   send timestamp (in payload or header) to consumer decode of that record.
+No warmup-only numbers. No linger=0 vs librdkafka default-batch bait. No
+separate-container brokers.
 
-Also record: CPU % of client, CPU % of broker, error count, dropped/timeout
-count. A faster client that times out is not a win.
+## Procedure
 
-## Procedure (not warmup-only)
-
-1. Start Kafka from `docker-compose.yml`. Wait until metadata is reachable.
-2. Create the topic. Delete leftover consumer groups.
-3. **Warmup (discarded):** 5 seconds or 200k records, whichever is first.
-   Warmup numbers are **not** published as results.
-4. **Measured window:** at least 10 seconds of steady state, or 2 million
-   records, whichever is later. One window per (payload × acks × compression)
-   cell.
-5. Repeat the measured window **3 times**. Publish mean and the raw three
-   runs. Do not pick the best run.
-6. Flush / close clients between cells. Recreate the topic when leftover data
-   would change fetch results.
+1. Record `lscpu`, memory, `uname -a` into `machine.txt`.
+2. Start Kafka **4.3.1** on the same host. Wait until metadata answers.
+3. Create `bench` (6 partitions, RF=1). Drop leftover groups.
+4. **Warmup 60 s** on both clients. Discard those numbers.
+5. **Measured window:** 10 minutes. One window per payload column (1 KiB is
+   the bar; 100 B and 10 KiB are extra columns).
+6. Repeat the measured window **3 times**. Publish all three raw runs and the
+   mean. Do not pick the best.
+7. Fetch throughput: produce first (completed), then consume from earliest.
+8. E2E: timestamp in the payload; consumer records decode time.
 
 ## Scripts and raw results
 
 | Path | Role |
 |---|---|
-| `scripts/bench.sh` | Drive the matrix, print the comparison table to stdout. |
-| `scripts/bench-librdkafka.sh` | Build/run the C librdkafka performance example against the pinned broker. |
-| `scripts/bench-rdkafka.sh` | Run the `rdkafka` 0.39.0 Rust-side baseline. |
-| `scripts/bench-partitionline.sh` | Run this crate’s harness (`cargo run --release -p partitionline --bin bench`). |
-| `results/` | Raw JSON/CSV per run (gitignored until a published snapshot is committed). |
+| `scripts/bench.sh` | Drive Lab A, print the comparison table |
+| `scripts/bench-librdkafka.sh` | Build/run **librdkafka 2.15.0** `rdkafka_performance` |
+| `scripts/bench-rdkafka.sh` | rdkafka **0.39.0** Rust-side baseline (not the win) |
+| `scripts/bench-partitionline.sh` | This crate, `--release` |
+| `results/published/<date>-<host>/` | `machine.txt`, `pins.toml`, `raw/*.hdr`, `raw/*.csv`, `table.md` |
 
-A published snapshot is a directory under `results/published/<date>-<host>/`
-containing `machine.txt`, `pins.toml`, `raw/*.json`, and `table.md`. Without
-those files, do not claim a win.
+Without those files, do not claim a win. A loss is published as a loss.
 
 ## Comparison table (shape)
 
 ```
-payload   acks  codec   client          prod rec/s   prod MiB/s   p50   p99   p999   fetch rec/s   e2e p99
-100B      1     none    librdkafka C    …            …            …     …     …      …             …
-100B      1     none    rdkafka 0.39.0  …            …            …     …     …      …             …
-100B      1     none    partitionline   …            …            …     …     …      …             …
-…
+payload  acks  linger  idem  client                 rec/s   MiB/s   p50   p99   p999  fetch rec/s  e2e p50  e2e p99
+1KiB     1     50      true  librdkafka 2.15.0 C    …       …       …     …     …     …            …        …
+1KiB     1     50      true  rdkafka 0.39.0         …       …       …     …     …     …            …        …
+1KiB     1     50      true  partitionline          …       …       …     …     …     …            …        …
+100B     1     50      true  …                      …       …       …     …     …     …            …        …
+10KiB    1     50      true  …                      …       …       …     …     …     …            …        …
 ```
 
-Fill this only from measured windows. If partitionline loses a cell, say so
-in the table. Do not drop the losing row.
-
-## What this is not
-
-- Not a microbench of encode-only without a broker (useful as a diagnostic,
-  not as the bar).
-- Not a comparison against a slow wrapper configuration (`acks=0`, linger=0,
-  tiny batches) while we use linger=5 and 1 MiB batches.
-- Not “we beat rdkafka because FFI is slow” without the C column.
+Fill from measured 10-minute windows only.
