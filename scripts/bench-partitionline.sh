@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Lab A: this crate, --release. Same knobs as bench-librdkafka.sh.
+# Lab A: this crate, --release.
+# Locked knobs (same as librdkafka C): acks=all, linger.ms=50,
+# compression=none, idempotent=true, batch.size=1000000.
+# Window: 60s warmup (discarded) + 180s measured.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

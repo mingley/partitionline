@@ -1,5 +1,8 @@
 //! Lab A produce harness. See BENCH.md.
 //!
+//! Locked published knobs: acks=all, linger=50, compression=none,
+//! idempotent=true. Default window 60s warmup + 180s measured.
+//!
 //! Measures produce-ack latency (enqueue → delivery), not time-to-queue.
 //! Uses `Producer::enqueue` so linger/batch can fill. Refuses to print a
 //! comparison table; it only prints this client's measured window.

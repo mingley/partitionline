@@ -17,7 +17,7 @@
 
 ## Window
 
-**60 s warmup (discarded) + 180 s × 3 measured.** Not 10 min × 3 — labeled as such. All three reps published; means are arithmetic means of the three, not the best.
+**60 s warmup (discarded) + 180 s × 3 measured.** 10 min × 3 was the original Lab A ask and is not this published window. All three reps published; means are arithmetic means of the three, not the best.
 
 ## Knobs (same on both clients)
 

@@ -31,7 +31,7 @@ use crate::partitioner::{hash_partition, Sticky};
 pub enum Acks {
     /// Fire and forget. Not used in the honest bench table.
     None,
-    /// Leader only (Lab A).
+    /// Leader only.
     Leader,
     /// ISR (`acks=-1`).
     All,
@@ -119,7 +119,7 @@ pub struct BatchIdentity {
     pub base_sequence: i32,
 }
 
-/// Builder. Lab A defaults: linger 50 ms, acks=1, compression none, idempotent.
+/// Builder. Linger 50 ms, compression none, idempotent. Published Lab A used acks=all.
 pub struct ProducerBuilder {
     bootstrap: Vec<String>,
     acks: Acks,

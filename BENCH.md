@@ -42,14 +42,16 @@ or host). Same linger / batch / compression / acks on both clients.
 | Primary payload | **1 KiB** incompressible |
 | Extra columns | **100 B** and **10 KiB** — columns, not substitutes for the 1 KiB row |
 | linger.ms | **50** |
-| acks | **1** |
+| acks | **all** |
 | compression | **none** |
 | idempotent | **true** |
 | C opponent | librdkafka **2.15.0** `rdkafka_performance` |
-| Rust-side baseline | rdkafka **0.39.0** (librdkafka **2.12.1** via rdkafka-sys). Reported. Not the win condition. |
+| Rust-side baseline | rdkafka **0.39.0** (librdkafka **2.12.1** via rdkafka-sys). Not run in this published window. Not the win condition. |
 | Warmup | **60 s** — discarded |
-| Measured | **10 minutes × 3 reps** |
-| Results | scripts + raw **HDR / CSV**. If we lose, we publish the loss. |
+| Measured | **180 s × 3 reps** |
+| Results | scripts + raw **CSV / logs**. If we lose, we publish the loss. |
+
+**10 min × 3 was the original Lab A ask and is not this published window.** Do not compare these 180 s numbers to a 10-minute run.
 
 No warmup-only numbers. No linger=0 vs librdkafka default-batch bait. No
 separate-container brokers.
@@ -60,7 +62,7 @@ separate-container brokers.
 2. Start Kafka **4.3.1** on the same host. Wait until metadata answers.
 3. Create `bench` (6 partitions, RF=1). Drop leftover groups.
 4. **Warmup 60 s** on both clients. Discard those numbers.
-5. **Measured window:** 10 minutes. One window per payload column (1 KiB is
+5. **Measured window:** 180 s. One window per payload column (1 KiB is
    the bar; 100 B and 10 KiB are extra columns).
 6. Repeat the measured window **3 times**. Publish all three raw runs and the
    mean. Do not pick the best.
@@ -81,9 +83,9 @@ Without those files, do not claim a win. A loss is published as a loss.
 
 ## Comparison table (Lab A produce, 2026-08-22)
 
-**We lost.** Produce-only. Window is **60 s warmup + 180 s × 3**, not 10 min × 3. Fetch and e2e were not measured. rdkafka 0.39.0 was not run.
+**We lost.** Produce-only. Window is **60 s warmup + 180 s × 3**. Fetch and e2e were not measured. rdkafka 0.39.0 was not run.
 
-acks=**all** (see below). Latency is produce-ack / delivery-report, **microseconds**. Means of three reps.
+acks=**all**. Latency is produce-ack / delivery-report, **microseconds**. Means of three reps.
 
 | payload | acks | linger | idem | client | rec/s | MiB/s | p50 µs | p99 µs | p999 µs |
 |---|---|---|---|---|---:|---:|---:|---:|---:|
@@ -92,6 +94,6 @@ acks=**all** (see below). Latency is produce-ack / delivery-report, **microsecon
 
 partitionline mean rec/s is **46%** of C. p50 is **2.4×** worse.
 
-Lab A’s written pin was acks=1 + idempotent=true. librdkafka 2.15.0 rejects that pair. Both clients used acks=all. linger=50 and batch.size=1000000 on both. Raw + three reps: [results/lab-a.md](results/lab-a.md).
+Locked knobs on both clients: acks=all, linger=50, compression=none, idempotent=true, batch.size=1000000. Raw + three reps: [results/lab-a.md](results/lab-a.md).
 
 100 B / 10 KiB columns, fetch rec/s, and e2e p50/p99 are empty. A suite that cannot fill every must-beat column is incomplete.

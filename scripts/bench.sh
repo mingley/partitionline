@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Drive Lab A produce windows. Does not invent numbers.
+# Drive Lab A produce windows (acks=all, linger=50, compression=none,
+# idempotent=true, 60s warmup + 180s × 3). Does not invent numbers.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

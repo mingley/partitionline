@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Lab A: librdkafka C rdkafka_performance. Same knobs as partitionline.
-# linger.ms=50 (the example binary defaults to 1000 — we override).
+# Lab A: librdkafka 2.15.0 C rdkafka_performance.
+# Locked knobs (same as partitionline): acks=all, linger.ms=50,
+# compression=none, enable.idempotence=true, batch.size=1000000.
+# Window: 60s warmup (discarded) + 180s measured. The example binary
+# defaults linger.ms=1000 — we override to 50.
 set -euo pipefail
 
 PERF="${RDKAFKA_PERF:-/tmp/lab-a/librdkafka-2.15.0/examples/rdkafka_performance}"

@@ -43,9 +43,9 @@ cargo run --example produce_fetch -- localhost:9092
 
 ## How to bench
 
-See [BENCH.md](BENCH.md) (Lab A: Kafka 4.3.1, linger=50, acks=1, 60 s warmup +
-10 min × 3, C librdkafka **2.15.0**). No warmup-only numbers. Scripts and raw
-HDR/CSV will be published. A loss is published as a loss.
+See [BENCH.md](BENCH.md) (published Lab A: Kafka 4.3.1, linger=50, acks=all,
+60 s warmup + 180 s × 3, C librdkafka **2.15.0**). We lost. No warmup-only
+numbers. 10 min × 3 was the original ask and is not this published window.
 
 ```bash
 ./scripts/bench.sh
