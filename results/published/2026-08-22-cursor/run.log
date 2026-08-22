@@ -1,0 +1,39 @@
+START 15:45:20
+Error while executing topic command : Topic 'bench' does not exist as expected
+Created topic bench.
+=== librdkafka 2.15.0 C ===
+librdkafka warmup 60s (discarded)
+warmup discarded
+librdkafka measured 180s size=1024 linger.ms=50 acks=all compression=none enable.idempotence=true batch.size=1000000
+librdkafka measured window ended
+n=169012283 p50_us=97996 p99_us=269723 p999_us=381306
+Created topic bench.
+librdkafka measured 180s size=1024 linger.ms=50 acks=all compression=none enable.idempotence=true batch.size=1000000
+librdkafka measured window ended
+n=171961445 p50_us=96125 p99_us=244225 p999_us=299560
+Created topic bench.
+librdkafka measured 180s size=1024 linger.ms=50 acks=all compression=none enable.idempotence=true batch.size=1000000
+librdkafka measured window ended
+n=171733739 p50_us=98216 p99_us=240783 p999_us=302249
+Created topic bench.
+=== partitionline ===
+partitionline produce: bootstrap=localhost:9092 topic=bench size=1024 linger_ms=50 acks=all compression=none idempotent=true batch.size=1000000 inflight=100000 warmup=60s measured=180s
+warmup discarded
+measured: recs=78457955 rec_s=435702.9 mib_s=425.491 p50_us=235737 p99_us=447520 p999_us=470174
+wrote /workspace/results/published/2026-08-22-cursor/raw/partitionline-rep1.csv
+client=partitionline recs=78457955 bytes=80340945920 seconds=180.072 rec_s=435702.9 mib_s=425.491 p50_us=235737 p99_us=447520 p999_us=470174
+Created topic bench.
+partitionline produce: bootstrap=localhost:9092 topic=bench size=1024 linger_ms=50 acks=all compression=none idempotent=true batch.size=1000000 inflight=100000 warmup=0s measured=180s
+warmup discarded
+measured: recs=78035730 rec_s=433187.9 mib_s=423.035 p50_us=236334 p99_us=450800 p999_us=471644
+wrote /workspace/results/published/2026-08-22-cursor/raw/partitionline-rep2.csv
+client=partitionline recs=78035730 bytes=79908587520 seconds=180.143 rec_s=433187.9 mib_s=423.035 p50_us=236334 p99_us=450800 p999_us=471644
+Created topic bench.
+partitionline produce: bootstrap=localhost:9092 topic=bench size=1024 linger_ms=50 acks=all compression=none idempotent=true batch.size=1000000 inflight=100000 warmup=0s measured=180s
+warmup discarded
+measured: recs=78261683 rec_s=434552.6 mib_s=424.368 p50_us=239260 p99_us=448967 p999_us=467407
+wrote /workspace/results/published/2026-08-22-cursor/raw/partitionline-rep3.csv
+client=partitionline recs=78261683 bytes=80139963392 seconds=180.097 rec_s=434552.6 mib_s=424.368 p50_us=239260 p99_us=448967 p999_us=467407
+Created topic bench.
+raw results in /workspace/results/published/2026-08-22-cursor
+DONE 16:07:32

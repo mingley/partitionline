@@ -51,9 +51,19 @@ reps = 3
 window_note = "60s warmup + ${SECONDS_N}s × 3 (not 10 min × 3)"
 EOF
 
-"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" --delete --topic "$TOPIC" 2>/dev/null || true
-"$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" \
-  --create --topic "$TOPIC" --partitions 6 --replication-factor 1
+recreate_topic() {
+  "$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" --delete --topic "$TOPIC" 2>/dev/null || true
+  sleep 1
+  "$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BOOTSTRAP" \
+    --create --topic "$TOPIC" --partitions 6 --replication-factor 1 \
+    --config retention.ms=15000 --config segment.bytes=33554432
+}
+
+avail_gb() {
+  df -BG / | awk 'NR==2 { gsub(/G/, "", $4); print $4 }'
+}
+
+recreate_topic
 
 echo "=== librdkafka 2.15.0 C ==="
 for rep in 1 2 3; do
@@ -65,6 +75,11 @@ for rep in 1 2 3; do
     WARMUP=0 "$ROOT/scripts/bench-librdkafka.sh"
   fi
   python3 "$ROOT/scripts/percentiles.py" "$LATFILE" | tee "$OUT/raw/librdkafka-rep${rep}.pct"
+  recreate_topic
+  if [[ "$(avail_gb)" -lt 20 ]]; then
+    echo "abort: only $(avail_gb)G free; will not invent numbers" >&2
+    exit 2
+  fi
 done
 
 echo "=== partitionline ==="
@@ -76,6 +91,11 @@ for rep in 1 2 3; do
   fi
   WARMUP="$w" CSV="$OUT/raw/partitionline-rep${rep}.csv" \
     "$ROOT/scripts/bench-partitionline.sh" | tee "$OUT/raw/partitionline-rep${rep}.log"
+  recreate_topic
+  if [[ "$(avail_gb)" -lt 20 ]]; then
+    echo "abort: only $(avail_gb)G free; will not invent numbers" >&2
+    exit 2
+  fi
 done
 
 echo "raw results in $OUT"

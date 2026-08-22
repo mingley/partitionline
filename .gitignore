@@ -1,5 +1,6 @@
 /target
-/results
+# Per-message latency dumps (hundreds of MB). Summaries and CSV stay.
+/results/published/**/*.lat
 **/*.rs.bk
 .idea
 .vscode

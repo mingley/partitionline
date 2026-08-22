@@ -79,15 +79,19 @@ separate-container brokers.
 
 Without those files, do not claim a win. A loss is published as a loss.
 
-## Comparison table (shape)
+## Comparison table (Lab A produce, 2026-08-22)
 
-```
-payload  acks  linger  idem  client                 rec/s   MiB/s   p50   p99   p999  fetch rec/s  e2e p50  e2e p99
-1KiB     1     50      true  librdkafka 2.15.0 C    …       …       …     …     …     …            …        …
-1KiB     1     50      true  rdkafka 0.39.0         …       …       …     …     …     …            …        …
-1KiB     1     50      true  partitionline          …       …       …     …     …     …            …        …
-100B     1     50      true  …                      …       …       …     …     …     …            …        …
-10KiB    1     50      true  …                      …       …       …     …     …     …            …        …
-```
+**We lost.** Produce-only. Window is **60 s warmup + 180 s × 3**, not 10 min × 3. Fetch and e2e were not measured. rdkafka 0.39.0 was not run.
 
-Fill from measured 10-minute windows only.
+acks=**all** (see below). Latency is produce-ack / delivery-report, **microseconds**. Means of three reps.
+
+| payload | acks | linger | idem | client | rec/s | MiB/s | p50 µs | p99 µs | p999 µs |
+|---|---|---|---|---|---:|---:|---:|---:|---:|
+| 1 KiB | all | 50 | true | librdkafka 2.15.0 C | 949398 | 927.683 | 97446 | 251577 | 327705 |
+| 1 KiB | all | 50 | true | partitionline | 434481 | 424.298 | 237110 | 449096 | 469742 |
+
+partitionline mean rec/s is **46%** of C. p50 is **2.4×** worse.
+
+Lab A’s written pin was acks=1 + idempotent=true. librdkafka 2.15.0 rejects that pair. Both clients used acks=all. linger=50 and batch.size=1000000 on both. Raw + three reps: [results/lab-a.md](results/lab-a.md).
+
+100 B / 10 KiB columns, fetch rec/s, and e2e p50/p99 are empty. A suite that cannot fill every must-beat column is incomplete.

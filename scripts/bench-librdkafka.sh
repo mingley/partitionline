@@ -21,13 +21,13 @@ fi
 
 run_window() {
   local secs="$1"
-  local lat="${2:-}"
+  local out="$2"
+  local lat="${3:-}"
   local extra=()
   if [[ -n "$lat" ]]; then
     extra+=(-A "$lat")
   fi
-  # No -c: run until SIGINT. -l + optional -A for produce→DR latency samples.
-  # Do not set linger=0. Do not raise batch.size above partitionline.
+  # Start the binary itself so SIGINT hits rdkafka_performance (not a bash wrapper).
   "$PERF" -P \
     -t "$TOPIC" \
     -b "$BOOTSTRAP" \
@@ -39,23 +39,19 @@ run_window() {
     -X enable.idempotence=true \
     -X batch.size="$BATCH_SIZE" \
     -X queue.buffering.max.messages=100000 \
-    "${extra[@]}"
+    "${extra[@]}" >"$out" 2>&1 &
+  local pid=$!
+  sleep "$secs"
+  kill -INT "$pid" 2>/dev/null || true
+  wait "$pid" || true
 }
 
 if [[ "$WARMUP" != "0" ]]; then
   echo "librdkafka warmup ${WARMUP}s (discarded)" >&2
-  run_window "$WARMUP" >/tmp/lab-a-rdkafka-warmup.log 2>&1 &
-  wp=$!
-  sleep "$WARMUP"
-  kill -INT "$wp" 2>/dev/null || true
-  wait "$wp" || true
+  run_window "$WARMUP" /tmp/lab-a-rdkafka-warmup.log
   echo "warmup discarded" >&2
 fi
 
 echo "librdkafka measured ${SECONDS_N}s size=$SIZE linger.ms=$LINGER_MS acks=all compression=none enable.idempotence=true batch.size=$BATCH_SIZE" >&2
-run_window "$SECONDS_N" "$LATFILE" >"$LOG" 2>&1 &
-mp=$!
-sleep "$SECONDS_N"
-kill -INT "$mp" 2>/dev/null || true
-wait "$mp" || true
+run_window "$SECONDS_N" "$LOG" "$LATFILE"
 echo "librdkafka measured window ended" >&2

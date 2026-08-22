@@ -1,0 +1,2 @@
+# Per-message latency dumps are hundreds of MB each. Percentiles are in *.pct.
+*.lat
