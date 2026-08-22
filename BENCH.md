@@ -73,9 +73,11 @@ separate-container brokers.
 
 | Path | Role |
 |---|---|
-| `scripts/bench.sh` | Drive Lab A, print the comparison table |
-| `scripts/bench-librdkafka.sh` | Build/run **librdkafka 2.15.0** `rdkafka_performance` |
-| `scripts/bench-partitionline.sh` | This crate, `--release` |
+| `scripts/bench.sh` | Drive Lab A produce, print the comparison table |
+| `scripts/bench-librdkafka.sh` | Build/run **librdkafka 2.15.0** `rdkafka_performance` produce |
+| `scripts/bench-partitionline.sh` | This crate produce, `--release` |
+| `scripts/bench-fetch-partitionline.sh` | This crate fetch: produce first, then earliest |
+| `scripts/bench-fetch-librdkafka.sh` | C `rdkafka_performance -C` from earliest |
 | `results/published/<date>-<host>/` | `machine.txt`, `pins.toml`, `raw/*.hdr`, `raw/*.csv`, `table.md` |
 
 rdkafka **0.39.0** (Rust FFI baseline) was **not** run in the published
