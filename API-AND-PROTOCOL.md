@@ -34,9 +34,10 @@ that we copy `ClientConfig::set("linger.ms", "50")`.
   v13 encodes `topic_id` (not the name). We cache Metadata UUIDs and match acks by id.
 - **Pipelined** `Broker::call` (correlate by correlation id). The produce actor
   keeps receiving while Produce is in flight (up to 5 per connection, matching
-  librdkafka's idempotent `max.in.flight.requests.per.connection`). Idempotent
-  `base_sequence` is assigned when the batch is sent; a retry of that batch
-  reuses pid/epoch/base_sequence and does not mint a new sequence.
+  librdkafka's idempotent `max.in.flight.requests.per.connection`). Writes go
+  out in `base_sequence` order (`Broker::submit`); acks are awaited off the
+  actor. Sequence is assigned when the batch is written; a retry reuses
+  pid/epoch/base_sequence and does not mint a new sequence.
 - **ApiVersions on every new TCP connection**, including leader sockets. Versions are
   per-connection.
 - **InitProducerId** when `idempotent = true` (Lab A).
