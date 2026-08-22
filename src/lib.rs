@@ -24,6 +24,20 @@ pub use kafka_protocol::records::{
     NO_PARTITION_LEADER_EPOCH, NO_PRODUCER_EPOCH, NO_PRODUCER_ID, NO_SEQUENCE, NO_TIMESTAMP,
 };
 
+pub mod broker;
+pub mod client;
+pub mod compression;
+pub mod consumer;
+pub mod error;
+pub mod frame;
+pub mod producer;
+
+pub use client::Client;
+pub use compression::Compression;
+pub use consumer::{decode_records, Fetched, Fetcher};
+pub use error::{Error, Result};
+pub use producer::{encode_record_batch, Acks, ProduceResult, Producer};
+
 /// Crate version sent as `client_software_version` on ApiVersions v3+.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
