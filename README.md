@@ -50,11 +50,12 @@ cargo run --example produce_fetch -- localhost:9092
 ## How to bench
 
 See [BENCH.md](BENCH.md) (published Lab A: Kafka 4.3.1, linger=50, acks=all,
-60 s warmup + 180 s × 3, C librdkafka **2.15.0**). The default published
-window is a loss: **46%** of C ([results/lab-a.md](results/lab-a.md)). A
-later same-window re-run is in
-[results/lab-a-pipeline.md](results/lab-a-pipeline.md). No warmup-only
-numbers. 10 min × 3 was the original ask and is not this published window.
+60 s warmup + 180 s × 3, C librdkafka **2.15.0**). The latest same-window
+table is [results/lab-a-083ae1f.md](results/lab-a-083ae1f.md) (pin
+`083ae1f`). Earlier windows stay at [results/lab-a.md](results/lab-a.md)
+and [results/lab-a-pipeline.md](results/lab-a-pipeline.md). Fetch/e2e
+unmeasured. Not done. No warmup-only numbers. 10 min × 3 was the original
+ask and is not this published window.
 
 ```bash
 ./scripts/bench.sh
