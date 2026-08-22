@@ -2,6 +2,12 @@
 
 Pure-Rust Apache Kafka client. Zero C / FFI / librdkafka. Not a wrapper.
 
+**Not faster than librdkafka.** The first published Lab A produce window
+(60 s warmup + 180 s × 3, acks=all, linger=50, 1 KiB) is a **loss**: **46%**
+of librdkafka 2.15.0 C (434k vs 949k rec/s). See
+[results/lab-a.md](results/lab-a.md). That is the default table. It is not a
+win.
+
 This is a **performance bet**, not a claim that Rust has no Kafka client. The
 category is crowded. The production Rust client is already
 [`rdkafka` 0.39.0](https://crates.io/crates/rdkafka) — crates.io **2026-08-22**:
@@ -44,11 +50,11 @@ cargo run --example produce_fetch -- localhost:9092
 ## How to bench
 
 See [BENCH.md](BENCH.md) (published Lab A: Kafka 4.3.1, linger=50, acks=all,
-60 s warmup + 180 s × 3, C librdkafka **2.15.0**). First window: we lost
-([results/lab-a.md](results/lab-a.md)). After pipelining Produce: win on
-rec/s and MiB/s ([results/lab-a-pipeline.md](results/lab-a-pipeline.md)).
-No warmup-only numbers. 10 min × 3 was the original ask and is not this
-published window.
+60 s warmup + 180 s × 3, C librdkafka **2.15.0**). The default published
+window is a loss: **46%** of C ([results/lab-a.md](results/lab-a.md)). A
+later same-window re-run is in
+[results/lab-a-pipeline.md](results/lab-a-pipeline.md). No warmup-only
+numbers. 10 min × 3 was the original ask and is not this published window.
 
 ```bash
 ./scripts/bench.sh
