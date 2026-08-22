@@ -31,6 +31,13 @@ that we copy `ClientConfig::set("linger.ms", "50")`.
 
 - Record batch **magic v2** via `RecordBatchEncoder` (kafka-protocol).
 - **Produce v9–v13** (flexible). Prefer the highest the broker advertises in that range.
+  v13 encodes `topic_id` (not the name). We cache Metadata UUIDs and match acks by id.
+- **Pipelined** `Broker::call` (correlate by correlation id). Several Produce in flight
+  on one connection; the actor starts every ready partition without waiting for the
+  previous leader. Idempotent `base_sequence` is assigned when the batch is built and
+  incremented only after ack; a retry reuses pid/epoch/base_sequence.
+- **ApiVersions on every new TCP connection**, including leader sockets. Versions are
+  per-connection.
 - **InitProducerId** when `idempotent = true` (Lab A).
 - **acks=1** and **acks=all**.
 - **linger + batch** (Lab A: linger 50 ms).
@@ -39,7 +46,9 @@ that we copy `ClientConfig::set("linger.ms", "50")`.
 ### 2. Consumer (second)
 
 Classic consumer groups: **JoinGroup / SyncGroup / Heartbeat / LeaveGroup** +
-**Fetch v12–v16**. Offset commit/fetch and ListOffsets ride with this slice.
+**Fetch v12–v16** (consumer: `replica_id=-1`, `isolation_level=0`,
+`session_id=0`, `session_epoch=-1`; v13+ `topic_id`). Offset commit/fetch and
+ListOffsets ride with this slice.
 
 **KIP-848** (consumer group heartbeat / server-side assignment) is a **named
 gap**. Types exist in kafka-protocol; we do not silently pretend we speak it.
@@ -61,14 +70,14 @@ IncrementalAlterConfigs, CreatePartitions. Informational for the bench bar.
 | KIP-848 new consumer groups | Named gap. Classic groups only. |
 | KIP-932 share groups | Out. |
 | Record magic v0 / v1 | kafka-protocol rejects them. We do too. |
-| gzip / snappy / zstd **encode** | Lab A is `compression=none`. lz4 encode is `lz4_flex` via the custom hook. gzip/snappy encode exist; zstd encode is incomplete (`ruzstd` is a decoder). |
+| gzip / snappy / zstd **encode** | Lab A is `compression=none`. lz4 encode is `lz4_flex` **frame** (Java-compatible). gzip/snappy encode exist; zstd encode is incomplete (`ruzstd` is a decoder). |
 | Streams keys 88–89 | Absent from kafka-protocol 0.18. We are not a Streams engine. |
 
 ## rust-rdkafka map (drop-in meaning)
 
 | rust-rdkafka | partitionline |
 |---|---|
-| `FutureProducer::send(FutureRecord::to(topic).payload(..).key(..))` | `Producer::send(RecordTo { topic, key, value, .. })` |
+| `FutureProducer::send(FutureRecord::to(topic).payload(..).key(..))` | `Producer::send` (awaits ack). Lab A uses `enqueue` → `Delivery` so linger/batch can fill. |
 | `StreamConsumer::subscribe` | `Consumer::subscribe` (classic group; later) |
 | `stream()` / `recv()` | `poll` or `Stream` of records |
 | `commit_message` / `commit` | `commit` |

@@ -29,8 +29,10 @@ tagged fields, flexible and compact types, `Record` + magic-v2
 | Owned-only decode ([issue #42](https://github.com/tychedelia/kafka-protocol-rs/issues/42)) | Known. Not a reason to regenerate request types. |
 | Unbounded `Vec::with_capacity` from wire counts ([PRs #152](https://github.com/tychedelia/kafka-protocol-rs/pull/152) / [#161](https://github.com/tychedelia/kafka-protocol-rs/pull/161)) | Cap frames we allocate (`frame::MAX_FRAME`). Do not fork their decoder. |
 | Produce records go through intermediate `Bytes` ([issue #104](https://github.com/tychedelia/kafka-protocol-rs/issues/104)) | If the librdkafka bench requires it, a **local** `RecordBatch` encode/decode module is the only custom wire we write. We do not regenerate `ProduceRequest` / `FetchRequest` / `MetadataRequest`. |
-| C compression features | Disabled. Custom hook + `lz4_flex` / `ruzstd`. |
+| C compression features | Disabled. Custom hook + `lz4_flex` frame / `ruzstd`. |
 | `ruzstd` is decode-only | zstd produce is incomplete; lz4 is the compressed bench row. |
+| Magic-v2 LZ4 | Kafka/Java `KafkaLZ4BlockOutputStream` is **LZ4 frame** (magic `0x184D2204`), not `lz4_flex::block` size-prefix. |
+| Produce v13 / Fetch v13+ | kafka-protocol encodes `topic_id` UUID, not the name. We cache Metadata UUIDs on `TopicMeta` and match responses by id. We do not cap at v12. |
 | SASL / TLS / KIP-848 | Types exist in kafka-protocol. Not wired in this client yet. Flagged, not silently skipped. |
 
 ## Category
