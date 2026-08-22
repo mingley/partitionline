@@ -14,14 +14,17 @@ this project should not exist. Partitionline is done only when it is faster than
 librdkafka on published, honest, same-hardware benches for **throughput and
 latency**. Slow-but-safe is not v1.
 
-Other Rust-native clients already exist (`samsa`, `krafka`, `kacrab`). We are a
-sixth client. The bet is the hot path, not empty-category marketing.
+Other Rust-native clients already exist (`samsa`, `krafka`, `kacrab`,
+`kafkit-client`). We are another client. The bet is the hot path, not
+empty-category marketing.
 
 ## What we reuse
 
-Wire types come from [`kafka-protocol` 0.18.0](https://crates.io/crates/kafka-protocol)
-(generated from Apache Kafka 4.1.0 schemas). We do not rewrite `ApiKey`, request
-bodies, tagged fields, or record-batch magic v2. See [PROTOCOL.md](PROTOCOL.md).
+Wire types come from [`kafka-protocol` 0.18](https://crates.io/crates/kafka-protocol)
+(`default-features = false`, `features = ["client"]` — default features pull
+C `lz4`/`zstd`). We do not rewrite `ApiKey`, request bodies, tagged fields, or
+record-batch magic v2. Named gaps (4.1.0 schema pin, owned-only decode, #104
+intermediate `Bytes`) are in [PROTOCOL.md](PROTOCOL.md).
 
 ## Status
 
