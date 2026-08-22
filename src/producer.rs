@@ -15,7 +15,13 @@ use kafka_protocol::records::{
 };
 use tokio::sync::{mpsc, oneshot};
 
-use crate::client::Client;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+use uuid::Uuid;
+
+use crate::client::{topic_matches, Client};
 use crate::compression::{self, Compression};
 use crate::error::{Error, Result};
 use crate::partitioner::{hash_partition, Sticky};
@@ -221,6 +227,35 @@ struct PartitionBuf {
     items: Vec<Pending>,
 }
 
+/// Oneshot for a record that has been queued but not yet acked.
+///
+/// Lab A must enqueue many records (or run N concurrent senders) so linger/batch
+/// can fill. Awaiting [`Producer::send`] per record is correctness, not throughput.
+pub struct Delivery {
+    rx: oneshot::Receiver<Result<ProduceResult>>,
+}
+
+impl Delivery {
+    /// Wait for this record's batch to be acked.
+    pub async fn wait(self) -> Result<ProduceResult> {
+        self.await
+    }
+}
+
+impl Future for Delivery {
+    type Output = Result<ProduceResult>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Pin::new(&mut self.rx).poll(cx) {
+            Poll::Ready(Ok(r)) => Poll::Ready(r),
+            Poll::Ready(Err(_)) => {
+                Poll::Ready(Err(Error::protocol("producer actor dropped reply")))
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
 /// Handle. `send` maps rust-rdkafka `FutureProducer::send`.
 #[derive(Clone)]
 pub struct Producer {
@@ -248,14 +283,21 @@ impl Producer {
         Self { tx }
     }
 
-    /// Enqueue and wait for this record's batch to be acked.
-    pub async fn send(&self, rec: RecordTo) -> Result<ProduceResult> {
+    /// Queue a record without waiting for the Produce ack.
+    ///
+    /// Linger/batch only fill if the caller keeps enqueueing (or runs concurrent
+    /// `send`s). Do not measure one `send().await` per record and call it throughput.
+    pub fn enqueue(&self, rec: RecordTo) -> Result<Delivery> {
         let (reply, rx) = oneshot::channel();
         self.tx
             .send(Cmd::Send { rec, reply })
             .map_err(|_| Error::protocol("producer actor stopped"))?;
-        rx.await
-            .map_err(|_| Error::protocol("producer actor dropped reply"))?
+        Ok(Delivery { rx })
+    }
+
+    /// Enqueue and wait for this record's batch to be acked (correctness).
+    pub async fn send(&self, rec: RecordTo) -> Result<ProduceResult> {
+        self.enqueue(rec)?.await
     }
 
     /// Convenience: pin partition (used by the example).
@@ -302,9 +344,7 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
                         .filter(|(_, b)| now >= b.first + cfg.linger)
                         .map(|(k, _)| k.clone())
                         .collect();
-                    for k in due {
-                        flush_one(&mut client, &cfg, &mut bufs, &mut sequences, k).await;
-                    }
+                    flush_many(&mut client, &cfg, &mut bufs, &mut sequences, due).await;
                     continue;
                 }
             }
@@ -330,15 +370,11 @@ async fn actor(mut client: Client, cfg: ActorCfg, mut rx: mpsc::UnboundedReceive
                     .filter(|(_, b)| b.bytes >= cfg.batch_size)
                     .map(|(k, _)| k.clone())
                     .collect();
-                for k in full {
-                    flush_one(&mut client, &cfg, &mut bufs, &mut sequences, k).await;
-                }
+                flush_many(&mut client, &cfg, &mut bufs, &mut sequences, full).await;
             }
             Cmd::Flush { reply } => {
                 let keys: Vec<_> = bufs.keys().cloned().collect();
-                for k in keys {
-                    flush_one(&mut client, &cfg, &mut bufs, &mut sequences, k).await;
-                }
+                flush_many(&mut client, &cfg, &mut bufs, &mut sequences, keys).await;
                 let _ = reply.send(Ok(()));
             }
         }
@@ -396,55 +432,97 @@ async fn enqueue(
     e.items.push(Pending { rec, reply });
 }
 
-async fn flush_one(
+fn fail_items(items: Vec<Pending>, err: Error) {
+    let msg = err.to_string();
+    let mut items = items.into_iter();
+    if let Some(first) = items.next() {
+        let _ = first.reply.send(Err(err));
+    }
+    for item in items {
+        let _ = item.reply.send(Err(Error::protocol(msg.clone())));
+    }
+}
+
+fn succeed_items(items: Vec<Pending>, result: ProduceResult) {
+    for item in items {
+        let _ = item.reply.send(Ok(result.clone()));
+    }
+}
+
+struct PreparedProduce {
+    key: (String, i32),
+    topic: String,
+    topic_id: Uuid,
+    partition: i32,
+    ver: i16,
+    n: i32,
+    base_sequence: i32,
+    broker: crate::broker::Broker,
+    req: ProduceRequest,
+}
+
+/// Flush every ready partition without waiting for one Produce before starting
+/// the next. Different leaders (and the same pipelined socket) go in flight
+/// together. Sequences are peeked here and incremented only after ack.
+async fn flush_many(
     client: &mut Client,
     cfg: &ActorCfg,
     bufs: &mut HashMap<(String, i32), PartitionBuf>,
     sequences: &mut HashMap<(String, i32), i32>,
-    key: (String, i32),
+    keys: Vec<(String, i32)>,
 ) {
-    let Some(buf) = bufs.remove(&key) else {
-        return;
-    };
-    let (topic, partition) = key;
-    let result = flush_partition(client, cfg, sequences, &topic, partition, &buf.items).await;
-    match result {
-        Ok(r) => {
-            for item in buf.items {
-                let _ = item.reply.send(Ok(r.clone()));
-            }
+    let mut prepared = Vec::new();
+    for key in keys {
+        let Some(buf) = bufs.remove(&key) else {
+            continue;
+        };
+        match prepare_produce(client, cfg, sequences, &key, &buf.items).await {
+            Ok(p) => prepared.push((buf.items, p)),
+            Err(e) => fail_items(buf.items, e),
         }
-        Err(e) => {
-            let msg = e.to_string();
-            let mut items = buf.items.into_iter();
-            if let Some(first) = items.next() {
-                let _ = first.reply.send(Err(e));
+    }
+
+    let mut joins = Vec::with_capacity(prepared.len());
+    for (items, p) in prepared {
+        joins.push(async move {
+            let result = send_produce_retrying(&p).await;
+            (items, p, result)
+        });
+    }
+
+    // Poll every partition Produce concurrently (dynamic count, no extra crate).
+    let outcomes = join_all(joins).await;
+    for (items, p, result) in outcomes {
+        match result {
+            Ok(r) => {
+                if cfg.identity.is_some() {
+                    sequences.insert(p.key, p.base_sequence.wrapping_add(p.n));
+                }
+                succeed_items(items, r);
             }
-            for item in items {
-                let _ = item.reply.send(Err(Error::protocol(msg.clone())));
-            }
+            Err(e) => fail_items(items, e),
         }
     }
 }
 
-async fn flush_partition(
+/// Peek the next sequence. Do **not** increment until the batch is acked.
+/// A retry of these records reuses the same pid/epoch/base_sequence.
+async fn prepare_produce(
     client: &mut Client,
     cfg: &ActorCfg,
-    sequences: &mut HashMap<(String, i32), i32>,
-    topic: &str,
-    partition: i32,
+    sequences: &HashMap<(String, i32), i32>,
+    key: &(String, i32),
     items: &[Pending],
-) -> Result<ProduceResult> {
+) -> Result<PreparedProduce> {
     if items.is_empty() {
         return Err(Error::protocol("empty produce batch"));
     }
-    let leader = client.leader_id(topic, partition)?;
-    let base_sequence = *sequences.entry((topic.to_string(), partition)).or_insert(0);
+    let (topic, partition) = key;
+    let leader = client.leader_id(topic, *partition)?;
+    let ver = client.negotiated.produce;
+    let topic_id = client.require_topic_id(topic, ver)?;
+    let base_sequence = sequences.get(key).copied().unwrap_or(0);
     let n = items.len() as i32;
-    sequences.insert(
-        (topic.to_string(), partition),
-        base_sequence.wrapping_add(n),
-    );
 
     let pairs = items
         .iter()
@@ -461,30 +539,106 @@ async fn flush_partition(
         .with_transactional_id(None)
         .with_acks(cfg.acks.as_i16())
         .with_timeout_ms(cfg.timeout_ms)
-        .with_topic_data(vec![TopicProduceData::default()
-            .with_name(TopicName(StrBytes::from_string(topic.to_string())))
-            .with_partition_data(vec![PartitionProduceData::default()
-                .with_index(partition)
-                .with_records(Some(records))])]);
+        .with_topic_data(vec![topic_produce_data(
+            topic, topic_id, *partition, records,
+        )]);
 
-    let ver = client.negotiated.produce;
-    let resp: kafka_protocol::messages::ProduceResponse = client
-        .broker(leader)
-        .await?
-        .call(ApiKey::Produce, ver, &req)
-        .await?;
+    let broker = client.broker(leader).await?;
+    Ok(PreparedProduce {
+        key: key.clone(),
+        topic: topic.clone(),
+        topic_id,
+        partition: *partition,
+        ver,
+        n,
+        base_sequence,
+        broker,
+        req,
+    })
+}
+
+fn topic_produce_data(
+    topic: &str,
+    topic_id: Uuid,
+    partition: i32,
+    records: Bytes,
+) -> TopicProduceData {
+    TopicProduceData::default()
+        .with_name(TopicName(StrBytes::from_string(topic.to_string())))
+        .with_topic_id(topic_id)
+        .with_partition_data(vec![PartitionProduceData::default()
+            .with_index(partition)
+            .with_records(Some(records))])
+}
+
+async fn send_produce_retrying(p: &PreparedProduce) -> Result<ProduceResult> {
+    let mut last = Error::protocol("produce retry exhausted");
+    for attempt in 0..3 {
+        match p.broker.call(ApiKey::Produce, p.ver, &p.req).await {
+            Ok(resp) => return match_produce(&resp, p),
+            Err(e) => {
+                last = e;
+                if attempt + 1 < 3 {
+                    continue;
+                }
+            }
+        }
+    }
+    Err(last)
+}
+
+fn match_produce(
+    resp: &kafka_protocol::messages::ProduceResponse,
+    p: &PreparedProduce,
+) -> Result<ProduceResult> {
     let part = resp
         .responses
         .iter()
-        .find(|t| t.name.0.as_str() == topic)
-        .and_then(|t| t.partition_responses.iter().find(|p| p.index == partition))
+        .find(|t| topic_matches(p.ver, &p.topic, p.topic_id, t.name.0.as_str(), t.topic_id))
+        .and_then(|t| {
+            t.partition_responses
+                .iter()
+                .find(|r| r.index == p.partition)
+        })
         .ok_or_else(|| Error::protocol("produce response missing partition"))?;
     Error::check(part.error_code)?;
     Ok(ProduceResult {
-        topic: topic.to_string(),
-        partition,
+        topic: p.topic.clone(),
+        partition: p.partition,
         base_offset: part.base_offset,
     })
+}
+
+/// Poll a dynamic set of futures without adding a `futures` crate.
+async fn join_all<F, T>(futs: Vec<F>) -> Vec<T>
+where
+    F: Future<Output = T>,
+{
+    let mut futs: Vec<Pin<Box<F>>> = futs.into_iter().map(Box::pin).collect();
+    let mut out: Vec<Option<T>> = (0..futs.len()).map(|_| None).collect();
+    loop {
+        if out.iter().all(|s| s.is_some()) {
+            return out.into_iter().map(Option::unwrap).collect();
+        }
+        std::future::poll_fn(|cx| {
+            let mut pending = false;
+            for (i, f) in futs.iter_mut().enumerate() {
+                if out[i].is_some() {
+                    continue;
+                }
+                match f.as_mut().poll(cx) {
+                    Poll::Ready(v) => out[i] = Some(v),
+                    Poll::Pending => pending = true,
+                }
+            }
+            if pending {
+                Poll::Pending
+            } else {
+                Poll::Ready(())
+            }
+        })
+        .await;
+    }
 }
 
 /// Encode records with kafka-protocol's magic-v2 encoder.
@@ -592,6 +746,38 @@ mod tests {
         let mut buf13 = BytesMut::new();
         req.encode(&mut buf13, 13).unwrap();
         assert!(!buf13.is_empty());
+    }
+
+    #[test]
+    fn produce_v13_encodes_topic_id_not_name() {
+        let id = Uuid::from_u128(0x0123_4567_89ab_cdef_0123_4567_89ab_cdef);
+        let rec = encode_record_batch(
+            [(None, Some(Bytes::from_static(b"hello")))],
+            Compression::None,
+            BatchIdentity::default(),
+        )
+        .unwrap();
+        let req = ProduceRequest::default()
+            .with_transactional_id(None)
+            .with_acks(1)
+            .with_timeout_ms(1000)
+            .with_topic_data(vec![topic_produce_data("tid-test", id, 0, rec)]);
+        let mut v13 = BytesMut::new();
+        req.encode(&mut v13, 13).unwrap();
+        assert!(
+            v13.windows(16).any(|w| w == id.as_bytes()),
+            "Produce v13 encodes topic_id"
+        );
+        assert!(
+            !v13.windows(b"tid-test".len()).any(|w| w == b"tid-test"),
+            "Produce v13 must not encode the topic name"
+        );
+        let mut v12 = BytesMut::new();
+        req.encode(&mut v12, 12).unwrap();
+        assert!(
+            v12.windows(b"tid-test".len()).any(|w| w == b"tid-test"),
+            "Produce v12 encodes the topic name"
+        );
     }
 
     #[test]
