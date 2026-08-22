@@ -1,4 +1,11 @@
 //! Fetch path: kafka-protocol `FetchRequest` + magic-v2 `RecordBatchDecoder`.
+//!
+//! One FetchRequest per leader includes every partition on that leader.
+//! Lab A is 6 partitions / RF=1 / one broker — C does the same. A
+//! one-partition Fetch plus `records.clone()` before decode was leftover
+//! rec/s on a pre-filled topic.
+
+use std::collections::HashMap;
 
 use bytes::Bytes;
 use kafka_protocol::messages::fetch_request::{FetchPartition, FetchTopic};
@@ -23,6 +30,9 @@ pub const FETCH_SESSION_NONE: i32 = 0;
 /// `session_epoch = -1` when not using incremental fetch (v7+/v12+).
 pub const FETCH_SESSION_EPOCH_INVALID: i32 = -1;
 
+/// Broker `OFFSET_OUT_OF_RANGE` (1). Retry from `log_start_offset`.
+const OFFSET_OUT_OF_RANGE: i16 = 1;
+
 /// One fetch from a single topic partition.
 #[derive(Debug, Clone)]
 pub struct Fetched {
@@ -32,6 +42,10 @@ pub struct Fetched {
     pub partition: i32,
     /// High watermark.
     pub high_watermark: i64,
+    /// Log start (v5+). Used when the requested offset is out of range.
+    pub log_start_offset: i64,
+    /// Next fetch offset (`last.offset + 1`, or the requested offset if empty).
+    pub next_offset: i64,
     /// Decoded magic-v2 records (owned; see kafka-protocol issue #42).
     pub records: Vec<Record>,
 }
@@ -55,54 +69,121 @@ impl Fetcher {
         }
     }
 
+    /// Max wait (ms) when `min_bytes` is not yet available.
+    pub fn max_wait_ms(mut self, max_wait_ms: i32) -> Self {
+        self.max_wait_ms = max_wait_ms;
+        self
+    }
+
+    /// Min bytes before the broker returns (Lab A pre-fill: 1 is fine).
+    pub fn min_bytes(mut self, min_bytes: i32) -> Self {
+        self.min_bytes = min_bytes;
+        self
+    }
+
+    /// Per-partition max bytes. Lab A produce batches are ~1 MiB.
+    pub fn partition_max_bytes(mut self, partition_max_bytes: i32) -> Self {
+        self.partition_max_bytes = partition_max_bytes;
+        self
+    }
+
     /// Fetch from `topic`/`partition` starting at `offset`.
     pub async fn fetch(&mut self, topic: &str, partition: i32, offset: i64) -> Result<Fetched> {
+        let mut got = self.fetch_parts(topic, &[(partition, offset)]).await?;
+        got.pop()
+            .ok_or_else(|| Error::protocol("fetch response missing partition"))
+    }
+
+    /// One FetchRequest per leader, every requested partition on that leader.
+    ///
+    /// Takes the response `records` Bytes (no clone) and decodes in place.
+    pub async fn fetch_parts(
+        &mut self,
+        topic: &str,
+        parts: &[(i32, i64)],
+    ) -> Result<Vec<Fetched>> {
+        if parts.is_empty() {
+            return Ok(Vec::new());
+        }
         if self.client.partition_count(topic).is_none() {
             self.client
                 .refresh_metadata(Some(&[topic.to_string()]))
                 .await?;
         }
-        let leader = self.client.leader_id(topic, partition)?;
         let ver = self.client.negotiated.fetch;
         let topic_id = self.client.require_topic_id(topic, ver)?;
-        let req = consumer_fetch_request(ConsumerFetch {
-            topic,
-            topic_id,
-            partition,
-            offset,
-            max_wait_ms: self.max_wait_ms,
-            min_bytes: self.min_bytes,
-            max_bytes: self.partition_max_bytes.saturating_mul(4),
-            partition_max_bytes: self.partition_max_bytes,
-            fetch_version: ver,
-        });
 
-        let resp: kafka_protocol::messages::FetchResponse = self
-            .client
-            .broker(leader)
-            .await?
-            .call(ApiKey::Fetch, ver, &req)
-            .await?;
-        Error::check(resp.error_code)?;
+        let mut by_leader: HashMap<i32, Vec<(i32, i64)>> = HashMap::new();
+        for &(partition, offset) in parts {
+            let leader = self.client.leader_id(topic, partition)?;
+            by_leader.entry(leader).or_default().push((partition, offset));
+        }
 
-        let part = resp
-            .responses
-            .iter()
-            .find(|t| topic_matches(ver, topic, topic_id, t.topic.0.as_str(), t.topic_id))
-            .and_then(|t| t.partitions.iter().find(|p| p.partition_index == partition))
-            .ok_or_else(|| Error::protocol("fetch response missing partition"))?;
-        Error::check(part.error_code)?;
+        let mut out = Vec::with_capacity(parts.len());
+        for (leader, want) in by_leader {
+            let req = consumer_fetch_request_parts(
+                topic,
+                topic_id,
+                &want,
+                self.max_wait_ms,
+                self.min_bytes,
+                self.partition_max_bytes.saturating_mul(want.len() as i32),
+                self.partition_max_bytes,
+                ver,
+            );
+            let mut resp: kafka_protocol::messages::FetchResponse = self
+                .client
+                .broker(leader)
+                .await?
+                .call(ApiKey::Fetch, ver, &req)
+                .await?;
+            Error::check(resp.error_code)?;
+            unpack_fetch(topic, topic_id, ver, &want, &mut resp, &mut out)?;
+        }
+        Ok(out)
+    }
 
-        let records = match &part.records {
-            Some(raw) if !raw.is_empty() => decode_records(raw.clone())?,
-            _ => Vec::new(),
-        };
-        Ok(Fetched {
-            topic: topic.to_string(),
-            partition,
-            high_watermark: part.high_watermark,
-            records,
-        })
+    /// Consume `topic` from the given offsets until each partition's high watermark.
+    ///
+    /// Lab A: produce first (completed), then call this from earliest (offset 0
+    /// on a freshly filled topic). OFFSET_OUT_OF_RANGE jumps to `log_start_offset`.
+    pub async fn consume_to_hw(
+        &mut self,
+        topic: &str,
+        start: &[(i32, i64)],
+    ) -> Result<Vec<Fetched>> {
+        let mut offsets: HashMap<i32, i64> = start.iter().copied().collect();
+        let mut hw: HashMap<i32, i64> = HashMap::new();
+        let mut all = Vec::new();
+        loop {
+            let want: Vec<(i32, i64)> = offsets
+                .iter()
+                .filter(|(p, off)| hw.get(p).map(|h| *off < h).unwrap_or(true))
+                .map(|(&p, &off)| (p, off))
+                .collect();
+            if want.is_empty() {
+                return Ok(all);
+            }
+            let batch = self.fetch_parts(topic, &want).await?;
+            if batch.is_empty() {
+                return Ok(all);
+            }
+            for f in batch {
+                hw.insert(f.partition, f.high_watermark);
+                if f.records.is_empty() {
+                    if f.next_offset >= f.high_watermark {
+                        offsets.insert(f.partition, f.next_offset);
+                    } else if f.log_start_offset > f.next_offset {
+                        offsets.insert(f.partition, f.log_start_offset);
+                    } else {
+                        offsets.insert(f.partition, f.next_offset);
+                    }
+                } else {
+                    offsets.insert(f.partition, f.next_offset);
+                    all.push(f);
+                }
+            }
+        }
     }
 }
 
@@ -136,27 +217,107 @@ pub struct ConsumerFetch<'a> {
 /// - `session_id = 0`, `session_epoch = -1` when not doing incremental fetch (v7+/v12+)
 /// - `topic` name on v12; `topic_id` on v13+
 pub fn consumer_fetch_request(f: ConsumerFetch<'_>) -> FetchRequest {
-    let mut topic = FetchTopic::default().with_partitions(vec![FetchPartition::default()
-        .with_partition(f.partition)
-        .with_current_leader_epoch(-1)
-        .with_fetch_offset(f.offset)
-        .with_last_fetched_epoch(-1)
-        .with_log_start_offset(-1)
-        .with_partition_max_bytes(f.partition_max_bytes)]);
-    if f.fetch_version >= 13 {
-        topic = topic.with_topic_id(f.topic_id);
+    consumer_fetch_request_parts(
+        f.topic,
+        f.topic_id,
+        &[(f.partition, f.offset)],
+        f.max_wait_ms,
+        f.min_bytes,
+        f.max_bytes,
+        f.partition_max_bytes,
+        f.fetch_version,
+    )
+}
+
+/// Same consumer fields as [`consumer_fetch_request`], every `(partition, offset)`
+/// in one `FetchTopic` (one leader).
+pub fn consumer_fetch_request_parts(
+    topic: &str,
+    topic_id: Uuid,
+    parts: &[(i32, i64)],
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    partition_max_bytes: i32,
+    fetch_version: i16,
+) -> FetchRequest {
+    let partitions = parts
+        .iter()
+        .map(|&(partition, offset)| {
+            FetchPartition::default()
+                .with_partition(partition)
+                .with_current_leader_epoch(-1)
+                .with_fetch_offset(offset)
+                .with_last_fetched_epoch(-1)
+                .with_log_start_offset(-1)
+                .with_partition_max_bytes(partition_max_bytes)
+        })
+        .collect();
+    let mut fetch_topic = FetchTopic::default().with_partitions(partitions);
+    if fetch_version >= 13 {
+        fetch_topic = fetch_topic.with_topic_id(topic_id);
     } else {
-        topic = topic.with_topic(TopicName(StrBytes::from_string(f.topic.to_string())));
+        fetch_topic = fetch_topic.with_topic(TopicName(StrBytes::from_string(topic.to_string())));
     }
     FetchRequest::default()
         .with_replica_id(CONSUMER_REPLICA_ID.into())
-        .with_max_wait_ms(f.max_wait_ms)
-        .with_min_bytes(f.min_bytes)
-        .with_max_bytes(f.max_bytes)
+        .with_max_wait_ms(max_wait_ms)
+        .with_min_bytes(min_bytes)
+        .with_max_bytes(max_bytes)
         .with_isolation_level(ISOLATION_READ_UNCOMMITTED)
         .with_session_id(FETCH_SESSION_NONE)
         .with_session_epoch(FETCH_SESSION_EPOCH_INVALID)
-        .with_topics(vec![topic])
+        .with_topics(vec![fetch_topic])
+}
+
+fn unpack_fetch(
+    topic: &str,
+    topic_id: Uuid,
+    ver: i16,
+    want: &[(i32, i64)],
+    resp: &mut kafka_protocol::messages::FetchResponse,
+    out: &mut Vec<Fetched>,
+) -> Result<()> {
+    let t = resp
+        .responses
+        .iter_mut()
+        .find(|t| topic_matches(ver, topic, topic_id, t.topic.0.as_str(), t.topic_id))
+        .ok_or_else(|| Error::protocol("fetch response missing topic"))?;
+    for &(partition, requested) in want {
+        let part = t
+            .partitions
+            .iter_mut()
+            .find(|p| p.partition_index == partition)
+            .ok_or_else(|| Error::protocol("fetch response missing partition"))?;
+        if part.error_code == OFFSET_OUT_OF_RANGE {
+            out.push(Fetched {
+                topic: topic.to_string(),
+                partition,
+                high_watermark: part.high_watermark,
+                log_start_offset: part.log_start_offset,
+                next_offset: part.log_start_offset,
+                records: Vec::new(),
+            });
+            continue;
+        }
+        Error::check(part.error_code)?;
+        // Take the bytes. A clone of the Fetch records body is leftover
+        // memcpy on the consume path (same class of leftover as encode_request).
+        let records = match part.records.take() {
+            Some(raw) if !raw.is_empty() => decode_records(raw)?,
+            _ => Vec::new(),
+        };
+        let next_offset = records.last().map(|r| r.offset + 1).unwrap_or(requested);
+        out.push(Fetched {
+            topic: topic.to_string(),
+            partition,
+            high_watermark: part.high_watermark,
+            log_start_offset: part.log_start_offset,
+            next_offset,
+            records,
+        });
+    }
+    Ok(())
 }
 
 /// Decode one or more magic-v2 batches with the pure-Rust compression hook.
@@ -281,6 +442,34 @@ mod tests {
         let mut buf12 = bytes::BytesMut::new();
         req.encode(&mut buf12, 12).unwrap();
         assert!(!buf12.is_empty());
+    }
+
+    #[test]
+    fn fetch_request_encodes_all_partitions_in_one_topic() {
+        let id = Uuid::from_u128(9);
+        let req = consumer_fetch_request_parts(
+            "bench",
+            id,
+            &[(0, 0), (1, 10), (5, 20)],
+            100,
+            1,
+            4096,
+            1024,
+            13,
+        );
+        assert_eq!(req.topics.len(), 1);
+        assert_eq!(req.topics[0].partitions.len(), 3);
+        let idxs: Vec<i32> = req.topics[0].partitions.iter().map(|p| p.partition).collect();
+        assert_eq!(idxs, vec![0, 1, 5]);
+        let offs: Vec<i64> = req.topics[0]
+            .partitions
+            .iter()
+            .map(|p| p.fetch_offset)
+            .collect();
+        assert_eq!(offs, vec![0, 10, 20]);
+        let mut buf = bytes::BytesMut::new();
+        req.encode(&mut buf, 13).unwrap();
+        assert!(buf.windows(16).any(|w| w == id.as_bytes()));
     }
 
     #[test]

@@ -36,8 +36,9 @@ pub mod producer;
 pub use client::{topic_matches, Client, TopicMeta};
 pub use compression::Compression;
 pub use consumer::{
-    consumer_fetch_request, decode_records, ConsumerFetch, Fetched, Fetcher, CONSUMER_REPLICA_ID,
-    FETCH_SESSION_EPOCH_INVALID, FETCH_SESSION_NONE, ISOLATION_READ_UNCOMMITTED,
+    consumer_fetch_request, consumer_fetch_request_parts, decode_records, ConsumerFetch, Fetched,
+    Fetcher, CONSUMER_REPLICA_ID, FETCH_SESSION_EPOCH_INVALID, FETCH_SESSION_NONE,
+    ISOLATION_READ_UNCOMMITTED,
 };
 pub use error::{Error, Result};
 pub use partitioner::{hash_partition, murmur2};
