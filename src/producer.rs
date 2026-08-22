@@ -228,8 +228,9 @@ enum InFlightDone {
         items: Vec<Pending>,
         result: Result<ProduceResult>,
     },
-    /// Transport or broker error after a write. The actor must `submit` the
-    /// same request again; do not call `Broker::call` off-thread.
+    /// `call.wait()` failed (connection/transport). The actor `submit`s the
+    /// same encoded request again. A decoded ProduceResponse is never this
+    /// variant — broker codes finish the batch.
     Retry {
         addr: SocketAddr,
         items: Vec<Pending>,
@@ -577,13 +578,20 @@ fn spawn_produce_wait(
 ) {
     let addr = prepared.broker.addr;
     in_flight.spawn(async move {
-        match wait_produce_once(call, &prepared, retry).await {
-            Ok(r) => InFlightDone::Finished {
+        match after_produce_wait(
+            call.wait().await,
+            &prepared.topic,
+            prepared.topic_id,
+            prepared.partition,
+            prepared.ver,
+            retry,
+        ) {
+            AfterWait::Finished(result) => InFlightDone::Finished {
                 addr,
                 items,
-                result: Ok(r),
+                result,
             },
-            Err(e) => InFlightDone::Retry {
+            AfterWait::Transport(e) => InFlightDone::Retry {
                 addr,
                 items,
                 prepared,
@@ -802,13 +810,29 @@ fn topic_produce_data(
             .with_records(Some(records))])
 }
 
-async fn wait_produce_once(
-    call: crate::broker::PendingCall<kafka_protocol::messages::ProduceResponse>,
-    p: &PreparedProduce,
+enum AfterWait {
+    /// Response arrived. `match_produce` once; do not resubmit.
+    Finished(Result<ProduceResult>),
+    /// `wait()` failed. Actor may rewrite the same request.
+    Transport(Error),
+}
+
+/// Retry only a failed `wait()`. A ProduceResponse is final (46 on retry
+/// is already success in `match_produce`; other codes fail the batch).
+fn after_produce_wait(
+    wait: Result<kafka_protocol::messages::ProduceResponse>,
+    topic: &str,
+    topic_id: Uuid,
+    partition: i32,
+    ver: i16,
     retry: bool,
-) -> Result<ProduceResult> {
-    let resp = call.wait().await?;
-    match_produce(&resp, &p.topic, p.topic_id, p.partition, p.ver, retry)
+) -> AfterWait {
+    match wait {
+        Ok(resp) => {
+            AfterWait::Finished(match_produce(&resp, topic, topic_id, partition, ver, retry))
+        }
+        Err(e) => AfterWait::Transport(e),
+    }
 }
 
 fn match_produce(
@@ -1002,6 +1026,44 @@ mod tests {
         assert!(produce_ack(46, false).is_err());
         assert!(produce_ack(0, false).is_ok());
         assert!(produce_ack(45, true).is_err());
+    }
+
+    #[test]
+    fn broker_codes_finish_transport_retries() {
+        use kafka_protocol::messages::produce_response::{
+            PartitionProduceResponse, TopicProduceResponse,
+        };
+        let id = Uuid::from_u128(7);
+        let resp = |code: i16| {
+            kafka_protocol::messages::ProduceResponse::default().with_responses(vec![
+                TopicProduceResponse::default()
+                    .with_name(TopicName(StrBytes::from_string("t".into())))
+                    .with_topic_id(id)
+                    .with_partition_responses(vec![PartitionProduceResponse::default()
+                        .with_index(0)
+                        .with_error_code(code)
+                        .with_base_offset(42)]),
+            ])
+        };
+        assert!(matches!(
+            after_produce_wait(Ok(resp(45)), "t", id, 0, 13, true),
+            AfterWait::Finished(Err(_))
+        ));
+        assert!(matches!(
+            after_produce_wait(Ok(resp(46)), "t", id, 0, 13, true),
+            AfterWait::Finished(Ok(_))
+        ));
+        assert!(matches!(
+            after_produce_wait(
+                Err(Error::protocol("broker connection closed")),
+                "t",
+                id,
+                0,
+                13,
+                false
+            ),
+            AfterWait::Transport(_)
+        ));
     }
 
     #[test]

@@ -36,10 +36,12 @@ that we copy `ClientConfig::set("linger.ms", "50")`.
   keeps receiving while Produce is in flight (up to 5 per connection, matching
   librdkafka's idempotent `max.in.flight.requests.per.connection`). Writes go
   out in `base_sequence` order (`Broker::submit`); acks are awaited off the
-  actor. A retry writes the **same** encoded request through the actor (not
-  `Broker::call` off-thread). Sequence is assigned when the batch is first
-  written; a retry reuses pid/epoch/base_sequence. `DuplicateSequenceNumber`
-  (46) on an idempotent retry is success.
+  actor. A **transport** retry writes the **same** encoded request through the
+  actor (not `Broker::call` off-thread). A ProduceResponse is final:
+  `DuplicateSequenceNumber` (46) on an idempotent retry is success; other
+  broker codes (NotLeader, `OutOfOrderSequenceNumber` 45, InvalidProducerEpoch)
+  fail the batch. Sequence is assigned when the batch is first written; a
+  retry reuses pid/epoch/base_sequence.
 - **ApiVersions on every new TCP connection**, including leader sockets. Versions are
   per-connection.
 - **InitProducerId** when `idempotent = true` (Lab A).
