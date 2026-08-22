@@ -1,0 +1,40 @@
+[package]
+name = "partitionline"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+license = "Apache-2.0 OR MIT"
+description = "Pure-Rust Kafka client. Reuses kafka-protocol. Performance bet vs librdkafka."
+repository = "https://github.com/mingley/partitionline"
+readme = "README.md"
+keywords = ["kafka", "client", "async"]
+categories = ["network-programming", "asynchronous"]
+
+[dependencies]
+# Wire types, flexible versions, tagged fields, record-batch magic v2.
+# default-features off: upstream gzip/lz4/zstd features pull C (libzstd, liblz4).
+# See PROTOCOL.md. Compression goes through RecordBatchEncoder's custom hook.
+kafka-protocol = { version = "0.18", default-features = false, features = ["client"] }
+anyhow = "1" # only to match kafka-protocol's custom-compression hook signature
+bytes = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["net", "rt-multi-thread", "io-util", "time", "macros", "sync"] }
+crc32c = "0.6"
+indexmap = "2"
+
+# Pure-Rust codecs for the custom compression hook (not kafka-protocol's C features).
+lz4_flex = { version = "0.11", default-features = false, features = ["std"] }
+snap = "1"
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+ruzstd = "0.8"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time"] }
+
+[[bin]]
+name = "bench"
+path = "src/bin/bench.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
