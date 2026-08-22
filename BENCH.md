@@ -49,7 +49,7 @@ or host). Same linger / batch / compression / acks on both clients.
 | Rust-side baseline | rdkafka **0.39.0** (librdkafka **2.12.1** via rdkafka-sys). Not run in this published window. Not the win condition. |
 | Warmup | **60 s** — discarded |
 | Measured | **180 s × 3 reps** |
-| Results | scripts + raw **CSV / logs**. If we lose, we publish the loss. This file’s comparison table is the `083ae1f` window. |
+| Results | scripts + raw **CSV / logs**. If we lose, we publish the loss. This file’s comparison table is the `cf77216` window. |
 
 **10 min × 3 was the original Lab A ask and is not this published window.** Do not compare these 180 s numbers to a 10-minute run.
 
@@ -83,21 +83,21 @@ window and has no script here. It is not the win condition.
 
 Without those files, do not claim a win. A loss is published as a loss.
 
-## Comparison table (Lab A produce, 2026-08-22, `083ae1f`)
+## Comparison table (Lab A produce, 2026-08-22, `cf77216`)
 
-Pin `083ae1fad48507d2beab7ba458c4dde46f769550` (transport-only retries). Produce-only. Window is **60 s warmup + 180 s × 3**. Not a 10-minute run. The 10 s smoke is not this table. Fetch and e2e were not measured. rdkafka 0.39.0 was not run. Not done.
+Pin `cf77216ef44aaa732be722322ebdf85721d8deb0` (acks delivered before the next batch encode). Produce-only. Window is **60 s warmup + 180 s × 3**. Not a 10-minute run. The 10 s smoke is not this table. Fetch and e2e were not measured. rdkafka 0.39.0 was not run. Not done.
 
 acks=**all**. Latency is produce-ack / delivery-report, **microseconds**. Means of three reps.
 
 | payload | acks | linger | idem | client | rec/s | MiB/s | p50 µs | p99 µs | p999 µs |
 |---|---|---|---|---|---:|---:|---:|---:|---:|
-| 1 KiB | all | 50 | true | librdkafka 2.15.0 C | 957736 | 935.292 | 96136 | 242107 | 304156 |
-| 1 KiB | all | 50 | true | partitionline | 1006625 | 983.033 | 98948 | 156977 | 184353 |
+| 1 KiB | all | 50 | true | librdkafka 2.15.0 C | 912091 | 890.719 | 101244 | 258856 | 332334 |
+| 1 KiB | all | 50 | true | partitionline | 961110 | 938.584 | 101414 | 161180 | 182777 |
 
-**Win on rec/s and MiB/s.** partitionline mean rec/s is **105%** of C (1006625 vs 957736). Mean p50 is **2.9%** worse (98948 vs 96136 µs). p99 and p999 are better.
+**Win on rec/s and MiB/s.** partitionline mean rec/s is **105%** of C (961110 vs 912091). Mean p50 is **0.2%** worse (101414 vs 101244 µs). p99 and p999 are better.
 
-Locked knobs on both clients: acks=all, linger=50, compression=none, idempotent=true, batch.size=1000000. Raw + three reps: [results/lab-a-083ae1f.md](results/lab-a-083ae1f.md), [results/published/2026-08-22-cursor-083ae1f/](results/published/2026-08-22-cursor-083ae1f/).
+Locked knobs on both clients: acks=all, linger=50, compression=none, idempotent=true, batch.size=1000000. Raw + three reps: [results/lab-a-cf77216.md](results/lab-a-cf77216.md), [results/published/2026-08-22-cursor-cf77216/](results/published/2026-08-22-cursor-cf77216/).
 
-Earlier same-window tables (do not overwrite): [results/lab-a.md](results/lab-a.md) (first published loss), [results/lab-a-pipeline.md](results/lab-a-pipeline.md) (pipeline re-run).
+Earlier same-window tables (do not overwrite): [results/lab-a.md](results/lab-a.md) (first published loss), [results/lab-a-pipeline.md](results/lab-a-pipeline.md) (pipeline re-run), [results/lab-a-083ae1f.md](results/lab-a-083ae1f.md) (transport-only retry pin).
 
 100 B / 10 KiB columns, fetch rec/s, and e2e p50/p99 are empty. A suite that cannot fill every must-beat column is incomplete.

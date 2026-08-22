@@ -1,0 +1,22 @@
+kafka = "4.3.1"
+kafka_home = "/tmp/lab-a/kafka_2.13-4.3.1"
+broker = "host process (not docker)"
+librdkafka = "2.15.0"
+rdkafka_performance = "/tmp/lab-a/librdkafka-2.15.0/examples/rdkafka_performance"
+partitionline = "cf77216"
+partitionline_sha = "cf77216ef44aaa732be722322ebdf85721d8deb0"
+topic = "bench"
+partitions = 6
+replication_factor = 1
+payload_bytes = 1024
+linger_ms = 50
+acks = "all"
+acks_note = "Lab A asked for acks=1 + idempotent=true; librdkafka 2.15.0 requires acks=all when enable.idempotence=true. Both clients used acks=all."
+compression = "none"
+idempotent = true
+batch_size = 1000000
+queue_buffering_max_messages = 100000
+warmup_s = 60
+measured_s = 180
+reps = 3
+window_note = "60s warmup + 180s × 3 (not 10 min × 3)"
