@@ -18,7 +18,8 @@ pub enum Compression {
     Gzip,
     /// Snappy via `snap` (pure Rust).
     Snappy,
-    /// LZ4 via `lz4_flex` (pure Rust).
+    /// LZ4 frame via `lz4_flex` (pure Rust). Kafka magic-v2 / Java
+    /// `KafkaLZ4BlockOutputStream`, not `lz4_flex::block` size-prefix.
     Lz4,
     /// Zstd decode via `ruzstd`. Encode is a documented gap: `ruzstd` is a decoder.
     Zstd,
@@ -54,8 +55,15 @@ impl Compression {
                 Ok(Bytes::from(out))
             }
             Self::Lz4 => {
-                // Kafka uses LZ4 block format (not frame) for magic v2.
-                Ok(Bytes::from(lz4_flex::block::compress(src)))
+                // Magic v2 = LZ4 frame (KIP-57 / Java KafkaLZ4BlockOutputStream),
+                // magic 0x184D2204. `lz4_flex::block::compress` is a different
+                // size-prefixed block codec and will not interop with Kafka.
+                use std::io::Write;
+                let mut enc =
+                    lz4_flex::frame::FrameEncoder::new(Vec::with_capacity(src.len() / 2 + 32));
+                enc.write_all(src).map_err(Error::from)?;
+                let out = enc.finish().map_err(|e| Error::protocol(e))?;
+                Ok(Bytes::from(out))
             }
             Self::Zstd => Err(Error::NotImplemented(
                 "zstd produce: ruzstd 0.8 is decode-only; see PROTOCOL.md",
@@ -80,16 +88,19 @@ impl Compression {
                 Ok(Bytes::from(out))
             }
             Self::Lz4 => {
-                // kafka-protocol / Java use LZ4 block with an implicit size; we
-                // try the raw block decoder. Fetch path also accepts lz4_flex frame.
+                use std::io::Read;
+                if src.len() >= 4 && src[0..4] == [0x04, 0x22, 0x4D, 0x18] {
+                    let mut dec = lz4_flex::frame::FrameDecoder::new(src);
+                    let mut out = Vec::new();
+                    dec.read_to_end(&mut out).map_err(Error::from)?;
+                    return Ok(Bytes::from(out));
+                }
+                // Accept a broker/Java frame we did not produce, or (last resort)
+                // a size-prefixed block so we can detect our own old mistake.
+                // Lab A is compression=none; a Java-broker fixture is not in-repo.
                 match lz4_flex::block::decompress_size_prepended(src) {
                     Ok(out) => Ok(Bytes::from(out)),
-                    Err(_) => lz4_flex::decompress_size_prepended(src)
-                        .or_else(|_| {
-                            // Kafka's lz4 is often HC block without size prefix.
-                            // Bound output to 64 MiB to avoid bombs.
-                            lz4_flex::block::decompress(src, 64 * 1024 * 1024)
-                        })
+                    Err(_) => lz4_flex::block::decompress(src, 64 * 1024 * 1024)
                         .map(Bytes::from)
                         .map_err(|e| Error::protocol(e)),
                 }
@@ -144,12 +155,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn lz4_roundtrip() {
+    fn lz4_is_kafka_magic_v2_frame_not_block() {
         let src = b"partitionline-lz4-roundtrip-partitionline-lz4-roundtrip";
         let c = Compression::Lz4.compress(src).unwrap();
-        assert_ne!(&c[..], src);
+        assert!(c.len() >= 4);
+        assert_eq!(
+            &c[..4],
+            &[0x04, 0x22, 0x4D, 0x18],
+            "LZ4 frame magic (little-endian 0x184D2204), Java KafkaLZ4BlockOutputStream"
+        );
+        let block = lz4_flex::block::compress(src);
+        assert_ne!(
+            &c[..],
+            &block[..],
+            "must not emit lz4_flex::block (silent Kafka interop fail)"
+        );
         let back = Compression::Lz4.decompress(&c).unwrap();
         assert_eq!(&back[..], src);
+        // No in-repo Java / live-broker LZ4 fixture. Lab A is compression=none.
+        // Interop against a real broker is a later check, not a claimed pass.
     }
 
     #[test]
