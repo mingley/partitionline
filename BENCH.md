@@ -75,9 +75,11 @@ separate-container brokers.
 |---|---|
 | `scripts/bench.sh` | Drive Lab A, print the comparison table |
 | `scripts/bench-librdkafka.sh` | Build/run **librdkafka 2.15.0** `rdkafka_performance` |
-| `scripts/bench-rdkafka.sh` | rdkafka **0.39.0** Rust-side baseline (not the win) |
 | `scripts/bench-partitionline.sh` | This crate, `--release` |
 | `results/published/<date>-<host>/` | `machine.txt`, `pins.toml`, `raw/*.hdr`, `raw/*.csv`, `table.md` |
+
+rdkafka **0.39.0** (Rust FFI baseline) was **not** run in the published
+window and has no script here. It is not the win condition.
 
 Without those files, do not claim a win. A loss is published as a loss.
 
