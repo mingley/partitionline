@@ -208,6 +208,36 @@ async fn sasl_scram_sha512_then_produce() {
 }
 
 #[tokio::test]
+async fn sasl_oauthbearer_then_produce() {
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_oauthbearer = Some("alice".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oauth-ok"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oauthbearer_bad_principal_fails() {
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer = Some("eve".into());
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("bad oauth principal must fail"),
+    };
+    match err {
+        Error::Broker { code, .. } => assert_eq!(code, error::SASL_AUTHENTICATION_FAILED),
+        other => panic!("expected broker SASL_AUTHENTICATION_FAILED, got {other}"),
+    }
+}
+
+#[tokio::test]
 async fn sasl_scram_bad_password_fails() {
     let mock = common::Mock::start_with_scram(("alice".into(), "secret".into())).await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

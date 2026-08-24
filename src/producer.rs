@@ -35,6 +35,7 @@ pub struct ProducerConfig {
     pub sasl_plain: Option<(String, String)>,
     pub sasl_scram: Option<(String, String)>,
     pub sasl_scram_sha512: Option<(String, String)>,
+    pub sasl_oauthbearer: Option<String>,
     pub connections: usize,
     pub max_in_flight: usize,
     pub enable_idempotence: bool,
@@ -57,6 +58,7 @@ impl Default for ProducerConfig {
             sasl_plain: None,
             sasl_scram: None,
             sasl_scram_sha512: None,
+            sasl_oauthbearer: None,
             connections: 8,
             max_in_flight: 16,
             enable_idempotence: false,
@@ -231,6 +233,7 @@ impl Producer {
             cfg.sasl_plain.as_ref(),
             cfg.sasl_scram.as_ref(),
             cfg.sasl_scram_sha512.as_ref(),
+            cfg.sasl_oauthbearer.as_deref(),
             cfg.request_timeout,
         )
         .await?;
@@ -484,6 +487,7 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
         cfg.sasl_plain.as_ref(),
         cfg.sasl_scram.as_ref(),
         cfg.sasl_scram_sha512.as_ref(),
+        cfg.sasl_oauthbearer.as_deref(),
         cfg.request_timeout,
     )
     .await?;

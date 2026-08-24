@@ -30,7 +30,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | zstd | no | yes (libzstd C) | **blocked on C** |
 | SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
-| SASL OAUTHBEARER / OIDC | no | yes | **not started** |
+| SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
+| SASL OIDC (token endpoint) | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | no | yes | **not started** |
 | Admin APIs (CreateTopics, DeleteTopics, ACLs, configs, …) | no | yes | **not started** |
@@ -41,10 +42,10 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
 listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C
-**were measured** on a dedicated SASL_PLAINTEXT listener (`localhost:9095`,
-admin PLAINTEXT `localhost:9096`). See `docs/benchmark.md`. Mock produce over
-SCRAM is `sasl_scram_sha256_then_produce` and
-`sasl_scram_sha512_then_produce` in `tests/full_surface.rs`.
+**were measured** on SASL_PLAINTEXT `localhost:9095` (admin `localhost:9096`).
+OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
+(admin `localhost:9098`). See `docs/benchmark.md`. Mock produce over OAUTH is
+`sasl_oauthbearer_then_produce` in `tests/full_surface.rs`.
 
 ## Notes on the C-blocked rows
 
@@ -57,7 +58,7 @@ SCRAM is `sasl_scram_sha256_then_produce` and
 ## Next implementation order
 
 1. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-2. Transactions and KIP-848 after the data-plane rows above.
+2. Transactions, KIP-848, OIDC token endpoint after the data-plane rows above.
 
 ## What “done” on this list does *not* mean
 

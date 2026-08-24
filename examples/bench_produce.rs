@@ -71,11 +71,16 @@ async fn main() -> partitionline::Result<()> {
     };
     let mut scram_on = false;
     let mut scram512_on = false;
-    if let (Ok(user), Ok(pass)) = (
+    let mut oauth_on = false;
+    let mech = std::env::var("SASL_MECHANISM").unwrap_or_else(|_| "PLAIN".into());
+    if mech == "OAUTHBEARER" {
+        let principal = std::env::var("SASL_OAUTH_PRINCIPAL").unwrap_or_else(|_| "alice".into());
+        cfg.sasl_oauthbearer = Some(principal);
+        oauth_on = true;
+    } else if let (Ok(user), Ok(pass)) = (
         std::env::var("SASL_USERNAME"),
         std::env::var("SASL_PASSWORD"),
     ) {
-        let mech = std::env::var("SASL_MECHANISM").unwrap_or_else(|_| "PLAIN".into());
         match mech.as_str() {
             "SCRAM-SHA-256" => {
                 cfg.sasl_scram = Some((user, pass));
@@ -173,12 +178,13 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{},\"oauthbearer\":{}}}",
             compression.as_str(),
             idempotent,
             tls_on,
             scram_on,
-            scram512_on
+            scram512_on,
+            oauth_on
         );
     } else {
         let _ = drive(&producer, &topic, &value, warmup).await?;
@@ -187,12 +193,13 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{},\"oauthbearer\":{}}}",
             compression.as_str(),
             idempotent,
             tls_on,
             scram_on,
-            scram512_on
+            scram512_on,
+            oauth_on
         );
     }
     producer.close().await?;

@@ -210,26 +210,97 @@ pub async fn authenticate_scram_sha256(
     authenticate_scram(conn, super::scram::ScramAlg::Sha256, user, pass, timeout).await
 }
 
+pub async fn authenticate_oauthbearer(
+    conn: &mut BrokerConn,
+    principal: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let hs = conn
+        .roundtrip(
+            SASL_HANDSHAKE,
+            1,
+            |buf| encode_sasl_handshake_request(buf, "OAUTHBEARER"),
+            timeout,
+        )
+        .await?;
+    let (code, mechs) = decode_sasl_handshake_response(&mut hs.clone())?;
+    if code != 0 {
+        return Err(Error::broker(code, "SaslHandshake"));
+    }
+    if !mechs.iter().any(|m| m == "OAUTHBEARER") {
+        return Err(Error::Unsupported(format!(
+            "OAUTHBEARER not in mechanisms {mechs:?}"
+        )));
+    }
+    let token = super::oauth::unsecured_jwt_now(principal);
+    let auth = super::oauth::client_initial(&token);
+    let body = conn
+        .roundtrip(
+            SASL_AUTHENTICATE,
+            1,
+            |buf| encode_sasl_authenticate_request(buf, &auth),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes) = decode_sasl_authenticate_response(&mut body.clone())?;
+    if code != 0 {
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    // RFC 7628 / librdkafka: empty server-first = success. Non-empty is an
+    // error JSON; send a final SOH then fail.
+    if !bytes.is_empty() {
+        let err = String::from_utf8_lossy(&bytes).into_owned();
+        let _ = conn
+            .roundtrip(
+                SASL_AUTHENTICATE,
+                1,
+                |buf| encode_sasl_authenticate_request(buf, &[0x01]),
+                timeout,
+            )
+            .await;
+        return Err(Error::protocol(format!("oauthbearer: {err}")));
+    }
+    Ok(())
+}
+
 pub async fn authenticate(
     conn: &mut BrokerConn,
     sasl_plain: Option<&(String, String)>,
     sasl_scram: Option<&(String, String)>,
     sasl_scram_sha512: Option<&(String, String)>,
+    sasl_oauthbearer: Option<&str>,
     timeout: Duration,
 ) -> Result<()> {
-    match (sasl_plain, sasl_scram, sasl_scram_sha512) {
-        (Some(_), Some(_), _) | (Some(_), _, Some(_)) | (_, Some(_), Some(_)) => Err(
-            Error::protocol("set only one of sasl_plain, sasl_scram, sasl_scram_sha512"),
-        ),
-        (Some((u, p)), None, None) => authenticate_plain(conn, u, p, timeout).await,
-        (None, Some((u, p)), None) => {
-            authenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await
-        }
-        (None, None, Some((u, p))) => {
-            authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await
-        }
-        (None, None, None) => Ok(()),
+    let n = [
+        sasl_plain.is_some(),
+        sasl_scram.is_some(),
+        sasl_scram_sha512.is_some(),
+        sasl_oauthbearer.is_some(),
+    ]
+    .into_iter()
+    .filter(|x| *x)
+    .count();
+    if n > 1 {
+        return Err(Error::protocol(
+            "set only one of sasl_plain, sasl_scram, sasl_scram_sha512, sasl_oauthbearer",
+        ));
     }
+    if let Some((u, p)) = sasl_plain {
+        return authenticate_plain(conn, u, p, timeout).await;
+    }
+    if let Some((u, p)) = sasl_scram {
+        return authenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await;
+    }
+    if let Some((u, p)) = sasl_scram_sha512 {
+        return authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
+    }
+    if let Some(principal) = sasl_oauthbearer {
+        return authenticate_oauthbearer(conn, principal, timeout).await;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

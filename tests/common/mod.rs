@@ -19,6 +19,7 @@ use partitionline::protocol::group::{
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
+use partitionline::protocol::oauth;
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
     decode_sasl_authenticate_request, decode_sasl_handshake_request,
@@ -45,6 +46,7 @@ struct State {
     member_seq: u32,
     sasl_user: Option<(String, String)>,
     scram_user: Option<(scram::ScramAlg, String, String)>,
+    oauth_principal: Option<String>,
     next_pid: i64,
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
@@ -70,6 +72,7 @@ impl Mock {
             member_seq: 0,
             sasl_user: creds,
             scram_user: None,
+            oauth_principal: None,
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -108,6 +111,7 @@ impl Mock {
             member_seq: 0,
             sasl_user: None,
             scram_user: Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
+            oauth_principal: None,
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -146,6 +150,46 @@ impl Mock {
             member_seq: 0,
             sasl_user: None,
             scram_user: Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
+            oauth_principal: None,
+            next_pid: 1000,
+            last_producer_id: None,
+            expected_seq: HashMap::new(),
+            produce_error: None,
+            log_start: HashMap::new(),
+        }));
+        let st = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((stream, _)) = listener.accept().await else {
+                    break;
+                };
+                stream.set_nodelay(true).ok();
+                let st = st.clone();
+                let host = host.clone();
+                tokio::spawn(handle_conn(stream, host, port, st));
+            }
+        });
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub async fn start_with_oauthbearer(principal: String) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let host = addr.ip().to_string();
+        let port = addr.port() as i32;
+        let state = Arc::new(Mutex::new(State {
+            log: HashMap::new(),
+            next_offset: HashMap::new(),
+            assignments: HashMap::new(),
+            committed: HashMap::new(),
+            member_seq: 0,
+            sasl_user: None,
+            scram_user: None,
+            oauth_principal: Some(principal),
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -187,6 +231,7 @@ impl Mock {
             member_seq: 0,
             sasl_user: None,
             scram_user: None,
+            oauth_principal: None,
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -343,7 +388,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     let mut buf = BytesMut::new();
     let mut authed = {
         let st = state.lock().unwrap();
-        st.sasl_user.is_none() && st.scram_user.is_none()
+        st.sasl_user.is_none() && st.scram_user.is_none() && st.oauth_principal.is_none()
     };
     let mut scram_step: Option<(scram::ScramAlg, String, String, String)> = None;
     loop {
@@ -512,16 +557,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SASL_HANDSHAKE => {
                 let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
-                let scram = state.lock().unwrap().scram_user.clone();
+                let (scram, oauth) = {
+                    let st = state.lock().unwrap();
+                    (st.scram_user.clone(), st.oauth_principal.clone())
+                };
                 if let Some((alg, _, _)) = scram {
                     encode_sasl_handshake_response(&mut body, 0, &[alg.name()]);
+                } else if oauth.is_some() {
+                    encode_sasl_handshake_response(&mut body, 0, &["OAUTHBEARER"]);
                 } else {
                     encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]);
                 }
             }
             SASL_AUTHENTICATE => {
                 let bytes = decode_sasl_authenticate_request(&mut frame).unwrap();
-                let scram_user = state.lock().unwrap().scram_user.clone();
+                let (scram_user, oauth_principal, sasl_user) = {
+                    let st = state.lock().unwrap();
+                    (
+                        st.scram_user.clone(),
+                        st.oauth_principal.clone(),
+                        st.sasl_user.clone(),
+                    )
+                };
                 if let Some((alg, _, pass)) = scram_user {
                     match scram_step.take() {
                         None => {
@@ -574,10 +631,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             }
                         }
                     }
+                } else if let Some(expected) = oauth_principal {
+                    let ok = oauth::token_from_initial(&bytes)
+                        .and_then(|t| oauth::principal_from_jwt(&t))
+                        .map(|p| p == expected)
+                        .unwrap_or(false);
+                    authed = ok;
+                    encode_sasl_authenticate_response(
+                        &mut body,
+                        if ok { 0 } else { 58 },
+                        if ok { None } else { Some("bad oauth token") },
+                        &[],
+                    );
                 } else {
                     let parsed = parse_plain_auth_bytes(&bytes);
-                    let expected = state.lock().unwrap().sasl_user.clone();
-                    let ok = match (parsed, expected) {
+                    let ok = match (parsed, sasl_user) {
                         (Some(got), Some(exp)) => got == exp,
                         _ => false,
                     };
