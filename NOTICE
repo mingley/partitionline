@@ -1,0 +1,6 @@
+partitionline
+Copyright 2026 Michael Ingley
+
+This product includes protocol field layouts derived from Apache Kafka
+message schemas (Apache License 2.0). See:
+https://github.com/apache/kafka/tree/trunk/clients/src/main/resources/common/message
