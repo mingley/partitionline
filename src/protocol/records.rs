@@ -377,7 +377,22 @@ fn encode_record(
 
 pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
-    while buf.has_remaining() {
+    while buf.remaining() >= 12 {
+        let chunk = buf.chunk();
+        if chunk.len() < 12 {
+            let rest = buf.copy_to_bytes(buf.remaining());
+            let mut rest_buf = &rest[..];
+            out.append(&mut decode_record_batches(&mut rest_buf)?);
+            break;
+        }
+        let batch_len = i32::from_be_bytes(chunk[8..12].try_into().unwrap());
+        if batch_len < 0 {
+            return Err(Error::protocol("negative record batch length"));
+        }
+        let need = 12usize.saturating_add(batch_len as usize);
+        if buf.remaining() < need {
+            break;
+        }
         out.push(decode_record_batch(buf)?);
     }
     Ok(out)
@@ -665,5 +680,29 @@ mod tests {
         let framed = lz4_compress(&payload).unwrap();
         assert_eq!(&framed[..4], &[0x04, 0x22, 0x4d, 0x18]);
         assert_eq!(lz4_decompress(&framed).unwrap(), payload);
+    }
+
+    fn one_batch(value: &'static [u8]) -> BytesMut {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(value)),
+            headers: vec![],
+        };
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &RecordBatch::from_records(vec![rec])).unwrap();
+        buf
+    }
+
+    #[test]
+    fn decode_record_batches_stops_at_truncated_tail() {
+        let mut raw = one_batch(b"one");
+        raw.extend_from_slice(&one_batch(b"two"));
+        raw.extend_from_slice(&[0u8; 8]);
+        let batches = decode_record_batches(&mut &raw[..]).unwrap();
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].records[0].value.as_deref(), Some(&b"one"[..]));
+        assert_eq!(batches[1].records[0].value.as_deref(), Some(&b"two"[..]));
     }
 }
