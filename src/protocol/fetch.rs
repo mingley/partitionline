@@ -201,4 +201,50 @@ mod tests {
             Some(&b"f"[..])
         );
     }
+
+    #[test]
+    fn decode_fetch_response_uses_record_batch_decoder_on_partition_bytes() {
+        let rec = |v: &'static [u8]| Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(v)),
+            headers: vec![],
+        };
+        let mut recs = BytesMut::new();
+        records::encode_record_batch(&mut recs, &RecordBatch::from_records(vec![rec(b"one")]))
+            .unwrap();
+        records::encode_record_batch(&mut recs, &RecordBatch::from_records(vec![rec(b"two")]))
+            .unwrap();
+        recs.extend_from_slice(&[0u8; 8]);
+        let mut body = BytesMut::new();
+        body.put_i32(0);
+        body.put_i16(0);
+        body.put_i32(0);
+        crate::protocol::buf::put_array_len(&mut body, false, Some(1));
+        crate::protocol::buf::put_classic_nullable_string(&mut body, Some("t"));
+        crate::protocol::buf::put_array_len(&mut body, false, Some(1));
+        body.put_i32(0);
+        body.put_i16(0);
+        body.put_i64(2);
+        body.put_i64(2);
+        body.put_i64(0);
+        body.put_i32(-1);
+        body.put_i32(-1);
+        crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs));
+        let decoded = decode_fetch_response(&mut &body[..]).unwrap();
+        assert_eq!(decoded[0].partitions[0].records.len(), 2);
+        assert_eq!(
+            decoded[0].partitions[0].records[0].records[0]
+                .value
+                .as_deref(),
+            Some(&b"one"[..])
+        );
+        assert_eq!(
+            decoded[0].partitions[0].records[1].records[0]
+                .value
+                .as_deref(),
+            Some(&b"two"[..])
+        );
+    }
 }
