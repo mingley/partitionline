@@ -1,0 +1,23 @@
+[package]
+name = "partitionline"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Pure-Rust Kafka client. No C. Drop-in protocol coverage."
+repository = "https://github.com/mingley/partitionline"
+readme = "README.md"
+keywords = ["kafka", "client", "async", "producer"]
+categories = ["network-programming", "asynchronous"]
+publish = false
+
+[dependencies]
+bytes = "1"
+crc32c = "0.6"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
+
+[[example]]
+name = "produce"
+
+[[example]]
+name = "bench_produce"
