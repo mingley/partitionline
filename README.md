@@ -10,9 +10,9 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
 **Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups,
-gzip / snappy / lz4, SASL PLAIN, idempotent produce. Plain TCP to Kafka 3.x / 4.x.
-Missing: TLS, SCRAM, admin, transactions, zstd, Kerberos. Full list:
-[docs/gaps.md](docs/gaps.md).
+gzip / snappy / lz4, SASL PLAIN, TLS (`rustls`, no OpenSSL), idempotent produce.
+Talks Kafka 3.x / 4.x. Missing: SCRAM, admin, transactions, zstd, Kerberos.
+Full list: [docs/gaps.md](docs/gaps.md).
 
 **Produce is faster than librdkafka 2.15.0 C** on this machine, including
 idempotent produce (broker high watermark equals records sent). Fetch was not

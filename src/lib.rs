@@ -1,7 +1,7 @@
 //! A Kafka client written in Rust. No C, no librdkafka.
 //!
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
-//! and idempotent produce.
+//! TLS (rustls), and idempotent produce.
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -17,6 +17,7 @@ pub mod protocol;
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
+pub use net::TlsConfig;
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 

@@ -23,6 +23,7 @@ pub struct ConsumerConfig {
     pub request_timeout: Duration,
     pub connect_timeout: Duration,
     pub sasl_plain: Option<(String, String)>,
+    pub tls: Option<crate::net::TlsConfig>,
     pub max_wait_ms: i32,
     pub min_bytes: i32,
     pub max_bytes: i32,
@@ -36,6 +37,7 @@ impl Default for ConsumerConfig {
             request_timeout: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
             sasl_plain: None,
+            tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
             max_bytes: 1_048_576,
@@ -83,7 +85,9 @@ impl Consumer {
             return Err(Error::protocol("no bootstrap servers"));
         }
         let addr = cfg.bootstrap[0].clone();
-        let mut conn = BrokerConn::connect(&addr, &cfg.client_id, cfg.connect_timeout).await?;
+        let mut conn =
+            BrokerConn::connect_tls(&addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
+                .await?;
         let body = conn
             .roundtrip(
                 API_VERSIONS,

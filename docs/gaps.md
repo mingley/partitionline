@@ -24,7 +24,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
 | SASL PLAIN | yes | yes | **done** |
 | Java murmur2 partitioner | yes | optional (`murmur2`) | **done** |
-| TLS / SSL | no | yes | **not started** |
+| TLS / SSL | yes (`rustls` + `ring`, no OpenSSL; custom CA PEM or webpki-roots; optional mTLS) | yes (OpenSSL) | **done** |
 | lz4 | yes (`lz4_flex` frame, independent 64KiB blocks, magic ≥ 1) | yes | **done** |
 | zstd | no | yes (libzstd C) | **blocked on C** |
 | SASL SCRAM (SHA-256 / SHA-512) | no | yes | **not started** |
@@ -38,6 +38,9 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Share groups | no | yes | **not started** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
+TLS produce vs C was **not measured** (no SSL listener on the local bench
+broker). Mock produce+fetch over TLS is covered in `tests/full_surface.rs`.
+
 ## Notes on the C-blocked rows
 
 - **zstd**: Kafka-world zstd is almost always `libzstd` (`zstd-sys`). A default
@@ -48,10 +51,9 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 ## Next implementation order
 
-1. TLS with `rustls` (no OpenSSL).
-2. SASL SCRAM-SHA-256.
-3. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-4. Transactions and KIP-848 after the data-plane rows above.
+1. SASL SCRAM-SHA-256.
+2. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
+3. Transactions and KIP-848 after the data-plane rows above.
 
 ## What “done” on this list does *not* mean
 
