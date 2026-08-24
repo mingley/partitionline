@@ -91,6 +91,7 @@ impl From<io::Error> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub const NONE: i16 = 0;
+pub const OFFSET_OUT_OF_RANGE: i16 = 1;
 pub const UNKNOWN_TOPIC_OR_PARTITION: i16 = 3;
 pub const LEADER_NOT_AVAILABLE: i16 = 5;
 pub const NOT_LEADER_OR_FOLLOWER: i16 = 6;
@@ -110,6 +111,7 @@ pub const DUPLICATE_SEQUENCE_NUMBER: i16 = 46;
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
         NONE => "NONE",
+        OFFSET_OUT_OF_RANGE => "OFFSET_OUT_OF_RANGE",
         UNKNOWN_TOPIC_OR_PARTITION => "UNKNOWN_TOPIC_OR_PARTITION",
         LEADER_NOT_AVAILABLE => "LEADER_NOT_AVAILABLE",
         NOT_LEADER_OR_FOLLOWER => "NOT_LEADER_OR_FOLLOWER",

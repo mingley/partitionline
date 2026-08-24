@@ -209,6 +209,10 @@ impl Consumer {
         let mut out = Vec::new();
         for topic in fetched {
             for part in topic.partitions {
+                if part.error_code == crate::error::OFFSET_OUT_OF_RANGE {
+                    self.advance(&topic.topic, part.partition, part.log_start_offset);
+                    continue;
+                }
                 if part.error_code != 0 {
                     return Err(Error::broker(
                         part.error_code,
