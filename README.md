@@ -1,29 +1,43 @@
 # partitionline
 
-Pure-Rust Kafka client. No C. Drop-in protocol coverage.
+A Kafka client written in Rust. It does not call into C or librdkafka.
 
 [![ci](https://github.com/mingley/partitionline/actions/workflows/ci.yml/badge.svg)](https://github.com/mingley/partitionline/actions/workflows/ci.yml)
-
-Shipped: produce (magic-2 RecordBatch), fetch with manual assignment,
-consumer-group join/heartbeat/commit, gzip (`flate2` rust backend), SASL
-PLAIN. Default features stay Rust-only (`bytes`, `tokio`, `crc32c`, `flate2`).
-TLS, transactions, and admin are not in this tree.
 
 ```toml
 [dependencies]
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-A local produce rec/s comparison vs librdkafka 2.15.0 C is a locked
-methodology, not a CI gate. Re-run:
+## What works
 
-```
-WARMUP_SECS=60 MEASURE_SECS=180 cargo run --release --example bench_produce
-```
+- Send messages and get back a broker offset
+- Read those messages (you pick the partition, or join a consumer group)
+- gzip compression
+- SASL PLAIN (username + password)
+- Kafka 3.x / 4.x over plain TCP
 
-Do not retag Faster than librdkafka from this tree.
+## What does not
 
-## Use
+This is not a full replacement for librdkafka.
+
+| | partitionline | librdkafka |
+|---|---|---|
+| Produce | yes | yes |
+| Fetch / consume | yes | yes |
+| Consumer groups | yes | yes |
+| gzip | yes | yes |
+| SASL PLAIN | yes | yes |
+| TLS | no | yes |
+| snappy / lz4 / zstd | no | yes |
+| Transactions / exactly-once | no | yes |
+| Admin APIs (create topic, ACLs, …) | no | yes |
+| Kerberos / GSSAPI | no | yes |
+| Schema Registry | no | via extras |
+
+So: **not feature complete** versus the C client. Complete enough to produce, consume, and join a group on a plaintext Kafka cluster.
+
+## Example
 
 ```rust,no_run
 use partitionline::{Consumer, ProduceRecord, Producer};
@@ -33,7 +47,7 @@ let producer = Producer::connect("127.0.0.1:9092").await?;
 let md = producer
     .send(ProduceRecord::to("topic").value(&b"hello"[..]))
     .await?;
-println!("{}-{}@{}", md.topic, md.partition, md.offset);
+println!("wrote {}-{}@{}", md.topic, md.partition, md.offset);
 producer.close().await?;
 
 let mut consumer = Consumer::connect("127.0.0.1:9092").await?;
@@ -44,29 +58,38 @@ let recs = consumer.fetch().await?;
 # }
 ```
 
-## Protocol
+More: `examples/produce.rs`, `examples/roundtrip.rs`.
 
-Hand-rolled codec for the produce path, not a `librdkafka` FFI and not a
-wrapper around `kafka-protocol`. Brokers: Kafka 3.x/4.x PLAINTEXT.
+## Are we faster than the C client?
 
-| API | client versions |
-| --- | --- |
-| ApiVersions (18) | send v3 (response header never flexible) |
-| Metadata (3) | negotiated 1–12 |
-| Produce (0) | negotiated 3–8 |
-| Fetch (1) | v11 classic |
-| Group (Join/Sync/Heartbeat/OffsetCommit/OffsetFetch/FindCoordinator) | classic versions |
-| SASL Handshake / Authenticate | PLAIN |
+**Produce: yes, on this machine, on this test.** Fetch speed was not measured.
 
-## Layout
+2026-08-24, Apple M4 Pro, local Docker `apache/kafka:3.9.1`, 6 partitions. Each side sent **8 million** 100-byte messages, `acks=1`, `linger.ms=5`, no compression. Fresh topic every run. No warmup. C binary is `rdkafka_performance` from librdkafka **2.15.0**.
+
+| Run | partitionline | librdkafka 2.15.0 C |
+|---|---|---|
+| 1 | 7.61 million/s | 3.85 million/s |
+| 2 | 7.28 million/s | 3.88 million/s |
+| 3 | 6.78 million/s | 4.00 million/s |
+| **median** | **7.28 million/s** | **3.88 million/s** |
+
+That is about **1.9×** the C tool on this produce test. It is not a claim that every workload is faster, or that fetch/e2e is faster.
+
+Re-run:
 
 ```
-src/protocol/   wire types, RecordBatch, fetch, group, SASL
-src/net.rs      length-prefixed TCP
-src/producer.rs sharded linger workers, pipelined Produce
-src/consumer.rs assigned Fetch
-src/group.rs    consumer-group membership
-src/partitioner.rs  Java-compatible murmur2
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  cargo run --release --example bench_produce
+```
+
+C side (same flags):
+
+```
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
 ```
 
 ## License

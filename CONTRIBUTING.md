@@ -1,7 +1,6 @@
 # Contributing
 
-Dual-licensed MIT OR Apache-2.0. A contribution is under that same dual
-license unless you state otherwise.
+This project is MIT OR Apache-2.0. Patches are under the same licenses unless you say otherwise.
 
 ```
 cargo fmt
@@ -9,5 +8,4 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
 
-No `rdkafka`, `rdkafka-sys`, `zstd-sys`, `lz4-sys`, or other C Kafka codec
-in default features. `unsafe` is forbidden in this crate.
+Please do not add librdkafka, or C compression libraries, as default dependencies. This crate forbids `unsafe`.

@@ -1,8 +1,7 @@
-//! Pure-Rust Kafka client. No C.
+//! A Kafka client written in Rust. No C, no librdkafka.
 //!
-//! Produce, fetch, consumer groups, gzip, and SASL PLAIN over the Kafka wire
-//! protocol. Default features pull in only `bytes`, `tokio`, `crc32c`, and
-//! `flate2` (`rust_backend`).
+//! Send and fetch records, join a consumer group, gzip, SASL PLAIN. See the
+//! crate README for what is missing (TLS, transactions, admin, …).
 
 #![forbid(unsafe_code)]
 
