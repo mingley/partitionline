@@ -47,6 +47,7 @@ struct State {
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
     produce_error: Option<i16>,
+    log_start: HashMap<(String, i32), i64>,
 }
 
 impl Mock {
@@ -70,6 +71,7 @@ impl Mock {
             last_producer_id: None,
             expected_seq: HashMap::new(),
             produce_error: None,
+            log_start: HashMap::new(),
         }));
         let st = state.clone();
         tokio::spawn(async move {
@@ -109,6 +111,7 @@ impl Mock {
             last_producer_id: None,
             expected_seq: HashMap::new(),
             produce_error: None,
+            log_start: HashMap::new(),
         }));
         let st = state.clone();
         tokio::spawn(async move {
@@ -146,6 +149,15 @@ impl Mock {
     #[allow(dead_code)]
     pub fn last_producer_id(&self) -> Option<i64> {
         self.state.lock().unwrap().last_producer_id
+    }
+
+    #[allow(dead_code)]
+    pub fn set_log_start(&self, topic: &str, partition: i32, offset: i64) {
+        self.state
+            .lock()
+            .unwrap()
+            .log_start
+            .insert((topic.to_string(), partition), offset);
     }
 
     #[allow(dead_code)]
@@ -389,7 +401,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             })
                             .unwrap_or_default();
                         let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                        let batches = if recs.is_empty() {
+                        let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                        let error_code = if p.fetch_offset < log_start { 1 } else { 0 };
+                        let batches = if error_code != 0 || recs.is_empty() {
                             Vec::new()
                         } else {
                             let first = recs[0].offset;
@@ -399,8 +413,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         };
                         parts.push(FetchedPartition {
                             partition: p.partition,
-                            error_code: 0,
+                            error_code,
                             high_watermark: hw,
+                            log_start_offset: log_start,
                             records: batches,
                         });
                     }

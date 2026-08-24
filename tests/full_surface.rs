@@ -102,6 +102,19 @@ async fn tls_produce_fetch() {
 }
 
 #[tokio::test]
+async fn fetch_offset_out_of_range_jumps_to_log_start() {
+    let mock = common::Mock::start().await;
+    mock.set_log_start("t", 0, 10);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert!(recs.is_empty());
+    assert_eq!(consumer.assignment(), &[("t".into(), 0, 10)]);
+}
+
+#[tokio::test]
 async fn gzip_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

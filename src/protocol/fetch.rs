@@ -22,6 +22,7 @@ pub struct FetchedPartition {
     pub partition: i32,
     pub error_code: i16,
     pub high_watermark: i64,
+    pub log_start_offset: i64,
     pub records: Vec<RecordBatch>,
 }
 
@@ -106,7 +107,7 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
             buf.put_i16(p.error_code);
             buf.put_i64(p.high_watermark);
             buf.put_i64(p.high_watermark); // last_stable_offset
-            buf.put_i64(0); // log_start_offset
+            buf.put_i64(p.log_start_offset);
             buf.put_i32(-1); // aborted_transactions null
             buf.put_i32(-1); // preferred_read_replica
             let mut recs = BytesMut::new();
@@ -138,7 +139,7 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
             let error_code = buf::get_i16(buf)?;
             let high_watermark = buf::get_i64(buf)?;
             let _lso = buf::get_i64(buf)?;
-            let _log_start = buf::get_i64(buf)?;
+            let log_start_offset = buf::get_i64(buf)?;
             let aborted_len = buf::get_i32(buf)?;
             if aborted_len > 0 {
                 for _ in 0..aborted_len {
@@ -158,6 +159,7 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                 partition,
                 error_code,
                 high_watermark,
+                log_start_offset,
                 records,
             });
         }
@@ -187,6 +189,7 @@ mod tests {
                 partition: 0,
                 error_code: 0,
                 high_watermark: 1,
+                log_start_offset: 0,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -200,6 +203,30 @@ mod tests {
                 .as_deref(),
             Some(&b"f"[..])
         );
+        assert_eq!(decoded[0].partitions[0].log_start_offset, 0);
+    }
+
+    #[test]
+    fn decode_fetch_response_keeps_log_start_on_offset_out_of_range() {
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: crate::error::OFFSET_OUT_OF_RANGE,
+                high_watermark: 20,
+                log_start_offset: 10,
+                records: vec![],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, &topics).unwrap();
+        let decoded = decode_fetch_response(&mut &buf[..]).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].error_code,
+            crate::error::OFFSET_OUT_OF_RANGE
+        );
+        assert_eq!(decoded[0].partitions[0].log_start_offset, 10);
+        assert!(decoded[0].partitions[0].records.is_empty());
     }
 
     #[test]
