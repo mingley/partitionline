@@ -151,7 +151,45 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q \
   -X socket.nagle.disable=true
 ```
 
-### TLS / fetch
+### 2026-08-24 TLS produce (gating for rustls)
 
-**Unmeasured.** TLS produce was not run against librdkafka. Do not read the
-produce table as an e2e, consume, or TLS win.
+Same knobs as the uncompressed table except **both** sides speak SSL to a
+dedicated Kafka 3.9.1 listener (`localhost:9093`). partitionline uses
+`rustls` (`TLS_CA_PEM` / `TLS_SERVER_NAME=localhost`). C uses
+`security.protocol=ssl` + `ssl.ca.location`. Broker cert SAN is
+`DNS:localhost,IP:127.0.0.1`. Three locked pairs, no warmup, fresh topic
+each run. After every run, `kafka-get-offsets` high watermark summed to
+**8,000,000**.
+
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 6,609,251 | 8,000,000 | 1,515,535 | 8,000,000 |
+| 2 | 8,167,076 | 8,000,000 | 1,537,953 | 8,000,000 |
+| 3 | 7,416,029 | 8,000,000 | 1,486,966 | 8,000,000 |
+| **median** | **7,416,029** | 8,000,000 | **1,515,535** | 8,000,000 |
+
+partitionline was higher on every run (about 4.9× the C median).
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  KAFKA_BOOTSTRAP=localhost:9093 KAFKA_TOPIC=plbench \
+  TLS_CA_PEM=/path/to/ca.crt TLS_SERVER_NAME=localhost \
+  cargo run --release --example bench_produce
+
+kafka-get-offsets.sh --bootstrap-server localhost:9093 \
+  --command-config client.properties --topic plbench --time -1
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9093 -a 1 -q \
+  -X security.protocol=ssl -X ssl.ca.location=/path/to/ca.crt \
+  -X ssl.endpoint.identification.algorithm=https \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
+### Fetch
+
+**Unmeasured.** Do not read the produce table as an e2e or consume win.

@@ -38,8 +38,9 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Share groups | no | yes | **not started** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
-TLS produce vs C was **not measured** (no SSL listener on the local bench
-broker). Mock produce+fetch over TLS is covered in `tests/full_surface.rs`.
+TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
+listener (`localhost:9093`). See `docs/benchmark.md`. Mock produce+fetch over
+TLS is `tls_produce_fetch` in `tests/full_surface.rs`.
 
 ## Notes on the C-blocked rows
 

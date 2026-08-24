@@ -1,3 +1,4 @@
+use std::future::poll_fn;
 use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -8,7 +9,7 @@ use std::time::Duration;
 use bytes::{BufMut, Bytes, BytesMut};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::net::TcpStream;
 use tokio::time::timeout;
 use tokio_rustls::client::TlsStream;
@@ -93,6 +94,50 @@ async fn wrap_tls(tcp: TcpStream, addr: &str, tls: &TlsConfig) -> Result<TlsStre
         .connect(server_name, tcp)
         .await
         .map_err(Error::from)
+}
+
+async fn write_all_pump(
+    stream: &mut ConnIo,
+    read_buf: &mut BytesMut,
+    bytes: &[u8],
+) -> io::Result<()> {
+    let mut pos = 0usize;
+    poll_fn(|cx| loop {
+        match Pin::new(&mut *stream).poll_write(cx, &bytes[pos..]) {
+            Poll::Ready(Ok(0)) => {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "broker write returned 0",
+                )));
+            }
+            Poll::Ready(Ok(n)) => {
+                pos += n;
+                if pos >= bytes.len() {
+                    return Poll::Ready(Ok(()));
+                }
+            }
+            Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+            Poll::Pending => {
+                let mut tmp = [0u8; 8192];
+                let mut rb = ReadBuf::new(&mut tmp);
+                match Pin::new(&mut *stream).poll_read(cx, &mut rb) {
+                    Poll::Ready(Ok(())) => {
+                        let n = rb.filled().len();
+                        if n == 0 {
+                            return Poll::Ready(Err(io::Error::new(
+                                io::ErrorKind::UnexpectedEof,
+                                "broker closed connection",
+                            )));
+                        }
+                        read_buf.extend_from_slice(&tmp[..n]);
+                    }
+                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+                    Poll::Pending => return Poll::Pending,
+                }
+            }
+        }
+    })
+    .await
 }
 
 enum ConnIo {
@@ -194,9 +239,12 @@ impl BrokerConn {
         bytes: &[u8],
         request_timeout: Duration,
     ) -> Result<()> {
-        timeout(request_timeout, self.stream.write_all(bytes))
-            .await
-            .map_err(|_| Error::Timeout)??;
+        timeout(
+            request_timeout,
+            write_all_pump(&mut self.stream, &mut self.read_buf, bytes),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
         Ok(())
     }
 
@@ -245,9 +293,8 @@ impl BrokerConn {
         encode_body(&mut self.write_buf);
         let size = (self.write_buf.len() - 4) as i32;
         self.write_buf[0..4].copy_from_slice(&size.to_be_bytes());
-        timeout(request_timeout, self.stream.write_all(&self.write_buf))
-            .await
-            .map_err(|_| Error::Timeout)??;
+        let payload = self.write_buf.split();
+        self.write_all_timeout(&payload, request_timeout).await?;
         Ok(correlation)
     }
 
