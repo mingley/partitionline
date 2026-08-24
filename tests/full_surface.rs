@@ -193,6 +193,21 @@ async fn sasl_scram_sha256_then_produce() {
 }
 
 #[tokio::test]
+async fn sasl_scram_sha512_then_produce() {
+    let mock = common::Mock::start_with_scram_sha512(("alice".into(), "secret".into())).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_scram_sha512 = Some(("alice".into(), "secret".into()));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"scram512-ok"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn sasl_scram_bad_password_fails() {
     let mock = common::Mock::start_with_scram(("alice".into(), "secret".into())).await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

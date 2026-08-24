@@ -28,7 +28,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | TLS / SSL | yes (`rustls` + `ring`, no OpenSSL; custom CA PEM or webpki-roots; optional mTLS) | yes (OpenSSL) | **done** |
 | lz4 | yes (`lz4_flex` frame, independent 64KiB blocks, magic ≥ 1) | yes | **done** |
 | zstd | no | yes (libzstd C) | **blocked on C** |
-| SASL SCRAM-SHA-512 | no | yes | **not started** |
+| SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER / OIDC | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
@@ -40,10 +40,11 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
-listener (`localhost:9093`). SCRAM-SHA-256 produce vs C **was measured** on a
-dedicated SASL_PLAINTEXT listener (`localhost:9095`, admin PLAINTEXT
-`localhost:9096`). See `docs/benchmark.md`. Mock produce over SCRAM is
-`sasl_scram_sha256_then_produce` in `tests/full_surface.rs`.
+listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C
+**were measured** on a dedicated SASL_PLAINTEXT listener (`localhost:9095`,
+admin PLAINTEXT `localhost:9096`). See `docs/benchmark.md`. Mock produce over
+SCRAM is `sasl_scram_sha256_then_produce` and
+`sasl_scram_sha512_then_produce` in `tests/full_surface.rs`.
 
 ## Notes on the C-blocked rows
 
@@ -56,8 +57,7 @@ dedicated SASL_PLAINTEXT listener (`localhost:9095`, admin PLAINTEXT
 ## Next implementation order
 
 1. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-2. SASL SCRAM-SHA-512 (same handshake, SHA-512 / HMAC-SHA-512).
-3. Transactions and KIP-848 after the data-plane rows above.
+2. Transactions and KIP-848 after the data-plane rows above.
 
 ## What “done” on this list does *not* mean
 

@@ -70,6 +70,7 @@ async fn main() -> partitionline::Result<()> {
         false
     };
     let mut scram_on = false;
+    let mut scram512_on = false;
     if let (Ok(user), Ok(pass)) = (
         std::env::var("SASL_USERNAME"),
         std::env::var("SASL_PASSWORD"),
@@ -79,6 +80,10 @@ async fn main() -> partitionline::Result<()> {
             "SCRAM-SHA-256" => {
                 cfg.sasl_scram = Some((user, pass));
                 scram_on = true;
+            }
+            "SCRAM-SHA-512" => {
+                cfg.sasl_scram_sha512 = Some((user, pass));
+                scram512_on = true;
             }
             "PLAIN" => cfg.sasl_plain = Some((user, pass)),
             other => {
@@ -168,11 +173,12 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{}}}",
             compression.as_str(),
             idempotent,
             tls_on,
-            scram_on
+            scram_on,
+            scram512_on
         );
     } else {
         let _ = drive(&producer, &topic, &value, warmup).await?;
@@ -181,11 +187,12 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{},\"scram\":{},\"scram512\":{}}}",
             compression.as_str(),
             idempotent,
             tls_on,
-            scram_on
+            scram_on,
+            scram512_on
         );
     }
     producer.close().await?;

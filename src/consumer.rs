@@ -24,6 +24,7 @@ pub struct ConsumerConfig {
     pub connect_timeout: Duration,
     pub sasl_plain: Option<(String, String)>,
     pub sasl_scram: Option<(String, String)>,
+    pub sasl_scram_sha512: Option<(String, String)>,
     pub tls: Option<crate::net::TlsConfig>,
     pub max_wait_ms: i32,
     pub min_bytes: i32,
@@ -39,6 +40,7 @@ impl Default for ConsumerConfig {
             connect_timeout: Duration::from_secs(10),
             sasl_plain: None,
             sasl_scram: None,
+            sasl_scram_sha512: None,
             tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
@@ -110,6 +112,7 @@ impl Consumer {
             &mut conn,
             cfg.sasl_plain.as_ref(),
             cfg.sasl_scram.as_ref(),
+            cfg.sasl_scram_sha512.as_ref(),
             cfg.request_timeout,
         )
         .await?;

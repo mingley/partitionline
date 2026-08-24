@@ -44,7 +44,7 @@ struct State {
     committed: HashMap<(String, i32), i64>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
-    scram_user: Option<(String, String)>,
+    scram_user: Option<(scram::ScramAlg, String, String)>,
     next_pid: i64,
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
@@ -107,7 +107,45 @@ impl Mock {
             committed: HashMap::new(),
             member_seq: 0,
             sasl_user: None,
-            scram_user: Some(creds),
+            scram_user: Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
+            next_pid: 1000,
+            last_producer_id: None,
+            expected_seq: HashMap::new(),
+            produce_error: None,
+            log_start: HashMap::new(),
+        }));
+        let st = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((stream, _)) = listener.accept().await else {
+                    break;
+                };
+                stream.set_nodelay(true).ok();
+                let st = st.clone();
+                let host = host.clone();
+                tokio::spawn(handle_conn(stream, host, port, st));
+            }
+        });
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub async fn start_with_scram_sha512(creds: (String, String)) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let host = addr.ip().to_string();
+        let port = addr.port() as i32;
+        let state = Arc::new(Mutex::new(State {
+            log: HashMap::new(),
+            next_offset: HashMap::new(),
+            assignments: HashMap::new(),
+            committed: HashMap::new(),
+            member_seq: 0,
+            sasl_user: None,
+            scram_user: Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -307,7 +345,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         let st = state.lock().unwrap();
         st.sasl_user.is_none() && st.scram_user.is_none()
     };
-    let mut scram_step: Option<(String, String, String)> = None;
+    let mut scram_step: Option<(scram::ScramAlg, String, String, String)> = None;
     loop {
         let mut frame = match read_frame(&mut stream, &mut buf).await {
             Ok(f) => f,
@@ -473,10 +511,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_fetch_response(&mut body, &topics).unwrap();
             }
             SASL_HANDSHAKE => {
-                let mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
-                let scram = state.lock().unwrap().scram_user.is_some();
-                if mech == "SCRAM-SHA-256" && scram {
-                    encode_sasl_handshake_response(&mut body, 0, &["SCRAM-SHA-256"]);
+                let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
+                let scram = state.lock().unwrap().scram_user.clone();
+                if let Some((alg, _, _)) = scram {
+                    encode_sasl_handshake_response(&mut body, 0, &[alg.name()]);
                 } else {
                     encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]);
                 }
@@ -484,7 +522,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SASL_AUTHENTICATE => {
                 let bytes = decode_sasl_authenticate_request(&mut frame).unwrap();
                 let scram_user = state.lock().unwrap().scram_user.clone();
-                if let Some(creds) = scram_user {
+                if let Some((alg, _, pass)) = scram_user {
                     match scram_step.take() {
                         None => {
                             let first = String::from_utf8_lossy(&bytes);
@@ -495,7 +533,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 4096,
                             ) {
                                 Ok((sf, bare)) => {
-                                    scram_step = Some((creds.1, bare, sf.clone()));
+                                    scram_step = Some((alg, pass, bare, sf.clone()));
                                     encode_sasl_authenticate_response(
                                         &mut body,
                                         0,
@@ -513,9 +551,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 }
                             }
                         }
-                        Some((pass, bare, sf)) => {
+                        Some((alg, pass, bare, sf)) => {
                             let cf = String::from_utf8_lossy(&bytes);
-                            match scram::server_final(&pass, &bare, &sf, &cf) {
+                            match scram::server_final(alg, &pass, &bare, &sf, &cf) {
                                 Ok(fin) => {
                                     authed = true;
                                     encode_sasl_authenticate_response(

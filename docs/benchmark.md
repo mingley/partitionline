@@ -232,6 +232,47 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
+### 2026-08-24 SASL SCRAM-SHA-512 produce (gating for RFC 5802 SHA-512)
+
+Same knobs as the uncompressed table except **both** sides authenticate with
+SCRAM-SHA-512 to the same Kafka 3.9.1 SASL_PLAINTEXT listener
+(`localhost:9095`). Admin/offsets on PLAINTEXT `localhost:9096`. User
+`alice` / `secret`, broker iterations 4096. partitionline:
+`SASL_MECHANISM=SCRAM-SHA-512`. C: `security.protocol=sasl_plaintext`,
+`sasl.mechanisms=SCRAM-SHA-512`. Three locked pairs, no warmup, fresh
+topic each run. After every run, `kafka-get-offsets` high watermark
+summed to **8,000,000**.
+
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 6,887,871 | 8,000,000 | 3,434,559 | 8,000,000 |
+| 2 | 7,252,795 | 8,000,000 | 3,386,481 | 8,000,000 |
+| 3 | 6,552,274 | 8,000,000 | 4,006,697 | 8,000,000 |
+| **median** | **6,887,871** | 8,000,000 | **3,434,559** | 8,000,000 |
+
+partitionline was higher on every run (about 2.0× the C median). Handshake
+is once per TCP connection.
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  KAFKA_BOOTSTRAP=localhost:9095 KAFKA_TOPIC=plbench \
+  SASL_USERNAME=alice SASL_PASSWORD=secret SASL_MECHANISM=SCRAM-SHA-512 \
+  cargo run --release --example bench_produce
+
+kafka-get-offsets.sh --bootstrap-server localhost:9096 --topic plbench --time -1
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
+  -X security.protocol=sasl_plaintext \
+  -X sasl.mechanisms=SCRAM-SHA-512 \
+  -X sasl.username=alice -X sasl.password=secret \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
 ### Fetch
 
 **Unmeasured.** Do not read the produce table as an e2e or consume win.
