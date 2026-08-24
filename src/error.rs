@@ -104,6 +104,8 @@ pub const TOPIC_AUTHORIZATION_FAILED: i16 = 29;
 pub const MESSAGE_TOO_LARGE: i16 = 10;
 pub const SASL_AUTHENTICATION_FAILED: i16 = 58;
 pub const MEMBER_ID_REQUIRED: i16 = 79;
+pub const OUT_OF_ORDER_SEQUENCE_NUMBER: i16 = 45;
+pub const DUPLICATE_SEQUENCE_NUMBER: i16 = 46;
 
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
@@ -121,6 +123,8 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         MESSAGE_TOO_LARGE => "MESSAGE_TOO_LARGE",
         SASL_AUTHENTICATION_FAILED => "SASL_AUTHENTICATION_FAILED",
         MEMBER_ID_REQUIRED => "MEMBER_ID_REQUIRED",
+        OUT_OF_ORDER_SEQUENCE_NUMBER => "OUT_OF_ORDER_SEQUENCE_NUMBER",
+        DUPLICATE_SEQUENCE_NUMBER => "DUPLICATE_SEQUENCE_NUMBER",
         _ => return None,
     })
 }

@@ -30,7 +30,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL SCRAM (SHA-256 / SHA-512) | no | yes | **not started** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER / OIDC | no | yes | **not started** |
-| Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, acks=all, max in-flight 5) | yes | **done** |
+| Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | no | yes | **not started** |
 | Admin APIs (CreateTopics, DeleteTopics, ACLs, configs, …) | no | yes | **not started** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |

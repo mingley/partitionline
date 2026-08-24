@@ -110,16 +110,28 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q -z
 
 Same knobs as the uncompressed table except **both** sides enable idempotence
 (`IDEMPOTENT=1` / `-X enable.idempotence=true`), which forces `acks=-1` and
-caps in-flight requests at 5. One locked pair, no warmup, fresh topic.
+caps in-flight requests at 5. Three locked pairs, no warmup, fresh topic
+each run. After every run, `kafka-get-offsets` high watermark summed to
+**8,000,000** (equals records sent). Broker log had no
+`OutOfOrderSequenceException` on these runs.
 
-| | acked rec/s | elapsed |
-|---|---|---|
-| partitionline | **7,010,415** | 1.141 s |
-| librdkafka 2.15.0 C | 2,176,684 | 3.675 s |
+`try_send` is enqueue, not an ack. The bench only prints if `flush` returns
+Ok, and flush fails on a broker produce error.
 
-partitionline is strictly higher. The C run logged a one-time
-`Coordinator load in progress` on `InitProducerId` and retried; all 8e6
-records still delivered with zero failures.
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 7,849,040 | 8,000,000 | 3,233,429 | 8,000,000 |
+| 2 | 7,161,331 | 8,000,000 | 3,134,457 | 8,000,000 |
+| 3 | 6,479,326 | 8,000,000 | 2,750,327 | 8,000,000 |
+| **median** | **7,161,331** | 8,000,000 | **3,134,457** | 8,000,000 |
+
+partitionline was higher on every run (about 2.3× the C median).
+
+An earlier 7.01M vs 2.18M pair is **withdrawn**. That client sprayed unkeyed
+records across 8 connections before partition stickiness, the broker rejected
+most batches with error 45 (`OUT_OF_ORDER_SEQUENCE_NUMBER`), and `flush`
+still returned Ok, so the bench counted queued records as acked. High
+watermark was ~32k, not 8e6.
 
 Reproduce:
 
@@ -127,6 +139,9 @@ Reproduce:
 COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 \
   IDEMPOTENT=1 KAFKA_TOPIC=plbench \
   cargo run --release --example bench_produce
+
+# sum of partition high watermarks must equal 8000000
+kafka-get-offsets.sh --bootstrap-server 127.0.0.1:9092 --topic plbench --time -1
 
 rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q \
   -X enable.idempotence=true \

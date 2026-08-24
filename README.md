@@ -9,11 +9,20 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
-idempotent produce. Plain TCP to Kafka 3.x / 4.x.
+**Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups,
+gzip / snappy / lz4, SASL PLAIN, idempotent produce. Plain TCP to Kafka 3.x / 4.x.
+Missing: TLS, SCRAM, admin, transactions, zstd, Kerberos. Full list:
+[docs/gaps.md](docs/gaps.md).
 
-- What is still missing vs librdkafka: [docs/gaps.md](docs/gaps.md)
-- Produce speed vs the C client: [docs/benchmark.md](docs/benchmark.md)
+**Produce is faster than librdkafka 2.15.0 C** on this machine, including
+idempotent produce (broker high watermark equals records sent). Fetch was not
+measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
+
+| Locked produce, 8e6 × 100B, linger 5ms | partitionline median | C 2.15.0 median |
+|---|---|---|
+| uncompressed, `acks=1` | 7.28M rec/s | 3.88M rec/s |
+| lz4 | 6.81M rec/s | 6.05M rec/s |
+| idempotent (`acks=all`) | 7.16M rec/s | 3.13M rec/s |
 
 ## Example
 

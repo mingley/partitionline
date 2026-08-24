@@ -45,6 +45,8 @@ struct State {
     sasl_user: Option<(String, String)>,
     next_pid: i64,
     last_producer_id: Option<i64>,
+    expected_seq: HashMap<(i64, String, i32), i32>,
+    produce_error: Option<i16>,
 }
 
 impl Mock {
@@ -66,6 +68,8 @@ impl Mock {
             sasl_user: creds,
             next_pid: 1000,
             last_producer_id: None,
+            expected_seq: HashMap::new(),
+            produce_error: None,
         }));
         let st = state.clone();
         tokio::spawn(async move {
@@ -87,6 +91,22 @@ impl Mock {
     #[allow(dead_code)]
     pub fn last_producer_id(&self) -> Option<i64> {
         self.state.lock().unwrap().last_producer_id
+    }
+
+    #[allow(dead_code)]
+    pub fn log_len(&self, topic: &str, partition: i32) -> usize {
+        self.state
+            .lock()
+            .unwrap()
+            .log
+            .get(&(topic.to_string(), partition))
+            .map(|v| v.len())
+            .unwrap_or(0)
+    }
+
+    #[allow(dead_code)]
+    pub fn set_produce_error(&self, code: i16) {
+        self.state.lock().unwrap().produce_error = Some(code);
     }
 }
 
@@ -221,26 +241,53 @@ async fn handle_conn(mut stream: TcpStream, host: String, port: i32, state: Arc<
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
                 let mut st = state.lock().unwrap();
+                let forced = st.produce_error;
                 for topic in decoded.2 {
                     for p in topic.partitions {
                         st.last_producer_id = Some(p.records.producer_id);
                         let key = (topic.topic.clone(), p.index);
-                        let start = *st.next_offset.get(&key).unwrap_or(&0);
-                        let mut n = 0i64;
-                        for mut rec in p.records.records {
-                            rec.offset = start + n;
-                            st.log.entry(key.clone()).or_default().push(rec);
-                            n += 1;
+                        let nrec = p.records.records.len() as i32;
+                        let mut error_code = forced.unwrap_or(0);
+                        if error_code == 0 {
+                            let pid = p.records.producer_id;
+                            let seq = p.records.base_sequence;
+                            if pid >= 0 && seq >= 0 {
+                                let skey = (pid, topic.topic.clone(), p.index);
+                                let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
+                                if seq != expected {
+                                    error_code = 45;
+                                } else {
+                                    st.expected_seq.insert(skey, expected + nrec);
+                                }
+                            }
                         }
-                        st.next_offset.insert(key, start + n);
-                        parts.push(ProducePartitionResponse {
-                            topic: topic.topic.clone(),
-                            partition: p.index,
-                            error_code: 0,
-                            base_offset: start,
-                            log_append_time_ms: -1,
-                            log_start_offset: 0,
-                        });
+                        let start = *st.next_offset.get(&key).unwrap_or(&0);
+                        if error_code == 0 {
+                            let mut n = 0i64;
+                            for mut rec in p.records.records {
+                                rec.offset = start + n;
+                                st.log.entry(key.clone()).or_default().push(rec);
+                                n += 1;
+                            }
+                            st.next_offset.insert(key, start + n);
+                            parts.push(ProducePartitionResponse {
+                                topic: topic.topic.clone(),
+                                partition: p.index,
+                                error_code: 0,
+                                base_offset: start,
+                                log_append_time_ms: -1,
+                                log_start_offset: 0,
+                            });
+                        } else {
+                            parts.push(ProducePartitionResponse {
+                                topic: topic.topic.clone(),
+                                partition: p.index,
+                                error_code,
+                                base_offset: -1,
+                                log_append_time_ms: -1,
+                                log_start_offset: 0,
+                            });
+                        }
                     }
                 }
                 encode_produce_response(&mut body, header.api_version, &parts);
