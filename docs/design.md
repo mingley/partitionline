@@ -1,59 +1,35 @@
-# partitionline design
+# How it works
 
-## Goal
+The library talks Kafka's network protocol itself. There is no C Kafka library in the process.
 
-Pure-Rust Kafka client. No C. Wire-compatible with Apache Kafka brokers.
-First ship: produce path that can be compared to librdkafka 2.15.0 C on a
-locked 60s warmup + 180s × 3 window.
+## Producer
 
-## Non-goals (this commit)
+1. You call `try_send` (or `send` if you want one offset future per record).
+2. The record goes onto a queue for one TCP connection.
+3. That connection's worker waits a few milliseconds (`linger`) or until the batch is big enough, then writes a Produce request.
+4. Several Produce requests can be in flight on the same socket.
 
-Admin, transactions/idempotence, TLS, GSSAPI, KIP-848 share groups, Schema
-Registry. `zstd`/`lz4-sys` are C and stay out of default features.
+Partition is chosen when the record is queued (round-robin, or murmur2 if there is a key), once the topic's partition count is known.
 
-## Why not wrap existing crates
+The hot path copies each payload once into the Kafka record batch and checksums it with CRC32-C.
 
-- `rdkafka` is librdkafka FFI. Violates No C.
-- `kafrust` (0.3.x) is a broad pure-Rust client (~50–140k rec/s on GH runners)
-  with feature coverage, not a librdkafka produce-throughput claim.
-- `kafka-protocol` is a generated codec. Useful as a test oracle; owning
-  RecordBatch encode is the produce hot path.
+## Consumer
 
-## Architecture
+`Consumer` is manual: you say topic, partition, offset, then `fetch`.
 
-```
-app --try_send--> per-connection worker --batch--> BrokerConn --TCP--> leader
-                      |                               |
-                 murmur2 / RR                    ApiVersions
-                 metadata cache                  Metadata / Produce
-```
+`ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 
-`Producer` is a cloneable handle over sharded worker queues. Partition is
-assigned on enqueue when metadata is cached. Each worker pipelines
-Produce requests (`max_in_flight`). Record payload is copied once into the
-RecordBatch buffer; CRC32-C is computed over attributes..end.
+## Wire format notes (for people changing encode/decode)
 
-## Protocol pitfalls that are load-bearing
+- Request `ClientId` is always a classic nullable string, even on flexible headers.
+- ApiVersions **response** header is never flexible. If you parse it as flexible you eat the error code.
+- Produce throttle time comes **after** the topic array. Metadata throttle time comes first.
+- Record batch magic 2 CRC is CRC32-C over bytes from attributes to the end.
+- Record lengths are zigzag varints. Compact protocol lengths are unsigned varint of `n+1` (`0` means null).
+- Without `InitProducerId`, producer id / epoch / sequence must be `-1`. Zero is a real id.
+- `acks=0` means the broker sends no Produce response. Do not read one.
+- This client uses Produce versions 3–8 (classic record bytes). Version 9+ is compact.
 
-- Request `ClientId` is always a classic nullable string, including flexible
-  header v2 (`flexibleVersions: none` on that field).
-- ApiVersions **response** header is never flexible (KIP-482). Body v3 is.
-- Produce throttle_time is *after* the topic array. Metadata throttle is first.
-- RecordBatch magic 2 CRC is CRC32-C (Castagnoli) of bytes from attributes
-  to end, stored as big-endian u32.
-- Record key/value lengths are zigzag varints; compact protocol lengths are
-  unsigned varints of `n+1` (0 = null).
+## Compression
 
-## Versions
-
-Negotiate the highest mutually supported version in:
-
-- Produce 3–8 (classic records bytes; skip flexible v9+)
-- Metadata 1–12 (skip 13 top-level error / 10–11 unimplemented topic ids)
-- Fetch 4–11, group APIs for join/heartbeat/commit, SASL PLAIN, gzip via flate2 `rust_backend`
-
-## Bench contract
-
-Same linger (5ms), batch.num.messages (10000), batch.size (1MB), acks=1,
-compression=none, payload size, and broker as the C line. Numbers in the
-README are not a win tag.
+gzip uses `flate2` with its Rust backend. snappy/lz4/zstd stay out because the usual crates pull in C.
