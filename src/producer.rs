@@ -13,8 +13,9 @@ use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_response,
     encode_api_versions_request, encode_metadata_request, ApiVersion,
 };
-use crate::protocol::api_keys::{pick_version, API_VERSIONS, METADATA, PRODUCE};
+use crate::protocol::api_keys::{pick_version, API_VERSIONS, INIT_PRODUCER_ID, METADATA, PRODUCE};
 use crate::protocol::header::encode_request_header_fields;
+use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader,
 };
@@ -34,6 +35,7 @@ pub struct ProducerConfig {
     pub sasl_plain: Option<(String, String)>,
     pub connections: usize,
     pub max_in_flight: usize,
+    pub enable_idempotence: bool,
 }
 
 impl Default for ProducerConfig {
@@ -52,6 +54,7 @@ impl Default for ProducerConfig {
             sasl_plain: None,
             connections: 8,
             max_in_flight: 16,
+            enable_idempotence: false,
         }
     }
 }
@@ -170,6 +173,9 @@ struct Shared {
     metadata_version: i16,
     produce_version: i16,
     rr: AtomicI32,
+    producer_id: i64,
+    producer_epoch: i16,
+    seqs: std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
 }
 
 #[derive(Clone)]
@@ -213,10 +219,41 @@ impl Producer {
             crate::protocol::sasl::authenticate_plain(&mut meta, &u, &p, cfg.request_timeout)
                 .await?;
         }
+        let mut cfg = cfg;
+        if cfg.enable_idempotence {
+            cfg.acks = -1;
+            cfg.max_in_flight = cfg.max_in_flight.min(5);
+        }
         let produce_version = pick(&versions, PRODUCE, 3, 8)
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-8".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+
+        let mut producer_id = -1i64;
+        let mut producer_epoch = -1i16;
+        if cfg.enable_idempotence {
+            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 1).ok_or_else(|| {
+                Error::Unsupported("broker does not support InitProducerId".into())
+            })?;
+            let body = meta
+                .roundtrip(
+                    INIT_PRODUCER_ID,
+                    ipid_version,
+                    |buf| encode_init_producer_id_request(buf, ipid_version),
+                    cfg.request_timeout,
+                )
+                .await?;
+            let (err, pid, epoch) =
+                decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
+            if err != 0 {
+                return Err(Error::broker(err, "InitProducerId"));
+            }
+            if pid < 0 {
+                return Err(Error::protocol("InitProducerId returned producer_id=-1"));
+            }
+            producer_id = pid;
+            producer_epoch = epoch;
+        }
 
         let n_conn = cfg.connections.max(1);
         let cap = (100_000 / n_conn).max(4_096);
@@ -227,6 +264,9 @@ impl Producer {
             metadata_version,
             produce_version,
             rr: AtomicI32::new(0),
+            producer_id,
+            producer_epoch,
+            seqs: std::sync::Mutex::new(HashMap::new()),
         });
 
         let mut workers = Vec::with_capacity(n_conn);
@@ -583,6 +623,9 @@ impl Worker {
             &groups,
             compression,
             now,
+            self.shared.producer_id,
+            self.shared.producer_epoch,
+            &self.shared.seqs,
         )?;
         let size = (self.write_buf.len() - 4) as i32;
         self.write_buf[0..4].copy_from_slice(&size.to_be_bytes());
@@ -730,6 +773,7 @@ fn estimate(p: &Pending) -> usize {
         + 64
 }
 
+#[allow(clippy::too_many_arguments)]
 fn encode_produce_body(
     buf: &mut BytesMut,
     version: i16,
@@ -738,6 +782,9 @@ fn encode_produce_body(
     groups: &[(Arc<str>, i32, Vec<Pending>)],
     compression: Compression,
     now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    seqs: &std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
 ) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
@@ -764,15 +811,32 @@ fn encode_produce_body(
         for i in idxs {
             let (_, partition, pendings) = &groups[i];
             buf.put_i32(*partition);
+            let base_sequence = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
             if flexible {
                 let mut recs = BytesMut::new();
-                encode_pendings(&mut recs, pendings, compression, now)?;
+                encode_pendings(
+                    &mut recs,
+                    pendings,
+                    compression,
+                    now,
+                    producer_id,
+                    producer_epoch,
+                    base_sequence,
+                )?;
                 crate::protocol::buf::put_bytes(buf, true, Some(&recs));
                 crate::protocol::buf::put_empty_tagged_fields(buf);
             } else {
                 let len_pos = buf.len();
                 buf.put_i32(0);
-                encode_pendings(buf, pendings, compression, now)?;
+                encode_pendings(
+                    buf,
+                    pendings,
+                    compression,
+                    now,
+                    producer_id,
+                    producer_epoch,
+                    base_sequence,
+                )?;
                 let rec_len = (buf.len() - len_pos - 4) as i32;
                 buf[len_pos..len_pos + 4].copy_from_slice(&rec_len.to_be_bytes());
             }
@@ -787,11 +851,31 @@ fn encode_produce_body(
     Ok(())
 }
 
+fn next_sequence(
+    seqs: &std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    producer_id: i64,
+    topic: &Arc<str>,
+    partition: i32,
+    count: usize,
+) -> i32 {
+    if producer_id < 0 {
+        return -1;
+    }
+    let mut g = seqs.lock().expect("seqs");
+    let e = g.entry((topic.clone(), partition)).or_insert(0);
+    let base = *e;
+    *e = e.saturating_add(count as i32);
+    base
+}
+
 fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
     compression: Compression,
     now: i64,
+    producer_id: i64,
+    producer_epoch: i16,
+    base_sequence: i32,
 ) -> Result<()> {
     let base_ts = pendings
         .first()
@@ -809,6 +893,9 @@ fn encode_pendings(
             base_timestamp: base_ts,
             max_timestamp: max_ts,
             count: pendings.len() as i32,
+            producer_id,
+            producer_epoch,
+            base_sequence,
             ..BatchHeader::default()
         },
         pendings.iter().map(|p| EncodeRecord {

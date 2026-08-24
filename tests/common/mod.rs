@@ -5,8 +5,8 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, FETCH, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    API_VERSIONS, FETCH, FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -18,6 +18,7 @@ use partitionline::protocol::group::{
     encode_offset_fetch_response, encode_sync_group_response, JoinMember,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
+use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
     decode_sasl_authenticate_request, decode_sasl_handshake_request,
@@ -42,6 +43,8 @@ struct State {
     committed: HashMap<(String, i32), i64>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
+    next_pid: i64,
+    last_producer_id: Option<i64>,
 }
 
 impl Mock {
@@ -61,6 +64,8 @@ impl Mock {
             committed: HashMap::new(),
             member_seq: 0,
             sasl_user: creds,
+            next_pid: 1000,
+            last_producer_id: None,
         }));
         let st = state.clone();
         tokio::spawn(async move {
@@ -77,6 +82,11 @@ impl Mock {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn last_producer_id(&self) -> Option<i64> {
+        self.state.lock().unwrap().last_producer_id
     }
 }
 
@@ -121,6 +131,7 @@ fn versions() -> ApiVersionsResponse {
         (SYNC_GROUP, 0, 3),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
+        (INIT_PRODUCER_ID, 0, 4),
         (SASL_AUTHENTICATE, 0, 1),
     ];
     ApiVersionsResponse {
@@ -200,12 +211,19 @@ async fn handle_conn(mut stream: TcpStream, host: String, port: i32, state: Arc<
                     },
                 );
             }
+            INIT_PRODUCER_ID => {
+                let mut st = state.lock().unwrap();
+                let pid = st.next_pid;
+                st.next_pid += 1;
+                encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0);
+            }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
                 let mut st = state.lock().unwrap();
                 for topic in decoded.2 {
                     for p in topic.partitions {
+                        st.last_producer_id = Some(p.records.producer_id);
                         let key = (topic.topic.clone(), p.index);
                         let start = *st.next_offset.get(&key).unwrap_or(&0);
                         let mut n = 0i64;

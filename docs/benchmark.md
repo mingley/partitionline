@@ -106,6 +106,36 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q -z
   -X socket.nagle.disable=true
 ```
 
+### 2026-08-24 idempotent produce (gating for InitProducerId)
+
+Same knobs as the uncompressed table except **both** sides enable idempotence
+(`IDEMPOTENT=1` / `-X enable.idempotence=true`), which forces `acks=-1` and
+caps in-flight requests at 5. One locked pair, no warmup, fresh topic.
+
+| | acked rec/s | elapsed |
+|---|---|---|
+| partitionline | **7,010,415** | 1.141 s |
+| librdkafka 2.15.0 C | 2,176,684 | 3.675 s |
+
+partitionline is strictly higher. The C run logged a one-time
+`Coordinator load in progress` on `InitProducerId` and retried; all 8e6
+records still delivered with zero failures.
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=-1 LINGER_MS=5 \
+  IDEMPOTENT=1 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_produce
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q \
+  -X enable.idempotence=true \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
 ### Fetch
 
 **Unmeasured.** Do not read the produce table as an e2e or consume win.
