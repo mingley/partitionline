@@ -32,4 +32,6 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 
 ## Compression
 
-gzip uses `flate2` with its Rust backend. snappy/lz4/zstd stay out because the usual crates pull in C.
+gzip uses `flate2` with its Rust backend. snappy uses the `snap` crate
+(snappy-java framing on produce, raw snappy accepted on fetch). lz4 and zstd
+are not implemented; zstd in the Kafka ecosystem is typically C (`zstd-sys`).

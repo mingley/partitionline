@@ -14,6 +14,7 @@ pub enum Compression {
     #[default]
     None = 0,
     Gzip = 1,
+    Snappy = 2,
 }
 
 impl Compression {
@@ -21,6 +22,7 @@ impl Compression {
         match attr & 0x07 {
             0 => Ok(Self::None),
             1 => Ok(Self::Gzip),
+            2 => Ok(Self::Snappy),
             n => Err(Error::protocol(format!("unsupported compression {n}"))),
         }
     }
@@ -99,6 +101,49 @@ fn gzip_decompress(src: &[u8]) -> Result<Vec<u8>> {
         .read_to_end(&mut out)
         .map_err(|e| Error::protocol(e.to_string()))?;
     Ok(out)
+}
+
+/// xerial snappy-java header used by the Java Kafka client.
+/// 8 magic + 4 version + 4 compatible, then chunks of [be32 clen][snappy].
+const SNAPPY_JAVA_MAGIC: &[u8] = &[0x82, b'S', b'N', b'A', b'P', b'P', b'Y', 0];
+
+fn snappy_compress(src: &[u8]) -> Result<Vec<u8>> {
+    let mut encoder = snap::raw::Encoder::new();
+    let compressed = encoder
+        .compress_vec(src)
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    let mut out = Vec::with_capacity(16 + 4 + compressed.len());
+    out.extend_from_slice(SNAPPY_JAVA_MAGIC);
+    out.extend_from_slice(&1u32.to_be_bytes());
+    out.extend_from_slice(&1u32.to_be_bytes());
+    out.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
+    out.extend_from_slice(&compressed);
+    Ok(out)
+}
+
+fn snappy_decompress(src: &[u8]) -> Result<Vec<u8>> {
+    if src.len() > 20 && src.starts_with(SNAPPY_JAVA_MAGIC) {
+        let mut cur = &src[16..];
+        let mut out = Vec::new();
+        let mut decoder = snap::raw::Decoder::new();
+        while cur.len() >= 4 {
+            let clen = u32::from_be_bytes(cur[..4].try_into().unwrap()) as usize;
+            cur = &cur[4..];
+            if clen > cur.len() {
+                return Err(Error::protocol("snappy-java chunk overruns buffer"));
+            }
+            let chunk = decoder
+                .decompress_vec(&cur[..clen])
+                .map_err(|e| Error::protocol(e.to_string()))?;
+            out.extend_from_slice(&chunk);
+            cur = &cur[clen..];
+        }
+        Ok(out)
+    } else {
+        snap::raw::Decoder::new()
+            .decompress_vec(src)
+            .map_err(|e| Error::protocol(e.to_string()))
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -199,7 +244,7 @@ where
                 encode_record(buf, &rec, i as i32, rec.timestamp - header.base_timestamp);
             }
         }
-        Compression::Gzip => {
+        Compression::Gzip | Compression::Snappy => {
             let mut section = BytesMut::new();
             for (i, rec) in records.enumerate() {
                 encode_record(
@@ -209,7 +254,12 @@ where
                     rec.timestamp - header.base_timestamp,
                 );
             }
-            buf.extend_from_slice(&gzip_compress(&section)?);
+            let packed = match compression {
+                Compression::Gzip => gzip_compress(&section)?,
+                Compression::Snappy => snappy_compress(&section)?,
+                Compression::None => unreachable!(),
+            };
+            buf.extend_from_slice(&packed);
         }
     }
     let end = buf.len();
@@ -326,6 +376,10 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         Compression::None => &records_bytes,
         Compression::Gzip => {
             decompressed = gzip_decompress(&records_bytes)?;
+            &decompressed
+        }
+        Compression::Snappy => {
+            decompressed = snappy_decompress(&records_bytes)?;
             &decompressed
         }
     };
@@ -468,5 +522,41 @@ mod tests {
             Some(&b"gzip-payload"[..])
         );
         assert_eq!(decoded.attributes & 0x07, Compression::Gzip as i16);
+    }
+
+    #[test]
+    fn snappy_record_batch_roundtrip() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 11,
+            key: None,
+            value: Some(Bytes::from_static(b"snappy-payload")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Snappy);
+        assert_eq!(batch.attributes & 0x07, Compression::Snappy as i16);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        assert!(
+            buf.windows(SNAPPY_JAVA_MAGIC.len())
+                .any(|w| w == SNAPPY_JAVA_MAGIC),
+            "produce path must emit snappy-java framing"
+        );
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(
+            decoded.records[0].value.as_deref(),
+            Some(&b"snappy-payload"[..])
+        );
+        assert_eq!(decoded.attributes & 0x07, Compression::Snappy as i16);
+    }
+
+    #[test]
+    fn snappy_decompress_raw_block_from_librdkafka() {
+        let payload = b"raw-snappy-from-c-client";
+        let raw = snap::raw::Encoder::new().compress_vec(payload).unwrap();
+        assert_eq!(snappy_decompress(&raw).unwrap(), payload);
+        let framed = snappy_compress(payload).unwrap();
+        assert!(framed.starts_with(SNAPPY_JAVA_MAGIC));
+        assert_eq!(snappy_decompress(&framed).unwrap(), payload);
     }
 }
