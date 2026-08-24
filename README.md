@@ -8,10 +8,10 @@ unmeasured; not done.
 
 ## Status
 
-This tree is a produce-path MVP: `ApiVersions` + `Metadata` + `Produce`,
-RecordBatch magic 2 (uncompressed), tokio linger batching. Library deps are
-Rust-only (`bytes`, `tokio`, `crc32c`). Fetch, consumer groups, SASL/TLS,
-transactions, and compression are not in this commit.
+Shipped: produce (magic-2 RecordBatch), fetch with manual assignment,
+consumer-group join/heartbeat/commit, gzip (`flate2` rust backend), SASL
+PLAIN. Library deps stay Rust-only (`bytes`, `tokio`, `crc32c`, `flate2`).
+TLS, transactions, and admin are not in this commit.
 
 The rec/s line above is a locked local methodology against librdkafka 2.15.0 C,
 not a CI gate of this commit. Re-run:
@@ -47,14 +47,19 @@ wrapper around `kafka-protocol`. Brokers: Kafka 3.x/4.x PLAINTEXT.
 | --- | --- |
 | ApiVersions (18) | send v3 (response header never flexible) |
 | Metadata (3) | negotiated 1–12 |
-| Produce (0) | negotiated 3–9 |
+| Produce (0) | negotiated 3–8 |
+| Fetch (1) | v11 classic |
+| Group (Join/Sync/Heartbeat/OffsetCommit/OffsetFetch/FindCoordinator) | classic versions |
+| SASL Handshake / Authenticate | PLAIN |
 
 ## Layout
 
 ```
-src/protocol/   wire types, RecordBatch, headers
-src/net.rs      length-prefixed TCP roundtrip
-src/producer.rs linger/batch actor
+src/protocol/   wire types, RecordBatch, fetch, group, SASL
+src/net.rs      length-prefixed TCP
+src/producer.rs sharded linger workers, pipelined Produce
+src/consumer.rs assigned Fetch
+src/group.rs    consumer-group membership
 src/partitioner.rs  Java-compatible murmur2
 ```
 

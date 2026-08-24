@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
@@ -5,6 +7,24 @@ use crate::error::{Error, Result};
 
 pub const MAGIC_V2: i8 = 2;
 const BATCH_OVERHEAD: usize = 61;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[repr(i16)]
+pub enum Compression {
+    #[default]
+    None = 0,
+    Gzip = 1,
+}
+
+impl Compression {
+    pub fn from_attributes(attr: i16) -> Result<Self> {
+        match attr & 0x07 {
+            0 => Ok(Self::None),
+            1 => Ok(Self::Gzip),
+            n => Err(Error::protocol(format!("unsupported compression {n}"))),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Header {
@@ -14,6 +34,7 @@ pub struct Header {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
+    pub offset: i64,
     pub timestamp: i64,
     pub key: Option<Bytes>,
     pub value: Option<Bytes>,
@@ -34,7 +55,10 @@ pub struct RecordBatch {
 }
 
 impl RecordBatch {
-    pub fn from_records(records: Vec<Record>) -> Self {
+    pub fn from_records(mut records: Vec<Record>) -> Self {
+        for (i, rec) in records.iter_mut().enumerate() {
+            rec.offset = i as i64;
+        }
         let base_timestamp = records.first().map(|r| r.timestamp).unwrap_or(0);
         let max_timestamp = records
             .iter()
@@ -53,33 +77,140 @@ impl RecordBatch {
             records,
         }
     }
+
+    pub fn with_compression(mut self, compression: Compression) -> Self {
+        self.attributes = (self.attributes & !0x07) | (compression as i16);
+        self
+    }
 }
 
-pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) {
+fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder
+        .write_all(src)
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    encoder.finish().map_err(|e| Error::protocol(e.to_string()))
+}
+
+fn gzip_decompress(src: &[u8]) -> Result<Vec<u8>> {
+    let mut decoder = flate2::read::GzDecoder::new(src);
+    let mut out = Vec::new();
+    decoder
+        .read_to_end(&mut out)
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(out)
+}
+
+#[derive(Clone, Copy)]
+pub struct EncodeRecord<'a> {
+    pub timestamp: i64,
+    pub key: Option<&'a [u8]>,
+    pub value: Option<&'a [u8]>,
+    pub headers: &'a [Header],
+}
+
+impl<'a> EncodeRecord<'a> {
+    pub fn from_record(rec: &'a Record) -> Self {
+        Self {
+            timestamp: rec.timestamp,
+            key: rec.key.as_deref(),
+            value: rec.value.as_deref(),
+            headers: &rec.headers,
+        }
+    }
+}
+
+pub struct BatchHeader {
+    pub base_offset: i64,
+    pub partition_leader_epoch: i32,
+    pub attributes: i16,
+    pub base_timestamp: i64,
+    pub max_timestamp: i64,
+    pub producer_id: i64,
+    pub producer_epoch: i16,
+    pub base_sequence: i32,
+    pub count: i32,
+}
+
+impl Default for BatchHeader {
+    fn default() -> Self {
+        Self {
+            base_offset: 0,
+            partition_leader_epoch: -1,
+            attributes: 0,
+            base_timestamp: 0,
+            max_timestamp: 0,
+            producer_id: -1,
+            producer_epoch: -1,
+            base_sequence: -1,
+            count: 0,
+        }
+    }
+}
+
+pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
+    write_record_batch(
+        buf,
+        &BatchHeader {
+            base_offset: batch.base_offset,
+            partition_leader_epoch: batch.partition_leader_epoch,
+            attributes: batch.attributes,
+            base_timestamp: batch.base_timestamp,
+            max_timestamp: batch.max_timestamp,
+            producer_id: batch.producer_id,
+            producer_epoch: batch.producer_epoch,
+            base_sequence: batch.base_sequence,
+            count: batch.records.len() as i32,
+        },
+        batch.records.iter().map(EncodeRecord::from_record),
+    )
+}
+
+pub fn write_record_batch<'a, I>(buf: &mut BytesMut, header: &BatchHeader, records: I) -> Result<()>
+where
+    I: Iterator<Item = EncodeRecord<'a>>,
+{
+    let compression = Compression::from_attributes(header.attributes)?;
     let batch_start = buf.len();
-    buf.put_i64(batch.base_offset);
+    buf.put_i64(header.base_offset);
     let batch_len_pos = buf.len();
     buf.put_i32(0);
-    buf.put_i32(batch.partition_leader_epoch);
+    buf.put_i32(header.partition_leader_epoch);
     buf.put_i8(MAGIC_V2);
     let crc_pos = buf.len();
     buf.put_u32(0);
     let crc_start = buf.len();
-    buf.put_i16(batch.attributes);
-    let last_delta = if batch.records.is_empty() {
+    buf.put_i16(header.attributes);
+    let last_delta = if header.count <= 0 {
         0
     } else {
-        batch.records.len() as i32 - 1
+        header.count - 1
     };
     buf.put_i32(last_delta);
-    buf.put_i64(batch.base_timestamp);
-    buf.put_i64(batch.max_timestamp);
-    buf.put_i64(batch.producer_id);
-    buf.put_i16(batch.producer_epoch);
-    buf.put_i32(batch.base_sequence);
-    buf.put_i32(batch.records.len() as i32);
-    for (i, rec) in batch.records.iter().enumerate() {
-        encode_record(buf, rec, i as i32, rec.timestamp - batch.base_timestamp);
+    buf.put_i64(header.base_timestamp);
+    buf.put_i64(header.max_timestamp);
+    buf.put_i64(header.producer_id);
+    buf.put_i16(header.producer_epoch);
+    buf.put_i32(header.base_sequence);
+    buf.put_i32(header.count);
+    match compression {
+        Compression::None => {
+            for (i, rec) in records.enumerate() {
+                encode_record(buf, &rec, i as i32, rec.timestamp - header.base_timestamp);
+            }
+        }
+        Compression::Gzip => {
+            let mut section = BytesMut::new();
+            for (i, rec) in records.enumerate() {
+                encode_record(
+                    &mut section,
+                    &rec,
+                    i as i32,
+                    rec.timestamp - header.base_timestamp,
+                );
+            }
+            buf.extend_from_slice(&gzip_compress(&section)?);
+        }
     }
     let end = buf.len();
     let batch_len = (end - batch_len_pos - 4) as i32;
@@ -88,41 +219,70 @@ pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) {
     buf[crc_pos..crc_pos + 4].copy_from_slice(&crc.to_be_bytes());
     debug_assert_eq!(end - batch_start, 12 + batch_len as usize);
     let _ = BATCH_OVERHEAD;
+    Ok(())
 }
 
-fn encode_record(buf: &mut BytesMut, rec: &Record, offset_delta: i32, timestamp_delta: i64) {
-    let mut inner = BytesMut::new();
-    inner.put_i8(0);
-    buf::put_varlong(&mut inner, timestamp_delta);
-    buf::put_varint(&mut inner, offset_delta);
-    match &rec.key {
-        None => buf::put_varint(&mut inner, -1),
+fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
+    match bytes {
+        None => buf::varint_size(-1),
+        Some(b) => buf::varint_size(b.len() as i32) + b.len(),
+    }
+}
+
+fn encode_record(
+    buf: &mut BytesMut,
+    rec: &EncodeRecord<'_>,
+    offset_delta: i32,
+    timestamp_delta: i64,
+) {
+    let mut inner = 1
+        + buf::varlong_size(timestamp_delta)
+        + buf::varint_size(offset_delta)
+        + nullable_bytes_len(rec.key)
+        + nullable_bytes_len(rec.value)
+        + buf::varint_size(rec.headers.len() as i32);
+    for h in rec.headers {
+        inner += buf::varint_size(h.key.len() as i32) + h.key.len();
+        inner += nullable_bytes_len(h.value.as_deref());
+    }
+    buf::put_varint(buf, inner as i32);
+    buf.put_i8(0);
+    buf::put_varlong(buf, timestamp_delta);
+    buf::put_varint(buf, offset_delta);
+    match rec.key {
+        None => buf::put_varint(buf, -1),
         Some(k) => {
-            buf::put_varint(&mut inner, k.len() as i32);
-            inner.extend_from_slice(k);
+            buf::put_varint(buf, k.len() as i32);
+            buf.extend_from_slice(k);
         }
     }
-    match &rec.value {
-        None => buf::put_varint(&mut inner, -1),
+    match rec.value {
+        None => buf::put_varint(buf, -1),
         Some(v) => {
-            buf::put_varint(&mut inner, v.len() as i32);
-            inner.extend_from_slice(v);
+            buf::put_varint(buf, v.len() as i32);
+            buf.extend_from_slice(v);
         }
     }
-    buf::put_varint(&mut inner, rec.headers.len() as i32);
-    for h in &rec.headers {
-        buf::put_varint(&mut inner, h.key.len() as i32);
-        inner.extend_from_slice(h.key.as_bytes());
+    buf::put_varint(buf, rec.headers.len() as i32);
+    for h in rec.headers {
+        buf::put_varint(buf, h.key.len() as i32);
+        buf.extend_from_slice(h.key.as_bytes());
         match &h.value {
-            None => buf::put_varint(&mut inner, -1),
+            None => buf::put_varint(buf, -1),
             Some(v) => {
-                buf::put_varint(&mut inner, v.len() as i32);
-                inner.extend_from_slice(v);
+                buf::put_varint(buf, v.len() as i32);
+                buf.extend_from_slice(v);
             }
         }
     }
-    buf::put_varint(buf, inner.len() as i32);
-    buf.extend_from_slice(&inner);
+}
+
+pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
+    let mut out = Vec::new();
+    while buf.has_remaining() {
+        out.push(decode_record_batch(buf)?);
+    }
+    Ok(out)
 }
 
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
@@ -149,11 +309,7 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         )));
     }
     let attributes = buf::get_i16(&mut body)?;
-    if attributes & 0x07 != 0 {
-        return Err(Error::protocol(
-            "compressed record batches are not implemented",
-        ));
-    }
+    let compression = Compression::from_attributes(attributes)?;
     let _last_delta = buf::get_i32(&mut body)?;
     let base_timestamp = buf::get_i64(&mut body)?;
     let max_timestamp = buf::get_i64(&mut body)?;
@@ -164,9 +320,20 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     if count < 0 {
         return Err(Error::protocol("negative record count"));
     }
+    let records_bytes = body;
+    let decompressed;
+    let mut records_cur: &[u8] = match compression {
+        Compression::None => &records_bytes,
+        Compression::Gzip => {
+            decompressed = gzip_decompress(&records_bytes)?;
+            &decompressed
+        }
+    };
     let mut records = Vec::with_capacity(count as usize);
-    for _ in 0..count {
-        records.push(decode_record(&mut body, base_timestamp)?);
+    for i in 0..count {
+        let mut rec = decode_record(&mut records_cur, base_timestamp)?;
+        rec.offset = base_offset + i as i64;
+        records.push(rec);
     }
     Ok(RecordBatch {
         base_offset,
@@ -211,6 +378,7 @@ fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
         headers.push(Header { key, value });
     }
     Ok(Record {
+        offset: 0,
         timestamp: base_timestamp + timestamp_delta,
         key,
         value,
@@ -234,6 +402,7 @@ mod tests {
     #[test]
     fn record_batch_roundtrip() {
         let rec = Record {
+            offset: 0,
             timestamp: 1_700_000_000_000,
             key: Some(Bytes::from_static(b"k")),
             value: Some(Bytes::from_static(b"hello")),
@@ -244,7 +413,7 @@ mod tests {
         };
         let batch = RecordBatch::from_records(vec![rec]);
         let mut buf = BytesMut::new();
-        encode_record_batch(&mut buf, &batch);
+        encode_record_batch(&mut buf, &batch).unwrap();
         let decoded = decode_record_batch(&mut &buf[..]).unwrap();
         assert_eq!(decoded, batch);
     }
@@ -252,12 +421,14 @@ mod tests {
     #[test]
     fn null_key_is_not_empty_key() {
         let null_key = Record {
+            offset: 0,
             timestamp: 0,
             key: None,
             value: Some(Bytes::from_static(b"v")),
             headers: vec![],
         };
         let empty_key = Record {
+            offset: 0,
             timestamp: 0,
             key: Some(Bytes::new()),
             value: Some(Bytes::from_static(b"v")),
@@ -265,8 +436,8 @@ mod tests {
         };
         let mut a = BytesMut::new();
         let mut b = BytesMut::new();
-        encode_record_batch(&mut a, &RecordBatch::from_records(vec![null_key.clone()]));
-        encode_record_batch(&mut b, &RecordBatch::from_records(vec![empty_key.clone()]));
+        encode_record_batch(&mut a, &RecordBatch::from_records(vec![null_key.clone()])).unwrap();
+        encode_record_batch(&mut b, &RecordBatch::from_records(vec![empty_key.clone()])).unwrap();
         assert_ne!(&a[..], &b[..]);
         assert_eq!(
             decode_record_batch(&mut &a[..]).unwrap().records[0].key,
@@ -276,5 +447,26 @@ mod tests {
             decode_record_batch(&mut &b[..]).unwrap().records[0].key,
             Some(Bytes::new())
         );
+    }
+
+    #[test]
+    fn gzip_record_batch_roundtrip() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 9,
+            key: None,
+            value: Some(Bytes::from_static(b"gzip-payload")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Gzip);
+        assert_eq!(batch.attributes & 0x07, Compression::Gzip as i16);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(
+            decoded.records[0].value.as_deref(),
+            Some(&b"gzip-payload"[..])
+        );
+        assert_eq!(decoded.attributes & 0x07, Compression::Gzip as i16);
     }
 }

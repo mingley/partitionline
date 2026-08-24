@@ -8,9 +8,8 @@ locked 60s warmup + 180s × 3 window.
 
 ## Non-goals (this commit)
 
-Fetch, consumer groups, SASL/TLS, transactions/idempotence, compression,
-admin, io_uring, custom allocators. `zstd`/`lz4-sys` are C and stay out of
-the library until a pure-Rust codec is chosen.
+Admin, transactions/idempotence, TLS, GSSAPI, KIP-848 share groups, Schema
+Registry. `zstd`/`lz4-sys` are C and stay out of default features.
 
 ## Why not wrap existing crates
 
@@ -23,15 +22,16 @@ the library until a pure-Rust codec is chosen.
 ## Architecture
 
 ```
-app --send--> producer actor --batch--> BrokerConn --TCP--> leader
-                 |                         |
-            murmur2 / RR              ApiVersions
-            metadata cache            Metadata / Produce
+app --try_send--> per-connection worker --batch--> BrokerConn --TCP--> leader
+                      |                               |
+                 murmur2 / RR                    ApiVersions
+                 metadata cache                  Metadata / Produce
 ```
 
-One actor owns connections, metadata, and linger batches. `Producer` is a
-cloneable channel sender. Record payload is copied once into the RecordBatch
-buffer; CRC32-C is computed over attributes..end.
+`Producer` is a cloneable handle over sharded worker queues. Partition is
+assigned on enqueue when metadata is cached. Each worker pipelines
+Produce requests (`max_in_flight`). Record payload is copied once into the
+RecordBatch buffer; CRC32-C is computed over attributes..end.
 
 ## Protocol pitfalls that are load-bearing
 
@@ -48,8 +48,9 @@ buffer; CRC32-C is computed over attributes..end.
 
 Negotiate the highest mutually supported version in:
 
-- Produce 3–9 (skip 10+ tagged CurrentLeader for now)
+- Produce 3–8 (classic records bytes; skip flexible v9+)
 - Metadata 1–12 (skip 13 top-level error / 10–11 unimplemented topic ids)
+- Fetch 4–11, group APIs for join/heartbeat/commit, SASL PLAIN, gzip via flate2 `rust_backend`
 
 ## Bench contract
 

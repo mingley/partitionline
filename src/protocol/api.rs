@@ -370,7 +370,7 @@ pub fn encode_produce_request(
     acks: i16,
     timeout_ms: i32,
     topics: &[ProduceTopicData],
-) {
+) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
         buf::put_string(buf, flexible, transactional_id);
@@ -387,11 +387,17 @@ pub fn encode_produce_request(
         buf::put_array_len(buf, flexible, Some(topic.partitions.len()));
         for part in &topic.partitions {
             buf.put_i32(part.index);
-            let mut recs = BytesMut::new();
-            records::encode_record_batch(&mut recs, &part.records);
-            buf::put_bytes(buf, flexible, Some(&recs));
             if flexible {
+                let mut recs = BytesMut::new();
+                records::encode_record_batch(&mut recs, &part.records)?;
+                buf::put_bytes(buf, flexible, Some(&recs));
                 buf::put_empty_tagged_fields(buf);
+            } else {
+                let len_pos = buf.len();
+                buf.put_i32(0);
+                records::encode_record_batch(buf, &part.records)?;
+                let rec_len = (buf.len() - len_pos - 4) as i32;
+                buf[len_pos..len_pos + 4].copy_from_slice(&rec_len.to_be_bytes());
             }
         }
         if flexible {
@@ -401,6 +407,7 @@ pub fn encode_produce_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 pub fn decode_produce_request<B: Buf>(
@@ -597,6 +604,7 @@ mod tests {
     #[test]
     fn produce_v9_roundtrip() {
         let rec = Record {
+            offset: 0,
             timestamp: 42,
             key: None,
             value: Some(Bytes::from_static(b"hi")),
@@ -610,7 +618,7 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_produce_request(&mut buf, 9, None, 1, 1500, &topics);
+        encode_produce_request(&mut buf, 9, None, 1, 1500, &topics).unwrap();
         let (acks, timeout, decoded) = decode_produce_request(&mut &buf[..], 9).unwrap();
         assert_eq!(acks, 1);
         assert_eq!(timeout, 1500);

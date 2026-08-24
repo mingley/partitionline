@@ -11,6 +11,7 @@ pub enum Error {
     Unsupported(String),
     Closed,
     Timeout,
+    QueueFull,
 }
 
 impl Error {
@@ -67,6 +68,7 @@ impl fmt::Display for Error {
             Self::Unsupported(m) => write!(f, "unsupported: {m}"),
             Self::Closed => write!(f, "producer closed"),
             Self::Timeout => write!(f, "timeout"),
+            Self::QueueFull => write!(f, "producer queue full"),
         }
     }
 }
@@ -100,6 +102,8 @@ pub const NOT_COORDINATOR: i16 = 16;
 pub const UNSUPPORTED_VERSION: i16 = 35;
 pub const TOPIC_AUTHORIZATION_FAILED: i16 = 29;
 pub const MESSAGE_TOO_LARGE: i16 = 10;
+pub const SASL_AUTHENTICATION_FAILED: i16 = 58;
+pub const MEMBER_ID_REQUIRED: i16 = 79;
 
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
@@ -115,6 +119,8 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         UNSUPPORTED_VERSION => "UNSUPPORTED_VERSION",
         TOPIC_AUTHORIZATION_FAILED => "TOPIC_AUTHORIZATION_FAILED",
         MESSAGE_TOO_LARGE => "MESSAGE_TOO_LARGE",
+        SASL_AUTHENTICATION_FAILED => "SASL_AUTHENTICATION_FAILED",
+        MEMBER_ID_REQUIRED => "MEMBER_ID_REQUIRED",
         _ => return None,
     })
 }

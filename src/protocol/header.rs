@@ -37,14 +37,30 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
     }
 }
 
-pub fn encode_request_header(buf: &mut BytesMut, header: &RequestHeader) {
-    buf.put_i16(header.api_key);
-    buf.put_i16(header.api_version);
-    buf.put_i32(header.correlation_id);
-    buf::put_classic_nullable_string(buf, header.client_id.as_deref());
-    if request_header_version(header.api_key, header.api_version) >= 2 {
+pub fn encode_request_header_fields(
+    buf: &mut BytesMut,
+    api_key: i16,
+    api_version: i16,
+    correlation_id: i32,
+    client_id: Option<&str>,
+) {
+    buf.put_i16(api_key);
+    buf.put_i16(api_version);
+    buf.put_i32(correlation_id);
+    buf::put_classic_nullable_string(buf, client_id);
+    if request_header_version(api_key, api_version) >= 2 {
         buf::put_empty_tagged_fields(buf);
     }
+}
+
+pub fn encode_request_header(buf: &mut BytesMut, header: &RequestHeader) {
+    encode_request_header_fields(
+        buf,
+        header.api_key,
+        header.api_version,
+        header.correlation_id,
+        header.client_id.as_deref(),
+    );
 }
 
 pub fn decode_request_header<B: Buf>(buf: &mut B) -> Result<RequestHeader> {

@@ -13,6 +13,32 @@ pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     }
 }
 
+pub fn unsigned_varint_size(mut v: u32) -> usize {
+    let mut n = 1;
+    while v >= 0x80 {
+        v >>= 7;
+        n += 1;
+    }
+    n
+}
+
+pub fn unsigned_varlong_size(mut v: u64) -> usize {
+    let mut n = 1;
+    while v >= 0x80 {
+        v >>= 7;
+        n += 1;
+    }
+    n
+}
+
+pub fn varint_size(v: i32) -> usize {
+    unsigned_varint_size(((v << 1) ^ (v >> 31)) as u32)
+}
+
+pub fn varlong_size(v: i64) -> usize {
+    unsigned_varlong_size(((v << 1) ^ (v >> 63)) as u64)
+}
+
 pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
     while v >= 0x80 {
         buf.put_u8((v as u8) | 0x80);
@@ -321,5 +347,19 @@ mod tests {
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some(""));
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some("hi"));
         assert_eq!(cur.remaining(), 0);
+    }
+
+    #[test]
+    fn varint_size_matches_encoded_len() {
+        for v in [0i32, 1, -1, 2, -2, 127, -128, 16_383, i32::MAX, i32::MIN] {
+            let mut buf = BytesMut::new();
+            put_varint(&mut buf, v);
+            assert_eq!(buf.len(), varint_size(v), "varint {v}");
+        }
+        for v in [0i64, 1, -1, i64::MAX, i64::MIN] {
+            let mut buf = BytesMut::new();
+            put_varlong(&mut buf, v);
+            assert_eq!(buf.len(), varlong_size(v), "varlong {v}");
+        }
     }
 }

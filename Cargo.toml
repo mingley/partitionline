@@ -14,6 +14,7 @@ publish = false
 [dependencies]
 bytes = "1"
 crc32c = "0.6"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
 
 [[example]]
@@ -21,3 +22,10 @@ name = "produce"
 
 [[example]]
 name = "bench_produce"
+
+[[example]]
+name = "roundtrip"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
