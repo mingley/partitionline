@@ -1,7 +1,8 @@
 //! A Kafka client written in Rust. No C, no librdkafka.
 //!
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
-//! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, TLS (rustls), and idempotent produce.
+//! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER, TLS (rustls), and
+//! idempotent produce.
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]

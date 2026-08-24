@@ -10,13 +10,14 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
 **Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups,
-gzip / snappy / lz4, SASL PLAIN, SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, TLS
-(`rustls`, no OpenSSL), idempotent produce. Talks Kafka 3.x / 4.x. Missing:
-admin, transactions, zstd, Kerberos. Full list: [docs/gaps.md](docs/gaps.md).
+gzip / snappy / lz4, SASL PLAIN, SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL
+OAUTHBEARER (unsecured JWT), TLS (`rustls`, no OpenSSL), idempotent produce.
+Talks Kafka 3.x / 4.x. Missing: admin, transactions, OIDC, zstd, Kerberos.
+Full list: [docs/gaps.md](docs/gaps.md).
 
 **Produce is faster than librdkafka 2.15.0 C** on this machine, including
-idempotent produce, TLS, SCRAM-SHA-256, and SCRAM-SHA-512 (broker high
-watermark equals records sent). Fetch was not measured. Numbers:
+idempotent produce, TLS, SCRAM, and OAUTHBEARER (broker high watermark equals
+records sent). Fetch was not measured. Numbers:
 [docs/benchmark.md](docs/benchmark.md).
 
 | Locked produce, 8e6 × 100B, linger 5ms | partitionline median | C 2.15.0 median |
@@ -27,6 +28,7 @@ watermark equals records sent). Fetch was not measured. Numbers:
 | TLS / SSL | 7.42M rec/s | 1.52M rec/s |
 | SASL SCRAM-SHA-256 | 6.81M rec/s | 3.98M rec/s |
 | SASL SCRAM-SHA-512 | 6.89M rec/s | 3.43M rec/s |
+| SASL OAUTHBEARER | 6.82M rec/s | 3.64M rec/s |
 
 ## Example
 

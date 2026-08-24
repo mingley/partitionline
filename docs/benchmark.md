@@ -273,6 +273,49 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
+### 2026-08-24 SASL OAUTHBEARER produce (gating for RFC 7628)
+
+Same knobs as the uncompressed table except **both** sides authenticate with
+unsecured JWT OAUTHBEARER (`alg=none`) to a dedicated Kafka 3.9.1
+SASL_PLAINTEXT listener (`localhost:9097`). Admin/offsets on PLAINTEXT
+`localhost:9098`. Principal `alice`. partitionline:
+`SASL_MECHANISM=OAUTHBEARER`. C: `security.protocol=sasl_plaintext`,
+`sasl.mechanisms=OAUTHBEARER`, `enable.sasl.oauthbearer.unsecure.jwt=true`,
+`sasl.oauthbearer.config=principal=alice`. Three locked pairs, no warmup,
+fresh topic each run. After every run, `kafka-get-offsets` high watermark
+summed to **8,000,000**.
+
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 6,421,189 | 8,000,000 | 3,581,884 | 8,000,000 |
+| 2 | 7,374,455 | 8,000,000 | 3,637,117 | 8,000,000 |
+| 3 | 6,822,533 | 8,000,000 | 3,635,411 | 8,000,000 |
+| **median** | **6,822,533** | 8,000,000 | **3,635,411** | 8,000,000 |
+
+partitionline was higher on every run (about 1.9× the C median). Handshake
+is once per TCP connection.
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  KAFKA_BOOTSTRAP=localhost:9097 KAFKA_TOPIC=plbench \
+  SASL_MECHANISM=OAUTHBEARER SASL_OAUTH_PRINCIPAL=alice \
+  cargo run --release --example bench_produce
+
+kafka-get-offsets.sh --bootstrap-server localhost:9098 --topic plbench --time -1
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9097 -a 1 -q \
+  -X security.protocol=sasl_plaintext \
+  -X sasl.mechanisms=OAUTHBEARER \
+  -X enable.sasl.oauthbearer.unsecure.jwt=true \
+  -X sasl.oauthbearer.config=principal=alice \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
 ### Fetch
 
 **Unmeasured.** Do not read the produce table as an e2e or consume win.

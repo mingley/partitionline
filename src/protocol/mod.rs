@@ -5,6 +5,7 @@ pub mod fetch;
 pub mod group;
 pub mod header;
 pub mod idem;
+pub mod oauth;
 pub mod records;
 pub mod sasl;
 pub mod scram;
