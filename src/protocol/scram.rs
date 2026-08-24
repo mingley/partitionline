@@ -1,40 +1,74 @@
-//! SASL SCRAM-SHA-256 (RFC 5802 / RFC 7677) as used by Kafka.
-//! Password hashing is PBKDF2-HMAC-SHA-256. No C SASL library.
+//! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
+//! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
 
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 
 use crate::error::{Error, Result};
-
-type HmacSha256 = Hmac<Sha256>;
 
 const CLIENT_KEY: &[u8] = b"Client Key";
 const SERVER_KEY: &[u8] = b"Server Key";
 const GS2: &str = "n,,";
 
-fn hmac(key: &[u8], data: &[u8]) -> [u8; 32] {
-    let mut m = HmacSha256::new_from_slice(key).expect("HMAC-SHA256 key");
-    m.update(data);
-    m.finalize().into_bytes().into()
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScramAlg {
+    Sha256,
+    Sha512,
 }
 
-fn sha256(data: &[u8]) -> [u8; 32] {
-    Sha256::digest(data).into()
-}
-
-fn hi(password: &[u8], salt: &[u8], iterations: u32) -> [u8; 32] {
-    let mut out = [0u8; 32];
-    pbkdf2_hmac::<Sha256>(password, salt, iterations, &mut out);
-    out
-}
-
-fn xor32(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
-    let mut o = [0u8; 32];
-    for i in 0..32 {
-        o[i] = a[i] ^ b[i];
+impl ScramAlg {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Sha256 => "SCRAM-SHA-256",
+            Self::Sha512 => "SCRAM-SHA-512",
+        }
     }
-    o
+
+    fn output_len(self) -> usize {
+        match self {
+            Self::Sha256 => 32,
+            Self::Sha512 => 64,
+        }
+    }
+
+    fn hmac(self, key: &[u8], data: &[u8]) -> Vec<u8> {
+        match self {
+            Self::Sha256 => {
+                let mut m = Hmac::<Sha256>::new_from_slice(key).expect("HMAC key");
+                m.update(data);
+                m.finalize().into_bytes().to_vec()
+            }
+            Self::Sha512 => {
+                let mut m = Hmac::<Sha512>::new_from_slice(key).expect("HMAC key");
+                m.update(data);
+                m.finalize().into_bytes().to_vec()
+            }
+        }
+    }
+
+    fn hash(self, data: &[u8]) -> Vec<u8> {
+        match self {
+            Self::Sha256 => Sha256::digest(data).to_vec(),
+            Self::Sha512 => Sha512::digest(data).to_vec(),
+        }
+    }
+
+    fn hi(self, password: &[u8], salt: &[u8], iterations: u32) -> Vec<u8> {
+        let mut out = vec![0u8; self.output_len()];
+        match self {
+            Self::Sha256 => pbkdf2_hmac::<Sha256>(password, salt, iterations, &mut out),
+            Self::Sha512 => pbkdf2_hmac::<Sha512>(password, salt, iterations, &mut out),
+        }
+        out
+    }
+}
+
+fn xor(a: &[u8], b: &[u8]) -> Result<Vec<u8>> {
+    if a.len() != b.len() {
+        return Err(Error::protocol("scram xor length"));
+    }
+    Ok(a.iter().zip(b).map(|(x, y)| x ^ y).collect())
 }
 
 fn b64(bytes: &[u8]) -> String {
@@ -79,7 +113,12 @@ pub fn client_first(user: &str, nonce: &str) -> (String, String) {
     (format!("{GS2}{bare}"), bare)
 }
 
-pub fn client_final(password: &str, client_first_bare: &str, server_first: &str) -> Result<String> {
+pub fn client_final(
+    alg: ScramAlg,
+    password: &str,
+    client_first_bare: &str,
+    server_first: &str,
+) -> Result<String> {
     let attrs = attr_map(server_first)?;
     let nonce = attrs
         .get(&'r')
@@ -99,15 +138,16 @@ pub fn client_final(password: &str, client_first_bare: &str, server_first: &str)
     }
     let without = format!("c={},r={}", b64(GS2.as_bytes()), nonce);
     let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = hi(password.as_bytes(), &salt, iter);
-    let client_key = hmac(&salted, CLIENT_KEY);
-    let stored = sha256(&client_key);
-    let sig = hmac(&stored, auth.as_bytes());
-    let proof = xor32(&client_key, &sig);
+    let salted = alg.hi(password.as_bytes(), &salt, iter);
+    let client_key = alg.hmac(&salted, CLIENT_KEY);
+    let stored = alg.hash(&client_key);
+    let sig = alg.hmac(&stored, auth.as_bytes());
+    let proof = xor(&client_key, &sig)?;
     Ok(format!("{without},p={}", b64(&proof)))
 }
 
 pub fn verify_server_final(
+    alg: ScramAlg,
     password: &str,
     client_first_bare: &str,
     server_first: &str,
@@ -137,9 +177,9 @@ pub fn verify_server_final(
         .map(|(w, _)| w)
         .ok_or_else(|| Error::protocol("scram client-final missing p"))?;
     let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = hi(password.as_bytes(), &salt, iter);
-    let server_key = hmac(&salted, SERVER_KEY);
-    let sig = hmac(&server_key, auth.as_bytes());
+    let salted = alg.hi(password.as_bytes(), &salt, iter);
+    let server_key = alg.hmac(&salted, SERVER_KEY);
+    let sig = alg.hmac(&server_key, auth.as_bytes());
     let got = b64d(v)?;
     if got.as_slice() != sig {
         return Err(Error::protocol("scram server signature mismatch"));
@@ -168,20 +208,16 @@ pub fn server_first(
 
 /// Verify client-final and build server-final (mock broker).
 pub fn server_final(
+    alg: ScramAlg,
     password: &str,
     client_first_bare: &str,
     server_first: &str,
-    client_final: &str,
+    client_final_msg: &str,
 ) -> Result<String> {
-    let without = client_final
+    let (without, p) = client_final_msg
         .rsplit_once(",p=")
-        .map(|(w, _)| w)
         .ok_or_else(|| Error::protocol("scram client-final missing p"))?;
-    let p = client_final
-        .rsplit_once(",p=")
-        .map(|(_, p)| p)
-        .ok_or_else(|| Error::protocol("scram client-final missing p"))?;
-    let expected = client_final_from_parts(password, client_first_bare, server_first)?;
+    let expected = client_final(alg, password, client_first_bare, server_first)?;
     let expected_p = expected
         .rsplit_once(",p=")
         .map(|(_, p)| p)
@@ -197,18 +233,10 @@ pub fn server_final(
         .parse()
         .map_err(|_| Error::protocol("scram bad iteration"))?;
     let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = hi(password.as_bytes(), &salt, iter);
-    let server_key = hmac(&salted, SERVER_KEY);
-    let sig = hmac(&server_key, auth.as_bytes());
+    let salted = alg.hi(password.as_bytes(), &salt, iter);
+    let server_key = alg.hmac(&salted, SERVER_KEY);
+    let sig = alg.hmac(&server_key, auth.as_bytes());
     Ok(format!("v={}", b64(&sig)))
-}
-
-fn client_final_from_parts(
-    password: &str,
-    client_first_bare: &str,
-    server_first: &str,
-) -> Result<String> {
-    client_final(password, client_first_bare, server_first)
 }
 
 #[cfg(test)]
@@ -225,12 +253,13 @@ mod tests {
         assert_eq!(first, "n,,n=user,r=rOprNGfwEbeRWgbNEkqO");
         let server_first =
             "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096";
-        let fin = client_final(pass, &bare, server_first).unwrap();
+        let fin = client_final(ScramAlg::Sha256, pass, &bare, server_first).unwrap();
         assert_eq!(
             fin,
             "c=biws,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ="
         );
         verify_server_final(
+            ScramAlg::Sha256,
             pass,
             &bare,
             server_first,
@@ -240,13 +269,47 @@ mod tests {
         .unwrap();
     }
 
+    /// Same RFC 7677 transcript with SHA-512. Expected proof/v computed with
+    /// Python `hashlib.pbkdf2_hmac('sha512', ...)` independently of this crate.
     #[test]
-    fn mock_server_roundtrip() {
+    fn rfc7677_transcript_scram_sha512() {
+        let (first, bare) = client_first("user", "rOprNGfwEbeRWgbNEkqO");
+        assert_eq!(first, "n,,n=user,r=rOprNGfwEbeRWgbNEkqO");
+        let server_first =
+            "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096";
+        let fin = client_final(ScramAlg::Sha512, "pencil", &bare, server_first).unwrap();
+        assert_eq!(
+            fin,
+            "c=biws,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,p=gMGXRcevScNtxZ6/8lQYpGtnsNAc3mGcmNomv+xnoOMw+3R2xNJdMNnzMlTN8PPC6wdp6dybEmDYXYTxwnYPJQ=="
+        );
+        verify_server_final(
+            ScramAlg::Sha512,
+            "pencil",
+            &bare,
+            server_first,
+            &fin,
+            "v=ZQnYEgWQMFmmsM8aQMF0nDDCy/AgCzkwk8CmMZYcMg0vSVlKDanekLtifDSeVGT4+5ZxXnJq199RVG2rR7N7Zw==",
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn mock_server_roundtrip_sha256() {
         let (first, _) = client_first("alice", "abcNonce");
         let salt = b"saltsaltsalt1234";
         let (sf, bare) = server_first(&first, "SrvNoncE", salt, 4096).unwrap();
-        let cf = client_final("secret", &bare, &sf).unwrap();
-        let fin = server_final("secret", &bare, &sf, &cf).unwrap();
-        verify_server_final("secret", &bare, &sf, &cf, &fin).unwrap();
+        let cf = client_final(ScramAlg::Sha256, "secret", &bare, &sf).unwrap();
+        let fin = server_final(ScramAlg::Sha256, "secret", &bare, &sf, &cf).unwrap();
+        verify_server_final(ScramAlg::Sha256, "secret", &bare, &sf, &cf, &fin).unwrap();
+    }
+
+    #[test]
+    fn mock_server_roundtrip_sha512() {
+        let (first, _) = client_first("alice", "abcNonce");
+        let salt = b"saltsaltsalt1234";
+        let (sf, bare) = server_first(&first, "SrvNoncE", salt, 4096).unwrap();
+        let cf = client_final(ScramAlg::Sha512, "secret", &bare, &sf).unwrap();
+        let fin = server_final(ScramAlg::Sha512, "secret", &bare, &sf, &cf).unwrap();
+        verify_server_final(ScramAlg::Sha512, "secret", &bare, &sf, &cf, &fin).unwrap();
     }
 }

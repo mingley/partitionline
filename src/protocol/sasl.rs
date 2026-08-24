@@ -129,17 +129,19 @@ pub async fn authenticate_plain(
     Ok(())
 }
 
-pub async fn authenticate_scram_sha256(
+pub async fn authenticate_scram(
     conn: &mut BrokerConn,
+    alg: super::scram::ScramAlg,
     user: &str,
     pass: &str,
     timeout: Duration,
 ) -> Result<()> {
+    let name = alg.name();
     let hs = conn
         .roundtrip(
             SASL_HANDSHAKE,
             1,
-            |buf| encode_sasl_handshake_request(buf, "SCRAM-SHA-256"),
+            |buf| encode_sasl_handshake_request(buf, name),
             timeout,
         )
         .await?;
@@ -147,9 +149,9 @@ pub async fn authenticate_scram_sha256(
     if code != 0 {
         return Err(Error::broker(code, "SaslHandshake"));
     }
-    if !mechs.iter().any(|m| m == "SCRAM-SHA-256") {
+    if !mechs.iter().any(|m| m == name) {
         return Err(Error::Unsupported(format!(
-            "SCRAM-SHA-256 not in mechanisms {mechs:?}"
+            "{name} not in mechanisms {mechs:?}"
         )));
     }
     let nonce = super::scram::client_nonce();
@@ -171,7 +173,7 @@ pub async fn authenticate_scram_sha256(
     }
     let server_first =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
-    let client_final = super::scram::client_final(pass, &bare, &server_first)?;
+    let client_final = super::scram::client_final(alg, pass, &bare, &server_first)?;
     let body = conn
         .roundtrip(
             SASL_AUTHENTICATE,
@@ -189,20 +191,44 @@ pub async fn authenticate_scram_sha256(
     }
     let server_final =
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-final not utf8"))?;
-    super::scram::verify_server_final(pass, &bare, &server_first, &client_final, &server_final)
+    super::scram::verify_server_final(
+        alg,
+        pass,
+        &bare,
+        &server_first,
+        &client_final,
+        &server_final,
+    )
+}
+
+pub async fn authenticate_scram_sha256(
+    conn: &mut BrokerConn,
+    user: &str,
+    pass: &str,
+    timeout: Duration,
+) -> Result<()> {
+    authenticate_scram(conn, super::scram::ScramAlg::Sha256, user, pass, timeout).await
 }
 
 pub async fn authenticate(
     conn: &mut BrokerConn,
     sasl_plain: Option<&(String, String)>,
     sasl_scram: Option<&(String, String)>,
+    sasl_scram_sha512: Option<&(String, String)>,
     timeout: Duration,
 ) -> Result<()> {
-    match (sasl_plain, sasl_scram) {
-        (Some(_), Some(_)) => Err(Error::protocol("set only one of sasl_plain and sasl_scram")),
-        (Some((u, p)), None) => authenticate_plain(conn, u, p, timeout).await,
-        (None, Some((u, p))) => authenticate_scram_sha256(conn, u, p, timeout).await,
-        (None, None) => Ok(()),
+    match (sasl_plain, sasl_scram, sasl_scram_sha512) {
+        (Some(_), Some(_), _) | (Some(_), _, Some(_)) | (_, Some(_), Some(_)) => Err(
+            Error::protocol("set only one of sasl_plain, sasl_scram, sasl_scram_sha512"),
+        ),
+        (Some((u, p)), None, None) => authenticate_plain(conn, u, p, timeout).await,
+        (None, Some((u, p)), None) => {
+            authenticate_scram(conn, super::scram::ScramAlg::Sha256, u, p, timeout).await
+        }
+        (None, None, Some((u, p))) => {
+            authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await
+        }
+        (None, None, None) => Ok(()),
     }
 }
 
