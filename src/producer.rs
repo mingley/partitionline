@@ -33,6 +33,7 @@ pub struct ProducerConfig {
     pub allow_auto_topic_creation: bool,
     pub compression: Compression,
     pub sasl_plain: Option<(String, String)>,
+    pub sasl_scram: Option<(String, String)>,
     pub connections: usize,
     pub max_in_flight: usize,
     pub enable_idempotence: bool,
@@ -53,6 +54,7 @@ impl Default for ProducerConfig {
             allow_auto_topic_creation: false,
             compression: Compression::None,
             sasl_plain: None,
+            sasl_scram: None,
             connections: 8,
             max_in_flight: 16,
             enable_idempotence: false,
@@ -222,10 +224,13 @@ impl Producer {
         for api in &resp.api_keys {
             versions.insert(api.api_key, api.clone());
         }
-        if let Some((u, p)) = cfg.sasl_plain.clone() {
-            crate::protocol::sasl::authenticate_plain(&mut meta, &u, &p, cfg.request_timeout)
-                .await?;
-        }
+        crate::protocol::sasl::authenticate(
+            &mut meta,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.request_timeout,
+        )
+        .await?;
         let mut cfg = cfg;
         if cfg.enable_idempotence {
             cfg.acks = -1;
@@ -471,9 +476,13 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
             cfg.request_timeout,
         )
         .await?;
-    if let Some((u, p)) = &cfg.sasl_plain {
-        crate::protocol::sasl::authenticate_plain(&mut conn, u, p, cfg.request_timeout).await?;
-    }
+    crate::protocol::sasl::authenticate(
+        &mut conn,
+        cfg.sasl_plain.as_ref(),
+        cfg.sasl_scram.as_ref(),
+        cfg.request_timeout,
+    )
+    .await?;
     Ok(conn)
 }
 

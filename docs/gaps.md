@@ -23,11 +23,12 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | gzip | yes (`flate2` rust backend) | yes | **done** |
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
 | SASL PLAIN | yes | yes | **done** |
+| SASL SCRAM-SHA-256 | yes (RFC 5802/7677, PBKDF2-HMAC-SHA-256, no C SASL library) | yes | **done** |
 | Java murmur2 partitioner | yes | optional (`murmur2`) | **done** |
 | TLS / SSL | yes (`rustls` + `ring`, no OpenSSL; custom CA PEM or webpki-roots; optional mTLS) | yes (OpenSSL) | **done** |
 | lz4 | yes (`lz4_flex` frame, independent 64KiB blocks, magic ≥ 1) | yes | **done** |
 | zstd | no | yes (libzstd C) | **blocked on C** |
-| SASL SCRAM (SHA-256 / SHA-512) | no | yes | **not started** |
+| SASL SCRAM-SHA-512 | no | yes | **not started** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER / OIDC | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
@@ -39,8 +40,10 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
-listener (`localhost:9093`). See `docs/benchmark.md`. Mock produce+fetch over
-TLS is `tls_produce_fetch` in `tests/full_surface.rs`.
+listener (`localhost:9093`). SCRAM-SHA-256 produce vs C **was measured** on a
+dedicated SASL_PLAINTEXT listener (`localhost:9095`, admin PLAINTEXT
+`localhost:9096`). See `docs/benchmark.md`. Mock produce over SCRAM is
+`sasl_scram_sha256_then_produce` in `tests/full_surface.rs`.
 
 ## Notes on the C-blocked rows
 
@@ -52,8 +55,8 @@ TLS is `tls_produce_fetch` in `tests/full_surface.rs`.
 
 ## Next implementation order
 
-1. SASL SCRAM-SHA-256.
-2. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
+1. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
+2. SASL SCRAM-SHA-512 (same handshake, SHA-512 / HMAC-SHA-512).
 3. Transactions and KIP-848 after the data-plane rows above.
 
 ## What “done” on this list does *not* mean

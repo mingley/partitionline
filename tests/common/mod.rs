@@ -24,6 +24,7 @@ use partitionline::protocol::sasl::{
     decode_sasl_authenticate_request, decode_sasl_handshake_request,
     encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
 };
+use partitionline::protocol::scram;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -43,6 +44,7 @@ struct State {
     committed: HashMap<(String, i32), i64>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
+    scram_user: Option<(String, String)>,
     next_pid: i64,
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
@@ -67,6 +69,45 @@ impl Mock {
             committed: HashMap::new(),
             member_seq: 0,
             sasl_user: creds,
+            scram_user: None,
+            next_pid: 1000,
+            last_producer_id: None,
+            expected_seq: HashMap::new(),
+            produce_error: None,
+            log_start: HashMap::new(),
+        }));
+        let st = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((stream, _)) = listener.accept().await else {
+                    break;
+                };
+                stream.set_nodelay(true).ok();
+                let st = st.clone();
+                let host = host.clone();
+                tokio::spawn(handle_conn(stream, host, port, st));
+            }
+        });
+        Self {
+            addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub async fn start_with_scram(creds: (String, String)) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let host = addr.ip().to_string();
+        let port = addr.port() as i32;
+        let state = Arc::new(Mutex::new(State {
+            log: HashMap::new(),
+            next_offset: HashMap::new(),
+            assignments: HashMap::new(),
+            committed: HashMap::new(),
+            member_seq: 0,
+            sasl_user: None,
+            scram_user: Some(creds),
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -107,6 +148,7 @@ impl Mock {
             committed: HashMap::new(),
             member_seq: 0,
             sasl_user: None,
+            scram_user: None,
             next_pid: 1000,
             last_producer_id: None,
             expected_seq: HashMap::new(),
@@ -261,7 +303,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     state: Arc<Mutex<State>>,
 ) {
     let mut buf = BytesMut::new();
-    let mut authed = state.lock().unwrap().sasl_user.is_none();
+    let mut authed = {
+        let st = state.lock().unwrap();
+        st.sasl_user.is_none() && st.scram_user.is_none()
+    };
+    let mut scram_step: Option<(String, String, String)> = None;
     loop {
         let mut frame = match read_frame(&mut stream, &mut buf).await {
             Ok(f) => f,
@@ -427,23 +473,84 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_fetch_response(&mut body, &topics).unwrap();
             }
             SASL_HANDSHAKE => {
-                let _ = decode_sasl_handshake_request(&mut frame);
-                encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]);
+                let mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
+                let scram = state.lock().unwrap().scram_user.is_some();
+                if mech == "SCRAM-SHA-256" && scram {
+                    encode_sasl_handshake_response(&mut body, 0, &["SCRAM-SHA-256"]);
+                } else {
+                    encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]);
+                }
             }
             SASL_AUTHENTICATE => {
                 let bytes = decode_sasl_authenticate_request(&mut frame).unwrap();
-                let parsed = parse_plain_auth_bytes(&bytes);
-                let expected = state.lock().unwrap().sasl_user.clone();
-                let ok = match (parsed, expected) {
-                    (Some(got), Some(exp)) => got == exp,
-                    _ => false,
-                };
-                authed = ok;
-                encode_sasl_authenticate_response(
-                    &mut body,
-                    if ok { 0 } else { 58 },
-                    if ok { None } else { Some("bad credentials") },
-                );
+                let scram_user = state.lock().unwrap().scram_user.clone();
+                if let Some(creds) = scram_user {
+                    match scram_step.take() {
+                        None => {
+                            let first = String::from_utf8_lossy(&bytes);
+                            match scram::server_first(
+                                &first,
+                                "SrvNonceMock0001",
+                                b"saltsalt16bytes!",
+                                4096,
+                            ) {
+                                Ok((sf, bare)) => {
+                                    scram_step = Some((creds.1, bare, sf.clone()));
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        0,
+                                        None,
+                                        sf.as_bytes(),
+                                    );
+                                }
+                                Err(_) => {
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        58,
+                                        Some("bad scram first"),
+                                        &[],
+                                    );
+                                }
+                            }
+                        }
+                        Some((pass, bare, sf)) => {
+                            let cf = String::from_utf8_lossy(&bytes);
+                            match scram::server_final(&pass, &bare, &sf, &cf) {
+                                Ok(fin) => {
+                                    authed = true;
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        0,
+                                        None,
+                                        fin.as_bytes(),
+                                    );
+                                }
+                                Err(_) => {
+                                    encode_sasl_authenticate_response(
+                                        &mut body,
+                                        58,
+                                        Some("bad scram proof"),
+                                        &[],
+                                    );
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let parsed = parse_plain_auth_bytes(&bytes);
+                    let expected = state.lock().unwrap().sasl_user.clone();
+                    let ok = match (parsed, expected) {
+                        (Some(got), Some(exp)) => got == exp,
+                        _ => false,
+                    };
+                    authed = ok;
+                    encode_sasl_authenticate_response(
+                        &mut body,
+                        if ok { 0 } else { 58 },
+                        if ok { None } else { Some("bad credentials") },
+                        &[],
+                    );
+                }
             }
             FIND_COORDINATOR => {
                 encode_find_coordinator_response(&mut body, 1, &host, port);

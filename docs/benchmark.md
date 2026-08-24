@@ -190,6 +190,48 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9093 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
+### 2026-08-24 SASL SCRAM-SHA-256 produce (gating for RFC 7677)
+
+Same knobs as the uncompressed table except **both** sides authenticate with
+SCRAM-SHA-256 to a dedicated Kafka 3.9.1 SASL_PLAINTEXT listener
+(`localhost:9095`). Admin/offsets use a second PLAINTEXT listener
+(`localhost:9096`). User `alice` / `secret`, broker iterations 4096.
+partitionline: `SASL_MECHANISM=SCRAM-SHA-256`. C:
+`security.protocol=sasl_plaintext`, `sasl.mechanisms=SCRAM-SHA-256`.
+Three locked pairs, no warmup, fresh topic each run. After every run,
+`kafka-get-offsets` high watermark summed to **8,000,000**.
+
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 5,479,841 | 8,000,000 | 3,781,004 | 8,000,000 |
+| 2 | 6,811,539 | 8,000,000 | 4,096,461 | 8,000,000 |
+| 3 | 7,014,976 | 8,000,000 | 3,982,324 | 8,000,000 |
+| **median** | **6,811,539** | 8,000,000 | **3,982,324** | 8,000,000 |
+
+partitionline was higher on every run (about 1.7× the C median). Handshake
+is once per TCP connection; the produce path after that is the same
+uncompressed pipeline.
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  KAFKA_BOOTSTRAP=localhost:9095 KAFKA_TOPIC=plbench \
+  SASL_USERNAME=alice SASL_PASSWORD=secret SASL_MECHANISM=SCRAM-SHA-256 \
+  cargo run --release --example bench_produce
+
+kafka-get-offsets.sh --bootstrap-server localhost:9096 --topic plbench --time -1
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9095 -a 1 -q \
+  -X security.protocol=sasl_plaintext \
+  -X sasl.mechanisms=SCRAM-SHA-256 \
+  -X sasl.username=alice -X sasl.password=secret \
+  -X linger.ms=5 -X compression.codec=none \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
+
 ### Fetch
 
 **Unmeasured.** Do not read the produce table as an e2e or consume win.
