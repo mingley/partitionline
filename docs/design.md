@@ -45,3 +45,7 @@ Set `ProducerConfig.tls` / `ConsumerConfig.tls` to a `TlsConfig`. Handshake is
 roots if `ca_pem` is omitted. Optional client cert/key for mTLS. SNI defaults
 to the bootstrap host. Plain TCP stays a `TcpStream`; TLS is a separate
 connection type so the uncompressed hot path does not pay for rustls.
+
+Writes pump reads into the connection buffer. TLS (and a full TCP window)
+can otherwise stall `poll_write` until `poll_read` runs, which deadlocks a
+pipelined producer that only reads after `max_in_flight` writes.

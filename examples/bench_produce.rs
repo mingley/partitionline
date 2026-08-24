@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use partitionline::{Compression, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{Compression, ProduceRecord, Producer, ProducerConfig, TlsConfig};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -52,6 +52,23 @@ async fn main() -> partitionline::Result<()> {
     if idempotent {
         cfg.enable_idempotence = true;
     }
+    let tls_on = if let Ok(ca_path) = std::env::var("TLS_CA_PEM") {
+        let mut tls = TlsConfig {
+            ca_pem: Some(std::fs::read(&ca_path).map_err(|e| {
+                partitionline::Error::protocol(format!("read TLS_CA_PEM {ca_path}: {e}"))
+            })?),
+            ..TlsConfig::default()
+        };
+        if let Ok(name) = std::env::var("TLS_SERVER_NAME") {
+            if !name.is_empty() {
+                tls.server_name = Some(name);
+            }
+        }
+        cfg.tls = Some(tls);
+        true
+    } else {
+        false
+    };
     let acks_out = if idempotent { -1 } else { acks };
     let producer = Producer::new(cfg).await?;
     let topic: std::sync::Arc<str> = topic.into();
@@ -132,9 +149,10 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{}}}",
             compression.as_str(),
-            idempotent
+            idempotent,
+            tls_on
         );
     } else {
         let _ = drive(&producer, &topic, &value, warmup).await?;
@@ -143,9 +161,10 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{}}}",
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{},\"tls\":{}}}",
             compression.as_str(),
-            idempotent
+            idempotent,
+            tls_on
         );
     }
     producer.close().await?;
