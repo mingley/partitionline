@@ -16,6 +16,8 @@ include = [
     "tests/**",
     "examples/**",
     "docs/design.md",
+    "docs/gaps.md",
+    "docs/benchmark.md",
     "Cargo.toml",
     "Cargo.lock",
     "README.md",
@@ -28,6 +30,7 @@ include = [
 bytes = "1"
 crc32c = "0.6"
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+snap = "1"
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
 
 [[example]]

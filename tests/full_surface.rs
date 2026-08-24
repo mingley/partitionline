@@ -27,6 +27,27 @@ async fn gzip_produce_fetch() {
 }
 
 #[tokio::test]
+async fn snappy_produce_fetch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.compression = Compression::Snappy;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"snappy-hello"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"snappy-hello"[..]));
+}
+
+#[tokio::test]
 async fn sasl_plain_then_produce() {
     let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
