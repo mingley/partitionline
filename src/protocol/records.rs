@@ -506,6 +506,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn idempotent_batch_preserves_pid_and_seq() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"idem")),
+            headers: vec![],
+        };
+        let mut batch = RecordBatch::from_records(vec![rec]);
+        batch.producer_id = 99;
+        batch.producer_epoch = 2;
+        batch.base_sequence = 17;
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(decoded.producer_id, 99);
+        assert_eq!(decoded.producer_epoch, 2);
+        assert_eq!(decoded.base_sequence, 17);
+        assert_eq!(decoded.records[0].value.as_deref(), Some(&b"idem"[..]));
+    }
+
+    #[test]
     fn record_batch_roundtrip() {
         let rec = Record {
             offset: 0,

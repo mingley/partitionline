@@ -48,6 +48,11 @@ async fn main() -> partitionline::Result<()> {
     let compression =
         Compression::from_name(&std::env::var("COMPRESSION").unwrap_or_else(|_| "none".into()))?;
     cfg.compression = compression;
+    let idempotent = std::env::var("IDEMPOTENT").ok().as_deref() == Some("1");
+    if idempotent {
+        cfg.enable_idempotence = true;
+    }
+    let acks_out = if idempotent { -1 } else { acks };
     let producer = Producer::new(cfg).await?;
     let topic: std::sync::Arc<str> = topic.into();
     let value = Bytes::from(vec![b'x'; payload]);
@@ -127,8 +132,9 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\"}}",
-            compression.as_str()
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{}}}",
+            compression.as_str(),
+            idempotent
         );
     } else {
         let _ = drive(&producer, &topic, &value, warmup).await?;
@@ -137,8 +143,9 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\"}}",
-            compression.as_str()
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks_out},\"linger_ms\":{linger_ms},\"compression\":\"{}\",\"idempotent\":{}}}",
+            compression.as_str(),
+            idempotent
         );
     }
     producer.close().await?;

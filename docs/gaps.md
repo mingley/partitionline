@@ -30,7 +30,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL SCRAM (SHA-256 / SHA-512) | no | yes | **not started** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER / OIDC | no | yes | **not started** |
-| Idempotent produce (`enable.idempotence`, PID/epoch/seq) | no | yes | **not started** |
+| Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, acks=all, max in-flight 5) | yes | **done** |
 | Transactions / EOS | no | yes | **not started** |
 | Admin APIs (CreateTopics, DeleteTopics, ACLs, configs, …) | no | yes | **not started** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
@@ -50,9 +50,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 1. TLS with `rustls` (no OpenSSL).
 2. SASL SCRAM-SHA-256.
-3. Idempotent produce (`InitProducerId` + monotonic sequences).
-4. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-5. Transactions and KIP-848 after the data-plane rows above.
+3. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
+4. Transactions and KIP-848 after the data-plane rows above.
 
 ## What “done” on this list does *not* mean
 

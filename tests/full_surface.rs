@@ -6,6 +6,27 @@ use partitionline::{
 use std::time::Duration;
 
 #[tokio::test]
+async fn idempotent_produce_gets_pid_and_offset() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"idem-hello"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+    let pid = mock.last_producer_id().expect("mock saw a produce batch");
+    assert!(
+        pid >= 0,
+        "idempotent produce must set producer_id, got {pid}"
+    );
+    assert_ne!(pid, -1);
+}
+
+#[tokio::test]
 async fn gzip_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

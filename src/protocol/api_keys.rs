@@ -9,6 +9,7 @@ pub const HEARTBEAT: i16 = 12;
 pub const SYNC_GROUP: i16 = 14;
 pub const SASL_HANDSHAKE: i16 = 17;
 pub const API_VERSIONS: i16 = 18;
+pub const INIT_PRODUCER_ID: i16 = 22;
 pub const SASL_AUTHENTICATE: i16 = 36;
 
 pub fn pick_version(
