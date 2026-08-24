@@ -37,3 +37,11 @@ gzip uses `flate2` with its Rust backend. snappy uses the `snap` crate
 `lz4_flex` LZ4 frames (independent 64KiB blocks, proper header checksum for
 magic ≥ 1). zstd is not implemented; the Kafka ecosystem codec is typically C
 (`zstd-sys`).
+
+## TLS
+
+Set `ProducerConfig.tls` / `ConsumerConfig.tls` to a `TlsConfig`. Handshake is
+`rustls` with the `ring` backend (not OpenSSL). Custom CA PEM, or Mozilla
+roots if `ca_pem` is omitted. Optional client cert/key for mTLS. SNI defaults
+to the bootstrap host. Plain TCP stays a `TcpStream`; TLS is a separate
+connection type so the uncompressed hot path does not pay for rustls.

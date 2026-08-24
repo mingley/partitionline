@@ -151,6 +151,7 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a -1 -q \
   -X socket.nagle.disable=true
 ```
 
-### Fetch
+### TLS / fetch
 
-**Unmeasured.** Do not read the produce table as an e2e or consume win.
+**Unmeasured.** TLS produce was not run against librdkafka. Do not read the
+produce table as an e2e, consume, or TLS win.

@@ -26,8 +26,8 @@ use partitionline::protocol::sasl::{
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::net::TcpListener;
 
 #[derive(Clone)]
 pub struct Mock {
@@ -77,6 +77,7 @@ impl Mock {
                 let Ok((stream, _)) = listener.accept().await else {
                     break;
                 };
+                stream.set_nodelay(true).ok();
                 let st = st.clone();
                 let host = host.clone();
                 tokio::spawn(handle_conn(stream, host, port, st));
@@ -86,6 +87,60 @@ impl Mock {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
         }
+    }
+
+    #[allow(dead_code)]
+    pub async fn start_tls() -> (Self, partitionline::TlsConfig) {
+        partitionline::net::install_crypto_provider();
+        let (server, ca_pem) = tls_server_identity();
+        let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let host = addr.ip().to_string();
+        let port = addr.port() as i32;
+        let state = Arc::new(Mutex::new(State {
+            log: HashMap::new(),
+            next_offset: HashMap::new(),
+            assignments: HashMap::new(),
+            committed: HashMap::new(),
+            member_seq: 0,
+            sasl_user: None,
+            next_pid: 1000,
+            last_producer_id: None,
+            expected_seq: HashMap::new(),
+            produce_error: None,
+        }));
+        let st = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((tcp, _)) = listener.accept().await else {
+                    break;
+                };
+                tcp.set_nodelay(true).ok();
+                let st = st.clone();
+                let host = host.clone();
+                let acceptor = acceptor.clone();
+                tokio::spawn(async move {
+                    let Ok(stream) = acceptor.accept(tcp).await else {
+                        return;
+                    };
+                    handle_conn(stream, host, port, st).await;
+                });
+            }
+        });
+        let tls = partitionline::TlsConfig {
+            ca_pem: Some(ca_pem),
+            client_cert_pem: None,
+            client_key_pem: None,
+            server_name: Some("localhost".into()),
+        };
+        (
+            Self {
+                addr: format!("127.0.0.1:{}", addr.port()),
+                state,
+            },
+            tls,
+        )
     }
 
     #[allow(dead_code)]
@@ -110,7 +165,26 @@ impl Mock {
     }
 }
 
-async fn read_frame(stream: &mut TcpStream, buf: &mut BytesMut) -> std::io::Result<BytesMut> {
+#[allow(dead_code)]
+fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
+    let pair = rcgen::generate_simple_self_signed(["localhost".into(), "127.0.0.1".into()])
+        .expect("rcgen");
+    let ca_pem = pair.cert.pem().into_bytes();
+    let cert_der = rustls::pki_types::CertificateDer::from(pair.cert.der().to_vec());
+    let key_der = rustls::pki_types::PrivateKeyDer::Pkcs8(
+        rustls::pki_types::PrivatePkcs8KeyDer::from(pair.key_pair.serialize_der()),
+    );
+    let server = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert_der], key_der)
+        .expect("tls server config");
+    (server, ca_pem)
+}
+
+async fn read_frame<S: AsyncRead + Unpin>(
+    stream: &mut S,
+    buf: &mut BytesMut,
+) -> std::io::Result<BytesMut> {
     loop {
         if buf.len() >= 4 {
             let size = i32::from_be_bytes(buf[0..4].try_into().unwrap());
@@ -131,7 +205,7 @@ async fn read_frame(stream: &mut TcpStream, buf: &mut BytesMut) -> std::io::Resu
     }
 }
 
-async fn write_frame(stream: &mut TcpStream, payload: &[u8]) -> std::io::Result<()> {
+async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, payload: &[u8]) -> std::io::Result<()> {
     let mut out = BytesMut::with_capacity(4 + payload.len());
     out.put_i32(payload.len() as i32);
     out.extend_from_slice(payload);
@@ -168,8 +242,12 @@ fn versions() -> ApiVersionsResponse {
     }
 }
 
-async fn handle_conn(mut stream: TcpStream, host: String, port: i32, state: Arc<Mutex<State>>) {
-    stream.set_nodelay(true).ok();
+async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
+    mut stream: S,
+    host: String,
+    port: i32,
+    state: Arc<Mutex<State>>,
+) {
     let mut buf = BytesMut::new();
     let mut authed = state.lock().unwrap().sasl_user.is_none();
     loop {

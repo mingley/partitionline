@@ -7,7 +7,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use tokio::sync::{mpsc, oneshot, Mutex, Notify};
 
 use crate::error::{self, Error, Result};
-use crate::net::BrokerConn;
+use crate::net::{BrokerConn, TlsConfig};
 use crate::partitioner::{partition_for_key, to_positive};
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_response,
@@ -36,6 +36,7 @@ pub struct ProducerConfig {
     pub connections: usize,
     pub max_in_flight: usize,
     pub enable_idempotence: bool,
+    pub tls: Option<TlsConfig>,
 }
 
 impl Default for ProducerConfig {
@@ -55,6 +56,7 @@ impl Default for ProducerConfig {
             connections: 8,
             max_in_flight: 16,
             enable_idempotence: false,
+            tls: None,
         }
     }
 }
@@ -201,7 +203,9 @@ impl Producer {
             return Err(Error::protocol("no bootstrap servers"));
         }
         let addr = cfg.bootstrap[0].clone();
-        let mut meta = BrokerConn::connect(&addr, &cfg.client_id, cfg.connect_timeout).await?;
+        let mut meta =
+            BrokerConn::connect_tls(&addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
+                .await?;
         let body = meta
             .roundtrip(
                 API_VERSIONS,
@@ -456,7 +460,9 @@ fn pick(
 }
 
 async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
-    let mut conn = BrokerConn::connect(addr, &cfg.client_id, cfg.connect_timeout).await?;
+    let mut conn =
+        BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
+            .await?;
     let _ = conn
         .roundtrip(
             API_VERSIONS,
