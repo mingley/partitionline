@@ -157,8 +157,9 @@ impl ConsumerGroup {
 
     pub async fn commit(&mut self) -> Result<()> {
         let timeout = std::time::Duration::from_secs(30);
-        for (topic, part, next) in self.consumer.assignment().to_vec() {
-            let offset = next.saturating_sub(0);
+        let assigned = self.consumer.assignment().to_vec();
+        for (topic, part, next) in assigned {
+            let offset = next;
             let body = self
                 .consumer
                 .conn_mut()
