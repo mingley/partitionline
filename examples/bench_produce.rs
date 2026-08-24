@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use partitionline::{ProduceRecord, Producer, ProducerConfig};
+use partitionline::{Compression, ProduceRecord, Producer, ProducerConfig};
 
 #[tokio::main]
 async fn main() -> partitionline::Result<()> {
@@ -45,6 +45,9 @@ async fn main() -> partitionline::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(16);
+    let compression =
+        Compression::from_name(&std::env::var("COMPRESSION").unwrap_or_else(|_| "none".into()))?;
+    cfg.compression = compression;
     let producer = Producer::new(cfg).await?;
     let topic: std::sync::Arc<str> = topic.into();
     let value = Bytes::from(vec![b'x'; payload]);
@@ -124,7 +127,8 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms}}}"
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\"}}",
+            compression.as_str()
         );
     } else {
         let _ = drive(&producer, &topic, &value, warmup).await?;
@@ -133,7 +137,8 @@ async fn main() -> partitionline::Result<()> {
         let elapsed = start.elapsed().as_secs_f64();
         let rec_s = acked as f64 / elapsed;
         println!(
-            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms}}}"
+            "{{\"acked\":{acked},\"elapsed_s\":{elapsed:.6},\"acked_rec_s\":{rec_s:.3},\"payload_bytes\":{payload},\"acks\":{acks},\"linger_ms\":{linger_ms},\"compression\":\"{}\"}}",
+            compression.as_str()
         );
     }
     producer.close().await?;

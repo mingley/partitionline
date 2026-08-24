@@ -15,7 +15,7 @@ Lock these on **both** binaries:
 | `linger.ms` | 5 |
 | `batch.num.messages` / `batch_records` | 32,768 |
 | `batch.size` / `batch_bytes` | 1,000,000 |
-| Compression | none |
+| Compression | `none` unless a codec section says otherwise |
 | Topic | `plbench`, 6 partitions, replication 1 |
 | Warmup | none (`WARMUP_SECS=0`) |
 | Fresh topic | yes, delete+create before each run |
@@ -78,6 +78,33 @@ Same knobs, one pair, tree that includes the `snap` crate (unused on this uncomp
 | librdkafka 2.15.0 C | 3,644,236 |
 
 Still strictly higher than C. JSON copies: session scratch `bench-pl.json` / `bench-c.json`.
+
+### 2026-08-24 lz4 produce (gating for the lz4 gap)
+
+Same knobs as above except **both** sides use lz4 (`COMPRESSION=lz4` /
+`-z lz4`, C `compression.level=0`). One locked pair, no warmup, fresh topic.
+
+| | acked rec/s | elapsed |
+|---|---|---|
+| partitionline | **6,810,917** | 1.175 s |
+| librdkafka 2.15.0 C | 6,051,203 | 1.322 s |
+
+partitionline is strictly higher. Repeating 100-byte payloads compress well, so
+this is more a codec+pipeline race than a network race.
+
+Reproduce:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 \
+  COMPRESSION=lz4 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_produce
+
+rdkafka_performance -P -t plbench -s 100 -c 8000000 -b 127.0.0.1:9092 -a 1 -q -z lz4 \
+  -X linger.ms=5 -X compression.level=0 \
+  -X batch.num.messages=32768 -X batch.size=1000000 \
+  -X queue.buffering.max.messages=1000000 \
+  -X socket.nagle.disable=true
+```
 
 ### Fetch
 
