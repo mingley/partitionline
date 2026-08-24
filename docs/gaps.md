@@ -25,7 +25,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL PLAIN | yes | yes | **done** |
 | Java murmur2 partitioner | yes | optional (`murmur2`) | **done** |
 | TLS / SSL | no | yes | **not started** |
-| lz4 | no | yes | **not started** |
+| lz4 | yes (`lz4_flex` frame, independent 64KiB blocks, magic ≥ 1) | yes | **done** |
 | zstd | no | yes (libzstd C) | **blocked on C** |
 | SASL SCRAM (SHA-256 / SHA-512) | no | yes | **not started** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
@@ -49,12 +49,10 @@ application needs**, not cloning `rd_kafka_*` symbols.
 ## Next implementation order
 
 1. TLS with `rustls` (no OpenSSL).
-2. lz4 with a pure-Rust frame codec that matches Kafka magic ≥ 1 (content size
-   + block checksum).
-3. SASL SCRAM-SHA-256.
-4. Idempotent produce (`InitProducerId` + monotonic sequences).
-5. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-6. Transactions and KIP-848 after the data-plane rows above.
+2. SASL SCRAM-SHA-256.
+3. Idempotent produce (`InitProducerId` + monotonic sequences).
+4. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
+5. Transactions and KIP-848 after the data-plane rows above.
 
 ## What “done” on this list does *not* mean
 

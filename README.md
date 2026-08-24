@@ -9,7 +9,7 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-Send and fetch records, join a consumer group, gzip, snappy, SASL PLAIN.
+Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN.
 Plain TCP to Kafka 3.x / 4.x.
 
 - What is still missing vs librdkafka: [docs/gaps.md](docs/gaps.md)

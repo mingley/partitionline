@@ -15,6 +15,7 @@ pub enum Compression {
     None = 0,
     Gzip = 1,
     Snappy = 2,
+    Lz4 = 3,
 }
 
 impl Compression {
@@ -23,7 +24,27 @@ impl Compression {
             0 => Ok(Self::None),
             1 => Ok(Self::Gzip),
             2 => Ok(Self::Snappy),
+            3 => Ok(Self::Lz4),
             n => Err(Error::protocol(format!("unsupported compression {n}"))),
+        }
+    }
+
+    pub fn from_name(name: &str) -> Result<Self> {
+        match name {
+            "none" | "" => Ok(Self::None),
+            "gzip" => Ok(Self::Gzip),
+            "snappy" => Ok(Self::Snappy),
+            "lz4" => Ok(Self::Lz4),
+            other => Err(Error::protocol(format!("unknown compression {other}"))),
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Gzip => "gzip",
+            Self::Snappy => "snappy",
+            Self::Lz4 => "lz4",
         }
     }
 }
@@ -146,6 +167,32 @@ fn snappy_decompress(src: &[u8]) -> Result<Vec<u8>> {
     }
 }
 
+/// Kafka RecordBatch (magic ≥ 1) uses LZ4 **frame** with independent blocks.
+/// Magic 0 used a broken header checksum; we only emit/accept proper HC.
+fn lz4_compress(src: &[u8]) -> Result<Vec<u8>> {
+    use lz4_flex::frame::{BlockMode, BlockSize, FrameEncoder, FrameInfo};
+    let info = FrameInfo::new()
+        .block_mode(BlockMode::Independent)
+        .block_size(BlockSize::Max64KB)
+        .block_checksums(false)
+        .content_checksum(false)
+        .content_size(Some(src.len() as u64));
+    let mut encoder = FrameEncoder::with_frame_info(info, Vec::new());
+    encoder
+        .write_all(src)
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    encoder.finish().map_err(|e| Error::protocol(e.to_string()))
+}
+
+fn lz4_decompress(src: &[u8]) -> Result<Vec<u8>> {
+    let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
+    let mut out = Vec::new();
+    decoder
+        .read_to_end(&mut out)
+        .map_err(|e| Error::protocol(e.to_string()))?;
+    Ok(out)
+}
+
 #[derive(Clone, Copy)]
 pub struct EncodeRecord<'a> {
     pub timestamp: i64,
@@ -244,7 +291,7 @@ where
                 encode_record(buf, &rec, i as i32, rec.timestamp - header.base_timestamp);
             }
         }
-        Compression::Gzip | Compression::Snappy => {
+        Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
             let mut section = BytesMut::new();
             for (i, rec) in records.enumerate() {
                 encode_record(
@@ -257,6 +304,7 @@ where
             let packed = match compression {
                 Compression::Gzip => gzip_compress(&section)?,
                 Compression::Snappy => snappy_compress(&section)?,
+                Compression::Lz4 => lz4_compress(&section)?,
                 Compression::None => unreachable!(),
             };
             buf.extend_from_slice(&packed);
@@ -380,6 +428,10 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         }
         Compression::Snappy => {
             decompressed = snappy_decompress(&records_bytes)?;
+            &decompressed
+        }
+        Compression::Lz4 => {
+            decompressed = lz4_decompress(&records_bytes)?;
             &decompressed
         }
     };
@@ -558,5 +610,38 @@ mod tests {
         let framed = snappy_compress(payload).unwrap();
         assert!(framed.starts_with(SNAPPY_JAVA_MAGIC));
         assert_eq!(snappy_decompress(&framed).unwrap(), payload);
+    }
+
+    #[test]
+    fn lz4_record_batch_roundtrip() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 13,
+            key: None,
+            value: Some(Bytes::from_static(b"lz4-payload")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Lz4);
+        assert_eq!(batch.attributes & 0x07, Compression::Lz4 as i16);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        assert!(
+            buf.windows(4).any(|w| w == [0x04, 0x22, 0x4d, 0x18]),
+            "produce path must emit LZ4 frame magic"
+        );
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(
+            decoded.records[0].value.as_deref(),
+            Some(&b"lz4-payload"[..])
+        );
+        assert_eq!(decoded.attributes & 0x07, Compression::Lz4 as i16);
+    }
+
+    #[test]
+    fn lz4_frame_roundtrip_shipped_codec() {
+        let payload = vec![b'x'; 4096];
+        let framed = lz4_compress(&payload).unwrap();
+        assert_eq!(&framed[..4], &[0x04, 0x22, 0x4d, 0x18]);
+        assert_eq!(lz4_decompress(&framed).unwrap(), payload);
     }
 }
