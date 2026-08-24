@@ -6,10 +6,23 @@ rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Pure-Rust Kafka client. No C. Drop-in protocol coverage."
 repository = "https://github.com/mingley/partitionline"
+homepage = "https://github.com/mingley/partitionline"
 readme = "README.md"
+authors = ["Michael Ingley"]
 keywords = ["kafka", "client", "async", "producer"]
 categories = ["network-programming", "asynchronous"]
-publish = false
+include = [
+    "src/**",
+    "tests/**",
+    "examples/**",
+    "docs/design.md",
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+    "NOTICE",
+]
 
 [dependencies]
 bytes = "1"

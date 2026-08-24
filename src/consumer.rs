@@ -74,6 +74,10 @@ pub struct Consumer {
 }
 
 impl Consumer {
+    pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
+        Self::new(ConsumerConfig::bootstrap([bootstrap.into()])).await
+    }
+
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
