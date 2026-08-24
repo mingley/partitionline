@@ -7,6 +7,7 @@ pub mod header;
 pub mod idem;
 pub mod records;
 pub mod sasl;
+pub mod scram;
 
 pub use api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_request,

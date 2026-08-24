@@ -23,6 +23,7 @@ pub struct ConsumerConfig {
     pub request_timeout: Duration,
     pub connect_timeout: Duration,
     pub sasl_plain: Option<(String, String)>,
+    pub sasl_scram: Option<(String, String)>,
     pub tls: Option<crate::net::TlsConfig>,
     pub max_wait_ms: i32,
     pub min_bytes: i32,
@@ -37,6 +38,7 @@ impl Default for ConsumerConfig {
             request_timeout: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
             sasl_plain: None,
+            sasl_scram: None,
             tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
@@ -104,9 +106,13 @@ impl Consumer {
         for api in resp.api_keys {
             versions.insert(api.api_key, api);
         }
-        if let Some((u, p)) = &cfg.sasl_plain {
-            sasl::authenticate_plain(&mut conn, u, p, cfg.request_timeout).await?;
-        }
+        sasl::authenticate(
+            &mut conn,
+            cfg.sasl_plain.as_ref(),
+            cfg.sasl_scram.as_ref(),
+            cfg.request_timeout,
+        )
+        .await?;
         let fetch_version = versions
             .get(&FETCH)
             .and_then(|v| pick_version(v.min_version, v.max_version, 4, 11))

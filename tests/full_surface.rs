@@ -178,6 +178,36 @@ async fn lz4_produce_fetch() {
 }
 
 #[tokio::test]
+async fn sasl_scram_sha256_then_produce() {
+    let mock = common::Mock::start_with_scram(("alice".into(), "secret".into())).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_scram = Some(("alice".into(), "secret".into()));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"scram-ok"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_scram_bad_password_fails() {
+    let mock = common::Mock::start_with_scram(("alice".into(), "secret".into())).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_scram = Some(("alice".into(), "wrong".into()));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("bad scram password must fail"),
+    };
+    match err {
+        Error::Broker { code, .. } => assert_eq!(code, error::SASL_AUTHENTICATION_FAILED),
+        other => panic!("expected broker SASL_AUTHENTICATION_FAILED, got {other}"),
+    }
+}
+
+#[tokio::test]
 async fn sasl_plain_then_produce() {
     let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

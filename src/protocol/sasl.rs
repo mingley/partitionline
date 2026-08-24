@@ -45,21 +45,24 @@ pub fn encode_sasl_authenticate_response(
     buf: &mut BytesMut,
     error_code: i16,
     message: Option<&str>,
+    auth_bytes: &[u8],
 ) {
     buf.put_i16(error_code);
     buf::put_classic_nullable_string(buf, message);
-    buf::put_classic_bytes(buf, Some(&[]));
+    buf::put_classic_bytes(buf, Some(auth_bytes));
     buf.put_i64(0);
 }
 
-pub fn decode_sasl_authenticate_response<B: Buf>(buf: &mut B) -> Result<(i16, Option<String>)> {
+pub fn decode_sasl_authenticate_response<B: Buf>(
+    buf: &mut B,
+) -> Result<(i16, Option<String>, Vec<u8>)> {
     let error_code = buf::get_i16(buf)?;
     let message = buf::get_classic_nullable_string(buf)?;
-    let _bytes = buf::get_classic_bytes(buf)?;
+    let bytes = buf::get_classic_bytes(buf)?.unwrap_or_default();
     if buf.remaining() >= 8 {
         let _lifetime = buf::get_i64(buf)?;
     }
-    Ok((error_code, message))
+    Ok((error_code, message, bytes.to_vec()))
 }
 
 pub fn plain_auth_bytes(user: &str, pass: &str) -> Vec<u8> {
@@ -112,7 +115,7 @@ pub async fn authenticate_plain(
             timeout,
         )
         .await?;
-    let (code, msg) = decode_sasl_authenticate_response(&mut body.clone())?;
+    let (code, msg, _) = decode_sasl_authenticate_response(&mut body.clone())?;
     if code != 0 {
         return Err(Error::broker(
             if code == 0 {
@@ -124,6 +127,83 @@ pub async fn authenticate_plain(
         ));
     }
     Ok(())
+}
+
+pub async fn authenticate_scram_sha256(
+    conn: &mut BrokerConn,
+    user: &str,
+    pass: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let hs = conn
+        .roundtrip(
+            SASL_HANDSHAKE,
+            1,
+            |buf| encode_sasl_handshake_request(buf, "SCRAM-SHA-256"),
+            timeout,
+        )
+        .await?;
+    let (code, mechs) = decode_sasl_handshake_response(&mut hs.clone())?;
+    if code != 0 {
+        return Err(Error::broker(code, "SaslHandshake"));
+    }
+    if !mechs.iter().any(|m| m == "SCRAM-SHA-256") {
+        return Err(Error::Unsupported(format!(
+            "SCRAM-SHA-256 not in mechanisms {mechs:?}"
+        )));
+    }
+    let nonce = super::scram::client_nonce();
+    let (first, bare) = super::scram::client_first(user, &nonce);
+    let body = conn
+        .roundtrip(
+            SASL_AUTHENTICATE,
+            1,
+            |buf| encode_sasl_authenticate_request(buf, first.as_bytes()),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes) = decode_sasl_authenticate_response(&mut body.clone())?;
+    if code != 0 {
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    let server_first =
+        String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
+    let client_final = super::scram::client_final(pass, &bare, &server_first)?;
+    let body = conn
+        .roundtrip(
+            SASL_AUTHENTICATE,
+            1,
+            |buf| encode_sasl_authenticate_request(buf, client_final.as_bytes()),
+            timeout,
+        )
+        .await?;
+    let (code, msg, bytes) = decode_sasl_authenticate_response(&mut body.clone())?;
+    if code != 0 {
+        return Err(Error::broker(
+            code,
+            msg.unwrap_or_else(|| "SaslAuthenticate".into()),
+        ));
+    }
+    let server_final =
+        String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-final not utf8"))?;
+    super::scram::verify_server_final(pass, &bare, &server_first, &client_final, &server_final)
+}
+
+pub async fn authenticate(
+    conn: &mut BrokerConn,
+    sasl_plain: Option<&(String, String)>,
+    sasl_scram: Option<&(String, String)>,
+    timeout: Duration,
+) -> Result<()> {
+    match (sasl_plain, sasl_scram) {
+        (Some(_), Some(_)) => Err(Error::protocol("set only one of sasl_plain and sasl_scram")),
+        (Some((u, p)), None) => authenticate_plain(conn, u, p, timeout).await,
+        (None, Some((u, p))) => authenticate_scram_sha256(conn, u, p, timeout).await,
+        (None, None) => Ok(()),
+    }
 }
 
 #[cfg(test)]
