@@ -32,7 +32,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
-| SASL OIDC (token endpoint) | no | yes | **not started** |
+| SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials HTTP POST, then OAUTHBEARER with `access_token`) | yes | **done** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
@@ -61,7 +61,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. KIP-848, OIDC, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords).
+1. KIP-848, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords), OffsetForLeaderEpoch fencing.
 
 ## What “done” on this list does *not* mean
 

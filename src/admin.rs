@@ -44,6 +44,7 @@ pub struct AdminConfig {
     pub sasl_scram: Option<(String, String)>,
     pub sasl_scram_sha512: Option<(String, String)>,
     pub sasl_oauthbearer: Option<String>,
+    pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     pub tls: Option<TlsConfig>,
 }
 
@@ -58,6 +59,7 @@ impl Default for AdminConfig {
             sasl_scram: None,
             sasl_scram_sha512: None,
             sasl_oauthbearer: None,
+            sasl_oauthbearer_oidc: None,
             tls: None,
         }
     }
@@ -179,6 +181,7 @@ impl Admin {
             cfg.sasl_scram.as_ref(),
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
             cfg.request_timeout,
         )
         .await?;

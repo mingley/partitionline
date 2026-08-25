@@ -444,6 +444,7 @@ async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
         cfg.sasl_scram.as_ref(),
         cfg.sasl_scram_sha512.as_ref(),
         cfg.sasl_oauthbearer.as_deref(),
+        cfg.sasl_oauthbearer_oidc.as_ref(),
         cfg.request_timeout,
     )
     .await?;

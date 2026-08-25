@@ -33,6 +33,7 @@ pub struct ConsumerConfig {
     pub sasl_scram: Option<(String, String)>,
     pub sasl_scram_sha512: Option<(String, String)>,
     pub sasl_oauthbearer: Option<String>,
+    pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     pub tls: Option<crate::net::TlsConfig>,
     pub max_wait_ms: i32,
     pub min_bytes: i32,
@@ -52,6 +53,7 @@ impl Default for ConsumerConfig {
             sasl_scram: None,
             sasl_scram_sha512: None,
             sasl_oauthbearer: None,
+            sasl_oauthbearer_oidc: None,
             tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
@@ -132,6 +134,7 @@ impl Consumer {
             cfg.sasl_scram.as_ref(),
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
             cfg.request_timeout,
         )
         .await?;
@@ -285,6 +288,7 @@ impl Consumer {
             self.cfg.sasl_scram.as_ref(),
             self.cfg.sasl_scram_sha512.as_ref(),
             self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
             self.cfg.request_timeout,
         )
         .await?;

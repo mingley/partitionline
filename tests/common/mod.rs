@@ -1330,3 +1330,75 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
     }
 }
+
+/// RFC 6749 token endpoint. Valid Basic credentials get an unsecured JWT for `principal`.
+pub async fn start_oidc_token_endpoint(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                serve_oidc_token(sock, &id, &secret, &principal).await;
+            });
+        }
+    });
+    format!("http://{addr}/oauth/token")
+}
+
+async fn serve_oidc_token(
+    mut sock: tokio::net::TcpStream,
+    client_id: &str,
+    client_secret: &str,
+    principal: &str,
+) {
+    let mut buf = Vec::new();
+    let mut tmp = [0u8; 2048];
+    loop {
+        let n = match sock.read(&mut tmp).await {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(_) => return,
+        };
+        buf.extend_from_slice(tmp.get(..n).unwrap_or(&[]));
+        if buf.windows(4).any(|w| w == b"\r\n\r\n") || buf.len() > 16 * 1024 {
+            break;
+        }
+    }
+    let req = String::from_utf8_lossy(&buf);
+    let expected = {
+        let raw = format!("{client_id}:{client_secret}");
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, raw.as_bytes())
+    };
+    let auth_ok = req.lines().any(|l| {
+        let line = l.trim_end_matches('\r');
+        let Some((k, v)) = line.split_once(':') else {
+            return false;
+        };
+        k.eq_ignore_ascii_case("authorization") && v.trim() == format!("Basic {expected}")
+    });
+    let ok = auth_ok && req.contains("grant_type=client_credentials");
+    let (status, body) = if ok {
+        let token = oauth::unsecured_jwt_now(principal);
+        (
+            "200 OK",
+            format!("{{\"access_token\":\"{token}\",\"token_type\":\"Bearer\"}}"),
+        )
+    } else {
+        ("401 Unauthorized", "{\"error\":\"invalid_client\"}".into())
+    };
+    let resp = format!(
+        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = sock.write_all(resp.as_bytes()).await;
+}

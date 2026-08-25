@@ -12,8 +12,8 @@ mod common;
 
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
-    ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
+    ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, ProduceRecord, Producer,
+    ProducerConfig, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
     CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
@@ -374,6 +374,84 @@ async fn sasl_oauthbearer_then_produce() {
         .unwrap();
     assert_eq!(md.offset, 0);
     producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oidc_then_produce() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "csecret"));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oidc-ok"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oidc_then_fetch() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url.clone(), "cid", "csecret"));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oidc-fetch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "csecret"));
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"oidc-fetch"[..]));
+}
+
+#[tokio::test]
+async fn sasl_oidc_bad_secret_fails() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "wrong"));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("bad oidc secret must fail"),
+    };
+    match err {
+        Error::Protocol(m) => assert!(m.contains("401") || m.contains("oidc"), "{m}"),
+        other => panic!("expected oidc HTTP failure, got {other}"),
+    }
+}
+
+#[tokio::test]
+async fn sasl_oidc_bad_url_fails() {
+    let bound = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = bound.local_addr().unwrap();
+    drop(bound);
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(
+        format!("http://{addr}/oauth/token"),
+        "cid",
+        "csecret",
+    ));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("closed token URL must fail"),
+    };
+    match err {
+        Error::Io(_) | Error::Timeout | Error::Protocol(_) => {}
+        other => panic!("expected token URL failure, got {other}"),
+    }
 }
 
 #[tokio::test]

@@ -20,6 +20,8 @@ pub mod idem;
 pub mod oauth;
 /// ListOffsets codecs.
 pub mod offsets;
+/// RFC 6749 client_credentials token fetch for OAUTHBEARER.
+pub mod oidc;
 /// RecordBatch magic-2 codec.
 pub mod records;
 /// SASL handshake and authenticate.

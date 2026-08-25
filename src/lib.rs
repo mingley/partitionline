@@ -1,7 +1,8 @@
 //! A Kafka client written in Rust. No C, no librdkafka.
 //!
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
-//! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER, TLS (rustls),
+//! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER (unsecured JWT or
+//! OIDC client_credentials token URL), TLS (rustls),
 //! idempotent and transactional produce, ListOffsets/seek, and admin
 //! (topics, partitions, configs, ACLs).
 //! See the crate README and `docs/gaps.md` for what is still missing.
@@ -38,6 +39,7 @@ pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::acl::{ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
+pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 
 /// Software name sent in ApiVersions v3+.
