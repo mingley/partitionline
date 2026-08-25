@@ -55,6 +55,9 @@ name = "bench_produce"
 [[example]]
 name = "roundtrip"
 
+[[example]]
+name = "bench_fetch"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

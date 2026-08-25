@@ -153,6 +153,39 @@ impl Consumer {
         Ok(())
     }
 
+    /// Assign every partition of `topic` at `offset` (from metadata).
+    pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
+        let topic = topic.into();
+        self.refresh_metadata(Some(std::slice::from_ref(&topic)))
+            .await?;
+        let (error_code, parts): (i16, Vec<i32>) = {
+            let tmd = self
+                .metadata
+                .as_ref()
+                .and_then(|md| {
+                    md.topics
+                        .iter()
+                        .find(|t| t.name.as_deref() == Some(topic.as_str()))
+                })
+                .ok_or_else(|| Error::UnknownTopic(topic.clone()))?;
+            (
+                tmd.error_code,
+                tmd.partitions.iter().map(|p| p.partition_index).collect(),
+            )
+        };
+        if error_code != 0 {
+            return Err(Error::broker(error_code, topic));
+        }
+        if parts.is_empty() {
+            return Err(Error::UnknownTopic(topic));
+        }
+        self.assigned.retain(|(t, _, _)| t != &topic);
+        for p in parts {
+            self.assigned.push((topic.clone(), p, offset));
+        }
+        Ok(())
+    }
+
     pub fn assignment(&self) -> &[(String, i32, i64)] {
         &self.assigned
     }

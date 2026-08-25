@@ -1,8 +1,8 @@
 mod common;
 
 use partitionline::{
-    error, Compression, Consumer, ConsumerConfig, ConsumerGroup, Error, ProduceRecord, Producer,
-    ProducerConfig,
+    error, Admin, AdminConfig, Compression, ConfigResource, Consumer, ConsumerConfig,
+    ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
 };
 use std::time::Duration;
 
@@ -286,4 +286,171 @@ async fn consumer_group_join_fetch_commit() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
     group.commit().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_create_then_produce_fetch() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("orders", 3, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created.len(), 1);
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[0].name, "orders");
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(
+            ProduceRecord::to("orders")
+                .value(&b"admin-hello"[..])
+                .partition(1),
+        )
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign_topic("orders", 0).await.unwrap();
+    assert_eq!(consumer.assignment().len(), 3);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].partition, 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"admin-hello"[..]));
+}
+
+#[tokio::test]
+async fn admin_create_duplicate_is_already_exists() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let dup = admin
+        .create_topics(&[NewTopic::new("t", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(dup[0].error_code, error::TOPIC_ALREADY_EXISTS);
+}
+
+#[tokio::test]
+async fn admin_validate_only_does_not_create() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("ghost", 1, 1)], 10_000, true)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let err = producer
+        .send(ProduceRecord::to("ghost").value(&b"x"[..]))
+        .await
+        .expect_err("validate_only must not create the topic");
+    match err {
+        Error::UnknownTopic(t) => assert_eq!(t, "ghost"),
+        other => panic!("expected UnknownTopic, got {other}"),
+    }
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_delete_and_describe() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("orders", 2, 1).config("cleanup.policy", "compact")],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("orders").keys(["cleanup.policy"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(described[0].error_code, 0);
+    let entry = described[0]
+        .entries
+        .iter()
+        .find(|e| e.name == "cleanup.policy")
+        .expect("cleanup.policy");
+    assert_eq!(entry.value.as_deref(), Some("compact"));
+
+    let missing = admin
+        .describe_configs(&[ConfigResource::topic("nope")], false)
+        .await
+        .unwrap();
+    assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+
+    let deleted = admin.delete_topics(&["orders"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    let gone = admin.delete_topics(&["orders"], 10_000).await.unwrap();
+    assert_eq!(gone[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+}
+
+#[tokio::test]
+async fn admin_against_kafka_if_present() {
+    if tokio::net::TcpStream::connect("127.0.0.1:9092")
+        .await
+        .is_err()
+    {
+        return;
+    }
+    let name = format!("pl-admin-{}", std::process::id());
+    let mut admin = Admin::connect("127.0.0.1:9092").await.unwrap();
+    let broker = admin
+        .describe_configs(&[ConfigResource::broker(1)], false)
+        .await
+        .unwrap();
+    assert_eq!(broker[0].error_code, 0, "broker describe: {broker:?}");
+    assert!(
+        !broker[0].entries.is_empty(),
+        "broker describe returned no entries: {broker:?}"
+    );
+    let _ = admin.delete_topics(&[&name], 10_000).await;
+    let created = admin
+        .create_topics(
+            &[NewTopic::new(&name, 3, 1).config("cleanup.policy", "delete")],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0, "{created:?}");
+    let mut described = None;
+    for _ in 0..20 {
+        let got = admin
+            .describe_configs(&[ConfigResource::topic(&name)], false)
+            .await
+            .unwrap();
+        if got[0].error_code == 0 {
+            described = Some(got);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let described = described.expect("DescribeConfigs did not see created topic");
+    assert!(
+        described[0]
+            .entries
+            .iter()
+            .any(|e| e.name == "cleanup.policy"),
+        "{described:?}"
+    );
+    let deleted = admin.delete_topics(&[&name], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0, "{deleted:?}");
 }

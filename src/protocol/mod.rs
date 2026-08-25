@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod api;
 pub mod api_keys;
 pub mod buf;
@@ -19,8 +20,9 @@ pub use api::{
     TopicMetadata,
 };
 pub use api_keys::{
-    pick_version, API_VERSIONS, FETCH, FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
-    METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    pick_version, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH,
+    FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 pub use header::{
     decode_request_header, decode_response_header, encode_request_header, encode_response_header,

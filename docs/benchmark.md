@@ -1,7 +1,7 @@
-# Produce benchmark vs librdkafka C
+# Benchmark vs librdkafka C
 
-Fetch and end-to-end latency were **not measured**. This document is produce
-acked records/second only.
+Produce is acked records/second. Fetch is consumed records/second from a topic
+this crate already filled. End-to-end latency was **not measured**.
 
 ## Methodology
 
@@ -316,6 +316,71 @@ rdkafka_performance -P -t plbench -s 100 -c 8000000 -b localhost:9097 -a 1 -q \
   -X socket.nagle.disable=true
 ```
 
-### Fetch
+### 2026-08-24 uncompressed produce (gating for admin)
 
-**Unmeasured.** Do not read the produce table as an e2e or consume win.
+Admin is not a produce setting. Same locked uncompressed knobs as the first
+table, PLAINTEXT `127.0.0.1:9092`. Three pairs, no warmup, fresh topic each
+run. High watermark **8,000,000** after every run.
+
+| Run | partitionline rec/s | partitionline HW | C 2.15.0 rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 5,693,694 | 8,000,000 | 3,294,347 | 8,000,000 |
+| 2 | 4,675,767 | 8,000,000 | 3,598,852 | 8,000,000 |
+| 3 | 6,022,825 | 8,000,000 | 4,220,885 | 8,000,000 |
+| **median** | **5,693,694** | 8,000,000 | **3,598,852** | 8,000,000 |
+
+partitionline was higher on every run (about 1.6× the C median).
+
+## Fetch
+
+Same broker and topic shape as produce (`plbench`, 6 partitions). Load
+8,000,000 × 100 B with this crate (linger 5 ms, `acks=1`). Both consumers
+read from offset 0. Completeness: records consumed **equal** records sent
+(8,000,000). Latency was not measured.
+
+Lock these on **both** consumers:
+
+| Knob | Value |
+|---|---|
+| Messages | 8,000,000 |
+| `fetch.wait.max.ms` / `max_wait_ms` | 100 |
+| `fetch.min.bytes` / `min_bytes` | 1 |
+| `fetch.message.max.bytes` / `max_bytes` | 16,777,216 |
+| Start | offset 0 / `-o beginning` |
+| Partitions | all 6 (`assign_topic` / `-p 0` … `-p 5`) |
+
+C `rdkafka_performance -C` starts no partitions unless `-p` is passed once
+per partition.
+
+### Reproduce
+
+partitionline:
+
+```
+COUNT=8000000 MAX_WAIT_MS=100 MAX_BYTES=16777216 MIN_BYTES=1 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_fetch
+```
+
+librdkafka C:
+
+```
+rdkafka_performance -C -t plbench -c 8000000 -b 127.0.0.1:9092 -q \
+  -p 0 -p 1 -p 2 -p 3 -p 4 -p 5 -o beginning -B 65536 \
+  -X fetch.wait.max.ms=100 -X fetch.min.bytes=1 \
+  -X fetch.message.max.bytes=16777216 \
+  -X queued.min.messages=1000000
+```
+
+### 2026-08-24, three locked fetch pairs
+
+Load HW was **8,000,000** before each pair. Both consumers read the same log.
+
+| Run | partitionline rec/s | partitionline consumed | C 2.15.0 rec/s | C consumed |
+|---|---|---|---|---|
+| 1 | 4,381,010 | 8,000,000 | 3,092,983 | 8,000,000 |
+| 2 | 4,371,067 | 8,000,000 | 3,119,810 | 8,000,000 |
+| 3 | 4,781,168 | 8,000,000 | 3,180,308 | 8,000,000 |
+| **median** | **4,381,010** | 8,000,000 | **3,119,810** | 8,000,000 |
+
+partitionline was higher on every run (about 1.4× the C median). JSON copies:
+session scratch `bench-fetch-pl.json` / `bench-fetch-c.json`.
