@@ -84,8 +84,13 @@ struct State {
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
     produce_error: Option<i16>,
+    produce_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
+    brokers: Vec<Broker>,
+    partition_leaders: HashMap<(String, i32), i32>,
+    accepted_produce: Vec<i32>,
+    accepted_fetch: Vec<i32>,
 }
 
 fn new_state(
@@ -114,23 +119,37 @@ fn new_state(
         last_producer_id: None,
         expected_seq: HashMap::new(),
         produce_error: None,
+        produce_error_left: None,
         log_start: HashMap::new(),
         created_topics,
+        brokers: Vec::new(),
+        partition_leaders: HashMap::new(),
+        accepted_produce: Vec::new(),
+        accepted_fetch: Vec::new(),
     }
 }
 
-fn metadata_for(host: &str, port: i32, topics: &HashMap<String, CreatedTopic>) -> MetadataResponse {
+fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> MetadataResponse {
+    let brokers = if st.brokers.is_empty() {
+        vec![Broker {
+            node_id: 1,
+            host: fallback_host.to_string(),
+            port: fallback_port,
+            rack: None,
+        }]
+    } else {
+        st.brokers.clone()
+    };
+    let replica_nodes: Vec<i32> = brokers.iter().map(|b| b.node_id).collect();
+    let default_leader = brokers.first().map(|b| b.node_id).unwrap_or(1);
+    let controller_id = default_leader;
     MetadataResponse {
         throttle_time_ms: 0,
-        brokers: vec![Broker {
-            node_id: 1,
-            host: host.to_string(),
-            port,
-            rack: None,
-        }],
+        brokers,
         cluster_id: Some("mock".into()),
-        controller_id: 1,
-        topics: topics
+        controller_id,
+        topics: st
+            .created_topics
             .iter()
             .map(|(name, spec)| TopicMetadata {
                 error_code: 0,
@@ -138,18 +157,46 @@ fn metadata_for(host: &str, port: i32, topics: &HashMap<String, CreatedTopic>) -
                 topic_id: [0u8; 16],
                 is_internal: false,
                 partitions: (0..spec.num_partitions)
-                    .map(|i| PartitionMetadata {
-                        error_code: 0,
-                        partition_index: i,
-                        leader_id: 1,
-                        leader_epoch: 0,
-                        replica_nodes: vec![1],
-                        isr_nodes: vec![1],
+                    .map(|i| {
+                        let leader_id = st
+                            .partition_leaders
+                            .get(&(name.clone(), i))
+                            .copied()
+                            .unwrap_or(default_leader);
+                        PartitionMetadata {
+                            error_code: 0,
+                            partition_index: i,
+                            leader_id,
+                            leader_epoch: 0,
+                            replica_nodes: replica_nodes.clone(),
+                            isr_nodes: replica_nodes.clone(),
+                        }
                     })
                     .collect(),
             })
             .collect(),
     }
+}
+
+fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
+    tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = listener.accept().await else {
+                break;
+            };
+            stream.set_nodelay(true).ok();
+            let st = state.clone();
+            tokio::spawn(handle_conn(stream, node_id, st));
+        }
+    });
+}
+
+fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
+    st.brokers
+        .iter()
+        .find(|b| b.node_id == node_id)
+        .map(|b| (b.host.clone(), b.port))
+        .unwrap_or_else(|| ("127.0.0.1".into(), 0))
 }
 
 impl Mock {
@@ -160,23 +207,48 @@ impl Mock {
     pub async fn start_with_sasl(creds: Option<(String, String)>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(creds, None, None)));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        let mut st = new_state(creds, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_two_node() -> Self {
+        let l1 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let l2 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let a1 = l1.local_addr().unwrap();
+        let a2 = l2.local_addr().unwrap();
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![
+            Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: a1.port() as i32,
+                rack: None,
+            },
+            Broker {
+                node_id: 2,
+                host: "127.0.0.1".into(),
+                port: a2.port() as i32,
+                rack: None,
+            },
+        ];
+        st.partition_leaders.insert(("t".into(), 0), 2);
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(l1, 1, state.clone());
+        spawn_plain(l2, 2, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", a1.port()),
             state,
         }
     }
@@ -184,25 +256,20 @@ impl Mock {
     pub async fn start_with_scram(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(
+        let mut st = new_state(
             None,
             Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
             None,
-        )));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -212,25 +279,20 @@ impl Mock {
     pub async fn start_with_scram_sha512(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(
+        let mut st = new_state(
             None,
             Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
             None,
-        )));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -240,21 +302,16 @@ impl Mock {
     pub async fn start_with_oauthbearer(principal: String) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(None, None, Some(principal))));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        let mut st = new_state(None, None, Some(principal));
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -267,9 +324,15 @@ impl Mock {
         let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(None, None, None)));
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -278,13 +341,12 @@ impl Mock {
                 };
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
-                let host = host.clone();
                 let acceptor = acceptor.clone();
                 tokio::spawn(async move {
                     let Ok(stream) = acceptor.accept(tcp).await else {
                         return;
                     };
-                    handle_conn(stream, host, port, st).await;
+                    handle_conn(stream, 1, st).await;
                 });
             }
         });
@@ -324,7 +386,23 @@ impl Mock {
     }
 
     pub fn set_produce_error(&self, code: i16) {
-        self.state.lock().produce_error = Some(code);
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = None;
+    }
+
+    pub fn set_produce_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = Some(n);
+    }
+
+    pub fn produce_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_produce.clone()
+    }
+
+    pub fn fetch_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_fetch.clone()
     }
 }
 
@@ -409,8 +487,7 @@ fn versions() -> ApiVersionsResponse {
 
 async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     mut stream: S,
-    host: String,
-    port: i32,
+    node_id: i32,
     state: Arc<Mutex<State>>,
 ) {
     let mut buf = BytesMut::new();
@@ -449,11 +526,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
             }
             METADATA => {
-                let topics = state.lock().created_topics.clone();
+                let st = state.lock();
+                let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,
                     header.api_version,
-                    &metadata_for(&host, port, &topics),
+                    &metadata_for(&st, &host, port),
                 )
                 .unwrap();
             }
@@ -620,13 +698,38 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
                 let mut st = state.lock();
-                let forced = st.produce_error;
+                let forced = match (st.produce_error, st.produce_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.produce_error = None;
+                        st.produce_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.produce_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.produce_error = None;
+                            st.produce_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
                 for topic in decoded.2 {
                     for p in topic.partitions {
                         st.last_producer_id = Some(p.records.producer_id);
                         let key = (topic.topic.clone(), p.index);
                         let nrec = p.records.records.len() as i32;
-                        let mut error_code = forced.unwrap_or(0);
+                        let leader = st
+                            .partition_leaders
+                            .get(&(topic.topic.clone(), p.index))
+                            .copied()
+                            .unwrap_or(node_id);
+                        let mut error_code = if leader != node_id {
+                            6
+                        } else {
+                            forced.unwrap_or(0)
+                        };
                         if error_code == 0 {
                             let pid = p.records.producer_id;
                             let seq = p.records.base_sequence;
@@ -642,6 +745,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                         let start = *st.next_offset.get(&key).unwrap_or(&0);
                         if error_code == 0 {
+                            st.accepted_produce.push(node_id);
                             let mut n = 0i64;
                             for mut rec in p.records.records {
                                 rec.offset = start + n;
@@ -673,11 +777,27 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             FETCH => {
                 let req = decode_fetch_request(&mut frame).unwrap();
-                let st = state.lock();
+                let mut st = state.lock();
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
                     for p in t.partitions {
+                        let leader = st
+                            .partition_leaders
+                            .get(&(t.topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(node_id);
+                        if leader != node_id {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: 6,
+                                high_watermark: 0,
+                                log_start_offset: 0,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        st.accepted_fetch.push(node_id);
                         let key = (t.topic.clone(), p.partition);
                         let recs = st
                             .log
@@ -825,7 +945,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                encode_find_coordinator_response(&mut body, 1, &host, port).unwrap();
+                let st = state.lock();
+                let (host, port) = broker_host_port(&st, node_id);
+                encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
             }
             JOIN_GROUP => {
                 let (_g, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();

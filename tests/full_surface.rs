@@ -64,6 +64,56 @@ async fn idempotent_unkeyed_multi_conn_stays_in_order() {
 }
 
 #[tokio::test]
+async fn produce_fetch_follow_metadata_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"leader"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.partition, 0);
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+    let produced = mock.produce_nodes();
+    assert!(
+        produced.contains(&2),
+        "successful produce must land on leader node 2, got {produced:?}"
+    );
+    assert_eq!(mock.log_len("t", 0), 1);
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"leader"[..]));
+    let fetched = mock.fetch_nodes();
+    assert!(
+        fetched.contains(&2),
+        "successful fetch must hit leader node 2, got {fetched:?}"
+    );
+}
+
+#[tokio::test]
+async fn produce_retries_retriable_then_succeeds() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::LEADER_NOT_AVAILABLE, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"retry"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.flush().await.unwrap();
+    assert_eq!(mock.log_len("t", 0), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn flush_fails_on_broker_produce_error() {
     let mock = common::Mock::start().await;
     mock.set_produce_error(error::OUT_OF_ORDER_SEQUENCE_NUMBER);

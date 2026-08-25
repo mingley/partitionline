@@ -9,6 +9,7 @@
 
 /// Admin client: CreateTopics, DeleteTopics, DescribeConfigs.
 pub mod admin;
+pub(crate) mod cluster;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
 /// Kafka and client error types.
