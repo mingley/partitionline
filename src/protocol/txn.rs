@@ -152,7 +152,6 @@ pub fn encode_txn_offset_commit_request(
     buf::put_array_len(buf, false, Some(1))?;
     buf.put_i32(partition);
     buf.put_i64(offset);
-    buf.put_i32(-1);
     buf::put_classic_nullable_string(buf, None)?;
     Ok(())
 }
@@ -167,6 +166,7 @@ pub fn decode_txn_offset_commit_request<B: Buf>(buf: &mut B) -> Result<(String, 
     let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
     let part = buf::get_i32(buf)?;
     let off = buf::get_i64(buf)?;
+    let _meta = buf::get_classic_nullable_string(buf)?;
     Ok((tid, gid, part, off))
 }
 
@@ -202,5 +202,26 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_end_txn_response(&mut resp, 0).unwrap();
         assert_eq!(decode_end_txn_response(&mut &resp[..]).unwrap(), 0);
+    }
+
+    #[test]
+    fn txn_offset_commit_v0_has_no_leader_epoch() {
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_request(&mut buf, "tx", "g", 9, 1, "t", 0, 7).unwrap();
+        let (tid, gid, part, off) = decode_txn_offset_commit_request(&mut &buf[..]).unwrap();
+        assert_eq!((tid.as_str(), gid.as_str(), part, off), ("tx", "g", 0, 7));
+        assert!(
+            buf.len() > 8,
+            "v0 body must include metadata after offset, not stop at leader epoch"
+        );
+        // After partition+offset the next field is NULLABLE_STRING metadata, i16 -1.
+        // Re-encode and check the tail is 0xffff, not i32 -1 then 0xffff.
+        let mut cur = &buf[..];
+        let _ = decode_txn_offset_commit_request(&mut cur).unwrap();
+        assert!(
+            cur.is_empty(),
+            "v0 decoder must consume metadata; leftover {} bytes means an extra i32",
+            cur.len()
+        );
     }
 }

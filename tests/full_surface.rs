@@ -187,6 +187,23 @@ async fn transactional_commit_visible_abort_hidden() {
         .unwrap();
     producer.abort_transaction().await.unwrap();
     producer.close().await.unwrap();
+    assert_eq!(
+        mock.last_produce_txn_id().as_deref(),
+        Some("tx-1"),
+        "Produce body must carry transactional_id, not null"
+    );
+
+    let mut ccfg0 = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg0.max_wait_ms = 10;
+    ccfg0.isolation_level = 0;
+    let mut uncommitted = Consumer::new(ccfg0).await.unwrap();
+    uncommitted.assign("t", 0, 0).await.unwrap();
+    let all = uncommitted.fetch().await.unwrap();
+    let all_vals: Vec<&[u8]> = all.iter().filter_map(|r| r.value.as_deref()).collect();
+    assert!(
+        all_vals.iter().any(|v| *v == b"aborted"),
+        "mock must return aborted records so the client, not the broker, filters them; got {all_vals:?}"
+    );
 
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;

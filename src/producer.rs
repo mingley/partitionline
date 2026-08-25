@@ -1019,8 +1019,11 @@ impl Worker {
         }
         assign_sequences(&mut groups, self.shared.producer_id, &self.shared.seqs);
         self.add_txn_partitions(&groups).await?;
-        let transactional =
-            self.shared.cfg.transactional_id.is_some() && self.shared.in_txn.load(Ordering::SeqCst);
+        let transactional_id = if self.shared.in_txn.load(Ordering::SeqCst) {
+            self.shared.cfg.transactional_id.as_deref()
+        } else {
+            None
+        };
 
         let version = self.shared.produce_version;
         let acks = self.shared.cfg.acks;
@@ -1047,7 +1050,7 @@ impl Worker {
             now,
             self.shared.producer_id,
             self.shared.producer_epoch,
-            transactional,
+            transactional_id,
         )?;
         let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
         crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size)?;
@@ -1332,11 +1335,12 @@ fn encode_produce_body(
     now: i64,
     producer_id: i64,
     producer_epoch: i16,
-    transactional: bool,
+    transactional_id: Option<&str>,
 ) -> Result<()> {
     let flexible = version >= 9;
+    let transactional = transactional_id.is_some();
     if version >= 3 {
-        crate::protocol::buf::put_string(buf, flexible, None)?;
+        crate::protocol::buf::put_string(buf, flexible, transactional_id)?;
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
@@ -1450,7 +1454,12 @@ fn encode_pendings(
     write_record_batch(
         buf,
         &BatchHeader {
-            attributes: (compression as i16) | if transactional { 0x10 } else { 0 },
+            attributes: (compression as i16)
+                | if transactional {
+                    crate::protocol::records::ATTR_TRANSACTIONAL
+                } else {
+                    0
+                },
             base_timestamp: base_ts,
             max_timestamp: max_ts,
             count: crate::protocol::buf::i32_from_usize(pendings.len())?,

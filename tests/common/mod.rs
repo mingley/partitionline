@@ -20,6 +20,7 @@
 
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
+use partitionline::error;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
@@ -117,6 +118,8 @@ struct State {
     in_txn: bool,
     txn_pending: Vec<(String, i32, i64)>,
     txn_aborted: HashSet<(String, i32, i64)>,
+    log_producer: HashMap<(String, i32, i64), i64>,
+    last_produce_txn_id: Option<String>,
     acls: Vec<AclBinding>,
 }
 
@@ -166,6 +169,8 @@ fn new_state(
         in_txn: false,
         txn_pending: Vec::new(),
         txn_aborted: HashSet::new(),
+        log_producer: HashMap::new(),
+        last_produce_txn_id: None,
         acls: Vec::new(),
     }
 }
@@ -448,6 +453,10 @@ impl Mock {
 
     pub fn last_fetch_isolation(&self) -> i8 {
         self.state.lock().last_fetch_isolation
+    }
+
+    pub fn last_produce_txn_id(&self) -> Option<String> {
+        self.state.lock().last_produce_txn_id.clone()
     }
 
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
@@ -894,6 +903,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
+                let txn_id = decoded.0;
                 let mut parts = Vec::new();
                 let mut st = state.lock();
                 let forced = match (st.produce_error, st.produce_error_left) {
@@ -913,7 +923,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     (Some(c), None) => Some(c),
                     (None, _) => None,
                 };
-                for topic in decoded.2 {
+                for topic in decoded.3 {
                     for p in topic.partitions {
                         st.last_producer_id = Some(p.records.producer_id);
                         let key = (topic.topic.clone(), p.index);
@@ -925,6 +935,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .unwrap_or(node_id);
                         let mut error_code = if leader != node_id {
                             6
+                        } else if st.in_txn && txn_id.is_none() {
+                            error::INVALID_TXN_STATE
                         } else {
                             forced.unwrap_or(0)
                         };
@@ -944,9 +956,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         let start = *st.next_offset.get(&key).unwrap_or(&0);
                         if error_code == 0 {
                             st.accepted_produce.push(node_id);
+                            st.last_produce_txn_id = txn_id.clone();
+                            let pid = p.records.producer_id;
                             let mut n = 0i64;
                             for mut rec in p.records.records {
                                 rec.offset = start + n;
+                                st.log_producer
+                                    .insert((topic.topic.clone(), p.index, rec.offset), pid);
                                 st.log.entry(key.clone()).or_default().push(rec);
                                 n += 1;
                             }
@@ -997,7 +1013,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 partition: p.partition,
                                 error_code: 6,
                                 high_watermark: 0,
+                                last_stable_offset: 0,
                                 log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
                                 records: Vec::new(),
                             });
                             continue;
@@ -1010,34 +1028,61 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .map(|v| {
                                 v.iter()
                                     .filter(|r| r.offset >= p.fetch_offset)
-                                    .filter(|r| {
-                                        if st.last_fetch_isolation != 1 {
-                                            return true;
-                                        }
-                                        let k = (t.topic.clone(), p.partition, r.offset);
-                                        !st.txn_aborted.contains(&k)
-                                            && !st.txn_pending.iter().any(|x| x == &k)
-                                    })
                                     .cloned()
                                     .collect::<Vec<_>>()
                             })
                             .unwrap_or_default();
                         let hw = *st.next_offset.get(&key).unwrap_or(&0);
                         let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                        let lso = if iso == 1 {
+                            st.txn_pending
+                                .iter()
+                                .filter(|(tn, pn, _)| tn == &t.topic && *pn == p.partition)
+                                .map(|(_, _, o)| *o)
+                                .min()
+                                .unwrap_or(hw)
+                        } else {
+                            hw
+                        };
+                        let mut aborted_transactions = Vec::new();
+                        if iso == 1 {
+                            let mut first_off: HashMap<i64, i64> = HashMap::new();
+                            for (tn, pn, off) in &st.txn_aborted {
+                                if tn == &t.topic && *pn == p.partition {
+                                    if let Some(pid) =
+                                        st.log_producer.get(&(tn.clone(), *pn, *off)).copied()
+                                    {
+                                        let e = first_off.entry(pid).or_insert(*off);
+                                        if *off < *e {
+                                            *e = *off;
+                                        }
+                                    }
+                                }
+                            }
+                            aborted_transactions = first_off.into_iter().collect();
+                        }
                         let error_code = if p.fetch_offset < log_start { 1 } else { 0 };
                         let batches = if error_code != 0 || recs.is_empty() {
                             Vec::new()
                         } else {
                             let first = recs[0].offset;
+                            let pid = st
+                                .log_producer
+                                .get(&(t.topic.clone(), p.partition, first))
+                                .copied()
+                                .unwrap_or(-1);
                             let mut batch = RecordBatch::from_records(recs);
                             batch.base_offset = first;
+                            batch.producer_id = pid;
                             vec![batch]
                         };
                         parts.push(FetchedPartition {
                             partition: p.partition,
                             error_code,
                             high_watermark: hw,
+                            last_stable_offset: lso,
                             log_start_offset: log_start,
+                            aborted_transactions,
                             records: batches,
                         });
                     }
