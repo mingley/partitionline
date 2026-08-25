@@ -2,7 +2,8 @@
 //!
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
 //! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER (unsecured JWT or
-//! OIDC client_credentials token URL), TLS (rustls),
+//! OIDC client_credentials http/https token URL), TLS (rustls), fetch from
+//! follower, KIP-848 groups,
 //! idempotent and transactional produce, ListOffsets/seek, and admin
 //! (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.

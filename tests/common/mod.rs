@@ -43,12 +43,16 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS,
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA,
-    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, API_VERSIONS,
+    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
+    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
+    FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
+    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+};
+use partitionline::protocol::cgheartbeat::{
+    decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
+    ConsumerGroupHeartbeatResponse, TopicPartitions,
 };
 use partitionline::protocol::epoch::{
     decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
@@ -123,12 +127,15 @@ struct State {
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
+    last_fetch_rack: String,
     in_txn: bool,
     txn_pending: Vec<(String, i32, i64)>,
     txn_aborted: HashSet<(String, i32, i64)>,
     log_producer: HashMap<(String, i32, i64), i64>,
     last_produce_txn_id: Option<String>,
     acls: Vec<AclBinding>,
+    join_group_calls: u32,
+    cg_heartbeat_calls: u32,
 }
 
 struct GroupReg {
@@ -176,12 +183,15 @@ fn new_state(
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
+        last_fetch_rack: String::new(),
         in_txn: false,
         txn_pending: Vec::new(),
         txn_aborted: HashSet::new(),
         log_producer: HashMap::new(),
         last_produce_txn_id: None,
         acls: Vec::new(),
+        join_group_calls: 0,
+        cg_heartbeat_calls: 0,
     }
 }
 
@@ -294,13 +304,13 @@ impl Mock {
                 node_id: 1,
                 host: "127.0.0.1".into(),
                 port: a1.port() as i32,
-                rack: None,
+                rack: Some("r1".into()),
             },
             Broker {
                 node_id: 2,
                 host: "127.0.0.1".into(),
                 port: a2.port() as i32,
-                rack: None,
+                rack: Some("r2".into()),
             },
         ];
         st.partition_leaders.insert(("t".into(), 0), 2);
@@ -469,6 +479,10 @@ impl Mock {
         self.state.lock().last_fetch_isolation
     }
 
+    pub fn last_fetch_rack(&self) -> String {
+        self.state.lock().last_fetch_rack.clone()
+    }
+
     pub fn last_produce_txn_id(&self) -> Option<String> {
         self.state.lock().last_produce_txn_id.clone()
     }
@@ -485,6 +499,14 @@ impl Mock {
 
     pub fn last_offset_for_leader_epoch(&self) -> Option<(String, i32, i32)> {
         self.state.lock().last_epoch_req.clone()
+    }
+
+    pub fn join_group_calls(&self) -> u32 {
+        self.state.lock().join_group_calls
+    }
+
+    pub fn cg_heartbeat_calls(&self) -> u32 {
+        self.state.lock().cg_heartbeat_calls
     }
 
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
@@ -556,6 +578,7 @@ fn versions() -> ApiVersionsResponse {
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
         (LEAVE_GROUP, 0, 2),
+        (CONSUMER_GROUP_HEARTBEAT, 0, 0),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 4),
@@ -1103,9 +1126,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
-                let (iso, req) = decode_fetch_request(&mut frame).unwrap();
+                let (iso, req, rack) = decode_fetch_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.last_fetch_isolation = iso;
+                st.last_fetch_rack = rack.clone();
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
@@ -1115,7 +1139,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .get(&(t.topic.clone(), p.partition))
                             .copied()
                             .unwrap_or(node_id);
-                        if leader != node_id {
+                        if leader != node_id && rack.is_empty() {
                             parts.push(FetchedPartition {
                                 partition: p.partition,
                                 error_code: 6,
@@ -1123,9 +1147,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
+                                preferred_read_replica: -1,
                                 records: Vec::new(),
                             });
                             continue;
+                        }
+                        if leader == node_id && !rack.is_empty() {
+                            let follower = st.brokers.iter().find(|b| {
+                                b.rack.as_deref() == Some(rack.as_str()) && b.node_id != leader
+                            });
+                            if let Some(f) = follower {
+                                parts.push(FetchedPartition {
+                                    partition: p.partition,
+                                    error_code: 0,
+                                    high_watermark: 0,
+                                    last_stable_offset: 0,
+                                    log_start_offset: 0,
+                                    aborted_transactions: Vec::new(),
+                                    preferred_read_replica: f.node_id,
+                                    records: Vec::new(),
+                                });
+                                continue;
+                            }
                         }
                         let current_epoch = st
                             .partition_epochs
@@ -1140,6 +1183,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
+                                preferred_read_replica: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -1152,6 +1196,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
+                                preferred_read_replica: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -1219,6 +1264,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             last_stable_offset: lso,
                             log_start_offset: log_start,
                             aborted_transactions,
+                            preferred_read_replica: -1,
                             records: batches,
                         });
                     }
@@ -1368,9 +1414,43 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
             }
+            CONSUMER_GROUP_HEARTBEAT => {
+                let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
+                    (req.member_id, -1, None)
+                } else if req.member_epoch == 0 {
+                    st.member_seq += 1;
+                    let id = format!("k-{}", st.member_seq);
+                    (
+                        id,
+                        1,
+                        Some(vec![TopicPartitions {
+                            topic_id: [0u8; 16],
+                            partitions: vec![0],
+                        }]),
+                    )
+                } else {
+                    (req.member_id, req.member_epoch, None)
+                };
+                encode_consumer_group_heartbeat_response(
+                    &mut body,
+                    &ConsumerGroupHeartbeatResponse {
+                        error_code: 0,
+                        error_message: None,
+                        member_id: Some(member_id),
+                        member_epoch: epoch,
+                        heartbeat_interval_ms: 5000,
+                        assignment,
+                    },
+                )
+                .unwrap();
+            }
             JOIN_GROUP => {
                 let (gid, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.join_group_calls = st.join_group_calls.saturating_add(1);
                 if member_id.is_empty() {
                     st.member_seq += 1;
                     let assigned = format!("m-{}", st.member_seq);
@@ -1516,8 +1596,47 @@ pub async fn start_oidc_token_endpoint(
     format!("http://{addr}/oauth/token")
 }
 
-async fn serve_oidc_token(
-    mut sock: tokio::net::TcpStream,
+pub async fn start_oidc_token_endpoint_tls(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> (String, partitionline::TlsConfig) {
+    partitionline::net::install_crypto_provider();
+    let (server, ca_pem) = tls_server_identity();
+    let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let acceptor = acceptor.clone();
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                let Ok(stream) = acceptor.accept(sock).await else {
+                    return;
+                };
+                serve_oidc_token(stream, &id, &secret, &principal).await;
+            });
+        }
+    });
+    let tls = partitionline::TlsConfig {
+        ca_pem: Some(ca_pem),
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    (
+        format!("https://127.0.0.1:{}/oauth/token", addr.port()),
+        tls,
+    )
+}
+
+async fn serve_oidc_token<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(
+    mut sock: S,
     client_id: &str,
     client_secret: &str,
     principal: &str,

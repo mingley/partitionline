@@ -8,6 +8,8 @@ pub mod api;
 pub mod api_keys;
 /// Classic and compact Kafka primitive codecs.
 pub mod buf;
+/// ConsumerGroupHeartbeat (KIP-848).
+pub mod cgheartbeat;
 /// OffsetForLeaderEpoch codec.
 pub mod epoch;
 /// Fetch request and response codecs.

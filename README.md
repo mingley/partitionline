@@ -9,15 +9,17 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-**Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups
-(range/sticky, heartbeat, rebalance, leave), ListOffsets/seek, gzip / snappy /
-lz4, SASL PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT),
-TLS (`rustls`, no OpenSSL), idempotent and transactional produce, admin
-CreateTopics / DeleteTopics / CreatePartitions / DescribeConfigs /
-AlterConfigs / IncrementalAlterConfigs / DeleteRecords / DescribeCluster /
-ACLs, SASL OIDC client_credentials token URL, OffsetForLeaderEpoch fetch fencing.
-Talks Kafka 3.x / 4.x. Missing: KIP-848, zstd, Kerberos. Full list:
-[docs/gaps.md](docs/gaps.md).
+Produce, fetch, classic groups (range/sticky) and KIP-848
+`ConsumerGroup::join_consumer`, ListOffsets/seek, gzip / snappy / lz4, SASL
+PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT or OIDC
+`http://` and `https://` token URLs), TLS (`rustls`, no OpenSSL), idempotent
+and transactional produce, fetch-from-follower (`ConsumerConfig.rack`),
+OffsetForLeaderEpoch fencing, admin (topics, partitions, configs, ACLs,
+DeleteRecords, DescribeCluster). Talks Kafka 3.x / 4.x.
+
+**Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
+Kerberos (both blocked on C libraries in default features), share groups,
+Schema Registry. Full list: [docs/gaps.md](docs/gaps.md).
 
 **Produce and fetch are faster than librdkafka 2.15.0 C** on this machine
 (broker high watermark / records consumed equal records sent). Latency was
@@ -33,6 +35,24 @@ not measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
 | SASL SCRAM-SHA-512 | 6.89M rec/s | 3.43M rec/s |
 | SASL OAUTHBEARER | 6.82M rec/s | 3.64M rec/s |
 | fetch (consume, same 8e6×100B log) | 4.38M rec/s | 3.12M rec/s |
+
+## Demo
+
+Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
+
+```
+cargo run --release --example roundtrip
+```
+
+Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
+rec/s unless broker high watermark equals records sent:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_produce
+```
+
+C bar and fetch bench: [docs/benchmark.md](docs/benchmark.md).
 
 ## Example
 

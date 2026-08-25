@@ -32,6 +32,8 @@ pub struct FetchedPartition {
     pub log_start_offset: i64,
     /// `(producer_id, first_offset)` for aborted transactions (Fetch isolation=1).
     pub aborted_transactions: Vec<(i64, i64)>,
+    /// Broker id to fetch from next, or `-1`.
+    pub preferred_read_replica: i32,
     pub records: Vec<RecordBatch>,
 }
 
@@ -49,6 +51,7 @@ pub fn encode_fetch_request(
     max_bytes: i32,
     isolation_level: i8,
     topics: &[FetchTopic],
+    rack_id: Option<&str>,
 ) -> crate::error::Result<()> {
     buf.put_i32(-1); // replica_id
     buf.put_i32(max_wait_ms);
@@ -70,11 +73,11 @@ pub fn encode_fetch_request(
         }
     }
     buf::put_array_len(buf, false, Some(0))?; // forgotten
-    buf::put_classic_nullable_string(buf, Some(""))?; // rack_id
+    buf::put_classic_nullable_string(buf, rack_id.filter(|s| !s.is_empty()))?;
     Ok(())
 }
 
-pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>)> {
+pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>, String)> {
     let _replica = buf::get_i32(buf)?;
     let _max_wait = buf::get_i32(buf)?;
     let _min_bytes = buf::get_i32(buf)?;
@@ -103,7 +106,16 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>)
         }
         topics.push(FetchTopic { topic, partitions });
     }
-    Ok((isolation, topics))
+    let forgotten = buf::get_array_len(buf, false)?.unwrap_or(0);
+    for _ in 0..forgotten {
+        let _t = buf::get_classic_nullable_string(buf)?;
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for _ in 0..pn {
+            let _p = buf::get_i32(buf)?;
+        }
+    }
+    let rack = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    Ok((isolation, topics, rack))
 }
 
 pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Result<()> {
@@ -125,7 +137,7 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
                 buf.put_i64(*pid);
                 buf.put_i64(*first);
             }
-            buf.put_i32(-1); // preferred_read_replica
+            buf.put_i32(p.preferred_read_replica);
             let mut recs = BytesMut::new();
             for batch in &p.records {
                 records::encode_record_batch(&mut recs, batch)?;
@@ -165,7 +177,7 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                     aborted_transactions.push((pid, first));
                 }
             }
-            let _pref = buf::get_i32(buf)?;
+            let preferred_read_replica = buf::get_i32(buf)?;
             let rec_bytes = buf::get_classic_bytes(buf)?.unwrap_or_default();
             let mut rec_buf = &rec_bytes[..];
             let records = if rec_buf.is_empty() {
@@ -180,6 +192,7 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                 last_stable_offset,
                 log_start_offset,
                 aborted_transactions,
+                preferred_read_replica,
                 records,
             });
         }
@@ -206,11 +219,29 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics).unwrap();
-        let (iso, decoded) = decode_fetch_request(&mut &buf[..]).unwrap();
+        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, None).unwrap();
+        let (iso, decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
+        assert!(rack.is_empty());
+    }
+
+    #[test]
+    fn fetch_request_sends_rack_id() {
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: -1,
+                fetch_offset: 0,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, Some("az1")).unwrap();
+        let (_iso, _decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
+        assert_eq!(rack, "az1");
     }
 
     #[test]
@@ -231,6 +262,7 @@ mod tests {
                 last_stable_offset: 1,
                 log_start_offset: 0,
                 aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -268,6 +300,7 @@ mod tests {
                 last_stable_offset: 2,
                 log_start_offset: 0,
                 aborted_transactions: vec![(1000, 1)],
+                preferred_read_replica: -1,
                 records: vec![batch],
             }],
         }];
@@ -292,6 +325,7 @@ mod tests {
                 last_stable_offset: 20,
                 log_start_offset: 10,
                 aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
                 records: vec![],
             }],
         }];
