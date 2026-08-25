@@ -49,6 +49,75 @@ async fn try_send_flush_writes_record() {
     assert_eq!(recs[0].value.as_deref(), Some(&b"try-send"[..]));
 }
 
+#[expect(
+    clippy::panic,
+    reason = "test helper surfaces try_send errors like the in-test loops"
+)]
+async fn try_send_n(producer: &Producer, n: usize, value: &'static [u8]) {
+    let mut queued = 0usize;
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while queued < n {
+        match producer.try_send(ProduceRecord::to("t").value(value)) {
+            Ok(()) => queued += 1,
+            Err(Error::QueueFull) => {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "try_send never left QueueFull"
+                );
+                tokio::task::yield_now().await;
+            }
+            Err(e) => panic!("try_send: {e}"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn try_send_follows_moved_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    const FIRST: usize = 8;
+    const SECOND: usize = 8;
+    const THIRD: usize = 8;
+
+    try_send_n(&producer, FIRST, b"a").await;
+    producer.flush().await.unwrap();
+    assert_eq!(mock.log_len("t", 0), FIRST);
+    let first_nodes = mock.produce_nodes();
+    assert!(
+        !first_nodes.is_empty() && first_nodes.iter().all(|&n| n == 2),
+        "cache populate must produce to leader node 2, got {first_nodes:?}"
+    );
+
+    mock.set_partition_leader("t", 0, 1);
+
+    try_send_n(&producer, SECOND, b"b").await;
+    producer.flush().await.unwrap();
+    assert_eq!(mock.log_len("t", 0), FIRST + SECOND);
+    let after_move = mock.produce_nodes();
+    assert!(
+        after_move.contains(&1),
+        "retry after leader move must land on node 1, got {after_move:?}"
+    );
+
+    let reqs_after_move = mock.produce_request_nodes().len();
+    try_send_n(&producer, THIRD, b"c").await;
+    producer.flush().await.unwrap();
+    assert_eq!(mock.log_len("t", 0), FIRST + SECOND + THIRD);
+    let later: Vec<i32> = mock
+        .produce_request_nodes()
+        .into_iter()
+        .skip(reqs_after_move)
+        .collect();
+    assert!(
+        !later.is_empty() && later.iter().all(|&n| n == 1),
+        "try_send after FastRoute rebuild must hit new leader only, got {later:?}"
+    );
+    producer.close().await.unwrap();
+}
+
 #[tokio::test]
 async fn idempotent_produce_gets_pid_and_offset() {
     let mock = common::Mock::start().await;

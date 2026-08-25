@@ -761,8 +761,21 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
         let mut cluster = shared.cluster.lock();
         cluster.apply(&resp);
     }
+    drop_fast_topic(shared, topic);
     nudge_leaders(shared, topic);
     Ok(n)
+}
+
+fn drop_fast_topic(shared: &Shared, topic: &str) {
+    let mut fast = shared.fast.lock();
+    if fast.as_ref().is_some_and(|f| f.topic.as_ref() == topic) {
+        *fast = None;
+    }
+}
+
+fn invalidate_cached_topic(shared: &Shared, topic: &str) {
+    shared.cluster.lock().invalidate_topic(topic);
+    drop_fast_topic(shared, topic);
 }
 
 fn try_nudge_node(tx: &mpsc::Sender<i32>, node: i32) {
@@ -863,7 +876,7 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         fail_pendings(vec![p], Error::Timeout);
         return;
     }
-    shared.cluster.lock().invalidate_topic(p.rec.topic.as_ref());
+    invalidate_cached_topic(shared, p.rec.topic.as_ref());
     if let Err(e) = partitions_for(shared, &p.rec.topic).await {
         fail_pendings(vec![p], e);
         return;
@@ -1199,7 +1212,7 @@ impl Worker {
                 Some(r) if r.error_code != 0 => {
                     let e = Error::broker(r.error_code, format!("{topic}-{part}"));
                     if e.is_retriable() {
-                        self.shared.cluster.lock().invalidate_topic(topic.as_ref());
+                        invalidate_cached_topic(&self.shared, topic.as_ref());
                         drop(self.shared.meta_tx.try_send(topic.clone()));
                         self.requeue_pendings(pendings);
                     } else {
@@ -1228,7 +1241,7 @@ impl Worker {
         }
     }
 
-    fn requeue(&self, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+    fn requeue(&mut self, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         for (_, _, pendings) in groups {
             self.requeue_pendings(pendings);
         }
@@ -1283,11 +1296,21 @@ impl Worker {
         Ok(())
     }
 
-    fn requeue_pendings(&self, pendings: Vec<Pending>) {
+    fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
         for p in pendings {
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
-            if self.shared.retry_tx.try_send(p).is_err() {
-                let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+            match self.shared.retry_tx.try_send(p) {
+                Ok(()) => {}
+                Err(mpsc::error::TrySendError::Full(p)) => {
+                    let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+                    fail_pendings(vec![p], Error::QueueFull);
+                    self.note_fail(Error::QueueFull);
+                }
+                Err(mpsc::error::TrySendError::Closed(p)) => {
+                    let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+                    fail_pendings(vec![p], Error::Closed);
+                    self.note_fail(Error::Closed);
+                }
             }
         }
     }

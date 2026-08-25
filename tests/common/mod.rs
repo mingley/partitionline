@@ -134,6 +134,7 @@ struct State {
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
     accepted_produce: Vec<i32>,
+    produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
@@ -199,6 +200,7 @@ fn new_state(
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
         accepted_produce: Vec::new(),
+        produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
@@ -498,6 +500,21 @@ impl Mock {
 
     pub fn produce_nodes(&self) -> Vec<i32> {
         self.state.lock().accepted_produce.clone()
+    }
+
+    pub fn produce_request_nodes(&self) -> Vec<i32> {
+        self.state.lock().produce_requests.clone()
+    }
+
+    pub fn set_partition_leader(&self, topic: &str, partition: i32, node_id: i32) {
+        let mut st = self.state.lock();
+        st.partition_leaders
+            .insert((topic.to_string(), partition), node_id);
+        let slot = st
+            .partition_epochs
+            .entry((topic.to_string(), partition))
+            .or_insert(0);
+        *slot += 1;
     }
 
     pub fn fetch_nodes(&self) -> Vec<i32> {
@@ -1248,6 +1265,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let txn_id = decoded.0;
                 let mut parts = Vec::new();
                 let mut st = state.lock();
+                st.produce_requests.push(node_id);
                 let forced = match (st.produce_error, st.produce_error_left) {
                     (Some(_), Some(0)) => {
                         st.produce_error = None;
