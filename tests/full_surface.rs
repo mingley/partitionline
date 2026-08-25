@@ -1125,6 +1125,20 @@ async fn consumer_skips_dead_bootstrap() {
 }
 
 #[tokio::test]
+async fn admin_skips_dead_bootstrap() {
+    let mock = common::Mock::start().await;
+    let dead = common::closed_tcp_addr().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([dead, mock.addr.clone()]))
+        .await
+        .unwrap();
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert!(
+        !cluster.brokers.is_empty(),
+        "admin RPC after bootstrap failover must return brokers, got {cluster:?}"
+    );
+}
+
+#[tokio::test]
 async fn admin_create_then_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
