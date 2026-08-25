@@ -922,6 +922,59 @@ async fn tls_share_group_post_join_heartbeat() {
 }
 
 #[tokio::test]
+async fn sasl_classic_group_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ConsumerGroup::join(ccfg, "sasl-classic", "t")
+        .await
+        .unwrap();
+    common::wait_pred("classic SASL heartbeat", || {
+        mock.heartbeat_total("sasl-classic") >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_kip848_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ConsumerGroup::join_consumer(ccfg, "sasl-848", "t")
+        .await
+        .unwrap();
+    let join_hbs = mock.cg_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("KIP-848 SASL membership heartbeat", || {
+        mock.cg_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_share_group_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ShareGroup::join(ccfg, "sasl-share", "t").await.unwrap();
+    let join_hbs = mock.share_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("share SASL membership heartbeat", || {
+        mock.share_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_create_then_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
