@@ -113,14 +113,13 @@ impl Consumer {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
         }
-        let addr = cfg
-            .bootstrap
-            .first()
-            .ok_or_else(|| Error::protocol("no bootstrap servers"))?
-            .clone();
-        let mut conn =
-            BrokerConn::connect_tls(&addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
-                .await?;
+        let mut conn = BrokerConn::connect_tls_any(
+            &cfg.bootstrap,
+            &cfg.client_id,
+            cfg.connect_timeout,
+            cfg.tls.as_ref(),
+        )
+        .await?;
         let body = conn
             .roundtrip(
                 API_VERSIONS,
@@ -607,6 +606,10 @@ impl Consumer {
         &self.versions
     }
 
+    #[expect(
+        dead_code,
+        reason = "callers that already hold a Consumer use this to hop FindCoordinator"
+    )]
     pub(crate) fn conn_mut(&mut self) -> &mut BrokerConn {
         &mut self.conn
     }

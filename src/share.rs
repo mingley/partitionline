@@ -12,16 +12,12 @@ use std::time::Duration;
 use bytes::Bytes;
 use tokio::sync::watch;
 
-use crate::consumer::{Consumer, ConsumerConfig};
+use crate::consumer::ConsumerConfig;
 use crate::error::{Error, Result};
-use crate::group::{coord_roundtrip, open_coord};
+use crate::group::{coord_roundtrip, discover_coord};
 use crate::net::BrokerConn;
-use crate::protocol::api_keys::{
-    FIND_COORDINATOR, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
-};
-use crate::protocol::group::{
-    decode_find_coordinator_response, encode_find_coordinator_request_typed, COORDINATOR_SHARE,
-};
+use crate::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
+use crate::protocol::group::COORDINATOR_SHARE;
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
     decode_share_group_heartbeat_response, encode_share_acknowledge_request,
@@ -83,25 +79,7 @@ impl ShareGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topic = topic.into();
-        let mut consumer = Consumer::new(cfg.clone()).await?;
-        let timeout = Duration::from_secs(30);
-        let mut coord = open_coord(&cfg, consumer.conn_mut().addr()).await?;
-        let body = coord
-            .roundtrip(
-                FIND_COORDINATOR,
-                2,
-                |buf| encode_find_coordinator_request_typed(buf, &group_id, COORDINATOR_SHARE),
-                timeout,
-            )
-            .await?;
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
-        if err != 0 {
-            return Err(Error::broker(err, "FindCoordinator"));
-        }
-        let coord_addr = format!("{host}:{port}");
-        if coord_addr != coord.addr() {
-            coord = open_coord(&cfg, &coord_addr).await?;
-        }
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_epoch = Arc::new(AtomicI32::new(0));
@@ -199,6 +177,8 @@ impl ShareGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_SHARE,
             SHARE_FETCH,
             1,
             |buf| {
@@ -270,6 +250,8 @@ impl ShareGroup {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
+                &self.group_id,
+                COORDINATOR_SHARE,
                 SHARE_ACKNOWLEDGE,
                 1,
                 |buf| {
@@ -310,6 +292,8 @@ impl ShareGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_SHARE,
             SHARE_GROUP_HEARTBEAT,
             1,
             |buf| encode_share_group_heartbeat_request(buf, &req),
@@ -328,7 +312,6 @@ impl ShareGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
-        let addr = self.coord.addr().to_string();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -342,7 +325,7 @@ impl ShareGroup {
                     }
                     _ = tick.tick() => {
                         if conn.is_none() {
-                            conn = open_coord(&cfg, &addr).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -367,9 +350,13 @@ impl ShareGroup {
                                 if let Ok(resp) =
                                     decode_share_group_heartbeat_response(&mut body.clone())
                                 {
-                                    hb_err.store(resp.error_code, Ordering::SeqCst);
-                                    if resp.member_epoch > 0 {
-                                        hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
+                                    if resp.error_code == crate::error::NOT_COORDINATOR {
+                                        conn = None;
+                                    } else {
+                                        hb_err.store(resp.error_code, Ordering::SeqCst);
+                                        if resp.member_epoch > 0 {
+                                            hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
+                                        }
                                     }
                                 }
                             }
