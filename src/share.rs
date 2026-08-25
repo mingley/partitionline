@@ -14,7 +14,7 @@ use tokio::sync::watch;
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{Error, Result};
-use crate::group::open_coord;
+use crate::group::{coord_roundtrip, open_coord};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{
     FIND_COORDINATOR, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
@@ -46,6 +46,7 @@ pub struct ShareRecord {
 
 pub struct ShareGroup {
     coord: BrokerConn,
+    cfg: ConsumerConfig,
     group_id: String,
     member_id: String,
     member_epoch: i32,
@@ -107,6 +108,7 @@ impl ShareGroup {
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id,
             member_epoch: 0,
@@ -194,27 +196,27 @@ impl ShareGroup {
                 })
                 .collect(),
         }];
-        let body = self
-            .coord
-            .roundtrip(
-                SHARE_FETCH,
-                1,
-                |buf| {
-                    encode_share_fetch_request(
-                        buf,
-                        &self.group_id,
-                        &self.member_id,
-                        self.share_session_epoch,
-                        max_wait,
-                        1,
-                        1_048_576,
-                        16,
-                        &topics,
-                    )
-                },
-                timeout,
-            )
-            .await?;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            SHARE_FETCH,
+            1,
+            |buf| {
+                encode_share_fetch_request(
+                    buf,
+                    &self.group_id,
+                    &self.member_id,
+                    self.share_session_epoch,
+                    max_wait,
+                    1,
+                    1_048_576,
+                    16,
+                    &topics,
+                )
+            },
+            timeout,
+        )
+        .await?;
         if self.share_session_epoch == 0 {
             self.share_session_epoch = 1;
         } else {
@@ -265,29 +267,29 @@ impl ShareGroup {
         }
         let timeout = Duration::from_secs(30);
         for rec in recs {
-            let body = self
-                .coord
-                .roundtrip(
-                    SHARE_ACKNOWLEDGE,
-                    1,
-                    |buf| {
-                        encode_share_acknowledge_request(
-                            buf,
-                            &self.group_id,
-                            &self.member_id,
-                            self.share_session_epoch,
-                            self.topic_id,
-                            rec.partition,
-                            &[AcknowledgementBatch {
-                                first_offset: rec.offset,
-                                last_offset: rec.offset,
-                                types: vec![ack],
-                            }],
-                        )
-                    },
-                    timeout,
-                )
-                .await?;
+            let body = coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
+                SHARE_ACKNOWLEDGE,
+                1,
+                |buf| {
+                    encode_share_acknowledge_request(
+                        buf,
+                        &self.group_id,
+                        &self.member_id,
+                        self.share_session_epoch,
+                        self.topic_id,
+                        rec.partition,
+                        &[AcknowledgementBatch {
+                            first_offset: rec.offset,
+                            last_offset: rec.offset,
+                            types: vec![ack],
+                        }],
+                    )
+                },
+                timeout,
+            )
+            .await?;
             let err = decode_share_acknowledge_response(&mut body.clone())?;
             if err != 0 {
                 return Err(Error::broker(err, "ShareAcknowledge"));
@@ -305,15 +307,15 @@ impl ShareGroup {
             member_epoch: -1,
             subscribed_topic_names: None,
         };
-        let body = self
-            .coord
-            .roundtrip(
-                SHARE_GROUP_HEARTBEAT,
-                1,
-                |buf| encode_share_group_heartbeat_request(buf, &req),
-                timeout,
-            )
-            .await?;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            SHARE_GROUP_HEARTBEAT,
+            1,
+            |buf| encode_share_group_heartbeat_request(buf, &req),
+            timeout,
+        )
+        .await?;
         let resp = decode_share_group_heartbeat_response(&mut body.clone())?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat leave"));
@@ -327,12 +329,9 @@ impl ShareGroup {
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-share-hb", Duration::from_secs(10)).await
-            else {
-                return;
-            };
+            let mut conn: Option<BrokerConn> = None;
             let mut tick = tokio::time::interval(Duration::from_millis(150));
             loop {
                 tokio::select! {
@@ -342,6 +341,12 @@ impl ShareGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if conn.is_none() {
+                            conn = open_coord(&cfg, &addr).await.ok();
+                        }
+                        let Some(c) = conn.as_mut() else {
+                            continue;
+                        };
                         let epoch = hb_epoch.load(Ordering::SeqCst);
                         let req = ShareGroupHeartbeatRequest {
                             group_id: group_id.clone(),
@@ -349,7 +354,7 @@ impl ShareGroup {
                             member_epoch: epoch,
                             subscribed_topic_names: None,
                         };
-                        let res = conn
+                        let res = c
                             .roundtrip(
                                 SHARE_GROUP_HEARTBEAT,
                                 1,
@@ -357,14 +362,19 @@ impl ShareGroup {
                                 Duration::from_secs(10),
                             )
                             .await;
-                        if let Ok(body) = res {
-                            if let Ok(resp) =
-                                decode_share_group_heartbeat_response(&mut body.clone())
-                            {
-                                hb_err.store(resp.error_code, Ordering::SeqCst);
-                                if resp.member_epoch > 0 {
-                                    hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
+                        match res {
+                            Ok(body) => {
+                                if let Ok(resp) =
+                                    decode_share_group_heartbeat_response(&mut body.clone())
+                                {
+                                    hb_err.store(resp.error_code, Ordering::SeqCst);
+                                    if resp.member_epoch > 0 {
+                                        hb_epoch.store(resp.member_epoch, Ordering::SeqCst);
+                                    }
                                 }
+                            }
+                            Err(_) => {
+                                conn = None;
                             }
                         }
                     }

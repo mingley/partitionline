@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
 
 use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord};
@@ -112,6 +113,7 @@ pub fn assign_sticky(
 pub struct ConsumerGroup {
     consumer: Consumer,
     coord: BrokerConn,
+    cfg: ConsumerConfig,
     group_id: String,
     member_id: String,
     generation_id: i32,
@@ -176,6 +178,7 @@ impl ConsumerGroup {
         let mut g = Self {
             consumer,
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
             generation_id: 0,
@@ -225,6 +228,7 @@ impl ConsumerGroup {
         let mut g = Self {
             consumer,
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
             generation_id: 0,
@@ -264,25 +268,25 @@ impl ConsumerGroup {
         let timeout = Duration::from_secs(30);
         let assigned = self.consumer.assignment().to_vec();
         for (topic, part, next) in assigned {
-            let body = self
-                .coord
-                .roundtrip(
-                    OFFSET_COMMIT,
-                    7,
-                    |buf| {
-                        encode_offset_commit_request(
-                            buf,
-                            &self.group_id,
-                            self.generation_id,
-                            &self.member_id,
-                            &topic,
-                            part,
-                            next,
-                        )
-                    },
-                    timeout,
-                )
-                .await?;
+            let body = coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
+                OFFSET_COMMIT,
+                7,
+                |buf| {
+                    encode_offset_commit_request(
+                        buf,
+                        &self.group_id,
+                        self.generation_id,
+                        &self.member_id,
+                        &topic,
+                        part,
+                        next,
+                    )
+                },
+                timeout,
+            )
+            .await?;
             let err = decode_offset_commit_response(&mut body.clone())?;
             if err != 0 {
                 return Err(Error::broker(err, "OffsetCommit"));
@@ -302,15 +306,15 @@ impl ConsumerGroup {
                 subscribed_topic_names: None,
                 topic_partitions: None,
             };
-            let body = self
-                .coord
-                .roundtrip(
-                    CONSUMER_GROUP_HEARTBEAT,
-                    0,
-                    |buf| encode_consumer_group_heartbeat_request(buf, &req),
-                    timeout,
-                )
-                .await?;
+            let body = coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
+                CONSUMER_GROUP_HEARTBEAT,
+                0,
+                |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                timeout,
+            )
+            .await?;
             let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
             if resp.error_code != 0 {
                 return Err(Error::broker(
@@ -320,15 +324,15 @@ impl ConsumerGroup {
             }
             return Ok(());
         }
-        let body = self
-            .coord
-            .roundtrip(
-                LEAVE_GROUP,
-                0,
-                |buf| encode_leave_group_request(buf, &self.group_id, &self.member_id),
-                timeout,
-            )
-            .await?;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            LEAVE_GROUP,
+            0,
+            |buf| encode_leave_group_request(buf, &self.group_id, &self.member_id),
+            timeout,
+        )
+        .await?;
         let err = decode_leave_group_response(&mut body.clone())?;
         if err != 0 {
             return Err(Error::broker(err, "LeaveGroup"));
@@ -340,34 +344,9 @@ impl ConsumerGroup {
         let timeout = Duration::from_secs(30);
         let metadata = encode_subscription(std::slice::from_ref(&self.topic))?;
         if self.member_id.is_empty() {
-            let body = self
-                .coord
-                .roundtrip(
-                    JOIN_GROUP,
-                    5,
-                    |buf| {
-                        encode_join_group_request(
-                            buf,
-                            &self.group_id,
-                            10_000,
-                            "",
-                            "consumer",
-                            &self.protocol,
-                            &metadata,
-                        )
-                    },
-                    timeout,
-                )
-                .await?;
-            let (error, _, _, _, assigned_id, _) = decode_join_group_response(&mut body.clone())?;
-            self.member_id = assigned_id;
-            if error != 0 && error != error::MEMBER_ID_REQUIRED {
-                return Err(Error::broker(error, "JoinGroup"));
-            }
-        }
-        let body = self
-            .coord
-            .roundtrip(
+            let body = coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
                 JOIN_GROUP,
                 5,
                 |buf| {
@@ -375,7 +354,7 @@ impl ConsumerGroup {
                         buf,
                         &self.group_id,
                         10_000,
-                        &self.member_id,
+                        "",
                         "consumer",
                         &self.protocol,
                         &metadata,
@@ -384,6 +363,31 @@ impl ConsumerGroup {
                 timeout,
             )
             .await?;
+            let (error, _, _, _, assigned_id, _) = decode_join_group_response(&mut body.clone())?;
+            self.member_id = assigned_id;
+            if error != 0 && error != error::MEMBER_ID_REQUIRED {
+                return Err(Error::broker(error, "JoinGroup"));
+            }
+        }
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            JOIN_GROUP,
+            5,
+            |buf| {
+                encode_join_group_request(
+                    buf,
+                    &self.group_id,
+                    10_000,
+                    &self.member_id,
+                    "consumer",
+                    &self.protocol,
+                    &metadata,
+                )
+            },
+            timeout,
+        )
+        .await?;
         let (error, generation, protocol, leader, assigned_id, members) =
             decode_join_group_response(&mut body.clone())?;
         if error != 0 {
@@ -408,23 +412,23 @@ impl ConsumerGroup {
         } else {
             Vec::new()
         };
-        let body = self
-            .coord
-            .roundtrip(
-                SYNC_GROUP,
-                3,
-                |buf| {
-                    encode_sync_group_request(
-                        buf,
-                        &self.group_id,
-                        self.generation_id,
-                        &self.member_id,
-                        &assignments,
-                    )
-                },
-                timeout,
-            )
-            .await?;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            SYNC_GROUP,
+            3,
+            |buf| {
+                encode_sync_group_request(
+                    buf,
+                    &self.group_id,
+                    self.generation_id,
+                    &self.member_id,
+                    &assignments,
+                )
+            },
+            timeout,
+        )
+        .await?;
         let (err, assignment) = decode_sync_group_response(&mut body.clone())?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
@@ -433,15 +437,15 @@ impl ConsumerGroup {
         self.consumer.clear_assignment();
         for (t, ps) in assigned {
             for p in ps {
-                let body = self
-                    .coord
-                    .roundtrip(
-                        OFFSET_FETCH,
-                        5,
-                        |buf| encode_offset_fetch_request(buf, &self.group_id, &t, p),
-                        timeout,
-                    )
-                    .await?;
+                let body = coord_roundtrip(
+                    &mut self.coord,
+                    &self.cfg,
+                    OFFSET_FETCH,
+                    5,
+                    |buf| encode_offset_fetch_request(buf, &self.group_id, &t, p),
+                    timeout,
+                )
+                .await?;
                 let committed = decode_offset_fetch_response(&mut body.clone()).unwrap_or(-1);
                 let start = if committed < 0 { 0 } else { committed };
                 self.consumer.assign(t.clone(), p, start).await?;
@@ -462,15 +466,15 @@ impl ConsumerGroup {
             subscribed_topic_names: Some(vec![self.topic.clone()]),
             topic_partitions: None,
         };
-        let body = self
-            .coord
-            .roundtrip(
-                CONSUMER_GROUP_HEARTBEAT,
-                0,
-                |buf| encode_consumer_group_heartbeat_request(buf, &req),
-                timeout,
-            )
-            .await?;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            CONSUMER_GROUP_HEARTBEAT,
+            0,
+            |buf| encode_consumer_group_heartbeat_request(buf, &req),
+            timeout,
+        )
+        .await?;
         let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
@@ -499,12 +503,9 @@ impl ConsumerGroup {
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-hb", Duration::from_secs(10)).await
-            else {
-                return;
-            };
+            let mut conn: Option<BrokerConn> = None;
             let mut tick = tokio::time::interval(Duration::from_millis(150));
             loop {
                 tokio::select! {
@@ -514,6 +515,12 @@ impl ConsumerGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if conn.is_none() {
+                            conn = open_coord(&cfg, &addr).await.ok();
+                        }
+                        let Some(c) = conn.as_mut() else {
+                            continue;
+                        };
                         let timeout = Duration::from_secs(10);
                         let epoch = hb_generation.load(Ordering::SeqCst);
                         let req = ConsumerGroupHeartbeatRequest {
@@ -523,7 +530,7 @@ impl ConsumerGroup {
                             subscribed_topic_names: None,
                             topic_partitions: None,
                         };
-                        let res = conn
+                        let res = c
                             .roundtrip(
                                 CONSUMER_GROUP_HEARTBEAT,
                                 0,
@@ -543,7 +550,7 @@ impl ConsumerGroup {
                                 }
                             }
                             Err(_) => {
-                                hb_err.store(error::REQUEST_TIMED_OUT, Ordering::SeqCst);
+                                conn = None;
                             }
                         }
                     }
@@ -558,12 +565,9 @@ impl ConsumerGroup {
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-hb", Duration::from_secs(10)).await
-            else {
-                return;
-            };
+            let mut conn: Option<BrokerConn> = None;
             let mut tick = tokio::time::interval(Duration::from_millis(150));
             loop {
                 tokio::select! {
@@ -573,11 +577,17 @@ impl ConsumerGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if conn.is_none() {
+                            conn = open_coord(&cfg, &addr).await.ok();
+                        }
+                        let Some(c) = conn.as_mut() else {
+                            continue;
+                        };
                         let timeout = Duration::from_secs(10);
                         let gid = group_id.clone();
                         let mid = member_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
-                        let res = conn
+                        let res = c
                             .roundtrip(
                                 HEARTBEAT,
                                 3,
@@ -592,7 +602,7 @@ impl ConsumerGroup {
                                 }
                             }
                             Err(_) => {
-                                hb_err.store(error::REQUEST_TIMED_OUT, Ordering::SeqCst);
+                                conn = None;
                             }
                         }
                     }
@@ -629,6 +639,39 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
     )
     .await?;
     Ok(conn)
+}
+
+pub(crate) async fn coord_roundtrip(
+    coord: &mut BrokerConn,
+    cfg: &ConsumerConfig,
+    api_key: i16,
+    api_version: i16,
+    encode_body: impl Fn(&mut BytesMut) -> Result<()>,
+    request_timeout: Duration,
+) -> Result<Bytes> {
+    match coord
+        .roundtrip(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            request_timeout,
+        )
+        .await
+    {
+        Ok(body) => Ok(body),
+        Err(e) if e.is_retriable() => {
+            *coord = open_coord(cfg, coord.addr()).await?;
+            coord
+                .roundtrip(
+                    api_key,
+                    api_version,
+                    |buf| encode_body(buf),
+                    request_timeout,
+                )
+                .await
+        }
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]

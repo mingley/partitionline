@@ -871,6 +871,166 @@ async fn share_two_members_same_partition() {
 }
 
 #[tokio::test]
+async fn tls_classic_group_post_join_heartbeat() {
+    let (mock, tls) = common::Mock::start_tls().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.tls = Some(tls);
+    let mut g = ConsumerGroup::join(ccfg, "tls-classic", "t").await.unwrap();
+    common::wait_pred("classic TLS heartbeat", || {
+        mock.heartbeat_total("tls-classic") >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn tls_kip848_post_join_heartbeat() {
+    let (mock, tls) = common::Mock::start_tls().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.tls = Some(tls);
+    let mut g = ConsumerGroup::join_consumer(ccfg, "tls-848", "t")
+        .await
+        .unwrap();
+    let join_hbs = mock.cg_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("KIP-848 TLS membership heartbeat", || {
+        mock.cg_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn tls_share_group_post_join_heartbeat() {
+    let (mock, tls) = common::Mock::start_tls().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.tls = Some(tls);
+    let mut g = ShareGroup::join(ccfg, "tls-share", "t").await.unwrap();
+    let join_hbs = mock.share_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("share TLS membership heartbeat", || {
+        mock.share_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_classic_group_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ConsumerGroup::join(ccfg, "sasl-classic", "t")
+        .await
+        .unwrap();
+    common::wait_pred("classic SASL heartbeat", || {
+        mock.heartbeat_total("sasl-classic") >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_kip848_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ConsumerGroup::join_consumer(ccfg, "sasl-848", "t")
+        .await
+        .unwrap();
+    let join_hbs = mock.cg_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("KIP-848 SASL membership heartbeat", || {
+        mock.cg_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_share_group_post_join_heartbeat() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let mut g = ShareGroup::join(ccfg, "sasl-share", "t").await.unwrap();
+    let join_hbs = mock.share_heartbeat_calls();
+    assert!(join_hbs >= 1);
+    common::wait_pred("share SASL membership heartbeat", || {
+        mock.share_heartbeat_calls() > join_hbs
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn classic_group_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg, "re-classic", "t").await.unwrap();
+    common::wait_pred("classic hb before drop", || {
+        mock.heartbeat_total("re-classic") >= 1
+    })
+    .await;
+    let before = mock.heartbeat_total("re-classic");
+    mock.drop_connections();
+    common::wait_pred("classic hb after reconnect", || {
+        mock.heartbeat_total("re-classic") > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "re-848", "t")
+        .await
+        .unwrap();
+    common::wait_pred("kip848 hb before drop", || mock.cg_heartbeat_calls() >= 2).await;
+    let before = mock.cg_heartbeat_calls();
+    mock.drop_connections();
+    common::wait_pred("kip848 hb after reconnect", || {
+        mock.cg_heartbeat_calls() > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_group_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "re-share", "t").await.unwrap();
+    common::wait_pred("share hb before drop", || mock.share_heartbeat_calls() >= 2).await;
+    let before = mock.share_heartbeat_calls();
+    mock.drop_connections();
+    common::wait_pred("share hb after reconnect", || {
+        mock.share_heartbeat_calls() > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_create_then_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))

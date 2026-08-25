@@ -249,10 +249,46 @@ impl Consumer {
         }
     }
 
+    async fn reconnect_bootstrap(&mut self) -> Result<()> {
+        self.conns.clear();
+        let addr = self.conn.addr().to_string();
+        let mut conn = BrokerConn::connect_tls(
+            &addr,
+            &self.cfg.client_id,
+            self.cfg.connect_timeout,
+            self.cfg.tls.as_ref(),
+        )
+        .await?;
+        let body = conn
+            .roundtrip(
+                API_VERSIONS,
+                3,
+                |buf| encode_api_versions_request(buf, 3, "partitionline", "0.1.0"),
+                self.cfg.request_timeout,
+            )
+            .await?;
+        let resp = decode_api_versions_response(&mut body.clone(), 3)?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ApiVersions"));
+        }
+        sasl::authenticate(
+            &mut conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            self.cfg.request_timeout,
+        )
+        .await?;
+        self.conn = conn;
+        Ok(())
+    }
+
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
+        let body = match self
             .conn
             .roundtrip(
                 METADATA,
@@ -260,7 +296,22 @@ impl Consumer {
                 |buf| encode_metadata_request(buf, version, topics, false),
                 timeout,
             )
-            .await?;
+            .await
+        {
+            Ok(b) => b,
+            Err(e) if e.is_retriable() => {
+                self.reconnect_bootstrap().await?;
+                self.conn
+                    .roundtrip(
+                        METADATA,
+                        version,
+                        |buf| encode_metadata_request(buf, version, topics, false),
+                        timeout,
+                    )
+                    .await?
+            }
+            Err(e) => return Err(e),
+        };
         let md = decode_metadata_response(&mut body.clone(), version)?;
         self.cluster.apply(&md);
         self.metadata = Some(md);

@@ -2,6 +2,7 @@
 #![expect(
     clippy::unwrap_used,
     clippy::expect_used,
+    clippy::panic,
     clippy::indexing_slicing,
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
@@ -95,9 +96,10 @@ use partitionline::protocol::txn::{
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
-use tokio::sync::Notify;
+use tokio::sync::{watch, Notify};
 
 #[derive(Clone)]
 pub struct Mock {
@@ -150,6 +152,7 @@ struct State {
     share_ack_calls: u32,
     share_accepted: HashSet<(String, i32, i64)>,
     share_acquired: HashMap<(String, i32, i64), String>,
+    drop_gen: watch::Sender<u32>,
 }
 
 struct GroupReg {
@@ -212,6 +215,7 @@ fn new_state(
         share_ack_calls: 0,
         share_accepted: HashSet::new(),
         share_acquired: HashMap::new(),
+        drop_gen: watch::channel(0).0,
     }
 }
 
@@ -553,6 +557,25 @@ impl Mock {
             .map(|g| g.hb_total)
             .unwrap_or(0)
     }
+
+    pub fn drop_connections(&self) {
+        let st = self.state.lock();
+        let n = *st.drop_gen.borrow();
+        let _ = st.drop_gen.send(n.saturating_add(1));
+    }
+}
+
+pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        if pred() {
+            return;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            panic!("{what} not observed in 2s");
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
 }
 
 fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
@@ -702,15 +725,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     state: Arc<Mutex<State>>,
 ) {
     let mut buf = BytesMut::new();
+    let mut drop_rx = state.lock().drop_gen.subscribe();
     let mut authed = {
         let st = state.lock();
         st.sasl_user.is_none() && st.scram_user.is_none() && st.oauth_principal.is_none()
     };
     let mut scram_step: Option<(scram::ScramAlg, String, String, String)> = None;
     loop {
-        let mut frame = match read_frame(&mut stream, &mut buf).await {
-            Ok(f) => f,
-            Err(_) => break,
+        let mut frame = tokio::select! {
+            _ = drop_rx.changed() => break,
+            frame = read_frame(&mut stream, &mut buf) => match frame {
+                Ok(f) => f,
+                Err(_) => break,
+            },
         };
         let header = match decode_request_header(&mut frame) {
             Ok(h) => h,
