@@ -33,17 +33,18 @@ use partitionline::protocol::api::{
 };
 use partitionline::protocol::api_keys::{
     API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH, FIND_COORDINATOR,
-    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
-    decode_heartbeat_request, decode_join_group_request, decode_offset_commit_request,
-    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
-    encode_heartbeat_response, encode_join_group_response, encode_offset_commit_response,
-    encode_offset_fetch_response, encode_sync_group_response, JoinMember,
+    decode_heartbeat_request, decode_join_group_request, decode_leave_group_request,
+    decode_offset_commit_request, decode_offset_fetch_request, decode_sync_group_request,
+    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
+    encode_leave_group_response, encode_offset_commit_response, encode_offset_fetch_response,
+    encode_sync_group_response, JoinMember,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
@@ -54,10 +55,11 @@ use partitionline::protocol::sasl::{
     encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
 };
 use partitionline::protocol::scram;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
+use tokio::sync::Notify;
 
 #[derive(Clone)]
 pub struct Mock {
@@ -74,7 +76,6 @@ struct CreatedTopic {
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
-    assignments: HashMap<String, Vec<u8>>,
     committed: HashMap<(String, i32), i64>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
@@ -91,6 +92,16 @@ struct State {
     partition_leaders: HashMap<(String, i32), i32>,
     accepted_produce: Vec<i32>,
     accepted_fetch: Vec<i32>,
+    groups: HashMap<String, GroupReg>,
+    assign_notify: Arc<Notify>,
+}
+
+struct GroupReg {
+    members: BTreeMap<String, Vec<u8>>,
+    generation: i32,
+    joined: HashSet<String>,
+    assignments: HashMap<String, Vec<u8>>,
+    hb_total: u32,
 }
 
 fn new_state(
@@ -109,7 +120,6 @@ fn new_state(
     State {
         log: HashMap::new(),
         next_offset: HashMap::new(),
-        assignments: HashMap::new(),
         committed: HashMap::new(),
         member_seq: 0,
         sasl_user,
@@ -126,6 +136,8 @@ fn new_state(
         partition_leaders: HashMap::new(),
         accepted_produce: Vec::new(),
         accepted_fetch: Vec::new(),
+        groups: HashMap::new(),
+        assign_notify: Arc::new(Notify::new()),
     }
 }
 
@@ -404,6 +416,15 @@ impl Mock {
     pub fn fetch_nodes(&self) -> Vec<i32> {
         self.state.lock().accepted_fetch.clone()
     }
+
+    pub fn heartbeat_total(&self, group_id: &str) -> u32 {
+        self.state
+            .lock()
+            .groups
+            .get(group_id)
+            .map(|g| g.hb_total)
+            .unwrap_or(0)
+    }
 }
 
 fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
@@ -463,6 +484,7 @@ fn versions() -> ApiVersionsResponse {
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
+        (LEAVE_GROUP, 0, 2),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 4),
@@ -950,7 +972,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
             }
             JOIN_GROUP => {
-                let (_g, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
+                let (gid, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 if member_id.is_empty() {
                     st.member_seq += 1;
@@ -958,33 +980,95 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_join_group_response(&mut body, 79, -1, "range", "", &assigned, &[])
                         .unwrap();
                 } else {
+                    let notify = st.assign_notify.clone();
+                    let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
+                        members: BTreeMap::new(),
+                        generation: 0,
+                        joined: HashSet::new(),
+                        assignments: HashMap::new(),
+                        hb_total: 0,
+                    });
+                    let mut bumped = false;
+                    if !g.members.contains_key(&member_id) {
+                        g.generation += 1;
+                        g.joined.clear();
+                        g.assignments.clear();
+                        bumped = true;
+                    }
+                    g.members.insert(member_id.clone(), metadata.clone());
+                    g.joined.insert(member_id.clone());
+                    let leader = g.members.keys().next().cloned().unwrap_or_default();
+                    let members: Vec<JoinMember> = g
+                        .members
+                        .iter()
+                        .map(|(id, md)| JoinMember {
+                            member_id: id.clone(),
+                            metadata: md.clone(),
+                        })
+                        .collect();
+                    let gen = g.generation;
+                    drop(st);
+                    if bumped {
+                        notify.notify_waiters();
+                    }
                     encode_join_group_response(
-                        &mut body,
-                        0,
-                        1,
-                        "range",
-                        &member_id,
-                        &member_id,
-                        &[JoinMember {
-                            member_id: member_id.clone(),
-                            metadata,
-                        }],
+                        &mut body, 0, gen, "range", &leader, &member_id, &members,
                     )
                     .unwrap();
                 }
             }
             SYNC_GROUP => {
-                let (_g, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
-                let mut st = state.lock();
-                for (id, bytes) in assignments {
-                    st.assignments.insert(id, bytes);
+                let (gid, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
+                let notify = state.lock().assign_notify.clone();
+                if !assignments.is_empty() {
+                    let mut st = state.lock();
+                    if let Some(g) = st.groups.get_mut(&gid) {
+                        g.assignments.clear();
+                        for (id, bytes) in assignments {
+                            g.assignments.insert(id, bytes);
+                        }
+                    }
+                    notify.notify_waiters();
                 }
-                let asg = st.assignments.get(&member_id).cloned().unwrap_or_default();
+                let mut asg = Vec::new();
+                for _ in 0..40 {
+                    {
+                        let st = state.lock();
+                        if let Some(g) = st.groups.get(&gid) {
+                            if let Some(b) = g.assignments.get(&member_id) {
+                                asg = b.clone();
+                                break;
+                            }
+                        }
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                }
                 encode_sync_group_response(&mut body, 0, &asg).unwrap();
             }
             HEARTBEAT => {
-                let _ = decode_heartbeat_request(&mut frame);
-                encode_heartbeat_response(&mut body, 0).unwrap();
+                let (gid, _gen, member_id) = decode_heartbeat_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let mut err = 0i16;
+                if let Some(g) = st.groups.get_mut(&gid) {
+                    g.hb_total += 1;
+                    if g.members.contains_key(&member_id) && !g.joined.contains(&member_id) {
+                        err = 27;
+                    }
+                }
+                encode_heartbeat_response(&mut body, err).unwrap();
+            }
+            LEAVE_GROUP => {
+                let (gid, member_id) = decode_leave_group_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if let Some(g) = st.groups.get_mut(&gid) {
+                    g.members.remove(&member_id);
+                    g.joined.remove(&member_id);
+                    g.generation += 1;
+                    g.joined.clear();
+                    g.assignments.clear();
+                }
+                st.assign_notify.notify_waiters();
+                encode_leave_group_response(&mut body, 0).unwrap();
             }
             OFFSET_COMMIT => {
                 let (_g, _m, partition, offset) = decode_offset_commit_request(&mut frame).unwrap();

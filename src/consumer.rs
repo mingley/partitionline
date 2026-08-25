@@ -204,6 +204,24 @@ impl Consumer {
         &self.assigned
     }
 
+    pub(crate) fn clear_assignment(&mut self) {
+        self.assigned.clear();
+    }
+
+    pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
+        let topics = [topic.to_string()];
+        self.refresh_metadata(Some(&topics)).await?;
+        let tmd = self
+            .metadata
+            .as_ref()
+            .and_then(|md| md.topics.iter().find(|t| t.name.as_deref() == Some(topic)))
+            .ok_or_else(|| Error::UnknownTopic(topic.to_string()))?;
+        if tmd.error_code != 0 {
+            return Err(Error::broker(tmd.error_code, topic.to_string()));
+        }
+        Ok(tmd.partitions.iter().map(|p| p.partition_index).collect())
+    }
+
     pub fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
         if let Some(slot) = self
             .assigned

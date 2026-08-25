@@ -328,6 +328,84 @@ async fn sasl_plain_then_produce() {
 }
 
 #[tokio::test]
+async fn two_members_range_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("g4", 4, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join(ccfg.clone(), "rg", "g4").await.unwrap();
+    assert_eq!(a.assignment().len(), 4, "solo member gets every partition");
+
+    let b_join = tokio::spawn({
+        let ccfg = ccfg.clone();
+        async move { ConsumerGroup::join(ccfg, "rg", "g4").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(a.poll().await);
+    let mut b = b_join.await.unwrap().unwrap();
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(a_parts.is_disjoint(&b_parts), "range must not overlap");
+    let union: std::collections::HashSet<i32> = a_parts.union(&b_parts).copied().collect();
+    assert_eq!(union.len(), 4, "union of assignments is all partitions");
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    assert!(
+        mock.heartbeat_total("rg") >= 2,
+        "heartbeat loop must run after join, got {}",
+        mock.heartbeat_total("rg")
+    );
+
+    a.leave().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(b.poll().await);
+    assert_eq!(
+        b.assignment().len(),
+        4,
+        "remaining member covers all partitions after leave"
+    );
+}
+
+#[tokio::test]
+async fn two_members_sticky_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("s4", 4, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join_sticky(ccfg.clone(), "sg", "s4")
+        .await
+        .unwrap();
+    let b_join = tokio::spawn({
+        let ccfg = ccfg.clone();
+        async move { ConsumerGroup::join_sticky(ccfg, "sg", "s4").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(a.poll().await);
+    let b = b_join.await.unwrap().unwrap();
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(a_parts.is_disjoint(&b_parts));
+    assert_eq!(a_parts.len() + b_parts.len(), 4);
+}
+
+#[tokio::test]
 async fn consumer_group_join_fetch_commit() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

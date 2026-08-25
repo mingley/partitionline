@@ -19,7 +19,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 |---|---|---|---|
 | Produce (acks, linger, batches, offsets) | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
 | Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
-| Classic consumer groups (join / sync / heartbeat / commit) | join/sync/commit sketch (every member gets partition 0; no heartbeat loop) | yes | **in progress** |
+| Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
 | SASL PLAIN | yes | yes | **done** |
@@ -60,9 +60,8 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. Classic groups that assign every partition (range then sticky), heartbeat loop, rebalance, LeaveGroup.
-2. ListOffsets / seek / `isolation.level`, then transactions / EOS.
-3. Remaining admin (ACLs, IncrementalAlterConfigs, CreatePartitions). KIP-848, OIDC, fetch-from-follower after those.
+1. ListOffsets / seek / `isolation.level`, then transactions / EOS.
+2. Remaining admin (ACLs, IncrementalAlterConfigs, CreatePartitions). KIP-848, OIDC, fetch-from-follower after those.
 
 ## What “done” on this list does *not* mean
 
