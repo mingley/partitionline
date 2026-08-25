@@ -1,3 +1,5 @@
+/// ACL create/describe/delete codecs.
+pub mod acl;
 /// CreateTopics, DeleteTopics, DescribeConfigs codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.

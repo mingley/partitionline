@@ -447,6 +447,146 @@ pub fn decode_describe_configs_response<B: Buf>(
     Ok(out)
 }
 
+pub const ALTER_CONFIG_SET: i8 = 0;
+pub const ALTER_CONFIG_DELETE: i8 = 1;
+
+pub fn encode_create_partitions_request(
+    buf: &mut BytesMut,
+    topics: &[(String, i32)],
+    timeout_ms: i32,
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for (name, count) in topics {
+        buf::put_classic_nullable_string(buf, Some(name))?;
+        buf.put_i32(*count);
+        buf::put_array_len(buf, false, Some(0))?;
+    }
+    buf.put_i32(timeout_ms);
+    buf.put_u8(u8::from(validate_only));
+    Ok(())
+}
+
+pub fn decode_create_partitions_request<B: Buf>(buf: &mut B) -> Result<(Vec<(String, i32)>, bool)> {
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let count = buf::get_i32(buf)?;
+        let an = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for _ in 0..an {
+            let bn = buf::get_array_len(buf, false)?.unwrap_or(0);
+            for _ in 0..bn {
+                let _ = buf::get_i32(buf)?;
+            }
+        }
+        topics.push((name, count));
+    }
+    let _timeout = buf::get_i32(buf)?;
+    let validate_only = buf.get_u8() != 0;
+    Ok((topics, validate_only))
+}
+
+pub fn encode_create_partitions_response(
+    buf: &mut BytesMut,
+    results: &[TopicResult],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, false, Some(results.len()))?;
+    for r in results {
+        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        buf.put_i16(r.error_code);
+        buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
+    }
+    Ok(())
+}
+
+pub fn decode_create_partitions_response<B: Buf>(buf: &mut B) -> Result<Vec<TopicResult>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_classic_nullable_string(buf)?;
+        out.push(TopicResult {
+            name,
+            error_code,
+            error_message,
+        });
+    }
+    Ok(out)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterConfig {
+    pub name: String,
+    pub op: i8,
+    pub value: Option<String>,
+}
+
+pub fn encode_incremental_alter_configs_request(
+    buf: &mut BytesMut,
+    resource_type: i8,
+    name: &str,
+    configs: &[AlterConfig],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i8(resource_type);
+    buf::put_classic_nullable_string(buf, Some(name))?;
+    buf::put_array_len(buf, false, Some(configs.len()))?;
+    for c in configs {
+        buf::put_classic_nullable_string(buf, Some(&c.name))?;
+        buf.put_i8(c.op);
+        buf::put_classic_nullable_string(buf, c.value.as_deref())?;
+    }
+    buf.put_u8(u8::from(validate_only));
+    Ok(())
+}
+
+pub fn decode_incremental_alter_configs_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(i8, String, Vec<AlterConfig>, bool)> {
+    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let resource_type = buf::get_i8(buf)?;
+    let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let cn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut configs = Vec::with_capacity(cn);
+    for _ in 0..cn {
+        let cname = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let op = buf::get_i8(buf)?;
+        let value = buf::get_classic_nullable_string(buf)?;
+        configs.push(AlterConfig {
+            name: cname,
+            op,
+            value,
+        });
+    }
+    let validate_only = buf.get_u8() != 0;
+    Ok((resource_type, name, configs, validate_only))
+}
+
+pub fn encode_incremental_alter_configs_response(
+    buf: &mut BytesMut,
+    error_code: i16,
+    name: &str,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i16(error_code);
+    buf::put_classic_nullable_string(buf, None)?;
+    buf.put_i8(RESOURCE_TOPIC);
+    buf::put_classic_nullable_string(buf, Some(name))?;
+    Ok(())
+}
+
+pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B) -> Result<i16> {
+    let _th = buf::get_i32(buf)?;
+    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    buf::get_i16(buf)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

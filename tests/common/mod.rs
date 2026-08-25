@@ -20,11 +20,19 @@
 
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
+use partitionline::protocol::acl::{
+    decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
+    encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
+    AclBinding,
+};
 use partitionline::protocol::admin::{
-    decode_create_topics_request, decode_delete_topics_request, decode_describe_configs_request,
-    encode_create_topics_response, encode_delete_topics_response, encode_describe_configs_response,
-    ConfigEntry, DescribeConfigsResult, TopicResult, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_topics_request,
+    decode_describe_configs_request, decode_incremental_alter_configs_request,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_topics_response, encode_describe_configs_response,
+    encode_incremental_alter_configs_response, ConfigEntry, DescribeConfigsResult, TopicResult,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -32,8 +40,9 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS,
-    DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS,
+    CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FETCH,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
     LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE,
     SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
@@ -108,6 +117,7 @@ struct State {
     in_txn: bool,
     txn_pending: Vec<(String, i32, i64)>,
     txn_aborted: HashSet<(String, i32, i64)>,
+    acls: Vec<AclBinding>,
 }
 
 struct GroupReg {
@@ -156,6 +166,7 @@ fn new_state(
         in_txn: false,
         txn_pending: Vec::new(),
         txn_aborted: HashSet::new(),
+        acls: Vec::new(),
     }
 }
 
@@ -512,6 +523,11 @@ fn versions() -> ApiVersionsResponse {
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 4),
         (DELETE_TOPICS, 0, 3),
+        (CREATE_PARTITIONS, 0, 1),
+        (DESCRIBE_ACLS, 0, 1),
+        (CREATE_ACLS, 0, 1),
+        (DELETE_ACLS, 0, 1),
+        (INCREMENTAL_ALTER_CONFIGS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -736,6 +752,81 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                 }
                 encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
+            }
+            CREATE_PARTITIONS => {
+                let (topics, validate_only) = decode_create_partitions_request(&mut frame).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                for (name, count) in topics {
+                    match st.created_topics.get_mut(&name) {
+                        None => results.push(TopicResult {
+                            name,
+                            error_code: 3,
+                            error_message: Some("Unknown topic.".into()),
+                        }),
+                        Some(spec) => {
+                            let mut err = 0i16;
+                            if count < spec.num_partitions {
+                                err = 37;
+                            } else if !validate_only {
+                                spec.num_partitions = count;
+                            }
+                            results.push(TopicResult {
+                                name,
+                                error_code: err,
+                                error_message: None,
+                            });
+                        }
+                    }
+                }
+                encode_create_partitions_response(&mut body, &results).unwrap();
+            }
+            INCREMENTAL_ALTER_CONFIGS => {
+                let (rt, name, configs, validate_only) =
+                    decode_incremental_alter_configs_request(&mut frame).unwrap();
+                let mut err = 0i16;
+                let mut st = state.lock();
+                if rt != RESOURCE_TOPIC {
+                    err = 3;
+                } else if let Some(spec) = st.created_topics.get_mut(&name) {
+                    if !validate_only {
+                        for c in configs {
+                            if c.op == ALTER_CONFIG_DELETE {
+                                spec.configs.remove(&c.name);
+                            } else if c.op == ALTER_CONFIG_SET {
+                                spec.configs.insert(c.name, c.value);
+                            }
+                        }
+                    }
+                } else {
+                    err = 3;
+                }
+                encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
+            }
+            CREATE_ACLS => {
+                let acls = decode_create_acls_request(&mut frame).unwrap();
+                let n = acls.len();
+                state.lock().acls.extend(acls);
+                encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+            }
+            DESCRIBE_ACLS => {
+                let rt = decode_describe_acls_request(&mut frame).unwrap();
+                let st = state.lock();
+                let acls: Vec<AclBinding> = st
+                    .acls
+                    .iter()
+                    .filter(|a| rt == 1 || a.resource_type == rt)
+                    .cloned()
+                    .collect();
+                encode_describe_acls_response(&mut body, &acls).unwrap();
+            }
+            DELETE_ACLS => {
+                let rt = decode_delete_acls_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let before = st.acls.len();
+                st.acls.retain(|a| rt != 1 && a.resource_type != rt);
+                let removed = i32::try_from(before.saturating_sub(st.acls.len())).unwrap_or(0);
+                encode_delete_acls_response(&mut body, removed).unwrap();
             }
             LIST_OFFSETS => {
                 let (iso, topic, partition, timestamp) =

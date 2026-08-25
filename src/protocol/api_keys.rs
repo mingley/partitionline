@@ -23,8 +23,13 @@ pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
 pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 pub const END_TXN: i16 = 26;
 pub const TXN_OFFSET_COMMIT: i16 = 28;
+pub const DESCRIBE_ACLS: i16 = 29;
+pub const CREATE_ACLS: i16 = 30;
+pub const DELETE_ACLS: i16 = 31;
 pub const DESCRIBE_CONFIGS: i16 = 32;
 pub const SASL_AUTHENTICATE: i16 = 36;
+pub const CREATE_PARTITIONS: i16 = 37;
+pub const INCREMENTAL_ALTER_CONFIGS: i16 = 44;
 
 pub fn pick_version(
     broker_min: i16,

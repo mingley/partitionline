@@ -11,9 +11,10 @@
 mod common;
 
 use partitionline::{
-    error, Admin, AdminConfig, Compression, ConfigResource, Consumer, ConsumerConfig,
-    ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP,
+    error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
+    ConsumerConfig, ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
+    ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
+    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -614,6 +615,75 @@ async fn admin_delete_and_describe() {
     assert_eq!(deleted[0].error_code, 0);
     let gone = admin.delete_topics(&["orders"], 10_000).await.unwrap();
     assert_eq!(gone[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+}
+
+#[tokio::test]
+async fn admin_partitions_alter_configs_and_acls() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("acl-t", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let parts = admin
+        .create_partitions(&[("acl-t".into(), 3)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    let err = admin
+        .incremental_alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "acl-t",
+            &[AlterConfig {
+                name: "retention.ms".into(),
+                op: ALTER_CONFIG_SET,
+                value: Some("1000".into()),
+            }],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("acl-t").keys(["retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("1000")
+    );
+    let created = admin
+        .create_acls(&[AclBinding {
+            resource_type: ACL_RESOURCE_TOPIC,
+            resource_name: "acl-t".into(),
+            principal: "User:alice".into(),
+            host: "*".into(),
+            operation: ACL_OPERATION_ALL,
+            permission: ACL_PERMISSION_ALLOW,
+        }])
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0]);
+    let listed = admin.describe_acls(ACL_RESOURCE_TOPIC).await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].principal, "User:alice");
+    assert_eq!(admin.delete_acls(ACL_RESOURCE_TOPIC).await.unwrap(), 0);
+    assert!(admin
+        .describe_acls(ACL_RESOURCE_TOPIC)
+        .await
+        .unwrap()
+        .is_empty());
 }
 
 #[tokio::test]
