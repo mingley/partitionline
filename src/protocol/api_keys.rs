@@ -5,6 +5,7 @@
 
 pub const PRODUCE: i16 = 0;
 pub const FETCH: i16 = 1;
+pub const LIST_OFFSETS: i16 = 2;
 pub const METADATA: i16 = 3;
 pub const OFFSET_COMMIT: i16 = 8;
 pub const OFFSET_FETCH: i16 = 9;

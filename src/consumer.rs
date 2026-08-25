@@ -15,10 +15,11 @@ use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
     encode_metadata_request, ApiVersion, MetadataResponse,
 };
-use crate::protocol::api_keys::{pick_version, API_VERSIONS, FETCH, METADATA};
+use crate::protocol::api_keys::{pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA};
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
 };
+use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
 use crate::protocol::records::Header;
 use crate::protocol::sasl;
 
@@ -36,6 +37,8 @@ pub struct ConsumerConfig {
     pub max_wait_ms: i32,
     pub min_bytes: i32,
     pub max_bytes: i32,
+    /// 0 = READ_UNCOMMITTED, 1 = READ_COMMITTED.
+    pub isolation_level: i8,
 }
 
 impl Default for ConsumerConfig {
@@ -53,6 +56,7 @@ impl Default for ConsumerConfig {
             max_wait_ms: 500,
             min_bytes: 1,
             max_bytes: 1_048_576,
+            isolation_level: 0,
         }
     }
 }
@@ -334,6 +338,7 @@ impl Consumer {
             let max_wait = self.cfg.max_wait_ms;
             let min_bytes = self.cfg.min_bytes;
             let max_bytes = self.cfg.max_bytes;
+            let isolation_level = self.cfg.isolation_level;
             let timeout = self.cfg.request_timeout;
             let fetch_version = self.fetch_version;
             let mut out = Vec::new();
@@ -356,7 +361,16 @@ impl Consumer {
                     conn.roundtrip(
                         FETCH,
                         fetch_version,
-                        |buf| encode_fetch_request(buf, max_wait, min_bytes, max_bytes, &topics),
+                        |buf| {
+                            encode_fetch_request(
+                                buf,
+                                max_wait,
+                                min_bytes,
+                                max_bytes,
+                                isolation_level,
+                                &topics,
+                            )
+                        },
                         timeout,
                     )
                     .await
@@ -430,5 +444,60 @@ impl Consumer {
 
     pub(crate) fn conn_mut(&mut self) -> &mut BrokerConn {
         &mut self.conn
+    }
+
+    /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
+    pub async fn list_offsets(
+        &mut self,
+        topic: impl Into<String>,
+        partition: i32,
+        timestamp: i64,
+    ) -> Result<i64> {
+        let topic = topic.into();
+        if self.cluster.leader(&topic, partition).is_err() {
+            let topics = [topic.clone()];
+            self.refresh_metadata(Some(&topics)).await?;
+        }
+        let (node, _) = self.cluster.leader(&topic, partition)?;
+        self.connect_node(node).await?;
+        let version = self
+            .versions
+            .get(&LIST_OFFSETS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
+        let isolation = self.cfg.isolation_level;
+        let timeout = self.cfg.request_timeout;
+        let conn = self
+            .conns
+            .get_mut(&node)
+            .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+        let body = conn
+            .roundtrip(
+                LIST_OFFSETS,
+                version,
+                |buf| {
+                    encode_list_offsets_request(
+                        buf, version, isolation, &topic, partition, timestamp,
+                    )
+                },
+                timeout,
+            )
+            .await?;
+        let (_err, _ts, offset) = decode_list_offsets_response(&mut body.clone(), version)?;
+        Ok(offset)
+    }
+
+    pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
+        if let Some(slot) = self
+            .assigned
+            .iter_mut()
+            .find(|(t, p, _)| t == topic && *p == partition)
+        {
+            slot.2 = offset;
+            return Ok(());
+        }
+        Err(Error::protocol(format!(
+            "seek of unassigned {topic}-{partition}"
+        )))
     }
 }

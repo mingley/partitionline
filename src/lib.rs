@@ -35,6 +35,7 @@ pub use group::ConsumerGroup;
 pub use net::TlsConfig;
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};
+pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 
 /// Software name sent in ApiVersions v3+.

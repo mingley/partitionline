@@ -12,7 +12,8 @@ mod common;
 
 use partitionline::{
     error, Admin, AdminConfig, Compression, ConfigResource, Consumer, ConsumerConfig,
-    ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
+    ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -159,6 +160,45 @@ async fn tls_produce_fetch() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"tls-hello"[..]));
+}
+
+#[tokio::test]
+async fn list_offsets_seek_and_read_committed_isolation() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for i in 0..3 {
+        let v = format!("v{i}");
+        producer
+            .send(ProduceRecord::to("t").value(v.into_bytes()))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.isolation_level = 1;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let earliest = consumer
+        .list_offsets("t", 0, EARLIEST_TIMESTAMP)
+        .await
+        .unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(earliest, 0);
+    assert_eq!(latest, 3);
+    let by_ts = consumer.list_offsets("t", 0, 0).await.unwrap();
+    assert_eq!(by_ts, 0);
+
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.seek("t", 0, 1).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].offset, 1);
+    assert_eq!(mock.last_fetch_isolation(), 1);
 }
 
 #[tokio::test]

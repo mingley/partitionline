@@ -16,6 +16,8 @@ pub mod header;
 pub mod idem;
 /// Unsecured OAUTHBEARER JWT.
 pub mod oauth;
+/// ListOffsets codecs.
+pub mod offsets;
 /// RecordBatch magic-2 codec.
 pub mod records;
 /// SASL handshake and authenticate.
@@ -33,7 +35,7 @@ pub use api::{
 };
 pub use api_keys::{
     pick_version, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH,
-    FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, METADATA,
+    FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA,
     OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 pub use header::{

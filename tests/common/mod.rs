@@ -33,8 +33,8 @@ use partitionline::protocol::api::{
 };
 use partitionline::protocol::api_keys::{
     API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH, FIND_COORDINATOR,
-    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -49,6 +49,9 @@ use partitionline::protocol::group::{
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::oauth;
+use partitionline::protocol::offsets::{
+    decode_list_offsets_request, encode_list_offsets_response, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+};
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
     decode_sasl_authenticate_request, decode_sasl_handshake_request,
@@ -94,6 +97,7 @@ struct State {
     accepted_fetch: Vec<i32>,
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
+    last_fetch_isolation: i8,
 }
 
 struct GroupReg {
@@ -138,6 +142,7 @@ fn new_state(
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
+        last_fetch_isolation: 0,
     }
 }
 
@@ -417,6 +422,10 @@ impl Mock {
         self.state.lock().accepted_fetch.clone()
     }
 
+    pub fn last_fetch_isolation(&self) -> i8 {
+        self.state.lock().last_fetch_isolation
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -477,6 +486,7 @@ fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
         (FETCH, 4, 11),
+        (LIST_OFFSETS, 0, 5),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
@@ -710,6 +720,36 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
             }
+            LIST_OFFSETS => {
+                let (iso, topic, partition, timestamp) =
+                    decode_list_offsets_request(&mut frame, header.api_version).unwrap();
+                let _ = iso;
+                let st = state.lock();
+                let key = (topic.clone(), partition);
+                let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                let offset = if timestamp == EARLIEST_TIMESTAMP {
+                    log_start
+                } else if timestamp == LATEST_TIMESTAMP {
+                    hw
+                } else {
+                    st.log
+                        .get(&key)
+                        .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
+                        .map(|r| r.offset)
+                        .unwrap_or(-1)
+                };
+                encode_list_offsets_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    0,
+                    timestamp,
+                    offset,
+                )
+                .unwrap();
+            }
             INIT_PRODUCER_ID => {
                 let mut st = state.lock();
                 let pid = st.next_pid;
@@ -798,8 +838,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
-                let req = decode_fetch_request(&mut frame).unwrap();
+                let (iso, req) = decode_fetch_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.last_fetch_isolation = iso;
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
