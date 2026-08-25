@@ -69,6 +69,11 @@ pub struct Record {
     pub headers: Vec<Header>,
 }
 
+/// RecordBatch attributes: transactional.
+pub const ATTR_TRANSACTIONAL: i16 = 0x10;
+/// RecordBatch attributes: control batch (commit/abort marker).
+pub const ATTR_CONTROL: i16 = 0x20;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordBatch {
     pub base_offset: i64,

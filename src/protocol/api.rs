@@ -431,11 +431,13 @@ pub fn encode_produce_request(
 pub fn decode_produce_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, i32, Vec<ProduceTopicData>)> {
+) -> Result<(Option<String>, i16, i32, Vec<ProduceTopicData>)> {
     let flexible = version >= 9;
-    if version >= 3 {
-        let _txn = buf::get_string(buf, flexible)?;
-    }
+    let transactional_id = if version >= 3 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
     let acks = buf::get_i16(buf)?;
     let timeout_ms = buf::get_i32(buf)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -471,7 +473,7 @@ pub fn decode_produce_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((acks, timeout_ms, topics))
+    Ok((transactional_id, acks, timeout_ms, topics))
 }
 
 pub fn encode_produce_response(
@@ -621,6 +623,29 @@ mod tests {
     }
 
     #[test]
+    fn produce_v3_transactional_id_is_not_null() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let topics = vec![ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![ProducePartitionData {
+                index: 0,
+                records: RecordBatch::from_records(vec![rec]),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, 3, Some("tx-1"), -1, 1000, &topics).unwrap();
+        let (txn, acks, _, _) = decode_produce_request(&mut &buf[..], 3).unwrap();
+        assert_eq!(txn.as_deref(), Some("tx-1"));
+        assert_eq!(acks, -1);
+    }
+
+    #[test]
     fn produce_v9_roundtrip() {
         let rec = Record {
             offset: 0,
@@ -638,7 +663,8 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_produce_request(&mut buf, 9, None, 1, 1500, &topics).unwrap();
-        let (acks, timeout, decoded) = decode_produce_request(&mut &buf[..], 9).unwrap();
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut &buf[..], 9).unwrap();
+        assert_eq!(txn, None);
         assert_eq!(acks, 1);
         assert_eq!(timeout, 1500);
         assert_eq!(decoded[0].topic, "t");
@@ -646,6 +672,11 @@ mod tests {
             decoded[0].partitions[0].records.records[0].value.as_deref(),
             Some(&b"hi"[..])
         );
+
+        let mut txn_buf = BytesMut::new();
+        encode_produce_request(&mut txn_buf, 8, Some("tx-1"), 1, 1500, &topics).unwrap();
+        let (txn, _, _, _) = decode_produce_request(&mut &txn_buf[..], 8).unwrap();
+        assert_eq!(txn.as_deref(), Some("tx-1"));
     }
 
     #[test]

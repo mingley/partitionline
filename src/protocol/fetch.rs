@@ -27,7 +27,10 @@ pub struct FetchedPartition {
     pub partition: i32,
     pub error_code: i16,
     pub high_watermark: i64,
+    pub last_stable_offset: i64,
     pub log_start_offset: i64,
+    /// `(producer_id, first_offset)` for aborted transactions (Fetch isolation=1).
+    pub aborted_transactions: Vec<(i64, i64)>,
     pub records: Vec<RecordBatch>,
 }
 
@@ -113,9 +116,13 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
             buf.put_i64(p.high_watermark);
-            buf.put_i64(p.high_watermark); // last_stable_offset
+            buf.put_i64(p.last_stable_offset);
             buf.put_i64(p.log_start_offset);
-            buf.put_i32(-1); // aborted_transactions null
+            buf::put_array_len(buf, false, Some(p.aborted_transactions.len()))?;
+            for (pid, first) in &p.aborted_transactions {
+                buf.put_i64(*pid);
+                buf.put_i64(*first);
+            }
             buf.put_i32(-1); // preferred_read_replica
             let mut recs = BytesMut::new();
             for batch in &p.records {
@@ -145,13 +152,15 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let high_watermark = buf::get_i64(buf)?;
-            let _lso = buf::get_i64(buf)?;
+            let last_stable_offset = buf::get_i64(buf)?;
             let log_start_offset = buf::get_i64(buf)?;
             let aborted_len = buf::get_i32(buf)?;
+            let mut aborted_transactions = Vec::new();
             if aborted_len > 0 {
                 for _ in 0..aborted_len {
-                    let _ = buf::get_i64(buf)?;
-                    let _ = buf::get_i64(buf)?;
+                    let pid = buf::get_i64(buf)?;
+                    let first = buf::get_i64(buf)?;
+                    aborted_transactions.push((pid, first));
                 }
             }
             let _pref = buf::get_i32(buf)?;
@@ -166,7 +175,9 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                 partition,
                 error_code,
                 high_watermark,
+                last_stable_offset,
                 log_start_offset,
+                aborted_transactions,
                 records,
             });
         }
@@ -196,7 +207,9 @@ mod tests {
                 partition: 0,
                 error_code: 0,
                 high_watermark: 1,
+                last_stable_offset: 1,
                 log_start_offset: 0,
+                aborted_transactions: Vec::new(),
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -211,6 +224,40 @@ mod tests {
             Some(&b"f"[..])
         );
         assert_eq!(decoded[0].partitions[0].log_start_offset, 0);
+        assert!(decoded[0].partitions[0].aborted_transactions.is_empty());
+    }
+
+    #[test]
+    fn fetch_response_preserves_aborted_transactions() {
+        let rec = Record {
+            offset: 1,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"aborted")),
+            headers: vec![],
+        };
+        let mut batch = RecordBatch::from_records(vec![rec]);
+        batch.producer_id = 1000;
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 2,
+                last_stable_offset: 2,
+                log_start_offset: 0,
+                aborted_transactions: vec![(1000, 1)],
+                records: vec![batch],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, &topics).unwrap();
+        let decoded = decode_fetch_response(&mut &buf[..]).unwrap();
+        assert_eq!(
+            decoded[0].partitions[0].aborted_transactions,
+            vec![(1000, 1)]
+        );
+        assert_eq!(decoded[0].partitions[0].records[0].producer_id, 1000);
     }
 
     #[test]
@@ -221,7 +268,9 @@ mod tests {
                 partition: 0,
                 error_code: crate::error::OFFSET_OUT_OF_RANGE,
                 high_watermark: 20,
+                last_stable_offset: 20,
                 log_start_offset: 10,
+                aborted_transactions: Vec::new(),
                 records: vec![],
             }],
         }];

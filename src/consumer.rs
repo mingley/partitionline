@@ -405,9 +405,29 @@ impl Consumer {
                             return Err(e);
                         }
                         let mut next = None;
+                        let isolation = self.cfg.isolation_level;
                         for batch in part.records {
+                            if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {
+                                if let Some(last) = batch.records.last() {
+                                    next = Some(last.offset + 1);
+                                }
+                                continue;
+                            }
                             for rec in batch.records {
                                 let offset = rec.offset;
+                                if isolation == 1 && offset >= part.last_stable_offset {
+                                    break;
+                                }
+                                next = Some(offset + 1);
+                                if isolation == 1 {
+                                    let aborted =
+                                        part.aborted_transactions.iter().any(|(pid, first)| {
+                                            batch.producer_id == *pid && offset >= *first
+                                        });
+                                    if aborted {
+                                        continue;
+                                    }
+                                }
                                 out.push(FetchedRecord {
                                     topic: topic.topic.clone(),
                                     partition: part.partition,
@@ -417,7 +437,6 @@ impl Consumer {
                                     value: rec.value,
                                     headers: rec.headers,
                                 });
-                                next = Some(offset + 1);
                             }
                         }
                         if let Some(n) = next {
