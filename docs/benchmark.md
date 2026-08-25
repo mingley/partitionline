@@ -57,6 +57,19 @@ to a 2.15.0 `librdkafka`. Do not use rust-rdkafka as the C bar.
 
 ## Results
 
+### 2026-08-25, three locked runs, no warmup (HW=8e6 both)
+
+Same knobs as above. Broker Docker `apache/kafka:3.9.1` `pl-kafka-bench`. C tool built from librdkafka **v2.15.0** (`9a94e11`).
+
+| Run | partitionline acked rec/s | partitionline HW | librdkafka 2.15.0 C rec/s | C HW |
+|---|---|---|---|---|
+| 1 | 6,171,566 | 8,000,000 | 4,887,890 | 8,000,000 |
+| 2 | 6,252,064 | 8,000,000 | 4,942,033 | 8,000,000 |
+| 3 | 6,030,047 | 8,000,000 | 5,053,529 | 8,000,000 |
+| **median** | **6,171,566** | 8,000,000 | **4,942,033** | 8,000,000 |
+
+partitionline was higher on every run (about 1.25× the C median). Fast-route `try_send` is in this tree.
+
 ### 2026-08-24, three locked runs, no warmup
 
 | Run | partitionline acked rec/s | librdkafka 2.15.0 C rec/s |
