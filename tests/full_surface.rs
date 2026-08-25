@@ -1031,6 +1031,65 @@ async fn share_group_recovers_after_coordinator_drop() {
 }
 
 #[tokio::test]
+async fn classic_group_follows_moved_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg, "mv-classic", "t").await.unwrap();
+    common::wait_pred("classic hb on node 1", || {
+        mock.membership_heartbeats_on(1) >= 1
+    })
+    .await;
+    mock.move_coordinator();
+    common::wait_pred("classic hb on node 2 after move", || {
+        mock.membership_heartbeats_on(2) >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_follows_moved_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "mv-848", "t")
+        .await
+        .unwrap();
+    common::wait_pred("kip848 hb on node 1", || {
+        mock.membership_heartbeats_on(1) >= 1
+    })
+    .await;
+    mock.move_coordinator();
+    common::wait_pred("kip848 hb on node 2 after move", || {
+        mock.membership_heartbeats_on(2) >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_group_follows_moved_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "mv-share", "t").await.unwrap();
+    common::wait_pred("share hb on node 1", || {
+        mock.membership_heartbeats_on(1) >= 1
+    })
+    .await;
+    mock.move_coordinator();
+    common::wait_pred("share hb on node 2 after move", || {
+        mock.membership_heartbeats_on(2) >= 1
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_create_then_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))

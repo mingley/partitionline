@@ -52,6 +52,7 @@ use partitionline::protocol::api_keys::{
     PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
+use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
     ConsumerGroupHeartbeatResponse, TopicPartitions,
@@ -153,6 +154,8 @@ struct State {
     share_accepted: HashSet<(String, i32, i64)>,
     share_acquired: HashMap<(String, i32, i64), String>,
     drop_gen: watch::Sender<u32>,
+    coord_node: i32,
+    hb_by_node: HashMap<i32, u32>,
 }
 
 struct GroupReg {
@@ -216,6 +219,8 @@ fn new_state(
         share_accepted: HashSet::new(),
         share_acquired: HashMap::new(),
         drop_gen: watch::channel(0).0,
+        coord_node: 1,
+        hb_by_node: HashMap::new(),
     }
 }
 
@@ -563,6 +568,27 @@ impl Mock {
         let n = *st.drop_gen.borrow();
         let _ = st.drop_gen.send(n.saturating_add(1));
     }
+
+    pub fn move_coordinator(&self) {
+        let mut st = self.state.lock();
+        if let Some(other) = st
+            .brokers
+            .iter()
+            .map(|b| b.node_id)
+            .find(|id| *id != st.coord_node)
+        {
+            st.coord_node = other;
+        }
+    }
+
+    pub fn membership_heartbeats_on(&self, node_id: i32) -> u32 {
+        self.state
+            .lock()
+            .hb_by_node
+            .get(&node_id)
+            .copied()
+            .unwrap_or(0)
+    }
 }
 
 pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
@@ -719,6 +745,53 @@ fn versions() -> ApiVersionsResponse {
     }
 }
 
+fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
+    const NC: i16 = 16;
+    match api_key {
+        HEARTBEAT => encode_heartbeat_response(body, NC).unwrap(),
+        LEAVE_GROUP => encode_leave_group_response(body, NC).unwrap(),
+        JOIN_GROUP => encode_join_group_response(body, NC, -1, "", "", "", &[]).unwrap(),
+        SYNC_GROUP => encode_sync_group_response(body, NC, &[]).unwrap(),
+        OFFSET_COMMIT => encode_offset_commit_response(body, "t", 0, NC).unwrap(),
+        OFFSET_FETCH => encode_offset_fetch_response(body, "t", 0, -1).unwrap(),
+        CONSUMER_GROUP_HEARTBEAT => encode_consumer_group_heartbeat_response(
+            body,
+            &ConsumerGroupHeartbeatResponse {
+                error_code: NC,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap(),
+        SHARE_GROUP_HEARTBEAT => encode_share_group_heartbeat_response(
+            body,
+            &ShareGroupHeartbeatResponse {
+                error_code: NC,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap(),
+        SHARE_ACKNOWLEDGE => encode_share_acknowledge_response(body, NC).unwrap(),
+        SHARE_FETCH => {
+            body.put_i32(0);
+            body.put_i16(NC);
+            buf::put_compact_string(body, None).unwrap();
+            body.put_i32(0);
+            buf::put_array_len(body, true, Some(0)).unwrap();
+            buf::put_array_len(body, true, Some(0)).unwrap();
+            buf::put_empty_tagged_fields(body);
+        }
+        _ => {}
+    }
+}
+
 async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     mut stream: S,
     node_id: i32,
@@ -759,6 +832,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             header.correlation_id,
         )
         .unwrap();
+        let coord_mismatch = matches!(
+            header.api_key,
+            JOIN_GROUP
+                | SYNC_GROUP
+                | HEARTBEAT
+                | LEAVE_GROUP
+                | OFFSET_COMMIT
+                | OFFSET_FETCH
+                | CONSUMER_GROUP_HEARTBEAT
+                | SHARE_GROUP_HEARTBEAT
+                | SHARE_FETCH
+                | SHARE_ACKNOWLEDGE
+        ) && {
+            let st = state.lock();
+            st.coord_node != node_id
+        };
+        if coord_mismatch {
+            encode_not_coordinator(header.api_key, &mut body);
+            if write_frame(&mut stream, &body).await.is_err() {
+                break;
+            }
+            continue;
+        }
         match header.api_key {
             API_VERSIONS => {
                 encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
@@ -1520,13 +1616,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             FIND_COORDINATOR => {
                 let st = state.lock();
-                let (host, port) = broker_host_port(&st, node_id);
-                encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
+                let coord = st.coord_node;
+                let (host, port) = broker_host_port(&st, coord);
+                encode_find_coordinator_response(&mut body, coord, &host, port).unwrap();
             }
             SHARE_GROUP_HEARTBEAT => {
                 let req = decode_share_group_heartbeat_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
+                let n = st.hb_by_node.entry(node_id).or_insert(0);
+                *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = if req.member_epoch < 0 {
                     (req.member_id, -1, None)
                 } else if req.member_epoch == 0 {
@@ -1625,6 +1724,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                let n = st.hb_by_node.entry(node_id).or_insert(0);
+                *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = if req.member_epoch < 0 {
                     (req.member_id, -1, None)
                 } else if req.member_epoch == 0 {
@@ -1743,6 +1844,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         err = 27;
                     }
                 }
+                let n = st.hb_by_node.entry(node_id).or_insert(0);
+                *n = n.saturating_add(1);
                 encode_heartbeat_response(&mut body, err).unwrap();
             }
             LEAVE_GROUP => {

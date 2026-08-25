@@ -607,6 +607,10 @@ impl Consumer {
         &self.versions
     }
 
+    #[expect(
+        dead_code,
+        reason = "callers that already hold a Consumer use this to hop FindCoordinator"
+    )]
     pub(crate) fn conn_mut(&mut self) -> &mut BrokerConn {
         &mut self.conn
     }

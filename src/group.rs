@@ -27,9 +27,9 @@ use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response, decode_offset_commit_response,
     decode_offset_fetch_response, decode_sync_group_response, encode_assignment,
-    encode_find_coordinator_request, encode_heartbeat_request, encode_join_group_request,
+    encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_sync_group_request,
+    encode_subscription, encode_sync_group_request, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -151,26 +151,8 @@ impl ConsumerGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topic = topic.into();
-        let mut consumer = Consumer::new(cfg.clone()).await?;
-        let timeout = Duration::from_secs(30);
-        let mut coord = open_coord(&cfg, consumer.conn_mut().addr()).await?;
-
-        let body = coord
-            .roundtrip(
-                FIND_COORDINATOR,
-                2,
-                |buf| encode_find_coordinator_request(buf, &group_id),
-                timeout,
-            )
-            .await?;
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
-        if err != 0 {
-            return Err(Error::broker(err, "FindCoordinator"));
-        }
-        let coord_addr = format!("{host}:{port}");
-        if coord_addr != coord.addr() {
-            coord = open_coord(&cfg, &coord_addr).await?;
-        }
+        let consumer = Consumer::new(cfg.clone()).await?;
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
@@ -203,25 +185,8 @@ impl ConsumerGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topic = topic.into();
-        let mut consumer = Consumer::new(cfg.clone()).await?;
-        let timeout = Duration::from_secs(30);
-        let mut coord = open_coord(&cfg, consumer.conn_mut().addr()).await?;
-        let body = coord
-            .roundtrip(
-                FIND_COORDINATOR,
-                2,
-                |buf| encode_find_coordinator_request(buf, &group_id),
-                timeout,
-            )
-            .await?;
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
-        if err != 0 {
-            return Err(Error::broker(err, "FindCoordinator"));
-        }
-        let coord_addr = format!("{host}:{port}");
-        if coord_addr != coord.addr() {
-            coord = open_coord(&cfg, &coord_addr).await?;
-        }
+        let consumer = Consumer::new(cfg.clone()).await?;
+        let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -271,6 +236,8 @@ impl ConsumerGroup {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
                 OFFSET_COMMIT,
                 7,
                 |buf| {
@@ -309,6 +276,8 @@ impl ConsumerGroup {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
                 0,
                 |buf| encode_consumer_group_heartbeat_request(buf, &req),
@@ -327,6 +296,8 @@ impl ConsumerGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
             LEAVE_GROUP,
             0,
             |buf| encode_leave_group_request(buf, &self.group_id, &self.member_id),
@@ -347,6 +318,8 @@ impl ConsumerGroup {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
                 JOIN_GROUP,
                 5,
                 |buf| {
@@ -372,6 +345,8 @@ impl ConsumerGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
             JOIN_GROUP,
             5,
             |buf| {
@@ -415,6 +390,8 @@ impl ConsumerGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
             SYNC_GROUP,
             3,
             |buf| {
@@ -440,6 +417,8 @@ impl ConsumerGroup {
                 let body = coord_roundtrip(
                     &mut self.coord,
                     &self.cfg,
+                    &self.group_id,
+                    COORDINATOR_GROUP,
                     OFFSET_FETCH,
                     5,
                     |buf| encode_offset_fetch_request(buf, &self.group_id, &t, p),
@@ -469,6 +448,8 @@ impl ConsumerGroup {
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
             CONSUMER_GROUP_HEARTBEAT,
             0,
             |buf| encode_consumer_group_heartbeat_request(buf, &req),
@@ -502,7 +483,6 @@ impl ConsumerGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
-        let addr = self.coord.addr().to_string();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -516,7 +496,7 @@ impl ConsumerGroup {
                     }
                     _ = tick.tick() => {
                         if conn.is_none() {
-                            conn = open_coord(&cfg, &addr).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -543,9 +523,13 @@ impl ConsumerGroup {
                                 if let Ok(resp) =
                                     decode_consumer_group_heartbeat_response(&mut body.clone())
                                 {
-                                    hb_err.store(resp.error_code, Ordering::SeqCst);
-                                    if resp.member_epoch > 0 {
-                                        hb_generation.store(resp.member_epoch, Ordering::SeqCst);
+                                    if resp.error_code == error::NOT_COORDINATOR {
+                                        conn = None;
+                                    } else {
+                                        hb_err.store(resp.error_code, Ordering::SeqCst);
+                                        if resp.member_epoch > 0 {
+                                            hb_generation.store(resp.member_epoch, Ordering::SeqCst);
+                                        }
                                     }
                                 }
                             }
@@ -564,7 +548,6 @@ impl ConsumerGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
-        let addr = self.coord.addr().to_string();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -578,7 +561,7 @@ impl ConsumerGroup {
                     }
                     _ = tick.tick() => {
                         if conn.is_none() {
-                            conn = open_coord(&cfg, &addr).await.ok();
+                            conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
                         let Some(c) = conn.as_mut() else {
                             continue;
@@ -598,7 +581,11 @@ impl ConsumerGroup {
                         match res {
                             Ok(body) => {
                                 if let Ok(err) = decode_heartbeat_response(&mut body.clone()) {
-                                    hb_err.store(err, Ordering::SeqCst);
+                                    if err == error::NOT_COORDINATOR {
+                                        conn = None;
+                                    } else {
+                                        hb_err.store(err, Ordering::SeqCst);
+                                    }
                                 }
                             }
                             Err(_) => {
@@ -610,6 +597,64 @@ impl ConsumerGroup {
             }
         }));
     }
+}
+
+fn peek_error_code(body: &[u8]) -> Option<i16> {
+    if body.len() >= 6 {
+        let b4 = *body.get(4)?;
+        let b5 = *body.get(5)?;
+        Some(i16::from_be_bytes([b4, b5]))
+    } else if body.len() >= 2 {
+        let b0 = *body.first()?;
+        let b1 = *body.get(1)?;
+        Some(i16::from_be_bytes([b0, b1]))
+    } else {
+        None
+    }
+}
+
+pub(crate) async fn discover_coord(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
+) -> Result<BrokerConn> {
+    let timeout = cfg.request_timeout;
+    let mut last = Error::protocol("find coordinator failed");
+    for addr in &cfg.bootstrap {
+        let mut hop = match open_coord(cfg, addr).await {
+            Ok(c) => c,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let body = match hop
+            .roundtrip(
+                FIND_COORDINATOR,
+                2,
+                |buf| encode_find_coordinator_request_typed(buf, group_id, key_type),
+                timeout,
+            )
+            .await
+        {
+            Ok(b) => b,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+        if err != 0 {
+            last = Error::broker(err, "FindCoordinator");
+            continue;
+        }
+        let coord_addr = format!("{host}:{port}");
+        if coord_addr == hop.addr() {
+            return Ok(hop);
+        }
+        return open_coord(cfg, &coord_addr).await;
+    }
+    Err(last)
 }
 
 pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
@@ -641,15 +686,21 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
     Ok(conn)
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "coord roundtrip is one wire call plus rediscovery identity"
+)]
 pub(crate) async fn coord_roundtrip(
     coord: &mut BrokerConn,
     cfg: &ConsumerConfig,
+    group_id: &str,
+    key_type: i8,
     api_key: i16,
     api_version: i16,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<Bytes> {
-    match coord
+    let body = match coord
         .roundtrip(
             api_key,
             api_version,
@@ -658,7 +709,7 @@ pub(crate) async fn coord_roundtrip(
         )
         .await
     {
-        Ok(body) => Ok(body),
+        Ok(body) => body,
         Err(e) if e.is_retriable() => {
             *coord = open_coord(cfg, coord.addr()).await?;
             coord
@@ -668,9 +719,22 @@ pub(crate) async fn coord_roundtrip(
                     |buf| encode_body(buf),
                     request_timeout,
                 )
-                .await
+                .await?
         }
-        Err(e) => Err(e),
+        Err(e) => return Err(e),
+    };
+    if peek_error_code(&body) == Some(error::NOT_COORDINATOR) {
+        *coord = discover_coord(cfg, group_id, key_type).await?;
+        coord
+            .roundtrip(
+                api_key,
+                api_version,
+                |buf| encode_body(buf),
+                request_timeout,
+            )
+            .await
+    } else {
+        Ok(body)
     }
 }
 
