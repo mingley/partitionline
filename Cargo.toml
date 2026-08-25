@@ -37,8 +37,8 @@ unused_must_use = "deny"
 unused_results = "deny"
 
 [workspace.lints.clippy]
-# Failure paths must be written down, not inferred. These are the lints that
-# turn "someone should have noticed" into "the build said no".
+# Restriction/pedantic lints (allow by default). Not listed: lints that
+# Clippy already denies, e.g. let_underscore_lock.
 allow_attributes = "deny"
 allow_attributes_without_reason = "deny"
 unwrap_used = "deny"
@@ -50,16 +50,13 @@ unreachable = "deny"
 let_underscore_must_use = "deny"
 let_underscore_future = "deny"
 mem_forget = "deny"
-
 await_holding_lock = "deny"
 await_holding_refcell_ref = "deny"
 await_holding_invalid_type = "deny"
 disallowed_methods = "deny"
 disallowed_types = "deny"
 disallowed_macros = "deny"
-
 indexing_slicing = "deny"
-
 cast_possible_truncation = "deny"
 cast_possible_wrap = "deny"
 cast_sign_loss = "deny"

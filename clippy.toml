@@ -1,8 +1,4 @@
-# Lints that carry the rules the reviewers currently carry.
-#
-# Every entry here should trace back to a real incident or a real review
-# comment. The point is that a lesson learned once becomes a build error for
-# everyone afterwards, instead of a wiki page nobody rereads.
+# Clippy config for restriction lints enabled in Cargo.toml.
 
 allow-unwrap-in-tests = true
 allow-expect-in-tests = true
@@ -11,7 +7,7 @@ allow-indexing-slicing-in-tests = true
 
 too-many-lines-threshold = 200
 
-doc-valid-idents = [ "..", "LinkedIn", "MySQL", "REST.li", "SQLAlchemy", "Updog" ]
+doc-valid-idents = [".."]
 
 # Blocking calls on an async executor.
 disallowed-methods = [
@@ -23,12 +19,12 @@ disallowed-methods = [
 ]
 
 disallowed-types = [
-  { path = "std::sync::Mutex", reason = "Held across await points too easily. Use tokio::sync::Mutex, or parking_lot for short non-async critical sections." },
-  { path = "std::sync::RwLock", reason = "Held across await points too easily. Use tokio::sync::RwLock, or parking_lot for short non-async critical sections." },
+  { path = "std::sync::Mutex", reason = "Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections." },
+  { path = "std::sync::RwLock", reason = "Easy to hold across await. Use tokio::sync::RwLock, or parking_lot for short non-async sections." },
 ]
 
-# These guards encode thread-local enter/exit state. Holding one across an
-# await lets another task run inside the wrong trace context.
+# Enter guards are thread-local. Holding one across await runs later work
+# in the wrong trace context.
 await-holding-invalid-types = [
   { path = "tracing::span::Entered", reason = "Do not hold a tracing span guard across await. Use Future::instrument or #[instrument]." },
   { path = "tracing::span::EnteredSpan", reason = "Do not hold a tracing span guard across await. Use Future::instrument or #[instrument]." },
