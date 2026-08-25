@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, OnceLock};
@@ -139,7 +144,7 @@ struct WorkerHandle {
 struct TopicCache {
     fast_name: OnceLock<Arc<str>>,
     fast_n: AtomicI32,
-    rest: std::sync::Mutex<HashMap<Arc<str>, i32>>,
+    rest: parking_lot::Mutex<HashMap<Arc<str>, i32>>,
 }
 
 impl TopicCache {
@@ -147,7 +152,7 @@ impl TopicCache {
         Self {
             fast_name: OnceLock::new(),
             fast_n: AtomicI32::new(0),
-            rest: std::sync::Mutex::new(HashMap::new()),
+            rest: parking_lot::Mutex::new(HashMap::new()),
         }
     }
 
@@ -160,17 +165,15 @@ impl TopicCache {
                 }
             }
         }
-        self.rest.lock().ok()?.get(topic).copied()
+        self.rest.lock().get(topic).copied()
     }
 
     fn insert(&self, topic: Arc<str>, n: i32) {
         if self.fast_name.get().is_none() {
-            let _ = self.fast_name.set(topic.clone());
+            drop(self.fast_name.set(topic.clone()));
             self.fast_n.store(n, Ordering::Release);
         }
-        if let Ok(mut g) = self.rest.lock() {
-            g.insert(topic, n);
-        }
+        let _replaced = self.rest.lock().insert(topic, n);
     }
 }
 
@@ -183,10 +186,10 @@ struct Shared {
     rr: AtomicI32,
     producer_id: i64,
     producer_epoch: i16,
-    seqs: std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
     meta_tx: mpsc::Sender<Arc<str>>,
-    last_meta_err: std::sync::Mutex<Option<Error>>,
+    last_meta_err: parking_lot::Mutex<Option<Error>>,
 }
 
 #[derive(Clone)]
@@ -208,7 +211,11 @@ impl Producer {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
         }
-        let addr = cfg.bootstrap[0].clone();
+        let addr = cfg
+            .bootstrap
+            .first()
+            .ok_or_else(|| Error::protocol("no bootstrap servers"))?
+            .clone();
         let mut meta =
             BrokerConn::connect_tls(&addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
                 .await?;
@@ -226,7 +233,7 @@ impl Producer {
         }
         let mut versions = HashMap::new();
         for api in &resp.api_keys {
-            versions.insert(api.api_key, api.clone());
+            let _prev = versions.insert(api.api_key, api.clone());
         }
         crate::protocol::sasl::authenticate(
             &mut meta,
@@ -285,13 +292,13 @@ impl Producer {
             rr: AtomicI32::new(0),
             producer_id,
             producer_epoch,
-            seqs: std::sync::Mutex::new(HashMap::new()),
+            seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
             meta_tx,
-            last_meta_err: std::sync::Mutex::new(None),
+            last_meta_err: parking_lot::Mutex::new(None),
         });
         let weak = Arc::downgrade(&shared);
-        tokio::spawn(async move {
+        drop(tokio::spawn(async move {
             let mut meta_rx = meta_rx;
             while let Some(topic) = meta_rx.recv().await {
                 let Some(shared) = weak.upgrade() else {
@@ -303,19 +310,15 @@ impl Producer {
                 }
                 match partitions_for(&shared, &topic).await {
                     Ok(_) => {
-                        if let Ok(mut g) = shared.last_meta_err.lock() {
-                            *g = None;
-                        }
+                        *shared.last_meta_err.lock() = None;
                     }
                     Err(e) => {
-                        if let Ok(mut g) = shared.last_meta_err.lock() {
-                            *g = Some(clone_err(&e));
-                        }
+                        *shared.last_meta_err.lock() = Some(clone_err(&e));
                     }
                 }
                 shared.cache_nudge.notify_waiters();
             }
-        });
+        }));
 
         let mut workers = Vec::with_capacity(n_conn);
         for _ in 0..n_conn {
@@ -332,7 +335,7 @@ impl Producer {
                 in_flight: VecDeque::new(),
                 fail: None,
             };
-            tokio::spawn(worker.run());
+            drop(tokio::spawn(worker.run()));
             workers.push(WorkerHandle {
                 data: data_tx,
                 ctrl: ctrl_tx,
@@ -347,7 +350,7 @@ impl Producer {
     fn worker_for(&self, rec: &ProduceRecord) -> usize {
         let n = self.inner.workers.len();
         match rec.partition {
-            Some(p) => (p as usize) % n,
+            Some(p) => usize::try_from(p).unwrap_or(0) % n,
             None => 0,
         }
     }
@@ -383,7 +386,7 @@ impl Producer {
             if self.apply_cached_partition(rec) {
                 return Ok(());
             }
-            let _ = self.inner.shared.meta_tx.try_send(rec.topic.clone());
+            drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
@@ -400,7 +403,10 @@ impl Producer {
         let mut rec = rec;
         self.ensure_partition(&mut rec).await?;
         let i = self.worker_for(&rec);
-        self.inner.workers[i]
+        self.inner
+            .workers
+            .get(i)
+            .ok_or(Error::Closed)?
             .data
             .send(Pending { rec, tx: Some(tx) })
             .await
@@ -416,11 +422,14 @@ impl Producer {
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         let mut rec = rec;
         if !self.apply_cached_partition(&mut rec) {
-            let _ = self.inner.shared.meta_tx.try_send(rec.topic.clone());
+            drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
             return Err(Error::QueueFull);
         }
         let i = self.worker_for(&rec);
-        self.inner.workers[i]
+        self.inner
+            .workers
+            .get(i)
+            .ok_or(Error::Closed)?
             .data
             .try_send(Pending { rec, tx: None })
             .map_err(|e| match e {
@@ -449,11 +458,11 @@ impl Producer {
         let mut rxs = Vec::with_capacity(self.inner.workers.len());
         for w in &self.inner.workers {
             let (tx, rx) = oneshot::channel();
-            let _ = w.ctrl.send(Ctrl::Close(tx)).await;
+            drop(w.ctrl.send(Ctrl::Close(tx)).await);
             rxs.push(rx);
         }
         for rx in rxs {
-            let _ = rx.await;
+            drop(rx.await);
         }
         Ok(())
     }
@@ -474,7 +483,7 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
-    let _ = conn
+    let _versions = conn
         .roundtrip(
             API_VERSIONS,
             3,
@@ -521,7 +530,7 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
     if t.error_code != 0 {
         return Err(Error::broker(t.error_code, topic.to_string()));
     }
-    let n = t.partitions.len() as i32;
+    let n = crate::protocol::buf::i32_from_usize(t.partitions.len())?;
     if n <= 0 {
         return Err(Error::UnknownTopic(topic.to_string()));
     }
@@ -631,7 +640,7 @@ impl Worker {
                 n = self.data.recv_many(&mut self.pending, room) => {
                     if n == 0 {
                         self.pull_ready();
-                        let _ = self.drain_inflight().await;
+                        self.drain_inflight().await;
                         break;
                     }
                     if linger_start.is_none() {
@@ -642,7 +651,7 @@ impl Worker {
                     match c {
                         None => {
                             self.pull_ready();
-                            let _ = self.drain_inflight().await;
+                            self.drain_inflight().await;
                             break;
                         }
                         Some(c) => {
@@ -651,7 +660,7 @@ impl Worker {
                             self.drain_inflight().await;
                             match c {
                                 Ctrl::Flush(tx) | Ctrl::Close(tx) => {
-                                    let _ = tx.send(self.take_fail());
+                                    drop(tx.send(self.take_fail()));
                                 }
                             }
                             linger_start = None;
@@ -693,7 +702,8 @@ impl Worker {
 
         let version = self.shared.produce_version;
         let acks = self.shared.cfg.acks;
-        let timeout_ms = self.shared.cfg.request_timeout.as_millis() as i32;
+        let timeout_ms =
+            i32::try_from(self.shared.cfg.request_timeout.as_millis()).unwrap_or(i32::MAX);
         let compression = self.shared.cfg.compression;
         self.write_buf.clear();
         self.write_buf.put_i32(0);
@@ -704,7 +714,7 @@ impl Worker {
             version,
             correlation,
             Some(self.conn.client_id()),
-        );
+        )?;
         encode_produce_body(
             &mut self.write_buf,
             version,
@@ -717,8 +727,8 @@ impl Worker {
             self.shared.producer_epoch,
             &self.shared.seqs,
         )?;
-        let size = (self.write_buf.len() - 4) as i32;
-        self.write_buf[0..4].copy_from_slice(&size.to_be_bytes());
+        let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
+        crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size)?;
         self.conn
             .write_all_timeout(&self.write_buf, self.shared.cfg.request_timeout)
             .await?;
@@ -785,11 +795,11 @@ impl Worker {
                 Some(r) => {
                     for (i, p) in pendings.into_iter().enumerate() {
                         if let Some(tx) = p.tx {
-                            let _ = tx.send(Ok(RecordMetadata {
+                            drop(tx.send(Ok(RecordMetadata {
                                 topic: topic.to_string(),
                                 partition: part,
-                                offset: r.base_offset + i as i64,
-                            }));
+                                offset: r.base_offset + i64::try_from(i).unwrap_or(0),
+                            })));
                         }
                     }
                 }
@@ -826,8 +836,11 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     if batch.is_empty() {
         return Vec::new();
     }
-    let topic0 = batch[0].rec.topic.clone();
-    let part0 = batch[0].rec.partition.unwrap_or(-1);
+    let Some(first) = batch.first() else {
+        return Vec::new();
+    };
+    let topic0 = first.rec.topic.clone();
+    let part0 = first.rec.partition.unwrap_or(-1);
     let homogeneous = batch
         .iter()
         .all(|p| p.rec.partition == Some(part0) && p.rec.topic.as_ref() == topic0.as_ref());
@@ -877,7 +890,10 @@ fn estimate(p: &Pending) -> usize {
         + 64
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "produce body needs pid, epoch, seq, and batch knobs together"
+)]
 fn encode_produce_body(
     buf: &mut BytesMut,
     version: i16,
@@ -888,11 +904,11 @@ fn encode_produce_body(
     now: i64,
     producer_id: i64,
     producer_epoch: i16,
-    seqs: &std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
 ) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
-        crate::protocol::buf::put_string(buf, flexible, None);
+        crate::protocol::buf::put_string(buf, flexible, None)?;
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
@@ -902,18 +918,20 @@ fn encode_produce_body(
             topics.push(t);
         }
     }
-    crate::protocol::buf::put_array_len(buf, flexible, Some(topics.len()));
+    crate::protocol::buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
-        crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()));
+        crate::protocol::buf::put_string(buf, flexible, Some(topic.as_ref()))?;
         let idxs: Vec<usize> = groups
             .iter()
             .enumerate()
             .filter(|(_, (t, _, _))| t.as_ref() == topic.as_ref())
             .map(|(i, _)| i)
             .collect();
-        crate::protocol::buf::put_array_len(buf, flexible, Some(idxs.len()));
+        crate::protocol::buf::put_array_len(buf, flexible, Some(idxs.len()))?;
         for i in idxs {
-            let (_, partition, pendings) = &groups[i];
+            let Some((_, partition, pendings)) = groups.get(i) else {
+                continue;
+            };
             buf.put_i32(*partition);
             let base_sequence = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
             if flexible {
@@ -927,7 +945,7 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                 )?;
-                crate::protocol::buf::put_bytes(buf, true, Some(&recs));
+                crate::protocol::buf::put_bytes(buf, true, Some(&recs))?;
                 crate::protocol::buf::put_empty_tagged_fields(buf);
             } else {
                 let len_pos = buf.len();
@@ -941,8 +959,9 @@ fn encode_produce_body(
                     producer_epoch,
                     base_sequence,
                 )?;
-                let rec_len = (buf.len() - len_pos - 4) as i32;
-                buf[len_pos..len_pos + 4].copy_from_slice(&rec_len.to_be_bytes());
+                let rec_len =
+                    crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
+                crate::protocol::buf::patch_i32(buf, len_pos, rec_len)?;
             }
         }
         if flexible {
@@ -956,7 +975,7 @@ fn encode_produce_body(
 }
 
 fn next_sequence(
-    seqs: &std::sync::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     producer_id: i64,
     topic: &Arc<str>,
     partition: i32,
@@ -965,10 +984,10 @@ fn next_sequence(
     if producer_id < 0 {
         return -1;
     }
-    let mut g = seqs.lock().expect("seqs");
+    let mut g = seqs.lock();
     let e = g.entry((topic.clone(), partition)).or_insert(0);
     let base = *e;
-    *e = e.saturating_add(count as i32);
+    *e = e.saturating_add(i32::try_from(count).unwrap_or(i32::MAX));
     base
 }
 
@@ -996,7 +1015,7 @@ fn encode_pendings(
             attributes: compression as i16,
             base_timestamp: base_ts,
             max_timestamp: max_ts,
-            count: pendings.len() as i32,
+            count: crate::protocol::buf::i32_from_usize(pendings.len())?,
             producer_id,
             producer_epoch,
             base_sequence,
@@ -1015,11 +1034,11 @@ fn complete_acks0(groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
     for (topic, part, pendings) in groups {
         for p in pendings {
             if let Some(tx) = p.tx {
-                let _ = tx.send(Ok(RecordMetadata {
+                drop(tx.send(Ok(RecordMetadata {
                     topic: topic.to_string(),
                     partition: part,
                     offset: -1,
-                }));
+                })));
             }
         }
     }
@@ -1040,7 +1059,7 @@ fn fail_groups(groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err: Error) {
 fn fail_pendings(pendings: Vec<Pending>, err: Error) {
     for p in pendings {
         if let Some(tx) = p.tx {
-            let _ = tx.send(Err(clone_err(&err)));
+            drop(tx.send(Err(clone_err(&err))));
         }
     }
 }
@@ -1077,16 +1096,12 @@ fn pick_part(rec: &ProduceRecord, np: i32, rr: &AtomicI32) -> i32 {
 }
 
 fn peek_meta_err(shared: &Shared) -> Option<Error> {
-    shared
-        .last_meta_err
-        .lock()
-        .ok()
-        .and_then(|g| g.as_ref().map(clone_err))
+    shared.last_meta_err.lock().as_ref().map(clone_err)
 }
 
 fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
+        .map(|d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
         .unwrap_or(0)
 }

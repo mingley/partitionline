@@ -1,3 +1,5 @@
+//! Produce then fetch one record.
+
 use std::time::Duration;
 
 use partitionline::{Consumer, ConsumerConfig, ProduceRecord, Producer, ProducerConfig};

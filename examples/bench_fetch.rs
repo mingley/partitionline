@@ -1,3 +1,5 @@
+//! Locked fetch throughput example.
+
 use std::time::Instant;
 
 use partitionline::{Consumer, ConsumerConfig, TlsConfig};
@@ -29,7 +31,7 @@ async fn main() -> partitionline::Result<()> {
     cfg.min_bytes = min_bytes;
     if let Ok(ca_path) = std::env::var("TLS_CA_PEM") {
         let mut tls = TlsConfig {
-            ca_pem: Some(std::fs::read(&ca_path).map_err(|e| {
+            ca_pem: Some(tokio::fs::read(&ca_path).await.map_err(|e| {
                 partitionline::Error::protocol(format!("read TLS_CA_PEM {ca_path}: {e}"))
             })?),
             ..TlsConfig::default()

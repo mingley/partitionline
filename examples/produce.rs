@@ -1,3 +1,5 @@
+//! Produce one record.
+
 use partitionline::{ProduceRecord, Producer, ProducerConfig};
 
 #[tokio::main]

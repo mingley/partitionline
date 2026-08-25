@@ -7,13 +7,21 @@
 
 #![forbid(unsafe_code)]
 
+/// Admin client: CreateTopics, DeleteTopics, DescribeConfigs.
 pub mod admin;
+/// Fetch client with manual partition assignment.
 pub mod consumer;
+/// Kafka and client error types.
 pub mod error;
+/// Consumer-group join / sync / heartbeat / commit.
 pub mod group;
+/// TCP and TLS broker connections.
 pub mod net;
+/// Kafka murmur2 partitioner.
 pub mod partitioner;
+/// Produce client.
 pub mod producer;
+/// Kafka protocol codecs. Public so integration tests can speak the wire.
 pub mod protocol;
 
 pub use admin::{
@@ -28,5 +36,7 @@ pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 
+/// Software name sent in ApiVersions v3+.
 pub const CLIENT_NAME: &str = "partitionline";
+/// Crate version sent in ApiVersions v3+.
 pub const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");

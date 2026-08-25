@@ -1,3 +1,13 @@
+//! Mock-broker coverage of produce, fetch, SASL, admin, and compression.
+#![expect(
+    unused_results,
+    reason = "tests often discard RecordMetadata and admin delete results"
+)]
+#![expect(
+    clippy::let_underscore_must_use,
+    reason = "tests discard admin delete results"
+)]
+
 mod common;
 
 use partitionline::{
@@ -86,7 +96,7 @@ async fn tls_produce_fetch() {
     pcfg.linger = Duration::ZERO;
     pcfg.tls = Some(tls.clone());
     let producer = Producer::new(pcfg).await.unwrap();
-    producer
+    let _md = producer
         .send(ProduceRecord::to("t").value(&b"tls-hello"[..]))
         .await
         .unwrap();

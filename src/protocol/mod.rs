@@ -1,14 +1,26 @@
+/// CreateTopics, DeleteTopics, DescribeConfigs codecs.
 pub mod admin;
+/// ApiVersions, Metadata, Produce codecs.
 pub mod api;
+/// Kafka api key constants and version negotiation.
 pub mod api_keys;
+/// Classic and compact Kafka primitive codecs.
 pub mod buf;
+/// Fetch request and response codecs.
 pub mod fetch;
+/// Consumer group protocol codecs.
 pub mod group;
+/// Request and response headers.
 pub mod header;
+/// InitProducerId codec.
 pub mod idem;
+/// Unsecured OAUTHBEARER JWT.
 pub mod oauth;
+/// RecordBatch magic-2 codec.
 pub mod records;
+/// SASL handshake and authenticate.
 pub mod sasl;
+/// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;
 
 pub use api::{

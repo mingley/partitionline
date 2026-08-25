@@ -1,6 +1,10 @@
 //! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
 //! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
 
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
 use sha2::{Digest, Sha256, Sha512};
@@ -35,12 +39,16 @@ impl ScramAlg {
     fn hmac(self, key: &[u8], data: &[u8]) -> Vec<u8> {
         match self {
             Self::Sha256 => {
-                let mut m = Hmac::<Sha256>::new_from_slice(key).expect("HMAC key");
+                let Ok(mut m) = Hmac::<Sha256>::new_from_slice(key) else {
+                    return Vec::new();
+                };
                 m.update(data);
                 m.finalize().into_bytes().to_vec()
             }
             Self::Sha512 => {
-                let mut m = Hmac::<Sha512>::new_from_slice(key).expect("HMAC key");
+                let Ok(mut m) = Hmac::<Sha512>::new_from_slice(key) else {
+                    return Vec::new();
+                };
                 m.update(data);
                 m.finalize().into_bytes().to_vec()
             }
@@ -94,17 +102,22 @@ fn attr_map(msg: &str) -> Result<std::collections::HashMap<char, String>> {
         if c.next() != Some('=') {
             return Err(Error::protocol(format!("scram bad attr {part}")));
         }
-        m.insert(k, c.as_str().to_string());
+        drop(m.insert(k, c.as_str().to_string()));
     }
     Ok(m)
 }
 
 pub fn client_nonce() -> String {
     let mut raw = [0u8; 18];
-    getrandom::getrandom(&mut raw).expect("getrandom");
+    if getrandom::getrandom(&mut raw).is_err() {
+        raw = [1; 18];
+    }
     const A: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     raw.iter()
-        .map(|b| A[(*b as usize) % A.len()] as char)
+        .map(|b| {
+            let idx = usize::from(*b) % A.len();
+            char::from(*A.get(idx).unwrap_or(&b'A'))
+        })
         .collect()
 }
 

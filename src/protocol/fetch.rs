@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -39,7 +44,7 @@ pub fn encode_fetch_request(
     min_bytes: i32,
     max_bytes: i32,
     topics: &[FetchTopic],
-) {
+) -> crate::error::Result<()> {
     buf.put_i32(-1); // replica_id
     buf.put_i32(max_wait_ms);
     buf.put_i32(min_bytes);
@@ -47,10 +52,10 @@ pub fn encode_fetch_request(
     buf.put_i8(0); // isolation_level READ_UNCOMMITTED
     buf.put_i32(0); // session_id
     buf.put_i32(-1); // session_epoch
-    buf::put_array_len(buf, false, Some(topics.len()));
+    buf::put_array_len(buf, false, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic));
-        buf::put_array_len(buf, false, Some(t.partitions.len()));
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i32(-1); // current_leader_epoch
@@ -59,8 +64,9 @@ pub fn encode_fetch_request(
             buf.put_i32(p.partition_max_bytes);
         }
     }
-    buf::put_array_len(buf, false, Some(0)); // forgotten
-    buf::put_classic_nullable_string(buf, Some("")); // rack_id
+    buf::put_array_len(buf, false, Some(0))?; // forgotten
+    buf::put_classic_nullable_string(buf, Some(""))?; // rack_id
+    Ok(())
 }
 
 pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<Vec<FetchTopic>> {
@@ -98,10 +104,10 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
     buf.put_i32(0); // throttle
     buf.put_i16(0); // top-level error
     buf.put_i32(0); // session_id
-    buf::put_array_len(buf, false, Some(topics.len()));
+    buf::put_array_len(buf, false, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic));
-        buf::put_array_len(buf, false, Some(t.partitions.len()));
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
@@ -115,9 +121,9 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
                 records::encode_record_batch(&mut recs, batch)?;
             }
             if recs.is_empty() {
-                buf::put_classic_bytes(buf, None);
+                buf::put_classic_bytes(buf, None)?;
             } else {
-                buf::put_classic_bytes(buf, Some(&recs));
+                buf::put_classic_bytes(buf, Some(&recs))?;
             }
         }
     }
@@ -248,9 +254,9 @@ mod tests {
         body.put_i32(0);
         body.put_i16(0);
         body.put_i32(0);
-        crate::protocol::buf::put_array_len(&mut body, false, Some(1));
-        crate::protocol::buf::put_classic_nullable_string(&mut body, Some("t"));
-        crate::protocol::buf::put_array_len(&mut body, false, Some(1));
+        crate::protocol::buf::put_array_len(&mut body, false, Some(1)).unwrap();
+        crate::protocol::buf::put_classic_nullable_string(&mut body, Some("t")).unwrap();
+        crate::protocol::buf::put_array_len(&mut body, false, Some(1)).unwrap();
         body.put_i32(0);
         body.put_i16(0);
         body.put_i64(2);
@@ -258,7 +264,7 @@ mod tests {
         body.put_i64(0);
         body.put_i32(-1);
         body.put_i32(-1);
-        crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs));
+        crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs)).unwrap();
         let decoded = decode_fetch_response(&mut &body[..]).unwrap();
         assert_eq!(decoded[0].partitions[0].records.len(), 2);
         assert_eq!(

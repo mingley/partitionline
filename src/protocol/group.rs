@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -5,9 +10,10 @@ use crate::error::Result;
 
 pub const COORDINATOR_GROUP: i8 = 0;
 
-pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) {
-    buf::put_classic_nullable_string(buf, Some(key));
+pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(key))?;
     buf.put_i8(COORDINATOR_GROUP);
+    Ok(())
 }
 
 pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<String> {
@@ -16,13 +22,19 @@ pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<String> {
     Ok(key)
 }
 
-pub fn encode_find_coordinator_response(buf: &mut BytesMut, node_id: i32, host: &str, port: i32) {
+pub fn encode_find_coordinator_response(
+    buf: &mut BytesMut,
+    node_id: i32,
+    host: &str,
+    port: i32,
+) -> crate::error::Result<()> {
     buf.put_i32(0);
     buf.put_i16(0);
-    buf::put_classic_nullable_string(buf, None);
+    buf::put_classic_nullable_string(buf, None)?;
     buf.put_i32(node_id);
-    buf::put_classic_nullable_string(buf, Some(host));
+    buf::put_classic_nullable_string(buf, Some(host))?;
     buf.put_i32(port);
+    Ok(())
 }
 
 pub fn decode_find_coordinator_response<B: Buf>(buf: &mut B) -> Result<(i16, i32, String, i32)> {
@@ -43,16 +55,17 @@ pub fn encode_join_group_request(
     protocol_type: &str,
     protocol_name: &str,
     metadata: &[u8],
-) {
-    buf::put_classic_nullable_string(buf, Some(group_id));
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(session_timeout_ms);
     buf.put_i32(session_timeout_ms); // rebalance timeout
-    buf::put_classic_nullable_string(buf, Some(member_id));
-    buf::put_classic_nullable_string(buf, None); // group_instance_id
-    buf::put_classic_nullable_string(buf, Some(protocol_type));
-    buf::put_array_len(buf, false, Some(1));
-    buf::put_classic_nullable_string(buf, Some(protocol_name));
-    buf::put_classic_bytes(buf, Some(metadata));
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    buf::put_classic_nullable_string(buf, None)?; // group_instance_id
+    buf::put_classic_nullable_string(buf, Some(protocol_type))?;
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(protocol_name))?;
+    buf::put_classic_bytes(buf, Some(metadata))?;
+    Ok(())
 }
 
 pub fn decode_join_group_request<B: Buf>(buf: &mut B) -> Result<(String, String, Vec<u8>)> {
@@ -85,19 +98,20 @@ pub fn encode_join_group_response(
     leader: &str,
     member_id: &str,
     members: &[JoinMember],
-) {
+) -> crate::error::Result<()> {
     buf.put_i32(0);
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(protocol_name));
-    buf::put_classic_nullable_string(buf, Some(leader));
-    buf::put_classic_nullable_string(buf, Some(member_id));
-    buf::put_array_len(buf, false, Some(members.len()));
+    buf::put_classic_nullable_string(buf, Some(protocol_name))?;
+    buf::put_classic_nullable_string(buf, Some(leader))?;
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    buf::put_array_len(buf, false, Some(members.len()))?;
     for m in members {
-        buf::put_classic_nullable_string(buf, Some(&m.member_id));
-        buf::put_classic_nullable_string(buf, None);
-        buf::put_classic_bytes(buf, Some(&m.metadata));
+        buf::put_classic_nullable_string(buf, Some(&m.member_id))?;
+        buf::put_classic_nullable_string(buf, None)?;
+        buf::put_classic_bytes(buf, Some(&m.metadata))?;
     }
+    Ok(())
 }
 
 pub fn decode_join_group_response<B: Buf>(
@@ -129,19 +143,23 @@ pub fn encode_sync_group_request(
     generation_id: i32,
     member_id: &str,
     assignments: &[(String, Vec<u8>)],
-) {
-    buf::put_classic_nullable_string(buf, Some(group_id));
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id));
-    buf::put_classic_nullable_string(buf, None);
-    buf::put_array_len(buf, false, Some(assignments.len()));
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_array_len(buf, false, Some(assignments.len()))?;
     for (id, bytes) in assignments {
-        buf::put_classic_nullable_string(buf, Some(id));
-        buf::put_classic_bytes(buf, Some(bytes));
+        buf::put_classic_nullable_string(buf, Some(id))?;
+        buf::put_classic_bytes(buf, Some(bytes))?;
     }
+    Ok(())
 }
 
-#[allow(clippy::type_complexity)]
+#[expect(
+    clippy::type_complexity,
+    reason = "SyncGroup assignment list is (member_id, bytes) pairs"
+)]
 pub fn decode_sync_group_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, String, Vec<(String, Vec<u8>)>)> {
@@ -159,10 +177,15 @@ pub fn decode_sync_group_request<B: Buf>(
     Ok((group_id, member_id, assignments))
 }
 
-pub fn encode_sync_group_response(buf: &mut BytesMut, error_code: i16, assignment: &[u8]) {
+pub fn encode_sync_group_response(
+    buf: &mut BytesMut,
+    error_code: i16,
+    assignment: &[u8],
+) -> crate::error::Result<()> {
     buf.put_i32(0);
     buf.put_i16(error_code);
-    buf::put_classic_bytes(buf, Some(assignment));
+    buf::put_classic_bytes(buf, Some(assignment))?;
+    Ok(())
 }
 
 pub fn decode_sync_group_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<u8>)> {
@@ -177,11 +200,12 @@ pub fn encode_heartbeat_request(
     group_id: &str,
     generation_id: i32,
     member_id: &str,
-) {
-    buf::put_classic_nullable_string(buf, Some(group_id));
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id));
-    buf::put_classic_nullable_string(buf, None);
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    buf::put_classic_nullable_string(buf, None)?;
+    Ok(())
 }
 
 pub fn decode_heartbeat_request<B: Buf>(buf: &mut B) -> Result<(String, i32, String)> {
@@ -191,9 +215,10 @@ pub fn decode_heartbeat_request<B: Buf>(buf: &mut B) -> Result<(String, i32, Str
     Ok((g, gen, m))
 }
 
-pub fn encode_heartbeat_response(buf: &mut BytesMut, error_code: i16) {
+pub fn encode_heartbeat_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
     buf.put_i32(0);
     buf.put_i16(error_code);
+    Ok(())
 }
 
 pub fn decode_heartbeat_response<B: Buf>(buf: &mut B) -> Result<i16> {
@@ -209,18 +234,19 @@ pub fn encode_offset_commit_request(
     topic: &str,
     partition: i32,
     offset: i64,
-) {
-    buf::put_classic_nullable_string(buf, Some(group_id));
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id));
-    buf::put_classic_nullable_string(buf, None);
-    buf::put_array_len(buf, false, Some(1));
-    buf::put_classic_nullable_string(buf, Some(topic));
-    buf::put_array_len(buf, false, Some(1));
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
     buf.put_i32(partition);
     buf.put_i64(offset);
     buf.put_i32(-1); // leader epoch
-    buf::put_classic_nullable_string(buf, None);
+    buf::put_classic_nullable_string(buf, None)?;
+    Ok(())
 }
 
 pub fn decode_offset_commit_request<B: Buf>(buf: &mut B) -> Result<(String, String, i32, i64)> {
@@ -236,13 +262,19 @@ pub fn decode_offset_commit_request<B: Buf>(buf: &mut B) -> Result<(String, Stri
     Ok((group, member, partition, offset))
 }
 
-pub fn encode_offset_commit_response(buf: &mut BytesMut, topic: &str, partition: i32, error: i16) {
+pub fn encode_offset_commit_response(
+    buf: &mut BytesMut,
+    topic: &str,
+    partition: i32,
+    error: i16,
+) -> crate::error::Result<()> {
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(1));
-    buf::put_classic_nullable_string(buf, Some(topic));
-    buf::put_array_len(buf, false, Some(1));
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
     buf.put_i32(partition);
     buf.put_i16(error);
+    Ok(())
 }
 
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
@@ -259,12 +291,13 @@ pub fn encode_offset_fetch_request(
     group_id: &str,
     topic: &str,
     partition: i32,
-) {
-    buf::put_classic_nullable_string(buf, Some(group_id));
-    buf::put_array_len(buf, false, Some(1));
-    buf::put_classic_nullable_string(buf, Some(topic));
-    buf::put_array_len(buf, false, Some(1));
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
     buf.put_i32(partition);
+    Ok(())
 }
 
 pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, String, i32)> {
@@ -276,17 +309,23 @@ pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, Strin
     Ok((group, topic, partition))
 }
 
-pub fn encode_offset_fetch_response(buf: &mut BytesMut, topic: &str, partition: i32, offset: i64) {
+pub fn encode_offset_fetch_response(
+    buf: &mut BytesMut,
+    topic: &str,
+    partition: i32,
+    offset: i64,
+) -> crate::error::Result<()> {
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(1));
-    buf::put_classic_nullable_string(buf, Some(topic));
-    buf::put_array_len(buf, false, Some(1));
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
     buf.put_i32(partition);
     buf.put_i64(offset);
     buf.put_i32(-1);
-    buf::put_classic_nullable_string(buf, None);
+    buf::put_classic_nullable_string(buf, None)?;
     buf.put_i16(0);
     buf.put_i16(0); // top-level error
+    Ok(())
 }
 
 pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<i64> {
@@ -300,15 +339,15 @@ pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<i64> {
 }
 
 /// ConsumerProtocol subscription v0.
-pub fn encode_subscription(topics: &[String]) -> Vec<u8> {
+pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
     buf.put_i16(0);
-    buf::put_array_len(&mut buf, false, Some(topics.len()));
+    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(&mut buf, Some(t));
+        buf::put_classic_nullable_string(&mut buf, Some(t))?;
     }
     buf.put_i32(-1);
-    buf.to_vec()
+    Ok(buf.to_vec())
 }
 
 pub fn decode_subscription(mut bytes: &[u8]) -> Result<Vec<String>> {
@@ -321,17 +360,17 @@ pub fn decode_subscription(mut bytes: &[u8]) -> Result<Vec<String>> {
     Ok(topics)
 }
 
-pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Vec<u8> {
+pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
     buf.put_i16(0);
-    buf::put_array_len(&mut buf, false, Some(1));
-    buf::put_classic_nullable_string(&mut buf, Some(topic));
-    buf::put_array_len(&mut buf, false, Some(partitions.len()));
+    buf::put_array_len(&mut buf, false, Some(1))?;
+    buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+    buf::put_array_len(&mut buf, false, Some(partitions.len()))?;
     for p in partitions {
         buf.put_i32(*p);
     }
     buf.put_i32(-1);
-    buf.to_vec()
+    Ok(buf.to_vec())
 }
 
 pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
@@ -356,9 +395,9 @@ mod tests {
 
     #[test]
     fn subscription_assignment_roundtrip() {
-        let sub = encode_subscription(&["t".into()]);
+        let sub = encode_subscription(&["t".into()]).unwrap();
         assert_eq!(decode_subscription(&sub).unwrap(), vec!["t".to_string()]);
-        let asg = encode_assignment("t", &[0, 1]);
+        let asg = encode_assignment("t", &[0, 1]).unwrap();
         let decoded = decode_assignment(&asg).unwrap();
         assert_eq!(decoded[0].0, "t");
         assert_eq!(decoded[0].1, vec![0, 1]);
