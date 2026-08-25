@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{API_VERSIONS, METADATA, PRODUCE};
@@ -43,24 +48,28 @@ pub fn encode_request_header_fields(
     api_version: i16,
     correlation_id: i32,
     client_id: Option<&str>,
-) {
+) -> crate::error::Result<()> {
     buf.put_i16(api_key);
     buf.put_i16(api_version);
     buf.put_i32(correlation_id);
-    buf::put_classic_nullable_string(buf, client_id);
+    buf::put_classic_nullable_string(buf, client_id)?;
     if request_header_version(api_key, api_version) >= 2 {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
-pub fn encode_request_header(buf: &mut BytesMut, header: &RequestHeader) {
+pub fn encode_request_header(
+    buf: &mut BytesMut,
+    header: &RequestHeader,
+) -> crate::error::Result<()> {
     encode_request_header_fields(
         buf,
         header.api_key,
         header.api_version,
         header.correlation_id,
         header.client_id.as_deref(),
-    );
+    )
 }
 
 pub fn decode_request_header<B: Buf>(buf: &mut B) -> Result<RequestHeader> {
@@ -84,11 +93,12 @@ pub fn encode_response_header(
     api_key: i16,
     api_version: i16,
     correlation_id: i32,
-) {
+) -> crate::error::Result<()> {
     buf.put_i32(correlation_id);
     if response_header_version(api_key, api_version) >= 1 {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 pub fn decode_response_header<B: Buf>(
@@ -123,7 +133,7 @@ mod tests {
             client_id: Some("pl".into()),
         };
         let mut buf = BytesMut::new();
-        encode_request_header(&mut buf, &header);
+        encode_request_header(&mut buf, &header).unwrap();
         // api_key, version, correlation, classic string "pl", tagged count 0
         let mut cur = &buf[..];
         let decoded = decode_request_header(&mut cur).unwrap();

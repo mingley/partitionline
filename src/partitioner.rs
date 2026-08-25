@@ -1,38 +1,43 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 /// Kafka-compatible Murmur2 (seed 0x9747b28c), matching
 /// `org.apache.kafka.common.utils.Utils.murmur2`.
 pub fn murmur2(data: &[u8]) -> i32 {
     const M: u32 = 0x5bd1e995;
     const R: u32 = 24;
     const SEED: u32 = 0x9747b28c;
-    let mut h = SEED ^ data.len() as u32;
-    let chunks = data.len() / 4;
-    for i in 0..chunks {
-        let i4 = i * 4;
-        let mut k = u32::from(data[i4])
-            | (u32::from(data[i4 + 1]) << 8)
-            | (u32::from(data[i4 + 2]) << 16)
-            | (u32::from(data[i4 + 3]) << 24);
+    let len = u32::try_from(data.len()).unwrap_or(u32::MAX);
+    let mut h = SEED ^ len;
+    let (chunks, rest) = data.split_at(data.len() / 4 * 4);
+    for chunk in chunks.chunks_exact(4) {
+        let &[a, b, c, d] = chunk else {
+            continue;
+        };
+        let mut k =
+            u32::from(a) | (u32::from(b) << 8) | (u32::from(c) << 16) | (u32::from(d) << 24);
         k = k.wrapping_mul(M);
         k ^= k >> R;
         k = k.wrapping_mul(M);
         h = h.wrapping_mul(M);
         h ^= k;
     }
-    let rest = &data[chunks * 4..];
-    match rest.len() {
-        3 => {
-            h ^= u32::from(rest[2]) << 16;
-            h ^= u32::from(rest[1]) << 8;
-            h ^= u32::from(rest[0]);
+    match *rest {
+        [a, b, c] => {
+            h ^= u32::from(c) << 16;
+            h ^= u32::from(b) << 8;
+            h ^= u32::from(a);
             h = h.wrapping_mul(M);
         }
-        2 => {
-            h ^= u32::from(rest[1]) << 8;
-            h ^= u32::from(rest[0]);
+        [a, b] => {
+            h ^= u32::from(b) << 8;
+            h ^= u32::from(a);
             h = h.wrapping_mul(M);
         }
-        1 => {
-            h ^= u32::from(rest[0]);
+        [a] => {
+            h ^= u32::from(a);
             h = h.wrapping_mul(M);
         }
         _ => {}
@@ -40,7 +45,7 @@ pub fn murmur2(data: &[u8]) -> i32 {
     h ^= h >> 13;
     h = h.wrapping_mul(M);
     h ^= h >> 15;
-    h as i32
+    i32::from_ne_bytes(h.to_ne_bytes())
 }
 
 pub fn to_positive(n: i32) -> i32 {

@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 use std::fmt;
 use std::io;
 

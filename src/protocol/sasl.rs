@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use std::time::Duration;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -7,20 +12,29 @@ use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
 
-pub fn encode_sasl_handshake_request(buf: &mut BytesMut, mechanism: &str) {
-    buf::put_classic_nullable_string(buf, Some(mechanism));
+pub fn encode_sasl_handshake_request(
+    buf: &mut BytesMut,
+    mechanism: &str,
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(mechanism))?;
+    Ok(())
 }
 
 pub fn decode_sasl_handshake_request<B: Buf>(buf: &mut B) -> Result<String> {
     Ok(buf::get_classic_nullable_string(buf)?.unwrap_or_default())
 }
 
-pub fn encode_sasl_handshake_response(buf: &mut BytesMut, error_code: i16, mechanisms: &[&str]) {
+pub fn encode_sasl_handshake_response(
+    buf: &mut BytesMut,
+    error_code: i16,
+    mechanisms: &[&str],
+) -> crate::error::Result<()> {
     buf.put_i16(error_code);
-    buf::put_array_len(buf, false, Some(mechanisms.len()));
+    buf::put_array_len(buf, false, Some(mechanisms.len()))?;
     for m in mechanisms {
-        buf::put_classic_nullable_string(buf, Some(m));
+        buf::put_classic_nullable_string(buf, Some(m))?;
     }
+    Ok(())
 }
 
 pub fn decode_sasl_handshake_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<String>)> {
@@ -33,8 +47,12 @@ pub fn decode_sasl_handshake_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<S
     Ok((error_code, mechs))
 }
 
-pub fn encode_sasl_authenticate_request(buf: &mut BytesMut, auth_bytes: &[u8]) {
-    buf::put_classic_bytes(buf, Some(auth_bytes));
+pub fn encode_sasl_authenticate_request(
+    buf: &mut BytesMut,
+    auth_bytes: &[u8],
+) -> crate::error::Result<()> {
+    buf::put_classic_bytes(buf, Some(auth_bytes))?;
+    Ok(())
 }
 
 pub fn decode_sasl_authenticate_request<B: Buf>(buf: &mut B) -> Result<Vec<u8>> {
@@ -46,11 +64,12 @@ pub fn encode_sasl_authenticate_response(
     error_code: i16,
     message: Option<&str>,
     auth_bytes: &[u8],
-) {
+) -> crate::error::Result<()> {
     buf.put_i16(error_code);
-    buf::put_classic_nullable_string(buf, message);
-    buf::put_classic_bytes(buf, Some(auth_bytes));
+    buf::put_classic_nullable_string(buf, message)?;
+    buf::put_classic_bytes(buf, Some(auth_bytes))?;
     buf.put_i64(0);
+    Ok(())
 }
 
 pub fn decode_sasl_authenticate_response<B: Buf>(
@@ -253,14 +272,15 @@ pub async fn authenticate_oauthbearer(
     // error JSON; send a final SOH then fail.
     if !bytes.is_empty() {
         let err = String::from_utf8_lossy(&bytes).into_owned();
-        let _ = conn
-            .roundtrip(
+        drop(
+            conn.roundtrip(
                 SASL_AUTHENTICATE,
                 1,
                 |buf| encode_sasl_authenticate_request(buf, &[0x01]),
                 timeout,
             )
-            .await;
+            .await,
+        );
         return Err(Error::protocol(format!("oauthbearer: {err}")));
     }
     Ok(())
@@ -319,13 +339,13 @@ mod tests {
     #[test]
     fn handshake_roundtrip() {
         let mut buf = BytesMut::new();
-        encode_sasl_handshake_request(&mut buf, "PLAIN");
+        encode_sasl_handshake_request(&mut buf, "PLAIN").unwrap();
         assert_eq!(
             decode_sasl_handshake_request(&mut &buf[..]).unwrap(),
             "PLAIN"
         );
         let mut resp = BytesMut::new();
-        encode_sasl_handshake_response(&mut resp, 0, &["PLAIN"]);
+        encode_sasl_handshake_response(&mut resp, 0, &["PLAIN"]).unwrap();
         let (c, m) = decode_sasl_handshake_response(&mut &resp[..]).unwrap();
         assert_eq!(c, 0);
         assert_eq!(m, vec!["PLAIN".to_string()]);
