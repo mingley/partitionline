@@ -1,3 +1,9 @@
+//! Produce one record against the mock broker.
+#![expect(
+    dead_code,
+    reason = "tests/common mock helpers are shared; this file uses a subset"
+)]
+
 mod common;
 
 use partitionline::{ProduceRecord, Producer, ProducerConfig};

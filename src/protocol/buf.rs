@@ -1,6 +1,77 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use crate::error::{Error, Result};
+
+pub fn i16_from_usize(n: usize) -> Result<i16> {
+    i16::try_from(n).map_err(|_| Error::protocol("length exceeds i16"))
+}
+
+pub fn i32_from_usize(n: usize) -> Result<i32> {
+    i32::try_from(n).map_err(|_| Error::protocol("length exceeds i32"))
+}
+
+pub fn u32_from_usize(n: usize) -> Result<u32> {
+    u32::try_from(n).map_err(|_| Error::protocol("length exceeds u32"))
+}
+
+pub fn i64_from_usize(n: usize) -> Result<i64> {
+    i64::try_from(n).map_err(|_| Error::protocol("length exceeds i64"))
+}
+
+pub fn usize_from_i16(n: i16) -> Result<usize> {
+    usize::try_from(n).map_err(|_| Error::protocol("negative length"))
+}
+
+pub fn usize_from_i32(n: i32) -> Result<usize> {
+    usize::try_from(n).map_err(|_| Error::protocol("negative length"))
+}
+
+pub fn usize_from_u32(n: u32) -> Result<usize> {
+    usize::try_from(n).map_err(|_| Error::protocol("length exceeds usize"))
+}
+
+fn zigzag_i32(v: i32) -> u32 {
+    u32::from_ne_bytes((v.wrapping_shl(1) ^ (v >> 31)).to_ne_bytes())
+}
+
+fn unzigzag_i32(n: u32) -> i32 {
+    let hi = i32::from_ne_bytes((n >> 1).to_ne_bytes());
+    let lo = if n & 1 == 0 { 0 } else { -1 };
+    hi ^ lo
+}
+
+fn zigzag_i64(v: i64) -> u64 {
+    u64::from_ne_bytes((v.wrapping_shl(1) ^ (v >> 63)).to_ne_bytes())
+}
+
+fn unzigzag_i64(n: u64) -> i64 {
+    let hi = i64::from_ne_bytes((n >> 1).to_ne_bytes());
+    let lo = if n & 1 == 0 { 0 } else { -1 };
+    hi ^ lo
+}
+
+fn varint_byte_u32(v: u32, more: bool) -> u8 {
+    let low = u8::try_from(v & 0x7f).unwrap_or(0);
+    if more {
+        low | 0x80
+    } else {
+        low
+    }
+}
+
+fn varint_byte_u64(v: u64, more: bool) -> u8 {
+    let low = u8::try_from(v & 0x7f).unwrap_or(0);
+    if more {
+        low | 0x80
+    } else {
+        low
+    }
+}
 
 pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     if buf.remaining() < n {
@@ -32,19 +103,19 @@ pub fn unsigned_varlong_size(mut v: u64) -> usize {
 }
 
 pub fn varint_size(v: i32) -> usize {
-    unsigned_varint_size(((v << 1) ^ (v >> 31)) as u32)
+    unsigned_varint_size(zigzag_i32(v))
 }
 
 pub fn varlong_size(v: i64) -> usize {
-    unsigned_varlong_size(((v << 1) ^ (v >> 63)) as u64)
+    unsigned_varlong_size(zigzag_i64(v))
 }
 
 pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
     while v >= 0x80 {
-        buf.put_u8((v as u8) | 0x80);
+        buf.put_u8(varint_byte_u32(v, true));
         v >>= 7;
     }
-    buf.put_u8(v as u8);
+    buf.put_u8(varint_byte_u32(v, false));
 }
 
 pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
@@ -61,20 +132,19 @@ pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
 }
 
 pub fn put_varint(buf: &mut BytesMut, v: i32) {
-    put_unsigned_varint(buf, ((v << 1) ^ (v >> 31)) as u32);
+    put_unsigned_varint(buf, zigzag_i32(v));
 }
 
 pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
-    let n = get_unsigned_varint(buf)?;
-    Ok(((n >> 1) as i32) ^ -((n & 1) as i32))
+    Ok(unzigzag_i32(get_unsigned_varint(buf)?))
 }
 
 pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
     while v >= 0x80 {
-        buf.put_u8((v as u8) | 0x80);
+        buf.put_u8(varint_byte_u64(v, true));
         v >>= 7;
     }
-    buf.put_u8(v as u8);
+    buf.put_u8(varint_byte_u64(v, false));
 }
 
 pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
@@ -91,22 +161,22 @@ pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
 }
 
 pub fn put_varlong(buf: &mut BytesMut, v: i64) {
-    put_unsigned_varlong(buf, ((v << 1) ^ (v >> 63)) as u64);
+    put_unsigned_varlong(buf, zigzag_i64(v));
 }
 
 pub fn get_varlong<B: Buf>(buf: &mut B) -> Result<i64> {
-    let n = get_unsigned_varlong(buf)?;
-    Ok(((n >> 1) as i64) ^ -((n & 1) as i64))
+    Ok(unzigzag_i64(get_unsigned_varlong(buf)?))
 }
 
-pub fn put_classic_nullable_string(buf: &mut BytesMut, s: Option<&str>) {
+pub fn put_classic_nullable_string(buf: &mut BytesMut, s: Option<&str>) -> Result<()> {
     match s {
         None => buf.put_i16(-1),
         Some(s) => {
-            buf.put_i16(s.len() as i16);
+            buf.put_i16(i16_from_usize(s.len())?);
             buf.extend_from_slice(s.as_bytes());
         }
     }
+    Ok(())
 }
 
 pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
@@ -115,7 +185,7 @@ pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>
     if len < 0 {
         return Ok(None);
     }
-    let len = len as usize;
+    let len = usize_from_i16(len)?;
     need(buf, len)?;
     let mut bytes = vec![0u8; len];
     buf.copy_to_slice(&mut bytes);
@@ -124,14 +194,18 @@ pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>
         .map_err(|e| Error::protocol(e.to_string()))
 }
 
-pub fn put_compact_string(buf: &mut BytesMut, s: Option<&str>) {
+pub fn put_compact_string(buf: &mut BytesMut, s: Option<&str>) -> Result<()> {
     match s {
         None => put_unsigned_varint(buf, 0),
         Some(s) => {
-            put_unsigned_varint(buf, s.len() as u32 + 1);
+            let n = u32_from_usize(s.len())?
+                .checked_add(1)
+                .ok_or_else(|| Error::protocol("compact string overflow"))?;
+            put_unsigned_varint(buf, n);
             buf.extend_from_slice(s.as_bytes());
         }
     }
+    Ok(())
 }
 
 pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
@@ -139,7 +213,7 @@ pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
     if n == 0 {
         return Ok(None);
     }
-    let len = (n - 1) as usize;
+    let len = usize_from_u32(n - 1)?;
     need(buf, len)?;
     let mut bytes = vec![0u8; len];
     buf.copy_to_slice(&mut bytes);
@@ -148,12 +222,13 @@ pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
         .map_err(|e| Error::protocol(e.to_string()))
 }
 
-pub fn put_string(buf: &mut BytesMut, flexible: bool, s: Option<&str>) {
+pub fn put_string(buf: &mut BytesMut, flexible: bool, s: Option<&str>) -> Result<()> {
     if flexible {
-        put_compact_string(buf, s);
+        put_compact_string(buf, s)?;
     } else {
-        put_classic_nullable_string(buf, s);
+        put_classic_nullable_string(buf, s)?;
     }
+    Ok(())
 }
 
 pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>> {
@@ -164,14 +239,18 @@ pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>>
     }
 }
 
-pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) {
+pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
     match bytes {
         None => put_unsigned_varint(buf, 0),
         Some(b) => {
-            put_unsigned_varint(buf, b.len() as u32 + 1);
+            let n = u32_from_usize(b.len())?
+                .checked_add(1)
+                .ok_or_else(|| Error::protocol("compact bytes overflow"))?;
+            put_unsigned_varint(buf, n);
             buf.extend_from_slice(b);
         }
     }
+    Ok(())
 }
 
 pub fn get_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
@@ -179,21 +258,22 @@ pub fn get_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
     if n == 0 {
         return Ok(None);
     }
-    let len = (n - 1) as usize;
+    let len = usize_from_u32(n - 1)?;
     need(buf, len)?;
     let mut bytes = vec![0u8; len];
     buf.copy_to_slice(&mut bytes);
     Ok(Some(bytes))
 }
 
-pub fn put_classic_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) {
+pub fn put_classic_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
     match bytes {
         None => buf.put_i32(-1),
         Some(b) => {
-            buf.put_i32(b.len() as i32);
+            buf.put_i32(i32_from_usize(b.len())?);
             buf.extend_from_slice(b);
         }
     }
+    Ok(())
 }
 
 pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
@@ -202,19 +282,20 @@ pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
     if len < 0 {
         return Ok(None);
     }
-    let len = len as usize;
+    let len = usize_from_i32(len)?;
     need(buf, len)?;
     let mut bytes = vec![0u8; len];
     buf.copy_to_slice(&mut bytes);
     Ok(Some(bytes))
 }
 
-pub fn put_bytes(buf: &mut BytesMut, flexible: bool, bytes: Option<&[u8]>) {
+pub fn put_bytes(buf: &mut BytesMut, flexible: bool, bytes: Option<&[u8]>) -> Result<()> {
     if flexible {
-        put_compact_bytes(buf, bytes);
+        put_compact_bytes(buf, bytes)?;
     } else {
-        put_classic_bytes(buf, bytes);
+        put_classic_bytes(buf, bytes)?;
     }
+    Ok(())
 }
 
 pub fn get_bytes<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<Vec<u8>>> {
@@ -225,7 +306,7 @@ pub fn get_bytes<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<Vec<u8>>>
     }
 }
 
-pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) {
+pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) -> Result<()> {
     match len {
         None => {
             if flexible {
@@ -236,12 +317,16 @@ pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) {
         }
         Some(n) => {
             if flexible {
-                put_unsigned_varint(buf, n as u32 + 1);
+                let v = u32_from_usize(n)?
+                    .checked_add(1)
+                    .ok_or_else(|| Error::protocol("compact array overflow"))?;
+                put_unsigned_varint(buf, v);
             } else {
-                buf.put_i32(n as i32);
+                buf.put_i32(i32_from_usize(n)?);
             }
         }
     }
+    Ok(())
 }
 
 pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize>> {
@@ -250,7 +335,7 @@ pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize
         if n == 0 {
             Ok(None)
         } else {
-            Ok(Some((n - 1) as usize))
+            Ok(Some(usize_from_u32(n - 1)?))
         }
     } else {
         need(buf, 4)?;
@@ -258,7 +343,7 @@ pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize
         if n < 0 {
             Ok(None)
         } else {
-            Ok(Some(n as usize))
+            Ok(Some(usize_from_i32(n)?))
         }
     }
 }
@@ -267,7 +352,7 @@ pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
     let n = get_unsigned_varint(buf)?;
     for _ in 0..n {
         let _tag = get_unsigned_varint(buf)?;
-        let size = get_unsigned_varint(buf)? as usize;
+        let size = usize_from_u32(get_unsigned_varint(buf)?)?;
         need(buf, size)?;
         buf.advance(size);
     }
@@ -276,6 +361,14 @@ pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
 
 pub fn put_empty_tagged_fields(buf: &mut BytesMut) {
     put_unsigned_varint(buf, 0);
+}
+
+pub fn patch_i32(buf: &mut BytesMut, pos: usize, v: i32) -> Result<()> {
+    let slot = buf
+        .get_mut(pos..pos + 4)
+        .ok_or_else(|| Error::protocol("short i32 patch slot"))?;
+    slot.copy_from_slice(&v.to_be_bytes());
+    Ok(())
 }
 
 pub fn get_i8<B: Buf>(buf: &mut B) -> Result<i8> {
@@ -339,9 +432,9 @@ mod tests {
     #[test]
     fn compact_string_null_empty() {
         let mut buf = BytesMut::new();
-        put_compact_string(&mut buf, None);
-        put_compact_string(&mut buf, Some(""));
-        put_compact_string(&mut buf, Some("hi"));
+        put_compact_string(&mut buf, None).unwrap();
+        put_compact_string(&mut buf, Some("")).unwrap();
+        put_compact_string(&mut buf, Some("hi")).unwrap();
         let mut cur = &buf[..];
         assert_eq!(get_compact_string(&mut cur).unwrap(), None);
         assert_eq!(get_compact_string(&mut cur).unwrap().as_deref(), Some(""));

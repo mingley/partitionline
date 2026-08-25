@@ -1,4 +1,25 @@
+//! Mock Kafka broker for integration tests.
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    reason = "mock broker is test-only; wire helpers use unwrap on trusted fixtures"
+)]
+#![expect(
+    unreachable_pub,
+    unused_results,
+    reason = "mod common is private to each integration test binary; mock detaches accept loops"
+)]
+#![expect(
+    clippy::let_underscore_must_use,
+    reason = "mock discards frame length prefixes"
+)]
+
 use bytes::{BufMut, BytesMut};
+use parking_lot::Mutex;
 use partitionline::protocol::admin::{
     decode_create_topics_request, decode_delete_topics_request, decode_describe_configs_request,
     encode_create_topics_response, encode_delete_topics_response, encode_describe_configs_response,
@@ -34,14 +55,13 @@ use partitionline::protocol::sasl::{
 };
 use partitionline::protocol::scram;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 #[derive(Clone)]
 pub struct Mock {
     pub addr: String,
-    #[allow(dead_code)]
     state: Arc<Mutex<State>>,
 }
 
@@ -161,7 +181,6 @@ impl Mock {
         }
     }
 
-    #[allow(dead_code)]
     pub async fn start_with_scram(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -190,7 +209,6 @@ impl Mock {
         }
     }
 
-    #[allow(dead_code)]
     pub async fn start_with_scram_sha512(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -219,7 +237,6 @@ impl Mock {
         }
     }
 
-    #[allow(dead_code)]
     pub async fn start_with_oauthbearer(principal: String) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -244,7 +261,6 @@ impl Mock {
         }
     }
 
-    #[allow(dead_code)]
     pub async fn start_tls() -> (Self, partitionline::TlsConfig) {
         partitionline::net::install_crypto_provider();
         let (server, ca_pem) = tls_server_identity();
@@ -287,38 +303,31 @@ impl Mock {
         )
     }
 
-    #[allow(dead_code)]
     pub fn last_producer_id(&self) -> Option<i64> {
-        self.state.lock().unwrap().last_producer_id
+        self.state.lock().last_producer_id
     }
 
-    #[allow(dead_code)]
     pub fn set_log_start(&self, topic: &str, partition: i32, offset: i64) {
         self.state
             .lock()
-            .unwrap()
             .log_start
             .insert((topic.to_string(), partition), offset);
     }
 
-    #[allow(dead_code)]
     pub fn log_len(&self, topic: &str, partition: i32) -> usize {
         self.state
             .lock()
-            .unwrap()
             .log
             .get(&(topic.to_string(), partition))
             .map(|v| v.len())
             .unwrap_or(0)
     }
 
-    #[allow(dead_code)]
     pub fn set_produce_error(&self, code: i16) {
-        self.state.lock().unwrap().produce_error = Some(code);
+        self.state.lock().produce_error = Some(code);
     }
 }
 
-#[allow(dead_code)]
 fn tls_server_identity() -> (rustls::ServerConfig, Vec<u8>) {
     let pair = rcgen::generate_simple_self_signed(["localhost".into(), "127.0.0.1".into()])
         .expect("rcgen");
@@ -406,7 +415,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
 ) {
     let mut buf = BytesMut::new();
     let mut authed = {
-        let st = state.lock().unwrap();
+        let st = state.lock();
         st.sasl_user.is_none() && st.scram_user.is_none() && st.oauth_principal.is_none()
     };
     let mut scram_step: Option<(scram::ScramAlg, String, String, String)> = None;
@@ -433,23 +442,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             header.api_key,
             header.api_version,
             header.correlation_id,
-        );
+        )
+        .unwrap();
         match header.api_key {
             API_VERSIONS => {
-                encode_api_versions_response(&mut body, header.api_version, &versions())
+                encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
             }
             METADATA => {
-                let topics = state.lock().unwrap().created_topics.clone();
+                let topics = state.lock().created_topics.clone();
                 encode_metadata_response(
                     &mut body,
                     header.api_version,
                     &metadata_for(&host, port, &topics),
-                );
+                )
+                .unwrap();
             }
             CREATE_TOPICS => {
                 let req = decode_create_topics_request(&mut frame, header.api_version).unwrap();
                 let mut results = Vec::new();
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 for t in req.topics {
                     if st.created_topics.contains_key(&t.name) {
                         results.push(TopicResult {
@@ -489,12 +500,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         error_message: None,
                     });
                 }
-                encode_create_topics_response(&mut body, header.api_version, &results);
+                encode_create_topics_response(&mut body, header.api_version, &results).unwrap();
             }
             DELETE_TOPICS => {
                 let (names, _timeout) = decode_delete_topics_request(&mut frame).unwrap();
                 let mut results = Vec::new();
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 for name in names {
                     let error_code = if st.created_topics.remove(&name).is_some() {
                         0
@@ -507,12 +518,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         error_message: None,
                     });
                 }
-                encode_delete_topics_response(&mut body, header.api_version, &results);
+                encode_delete_topics_response(&mut body, header.api_version, &results).unwrap();
             }
             DESCRIBE_CONFIGS => {
                 let (resources, _syn) =
                     decode_describe_configs_request(&mut frame, header.api_version).unwrap();
-                let st = state.lock().unwrap();
+                let st = state.lock();
                 let mut results = Vec::new();
                 for r in resources {
                     if r.resource_type == RESOURCE_TOPIC {
@@ -597,18 +608,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         });
                     }
                 }
-                encode_describe_configs_response(&mut body, header.api_version, &results);
+                encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
             }
             INIT_PRODUCER_ID => {
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 let pid = st.next_pid;
                 st.next_pid += 1;
-                encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0);
+                encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0).unwrap();
             }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 let forced = st.produce_error;
                 for topic in decoded.2 {
                     for p in topic.partitions {
@@ -658,11 +669,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                 }
-                encode_produce_response(&mut body, header.api_version, &parts);
+                encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
                 let req = decode_fetch_request(&mut frame).unwrap();
-                let st = state.lock().unwrap();
+                let st = state.lock();
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
@@ -707,21 +718,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SASL_HANDSHAKE => {
                 let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
                 let (scram, oauth) = {
-                    let st = state.lock().unwrap();
+                    let st = state.lock();
                     (st.scram_user.clone(), st.oauth_principal.clone())
                 };
                 if let Some((alg, _, _)) = scram {
-                    encode_sasl_handshake_response(&mut body, 0, &[alg.name()]);
+                    encode_sasl_handshake_response(&mut body, 0, &[alg.name()]).unwrap();
                 } else if oauth.is_some() {
-                    encode_sasl_handshake_response(&mut body, 0, &["OAUTHBEARER"]);
+                    encode_sasl_handshake_response(&mut body, 0, &["OAUTHBEARER"]).unwrap();
                 } else {
-                    encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]);
+                    encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]).unwrap();
                 }
             }
             SASL_AUTHENTICATE => {
                 let bytes = decode_sasl_authenticate_request(&mut frame).unwrap();
                 let (scram_user, oauth_principal, sasl_user) = {
-                    let st = state.lock().unwrap();
+                    let st = state.lock();
                     (
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),
@@ -745,7 +756,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         sf.as_bytes(),
-                                    );
+                                    )
+                                    .unwrap();
                                 }
                                 Err(_) => {
                                     encode_sasl_authenticate_response(
@@ -753,7 +765,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         58,
                                         Some("bad scram first"),
                                         &[],
-                                    );
+                                    )
+                                    .unwrap();
                                 }
                             }
                         }
@@ -767,7 +780,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         fin.as_bytes(),
-                                    );
+                                    )
+                                    .unwrap();
                                 }
                                 Err(_) => {
                                     encode_sasl_authenticate_response(
@@ -775,7 +789,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         58,
                                         Some("bad scram proof"),
                                         &[],
-                                    );
+                                    )
+                                    .unwrap();
                                 }
                             }
                         }
@@ -791,7 +806,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad oauth token") },
                         &[],
-                    );
+                    )
+                    .unwrap();
                 } else {
                     let parsed = parse_plain_auth_bytes(&bytes);
                     let ok = match (parsed, sasl_user) {
@@ -804,19 +820,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad credentials") },
                         &[],
-                    );
+                    )
+                    .unwrap();
                 }
             }
             FIND_COORDINATOR => {
-                encode_find_coordinator_response(&mut body, 1, &host, port);
+                encode_find_coordinator_response(&mut body, 1, &host, port).unwrap();
             }
             JOIN_GROUP => {
                 let (_g, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 if member_id.is_empty() {
                     st.member_seq += 1;
                     let assigned = format!("m-{}", st.member_seq);
-                    encode_join_group_response(&mut body, 79, -1, "range", "", &assigned, &[]);
+                    encode_join_group_response(&mut body, 79, -1, "range", "", &assigned, &[])
+                        .unwrap();
                 } else {
                     encode_join_group_response(
                         &mut body,
@@ -829,40 +847,39 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             member_id: member_id.clone(),
                             metadata,
                         }],
-                    );
+                    )
+                    .unwrap();
                 }
             }
             SYNC_GROUP => {
                 let (_g, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
-                let mut st = state.lock().unwrap();
+                let mut st = state.lock();
                 for (id, bytes) in assignments {
                     st.assignments.insert(id, bytes);
                 }
                 let asg = st.assignments.get(&member_id).cloned().unwrap_or_default();
-                encode_sync_group_response(&mut body, 0, &asg);
+                encode_sync_group_response(&mut body, 0, &asg).unwrap();
             }
             HEARTBEAT => {
                 let _ = decode_heartbeat_request(&mut frame);
-                encode_heartbeat_response(&mut body, 0);
+                encode_heartbeat_response(&mut body, 0).unwrap();
             }
             OFFSET_COMMIT => {
                 let (_g, _m, partition, offset) = decode_offset_commit_request(&mut frame).unwrap();
                 state
                     .lock()
-                    .unwrap()
                     .committed
                     .insert(("t".into(), partition), offset);
-                encode_offset_commit_response(&mut body, "t", partition, 0);
+                encode_offset_commit_response(&mut body, "t", partition, 0).unwrap();
             }
             OFFSET_FETCH => {
                 let (_g, topic, partition) = decode_offset_fetch_request(&mut frame).unwrap();
                 let off = *state
                     .lock()
-                    .unwrap()
                     .committed
                     .get(&(topic.clone(), partition))
                     .unwrap_or(&-1);
-                encode_offset_fetch_response(&mut body, &topic, partition, off);
+                encode_offset_fetch_response(&mut body, &topic, partition, off).unwrap();
             }
             _ => break,
         }

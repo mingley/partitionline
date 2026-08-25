@@ -1,16 +1,25 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::Result;
 
 /// InitProducerId v0–v1 (classic). v2+ is flexible; we speak v1.
-pub fn encode_init_producer_id_request(buf: &mut BytesMut, version: i16) {
-    buf::put_classic_nullable_string(buf, None);
+pub fn encode_init_producer_id_request(
+    buf: &mut BytesMut,
+    version: i16,
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, None)?;
     buf.put_i32(60_000);
     if version >= 3 {
         buf.put_i64(-1);
         buf.put_i16(-1);
     }
+    Ok(())
 }
 
 pub fn decode_init_producer_id_response<B: Buf>(
@@ -30,13 +39,14 @@ pub fn encode_init_producer_id_response(
     error_code: i16,
     producer_id: i64,
     producer_epoch: i16,
-) {
+) -> crate::error::Result<()> {
     if version >= 1 {
         buf.put_i32(0);
     }
     buf.put_i16(error_code);
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -47,14 +57,14 @@ mod tests {
     #[test]
     fn init_producer_id_v1_roundtrip() {
         let mut req = BytesMut::new();
-        encode_init_producer_id_request(&mut req, 1);
+        encode_init_producer_id_request(&mut req, 1).unwrap();
         let mut cur = &req[..];
         assert_eq!(buf::get_classic_nullable_string(&mut cur).unwrap(), None);
         assert_eq!(buf::get_i32(&mut cur).unwrap(), 60_000);
         assert!(cur.is_empty());
 
         let mut resp = BytesMut::new();
-        encode_init_producer_id_response(&mut resp, 1, 0, 1234, 7);
+        encode_init_producer_id_response(&mut resp, 1, 0, 1234, 7).unwrap();
         let (err, pid, epoch) = decode_init_producer_id_response(&mut &resp[..], 1).unwrap();
         assert_eq!(err, 0);
         assert_eq!(pid, 1234);
@@ -64,7 +74,7 @@ mod tests {
     #[test]
     fn init_producer_id_error_is_visible() {
         let mut resp = BytesMut::new();
-        encode_init_producer_id_response(&mut resp, 1, 58, -1, -1);
+        encode_init_producer_id_response(&mut resp, 1, 58, -1, -1).unwrap();
         let (err, pid, _) = decode_init_producer_id_response(&mut &resp[..], 1).unwrap();
         assert_eq!(err, 58);
         assert_eq!(pid, -1);

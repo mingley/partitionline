@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -130,7 +135,11 @@ impl Admin {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
         }
-        let addr = cfg.bootstrap[0].clone();
+        let addr = cfg
+            .bootstrap
+            .first()
+            .ok_or_else(|| Error::protocol("no bootstrap servers"))?
+            .clone();
         let mut conn =
             BrokerConn::connect_tls(&addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
                 .await?;
@@ -148,7 +157,7 @@ impl Admin {
         }
         let mut versions = HashMap::new();
         for api in resp.api_keys {
-            versions.insert(api.api_key, api);
+            let _prev = versions.insert(api.api_key, api);
         }
         sasl::authenticate(
             &mut conn,

@@ -20,11 +20,53 @@ include = [
     "docs/benchmark.md",
     "Cargo.toml",
     "Cargo.lock",
+    "clippy.toml",
     "README.md",
     "LICENSE-APACHE",
     "LICENSE-MIT",
     "NOTICE",
 ]
+
+[workspace]
+
+[workspace.lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+unused_results = "deny"
+
+[workspace.lints.clippy]
+# Failure paths must be written down, not inferred. These are the lints that
+# turn "someone should have noticed" into "the build said no".
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+let_underscore_must_use = "deny"
+let_underscore_future = "deny"
+mem_forget = "deny"
+
+await_holding_lock = "deny"
+await_holding_refcell_ref = "deny"
+await_holding_invalid_type = "deny"
+disallowed_methods = "deny"
+disallowed_types = "deny"
+disallowed_macros = "deny"
+
+indexing_slicing = "deny"
+
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_sign_loss = "deny"
+lossy_float_literal = "deny"
+
+[lints]
+workspace = true
 
 [dependencies]
 base64 = "0.22"
@@ -39,8 +81,9 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-pemfile = "2"
 sha2 = "0.10"
 snap = "1"
-tokio = { version = "1", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+parking_lot = "0.12"
 webpki-roots = "1"
 
 [dev-dependencies]

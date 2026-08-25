@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 pub const PRODUCE: i16 = 0;
 pub const FETCH: i16 = 1;
 pub const METADATA: i16 = 3;
