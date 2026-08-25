@@ -498,6 +498,42 @@ async fn sasl_oidc_then_produce() {
 }
 
 #[tokio::test]
+async fn sasl_oidc_https_then_produce() {
+    let (token_url, tls) =
+        common::start_oidc_token_endpoint_tls("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let mut oidc = OidcConfig::new(token_url, "cid", "csecret");
+    oidc.tls = Some(tls);
+    pcfg.sasl_oauthbearer_oidc = Some(oidc);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oidc-https"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oidc_https_without_trust_fails() {
+    let (token_url, _tls) =
+        common::start_oidc_token_endpoint_tls("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "csecret"));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("https oidc without trusted CA must fail"),
+    };
+    match err {
+        Error::Io(_) | Error::Protocol(_) | Error::Timeout => {}
+        other => panic!("expected tls failure, got {other}"),
+    }
+}
+
+#[tokio::test]
 async fn sasl_oidc_then_fetch() {
     let token_url =
         common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;

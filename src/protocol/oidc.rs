@@ -1,7 +1,6 @@
 //! RFC 6749 client_credentials token fetch for SASL OAUTHBEARER.
 //!
-//! HTTP/1.1 POST over `tokio::net::TcpStream`. No HTTP crate. `https://`
-//! token URLs are rejected until a TLS token path exists.
+//! HTTP/1.1 POST over `tokio::net::TcpStream`. `https://` uses rustls.
 
 #![expect(
     missing_docs,
@@ -20,12 +19,14 @@ const MAX_RESPONSE: usize = 64 * 1024;
 const FORM_BODY: &str = "grant_type=client_credentials";
 
 /// OIDC-style client credentials used to POST for an access token.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct OidcConfig {
-    /// Token endpoint, `http://host:port/path`.
+    /// Token endpoint, `http://` or `https://host:port/path`.
     pub token_url: String,
     pub client_id: String,
     pub client_secret: String,
+    /// TLS for `https://` token URLs. `None` uses webpki-roots.
+    pub tls: Option<crate::net::TlsConfig>,
 }
 
 impl OidcConfig {
@@ -38,11 +39,13 @@ impl OidcConfig {
             token_url: token_url.into(),
             client_id: client_id.into(),
             client_secret: client_secret.into(),
+            tls: None,
         }
     }
 }
 
 struct HttpUrl {
+    https: bool,
     host: String,
     port: u16,
     path: String,
@@ -62,7 +65,8 @@ pub async fn fetch_client_credentials_token(
         Ok(Err(e)) => return Err(e.into()),
         Err(_) => return Err(Error::Timeout),
     };
-    let host_header = host_header(&url.host, url.port);
+    let default_port = if url.https { 443 } else { 80 };
+    let host_header = host_header(&url.host, url.port, default_port);
     let auth = basic_auth(&cfg.client_id, &cfg.client_secret);
     let req = format!(
         "POST {path} HTTP/1.1\r\n\
@@ -79,13 +83,18 @@ pub async fn fetch_client_credentials_token(
         auth = auth,
         len = FORM_BODY.len(),
     );
-    let left = time_left(deadline)?;
-    match timeout(left, stream.write_all(req.as_bytes())).await {
-        Ok(Ok(())) => {}
-        Ok(Err(e)) => return Err(e.into()),
-        Err(_) => return Err(Error::Timeout),
-    }
-    let (status, body) = read_http_response(&mut stream, deadline).await?;
+    let (status, body) = if url.https {
+        let tls = cfg.tls.clone().unwrap_or_default();
+        let left = time_left(deadline)?;
+        let mut tls_stream = match timeout(left, crate::net::wrap_tls(stream, &addr, &tls)).await {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => return Err(e),
+            Err(_) => return Err(Error::Timeout),
+        };
+        token_http_roundtrip(&mut tls_stream, req.as_bytes(), deadline).await?
+    } else {
+        token_http_roundtrip(&mut stream, req.as_bytes(), deadline).await?
+    };
     let text = String::from_utf8_lossy(&body);
     if status != 200 {
         return Err(Error::protocol(format!(
@@ -110,14 +119,14 @@ fn connect_addr(host: &str, port: u16) -> String {
     }
 }
 
-fn host_header(host: &str, port: u16) -> String {
+fn host_header(host: &str, port: u16, default_port: u16) -> String {
     if host.contains(':') {
-        if port == 80 {
+        if port == default_port {
             format!("[{host}]")
         } else {
             format!("[{host}]:{port}")
         }
-    } else if port == 80 {
+    } else if port == default_port {
         host.to_string()
     } else {
         format!("{host}:{port}")
@@ -125,14 +134,15 @@ fn host_header(host: &str, port: u16) -> String {
 }
 
 fn parse_http_url(url: &str) -> Result<HttpUrl> {
-    if url.starts_with("https://") {
-        return Err(Error::Unsupported(
-            "oidc token_url https is not supported; use http://".into(),
+    let (https, rest, default_port) = if let Some(rest) = url.strip_prefix("https://") {
+        (true, rest, 443)
+    } else if let Some(rest) = url.strip_prefix("http://") {
+        (false, rest, 80)
+    } else {
+        return Err(Error::protocol(
+            "oidc token_url must start with http:// or https://",
         ));
-    }
-    let rest = url
-        .strip_prefix("http://")
-        .ok_or_else(|| Error::protocol("oidc token_url must start with http://"))?;
+    };
     let (authority, path) = match rest.split_once('/') {
         Some((a, p)) => (a, format!("/{p}")),
         None => (rest, "/".to_string()),
@@ -140,14 +150,19 @@ fn parse_http_url(url: &str) -> Result<HttpUrl> {
     if authority.is_empty() {
         return Err(Error::protocol("oidc token_url missing host"));
     }
-    let (host, port) = parse_authority(authority)?;
+    let (host, port) = parse_authority(authority, default_port)?;
     if host.is_empty() {
         return Err(Error::protocol("oidc token_url missing host"));
     }
-    Ok(HttpUrl { host, port, path })
+    Ok(HttpUrl {
+        https,
+        host,
+        port,
+        path,
+    })
 }
 
-fn parse_authority(authority: &str) -> Result<(String, u16)> {
+fn parse_authority(authority: &str, default_port: u16) -> Result<(String, u16)> {
     if let Some(rest) = authority.strip_prefix('[') {
         let (host, after) = rest
             .split_once(']')
@@ -155,7 +170,7 @@ fn parse_authority(authority: &str) -> Result<(String, u16)> {
         let port = match after.strip_prefix(':') {
             Some(p) if !p.is_empty() => parse_port(p)?,
             Some(_) => return Err(Error::protocol("oidc token_url empty port")),
-            None if after.is_empty() => 80,
+            None if after.is_empty() => default_port,
             None => return Err(Error::protocol("oidc token_url IPv6 host")),
         };
         return Ok((host.to_string(), port));
@@ -166,7 +181,7 @@ fn parse_authority(authority: &str) -> Result<(String, u16)> {
         }
         return Ok((host.to_string(), parse_port(port)?));
     }
-    Ok((authority.to_string(), 80))
+    Ok((authority.to_string(), default_port))
 }
 
 fn parse_port(s: &str) -> Result<u16> {
@@ -236,7 +251,24 @@ fn parse_content_length(head: &[u8]) -> Result<Option<usize>> {
     Ok(None)
 }
 
-async fn read_http_response(stream: &mut TcpStream, deadline: Instant) -> Result<(u16, Vec<u8>)> {
+async fn token_http_roundtrip<S: AsyncReadExt + AsyncWriteExt + Unpin>(
+    stream: &mut S,
+    req: &[u8],
+    deadline: Instant,
+) -> Result<(u16, Vec<u8>)> {
+    let left = time_left(deadline)?;
+    match timeout(left, stream.write_all(req)).await {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => return Err(e.into()),
+        Err(_) => return Err(Error::Timeout),
+    }
+    read_http_response(stream, deadline).await
+}
+
+async fn read_http_response<S: AsyncReadExt + Unpin>(
+    stream: &mut S,
+    deadline: Instant,
+) -> Result<(u16, Vec<u8>)> {
     let mut buf = Vec::new();
     loop {
         if buf.len() > MAX_RESPONSE {
@@ -317,7 +349,10 @@ mod tests {
         let u = parse_http_url("http://[::1]:9/x").unwrap();
         assert_eq!(u.host, "::1");
         assert_eq!(u.port, 9);
-        assert!(parse_http_url("https://example.com/token").is_err());
+        let u = parse_http_url("https://example.com/token").unwrap();
+        assert!(u.https);
+        assert_eq!(u.host, "example.com");
+        assert_eq!(u.port, 443);
     }
 
     #[test]

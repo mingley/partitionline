@@ -1596,8 +1596,47 @@ pub async fn start_oidc_token_endpoint(
     format!("http://{addr}/oauth/token")
 }
 
-async fn serve_oidc_token(
-    mut sock: tokio::net::TcpStream,
+pub async fn start_oidc_token_endpoint_tls(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> (String, partitionline::TlsConfig) {
+    partitionline::net::install_crypto_provider();
+    let (server, ca_pem) = tls_server_identity();
+    let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let acceptor = acceptor.clone();
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                let Ok(stream) = acceptor.accept(sock).await else {
+                    return;
+                };
+                serve_oidc_token(stream, &id, &secret, &principal).await;
+            });
+        }
+    });
+    let tls = partitionline::TlsConfig {
+        ca_pem: Some(ca_pem),
+        client_cert_pem: None,
+        client_key_pem: None,
+        server_name: Some("localhost".into()),
+    };
+    (
+        format!("https://127.0.0.1:{}/oauth/token", addr.port()),
+        tls,
+    )
+}
+
+async fn serve_oidc_token<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin>(
+    mut sock: S,
     client_id: &str,
     client_secret: &str,
     principal: &str,

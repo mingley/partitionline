@@ -78,7 +78,11 @@ fn root_store(tls: &TlsConfig) -> Result<RootCertStore> {
     Ok(root)
 }
 
-async fn wrap_tls(tcp: TcpStream, addr: &str, tls: &TlsConfig) -> Result<TlsStream<TcpStream>> {
+pub(crate) async fn wrap_tls(
+    tcp: TcpStream,
+    addr: &str,
+    tls: &TlsConfig,
+) -> Result<TlsStream<TcpStream>> {
     ensure_crypto();
     let root = root_store(tls)?;
     let builder = ClientConfig::builder().with_root_certificates(root);
