@@ -48,7 +48,8 @@ use partitionline::protocol::api_keys::{
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
     FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
     LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
@@ -79,6 +80,13 @@ use partitionline::protocol::sasl::{
     encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
 };
 use partitionline::protocol::scram;
+use partitionline::protocol::share::{
+    decode_share_acknowledge_request, decode_share_fetch_request,
+    decode_share_group_heartbeat_request, encode_share_acknowledge_response,
+    encode_share_fetch_response, encode_share_group_heartbeat_response, AcknowledgementBatch,
+    AcquiredRange, ShareFetchedPartition, ShareFetchedTopic, ShareGroupHeartbeatResponse,
+    ShareTopicPartitions, ACK_ACCEPT,
+};
 use partitionline::protocol::txn::{
     decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
     decode_end_txn_request, decode_txn_offset_commit_request, encode_add_offsets_to_txn_response,
@@ -136,6 +144,12 @@ struct State {
     acls: Vec<AclBinding>,
     join_group_calls: u32,
     cg_heartbeat_calls: u32,
+    sync_group_calls: u32,
+    share_heartbeat_calls: u32,
+    share_fetch_calls: u32,
+    share_ack_calls: u32,
+    share_accepted: HashSet<(String, i32, i64)>,
+    share_acquired: HashMap<(String, i32, i64), String>,
 }
 
 struct GroupReg {
@@ -192,6 +206,12 @@ fn new_state(
         acls: Vec::new(),
         join_group_calls: 0,
         cg_heartbeat_calls: 0,
+        sync_group_calls: 0,
+        share_heartbeat_calls: 0,
+        share_fetch_calls: 0,
+        share_ack_calls: 0,
+        share_accepted: HashSet::new(),
+        share_acquired: HashMap::new(),
     }
 }
 
@@ -509,6 +529,22 @@ impl Mock {
         self.state.lock().cg_heartbeat_calls
     }
 
+    pub fn sync_group_calls(&self) -> u32 {
+        self.state.lock().sync_group_calls
+    }
+
+    pub fn share_heartbeat_calls(&self) -> u32 {
+        self.state.lock().share_heartbeat_calls
+    }
+
+    pub fn share_fetch_calls(&self) -> u32 {
+        self.state.lock().share_fetch_calls
+    }
+
+    pub fn share_ack_calls(&self) -> u32 {
+        self.state.lock().share_ack_calls
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -565,6 +601,49 @@ async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, payload: &[u8]) -> s
     stream.write_all(&out).await
 }
 
+fn apply_share_acks(
+    st: &mut State,
+    member_id: &str,
+    partition: i32,
+    batches: &[AcknowledgementBatch],
+) {
+    for b in batches {
+        let mut off = b.first_offset;
+        let mut ti = 0usize;
+        while off <= b.last_offset {
+            let Some(ty) = b.types.get(ti).copied() else {
+                break;
+            };
+            ti = ti.saturating_add(1);
+            let k = ("t".to_string(), partition, off);
+            let owned = st
+                .share_acquired
+                .get(&k)
+                .map(|m| m == member_id)
+                .unwrap_or(false);
+            if owned {
+                let _ = st.share_acquired.remove(&k);
+                if ty == ACK_ACCEPT {
+                    let _ = st.share_accepted.insert(k);
+                }
+            }
+            off = off.saturating_add(1);
+        }
+    }
+}
+
+fn share_record_batches(taken: Vec<Record>) -> Vec<RecordBatch> {
+    taken
+        .into_iter()
+        .map(|r| {
+            let off = r.offset;
+            let mut batch = RecordBatch::from_records(vec![r]);
+            batch.base_offset = off;
+            batch
+        })
+        .collect()
+}
+
 fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
@@ -579,6 +658,9 @@ fn versions() -> ApiVersionsResponse {
         (SYNC_GROUP, 0, 3),
         (LEAVE_GROUP, 0, 2),
         (CONSUMER_GROUP_HEARTBEAT, 0, 0),
+        (SHARE_GROUP_HEARTBEAT, 1, 1),
+        (SHARE_FETCH, 1, 1),
+        (SHARE_ACKNOWLEDGE, 1, 1),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 4),
@@ -1414,6 +1496,104 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
             }
+            SHARE_GROUP_HEARTBEAT => {
+                let req = decode_share_group_heartbeat_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
+                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
+                    (req.member_id, -1, None)
+                } else if req.member_epoch == 0 {
+                    (
+                        req.member_id,
+                        1,
+                        Some(vec![ShareTopicPartitions {
+                            topic_id: [0u8; 16],
+                            partitions: vec![0],
+                        }]),
+                    )
+                } else {
+                    (req.member_id, req.member_epoch, None)
+                };
+                encode_share_group_heartbeat_response(
+                    &mut body,
+                    &ShareGroupHeartbeatResponse {
+                        error_code: 0,
+                        error_message: None,
+                        member_id: Some(member_id),
+                        member_epoch: epoch,
+                        heartbeat_interval_ms: 5000,
+                        assignment,
+                    },
+                )
+                .unwrap();
+            }
+            SHARE_FETCH => {
+                let (_gid, member_id, _epoch, max_records, topics) =
+                    decode_share_fetch_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
+                let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
+                let mut out = Vec::new();
+                for t in topics {
+                    let mut parts = Vec::new();
+                    for p in t.partitions {
+                        apply_share_acks(&mut st, &member_id, p.partition, &p.acknowledgements);
+                        let key = ("t".to_string(), p.partition);
+                        let recs = st.log.get(&key).cloned().unwrap_or_default();
+                        let recs: Vec<_> = recs
+                            .into_iter()
+                            .filter(|r| {
+                                let k = ("t".to_string(), p.partition, r.offset);
+                                !st.share_accepted.contains(&k)
+                                    && match st.share_acquired.get(&k) {
+                                        None => true,
+                                        Some(owner) => owner == &member_id,
+                                    }
+                            })
+                            .collect();
+                        let mut acquired = Vec::new();
+                        let mut taken = Vec::new();
+                        for r in recs {
+                            if taken.len() >= cap {
+                                break;
+                            }
+                            let k = ("t".to_string(), p.partition, r.offset);
+                            if let std::collections::hash_map::Entry::Vacant(e) =
+                                st.share_acquired.entry(k)
+                            {
+                                e.insert(member_id.clone());
+                                acquired.push(AcquiredRange {
+                                    first_offset: r.offset,
+                                    last_offset: r.offset,
+                                    delivery_count: 1,
+                                });
+                                taken.push(r);
+                            }
+                        }
+                        parts.push(ShareFetchedPartition {
+                            partition: p.partition,
+                            error_code: 0,
+                            records: share_record_batches(taken),
+                            acquired,
+                        });
+                    }
+                    out.push(ShareFetchedTopic {
+                        topic_id: t.topic_id,
+                        partitions: parts,
+                    });
+                }
+                encode_share_fetch_response(&mut body, &out).unwrap();
+            }
+            SHARE_ACKNOWLEDGE => {
+                let (_gid, member_id, _epoch, acks) =
+                    decode_share_acknowledge_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.share_ack_calls = st.share_ack_calls.saturating_add(1);
+                for (_tid, partition, batches) in acks {
+                    apply_share_acks(&mut st, &member_id, partition, &batches);
+                }
+                encode_share_acknowledge_response(&mut body, 0).unwrap();
+            }
             CONSUMER_GROUP_HEARTBEAT => {
                 let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();
                 let mut st = state.lock();
@@ -1495,6 +1675,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             SYNC_GROUP => {
+                {
+                    let mut st = state.lock();
+                    st.sync_group_calls = st.sync_group_calls.saturating_add(1);
+                }
                 let (gid, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
                 let notify = state.lock().assign_notify.clone();
                 if !assignments.is_empty() {

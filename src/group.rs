@@ -602,7 +602,7 @@ impl ConsumerGroup {
     }
 }
 
-async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
+pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;

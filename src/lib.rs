@@ -3,7 +3,7 @@
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
 //! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER (unsecured JWT or
 //! OIDC client_credentials http/https token URL), TLS (rustls), fetch from
-//! follower, KIP-848 groups,
+//! follower, KIP-848 groups, share groups,
 //! idempotent and transactional produce, ListOffsets/seek, and admin
 //! (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
@@ -27,6 +27,8 @@ pub mod partitioner;
 pub mod producer;
 /// Kafka protocol codecs. Public so integration tests can speak the wire.
 pub mod protocol;
+/// Share groups (KIP-932).
+pub mod share;
 
 pub use admin::{
     AclBinding, Admin, AdminConfig, AlterConfig, ClusterDescription, ConfigEntry, ConfigResource,
@@ -42,6 +44,7 @@ pub use protocol::admin::{DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
+pub use share::{ShareGroup, ShareRecord, SHARE_ACK_ACCEPT, SHARE_ACK_RELEASE};
 
 /// Software name sent in ApiVersions v3+.
 pub const CLIENT_NAME: &str = "partitionline";

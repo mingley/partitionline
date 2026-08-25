@@ -35,6 +35,9 @@ pub const CREATE_PARTITIONS: i16 = 37;
 pub const INCREMENTAL_ALTER_CONFIGS: i16 = 44;
 pub const DESCRIBE_CLUSTER: i16 = 60;
 pub const CONSUMER_GROUP_HEARTBEAT: i16 = 68;
+pub const SHARE_GROUP_HEARTBEAT: i16 = 76;
+pub const SHARE_FETCH: i16 = 78;
+pub const SHARE_ACKNOWLEDGE: i16 = 79;
 
 pub fn pick_version(
     broker_min: i16,

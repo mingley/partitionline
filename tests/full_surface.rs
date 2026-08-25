@@ -13,8 +13,8 @@ mod common;
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, ProduceRecord, Producer,
-    ProducerConfig, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
-    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    ProducerConfig, ShareGroup, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
+    ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -768,6 +768,106 @@ async fn kip848_join_fetch_leave_without_classic_join() {
         "KIP-848 path must not send JoinGroup"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_group_join_leave_without_classic_or_kip848() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ShareGroup::join(ccfg, "sg1", "t").await.unwrap();
+    assert!(
+        mock.share_heartbeat_calls() >= 1,
+        "must speak ShareGroupHeartbeat, got {}",
+        mock.share_heartbeat_calls()
+    );
+    assert_eq!(mock.join_group_calls(), 0);
+    assert_eq!(mock.sync_group_calls(), 0);
+    assert_eq!(mock.cg_heartbeat_calls(), 0);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_fetch_accept_then_release() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"share-a"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "sg-ack", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert!(mock.share_fetch_calls() >= 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"share-a"[..]));
+    let off = recs[0].offset;
+    g.accept(&recs).await.unwrap();
+    assert!(mock.share_ack_calls() >= 1);
+    let again = g.poll().await.unwrap();
+    assert!(
+        again.iter().all(|r| r.offset != off),
+        "accepted record must not be redelivered, got {again:?}"
+    );
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"share-b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let recs = g.poll().await.unwrap();
+    let b = recs
+        .iter()
+        .find(|r| r.value.as_deref() == Some(&b"share-b"[..]))
+        .expect("acquired share-b");
+    let off_b = b.offset;
+    g.release(&recs).await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert!(
+        recs.iter().any(|r| r.offset == off_b),
+        "released record must be acquirable again, got {recs:?}"
+    );
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_two_members_same_partition() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for i in 0..20u8 {
+        producer
+            .send(ProduceRecord::to("t").value(vec![i]))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut c1 = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    c1.max_wait_ms = 10;
+    let mut g1 = ShareGroup::join(c1, "sg-two", "t").await.unwrap();
+    let mut c2 = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    c2.max_wait_ms = 10;
+    let mut g2 = ShareGroup::join(c2, "sg-two", "t").await.unwrap();
+    let r1 = g1.poll().await.unwrap();
+    let r2 = g2.poll().await.unwrap();
+    assert!(!r1.is_empty(), "member 1 must acquire a record");
+    assert!(!r2.is_empty(), "member 2 must acquire a record");
+    assert_eq!(r1[0].partition, r2[0].partition);
+    assert_ne!(
+        r1[0].offset, r2[0].offset,
+        "members must not get the same acquired offset"
+    );
+    g1.leave().await.unwrap();
+    g2.leave().await.unwrap();
 }
 
 #[tokio::test]

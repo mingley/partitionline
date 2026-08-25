@@ -6,7 +6,8 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, METADATA, PRODUCE,
+    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
+    SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
 };
 use super::buf;
 use crate::error::Result;
@@ -30,7 +31,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         PRODUCE if api_version >= 9 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER => 2,
-        CONSUMER_GROUP_HEARTBEAT => 2,
+        CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
 }
@@ -43,7 +44,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         PRODUCE if api_version >= 9 => 1,
         METADATA if api_version >= 9 => 1,
         DESCRIBE_CLUSTER => 1,
-        CONSUMER_GROUP_HEARTBEAT => 1,
+        CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
 }
