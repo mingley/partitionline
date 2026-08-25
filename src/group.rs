@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord};
 use crate::error::{self, Error, Result};
 use crate::protocol::api_keys::{
@@ -44,7 +49,7 @@ impl ConsumerGroup {
             return Err(Error::broker(err, "FindCoordinator"));
         }
 
-        let metadata = encode_subscription(std::slice::from_ref(&topic));
+        let metadata = encode_subscription(std::slice::from_ref(&topic))?;
         let mut member_id = String::new();
         let (error, generation, _proto, leader, assigned_id, members) = {
             let body = consumer
@@ -90,8 +95,8 @@ impl ConsumerGroup {
         let assignments = if leader == member_id {
             members
                 .iter()
-                .map(|m| (m.member_id.clone(), encode_assignment(&topic, &[0])))
-                .collect::<Vec<_>>()
+                .map(|m| Ok::<_, Error>((m.member_id.clone(), encode_assignment(&topic, &[0])?)))
+                .collect::<Result<Vec<_>>>()?
         } else {
             Vec::new()
         };

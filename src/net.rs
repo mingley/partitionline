@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
+)]
+
 use std::future::poll_fn;
 use std::io;
 use std::pin::Pin;
@@ -34,7 +39,7 @@ pub struct TlsConfig {
 fn ensure_crypto() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let _ = rustls::crypto::ring::default_provider().install_default();
+        drop(rustls::crypto::ring::default_provider().install_default());
     });
 }
 
@@ -103,7 +108,16 @@ async fn write_all_pump(
 ) -> io::Result<()> {
     let mut pos = 0usize;
     poll_fn(|cx| loop {
-        match Pin::new(&mut *stream).poll_write(cx, &bytes[pos..]) {
+        let remaining = match bytes.get(pos..) {
+            Some(r) => r,
+            None => {
+                return Poll::Ready(Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "write pos past end",
+                )));
+            }
+        };
+        match Pin::new(&mut *stream).poll_write(cx, remaining) {
             Poll::Ready(Ok(0)) => {
                 return Poll::Ready(Err(io::Error::new(
                     io::ErrorKind::WriteZero,
@@ -122,14 +136,14 @@ async fn write_all_pump(
                 let mut rb = ReadBuf::new(&mut tmp);
                 match Pin::new(&mut *stream).poll_read(cx, &mut rb) {
                     Poll::Ready(Ok(())) => {
-                        let n = rb.filled().len();
-                        if n == 0 {
+                        let filled = rb.filled();
+                        if filled.is_empty() {
                             return Poll::Ready(Err(io::Error::new(
                                 io::ErrorKind::UnexpectedEof,
                                 "broker closed connection",
                             )));
                         }
-                        read_buf.extend_from_slice(&tmp[..n]);
+                        read_buf.extend_from_slice(filled);
                     }
                     Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                     Poll::Pending => return Poll::Pending,
@@ -277,7 +291,7 @@ impl BrokerConn {
         &mut self,
         api_key: i16,
         api_version: i16,
-        encode_body: impl FnOnce(&mut BytesMut),
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         request_timeout: Duration,
     ) -> Result<i32> {
         let correlation = self.next_correlation();
@@ -289,10 +303,14 @@ impl BrokerConn {
             api_version,
             correlation,
             Some(self.client_id.as_str()),
-        );
-        encode_body(&mut self.write_buf);
-        let size = (self.write_buf.len() - 4) as i32;
-        self.write_buf[0..4].copy_from_slice(&size.to_be_bytes());
+        )?;
+        encode_body(&mut self.write_buf)?;
+        let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
+        let slot = self
+            .write_buf
+            .get_mut(..4)
+            .ok_or_else(|| Error::protocol("short length prefix"))?;
+        slot.copy_from_slice(&size.to_be_bytes());
         let payload = self.write_buf.split();
         self.write_all_timeout(&payload, request_timeout).await?;
         Ok(correlation)
@@ -302,7 +320,7 @@ impl BrokerConn {
         &mut self,
         api_key: i16,
         api_version: i16,
-        encode_body: impl FnOnce(&mut BytesMut),
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         request_timeout: Duration,
     ) -> Result<Bytes> {
         let correlation = self
@@ -315,14 +333,22 @@ impl BrokerConn {
     async fn read_frame(&mut self) -> Result<Bytes> {
         loop {
             if self.read_buf.len() >= 4 {
-                let size = i32::from_be_bytes(self.read_buf[0..4].try_into().unwrap());
+                let prefix = self
+                    .read_buf
+                    .get(..4)
+                    .ok_or_else(|| Error::protocol("short frame prefix"))?;
+                let size = i32::from_be_bytes(
+                    prefix
+                        .try_into()
+                        .map_err(|_| Error::protocol("short frame prefix"))?,
+                );
                 if !(0..=MAX_FRAME).contains(&size) {
                     return Err(Error::protocol(format!("invalid frame size {size}")));
                 }
-                let total = 4 + size as usize;
+                let total = 4 + crate::protocol::buf::usize_from_i32(size)?;
                 if self.read_buf.len() >= total {
                     let mut frame = self.read_buf.split_to(total);
-                    let _ = frame.split_to(4);
+                    drop(frame.split_to(4));
                     return Ok(frame.freeze());
                 }
             }

@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -23,12 +28,13 @@ pub fn encode_api_versions_request(
     version: i16,
     software_name: &str,
     software_version: &str,
-) {
+) -> crate::error::Result<()> {
     if version >= 3 {
-        buf::put_compact_string(buf, Some(software_name));
-        buf::put_compact_string(buf, Some(software_version));
+        buf::put_compact_string(buf, Some(software_name))?;
+        buf::put_compact_string(buf, Some(software_version))?;
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 pub fn decode_api_versions_response<B: Buf>(
@@ -63,10 +69,14 @@ pub fn decode_api_versions_response<B: Buf>(
     })
 }
 
-pub fn encode_api_versions_response(buf: &mut BytesMut, version: i16, resp: &ApiVersionsResponse) {
+pub fn encode_api_versions_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ApiVersionsResponse,
+) -> crate::error::Result<()> {
     let flexible = version >= 3;
     buf.put_i16(resp.error_code);
-    buf::put_array_len(buf, flexible, Some(resp.api_keys.len()));
+    buf::put_array_len(buf, flexible, Some(resp.api_keys.len()))?;
     for api in &resp.api_keys {
         buf.put_i16(api.api_key);
         buf.put_i16(api.min_version);
@@ -81,6 +91,7 @@ pub fn encode_api_versions_response(buf: &mut BytesMut, version: i16, resp: &Api
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -124,17 +135,17 @@ pub fn encode_metadata_request(
     version: i16,
     topics: Option<&[String]>,
     allow_auto: bool,
-) {
+) -> crate::error::Result<()> {
     let flexible = version >= 9;
     match topics {
-        None => buf::put_array_len(buf, flexible, None),
+        None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
-            buf::put_array_len(buf, flexible, Some(topics.len()));
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
             for name in topics {
                 if version >= 10 {
                     buf.extend_from_slice(&[0u8; 16]);
                 }
-                buf::put_string(buf, flexible, Some(name));
+                buf::put_string(buf, flexible, Some(name))?;
                 if flexible {
                     buf::put_empty_tagged_fields(buf);
                 }
@@ -153,6 +164,7 @@ pub fn encode_metadata_request(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
@@ -164,11 +176,12 @@ fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
     Ok(out)
 }
 
-fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) {
-    buf::put_array_len(buf, flexible, Some(items.len()));
+fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::error::Result<()> {
+    buf::put_array_len(buf, flexible, Some(items.len()))?;
     for v in items {
         buf.put_i32(*v);
     }
+    Ok(())
 }
 
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
@@ -273,40 +286,44 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
     })
 }
 
-pub fn encode_metadata_response(buf: &mut BytesMut, version: i16, resp: &MetadataResponse) {
+pub fn encode_metadata_response(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &MetadataResponse,
+) -> crate::error::Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
         buf.put_i32(resp.throttle_time_ms);
     }
-    buf::put_array_len(buf, flexible, Some(resp.brokers.len()));
+    buf::put_array_len(buf, flexible, Some(resp.brokers.len()))?;
     for b in &resp.brokers {
         buf.put_i32(b.node_id);
-        buf::put_string(buf, flexible, Some(&b.host));
+        buf::put_string(buf, flexible, Some(&b.host))?;
         buf.put_i32(b.port);
         if version >= 1 {
-            buf::put_string(buf, flexible, b.rack.as_deref());
+            buf::put_string(buf, flexible, b.rack.as_deref())?;
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
     }
     if version >= 2 {
-        buf::put_string(buf, flexible, resp.cluster_id.as_deref());
+        buf::put_string(buf, flexible, resp.cluster_id.as_deref())?;
     }
     if version >= 1 {
         buf.put_i32(resp.controller_id);
     }
-    buf::put_array_len(buf, flexible, Some(resp.topics.len()));
+    buf::put_array_len(buf, flexible, Some(resp.topics.len()))?;
     for t in &resp.topics {
         buf.put_i16(t.error_code);
-        buf::put_string(buf, flexible, t.name.as_deref());
+        buf::put_string(buf, flexible, t.name.as_deref())?;
         if version >= 10 {
             buf.extend_from_slice(&t.topic_id);
         }
         if version >= 1 {
             buf.put_u8(u8::from(t.is_internal));
         }
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()));
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i16(p.error_code);
             buf.put_i32(p.partition_index);
@@ -314,10 +331,10 @@ pub fn encode_metadata_response(buf: &mut BytesMut, version: i16, resp: &Metadat
             if version >= 7 {
                 buf.put_i32(p.leader_epoch);
             }
-            put_int32_array(buf, flexible, &p.replica_nodes);
-            put_int32_array(buf, flexible, &p.isr_nodes);
+            put_int32_array(buf, flexible, &p.replica_nodes)?;
+            put_int32_array(buf, flexible, &p.isr_nodes)?;
             if version >= 5 {
-                put_int32_array(buf, flexible, &[]);
+                put_int32_array(buf, flexible, &[])?;
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -339,6 +356,7 @@ pub fn encode_metadata_response(buf: &mut BytesMut, version: i16, resp: &Metadat
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -373,31 +391,31 @@ pub fn encode_produce_request(
 ) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
-        buf::put_string(buf, flexible, transactional_id);
+        buf::put_string(buf, flexible, transactional_id)?;
     }
     buf.put_i16(acks);
     buf.put_i32(timeout_ms);
-    buf::put_array_len(buf, flexible, Some(topics.len()));
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for topic in topics {
         if version <= 12 {
-            buf::put_string(buf, flexible, Some(&topic.topic));
+            buf::put_string(buf, flexible, Some(&topic.topic))?;
         } else {
             buf.extend_from_slice(&[0u8; 16]);
         }
-        buf::put_array_len(buf, flexible, Some(topic.partitions.len()));
+        buf::put_array_len(buf, flexible, Some(topic.partitions.len()))?;
         for part in &topic.partitions {
             buf.put_i32(part.index);
             if flexible {
                 let mut recs = BytesMut::new();
                 records::encode_record_batch(&mut recs, &part.records)?;
-                buf::put_bytes(buf, flexible, Some(&recs));
+                buf::put_bytes(buf, flexible, Some(&recs))?;
                 buf::put_empty_tagged_fields(buf);
             } else {
                 let len_pos = buf.len();
                 buf.put_i32(0);
                 records::encode_record_batch(buf, &part.records)?;
-                let rec_len = (buf.len() - len_pos - 4) as i32;
-                buf[len_pos..len_pos + 4].copy_from_slice(&rec_len.to_be_bytes());
+                let rec_len = buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
+                buf::patch_i32(buf, len_pos, rec_len)?;
             }
         }
         if flexible {
@@ -460,7 +478,7 @@ pub fn encode_produce_response(
     buf: &mut BytesMut,
     version: i16,
     parts: &[ProducePartitionResponse],
-) {
+) -> crate::error::Result<()> {
     let flexible = version >= 9;
     // Group by topic, preserving first-seen order.
     let mut order: Vec<String> = Vec::new();
@@ -469,16 +487,16 @@ pub fn encode_produce_response(
             order.push(p.topic.clone());
         }
     }
-    buf::put_array_len(buf, flexible, Some(order.len()));
+    buf::put_array_len(buf, flexible, Some(order.len()))?;
     for topic in &order {
         if version <= 12 {
-            buf::put_string(buf, flexible, Some(topic));
+            buf::put_string(buf, flexible, Some(topic))?;
         } else {
             buf.extend_from_slice(&[0u8; 16]);
         }
         let grouped: Vec<&ProducePartitionResponse> =
             parts.iter().filter(|p| &p.topic == topic).collect();
-        buf::put_array_len(buf, flexible, Some(grouped.len()));
+        buf::put_array_len(buf, flexible, Some(grouped.len()))?;
         for p in grouped {
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
@@ -490,8 +508,8 @@ pub fn encode_produce_response(
                 buf.put_i64(p.log_start_offset);
             }
             if version >= 8 {
-                buf::put_array_len(buf, flexible, Some(0));
-                buf::put_string(buf, flexible, None);
+                buf::put_array_len(buf, flexible, Some(0))?;
+                buf::put_string(buf, flexible, None)?;
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -507,6 +525,7 @@ pub fn encode_produce_response(
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
+    Ok(())
 }
 
 pub fn decode_produce_response<B: Buf>(
@@ -596,7 +615,7 @@ mod tests {
             throttle_time_ms: 0,
         };
         let mut buf = BytesMut::new();
-        encode_api_versions_response(&mut buf, 3, &resp);
+        encode_api_versions_response(&mut buf, 3, &resp).unwrap();
         let decoded = decode_api_versions_response(&mut &buf[..], 3).unwrap();
         assert_eq!(decoded, resp);
     }
@@ -657,7 +676,7 @@ mod tests {
             }],
         };
         let mut buf = BytesMut::new();
-        encode_metadata_response(&mut buf, 12, &resp);
+        encode_metadata_response(&mut buf, 12, &resp).unwrap();
         let decoded = decode_metadata_response(&mut &buf[..], 12).unwrap();
         assert_eq!(decoded, resp);
     }

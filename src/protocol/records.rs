@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use std::io::{Read, Write};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -6,7 +11,7 @@ use super::buf;
 use crate::error::{Error, Result};
 
 pub const MAGIC_V2: i8 = 2;
-const BATCH_OVERHEAD: usize = 61;
+const _BATCH_OVERHEAD: usize = 61;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i16)]
@@ -80,7 +85,7 @@ pub struct RecordBatch {
 impl RecordBatch {
     pub fn from_records(mut records: Vec<Record>) -> Self {
         for (i, rec) in records.iter_mut().enumerate() {
-            rec.offset = i as i64;
+            rec.offset = i64::try_from(i).unwrap_or(i64::MAX);
         }
         let base_timestamp = records.first().map(|r| r.timestamp).unwrap_or(0);
         let max_timestamp = records
@@ -118,7 +123,7 @@ fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
 fn gzip_decompress(src: &[u8]) -> Result<Vec<u8>> {
     let mut decoder = flate2::read::GzDecoder::new(src);
     let mut out = Vec::new();
-    decoder
+    let _n = decoder
         .read_to_end(&mut out)
         .map_err(|e| Error::protocol(e.to_string()))?;
     Ok(out)
@@ -137,27 +142,37 @@ fn snappy_compress(src: &[u8]) -> Result<Vec<u8>> {
     out.extend_from_slice(SNAPPY_JAVA_MAGIC);
     out.extend_from_slice(&1u32.to_be_bytes());
     out.extend_from_slice(&1u32.to_be_bytes());
-    out.extend_from_slice(&(compressed.len() as u32).to_be_bytes());
+    out.extend_from_slice(&buf::u32_from_usize(compressed.len())?.to_be_bytes());
     out.extend_from_slice(&compressed);
     Ok(out)
 }
 
 fn snappy_decompress(src: &[u8]) -> Result<Vec<u8>> {
     if src.len() > 20 && src.starts_with(SNAPPY_JAVA_MAGIC) {
-        let mut cur = &src[16..];
+        let mut cur = src.get(16..).unwrap_or(&[]);
         let mut out = Vec::new();
         let mut decoder = snap::raw::Decoder::new();
         while cur.len() >= 4 {
-            let clen = u32::from_be_bytes(cur[..4].try_into().unwrap()) as usize;
-            cur = &cur[4..];
+            let prefix = cur
+                .get(..4)
+                .ok_or_else(|| Error::protocol("snappy-java short chunk"))?;
+            let clen = buf::usize_from_u32(u32::from_be_bytes(
+                prefix
+                    .try_into()
+                    .map_err(|_| Error::protocol("snappy-java short chunk"))?,
+            ))?;
+            cur = cur.get(4..).unwrap_or(&[]);
             if clen > cur.len() {
                 return Err(Error::protocol("snappy-java chunk overruns buffer"));
             }
+            let block = cur
+                .get(..clen)
+                .ok_or_else(|| Error::protocol("snappy-java chunk overruns buffer"))?;
             let chunk = decoder
-                .decompress_vec(&cur[..clen])
+                .decompress_vec(block)
                 .map_err(|e| Error::protocol(e.to_string()))?;
             out.extend_from_slice(&chunk);
-            cur = &cur[clen..];
+            cur = cur.get(clen..).unwrap_or(&[]);
         }
         Ok(out)
     } else {
@@ -187,7 +202,7 @@ fn lz4_compress(src: &[u8]) -> Result<Vec<u8>> {
 fn lz4_decompress(src: &[u8]) -> Result<Vec<u8>> {
     let mut decoder = lz4_flex::frame::FrameDecoder::new(src);
     let mut out = Vec::new();
-    decoder
+    let _n = decoder
         .read_to_end(&mut out)
         .map_err(|e| Error::protocol(e.to_string()))?;
     Ok(out)
@@ -252,7 +267,7 @@ pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()
             producer_id: batch.producer_id,
             producer_epoch: batch.producer_epoch,
             base_sequence: batch.base_sequence,
-            count: batch.records.len() as i32,
+            count: buf::i32_from_usize(batch.records.len())?,
         },
         batch.records.iter().map(EncodeRecord::from_record),
     )
@@ -288,7 +303,12 @@ where
     match compression {
         Compression::None => {
             for (i, rec) in records.enumerate() {
-                encode_record(buf, &rec, i as i32, rec.timestamp - header.base_timestamp);
+                encode_record(
+                    buf,
+                    &rec,
+                    buf::i32_from_usize(i)?,
+                    rec.timestamp - header.base_timestamp,
+                )?;
             }
         }
         Compression::Gzip | Compression::Snappy | Compression::Lz4 => {
@@ -297,33 +317,40 @@ where
                 encode_record(
                     &mut section,
                     &rec,
-                    i as i32,
+                    buf::i32_from_usize(i)?,
                     rec.timestamp - header.base_timestamp,
-                );
+                )?;
             }
             let packed = match compression {
                 Compression::Gzip => gzip_compress(&section)?,
                 Compression::Snappy => snappy_compress(&section)?,
                 Compression::Lz4 => lz4_compress(&section)?,
-                Compression::None => unreachable!(),
+                Compression::None => {
+                    return Err(Error::protocol("internal: none after compressed branch"));
+                }
             };
             buf.extend_from_slice(&packed);
         }
     }
     let end = buf.len();
-    let batch_len = (end - batch_len_pos - 4) as i32;
-    buf[batch_len_pos..batch_len_pos + 4].copy_from_slice(&batch_len.to_be_bytes());
-    let crc = crc32c::crc32c(&buf[crc_start..end]);
-    buf[crc_pos..crc_pos + 4].copy_from_slice(&crc.to_be_bytes());
-    debug_assert_eq!(end - batch_start, 12 + batch_len as usize);
-    let _ = BATCH_OVERHEAD;
+    let batch_len = buf::i32_from_usize(end.saturating_sub(batch_len_pos + 4))?;
+    buf::patch_i32(buf, batch_len_pos, batch_len)?;
+    let crc_bytes = buf
+        .get(crc_start..end)
+        .ok_or_else(|| Error::protocol("short crc range"))?;
+    let crc = crc32c::crc32c(crc_bytes);
+    buf::patch_i32(buf, crc_pos, i32::from_be_bytes(crc.to_be_bytes()))?;
+    debug_assert_eq!(
+        end.saturating_sub(batch_start),
+        12 + buf::usize_from_i32(batch_len).unwrap_or(0)
+    );
     Ok(())
 }
 
 fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
     match bytes {
         None => buf::varint_size(-1),
-        Some(b) => buf::varint_size(b.len() as i32) + b.len(),
+        Some(b) => buf::varint_size(i32::try_from(b.len()).unwrap_or(i32::MAX)) + b.len(),
     }
 }
 
@@ -332,47 +359,48 @@ fn encode_record(
     rec: &EncodeRecord<'_>,
     offset_delta: i32,
     timestamp_delta: i64,
-) {
+) -> crate::error::Result<()> {
     let mut inner = 1
         + buf::varlong_size(timestamp_delta)
         + buf::varint_size(offset_delta)
         + nullable_bytes_len(rec.key)
         + nullable_bytes_len(rec.value)
-        + buf::varint_size(rec.headers.len() as i32);
+        + buf::varint_size(buf::i32_from_usize(rec.headers.len())?);
     for h in rec.headers {
-        inner += buf::varint_size(h.key.len() as i32) + h.key.len();
+        inner += buf::varint_size(buf::i32_from_usize(h.key.len())?) + h.key.len();
         inner += nullable_bytes_len(h.value.as_deref());
     }
-    buf::put_varint(buf, inner as i32);
+    buf::put_varint(buf, buf::i32_from_usize(inner)?);
     buf.put_i8(0);
     buf::put_varlong(buf, timestamp_delta);
     buf::put_varint(buf, offset_delta);
     match rec.key {
         None => buf::put_varint(buf, -1),
         Some(k) => {
-            buf::put_varint(buf, k.len() as i32);
+            buf::put_varint(buf, buf::i32_from_usize(k.len())?);
             buf.extend_from_slice(k);
         }
     }
     match rec.value {
         None => buf::put_varint(buf, -1),
         Some(v) => {
-            buf::put_varint(buf, v.len() as i32);
+            buf::put_varint(buf, buf::i32_from_usize(v.len())?);
             buf.extend_from_slice(v);
         }
     }
-    buf::put_varint(buf, rec.headers.len() as i32);
+    buf::put_varint(buf, buf::i32_from_usize(rec.headers.len())?);
     for h in rec.headers {
-        buf::put_varint(buf, h.key.len() as i32);
+        buf::put_varint(buf, buf::i32_from_usize(h.key.len())?);
         buf.extend_from_slice(h.key.as_bytes());
         match &h.value {
             None => buf::put_varint(buf, -1),
             Some(v) => {
-                buf::put_varint(buf, v.len() as i32);
+                buf::put_varint(buf, buf::i32_from_usize(v.len())?);
                 buf.extend_from_slice(v);
             }
         }
     }
+    Ok(())
 }
 
 pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
@@ -381,15 +409,22 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
         let chunk = buf.chunk();
         if chunk.len() < 12 {
             let rest = buf.copy_to_bytes(buf.remaining());
-            let mut rest_buf = &rest[..];
+            let mut rest_buf = rest.as_ref();
             out.append(&mut decode_record_batches(&mut rest_buf)?);
             break;
         }
-        let batch_len = i32::from_be_bytes(chunk[8..12].try_into().unwrap());
+        let len_bytes = chunk
+            .get(8..12)
+            .ok_or_else(|| Error::protocol("short batch length"))?;
+        let batch_len = i32::from_be_bytes(
+            len_bytes
+                .try_into()
+                .map_err(|_| Error::protocol("short batch length"))?,
+        );
         if batch_len < 0 {
             return Err(Error::protocol("negative record batch length"));
         }
-        let need = 12usize.saturating_add(batch_len as usize);
+        let need = 12usize.saturating_add(buf::usize_from_i32(batch_len)?);
         if buf.remaining() < need {
             break;
         }
@@ -406,8 +441,9 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
             "record batch too small: {batch_len}"
         )));
     }
-    buf::need(buf, batch_len as usize)?;
-    let mut body = buf.copy_to_bytes(batch_len as usize);
+    let batch_len_usize = buf::usize_from_i32(batch_len)?;
+    buf::need(buf, batch_len_usize)?;
+    let mut body = buf.copy_to_bytes(batch_len_usize);
     let partition_leader_epoch = buf::get_i32(&mut body)?;
     let magic = buf::get_i8(&mut body)?;
     if magic != MAGIC_V2 {
@@ -450,10 +486,10 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
             &decompressed
         }
     };
-    let mut records = Vec::with_capacity(count as usize);
+    let mut records = Vec::with_capacity(buf::usize_from_i32(count.max(0))?);
     for i in 0..count {
         let mut rec = decode_record(&mut records_cur, base_timestamp)?;
-        rec.offset = base_offset + i as i64;
+        rec.offset = base_offset + i64::from(i);
         records.push(rec);
     }
     Ok(RecordBatch {
@@ -474,8 +510,9 @@ fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
     if len < 0 {
         return Err(Error::protocol("negative record length"));
     }
-    buf::need(buf, len as usize)?;
-    let mut inner = buf.copy_to_bytes(len as usize);
+    let len_usize = buf::usize_from_i32(len)?;
+    buf::need(buf, len_usize)?;
+    let mut inner = buf.copy_to_bytes(len_usize);
     let _attributes = buf::get_i8(&mut inner)?;
     let timestamp_delta = buf::get_varlong(&mut inner)?;
     let _offset_delta = buf::get_varint(&mut inner)?;
@@ -485,14 +522,15 @@ fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
     if header_count < 0 {
         return Err(Error::protocol("negative header count"));
     }
-    let mut headers = Vec::with_capacity(header_count as usize);
+    let mut headers = Vec::with_capacity(buf::usize_from_i32(header_count)?);
     for _ in 0..header_count {
         let key_len = buf::get_varint(&mut inner)?;
         if key_len < 0 {
             return Err(Error::protocol("null header key"));
         }
-        buf::need(&inner, key_len as usize)?;
-        let mut key_buf = vec![0u8; key_len as usize];
+        let key_len_usize = buf::usize_from_i32(key_len)?;
+        buf::need(&inner, key_len_usize)?;
+        let mut key_buf = vec![0u8; key_len_usize];
         inner.copy_to_slice(&mut key_buf);
         let key = String::from_utf8(key_buf).map_err(|e| Error::protocol(e.to_string()))?;
         let value = read_bytes_varint(&mut inner)?;
@@ -512,8 +550,9 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     if len < 0 {
         return Ok(None);
     }
-    buf::need(buf, len as usize)?;
-    Ok(Some(buf.copy_to_bytes(len as usize)))
+    let len_usize = buf::usize_from_i32(len)?;
+    buf::need(buf, len_usize)?;
+    Ok(Some(buf.copy_to_bytes(len_usize)))
 }
 
 #[cfg(test)]

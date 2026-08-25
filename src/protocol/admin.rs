@@ -1,3 +1,8 @@
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -76,11 +81,12 @@ pub struct DescribeConfigsResult {
     pub entries: Vec<ConfigEntry>,
 }
 
-fn put_i32_array(buf: &mut BytesMut, items: &[i32]) {
-    buf::put_array_len(buf, false, Some(items.len()));
+fn put_i32_array(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(items.len()))?;
     for v in items {
         buf.put_i32(*v);
     }
+    Ok(())
 }
 
 fn get_i32_array<B: Buf>(buf: &mut B) -> Result<Vec<i32>> {
@@ -107,40 +113,46 @@ fn get_string_array<B: Buf>(buf: &mut B) -> Result<Option<Vec<String>>> {
     Ok(Some(out))
 }
 
-fn put_string_array(buf: &mut BytesMut, items: Option<&[String]>) {
+fn put_string_array(buf: &mut BytesMut, items: Option<&[String]>) -> crate::error::Result<()> {
     match items {
-        None => buf::put_array_len(buf, false, None),
+        None => buf::put_array_len(buf, false, None)?,
         Some(items) => {
-            buf::put_array_len(buf, false, Some(items.len()));
+            buf::put_array_len(buf, false, Some(items.len()))?;
             for s in items {
-                buf::put_classic_nullable_string(buf, Some(s));
+                buf::put_classic_nullable_string(buf, Some(s))?;
             }
         }
     }
+    Ok(())
 }
 
 /// CreateTopics v0–4 (classic; flexible from v5).
-pub fn encode_create_topics_request(buf: &mut BytesMut, version: i16, req: &CreateTopicsRequest) {
-    buf::put_array_len(buf, false, Some(req.topics.len()));
+pub fn encode_create_topics_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &CreateTopicsRequest,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(req.topics.len()))?;
     for t in &req.topics {
-        buf::put_classic_nullable_string(buf, Some(&t.name));
+        buf::put_classic_nullable_string(buf, Some(&t.name))?;
         buf.put_i32(t.num_partitions);
         buf.put_i16(t.replication_factor);
-        buf::put_array_len(buf, false, Some(t.assignments.len()));
+        buf::put_array_len(buf, false, Some(t.assignments.len()))?;
         for a in &t.assignments {
             buf.put_i32(a.partition_index);
-            put_i32_array(buf, &a.broker_ids);
+            put_i32_array(buf, &a.broker_ids)?;
         }
-        buf::put_array_len(buf, false, Some(t.configs.len()));
+        buf::put_array_len(buf, false, Some(t.configs.len()))?;
         for c in &t.configs {
-            buf::put_classic_nullable_string(buf, Some(&c.name));
-            buf::put_classic_nullable_string(buf, c.value.as_deref());
+            buf::put_classic_nullable_string(buf, Some(&c.name))?;
+            buf::put_classic_nullable_string(buf, c.value.as_deref())?;
         }
     }
     buf.put_i32(req.timeout_ms);
     if version >= 1 {
         buf.put_u8(u8::from(req.validate_only));
     }
+    Ok(())
 }
 
 pub fn decode_create_topics_request<B: Buf>(
@@ -191,18 +203,23 @@ pub fn decode_create_topics_request<B: Buf>(
     })
 }
 
-pub fn encode_create_topics_response(buf: &mut BytesMut, version: i16, results: &[TopicResult]) {
+pub fn encode_create_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[TopicResult],
+) -> crate::error::Result<()> {
     if version >= 2 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(results.len()));
+    buf::put_array_len(buf, false, Some(results.len()))?;
     for r in results {
-        buf::put_classic_nullable_string(buf, Some(&r.name));
+        buf::put_classic_nullable_string(buf, Some(&r.name))?;
         buf.put_i16(r.error_code);
         if version >= 1 {
-            buf::put_classic_nullable_string(buf, r.error_message.as_deref());
+            buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
         }
     }
+    Ok(())
 }
 
 pub fn decode_create_topics_response<B: Buf>(
@@ -232,12 +249,17 @@ pub fn decode_create_topics_response<B: Buf>(
 }
 
 /// DeleteTopics v0–3 (classic; flexible from v4).
-pub fn encode_delete_topics_request(buf: &mut BytesMut, names: &[String], timeout_ms: i32) {
-    buf::put_array_len(buf, false, Some(names.len()));
+pub fn encode_delete_topics_request(
+    buf: &mut BytesMut,
+    names: &[String],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(names.len()))?;
     for name in names {
-        buf::put_classic_nullable_string(buf, Some(name));
+        buf::put_classic_nullable_string(buf, Some(name))?;
     }
     buf.put_i32(timeout_ms);
+    Ok(())
 }
 
 pub fn decode_delete_topics_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, i32)> {
@@ -246,15 +268,20 @@ pub fn decode_delete_topics_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>,
     Ok((names, timeout_ms))
 }
 
-pub fn encode_delete_topics_response(buf: &mut BytesMut, version: i16, results: &[TopicResult]) {
+pub fn encode_delete_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[TopicResult],
+) -> crate::error::Result<()> {
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(results.len()));
+    buf::put_array_len(buf, false, Some(results.len()))?;
     for r in results {
-        buf::put_classic_nullable_string(buf, Some(&r.name));
+        buf::put_classic_nullable_string(buf, Some(&r.name))?;
         buf.put_i16(r.error_code);
     }
+    Ok(())
 }
 
 pub fn decode_delete_topics_response<B: Buf>(
@@ -284,16 +311,17 @@ pub fn encode_describe_configs_request(
     version: i16,
     resources: &[DescribeConfigsResource],
     include_synonyms: bool,
-) {
-    buf::put_array_len(buf, false, Some(resources.len()));
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(resources.len()))?;
     for r in resources {
         buf.put_i8(r.resource_type);
-        buf::put_classic_nullable_string(buf, Some(&r.name));
-        put_string_array(buf, r.keys.as_deref());
+        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        put_string_array(buf, r.keys.as_deref())?;
     }
     if version >= 1 {
         buf.put_u8(u8::from(include_synonyms));
     }
+    Ok(())
 }
 
 pub fn decode_describe_configs_request<B: Buf>(
@@ -324,18 +352,18 @@ pub fn encode_describe_configs_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[DescribeConfigsResult],
-) {
+) -> crate::error::Result<()> {
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(results.len()));
+    buf::put_array_len(buf, false, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
-        buf::put_classic_nullable_string(buf, r.error_message.as_deref());
+        buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
         buf.put_i8(r.resource_type);
-        buf::put_classic_nullable_string(buf, Some(&r.name));
-        buf::put_array_len(buf, false, Some(r.entries.len()));
+        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        buf::put_array_len(buf, false, Some(r.entries.len()))?;
         for e in &r.entries {
-            buf::put_classic_nullable_string(buf, Some(&e.name));
-            buf::put_classic_nullable_string(buf, e.value.as_deref());
+            buf::put_classic_nullable_string(buf, Some(&e.name))?;
+            buf::put_classic_nullable_string(buf, e.value.as_deref())?;
             buf.put_u8(u8::from(e.read_only));
             if version == 0 {
                 buf.put_u8(u8::from(e.source == CONFIG_SOURCE_DEFAULT));
@@ -344,15 +372,16 @@ pub fn encode_describe_configs_response(
             }
             buf.put_u8(u8::from(e.is_sensitive));
             if version >= 1 {
-                buf::put_array_len(buf, false, Some(e.synonyms.len()));
+                buf::put_array_len(buf, false, Some(e.synonyms.len()))?;
                 for s in &e.synonyms {
-                    buf::put_classic_nullable_string(buf, Some(&s.name));
-                    buf::put_classic_nullable_string(buf, s.value.as_deref());
+                    buf::put_classic_nullable_string(buf, Some(&s.name))?;
+                    buf::put_classic_nullable_string(buf, s.value.as_deref())?;
                     buf.put_i8(s.source);
                 }
             }
         }
     }
+    Ok(())
 }
 
 pub fn decode_describe_configs_response<B: Buf>(
@@ -442,7 +471,7 @@ mod tests {
             validate_only: false,
         };
         let mut buf = BytesMut::new();
-        encode_create_topics_request(&mut buf, 3, &req);
+        encode_create_topics_request(&mut buf, 3, &req).unwrap();
         let decoded = decode_create_topics_request(&mut &buf[..], 3).unwrap();
         assert_eq!(decoded, req);
 
@@ -452,7 +481,7 @@ mod tests {
             error_message: None,
         }];
         buf.clear();
-        encode_create_topics_response(&mut buf, 3, &results);
+        encode_create_topics_response(&mut buf, 3, &results).unwrap();
         assert_eq!(
             decode_create_topics_response(&mut &buf[..], 3).unwrap(),
             results
@@ -463,7 +492,7 @@ mod tests {
     fn delete_topics_v3_roundtrip() {
         let names = vec!["orders".into(), "t".into()];
         let mut buf = BytesMut::new();
-        encode_delete_topics_request(&mut buf, &names, 5000);
+        encode_delete_topics_request(&mut buf, &names, 5000).unwrap();
         let (decoded, timeout) = decode_delete_topics_request(&mut &buf[..]).unwrap();
         assert_eq!(decoded, names);
         assert_eq!(timeout, 5000);
@@ -481,7 +510,7 @@ mod tests {
             },
         ];
         buf.clear();
-        encode_delete_topics_response(&mut buf, 3, &results);
+        encode_delete_topics_response(&mut buf, 3, &results).unwrap();
         assert_eq!(
             decode_delete_topics_response(&mut &buf[..], 3).unwrap(),
             results
@@ -496,7 +525,7 @@ mod tests {
             keys: Some(vec!["cleanup.policy".into()]),
         }];
         let mut buf = BytesMut::new();
-        encode_describe_configs_request(&mut buf, 1, &resources, true);
+        encode_describe_configs_request(&mut buf, 1, &resources, true).unwrap();
         let (decoded, syn) = decode_describe_configs_request(&mut &buf[..], 1).unwrap();
         assert_eq!(decoded, resources);
         assert!(syn);
@@ -520,7 +549,7 @@ mod tests {
             }],
         }];
         buf.clear();
-        encode_describe_configs_response(&mut buf, 1, &results);
+        encode_describe_configs_response(&mut buf, 1, &results).unwrap();
         assert_eq!(
             decode_describe_configs_response(&mut &buf[..], 1).unwrap(),
             results
@@ -544,7 +573,7 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_describe_configs_response(&mut buf, 0, &results);
+        encode_describe_configs_response(&mut buf, 0, &results).unwrap();
         let decoded = decode_describe_configs_response(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded[0].entries[0].source, CONFIG_SOURCE_DEFAULT);
         assert!(decoded[0].entries[0].synonyms.is_empty());

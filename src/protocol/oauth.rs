@@ -1,6 +1,10 @@
 //! SASL OAUTHBEARER (RFC 7628) with Kafka's unsecured JWT (`alg=none`).
 //! Matches librdkafka's builtin `enable.sasl.oauthbearer.unsecure.jwt` token.
 
+#![expect(
+    missing_docs,
+    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
+)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::{Error, Result};
