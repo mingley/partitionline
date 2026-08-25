@@ -32,9 +32,10 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH, FIND_COORDINATOR,
-    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS,
+    DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
+    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -58,6 +59,12 @@ use partitionline::protocol::sasl::{
     encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
 };
 use partitionline::protocol::scram;
+use partitionline::protocol::txn::{
+    decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
+    decode_end_txn_request, decode_txn_offset_commit_request, encode_add_offsets_to_txn_response,
+    encode_add_partitions_to_txn_response, encode_end_txn_response,
+    encode_txn_offset_commit_response,
+};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -98,6 +105,9 @@ struct State {
     groups: HashMap<String, GroupReg>,
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
+    in_txn: bool,
+    txn_pending: Vec<(String, i32, i64)>,
+    txn_aborted: HashSet<(String, i32, i64)>,
 }
 
 struct GroupReg {
@@ -143,6 +153,9 @@ fn new_state(
         groups: HashMap::new(),
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
+        in_txn: false,
+        txn_pending: Vec::new(),
+        txn_aborted: HashSet::new(),
     }
 }
 
@@ -500,6 +513,10 @@ fn versions() -> ApiVersionsResponse {
         (CREATE_TOPICS, 0, 4),
         (DELETE_TOPICS, 0, 3),
         (INIT_PRODUCER_ID, 0, 4),
+        (ADD_PARTITIONS_TO_TXN, 0, 1),
+        (ADD_OFFSETS_TO_TXN, 0, 1),
+        (END_TXN, 0, 1),
+        (TXN_OFFSET_COMMIT, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
     ];
@@ -756,6 +773,34 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.next_pid += 1;
                 encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0).unwrap();
             }
+            ADD_PARTITIONS_TO_TXN => {
+                let _ = decode_add_partitions_to_txn_request(&mut frame);
+                state.lock().in_txn = true;
+                encode_add_partitions_to_txn_response(&mut body, 0).unwrap();
+            }
+            ADD_OFFSETS_TO_TXN => {
+                let _ = decode_add_offsets_to_txn_request(&mut frame);
+                encode_add_offsets_to_txn_response(&mut body, 0).unwrap();
+            }
+            END_TXN => {
+                let (_tid, _pid, _epoch, committed) = decode_end_txn_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if !committed {
+                    let pending = std::mem::take(&mut st.txn_pending);
+                    for rec in pending {
+                        st.txn_aborted.insert(rec);
+                    }
+                } else {
+                    st.txn_pending.clear();
+                }
+                st.in_txn = false;
+                encode_end_txn_response(&mut body, 0).unwrap();
+            }
+            TXN_OFFSET_COMMIT => {
+                let (_tid, _gid, part, off) = decode_txn_offset_commit_request(&mut frame).unwrap();
+                state.lock().committed.insert(("t".into(), part), off);
+                encode_txn_offset_commit_response(&mut body, 0).unwrap();
+            }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
@@ -815,6 +860,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 n += 1;
                             }
                             st.next_offset.insert(key, start + n);
+                            if st.in_txn {
+                                for o in 0..n {
+                                    st.txn_pending
+                                        .push((topic.topic.clone(), p.index, start + o));
+                                }
+                            }
                             parts.push(ProducePartitionResponse {
                                 topic: topic.topic.clone(),
                                 partition: p.index,
@@ -868,6 +919,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .map(|v| {
                                 v.iter()
                                     .filter(|r| r.offset >= p.fetch_offset)
+                                    .filter(|r| {
+                                        if st.last_fetch_isolation != 1 {
+                                            return true;
+                                        }
+                                        let k = (t.topic.clone(), p.partition, r.offset);
+                                        !st.txn_aborted.contains(&k)
+                                            && !st.txn_pending.iter().any(|x| x == &k)
+                                    })
                                     .cloned()
                                     .collect::<Vec<_>>()
                             })

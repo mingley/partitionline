@@ -19,6 +19,10 @@ pub const API_VERSIONS: i16 = 18;
 pub const CREATE_TOPICS: i16 = 19;
 pub const DELETE_TOPICS: i16 = 20;
 pub const INIT_PRODUCER_ID: i16 = 22;
+pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
+pub const ADD_OFFSETS_TO_TXN: i16 = 25;
+pub const END_TXN: i16 = 26;
+pub const TXN_OFFSET_COMMIT: i16 = 28;
 pub const DESCRIBE_CONFIGS: i16 = 32;
 pub const SASL_AUTHENTICATE: i16 = 36;
 

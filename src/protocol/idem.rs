@@ -12,8 +12,9 @@ use crate::error::Result;
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,
+    transactional_id: Option<&str>,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_classic_nullable_string(buf, transactional_id)?;
     buf.put_i32(60_000);
     if version >= 3 {
         buf.put_i64(-1);
@@ -57,7 +58,7 @@ mod tests {
     #[test]
     fn init_producer_id_v1_roundtrip() {
         let mut req = BytesMut::new();
-        encode_init_producer_id_request(&mut req, 1).unwrap();
+        encode_init_producer_id_request(&mut req, 1, None).unwrap();
         let mut cur = &req[..];
         assert_eq!(buf::get_classic_nullable_string(&mut cur).unwrap(), None);
         assert_eq!(buf::get_i32(&mut cur).unwrap(), 60_000);

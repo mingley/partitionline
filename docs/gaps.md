@@ -34,7 +34,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
 | SASL OIDC (token endpoint) | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
-| Transactions / EOS | no | yes | **not started** |
+| Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: ACLs, AlterConfigs, ListOffsets, … | no | yes | **not started** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
@@ -61,8 +61,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. Transactions / EOS.
-2. Remaining admin (ACLs, IncrementalAlterConfigs, CreatePartitions). KIP-848, OIDC, fetch-from-follower after those.
+1. Remaining admin (ACLs, IncrementalAlterConfigs, CreatePartitions). KIP-848, OIDC, fetch-from-follower after those.
 
 ## What “done” on this list does *not* mean
 

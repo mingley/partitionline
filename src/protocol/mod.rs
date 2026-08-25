@@ -24,6 +24,8 @@ pub mod records;
 pub mod sasl;
 /// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;
+/// Transactional produce APIs.
+pub mod txn;
 
 pub use api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_request,

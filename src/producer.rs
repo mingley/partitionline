@@ -3,8 +3,8 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
-use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicI32, AtomicUsize, Ordering};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -19,11 +19,19 @@ use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_response,
     encode_api_versions_request, encode_metadata_request, ApiVersion,
 };
-use crate::protocol::api_keys::{pick_version, API_VERSIONS, INIT_PRODUCER_ID, METADATA, PRODUCE};
+use crate::protocol::api_keys::{
+    pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, END_TXN,
+    INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
+};
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader,
+};
+use crate::protocol::txn::{
+    decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
+    decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
+    encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
 };
 
 #[derive(Debug, Clone)]
@@ -45,6 +53,7 @@ pub struct ProducerConfig {
     pub connections: usize,
     pub max_in_flight: usize,
     pub enable_idempotence: bool,
+    pub transactional_id: Option<String>,
     pub tls: Option<TlsConfig>,
 }
 
@@ -68,6 +77,7 @@ impl Default for ProducerConfig {
             connections: 8,
             max_in_flight: 16,
             enable_idempotence: false,
+            transactional_id: None,
             tls: None,
         }
     }
@@ -162,6 +172,8 @@ struct Shared {
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
     retries_out: AtomicUsize,
+    in_txn: AtomicBool,
+    txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
 }
 
 #[derive(Clone)]
@@ -216,6 +228,9 @@ impl Producer {
         )
         .await?;
         let mut cfg = cfg;
+        if cfg.transactional_id.is_some() {
+            cfg.enable_idempotence = true;
+        }
         if cfg.enable_idempotence {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
@@ -231,11 +246,12 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 1).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
+            let txn_id = cfg.transactional_id.clone();
             let body = meta
                 .roundtrip(
                     INIT_PRODUCER_ID,
                     ipid_version,
-                    |buf| encode_init_producer_id_request(buf, ipid_version),
+                    |buf| encode_init_producer_id_request(buf, ipid_version, txn_id.as_deref()),
                     cfg.request_timeout,
                 )
                 .await?;
@@ -273,6 +289,8 @@ impl Producer {
             last_meta_err: parking_lot::Mutex::new(None),
             nodes: parking_lot::Mutex::new(HashMap::new()),
             retries_out: AtomicUsize::new(0),
+            in_txn: AtomicBool::new(false),
+            txn_partitions: parking_lot::Mutex::new(HashSet::new()),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -457,6 +475,101 @@ impl Producer {
         for rx in rxs {
             rx.await.map_err(|_| Error::Closed)??;
         }
+        Ok(())
+    }
+
+    pub async fn begin_transaction(&self) -> Result<()> {
+        if self.inner.shared.cfg.transactional_id.is_none() {
+            return Err(Error::protocol("transactional.id is not set"));
+        }
+        self.inner.shared.in_txn.store(true, Ordering::SeqCst);
+        self.inner.shared.txn_partitions.lock().clear();
+        Ok(())
+    }
+
+    pub async fn commit_transaction(&self) -> Result<()> {
+        self.flush().await?;
+        self.end_txn(true).await
+    }
+
+    pub async fn abort_transaction(&self) -> Result<()> {
+        self.flush().await?;
+        self.end_txn(false).await
+    }
+
+    pub async fn send_offsets_to_transaction(
+        &self,
+        group_id: &str,
+        offsets: &[(String, i32, i64)],
+    ) -> Result<()> {
+        let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
+            return Err(Error::protocol("transactional.id is not set"));
+        };
+        if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("no transaction in progress"));
+        }
+        let timeout = self.inner.shared.cfg.request_timeout;
+        let pid = self.inner.shared.producer_id;
+        let epoch = self.inner.shared.producer_epoch;
+        {
+            let mut meta = self.inner.shared.meta.lock().await;
+            let body = meta
+                .roundtrip(
+                    ADD_OFFSETS_TO_TXN,
+                    0,
+                    |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
+                    timeout,
+                )
+                .await?;
+            let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "AddOffsetsToTxn"));
+            }
+        }
+        let mut meta = self.inner.shared.meta.lock().await;
+        for (topic, part, off) in offsets {
+            let body = meta
+                .roundtrip(
+                    TXN_OFFSET_COMMIT,
+                    0,
+                    |buf| {
+                        encode_txn_offset_commit_request(
+                            buf, &tid, group_id, pid, epoch, topic, *part, *off,
+                        )
+                    },
+                    timeout,
+                )
+                .await?;
+            let err = decode_txn_offset_commit_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "TxnOffsetCommit"));
+            }
+        }
+        Ok(())
+    }
+
+    async fn end_txn(&self, committed: bool) -> Result<()> {
+        let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
+            return Err(Error::protocol("transactional.id is not set"));
+        };
+        let timeout = self.inner.shared.cfg.request_timeout;
+        let pid = self.inner.shared.producer_id;
+        let epoch = self.inner.shared.producer_epoch;
+        let mut meta = self.inner.shared.meta.lock().await;
+        let body = meta
+            .roundtrip(
+                END_TXN,
+                0,
+                |buf| encode_end_txn_request(buf, &tid, pid, epoch, committed),
+                timeout,
+            )
+            .await?;
+        let err = decode_end_txn_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "EndTxn"));
+        }
+        self.inner.shared.in_txn.store(false, Ordering::SeqCst);
+        self.inner.shared.txn_partitions.lock().clear();
         Ok(())
     }
 
@@ -905,6 +1018,9 @@ impl Worker {
             return Ok(());
         }
         assign_sequences(&mut groups, self.shared.producer_id, &self.shared.seqs);
+        self.add_txn_partitions(&groups).await?;
+        let transactional =
+            self.shared.cfg.transactional_id.is_some() && self.shared.in_txn.load(Ordering::SeqCst);
 
         let version = self.shared.produce_version;
         let acks = self.shared.cfg.acks;
@@ -931,6 +1047,7 @@ impl Worker {
             now,
             self.shared.producer_id,
             self.shared.producer_epoch,
+            transactional,
         )?;
         let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
         crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size)?;
@@ -1041,6 +1158,55 @@ impl Worker {
         for (_, _, pendings) in groups {
             self.requeue_pendings(pendings);
         }
+    }
+
+    async fn add_txn_partitions(&self, groups: &[(Arc<str>, i32, Vec<Pending>)]) -> Result<()> {
+        let Some(tid) = self.shared.cfg.transactional_id.clone() else {
+            return Ok(());
+        };
+        if !self.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("produce outside a transaction"));
+        }
+        let mut added: Vec<(Arc<str>, i32)> = Vec::new();
+        {
+            let mut set = self.shared.txn_partitions.lock();
+            for (topic, part, _) in groups {
+                if set.insert((topic.clone(), *part)) {
+                    added.push((topic.clone(), *part));
+                }
+            }
+        }
+        if added.is_empty() {
+            return Ok(());
+        }
+        let timeout = self.shared.cfg.request_timeout;
+        let pid = self.shared.producer_id;
+        let epoch = self.shared.producer_epoch;
+        let mut meta = self.shared.meta.lock().await;
+        for (topic, part) in added {
+            let body = meta
+                .roundtrip(
+                    ADD_PARTITIONS_TO_TXN,
+                    0,
+                    |buf| {
+                        encode_add_partitions_to_txn_request(
+                            buf,
+                            &tid,
+                            pid,
+                            epoch,
+                            topic.as_ref(),
+                            part,
+                        )
+                    },
+                    timeout,
+                )
+                .await?;
+            let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "AddPartitionsToTxn"));
+            }
+        }
+        Ok(())
     }
 
     fn requeue_pendings(&self, pendings: Vec<Pending>) {
@@ -1166,6 +1332,7 @@ fn encode_produce_body(
     now: i64,
     producer_id: i64,
     producer_epoch: i16,
+    transactional: bool,
 ) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
@@ -1208,6 +1375,7 @@ fn encode_produce_body(
                     producer_id,
                     producer_epoch,
                     base_sequence,
+                    transactional,
                 )?;
                 crate::protocol::buf::put_bytes(buf, true, Some(&recs))?;
                 crate::protocol::buf::put_empty_tagged_fields(buf);
@@ -1222,6 +1390,7 @@ fn encode_produce_body(
                     producer_id,
                     producer_epoch,
                     base_sequence,
+                    transactional,
                 )?;
                 let rec_len =
                     crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
@@ -1255,6 +1424,10 @@ fn next_sequence(
     base
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "record batch header and payload knobs travel together"
+)]
 fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
@@ -1263,6 +1436,7 @@ fn encode_pendings(
     producer_id: i64,
     producer_epoch: i16,
     base_sequence: i32,
+    transactional: bool,
 ) -> Result<()> {
     let base_ts = pendings
         .first()
@@ -1276,7 +1450,7 @@ fn encode_pendings(
     write_record_batch(
         buf,
         &BatchHeader {
-            attributes: compression as i16,
+            attributes: (compression as i16) | if transactional { 0x10 } else { 0 },
             base_timestamp: base_ts,
             max_timestamp: max_ts,
             count: crate::protocol::buf::i32_from_usize(pendings.len())?,

@@ -163,6 +163,42 @@ async fn tls_produce_fetch() {
 }
 
 #[tokio::test]
+async fn transactional_commit_visible_abort_hidden() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-1".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"committed"[..]))
+        .await
+        .unwrap();
+    producer
+        .send_offsets_to_transaction("g", &[("t".into(), 0, 1)])
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"aborted"[..]))
+        .await
+        .unwrap();
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.isolation_level = 1;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    let vals: Vec<&[u8]> = recs.iter().filter_map(|r| r.value.as_deref()).collect();
+    assert_eq!(vals, vec![&b"committed"[..]]);
+    assert!(!vals.iter().any(|v| *v == b"aborted"));
+}
+
+#[tokio::test]
 async fn list_offsets_seek_and_read_committed_isolation() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
