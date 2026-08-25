@@ -38,6 +38,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs | yes | yes | **done** |
+| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60) | yes | **done** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
 | Fetch from follower / rack awareness | no | yes | **not started** |
 | Share groups | no | yes | **not started** |
@@ -62,7 +63,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. KIP-848, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords).
+1. KIP-848, fetch-from-follower.
 
 ## What “done” on this list does *not* mean
 

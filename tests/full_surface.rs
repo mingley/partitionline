@@ -831,6 +831,69 @@ async fn admin_partitions_alter_configs_and_acls() {
 }
 
 #[tokio::test]
+async fn admin_alter_configs_delete_records_describe_cluster() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("rest", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let err = admin
+        .alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "rest",
+            &[("retention.ms".into(), Some("2000".into()))],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("rest").keys(["retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("2000")
+    );
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md0 = producer
+        .send(ProduceRecord::to("rest").value(&b"a"[..]))
+        .await
+        .unwrap();
+    let _md1 = producer
+        .send(ProduceRecord::to("rest").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let (low, err) = admin
+        .delete_records("rest", md0.partition, md0.offset + 1, 10_000)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(low, md0.offset + 1);
+
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert_eq!(cluster.error_code, 0);
+    assert!(!cluster.brokers.is_empty());
+    assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await

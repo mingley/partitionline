@@ -4,7 +4,7 @@
 //! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER (unsecured JWT or
 //! OIDC client_credentials token URL), TLS (rustls),
 //! idempotent and transactional produce, ListOffsets/seek, and admin
-//! (topics, partitions, configs, ACLs).
+//! (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -28,8 +28,8 @@ pub mod producer;
 pub mod protocol;
 
 pub use admin::{
-    AclBinding, Admin, AdminConfig, AlterConfig, ConfigEntry, ConfigResource, NewTopic,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC,
+    AclBinding, Admin, AdminConfig, AlterConfig, ClusterDescription, ConfigEntry, ConfigResource,
+    NewTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};

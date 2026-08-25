@@ -587,6 +587,208 @@ pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B) -> Result<
     buf::get_i16(buf)
 }
 
+pub fn encode_alter_configs_request(
+    buf: &mut BytesMut,
+    _version: i16,
+    resource_type: i8,
+    name: &str,
+    configs: &[TopicConfig],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i8(resource_type);
+    buf::put_classic_nullable_string(buf, Some(name))?;
+    buf::put_array_len(buf, false, Some(configs.len()))?;
+    for c in configs {
+        buf::put_classic_nullable_string(buf, Some(&c.name))?;
+        buf::put_classic_nullable_string(buf, c.value.as_deref())?;
+    }
+    buf.put_u8(u8::from(validate_only));
+    Ok(())
+}
+
+pub fn decode_alter_configs_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(i8, String, Vec<TopicConfig>, bool)> {
+    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let resource_type = buf::get_i8(buf)?;
+    let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let cn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut configs = Vec::with_capacity(cn);
+    for _ in 0..cn {
+        let cname = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let value = buf::get_classic_nullable_string(buf)?;
+        configs.push(TopicConfig { name: cname, value });
+    }
+    let validate_only = buf.get_u8() != 0;
+    Ok((resource_type, name, configs, validate_only))
+}
+
+pub fn encode_alter_configs_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    name: &str,
+) -> crate::error::Result<()> {
+    if version >= 1 {
+        buf.put_i32(0);
+    }
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i16(error_code);
+    buf::put_classic_nullable_string(buf, None)?;
+    buf.put_i8(RESOURCE_TOPIC);
+    buf::put_classic_nullable_string(buf, Some(name))?;
+    Ok(())
+}
+
+pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    if version >= 1 {
+        let _th = buf::get_i32(buf)?;
+    }
+    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    buf::get_i16(buf)
+}
+
+pub fn encode_delete_records_request(
+    buf: &mut BytesMut,
+    topic: &str,
+    partition: i32,
+    offset: i64,
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i32(partition);
+    buf.put_i64(offset);
+    buf.put_i32(timeout_ms);
+    Ok(())
+}
+
+pub fn decode_delete_records_request<B: Buf>(buf: &mut B) -> Result<(String, i32, i64, i32)> {
+    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let partition = buf::get_i32(buf)?;
+    let offset = buf::get_i64(buf)?;
+    let timeout_ms = buf::get_i32(buf)?;
+    Ok((topic, partition, offset, timeout_ms))
+}
+
+pub fn encode_delete_records_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topic: &str,
+    partition: i32,
+    low_watermark: i64,
+    error_code: i16,
+) -> crate::error::Result<()> {
+    if version >= 1 {
+        buf.put_i32(0);
+    }
+    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_classic_nullable_string(buf, Some(topic))?;
+    buf::put_array_len(buf, false, Some(1))?;
+    buf.put_i32(partition);
+    buf.put_i64(low_watermark);
+    buf.put_i16(error_code);
+    Ok(())
+}
+
+pub fn decode_delete_records_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i32, i64, i16)> {
+    if version >= 1 {
+        let _th = buf::get_i32(buf)?;
+    }
+    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let _topic = buf::get_classic_nullable_string(buf)?;
+    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let partition = buf::get_i32(buf)?;
+    let low_watermark = buf::get_i64(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    Ok((partition, low_watermark, error_code))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClusterDescription {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub cluster_id: Option<String>,
+    pub controller_id: i32,
+    pub brokers: Vec<super::api::Broker>,
+}
+
+pub fn encode_describe_cluster_request(
+    buf: &mut BytesMut,
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    buf.put_u8(u8::from(include_authorized_operations));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_cluster_request<B: Buf>(buf: &mut B) -> Result<bool> {
+    let include = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(include)
+}
+
+pub fn encode_describe_cluster_response(
+    buf: &mut BytesMut,
+    desc: &ClusterDescription,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(desc.error_code);
+    buf::put_compact_string(buf, desc.error_message.as_deref())?;
+    buf::put_compact_string(buf, desc.cluster_id.as_deref())?;
+    buf.put_i32(desc.controller_id);
+    buf::put_array_len(buf, true, Some(desc.brokers.len()))?;
+    for b in &desc.brokers {
+        buf.put_i32(b.node_id);
+        buf::put_compact_string(buf, Some(&b.host))?;
+        buf.put_i32(b.port);
+        buf::put_compact_string(buf, b.rack.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_i32(i32::MIN);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let cluster_id = buf::get_compact_string(buf)?;
+    let controller_id = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut brokers = Vec::with_capacity(n);
+    for _ in 0..n {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_compact_string(buf)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        brokers.push(super::api::Broker {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+    }
+    let _ops = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(ClusterDescription {
+        error_code,
+        error_message,
+        cluster_id,
+        controller_id,
+        brokers,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -717,5 +919,73 @@ mod tests {
         let decoded = decode_describe_configs_response(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded[0].entries[0].source, CONFIG_SOURCE_DEFAULT);
         assert!(decoded[0].entries[0].synonyms.is_empty());
+    }
+
+    #[test]
+    fn alter_configs_v1_roundtrip() {
+        let mut buf = BytesMut::new();
+        encode_alter_configs_request(
+            &mut buf,
+            1,
+            RESOURCE_TOPIC,
+            "t",
+            &[TopicConfig {
+                name: "retention.ms".into(),
+                value: Some("1".into()),
+            }],
+            false,
+        )
+        .unwrap();
+        let (rt, name, configs, validate) = decode_alter_configs_request(&mut &buf[..]).unwrap();
+        assert_eq!(rt, RESOURCE_TOPIC);
+        assert_eq!(name, "t");
+        assert_eq!(
+            configs,
+            vec![TopicConfig {
+                name: "retention.ms".into(),
+                value: Some("1".into()),
+            }]
+        );
+        assert!(!validate);
+        buf.clear();
+        encode_alter_configs_response(&mut buf, 1, 0, "t").unwrap();
+        assert_eq!(decode_alter_configs_response(&mut &buf[..], 1).unwrap(), 0);
+    }
+
+    #[test]
+    fn delete_records_v1_roundtrip() {
+        let mut buf = BytesMut::new();
+        encode_delete_records_request(&mut buf, "t", 0, 5, 1000).unwrap();
+        let (topic, part, off, timeout) = decode_delete_records_request(&mut &buf[..]).unwrap();
+        assert_eq!((topic.as_str(), part, off, timeout), ("t", 0, 5, 1000));
+        buf.clear();
+        encode_delete_records_response(&mut buf, 1, "t", 0, 5, 0).unwrap();
+        let (p, low, err) = decode_delete_records_response(&mut &buf[..], 1).unwrap();
+        assert_eq!((p, low, err), (0, 5, 0));
+    }
+
+    #[test]
+    fn describe_cluster_v0_roundtrip() {
+        let desc = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            brokers: vec![super::super::api::Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+        };
+        let mut req = BytesMut::new();
+        encode_describe_cluster_request(&mut req, false).unwrap();
+        assert!(!decode_describe_cluster_request(&mut &req[..]).unwrap());
+        let mut buf = BytesMut::new();
+        encode_describe_cluster_response(&mut buf, &desc).unwrap();
+        assert_eq!(
+            decode_describe_cluster_response(&mut &buf[..]).unwrap(),
+            desc
+        );
     }
 }

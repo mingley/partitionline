@@ -27,13 +27,15 @@ use partitionline::protocol::acl::{
     AclBinding,
 };
 use partitionline::protocol::admin::{
-    decode_create_partitions_request, decode_create_topics_request, decode_delete_topics_request,
+    decode_alter_configs_request, decode_create_partitions_request, decode_create_topics_request,
+    decode_delete_records_request, decode_delete_topics_request, decode_describe_cluster_request,
     decode_describe_configs_request, decode_incremental_alter_configs_request,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_topics_response, encode_describe_configs_response,
-    encode_incremental_alter_configs_response, ConfigEntry, DescribeConfigsResult, TopicResult,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_alter_configs_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    encode_describe_cluster_response, encode_describe_configs_response,
+    encode_incremental_alter_configs_response, ClusterDescription, ConfigEntry,
+    DescribeConfigsResult, TopicResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -41,11 +43,12 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS,
-    CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FETCH,
-    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::epoch::{
     decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
@@ -558,6 +561,9 @@ fn versions() -> ApiVersionsResponse {
         (CREATE_TOPICS, 0, 4),
         (DELETE_TOPICS, 0, 3),
         (CREATE_PARTITIONS, 0, 1),
+        (DELETE_RECORDS, 0, 1),
+        (ALTER_CONFIGS, 0, 1),
+        (DESCRIBE_CLUSTER, 0, 0),
         (DESCRIBE_ACLS, 0, 1),
         (CREATE_ACLS, 0, 1),
         (DELETE_ACLS, 0, 1),
@@ -837,6 +843,81 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     err = 3;
                 }
                 encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
+            }
+            ALTER_CONFIGS => {
+                let (rt, name, configs, validate_only) =
+                    decode_alter_configs_request(&mut frame).unwrap();
+                let mut err = 0i16;
+                let mut st = state.lock();
+                if rt != RESOURCE_TOPIC {
+                    err = 3;
+                } else if let Some(spec) = st.created_topics.get_mut(&name) {
+                    if !validate_only {
+                        for c in configs {
+                            if let Some(val) = c.value {
+                                spec.configs.insert(c.name, Some(val));
+                            } else {
+                                spec.configs.remove(&c.name);
+                            }
+                        }
+                    }
+                } else {
+                    err = 3;
+                }
+                encode_alter_configs_response(&mut body, header.api_version, err, &name).unwrap();
+            }
+            DELETE_RECORDS => {
+                let (topic, partition, offset, _timeout) =
+                    decode_delete_records_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let key = (topic.clone(), partition);
+                let (low, err) = if st.created_topics.contains_key(&topic) {
+                    let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                    let start = *st.log_start.get(&key).unwrap_or(&0);
+                    let low = offset.clamp(start, hw);
+                    st.log_start.insert(key.clone(), low);
+                    if let Some(recs) = st.log.get_mut(&key) {
+                        recs.retain(|r| r.offset >= low);
+                    }
+                    (low, 0i16)
+                } else {
+                    (0i64, 3i16)
+                };
+                encode_delete_records_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    low,
+                    err,
+                )
+                .unwrap();
+            }
+            DESCRIBE_CLUSTER => {
+                let _include = decode_describe_cluster_request(&mut frame).unwrap();
+                let st = state.lock();
+                let brokers = if st.brokers.is_empty() {
+                    vec![Broker {
+                        node_id,
+                        host: "127.0.0.1".into(),
+                        port: 0,
+                        rack: None,
+                    }]
+                } else {
+                    st.brokers.clone()
+                };
+                let controller_id = brokers.first().map(|b| b.node_id).unwrap_or(node_id);
+                encode_describe_cluster_response(
+                    &mut body,
+                    &ClusterDescription {
+                        error_code: 0,
+                        error_message: None,
+                        cluster_id: Some("mock".into()),
+                        controller_id,
+                        brokers,
+                    },
+                )
+                .unwrap();
             }
             CREATE_ACLS => {
                 let acls = decode_create_acls_request(&mut frame).unwrap();
