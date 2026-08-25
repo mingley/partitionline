@@ -9,13 +9,18 @@ use std::time::{Duration, Instant};
 use bytes::Bytes;
 
 use crate::cluster::Cluster;
-use crate::error::{Error, Result};
+use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
     encode_metadata_request, ApiVersion, MetadataResponse,
 };
-use crate::protocol::api_keys::{pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA};
+use crate::protocol::api_keys::{
+    pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
+};
+use crate::protocol::epoch::{
+    decode_offset_for_leader_epoch_response, encode_offset_for_leader_epoch_request,
+};
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
 };
@@ -33,6 +38,7 @@ pub struct ConsumerConfig {
     pub sasl_scram: Option<(String, String)>,
     pub sasl_scram_sha512: Option<(String, String)>,
     pub sasl_oauthbearer: Option<String>,
+    pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     pub tls: Option<crate::net::TlsConfig>,
     pub max_wait_ms: i32,
     pub min_bytes: i32,
@@ -52,6 +58,7 @@ impl Default for ConsumerConfig {
             sasl_scram: None,
             sasl_scram_sha512: None,
             sasl_oauthbearer: None,
+            sasl_oauthbearer_oidc: None,
             tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
@@ -132,6 +139,7 @@ impl Consumer {
             cfg.sasl_scram.as_ref(),
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
             cfg.request_timeout,
         )
         .await?;
@@ -285,10 +293,61 @@ impl Consumer {
             self.cfg.sasl_scram.as_ref(),
             self.cfg.sasl_scram_sha512.as_ref(),
             self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
             self.cfg.request_timeout,
         )
         .await?;
         let _prev = self.conns.insert(node, conn);
+        Ok(())
+    }
+
+    async fn recover_leader_epoch(&mut self, topic: &str, partition: i32, node: i32) -> Result<()> {
+        let version = self
+            .versions
+            .get(&OFFSET_FOR_LEADER_EPOCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support OffsetForLeaderEpoch".into())
+            })?;
+        self.connect_node(node).await?;
+        let current = self.cluster.leader_epoch(topic, partition);
+        let timeout = self.cfg.request_timeout;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing epoch conn"))?;
+            conn.roundtrip(
+                OFFSET_FOR_LEADER_EPOCH,
+                version,
+                |buf| {
+                    encode_offset_for_leader_epoch_request(
+                        buf, version, topic, partition, current, current,
+                    )
+                },
+                timeout,
+            )
+            .await?
+        };
+        let (err, epoch, end_offset) =
+            decode_offset_for_leader_epoch_response(&mut body.clone(), version)?;
+        if err != 0 {
+            return Err(Error::broker(
+                err,
+                format!("OffsetForLeaderEpoch {topic}-{partition}"),
+            ));
+        }
+        self.cluster.set_leader_epoch(topic, partition, epoch);
+        let assigned = self
+            .assigned
+            .iter()
+            .find(|(t, p, _)| t == topic && *p == partition)
+            .map(|(_, _, o)| *o);
+        if let Some(off) = assigned {
+            if off > end_offset {
+                self.advance(topic, partition, end_offset);
+            }
+        }
         Ok(())
     }
 
@@ -314,6 +373,7 @@ impl Consumer {
                             .or_default()
                             .push(FetchPartition {
                                 partition: *part,
+                                current_leader_epoch: self.cluster.leader_epoch(topic, *part),
                                 fetch_offset: *offset,
                                 partition_max_bytes: self.cfg.max_bytes,
                             });
@@ -387,8 +447,16 @@ impl Consumer {
                 let fetched = decode_fetch_response(&mut body.clone())?;
                 for topic in fetched {
                     for part in topic.partitions {
-                        if part.error_code == crate::error::OFFSET_OUT_OF_RANGE {
+                        if part.error_code == error::OFFSET_OUT_OF_RANGE {
                             self.advance(&topic.topic, part.partition, part.log_start_offset);
+                            continue;
+                        }
+                        if part.error_code == error::FENCED_LEADER_EPOCH
+                            || part.error_code == error::UNKNOWN_LEADER_EPOCH
+                        {
+                            self.recover_leader_epoch(&topic.topic, part.partition, node)
+                                .await?;
+                            retry = true;
                             continue;
                         }
                         if part.error_code != 0 {

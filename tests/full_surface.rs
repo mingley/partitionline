@@ -12,8 +12,8 @@ mod common;
 
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
-    ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
+    ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, ProduceRecord, Producer,
+    ProducerConfig, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
     CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
@@ -95,6 +95,55 @@ async fn produce_fetch_follow_metadata_leader() {
     assert!(
         fetched.contains(&2),
         "successful fetch must hit leader node 2, got {fetched:?}"
+    );
+}
+
+#[tokio::test]
+async fn fetch_recovers_from_fenced_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"epoch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let bumped = mock.bump_leader_epoch("t", md.partition);
+    assert!(bumped > 0);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"epoch"[..]));
+    let ofle = mock
+        .last_offset_for_leader_epoch()
+        .expect("fenced fetch must speak OffsetForLeaderEpoch");
+    assert_eq!(ofle.0, "t");
+    assert_eq!(ofle.1, md.partition);
+}
+
+#[tokio::test]
+async fn fetch_unfenced_does_not_speak_offset_for_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"plain"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"plain"[..]));
+    assert!(
+        mock.last_offset_for_leader_epoch().is_none(),
+        "unfenced fetch must not send OffsetForLeaderEpoch"
     );
 }
 
@@ -374,6 +423,84 @@ async fn sasl_oauthbearer_then_produce() {
         .unwrap();
     assert_eq!(md.offset, 0);
     producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oidc_then_produce() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "csecret"));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oidc-ok"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_oidc_then_fetch() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url.clone(), "cid", "csecret"));
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"oidc-fetch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "csecret"));
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"oidc-fetch"[..]));
+}
+
+#[tokio::test]
+async fn sasl_oidc_bad_secret_fails() {
+    let token_url =
+        common::start_oidc_token_endpoint("cid".into(), "csecret".into(), "alice".into()).await;
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(token_url, "cid", "wrong"));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("bad oidc secret must fail"),
+    };
+    match err {
+        Error::Protocol(m) => assert!(m.contains("401") || m.contains("oidc"), "{m}"),
+        other => panic!("expected oidc HTTP failure, got {other}"),
+    }
+}
+
+#[tokio::test]
+async fn sasl_oidc_bad_url_fails() {
+    let bound = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = bound.local_addr().unwrap();
+    drop(bound);
+    let mock = common::Mock::start_with_oauthbearer("alice".into()).await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.sasl_oauthbearer_oidc = Some(OidcConfig::new(
+        format!("http://{addr}/oauth/token"),
+        "cid",
+        "csecret",
+    ));
+    let err = match Producer::new(pcfg).await {
+        Err(e) => e,
+        Ok(_) => panic!("closed token URL must fail"),
+    };
+    match err {
+        Error::Io(_) | Error::Timeout | Error::Protocol(_) => {}
+        other => panic!("expected token URL failure, got {other}"),
+    }
 }
 
 #[tokio::test]
@@ -701,6 +828,69 @@ async fn admin_partitions_alter_configs_and_acls() {
         .await
         .unwrap()
         .is_empty());
+}
+
+#[tokio::test]
+async fn admin_alter_configs_delete_records_describe_cluster() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("rest", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let err = admin
+        .alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "rest",
+            &[("retention.ms".into(), Some("2000".into()))],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("rest").keys(["retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("2000")
+    );
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md0 = producer
+        .send(ProduceRecord::to("rest").value(&b"a"[..]))
+        .await
+        .unwrap();
+    let _md1 = producer
+        .send(ProduceRecord::to("rest").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let (low, err) = admin
+        .delete_records("rest", md0.partition, md0.offset + 1, 10_000)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(low, md0.offset + 1);
+
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert_eq!(cluster.error_code, 0);
+    assert!(!cluster.brokers.is_empty());
+    assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
 }
 
 #[tokio::test]

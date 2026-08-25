@@ -8,6 +8,8 @@ pub mod api;
 pub mod api_keys;
 /// Classic and compact Kafka primitive codecs.
 pub mod buf;
+/// OffsetForLeaderEpoch codec.
+pub mod epoch;
 /// Fetch request and response codecs.
 pub mod fetch;
 /// Consumer group protocol codecs.
@@ -20,6 +22,8 @@ pub mod idem;
 pub mod oauth;
 /// ListOffsets codecs.
 pub mod offsets;
+/// RFC 6749 client_credentials token fetch for OAUTHBEARER.
+pub mod oidc;
 /// RecordBatch magic-2 codec.
 pub mod records;
 /// SASL handshake and authenticate.

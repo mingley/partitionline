@@ -120,6 +120,8 @@ pub const REBALANCE_IN_PROGRESS: i16 = 27;
 pub const MEMBER_ID_REQUIRED: i16 = 79;
 pub const OUT_OF_ORDER_SEQUENCE_NUMBER: i16 = 45;
 pub const DUPLICATE_SEQUENCE_NUMBER: i16 = 46;
+pub const FENCED_LEADER_EPOCH: i16 = 74;
+pub const UNKNOWN_LEADER_EPOCH: i16 = 77;
 
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
@@ -148,6 +150,8 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         MEMBER_ID_REQUIRED => "MEMBER_ID_REQUIRED",
         OUT_OF_ORDER_SEQUENCE_NUMBER => "OUT_OF_ORDER_SEQUENCE_NUMBER",
         DUPLICATE_SEQUENCE_NUMBER => "DUPLICATE_SEQUENCE_NUMBER",
+        FENCED_LEADER_EPOCH => "FENCED_LEADER_EPOCH",
+        UNKNOWN_LEADER_EPOCH => "UNKNOWN_LEADER_EPOCH",
         _ => return None,
     })
 }

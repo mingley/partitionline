@@ -234,6 +234,15 @@ pub async fn authenticate_oauthbearer(
     principal: &str,
     timeout: Duration,
 ) -> Result<()> {
+    let token = super::oauth::unsecured_jwt_now(principal);
+    authenticate_oauthbearer_token(conn, &token, timeout).await
+}
+
+pub async fn authenticate_oauthbearer_token(
+    conn: &mut BrokerConn,
+    token: &str,
+    timeout: Duration,
+) -> Result<()> {
     let hs = conn
         .roundtrip(
             SASL_HANDSHAKE,
@@ -251,8 +260,7 @@ pub async fn authenticate_oauthbearer(
             "OAUTHBEARER not in mechanisms {mechs:?}"
         )));
     }
-    let token = super::oauth::unsecured_jwt_now(principal);
-    let auth = super::oauth::client_initial(&token);
+    let auth = super::oauth::client_initial(token);
     let body = conn
         .roundtrip(
             SASL_AUTHENTICATE,
@@ -292,6 +300,7 @@ pub async fn authenticate(
     sasl_scram: Option<&(String, String)>,
     sasl_scram_sha512: Option<&(String, String)>,
     sasl_oauthbearer: Option<&str>,
+    sasl_oidc: Option<&super::oidc::OidcConfig>,
     timeout: Duration,
 ) -> Result<()> {
     let n = [
@@ -299,13 +308,14 @@ pub async fn authenticate(
         sasl_scram.is_some(),
         sasl_scram_sha512.is_some(),
         sasl_oauthbearer.is_some(),
+        sasl_oidc.is_some(),
     ]
     .into_iter()
     .filter(|x| *x)
     .count();
     if n > 1 {
         return Err(Error::protocol(
-            "set only one of sasl_plain, sasl_scram, sasl_scram_sha512, sasl_oauthbearer",
+            "set only one of sasl_plain, sasl_scram, sasl_scram_sha512, sasl_oauthbearer, sasl_oauthbearer_oidc",
         ));
     }
     if let Some((u, p)) = sasl_plain {
@@ -316,6 +326,10 @@ pub async fn authenticate(
     }
     if let Some((u, p)) = sasl_scram_sha512 {
         return authenticate_scram(conn, super::scram::ScramAlg::Sha512, u, p, timeout).await;
+    }
+    if let Some(oidc) = sasl_oidc {
+        let token = super::oidc::fetch_client_credentials_token(oidc, timeout).await?;
+        return authenticate_oauthbearer_token(conn, &token, timeout).await;
     }
     if let Some(principal) = sasl_oauthbearer {
         return authenticate_oauthbearer(conn, principal, timeout).await;

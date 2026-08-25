@@ -27,13 +27,15 @@ use partitionline::protocol::acl::{
     AclBinding,
 };
 use partitionline::protocol::admin::{
-    decode_create_partitions_request, decode_create_topics_request, decode_delete_topics_request,
+    decode_alter_configs_request, decode_create_partitions_request, decode_create_topics_request,
+    decode_delete_records_request, decode_delete_topics_request, decode_describe_cluster_request,
     decode_describe_configs_request, decode_incremental_alter_configs_request,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_topics_response, encode_describe_configs_response,
-    encode_incremental_alter_configs_response, ConfigEntry, DescribeConfigsResult, TopicResult,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_alter_configs_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    encode_describe_cluster_response, encode_describe_configs_response,
+    encode_incremental_alter_configs_response, ClusterDescription, ConfigEntry,
+    DescribeConfigsResult, TopicResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -41,11 +43,15 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS,
-    CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FETCH,
-    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
     SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+};
+use partitionline::protocol::epoch::{
+    decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -110,6 +116,8 @@ struct State {
     created_topics: HashMap<String, CreatedTopic>,
     brokers: Vec<Broker>,
     partition_leaders: HashMap<(String, i32), i32>,
+    partition_epochs: HashMap<(String, i32), i32>,
+    last_epoch_req: Option<(String, i32, i32)>,
     accepted_produce: Vec<i32>,
     accepted_fetch: Vec<i32>,
     groups: HashMap<String, GroupReg>,
@@ -161,6 +169,8 @@ fn new_state(
         created_topics,
         brokers: Vec::new(),
         partition_leaders: HashMap::new(),
+        partition_epochs: HashMap::new(),
+        last_epoch_req: None,
         accepted_produce: Vec::new(),
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
@@ -213,7 +223,11 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
                             error_code: 0,
                             partition_index: i,
                             leader_id,
-                            leader_epoch: 0,
+                            leader_epoch: st
+                                .partition_epochs
+                                .get(&(name.clone(), i))
+                                .copied()
+                                .unwrap_or(0),
                             replica_nodes: replica_nodes.clone(),
                             isr_nodes: replica_nodes.clone(),
                         }
@@ -459,6 +473,20 @@ impl Mock {
         self.state.lock().last_produce_txn_id.clone()
     }
 
+    pub fn bump_leader_epoch(&self, topic: &str, partition: i32) -> i32 {
+        let mut st = self.state.lock();
+        let slot = st
+            .partition_epochs
+            .entry((topic.to_string(), partition))
+            .or_insert(0);
+        *slot += 1;
+        *slot
+    }
+
+    pub fn last_offset_for_leader_epoch(&self) -> Option<(String, i32, i32)> {
+        self.state.lock().last_epoch_req.clone()
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -533,6 +561,9 @@ fn versions() -> ApiVersionsResponse {
         (CREATE_TOPICS, 0, 4),
         (DELETE_TOPICS, 0, 3),
         (CREATE_PARTITIONS, 0, 1),
+        (DELETE_RECORDS, 0, 1),
+        (ALTER_CONFIGS, 0, 1),
+        (DESCRIBE_CLUSTER, 0, 0),
         (DESCRIBE_ACLS, 0, 1),
         (CREATE_ACLS, 0, 1),
         (DELETE_ACLS, 0, 1),
@@ -542,6 +573,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
+        (OFFSET_FOR_LEADER_EPOCH, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
     ];
@@ -812,6 +844,81 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
             }
+            ALTER_CONFIGS => {
+                let (rt, name, configs, validate_only) =
+                    decode_alter_configs_request(&mut frame).unwrap();
+                let mut err = 0i16;
+                let mut st = state.lock();
+                if rt != RESOURCE_TOPIC {
+                    err = 3;
+                } else if let Some(spec) = st.created_topics.get_mut(&name) {
+                    if !validate_only {
+                        for c in configs {
+                            if let Some(val) = c.value {
+                                spec.configs.insert(c.name, Some(val));
+                            } else {
+                                spec.configs.remove(&c.name);
+                            }
+                        }
+                    }
+                } else {
+                    err = 3;
+                }
+                encode_alter_configs_response(&mut body, header.api_version, err, &name).unwrap();
+            }
+            DELETE_RECORDS => {
+                let (topic, partition, offset, _timeout) =
+                    decode_delete_records_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let key = (topic.clone(), partition);
+                let (low, err) = if st.created_topics.contains_key(&topic) {
+                    let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                    let start = *st.log_start.get(&key).unwrap_or(&0);
+                    let low = offset.clamp(start, hw);
+                    st.log_start.insert(key.clone(), low);
+                    if let Some(recs) = st.log.get_mut(&key) {
+                        recs.retain(|r| r.offset >= low);
+                    }
+                    (low, 0i16)
+                } else {
+                    (0i64, 3i16)
+                };
+                encode_delete_records_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    low,
+                    err,
+                )
+                .unwrap();
+            }
+            DESCRIBE_CLUSTER => {
+                let _include = decode_describe_cluster_request(&mut frame).unwrap();
+                let st = state.lock();
+                let brokers = if st.brokers.is_empty() {
+                    vec![Broker {
+                        node_id,
+                        host: "127.0.0.1".into(),
+                        port: 0,
+                        rack: None,
+                    }]
+                } else {
+                    st.brokers.clone()
+                };
+                let controller_id = brokers.first().map(|b| b.node_id).unwrap_or(node_id);
+                encode_describe_cluster_response(
+                    &mut body,
+                    &ClusterDescription {
+                        error_code: 0,
+                        error_message: None,
+                        cluster_id: Some("mock".into()),
+                        controller_id,
+                        brokers,
+                    },
+                )
+                .unwrap();
+            }
             CREATE_ACLS => {
                 let acls = decode_create_acls_request(&mut frame).unwrap();
                 let n = acls.len();
@@ -1020,6 +1127,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             });
                             continue;
                         }
+                        let current_epoch = st
+                            .partition_epochs
+                            .get(&(t.topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(0);
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch < current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::FENCED_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch > current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::UNKNOWN_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
                         st.accepted_fetch.push(node_id);
                         let key = (t.topic.clone(), p.partition);
                         let recs = st
@@ -1092,6 +1228,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     });
                 }
                 encode_fetch_response(&mut body, &topics).unwrap();
+            }
+            OFFSET_FOR_LEADER_EPOCH => {
+                let (topic, partition, _current, leader_epoch) =
+                    decode_offset_for_leader_epoch_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.last_epoch_req = Some((topic.clone(), partition, leader_epoch));
+                let epoch = st
+                    .partition_epochs
+                    .get(&(topic.clone(), partition))
+                    .copied()
+                    .unwrap_or(0);
+                let end = *st
+                    .next_offset
+                    .get(&(topic.clone(), partition))
+                    .unwrap_or(&0);
+                encode_offset_for_leader_epoch_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    0,
+                    epoch,
+                    end,
+                )
+                .unwrap();
             }
             SASL_HANDSHAKE => {
                 let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
@@ -1329,4 +1490,76 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             break;
         }
     }
+}
+
+/// RFC 6749 token endpoint. Valid Basic credentials get an unsecured JWT for `principal`.
+pub async fn start_oidc_token_endpoint(
+    client_id: String,
+    client_secret: String,
+    principal: String,
+) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        loop {
+            let Ok((sock, _)) = listener.accept().await else {
+                break;
+            };
+            let id = client_id.clone();
+            let secret = client_secret.clone();
+            let principal = principal.clone();
+            tokio::spawn(async move {
+                serve_oidc_token(sock, &id, &secret, &principal).await;
+            });
+        }
+    });
+    format!("http://{addr}/oauth/token")
+}
+
+async fn serve_oidc_token(
+    mut sock: tokio::net::TcpStream,
+    client_id: &str,
+    client_secret: &str,
+    principal: &str,
+) {
+    let mut buf = Vec::new();
+    let mut tmp = [0u8; 2048];
+    loop {
+        let n = match sock.read(&mut tmp).await {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(_) => return,
+        };
+        buf.extend_from_slice(tmp.get(..n).unwrap_or(&[]));
+        if buf.windows(4).any(|w| w == b"\r\n\r\n") || buf.len() > 16 * 1024 {
+            break;
+        }
+    }
+    let req = String::from_utf8_lossy(&buf);
+    let expected = {
+        let raw = format!("{client_id}:{client_secret}");
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, raw.as_bytes())
+    };
+    let auth_ok = req.lines().any(|l| {
+        let line = l.trim_end_matches('\r');
+        let Some((k, v)) = line.split_once(':') else {
+            return false;
+        };
+        k.eq_ignore_ascii_case("authorization") && v.trim() == format!("Basic {expected}")
+    });
+    let ok = auth_ok && req.contains("grant_type=client_credentials");
+    let (status, body) = if ok {
+        let token = oauth::unsecured_jwt_now(principal);
+        (
+            "200 OK",
+            format!("{{\"access_token\":\"{token}\",\"token_type\":\"Bearer\"}}"),
+        )
+    } else {
+        ("401 Unauthorized", "{\"error\":\"invalid_client\"}".into())
+    };
+    let resp = format!(
+        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = sock.write_all(resp.as_bytes()).await;
 }

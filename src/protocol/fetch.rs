@@ -12,6 +12,7 @@ use crate::error::Result;
 #[derive(Debug, Clone)]
 pub struct FetchPartition {
     pub partition: i32,
+    pub current_leader_epoch: i32,
     pub fetch_offset: i64,
     pub partition_max_bytes: i32,
 }
@@ -62,7 +63,7 @@ pub fn encode_fetch_request(
         buf::put_array_len(buf, false, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
-            buf.put_i32(-1); // current_leader_epoch
+            buf.put_i32(p.current_leader_epoch);
             buf.put_i64(p.fetch_offset);
             buf.put_i64(-1); // log_start_offset
             buf.put_i32(p.partition_max_bytes);
@@ -89,12 +90,13 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>)
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
-            let _epoch = buf::get_i32(buf)?;
+            let current_leader_epoch = buf::get_i32(buf)?;
             let fetch_offset = buf::get_i64(buf)?;
             let _log_start = buf::get_i64(buf)?;
             let partition_max_bytes = buf::get_i32(buf)?;
             partitions.push(FetchPartition {
                 partition,
+                current_leader_epoch,
                 fetch_offset,
                 partition_max_bytes,
             });
@@ -191,6 +193,25 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::Bytes;
+
+    #[test]
+    fn fetch_request_sends_current_leader_epoch() {
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: 7,
+                fetch_offset: 3,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics).unwrap();
+        let (iso, decoded) = decode_fetch_request(&mut &buf[..]).unwrap();
+        assert_eq!(iso, 0);
+        assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
+        assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
+    }
 
     #[test]
     fn fetch_v11_roundtrip() {

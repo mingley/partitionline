@@ -18,7 +18,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
 | Produce (acks, linger, batches, offsets) | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
-| Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
+| Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry; Fetch sends Metadata `leader_epoch`) | yes | **done** |
+| OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; Fetch isolation 0 or 1) | yes | **done** |
 | Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
@@ -32,11 +33,12 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
-| SASL OIDC (token endpoint) | no | yes | **not started** |
+| SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials HTTP POST, then OAUTHBEARER with `access_token`) | yes | **done** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs | yes | yes | **done** |
+| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60) | yes | **done** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
 | Fetch from follower / rack awareness | no | yes | **not started** |
 | Share groups | no | yes | **not started** |
@@ -61,7 +63,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. KIP-848, OIDC, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords).
+1. KIP-848, fetch-from-follower.
 
 ## What “done” on this list does *not* mean
 

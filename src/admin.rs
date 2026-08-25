@@ -13,25 +13,29 @@ use crate::protocol::acl::{
     encode_create_acls_request, encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
-    decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_topics_response, decode_describe_configs_response,
-    decode_incremental_alter_configs_response, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_topics_request, encode_describe_configs_request,
+    decode_alter_configs_response, decode_create_partitions_response,
+    decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
+    decode_describe_cluster_response, decode_describe_configs_response,
+    decode_incremental_alter_configs_response, encode_alter_configs_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
     encode_incremental_alter_configs_request, CreatableTopic, CreateTopicsRequest,
     DescribeConfigsResource, DescribeConfigsResult, TopicConfig, TopicResult, RESOURCE_BROKER,
     RESOURCE_TOPIC,
 };
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request, ApiVersion};
 use crate::protocol::api_keys::{
-    pick_version, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, INCREMENTAL_ALTER_CONFIGS,
+    pick_version, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
+    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    INCREMENTAL_ALTER_CONFIGS,
 };
 use crate::protocol::sasl;
 
 pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
-    AlterConfig, ConfigEntry, ConfigSynonym, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
+    AlterConfig, ClusterDescription, ConfigEntry, ConfigSynonym, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+    RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
 };
 
 #[derive(Debug, Clone)]
@@ -44,6 +48,7 @@ pub struct AdminConfig {
     pub sasl_scram: Option<(String, String)>,
     pub sasl_scram_sha512: Option<(String, String)>,
     pub sasl_oauthbearer: Option<String>,
+    pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
     pub tls: Option<TlsConfig>,
 }
 
@@ -58,6 +63,7 @@ impl Default for AdminConfig {
             sasl_scram: None,
             sasl_scram_sha512: None,
             sasl_oauthbearer: None,
+            sasl_oauthbearer_oidc: None,
             tls: None,
         }
     }
@@ -135,6 +141,9 @@ pub struct Admin {
     describe_version: i16,
     partitions_version: i16,
     alter_version: i16,
+    legacy_alter_version: i16,
+    delete_records_version: i16,
+    describe_cluster_version: i16,
     create_acls_version: i16,
     describe_acls_version: i16,
     delete_acls_version: i16,
@@ -179,6 +188,7 @@ impl Admin {
             cfg.sasl_scram.as_ref(),
             cfg.sasl_scram_sha512.as_ref(),
             cfg.sasl_oauthbearer.as_deref(),
+            cfg.sasl_oauthbearer_oidc.as_ref(),
             cfg.request_timeout,
         )
         .await?;
@@ -210,6 +220,18 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support IncrementalAlterConfigs".into())
             })?;
+        let legacy_alter_version = versions
+            .get(&ALTER_CONFIGS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| Error::Unsupported("broker does not support AlterConfigs".into()))?;
+        let delete_records_version = versions
+            .get(&DELETE_RECORDS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| Error::Unsupported("broker does not support DeleteRecords".into()))?;
+        let describe_cluster_version = versions
+            .get(&DESCRIBE_CLUSTER)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support DescribeCluster".into()))?;
         let create_acls_version = versions
             .get(&CREATE_ACLS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -231,6 +253,9 @@ impl Admin {
             describe_version,
             partitions_version,
             alter_version,
+            legacy_alter_version,
+            delete_records_version,
+            describe_cluster_version,
             create_acls_version,
             describe_acls_version,
             delete_acls_version,
@@ -407,6 +432,80 @@ impl Admin {
             )
             .await?;
         decode_describe_acls_response(&mut body.clone())
+    }
+
+    pub async fn alter_configs(
+        &mut self,
+        resource_type: i8,
+        name: &str,
+        configs: &[(String, Option<String>)],
+        validate_only: bool,
+    ) -> Result<i16> {
+        let version = self.legacy_alter_version;
+        let timeout = self.cfg.request_timeout;
+        let configs: Vec<TopicConfig> = configs
+            .iter()
+            .map(|(n, v)| TopicConfig {
+                name: n.clone(),
+                value: v.clone(),
+            })
+            .collect();
+        let body = self
+            .conn
+            .roundtrip(
+                ALTER_CONFIGS,
+                version,
+                |buf| {
+                    encode_alter_configs_request(
+                        buf,
+                        version,
+                        resource_type,
+                        name,
+                        &configs,
+                        validate_only,
+                    )
+                },
+                timeout,
+            )
+            .await?;
+        decode_alter_configs_response(&mut body.clone(), version)
+    }
+
+    pub async fn delete_records(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        offset: i64,
+        timeout_ms: i32,
+    ) -> Result<(i64, i16)> {
+        let version = self.delete_records_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DELETE_RECORDS,
+                version,
+                |buf| encode_delete_records_request(buf, topic, partition, offset, timeout_ms),
+                timeout,
+            )
+            .await?;
+        let (_p, low, err) = decode_delete_records_response(&mut body.clone(), version)?;
+        Ok((low, err))
+    }
+
+    pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
+        let version = self.describe_cluster_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DESCRIBE_CLUSTER,
+                version,
+                |buf| encode_describe_cluster_request(buf, false),
+                timeout,
+            )
+            .await?;
+        decode_describe_cluster_response(&mut body.clone())
     }
 
     pub async fn delete_acls(&mut self, resource_type: i8) -> Result<i16> {
