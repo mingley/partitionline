@@ -3,14 +3,15 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
-use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicI32, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use bytes::{BufMut, Bytes, BytesMut};
 use tokio::sync::{mpsc, oneshot, Mutex, Notify};
 
+use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::partitioner::{partition_for_key, to_positive};
@@ -18,11 +19,19 @@ use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_response,
     encode_api_versions_request, encode_metadata_request, ApiVersion,
 };
-use crate::protocol::api_keys::{pick_version, API_VERSIONS, INIT_PRODUCER_ID, METADATA, PRODUCE};
+use crate::protocol::api_keys::{
+    pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, END_TXN,
+    INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
+};
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader,
+};
+use crate::protocol::txn::{
+    decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
+    decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
+    encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
 };
 
 #[derive(Debug, Clone)]
@@ -44,6 +53,7 @@ pub struct ProducerConfig {
     pub connections: usize,
     pub max_in_flight: usize,
     pub enable_idempotence: bool,
+    pub transactional_id: Option<String>,
     pub tls: Option<TlsConfig>,
 }
 
@@ -67,6 +77,7 @@ impl Default for ProducerConfig {
             connections: 8,
             max_in_flight: 16,
             enable_idempotence: false,
+            transactional_id: None,
             tls: None,
         }
     }
@@ -129,6 +140,8 @@ pub struct RecordMetadata {
 struct Pending {
     rec: ProduceRecord,
     tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
+    seq: Option<i32>,
+    deadline: Instant,
 }
 
 enum Ctrl {
@@ -136,50 +149,15 @@ enum Ctrl {
     Close(oneshot::Sender<Result<()>>),
 }
 
+#[derive(Clone)]
 struct WorkerHandle {
     data: mpsc::Sender<Pending>,
     ctrl: mpsc::Sender<Ctrl>,
 }
 
-struct TopicCache {
-    fast_name: OnceLock<Arc<str>>,
-    fast_n: AtomicI32,
-    rest: parking_lot::Mutex<HashMap<Arc<str>, i32>>,
-}
-
-impl TopicCache {
-    fn new() -> Self {
-        Self {
-            fast_name: OnceLock::new(),
-            fast_n: AtomicI32::new(0),
-            rest: parking_lot::Mutex::new(HashMap::new()),
-        }
-    }
-
-    fn lookup(&self, topic: &str) -> Option<i32> {
-        if let Some(name) = self.fast_name.get() {
-            if name.as_ref() == topic {
-                let n = self.fast_n.load(Ordering::Acquire);
-                if n > 0 {
-                    return Some(n);
-                }
-            }
-        }
-        self.rest.lock().get(topic).copied()
-    }
-
-    fn insert(&self, topic: Arc<str>, n: i32) {
-        if self.fast_name.get().is_none() {
-            drop(self.fast_name.set(topic.clone()));
-            self.fast_n.store(n, Ordering::Release);
-        }
-        let _replaced = self.rest.lock().insert(topic, n);
-    }
-}
-
 struct Shared {
     cfg: ProducerConfig,
-    cache: TopicCache,
+    cluster: parking_lot::Mutex<Cluster>,
     meta: Mutex<BrokerConn>,
     metadata_version: i16,
     produce_version: i16,
@@ -189,7 +167,13 @@ struct Shared {
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
     meta_tx: mpsc::Sender<Arc<str>>,
+    connect_tx: mpsc::Sender<i32>,
+    retry_tx: mpsc::Sender<Pending>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
+    nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
+    retries_out: AtomicUsize,
+    in_txn: AtomicBool,
+    txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
 }
 
 #[derive(Clone)]
@@ -198,7 +182,6 @@ pub struct Producer {
 }
 
 struct Inner {
-    workers: Vec<WorkerHandle>,
     shared: Arc<Shared>,
 }
 
@@ -245,6 +228,9 @@ impl Producer {
         )
         .await?;
         let mut cfg = cfg;
+        if cfg.transactional_id.is_some() {
+            cfg.enable_idempotence = true;
+        }
         if cfg.enable_idempotence {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
@@ -260,11 +246,12 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 1).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
+            let txn_id = cfg.transactional_id.clone();
             let body = meta
                 .roundtrip(
                     INIT_PRODUCER_ID,
                     ipid_version,
-                    |buf| encode_init_producer_id_request(buf, ipid_version),
+                    |buf| encode_init_producer_id_request(buf, ipid_version, txn_id.as_deref()),
                     cfg.request_timeout,
                 )
                 .await?;
@@ -283,9 +270,11 @@ impl Producer {
         let n_conn = cfg.connections.max(1);
         let cap = (100_000 / n_conn).max(4_096);
         let (meta_tx, meta_rx) = mpsc::channel(8);
+        let (connect_tx, connect_rx) = mpsc::channel(16);
+        let (retry_tx, retry_rx) = mpsc::channel(cap.max(1024));
         let shared = Arc::new(Shared {
             cfg: cfg.clone(),
-            cache: TopicCache::new(),
+            cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
             metadata_version,
             produce_version,
@@ -295,7 +284,13 @@ impl Producer {
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
             meta_tx,
+            connect_tx,
+            retry_tx,
             last_meta_err: parking_lot::Mutex::new(None),
+            nodes: parking_lot::Mutex::new(HashMap::new()),
+            retries_out: AtomicUsize::new(0),
+            in_txn: AtomicBool::new(false),
+            txn_partitions: parking_lot::Mutex::new(HashSet::new()),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -304,7 +299,12 @@ impl Producer {
                 let Some(shared) = weak.upgrade() else {
                     break;
                 };
-                if shared.cache.lookup(topic.as_ref()).is_some() {
+                if shared
+                    .cluster
+                    .lock()
+                    .partition_count(topic.as_ref())
+                    .is_some()
+                {
                     shared.cache_nudge.notify_waiters();
                     continue;
                 }
@@ -319,78 +319,85 @@ impl Producer {
                 shared.cache_nudge.notify_waiters();
             }
         }));
+        let weak = Arc::downgrade(&shared);
+        drop(tokio::spawn(async move {
+            connect_loop(weak, connect_rx, cap).await;
+        }));
+        let weak = Arc::downgrade(&shared);
+        drop(tokio::spawn(async move {
+            retry_loop(weak, retry_rx).await;
+        }));
 
-        let mut workers = Vec::with_capacity(n_conn);
-        for _ in 0..n_conn {
-            let conn = open_conn(&addr, &cfg).await?;
-            let (data_tx, data_rx) = mpsc::channel(cap);
-            let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
-            let worker = Worker {
-                conn,
-                data: data_rx,
-                ctrl: ctrl_rx,
-                shared: shared.clone(),
-                write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
-                pending: Vec::with_capacity(cfg.batch_records.min(8192)),
-                in_flight: VecDeque::new(),
-                fail: None,
-            };
-            drop(tokio::spawn(worker.run()));
-            workers.push(WorkerHandle {
-                data: data_tx,
-                ctrl: ctrl_tx,
-            });
-        }
-
+        let _ = addr;
         Ok(Self {
-            inner: Arc::new(Inner { workers, shared }),
+            inner: Arc::new(Inner { shared }),
         })
-    }
-
-    fn worker_for(&self, rec: &ProduceRecord) -> usize {
-        let n = self.inner.workers.len();
-        match rec.partition {
-            Some(p) => usize::try_from(p).unwrap_or(0) % n,
-            None => 0,
-        }
     }
 
     fn apply_cached_partition(&self, rec: &mut ProduceRecord) -> bool {
         if rec.partition.is_some() {
             return true;
         }
-        let Some(np) = self.inner.shared.cache.lookup(rec.topic.as_ref()) else {
+        let Some(np) = self
+            .inner
+            .shared
+            .cluster
+            .lock()
+            .partition_count(rec.topic.as_ref())
+        else {
             return false;
         };
         rec.partition = Some(pick_part(rec, np, &self.inner.shared.rr));
         true
     }
 
-    async fn ensure_partition(&self, rec: &mut ProduceRecord) -> Result<()> {
-        if rec.partition.is_some() {
-            return Ok(());
+    fn worker_for(&self, rec: &ProduceRecord) -> Option<WorkerHandle> {
+        let p = rec.partition?;
+        let cluster = self.inner.shared.cluster.lock();
+        let (node, _) = cluster.leader(rec.topic.as_ref(), p).ok()?;
+        drop(cluster);
+        try_nudge_node(&self.inner.shared.connect_tx, node);
+        let nodes = self.inner.shared.nodes.lock();
+        let workers = nodes.get(&node)?;
+        if workers.is_empty() {
+            return None;
         }
+        let i = usize::try_from(p).unwrap_or(0) % workers.len();
+        workers.get(i).cloned()
+    }
+
+    fn nudge_topic(&self, rec: &ProduceRecord) {
+        drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
+        if let Some(p) = rec.partition {
+            if let Ok((node, _)) = self
+                .inner
+                .shared
+                .cluster
+                .lock()
+                .leader(rec.topic.as_ref(), p)
+            {
+                try_nudge_node(&self.inner.shared.connect_tx, node);
+            }
+        }
+    }
+
+    async fn ensure_ready(&self, rec: &mut ProduceRecord) -> Result<()> {
         let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
         loop {
             if let Some(e) = peek_meta_err(&self.inner.shared) {
                 return Err(e);
             }
-            if self.apply_cached_partition(rec) {
+            let _ = self.apply_cached_partition(rec);
+            if self.worker_for(rec).is_some() {
                 return Ok(());
             }
-            let notified = self.inner.shared.cache_nudge.notified();
-            tokio::pin!(notified);
-            if let Some(e) = peek_meta_err(&self.inner.shared) {
-                return Err(e);
-            }
-            if self.apply_cached_partition(rec) {
-                return Ok(());
-            }
-            drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
+            self.nudge_topic(rec);
             if Instant::now() >= deadline {
                 return Err(Error::Timeout);
             }
             let rest = deadline.saturating_duration_since(Instant::now());
+            let notified = self.inner.shared.cache_nudge.notified();
+            tokio::pin!(notified);
             tokio::select! {
                 _ = notified => {}
                 _ = tokio::time::sleep(rest) => return Err(Error::Timeout),
@@ -401,14 +408,16 @@ impl Producer {
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
         let (tx, rx) = oneshot::channel();
         let mut rec = rec;
-        self.ensure_partition(&mut rec).await?;
-        let i = self.worker_for(&rec);
-        self.inner
-            .workers
-            .get(i)
-            .ok_or(Error::Closed)?
-            .data
-            .send(Pending { rec, tx: Some(tx) })
+        self.ensure_ready(&mut rec).await?;
+        let w = self.worker_for(&rec).ok_or(Error::Closed)?;
+        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        w.data
+            .send(Pending {
+                rec,
+                tx: Some(tx),
+                seq: None,
+                deadline,
+            })
             .await
             .map_err(|_| Error::Closed)?;
         rx.await.map_err(|_| Error::Closed)?
@@ -416,31 +425,46 @@ impl Producer {
 
     /// Enqueue without a per-record future. Delivery is observed on `flush`.
     ///
-    /// Returns `QueueFull` until the topic's partition count is cached. Call
-    /// again; `send` waits instead. Records are never queued without a
-    /// partition, so each partition is pinned to one TCP connection.
+    /// Returns `QueueFull` until metadata and a connection to the partition
+    /// leader are ready. Call again; `send` waits instead. Records are never
+    /// queued without a partition, so each partition is pinned to one TCP
+    /// connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         let mut rec = rec;
-        if !self.apply_cached_partition(&mut rec) {
-            drop(self.inner.shared.meta_tx.try_send(rec.topic.clone()));
+        let _ = self.apply_cached_partition(&mut rec);
+        let Some(w) = self.worker_for(&rec) else {
+            self.nudge_topic(&rec);
             return Err(Error::QueueFull);
-        }
-        let i = self.worker_for(&rec);
-        self.inner
-            .workers
-            .get(i)
-            .ok_or(Error::Closed)?
-            .data
-            .try_send(Pending { rec, tx: None })
+        };
+        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        w.data
+            .try_send(Pending {
+                rec,
+                tx: None,
+                seq: None,
+                deadline,
+            })
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Closed,
             })
     }
 
-    pub async fn flush(&self) -> Result<()> {
-        let mut rxs = Vec::with_capacity(self.inner.workers.len());
-        for w in &self.inner.workers {
+    async fn flush_workers(&self) -> Result<()> {
+        let workers: Vec<WorkerHandle> = self
+            .inner
+            .shared
+            .nodes
+            .lock()
+            .values()
+            .flatten()
+            .cloned()
+            .collect();
+        if workers.is_empty() {
+            return Ok(());
+        }
+        let mut rxs = Vec::with_capacity(workers.len());
+        for w in &workers {
             let (tx, rx) = oneshot::channel();
             w.ctrl
                 .send(Ctrl::Flush(tx))
@@ -454,9 +478,136 @@ impl Producer {
         Ok(())
     }
 
+    pub async fn begin_transaction(&self) -> Result<()> {
+        if self.inner.shared.cfg.transactional_id.is_none() {
+            return Err(Error::protocol("transactional.id is not set"));
+        }
+        self.inner.shared.in_txn.store(true, Ordering::SeqCst);
+        self.inner.shared.txn_partitions.lock().clear();
+        Ok(())
+    }
+
+    pub async fn commit_transaction(&self) -> Result<()> {
+        self.flush().await?;
+        self.end_txn(true).await
+    }
+
+    pub async fn abort_transaction(&self) -> Result<()> {
+        self.flush().await?;
+        self.end_txn(false).await
+    }
+
+    pub async fn send_offsets_to_transaction(
+        &self,
+        group_id: &str,
+        offsets: &[(String, i32, i64)],
+    ) -> Result<()> {
+        let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
+            return Err(Error::protocol("transactional.id is not set"));
+        };
+        if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("no transaction in progress"));
+        }
+        let timeout = self.inner.shared.cfg.request_timeout;
+        let pid = self.inner.shared.producer_id;
+        let epoch = self.inner.shared.producer_epoch;
+        {
+            let mut meta = self.inner.shared.meta.lock().await;
+            let body = meta
+                .roundtrip(
+                    ADD_OFFSETS_TO_TXN,
+                    0,
+                    |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
+                    timeout,
+                )
+                .await?;
+            let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "AddOffsetsToTxn"));
+            }
+        }
+        let mut meta = self.inner.shared.meta.lock().await;
+        for (topic, part, off) in offsets {
+            let body = meta
+                .roundtrip(
+                    TXN_OFFSET_COMMIT,
+                    0,
+                    |buf| {
+                        encode_txn_offset_commit_request(
+                            buf, &tid, group_id, pid, epoch, topic, *part, *off,
+                        )
+                    },
+                    timeout,
+                )
+                .await?;
+            let err = decode_txn_offset_commit_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "TxnOffsetCommit"));
+            }
+        }
+        Ok(())
+    }
+
+    async fn end_txn(&self, committed: bool) -> Result<()> {
+        let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
+            return Err(Error::protocol("transactional.id is not set"));
+        };
+        let timeout = self.inner.shared.cfg.request_timeout;
+        let pid = self.inner.shared.producer_id;
+        let epoch = self.inner.shared.producer_epoch;
+        let mut meta = self.inner.shared.meta.lock().await;
+        let body = meta
+            .roundtrip(
+                END_TXN,
+                0,
+                |buf| encode_end_txn_request(buf, &tid, pid, epoch, committed),
+                timeout,
+            )
+            .await?;
+        let err = decode_end_txn_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "EndTxn"));
+        }
+        self.inner.shared.in_txn.store(false, Ordering::SeqCst);
+        self.inner.shared.txn_partitions.lock().clear();
+        Ok(())
+    }
+
+    pub async fn flush(&self) -> Result<()> {
+        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        loop {
+            self.flush_workers().await?;
+            if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
+                self.flush_workers().await?;
+                if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {
+                    return Ok(());
+                }
+            }
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let notified = self.inner.shared.cache_nudge.notified();
+            tokio::pin!(notified);
+            let rest = deadline.saturating_duration_since(Instant::now());
+            tokio::select! {
+                _ = notified => {}
+                _ = tokio::time::sleep(rest.min(Duration::from_millis(5))) => {}
+            }
+        }
+    }
+
     pub async fn close(self) -> Result<()> {
-        let mut rxs = Vec::with_capacity(self.inner.workers.len());
-        for w in &self.inner.workers {
+        let workers: Vec<WorkerHandle> = self
+            .inner
+            .shared
+            .nodes
+            .lock()
+            .values()
+            .flatten()
+            .cloned()
+            .collect();
+        let mut rxs = Vec::with_capacity(workers.len());
+        for w in &workers {
             let (tx, rx) = oneshot::channel();
             drop(w.ctrl.send(Ctrl::Close(tx)).await);
             rxs.push(rx);
@@ -504,7 +655,8 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
 }
 
 async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
-    if let Some(n) = shared.cache.lookup(topic) {
+    if let Some(n) = shared.cluster.lock().partition_count(topic) {
+        nudge_leaders(shared, topic);
         return Ok(n);
     }
     let mut conn = shared.meta.lock().await;
@@ -534,11 +686,177 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
     if n <= 0 {
         return Err(Error::UnknownTopic(topic.to_string()));
     }
-    shared.cache.insert(topic.clone(), n);
+    {
+        let mut cluster = shared.cluster.lock();
+        cluster.apply(&resp);
+    }
+    nudge_leaders(shared, topic);
     Ok(n)
 }
 
+fn try_nudge_node(tx: &mpsc::Sender<i32>, node: i32) {
+    tx.try_send(node).unwrap_or(());
+}
+
+fn nudge_leaders(shared: &Shared, topic: &str) {
+    let cluster = shared.cluster.lock();
+    if let Some(leaders) = cluster.leaders.get(topic) {
+        for node in leaders {
+            if *node >= 0 {
+                try_nudge_node(&shared.connect_tx, *node);
+            }
+        }
+    }
+}
+
+async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>, cap: usize) {
+    while let Some(node) = rx.recv().await {
+        let Some(shared) = weak.upgrade() else {
+            break;
+        };
+        if shared
+            .nodes
+            .lock()
+            .get(&node)
+            .is_some_and(|w| !w.is_empty())
+        {
+            shared.cache_nudge.notify_waiters();
+            continue;
+        }
+        let addr = shared.cluster.lock().brokers.get(&node).cloned();
+        let Some(addr) = addr else {
+            continue;
+        };
+        {
+            let mut nodes = shared.nodes.lock();
+            let _ = nodes.entry(node).or_insert_with(Vec::new);
+        }
+        match spawn_node_workers(&shared, node, &addr, cap).await {
+            Ok(workers) => {
+                let _prev = shared.nodes.lock().insert(node, workers);
+                *shared.last_meta_err.lock() = None;
+            }
+            Err(e) => {
+                let _ = shared.nodes.lock().remove(&node);
+                *shared.last_meta_err.lock() = Some(clone_err(&e));
+            }
+        }
+        shared.cache_nudge.notify_waiters();
+    }
+}
+
+async fn spawn_node_workers(
+    shared: &Arc<Shared>,
+    node: i32,
+    addr: &str,
+    cap: usize,
+) -> Result<Vec<WorkerHandle>> {
+    let n_conn = shared.cfg.connections.max(1);
+    let mut workers = Vec::with_capacity(n_conn);
+    for _ in 0..n_conn {
+        let conn = open_conn(addr, &shared.cfg).await?;
+        let (data_tx, data_rx) = mpsc::channel(cap);
+        let (ctrl_tx, ctrl_rx) = mpsc::channel(16);
+        let worker = Worker {
+            node_id: node,
+            conn,
+            data: data_rx,
+            ctrl: ctrl_rx,
+            shared: shared.clone(),
+            write_buf: BytesMut::with_capacity(2 * 1024 * 1024),
+            pending: Vec::with_capacity(shared.cfg.batch_records.min(8192)),
+            in_flight: VecDeque::new(),
+            fail: None,
+        };
+        drop(tokio::spawn(worker.run()));
+        workers.push(WorkerHandle {
+            data: data_tx,
+            ctrl: ctrl_tx,
+        });
+    }
+    Ok(workers)
+}
+
+async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pending>) {
+    while let Some(p) = rx.recv().await {
+        if let Some(shared) = weak.upgrade() {
+            retry_one(&shared, p).await;
+            let _ = shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+            shared.cache_nudge.notify_waiters();
+        }
+    }
+}
+
+async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
+    if Instant::now() >= p.deadline {
+        fail_pendings(vec![p], Error::Timeout);
+        return;
+    }
+    shared.cluster.lock().invalidate_topic(p.rec.topic.as_ref());
+    if let Err(e) = partitions_for(shared, &p.rec.topic).await {
+        fail_pendings(vec![p], e);
+        return;
+    }
+    if p.rec.partition.is_none() {
+        if let Some(np) = shared.cluster.lock().partition_count(p.rec.topic.as_ref()) {
+            p.rec.partition = Some(pick_part(&p.rec, np, &shared.rr));
+        }
+    }
+    let Some(part) = p.rec.partition else {
+        fail_pendings(vec![p], Error::protocol("retry without partition"));
+        return;
+    };
+    let leader = shared.cluster.lock().leader(p.rec.topic.as_ref(), part);
+    let Ok((node, _)) = leader else {
+        let topic = p.rec.topic.to_string();
+        fail_pendings(
+            vec![p],
+            Error::NoLeader {
+                topic,
+                partition: part,
+            },
+        );
+        return;
+    };
+    try_nudge_node(&shared.connect_tx, node);
+    let deadline = p.deadline;
+    loop {
+        if Instant::now() >= deadline {
+            fail_pendings(vec![p], Error::Timeout);
+            return;
+        }
+        let handle = {
+            let nodes = shared.nodes.lock();
+            nodes.get(&node).and_then(|ws| {
+                if ws.is_empty() {
+                    None
+                } else {
+                    let i = usize::try_from(part).unwrap_or(0) % ws.len();
+                    ws.get(i).cloned()
+                }
+            })
+        };
+        if let Some(w) = handle {
+            if w.data.send(p).await.is_err() {
+                return;
+            }
+            return;
+        }
+        let notified = shared.cache_nudge.notified();
+        tokio::pin!(notified);
+        let rest = deadline.saturating_duration_since(Instant::now());
+        tokio::select! {
+            _ = notified => {}
+            _ = tokio::time::sleep(rest) => {
+                fail_pendings(vec![p], Error::Timeout);
+                return;
+            }
+        }
+    }
+}
+
 struct Worker {
+    node_id: i32,
     conn: BrokerConn,
     data: mpsc::Receiver<Pending>,
     ctrl: mpsc::Receiver<Ctrl>,
@@ -695,10 +1013,14 @@ impl Worker {
             return Err(e);
         }
         let now = now_ms();
-        let groups = group_pending(batch);
+        let mut groups = group_pending(batch);
         if groups.is_empty() {
             return Ok(());
         }
+        assign_sequences(&mut groups, self.shared.producer_id, &self.shared.seqs);
+        self.add_txn_partitions(&groups).await?;
+        let transactional =
+            self.shared.cfg.transactional_id.is_some() && self.shared.in_txn.load(Ordering::SeqCst);
 
         let version = self.shared.produce_version;
         let acks = self.shared.cfg.acks;
@@ -725,13 +1047,23 @@ impl Worker {
             now,
             self.shared.producer_id,
             self.shared.producer_epoch,
-            &self.shared.seqs,
+            transactional,
         )?;
         let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
         crate::protocol::buf::patch_i32(&mut self.write_buf, 0, size)?;
-        self.conn
+        if let Err(e) = self
+            .conn
             .write_all_timeout(&self.write_buf, self.shared.cfg.request_timeout)
-            .await?;
+            .await
+        {
+            if e.is_retriable() {
+                let _ = self.shared.nodes.lock().remove(&self.node_id);
+                self.requeue(groups);
+                return Ok(());
+            }
+            fail_groups(groups, clone_err(&e));
+            return Err(e);
+        }
 
         if acks == 0 {
             complete_acks0(groups);
@@ -761,6 +1093,11 @@ impl Worker {
         {
             Ok(b) => b,
             Err(e) => {
+                if e.is_retriable() {
+                    let _ = self.shared.nodes.lock().remove(&self.node_id);
+                    self.requeue(inf.groups);
+                    return Ok(());
+                }
                 fail_groups(inf.groups, clone_err(&e));
                 return Err(e);
             }
@@ -787,9 +1124,15 @@ impl Worker {
                 }
                 Some(r) if r.error_code != 0 => {
                     let e = Error::broker(r.error_code, format!("{topic}-{part}"));
-                    fail_pendings(pendings, clone_err(&e));
-                    if first_err.is_none() {
-                        first_err = Some(e);
+                    if e.is_retriable() {
+                        self.shared.cluster.lock().invalidate_topic(topic.as_ref());
+                        drop(self.shared.meta_tx.try_send(topic.clone()));
+                        self.requeue_pendings(pendings);
+                    } else {
+                        fail_pendings(pendings, clone_err(&e));
+                        if first_err.is_none() {
+                            first_err = Some(e);
+                        }
                     }
                 }
                 Some(r) => {
@@ -808,6 +1151,70 @@ impl Worker {
         match first_err {
             Some(e) => Err(e),
             None => Ok(()),
+        }
+    }
+
+    fn requeue(&self, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+        for (_, _, pendings) in groups {
+            self.requeue_pendings(pendings);
+        }
+    }
+
+    async fn add_txn_partitions(&self, groups: &[(Arc<str>, i32, Vec<Pending>)]) -> Result<()> {
+        let Some(tid) = self.shared.cfg.transactional_id.clone() else {
+            return Ok(());
+        };
+        if !self.shared.in_txn.load(Ordering::SeqCst) {
+            return Err(Error::protocol("produce outside a transaction"));
+        }
+        let mut added: Vec<(Arc<str>, i32)> = Vec::new();
+        {
+            let mut set = self.shared.txn_partitions.lock();
+            for (topic, part, _) in groups {
+                if set.insert((topic.clone(), *part)) {
+                    added.push((topic.clone(), *part));
+                }
+            }
+        }
+        if added.is_empty() {
+            return Ok(());
+        }
+        let timeout = self.shared.cfg.request_timeout;
+        let pid = self.shared.producer_id;
+        let epoch = self.shared.producer_epoch;
+        let mut meta = self.shared.meta.lock().await;
+        for (topic, part) in added {
+            let body = meta
+                .roundtrip(
+                    ADD_PARTITIONS_TO_TXN,
+                    0,
+                    |buf| {
+                        encode_add_partitions_to_txn_request(
+                            buf,
+                            &tid,
+                            pid,
+                            epoch,
+                            topic.as_ref(),
+                            part,
+                        )
+                    },
+                    timeout,
+                )
+                .await?;
+            let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
+            if err != 0 {
+                return Err(Error::broker(err, "AddPartitionsToTxn"));
+            }
+        }
+        Ok(())
+    }
+
+    fn requeue_pendings(&self, pendings: Vec<Pending>) {
+        for p in pendings {
+            let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
+            if self.shared.retry_tx.try_send(p).is_err() {
+                let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
+            }
         }
     }
 
@@ -890,6 +1297,27 @@ fn estimate(p: &Pending) -> usize {
         + 64
 }
 
+fn assign_sequences(
+    groups: &mut [(Arc<str>, i32, Vec<Pending>)],
+    producer_id: i64,
+    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+) {
+    if producer_id < 0 {
+        return;
+    }
+    for (topic, partition, pendings) in groups.iter_mut() {
+        if pendings.iter().all(|p| p.seq.is_some()) {
+            continue;
+        }
+        let base = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
+        for (i, p) in pendings.iter_mut().enumerate() {
+            if p.seq.is_none() {
+                p.seq = Some(base.saturating_add(i32::try_from(i).unwrap_or(0)));
+            }
+        }
+    }
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "produce body needs pid, epoch, seq, and batch knobs together"
@@ -904,7 +1332,7 @@ fn encode_produce_body(
     now: i64,
     producer_id: i64,
     producer_epoch: i16,
-    seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
+    transactional: bool,
 ) -> Result<()> {
     let flexible = version >= 9;
     if version >= 3 {
@@ -933,7 +1361,10 @@ fn encode_produce_body(
                 continue;
             };
             buf.put_i32(*partition);
-            let base_sequence = next_sequence(seqs, producer_id, topic, *partition, pendings.len());
+            let base_sequence = pendings
+                .first()
+                .and_then(|p| p.seq)
+                .unwrap_or(if producer_id < 0 { -1 } else { 0 });
             if flexible {
                 let mut recs = BytesMut::new();
                 encode_pendings(
@@ -944,6 +1375,7 @@ fn encode_produce_body(
                     producer_id,
                     producer_epoch,
                     base_sequence,
+                    transactional,
                 )?;
                 crate::protocol::buf::put_bytes(buf, true, Some(&recs))?;
                 crate::protocol::buf::put_empty_tagged_fields(buf);
@@ -958,6 +1390,7 @@ fn encode_produce_body(
                     producer_id,
                     producer_epoch,
                     base_sequence,
+                    transactional,
                 )?;
                 let rec_len =
                     crate::protocol::buf::i32_from_usize(buf.len().saturating_sub(len_pos + 4))?;
@@ -991,6 +1424,10 @@ fn next_sequence(
     base
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "record batch header and payload knobs travel together"
+)]
 fn encode_pendings(
     buf: &mut BytesMut,
     pendings: &[Pending],
@@ -999,6 +1436,7 @@ fn encode_pendings(
     producer_id: i64,
     producer_epoch: i16,
     base_sequence: i32,
+    transactional: bool,
 ) -> Result<()> {
     let base_ts = pendings
         .first()
@@ -1012,7 +1450,7 @@ fn encode_pendings(
     write_record_batch(
         buf,
         &BatchHeader {
-            attributes: compression as i16,
+            attributes: (compression as i16) | if transactional { 0x10 } else { 0 },
             base_timestamp: base_ts,
             max_timestamp: max_ts,
             count: crate::protocol::buf::i32_from_usize(pendings.len())?,

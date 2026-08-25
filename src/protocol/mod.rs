@@ -1,3 +1,5 @@
+/// ACL create/describe/delete codecs.
+pub mod acl;
 /// CreateTopics, DeleteTopics, DescribeConfigs codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
@@ -16,12 +18,16 @@ pub mod header;
 pub mod idem;
 /// Unsecured OAUTHBEARER JWT.
 pub mod oauth;
+/// ListOffsets codecs.
+pub mod offsets;
 /// RecordBatch magic-2 codec.
 pub mod records;
 /// SASL handshake and authenticate.
 pub mod sasl;
 /// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;
+/// Transactional produce APIs.
+pub mod txn;
 
 pub use api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_request,
@@ -33,8 +39,8 @@ pub use api::{
 };
 pub use api_keys::{
     pick_version, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH,
-    FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 pub use header::{
     decode_request_header, decode_response_header, encode_request_header, encode_response_header,

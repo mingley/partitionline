@@ -17,9 +17,10 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
-| Produce (acks, linger, batches, offsets) | yes | yes | **done** |
-| Fetch with manual assignment | yes | yes | **done** |
-| Classic consumer groups (join / sync / heartbeat / commit) | yes | yes | **done** |
+| Produce (acks, linger, batches, offsets) | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
+| Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
+| ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; Fetch isolation 0 or 1) | yes | **done** |
+| Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
 | SASL PLAIN | yes | yes | **done** |
@@ -33,9 +34,9 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
 | SASL OIDC (token endpoint) | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
-| Transactions / EOS | no | yes | **not started** |
+| Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
-| Admin: ACLs, AlterConfigs, ListOffsets, … | no | yes | **not started** |
+| Admin: IncrementalAlterConfigs, CreatePartitions, ACLs | yes | yes | **done** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
 | Fetch from follower / rack awareness | no | yes | **not started** |
 | Share groups | no | yes | **not started** |
@@ -60,8 +61,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. Transactions / EOS, KIP-848, OIDC token endpoint.
-2. Remaining admin (ACLs, AlterConfigs) and fetch-from-follower (needs a replica).
+1. KIP-848, OIDC, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords).
 
 ## What “done” on this list does *not* mean
 

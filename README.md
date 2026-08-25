@@ -9,12 +9,14 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-**Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups,
-gzip / snappy / lz4, SASL PLAIN, SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL
-OAUTHBEARER (unsecured JWT), TLS (`rustls`, no OpenSSL), idempotent produce,
-admin CreateTopics / DeleteTopics / DescribeConfigs.
-Talks Kafka 3.x / 4.x. Missing: transactions, OIDC, remaining admin (ACLs,
-AlterConfigs), zstd, Kerberos. Full list: [docs/gaps.md](docs/gaps.md).
+**Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups
+(range/sticky, heartbeat, rebalance, leave), ListOffsets/seek, gzip / snappy /
+lz4, SASL PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT),
+TLS (`rustls`, no OpenSSL), idempotent and transactional produce, admin
+CreateTopics / DeleteTopics / CreatePartitions / DescribeConfigs /
+IncrementalAlterConfigs / ACLs.
+Talks Kafka 3.x / 4.x. Missing: OIDC, KIP-848, zstd, Kerberos. Full list:
+[docs/gaps.md](docs/gaps.md).
 
 **Produce and fetch are faster than librdkafka 2.15.0 C** on this machine
 (broker high watermark / records consumed equal records sent). Latency was

@@ -20,11 +20,19 @@
 
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
+use partitionline::protocol::acl::{
+    decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
+    encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
+    AclBinding,
+};
 use partitionline::protocol::admin::{
-    decode_create_topics_request, decode_delete_topics_request, decode_describe_configs_request,
-    encode_create_topics_response, encode_delete_topics_response, encode_describe_configs_response,
-    ConfigEntry, DescribeConfigsResult, TopicResult, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_topics_request,
+    decode_describe_configs_request, decode_incremental_alter_configs_request,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_topics_response, encode_describe_configs_response,
+    encode_incremental_alter_configs_response, ConfigEntry, DescribeConfigsResult, TopicResult,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -32,32 +40,45 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH, FIND_COORDINATOR,
-    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS,
+    CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FETCH,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
+    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
-    decode_heartbeat_request, decode_join_group_request, decode_offset_commit_request,
-    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
-    encode_heartbeat_response, encode_join_group_response, encode_offset_commit_response,
-    encode_offset_fetch_response, encode_sync_group_response, JoinMember,
+    decode_heartbeat_request, decode_join_group_request, decode_leave_group_request,
+    decode_offset_commit_request, decode_offset_fetch_request, decode_sync_group_request,
+    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
+    encode_leave_group_response, encode_offset_commit_response, encode_offset_fetch_response,
+    encode_sync_group_response, JoinMember,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::oauth;
+use partitionline::protocol::offsets::{
+    decode_list_offsets_request, encode_list_offsets_response, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+};
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
     decode_sasl_authenticate_request, decode_sasl_handshake_request,
     encode_sasl_authenticate_response, encode_sasl_handshake_response, parse_plain_auth_bytes,
 };
 use partitionline::protocol::scram;
-use std::collections::HashMap;
+use partitionline::protocol::txn::{
+    decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
+    decode_end_txn_request, decode_txn_offset_commit_request, encode_add_offsets_to_txn_response,
+    encode_add_partitions_to_txn_response, encode_end_txn_response,
+    encode_txn_offset_commit_response,
+};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
+use tokio::sync::Notify;
 
 #[derive(Clone)]
 pub struct Mock {
@@ -74,7 +95,6 @@ struct CreatedTopic {
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
-    assignments: HashMap<String, Vec<u8>>,
     committed: HashMap<(String, i32), i64>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
@@ -84,8 +104,28 @@ struct State {
     last_producer_id: Option<i64>,
     expected_seq: HashMap<(i64, String, i32), i32>,
     produce_error: Option<i16>,
+    produce_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
+    brokers: Vec<Broker>,
+    partition_leaders: HashMap<(String, i32), i32>,
+    accepted_produce: Vec<i32>,
+    accepted_fetch: Vec<i32>,
+    groups: HashMap<String, GroupReg>,
+    assign_notify: Arc<Notify>,
+    last_fetch_isolation: i8,
+    in_txn: bool,
+    txn_pending: Vec<(String, i32, i64)>,
+    txn_aborted: HashSet<(String, i32, i64)>,
+    acls: Vec<AclBinding>,
+}
+
+struct GroupReg {
+    members: BTreeMap<String, Vec<u8>>,
+    generation: i32,
+    joined: HashSet<String>,
+    assignments: HashMap<String, Vec<u8>>,
+    hb_total: u32,
 }
 
 fn new_state(
@@ -104,7 +144,6 @@ fn new_state(
     State {
         log: HashMap::new(),
         next_offset: HashMap::new(),
-        assignments: HashMap::new(),
         committed: HashMap::new(),
         member_seq: 0,
         sasl_user,
@@ -114,23 +153,44 @@ fn new_state(
         last_producer_id: None,
         expected_seq: HashMap::new(),
         produce_error: None,
+        produce_error_left: None,
         log_start: HashMap::new(),
         created_topics,
+        brokers: Vec::new(),
+        partition_leaders: HashMap::new(),
+        accepted_produce: Vec::new(),
+        accepted_fetch: Vec::new(),
+        groups: HashMap::new(),
+        assign_notify: Arc::new(Notify::new()),
+        last_fetch_isolation: 0,
+        in_txn: false,
+        txn_pending: Vec::new(),
+        txn_aborted: HashSet::new(),
+        acls: Vec::new(),
     }
 }
 
-fn metadata_for(host: &str, port: i32, topics: &HashMap<String, CreatedTopic>) -> MetadataResponse {
+fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> MetadataResponse {
+    let brokers = if st.brokers.is_empty() {
+        vec![Broker {
+            node_id: 1,
+            host: fallback_host.to_string(),
+            port: fallback_port,
+            rack: None,
+        }]
+    } else {
+        st.brokers.clone()
+    };
+    let replica_nodes: Vec<i32> = brokers.iter().map(|b| b.node_id).collect();
+    let default_leader = brokers.first().map(|b| b.node_id).unwrap_or(1);
+    let controller_id = default_leader;
     MetadataResponse {
         throttle_time_ms: 0,
-        brokers: vec![Broker {
-            node_id: 1,
-            host: host.to_string(),
-            port,
-            rack: None,
-        }],
+        brokers,
         cluster_id: Some("mock".into()),
-        controller_id: 1,
-        topics: topics
+        controller_id,
+        topics: st
+            .created_topics
             .iter()
             .map(|(name, spec)| TopicMetadata {
                 error_code: 0,
@@ -138,18 +198,46 @@ fn metadata_for(host: &str, port: i32, topics: &HashMap<String, CreatedTopic>) -
                 topic_id: [0u8; 16],
                 is_internal: false,
                 partitions: (0..spec.num_partitions)
-                    .map(|i| PartitionMetadata {
-                        error_code: 0,
-                        partition_index: i,
-                        leader_id: 1,
-                        leader_epoch: 0,
-                        replica_nodes: vec![1],
-                        isr_nodes: vec![1],
+                    .map(|i| {
+                        let leader_id = st
+                            .partition_leaders
+                            .get(&(name.clone(), i))
+                            .copied()
+                            .unwrap_or(default_leader);
+                        PartitionMetadata {
+                            error_code: 0,
+                            partition_index: i,
+                            leader_id,
+                            leader_epoch: 0,
+                            replica_nodes: replica_nodes.clone(),
+                            isr_nodes: replica_nodes.clone(),
+                        }
                     })
                     .collect(),
             })
             .collect(),
     }
+}
+
+fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
+    tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = listener.accept().await else {
+                break;
+            };
+            stream.set_nodelay(true).ok();
+            let st = state.clone();
+            tokio::spawn(handle_conn(stream, node_id, st));
+        }
+    });
+}
+
+fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
+    st.brokers
+        .iter()
+        .find(|b| b.node_id == node_id)
+        .map(|b| (b.host.clone(), b.port))
+        .unwrap_or_else(|| ("127.0.0.1".into(), 0))
 }
 
 impl Mock {
@@ -160,23 +248,48 @@ impl Mock {
     pub async fn start_with_sasl(creds: Option<(String, String)>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(creds, None, None)));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        let mut st = new_state(creds, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
+            state,
+        }
+    }
+
+    pub async fn start_two_node() -> Self {
+        let l1 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let l2 = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let a1 = l1.local_addr().unwrap();
+        let a2 = l2.local_addr().unwrap();
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![
+            Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: a1.port() as i32,
+                rack: None,
+            },
+            Broker {
+                node_id: 2,
+                host: "127.0.0.1".into(),
+                port: a2.port() as i32,
+                rack: None,
+            },
+        ];
+        st.partition_leaders.insert(("t".into(), 0), 2);
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(l1, 1, state.clone());
+        spawn_plain(l2, 2, state.clone());
+        Self {
+            addr: format!("127.0.0.1:{}", a1.port()),
             state,
         }
     }
@@ -184,25 +297,20 @@ impl Mock {
     pub async fn start_with_scram(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(
+        let mut st = new_state(
             None,
             Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
             None,
-        )));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -212,25 +320,20 @@ impl Mock {
     pub async fn start_with_scram_sha512(creds: (String, String)) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(
+        let mut st = new_state(
             None,
             Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
             None,
-        )));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        );
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -240,21 +343,16 @@ impl Mock {
     pub async fn start_with_oauthbearer(principal: String) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(None, None, Some(principal))));
-        let st = state.clone();
-        tokio::spawn(async move {
-            loop {
-                let Ok((stream, _)) = listener.accept().await else {
-                    break;
-                };
-                stream.set_nodelay(true).ok();
-                let st = st.clone();
-                let host = host.clone();
-                tokio::spawn(handle_conn(stream, host, port, st));
-            }
-        });
+        let mut st = new_state(None, None, Some(principal));
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
+        spawn_plain(listener, 1, state.clone());
         Self {
             addr: format!("127.0.0.1:{}", addr.port()),
             state,
@@ -267,9 +365,15 @@ impl Mock {
         let acceptor = tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(server));
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
-        let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(new_state(None, None, None)));
+        let mut st = new_state(None, None, None);
+        st.brokers = vec![Broker {
+            node_id: 1,
+            host: "127.0.0.1".into(),
+            port,
+            rack: None,
+        }];
+        let state = Arc::new(Mutex::new(st));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -278,13 +382,12 @@ impl Mock {
                 };
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
-                let host = host.clone();
                 let acceptor = acceptor.clone();
                 tokio::spawn(async move {
                     let Ok(stream) = acceptor.accept(tcp).await else {
                         return;
                     };
-                    handle_conn(stream, host, port, st).await;
+                    handle_conn(stream, 1, st).await;
                 });
             }
         });
@@ -324,7 +427,36 @@ impl Mock {
     }
 
     pub fn set_produce_error(&self, code: i16) {
-        self.state.lock().produce_error = Some(code);
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = None;
+    }
+
+    pub fn set_produce_error_times(&self, code: i16, n: u32) {
+        let mut st = self.state.lock();
+        st.produce_error = Some(code);
+        st.produce_error_left = Some(n);
+    }
+
+    pub fn produce_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_produce.clone()
+    }
+
+    pub fn fetch_nodes(&self) -> Vec<i32> {
+        self.state.lock().accepted_fetch.clone()
+    }
+
+    pub fn last_fetch_isolation(&self) -> i8 {
+        self.state.lock().last_fetch_isolation
+    }
+
+    pub fn heartbeat_total(&self, group_id: &str) -> u32 {
+        self.state
+            .lock()
+            .groups
+            .get(group_id)
+            .map(|g| g.hb_total)
+            .unwrap_or(0)
     }
 }
 
@@ -378,6 +510,7 @@ fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
         (FETCH, 4, 11),
+        (LIST_OFFSETS, 0, 5),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
@@ -385,11 +518,21 @@ fn versions() -> ApiVersionsResponse {
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
+        (LEAVE_GROUP, 0, 2),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 4),
         (DELETE_TOPICS, 0, 3),
+        (CREATE_PARTITIONS, 0, 1),
+        (DESCRIBE_ACLS, 0, 1),
+        (CREATE_ACLS, 0, 1),
+        (DELETE_ACLS, 0, 1),
+        (INCREMENTAL_ALTER_CONFIGS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
+        (ADD_PARTITIONS_TO_TXN, 0, 1),
+        (ADD_OFFSETS_TO_TXN, 0, 1),
+        (END_TXN, 0, 1),
+        (TXN_OFFSET_COMMIT, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
     ];
@@ -409,8 +552,7 @@ fn versions() -> ApiVersionsResponse {
 
 async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
     mut stream: S,
-    host: String,
-    port: i32,
+    node_id: i32,
     state: Arc<Mutex<State>>,
 ) {
     let mut buf = BytesMut::new();
@@ -449,11 +591,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
             }
             METADATA => {
-                let topics = state.lock().created_topics.clone();
+                let st = state.lock();
+                let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,
                     header.api_version,
-                    &metadata_for(&host, port, &topics),
+                    &metadata_for(&st, &host, port),
                 )
                 .unwrap();
             }
@@ -610,23 +753,181 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
             }
+            CREATE_PARTITIONS => {
+                let (topics, validate_only) = decode_create_partitions_request(&mut frame).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock();
+                for (name, count) in topics {
+                    match st.created_topics.get_mut(&name) {
+                        None => results.push(TopicResult {
+                            name,
+                            error_code: 3,
+                            error_message: Some("Unknown topic.".into()),
+                        }),
+                        Some(spec) => {
+                            let mut err = 0i16;
+                            if count < spec.num_partitions {
+                                err = 37;
+                            } else if !validate_only {
+                                spec.num_partitions = count;
+                            }
+                            results.push(TopicResult {
+                                name,
+                                error_code: err,
+                                error_message: None,
+                            });
+                        }
+                    }
+                }
+                encode_create_partitions_response(&mut body, &results).unwrap();
+            }
+            INCREMENTAL_ALTER_CONFIGS => {
+                let (rt, name, configs, validate_only) =
+                    decode_incremental_alter_configs_request(&mut frame).unwrap();
+                let mut err = 0i16;
+                let mut st = state.lock();
+                if rt != RESOURCE_TOPIC {
+                    err = 3;
+                } else if let Some(spec) = st.created_topics.get_mut(&name) {
+                    if !validate_only {
+                        for c in configs {
+                            if c.op == ALTER_CONFIG_DELETE {
+                                spec.configs.remove(&c.name);
+                            } else if c.op == ALTER_CONFIG_SET {
+                                spec.configs.insert(c.name, c.value);
+                            }
+                        }
+                    }
+                } else {
+                    err = 3;
+                }
+                encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
+            }
+            CREATE_ACLS => {
+                let acls = decode_create_acls_request(&mut frame).unwrap();
+                let n = acls.len();
+                state.lock().acls.extend(acls);
+                encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+            }
+            DESCRIBE_ACLS => {
+                let rt = decode_describe_acls_request(&mut frame).unwrap();
+                let st = state.lock();
+                let acls: Vec<AclBinding> = st
+                    .acls
+                    .iter()
+                    .filter(|a| rt == 1 || a.resource_type == rt)
+                    .cloned()
+                    .collect();
+                encode_describe_acls_response(&mut body, &acls).unwrap();
+            }
+            DELETE_ACLS => {
+                let rt = decode_delete_acls_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let before = st.acls.len();
+                st.acls.retain(|a| rt != 1 && a.resource_type != rt);
+                let removed = i32::try_from(before.saturating_sub(st.acls.len())).unwrap_or(0);
+                encode_delete_acls_response(&mut body, removed).unwrap();
+            }
+            LIST_OFFSETS => {
+                let (iso, topic, partition, timestamp) =
+                    decode_list_offsets_request(&mut frame, header.api_version).unwrap();
+                let _ = iso;
+                let st = state.lock();
+                let key = (topic.clone(), partition);
+                let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                let offset = if timestamp == EARLIEST_TIMESTAMP {
+                    log_start
+                } else if timestamp == LATEST_TIMESTAMP {
+                    hw
+                } else {
+                    st.log
+                        .get(&key)
+                        .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
+                        .map(|r| r.offset)
+                        .unwrap_or(-1)
+                };
+                encode_list_offsets_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    0,
+                    timestamp,
+                    offset,
+                )
+                .unwrap();
+            }
             INIT_PRODUCER_ID => {
                 let mut st = state.lock();
                 let pid = st.next_pid;
                 st.next_pid += 1;
                 encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0).unwrap();
             }
+            ADD_PARTITIONS_TO_TXN => {
+                let _ = decode_add_partitions_to_txn_request(&mut frame);
+                state.lock().in_txn = true;
+                encode_add_partitions_to_txn_response(&mut body, 0).unwrap();
+            }
+            ADD_OFFSETS_TO_TXN => {
+                let _ = decode_add_offsets_to_txn_request(&mut frame);
+                encode_add_offsets_to_txn_response(&mut body, 0).unwrap();
+            }
+            END_TXN => {
+                let (_tid, _pid, _epoch, committed) = decode_end_txn_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if !committed {
+                    let pending = std::mem::take(&mut st.txn_pending);
+                    for rec in pending {
+                        st.txn_aborted.insert(rec);
+                    }
+                } else {
+                    st.txn_pending.clear();
+                }
+                st.in_txn = false;
+                encode_end_txn_response(&mut body, 0).unwrap();
+            }
+            TXN_OFFSET_COMMIT => {
+                let (_tid, _gid, part, off) = decode_txn_offset_commit_request(&mut frame).unwrap();
+                state.lock().committed.insert(("t".into(), part), off);
+                encode_txn_offset_commit_response(&mut body, 0).unwrap();
+            }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
                 let mut parts = Vec::new();
                 let mut st = state.lock();
-                let forced = st.produce_error;
+                let forced = match (st.produce_error, st.produce_error_left) {
+                    (Some(_), Some(0)) => {
+                        st.produce_error = None;
+                        st.produce_error_left = None;
+                        None
+                    }
+                    (Some(c), Some(left)) => {
+                        st.produce_error_left = Some(left.saturating_sub(1));
+                        if left <= 1 {
+                            st.produce_error = None;
+                            st.produce_error_left = None;
+                        }
+                        Some(c)
+                    }
+                    (Some(c), None) => Some(c),
+                    (None, _) => None,
+                };
                 for topic in decoded.2 {
                     for p in topic.partitions {
                         st.last_producer_id = Some(p.records.producer_id);
                         let key = (topic.topic.clone(), p.index);
                         let nrec = p.records.records.len() as i32;
-                        let mut error_code = forced.unwrap_or(0);
+                        let leader = st
+                            .partition_leaders
+                            .get(&(topic.topic.clone(), p.index))
+                            .copied()
+                            .unwrap_or(node_id);
+                        let mut error_code = if leader != node_id {
+                            6
+                        } else {
+                            forced.unwrap_or(0)
+                        };
                         if error_code == 0 {
                             let pid = p.records.producer_id;
                             let seq = p.records.base_sequence;
@@ -642,6 +943,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                         let start = *st.next_offset.get(&key).unwrap_or(&0);
                         if error_code == 0 {
+                            st.accepted_produce.push(node_id);
                             let mut n = 0i64;
                             for mut rec in p.records.records {
                                 rec.offset = start + n;
@@ -649,6 +951,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 n += 1;
                             }
                             st.next_offset.insert(key, start + n);
+                            if st.in_txn {
+                                for o in 0..n {
+                                    st.txn_pending
+                                        .push((topic.topic.clone(), p.index, start + o));
+                                }
+                            }
                             parts.push(ProducePartitionResponse {
                                 topic: topic.topic.clone(),
                                 partition: p.index,
@@ -672,12 +980,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
-                let req = decode_fetch_request(&mut frame).unwrap();
-                let st = state.lock();
+                let (iso, req) = decode_fetch_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.last_fetch_isolation = iso;
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
                     for p in t.partitions {
+                        let leader = st
+                            .partition_leaders
+                            .get(&(t.topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(node_id);
+                        if leader != node_id {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: 6,
+                                high_watermark: 0,
+                                log_start_offset: 0,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        st.accepted_fetch.push(node_id);
                         let key = (t.topic.clone(), p.partition);
                         let recs = st
                             .log
@@ -685,6 +1010,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .map(|v| {
                                 v.iter()
                                     .filter(|r| r.offset >= p.fetch_offset)
+                                    .filter(|r| {
+                                        if st.last_fetch_isolation != 1 {
+                                            return true;
+                                        }
+                                        let k = (t.topic.clone(), p.partition, r.offset);
+                                        !st.txn_aborted.contains(&k)
+                                            && !st.txn_pending.iter().any(|x| x == &k)
+                                    })
                                     .cloned()
                                     .collect::<Vec<_>>()
                             })
@@ -825,10 +1158,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                encode_find_coordinator_response(&mut body, 1, &host, port).unwrap();
+                let st = state.lock();
+                let (host, port) = broker_host_port(&st, node_id);
+                encode_find_coordinator_response(&mut body, node_id, &host, port).unwrap();
             }
             JOIN_GROUP => {
-                let (_g, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
+                let (gid, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 if member_id.is_empty() {
                     st.member_seq += 1;
@@ -836,33 +1171,95 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_join_group_response(&mut body, 79, -1, "range", "", &assigned, &[])
                         .unwrap();
                 } else {
+                    let notify = st.assign_notify.clone();
+                    let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
+                        members: BTreeMap::new(),
+                        generation: 0,
+                        joined: HashSet::new(),
+                        assignments: HashMap::new(),
+                        hb_total: 0,
+                    });
+                    let mut bumped = false;
+                    if !g.members.contains_key(&member_id) {
+                        g.generation += 1;
+                        g.joined.clear();
+                        g.assignments.clear();
+                        bumped = true;
+                    }
+                    g.members.insert(member_id.clone(), metadata.clone());
+                    g.joined.insert(member_id.clone());
+                    let leader = g.members.keys().next().cloned().unwrap_or_default();
+                    let members: Vec<JoinMember> = g
+                        .members
+                        .iter()
+                        .map(|(id, md)| JoinMember {
+                            member_id: id.clone(),
+                            metadata: md.clone(),
+                        })
+                        .collect();
+                    let gen = g.generation;
+                    drop(st);
+                    if bumped {
+                        notify.notify_waiters();
+                    }
                     encode_join_group_response(
-                        &mut body,
-                        0,
-                        1,
-                        "range",
-                        &member_id,
-                        &member_id,
-                        &[JoinMember {
-                            member_id: member_id.clone(),
-                            metadata,
-                        }],
+                        &mut body, 0, gen, "range", &leader, &member_id, &members,
                     )
                     .unwrap();
                 }
             }
             SYNC_GROUP => {
-                let (_g, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
-                let mut st = state.lock();
-                for (id, bytes) in assignments {
-                    st.assignments.insert(id, bytes);
+                let (gid, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
+                let notify = state.lock().assign_notify.clone();
+                if !assignments.is_empty() {
+                    let mut st = state.lock();
+                    if let Some(g) = st.groups.get_mut(&gid) {
+                        g.assignments.clear();
+                        for (id, bytes) in assignments {
+                            g.assignments.insert(id, bytes);
+                        }
+                    }
+                    notify.notify_waiters();
                 }
-                let asg = st.assignments.get(&member_id).cloned().unwrap_or_default();
+                let mut asg = Vec::new();
+                for _ in 0..40 {
+                    {
+                        let st = state.lock();
+                        if let Some(g) = st.groups.get(&gid) {
+                            if let Some(b) = g.assignments.get(&member_id) {
+                                asg = b.clone();
+                                break;
+                            }
+                        }
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                }
                 encode_sync_group_response(&mut body, 0, &asg).unwrap();
             }
             HEARTBEAT => {
-                let _ = decode_heartbeat_request(&mut frame);
-                encode_heartbeat_response(&mut body, 0).unwrap();
+                let (gid, _gen, member_id) = decode_heartbeat_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let mut err = 0i16;
+                if let Some(g) = st.groups.get_mut(&gid) {
+                    g.hb_total += 1;
+                    if g.members.contains_key(&member_id) && !g.joined.contains(&member_id) {
+                        err = 27;
+                    }
+                }
+                encode_heartbeat_response(&mut body, err).unwrap();
+            }
+            LEAVE_GROUP => {
+                let (gid, member_id) = decode_leave_group_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if let Some(g) = st.groups.get_mut(&gid) {
+                    g.members.remove(&member_id);
+                    g.joined.remove(&member_id);
+                    g.generation += 1;
+                    g.joined.clear();
+                    g.assignments.clear();
+                }
+                st.assign_notify.notify_waiters();
+                encode_leave_group_response(&mut body, 0).unwrap();
             }
             OFFSET_COMMIT => {
                 let (_g, _m, partition, offset) = decode_offset_commit_request(&mut frame).unwrap();

@@ -2,13 +2,15 @@
 //!
 //! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
 //! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER, TLS (rustls),
-//! idempotent produce, and admin (CreateTopics / DeleteTopics / DescribeConfigs).
+//! idempotent and transactional produce, ListOffsets/seek, and admin
+//! (topics, partitions, configs, ACLs).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
 
 /// Admin client: CreateTopics, DeleteTopics, DescribeConfigs.
 pub mod admin;
+pub(crate) mod cluster;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
 /// Kafka and client error types.
@@ -25,15 +27,17 @@ pub mod producer;
 pub mod protocol;
 
 pub use admin::{
-    Admin, AdminConfig, ConfigEntry, ConfigResource, NewTopic, CONFIG_RESOURCE_BROKER,
-    CONFIG_RESOURCE_TOPIC,
+    AclBinding, Admin, AdminConfig, AlterConfig, ConfigEntry, ConfigResource, NewTopic,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
 pub use net::TlsConfig;
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
+pub use protocol::acl::{ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};
+pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 
 /// Software name sent in ApiVersions v3+.

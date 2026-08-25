@@ -8,21 +8,30 @@ use std::time::Duration;
 
 use crate::error::{Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
+use crate::protocol::acl::{
+    decode_create_acls_response, decode_delete_acls_response, decode_describe_acls_response,
+    encode_create_acls_request, encode_delete_acls_request, encode_describe_acls_request,
+};
 use crate::protocol::admin::{
-    decode_create_topics_response, decode_delete_topics_response, decode_describe_configs_response,
+    decode_create_partitions_response, decode_create_topics_response,
+    decode_delete_topics_response, decode_describe_configs_response,
+    decode_incremental_alter_configs_response, encode_create_partitions_request,
     encode_create_topics_request, encode_delete_topics_request, encode_describe_configs_request,
-    CreatableTopic, CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_incremental_alter_configs_request, CreatableTopic, CreateTopicsRequest,
+    DescribeConfigsResource, DescribeConfigsResult, TopicConfig, TopicResult, RESOURCE_BROKER,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request, ApiVersion};
 use crate::protocol::api_keys::{
-    pick_version, API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS,
+    pick_version, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, INCREMENTAL_ALTER_CONFIGS,
 };
 use crate::protocol::sasl;
 
+pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
-    ConfigEntry, ConfigSynonym, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
-    RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
+    AlterConfig, ConfigEntry, ConfigSynonym, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
 };
 
 #[derive(Debug, Clone)]
@@ -124,6 +133,11 @@ pub struct Admin {
     create_version: i16,
     delete_version: i16,
     describe_version: i16,
+    partitions_version: i16,
+    alter_version: i16,
+    create_acls_version: i16,
+    describe_acls_version: i16,
+    delete_acls_version: i16,
 }
 
 impl Admin {
@@ -186,6 +200,28 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support DescribeConfigs v0-1".into())
             })?;
+        let partitions_version = versions
+            .get(&CREATE_PARTITIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| Error::Unsupported("broker does not support CreatePartitions".into()))?;
+        let alter_version = versions
+            .get(&INCREMENTAL_ALTER_CONFIGS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support IncrementalAlterConfigs".into())
+            })?;
+        let create_acls_version = versions
+            .get(&CREATE_ACLS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls".into()))?;
+        let describe_acls_version = versions
+            .get(&DESCRIBE_ACLS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support DescribeAcls".into()))?;
+        let delete_acls_version = versions
+            .get(&DELETE_ACLS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -193,6 +229,11 @@ impl Admin {
             create_version,
             delete_version,
             describe_version,
+            partitions_version,
+            alter_version,
+            create_acls_version,
+            describe_acls_version,
+            delete_acls_version,
         })
     }
 
@@ -286,5 +327,100 @@ impl Admin {
             )
             .await?;
         decode_describe_configs_response(&mut body.clone(), version)
+    }
+
+    pub async fn create_partitions(
+        &mut self,
+        topics: &[(String, i32)],
+        timeout_ms: i32,
+        validate_only: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let topics = topics.to_vec();
+        let version = self.partitions_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                CREATE_PARTITIONS,
+                version,
+                |buf| encode_create_partitions_request(buf, &topics, timeout_ms, validate_only),
+                timeout,
+            )
+            .await?;
+        decode_create_partitions_response(&mut body.clone())
+    }
+
+    pub async fn incremental_alter_configs(
+        &mut self,
+        resource_type: i8,
+        name: &str,
+        configs: &[AlterConfig],
+        validate_only: bool,
+    ) -> Result<i16> {
+        let version = self.alter_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                INCREMENTAL_ALTER_CONFIGS,
+                version,
+                |buf| {
+                    encode_incremental_alter_configs_request(
+                        buf,
+                        resource_type,
+                        name,
+                        configs,
+                        validate_only,
+                    )
+                },
+                timeout,
+            )
+            .await?;
+        decode_incremental_alter_configs_response(&mut body.clone())
+    }
+
+    pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
+        let version = self.create_acls_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                CREATE_ACLS,
+                version,
+                |buf| encode_create_acls_request(buf, acls),
+                timeout,
+            )
+            .await?;
+        decode_create_acls_response(&mut body.clone())
+    }
+
+    pub async fn describe_acls(&mut self, resource_type: i8) -> Result<Vec<AclBinding>> {
+        let version = self.describe_acls_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DESCRIBE_ACLS,
+                version,
+                |buf| encode_describe_acls_request(buf, resource_type),
+                timeout,
+            )
+            .await?;
+        decode_describe_acls_response(&mut body.clone())
+    }
+
+    pub async fn delete_acls(&mut self, resource_type: i8) -> Result<i16> {
+        let version = self.delete_acls_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DELETE_ACLS,
+                version,
+                |buf| encode_delete_acls_request(buf, resource_type),
+                timeout,
+            )
+            .await?;
+        decode_delete_acls_response(&mut body.clone())
     }
 }

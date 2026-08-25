@@ -226,6 +226,34 @@ pub fn decode_heartbeat_response<B: Buf>(buf: &mut B) -> Result<i16> {
     buf::get_i16(buf)
 }
 
+pub fn encode_leave_group_request(
+    buf: &mut BytesMut,
+    group_id: &str,
+    member_id: &str,
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    buf::put_classic_nullable_string(buf, Some(member_id))?;
+    Ok(())
+}
+
+pub fn decode_leave_group_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
+    let g = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let m = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    Ok((g, m))
+}
+
+pub fn encode_leave_group_response(
+    buf: &mut BytesMut,
+    error_code: i16,
+) -> crate::error::Result<()> {
+    buf.put_i16(error_code);
+    Ok(())
+}
+
+pub fn decode_leave_group_response<B: Buf>(buf: &mut B) -> Result<i16> {
+    buf::get_i16(buf)
+}
+
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -374,6 +402,9 @@ pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
 }
 
 pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
+    if bytes.is_empty() {
+        return Ok(Vec::new());
+    }
     let _ver = buf::get_i16(&mut bytes)?;
     let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);

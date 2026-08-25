@@ -43,13 +43,14 @@ pub fn encode_fetch_request(
     max_wait_ms: i32,
     min_bytes: i32,
     max_bytes: i32,
+    isolation_level: i8,
     topics: &[FetchTopic],
 ) -> crate::error::Result<()> {
     buf.put_i32(-1); // replica_id
     buf.put_i32(max_wait_ms);
     buf.put_i32(min_bytes);
     buf.put_i32(max_bytes);
-    buf.put_i8(0); // isolation_level READ_UNCOMMITTED
+    buf.put_i8(isolation_level);
     buf.put_i32(0); // session_id
     buf.put_i32(-1); // session_epoch
     buf::put_array_len(buf, false, Some(topics.len()))?;
@@ -69,12 +70,12 @@ pub fn encode_fetch_request(
     Ok(())
 }
 
-pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<Vec<FetchTopic>> {
+pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>)> {
     let _replica = buf::get_i32(buf)?;
     let _max_wait = buf::get_i32(buf)?;
     let _min_bytes = buf::get_i32(buf)?;
     let _max_bytes = buf::get_i32(buf)?;
-    let _isolation = buf::get_i8(buf)?;
+    let isolation = buf::get_i8(buf)?;
     let _session_id = buf::get_i32(buf)?;
     let _session_epoch = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -97,7 +98,7 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<Vec<FetchTopic>> {
         }
         topics.push(FetchTopic { topic, partitions });
     }
-    Ok(topics)
+    Ok((isolation, topics))
 }
 
 pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Result<()> {

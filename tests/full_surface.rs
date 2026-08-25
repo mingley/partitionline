@@ -11,8 +11,10 @@
 mod common;
 
 use partitionline::{
-    error, Admin, AdminConfig, Compression, ConfigResource, Consumer, ConsumerConfig,
-    ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
+    error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
+    ConsumerConfig, ConsumerGroup, Error, NewTopic, ProduceRecord, Producer, ProducerConfig,
+    ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET,
+    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -64,6 +66,56 @@ async fn idempotent_unkeyed_multi_conn_stays_in_order() {
 }
 
 #[tokio::test]
+async fn produce_fetch_follow_metadata_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"leader"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.partition, 0);
+    assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+    let produced = mock.produce_nodes();
+    assert!(
+        produced.contains(&2),
+        "successful produce must land on leader node 2, got {produced:?}"
+    );
+    assert_eq!(mock.log_len("t", 0), 1);
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"leader"[..]));
+    let fetched = mock.fetch_nodes();
+    assert!(
+        fetched.contains(&2),
+        "successful fetch must hit leader node 2, got {fetched:?}"
+    );
+}
+
+#[tokio::test]
+async fn produce_retries_retriable_then_succeeds() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::LEADER_NOT_AVAILABLE, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"retry"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    producer.flush().await.unwrap();
+    assert_eq!(mock.log_len("t", 0), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn flush_fails_on_broker_produce_error() {
     let mock = common::Mock::start().await;
     mock.set_produce_error(error::OUT_OF_ORDER_SEQUENCE_NUMBER);
@@ -109,6 +161,81 @@ async fn tls_produce_fetch() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"tls-hello"[..]));
+}
+
+#[tokio::test]
+async fn transactional_commit_visible_abort_hidden() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-1".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"committed"[..]))
+        .await
+        .unwrap();
+    producer
+        .send_offsets_to_transaction("g", &[("t".into(), 0, 1)])
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"aborted"[..]))
+        .await
+        .unwrap();
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.isolation_level = 1;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    let vals: Vec<&[u8]> = recs.iter().filter_map(|r| r.value.as_deref()).collect();
+    assert_eq!(vals, vec![&b"committed"[..]]);
+    assert!(!vals.iter().any(|v| *v == b"aborted"));
+}
+
+#[tokio::test]
+async fn list_offsets_seek_and_read_committed_isolation() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for i in 0..3 {
+        let v = format!("v{i}");
+        producer
+            .send(ProduceRecord::to("t").value(v.into_bytes()))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.isolation_level = 1;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let earliest = consumer
+        .list_offsets("t", 0, EARLIEST_TIMESTAMP)
+        .await
+        .unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(earliest, 0);
+    assert_eq!(latest, 3);
+    let by_ts = consumer.list_offsets("t", 0, 0).await.unwrap();
+    assert_eq!(by_ts, 0);
+
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.seek("t", 0, 1).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].offset, 1);
+    assert_eq!(mock.last_fetch_isolation(), 1);
 }
 
 #[tokio::test]
@@ -278,6 +405,84 @@ async fn sasl_plain_then_produce() {
 }
 
 #[tokio::test]
+async fn two_members_range_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("g4", 4, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join(ccfg.clone(), "rg", "g4").await.unwrap();
+    assert_eq!(a.assignment().len(), 4, "solo member gets every partition");
+
+    let b_join = tokio::spawn({
+        let ccfg = ccfg.clone();
+        async move { ConsumerGroup::join(ccfg, "rg", "g4").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(a.poll().await);
+    let mut b = b_join.await.unwrap().unwrap();
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(a_parts.is_disjoint(&b_parts), "range must not overlap");
+    let union: std::collections::HashSet<i32> = a_parts.union(&b_parts).copied().collect();
+    assert_eq!(union.len(), 4, "union of assignments is all partitions");
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    assert!(
+        mock.heartbeat_total("rg") >= 2,
+        "heartbeat loop must run after join, got {}",
+        mock.heartbeat_total("rg")
+    );
+
+    a.leave().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(b.poll().await);
+    assert_eq!(
+        b.assignment().len(),
+        4,
+        "remaining member covers all partitions after leave"
+    );
+}
+
+#[tokio::test]
+async fn two_members_sticky_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("s4", 4, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join_sticky(ccfg.clone(), "sg", "s4")
+        .await
+        .unwrap();
+    let b_join = tokio::spawn({
+        let ccfg = ccfg.clone();
+        async move { ConsumerGroup::join_sticky(ccfg, "sg", "s4").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(a.poll().await);
+    let b = b_join.await.unwrap().unwrap();
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(a_parts.is_disjoint(&b_parts));
+    assert_eq!(a_parts.len() + b_parts.len(), 4);
+}
+
+#[tokio::test]
 async fn consumer_group_join_fetch_commit() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
@@ -410,6 +615,75 @@ async fn admin_delete_and_describe() {
     assert_eq!(deleted[0].error_code, 0);
     let gone = admin.delete_topics(&["orders"], 10_000).await.unwrap();
     assert_eq!(gone[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+}
+
+#[tokio::test]
+async fn admin_partitions_alter_configs_and_acls() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("acl-t", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let parts = admin
+        .create_partitions(&[("acl-t".into(), 3)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    let err = admin
+        .incremental_alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "acl-t",
+            &[AlterConfig {
+                name: "retention.ms".into(),
+                op: ALTER_CONFIG_SET,
+                value: Some("1000".into()),
+            }],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("acl-t").keys(["retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("1000")
+    );
+    let created = admin
+        .create_acls(&[AclBinding {
+            resource_type: ACL_RESOURCE_TOPIC,
+            resource_name: "acl-t".into(),
+            principal: "User:alice".into(),
+            host: "*".into(),
+            operation: ACL_OPERATION_ALL,
+            permission: ACL_PERMISSION_ALLOW,
+        }])
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0]);
+    let listed = admin.describe_acls(ACL_RESOURCE_TOPIC).await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].principal, "User:alice");
+    assert_eq!(admin.delete_acls(ACL_RESOURCE_TOPIC).await.unwrap(), 0);
+    assert!(admin
+        .describe_acls(ACL_RESOURCE_TOPIC)
+        .await
+        .unwrap()
+        .is_empty());
 }
 
 #[tokio::test]
