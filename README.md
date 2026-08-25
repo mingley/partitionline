@@ -10,16 +10,17 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
 Produce, fetch, classic groups (range/sticky) and KIP-848
-`ConsumerGroup::join_consumer`, ListOffsets/seek, gzip / snappy / lz4, SASL
-PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT or OIDC
-`http://` and `https://` token URLs), TLS (`rustls`, no OpenSSL), idempotent
-and transactional produce, fetch-from-follower (`ConsumerConfig.rack`),
-OffsetForLeaderEpoch fencing, admin (topics, partitions, configs, ACLs,
-DeleteRecords, DescribeCluster). Talks Kafka 3.x / 4.x.
+`ConsumerGroup::join_consumer`, share groups (KIP-932 `ShareGroup`),
+ListOffsets/seek, gzip / snappy / lz4, SASL PLAIN / SCRAM-SHA-256 /
+SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT or OIDC `http://` and `https://`
+token URLs), TLS (`rustls`, no OpenSSL), idempotent and transactional produce,
+fetch-from-follower (`ConsumerConfig.rack`), OffsetForLeaderEpoch fencing,
+admin (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
+Talks Kafka 3.x / 4.x.
 
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
-Kerberos (both blocked on C libraries in default features), share groups,
-Schema Registry. Full list: [docs/gaps.md](docs/gaps.md).
+Kerberos (both blocked on C libraries in default features), Schema Registry.
+Full list: [docs/gaps.md](docs/gaps.md).
 
 **Produce and fetch are faster than librdkafka 2.15.0 C** on this machine
 (broker high watermark / records consumed equal records sent). Latency was
@@ -57,7 +58,9 @@ C bar and fetch bench: [docs/benchmark.md](docs/benchmark.md).
 ## Example
 
 ```rust,no_run
-use partitionline::{Admin, Consumer, NewTopic, ProduceRecord, Producer};
+use partitionline::{
+    Admin, Consumer, ConsumerConfig, NewTopic, ProduceRecord, Producer, ShareGroup,
+};
 
 # async fn example() -> partitionline::Result<()> {
 let mut admin = Admin::connect("127.0.0.1:9092").await?;
@@ -76,6 +79,16 @@ let mut consumer = Consumer::connect("127.0.0.1:9092").await?;
 consumer.assign("topic", md.partition, md.offset).await?;
 let recs = consumer.fetch().await?;
 # let _ = recs;
+
+let mut share = ShareGroup::join(
+    ConsumerConfig::bootstrap(["127.0.0.1:9092"]),
+    "share-group",
+    "topic",
+)
+.await?;
+let acquired = share.poll().await?;
+share.accept(&acquired).await?;
+share.leave().await?;
 # Ok(())
 # }
 ```
