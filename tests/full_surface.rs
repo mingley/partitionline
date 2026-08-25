@@ -975,6 +975,62 @@ async fn sasl_share_group_post_join_heartbeat() {
 }
 
 #[tokio::test]
+async fn classic_group_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg, "re-classic", "t").await.unwrap();
+    common::wait_pred("classic hb before drop", || {
+        mock.heartbeat_total("re-classic") >= 1
+    })
+    .await;
+    let before = mock.heartbeat_total("re-classic");
+    mock.drop_connections();
+    common::wait_pred("classic hb after reconnect", || {
+        mock.heartbeat_total("re-classic") > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join_consumer(ccfg, "re-848", "t")
+        .await
+        .unwrap();
+    common::wait_pred("kip848 hb before drop", || mock.cg_heartbeat_calls() >= 2).await;
+    let before = mock.cg_heartbeat_calls();
+    mock.drop_connections();
+    common::wait_pred("kip848 hb after reconnect", || {
+        mock.cg_heartbeat_calls() > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_group_recovers_after_coordinator_drop() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "re-share", "t").await.unwrap();
+    common::wait_pred("share hb before drop", || mock.share_heartbeat_calls() >= 2).await;
+    let before = mock.share_heartbeat_calls();
+    mock.drop_connections();
+    common::wait_pred("share hb after reconnect", || {
+        mock.share_heartbeat_calls() > before
+    })
+    .await;
+    let _recs = g.poll().await.unwrap();
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_create_then_produce_fetch() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
