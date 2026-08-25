@@ -217,6 +217,25 @@ impl BrokerConn {
         Self::connect_tls(addr, client_id, connect_timeout, None).await
     }
 
+    pub async fn connect_tls_any(
+        addrs: &[String],
+        client_id: &str,
+        connect_timeout: Duration,
+        tls: Option<&TlsConfig>,
+    ) -> Result<Self> {
+        if addrs.is_empty() {
+            return Err(Error::protocol("no bootstrap servers"));
+        }
+        let mut last = Error::protocol("all bootstrap servers failed");
+        for addr in addrs {
+            match Self::connect_tls(addr, client_id, connect_timeout, tls).await {
+                Ok(conn) => return Ok(conn),
+                Err(e) => last = e,
+            }
+        }
+        Err(last)
+    }
+
     pub async fn connect_tls(
         addr: &str,
         client_id: &str,
