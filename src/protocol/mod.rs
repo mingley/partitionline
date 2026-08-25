@@ -32,6 +32,8 @@ pub mod records;
 pub mod sasl;
 /// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;
+/// Share groups (KIP-932).
+pub mod share;
 /// Transactional produce APIs.
 pub mod txn;
 

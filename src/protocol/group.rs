@@ -9,10 +9,19 @@ use super::buf;
 use crate::error::Result;
 
 pub const COORDINATOR_GROUP: i8 = 0;
+pub const COORDINATOR_SHARE: i8 = 2;
 
 pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) -> crate::error::Result<()> {
+    encode_find_coordinator_request_typed(buf, key, COORDINATOR_GROUP)
+}
+
+pub fn encode_find_coordinator_request_typed(
+    buf: &mut BytesMut,
+    key: &str,
+    key_type: i8,
+) -> crate::error::Result<()> {
     buf::put_classic_nullable_string(buf, Some(key))?;
-    buf.put_i8(COORDINATOR_GROUP);
+    buf.put_i8(key_type);
     Ok(())
 }
 
