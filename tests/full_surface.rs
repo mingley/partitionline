@@ -99,6 +99,61 @@ async fn produce_fetch_follow_metadata_leader() {
 }
 
 #[tokio::test]
+async fn fetch_from_follower_when_rack_matches() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"rack"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.rack = Some("r1".into());
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"rack"[..]));
+    let fetched = mock.fetch_nodes();
+    assert!(
+        fetched.contains(&1),
+        "racked consumer must fetch follower node 1, got {fetched:?}"
+    );
+    assert_eq!(mock.last_fetch_rack(), "r1");
+}
+
+#[tokio::test]
+async fn fetch_without_rack_stays_on_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"lead"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"lead"[..]));
+    let fetched = mock.fetch_nodes();
+    assert!(
+        fetched.contains(&2),
+        "no-rack fetch must hit leader node 2, got {fetched:?}"
+    );
+    assert!(
+        !fetched.contains(&1),
+        "no-rack fetch must not hit follower, got {fetched:?}"
+    );
+    assert!(mock.last_fetch_rack().is_empty());
+}
+
+#[tokio::test]
 async fn fetch_recovers_from_fenced_leader_epoch() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
@@ -645,6 +700,38 @@ async fn consumer_group_join_fetch_commit() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
     group.commit().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_join_fetch_leave_without_classic_join() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"kip848"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join_consumer(ccfg, "g848", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"kip848"[..]));
+    assert!(
+        mock.cg_heartbeat_calls() >= 1,
+        "must speak ConsumerGroupHeartbeat, got {}",
+        mock.cg_heartbeat_calls()
+    );
+    assert_eq!(
+        mock.join_group_calls(),
+        0,
+        "KIP-848 path must not send JoinGroup"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

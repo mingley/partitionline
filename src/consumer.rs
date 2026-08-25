@@ -45,6 +45,8 @@ pub struct ConsumerConfig {
     pub max_bytes: i32,
     /// 0 = READ_UNCOMMITTED, 1 = READ_COMMITTED.
     pub isolation_level: i8,
+    /// Client rack for fetch-from-follower (KIP-392). Empty means leader only.
+    pub rack: Option<String>,
 }
 
 impl Default for ConsumerConfig {
@@ -64,6 +66,7 @@ impl Default for ConsumerConfig {
             min_bytes: 1,
             max_bytes: 1_048_576,
             isolation_level: 0,
+            rack: None,
         }
     }
 }
@@ -98,6 +101,7 @@ pub struct Consumer {
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     assigned: Vec<(String, i32, i64)>,
+    preferred: HashMap<(String, i32), i32>,
 }
 
 impl Consumer {
@@ -161,6 +165,7 @@ impl Consumer {
             cluster: Cluster::default(),
             conns: HashMap::new(),
             assigned: Vec::new(),
+            preferred: HashMap::new(),
         })
     }
 
@@ -364,8 +369,17 @@ impl Consumer {
             let mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>> = HashMap::new();
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
-                match self.cluster.leader(topic, *part) {
-                    Ok((node, _)) => {
+                let node = if self.cfg.rack.is_some() {
+                    self.preferred.get(&(topic.clone(), *part)).copied()
+                } else {
+                    None
+                };
+                let node = match node {
+                    Some(n) => Some(n),
+                    None => self.cluster.leader(topic, *part).ok().map(|(n, _)| n),
+                };
+                match node {
+                    Some(node) => {
                         by_leader
                             .entry(node)
                             .or_default()
@@ -378,7 +392,7 @@ impl Consumer {
                                 partition_max_bytes: self.cfg.max_bytes,
                             });
                     }
-                    Err(_) => {
+                    None => {
                         missing_leader = true;
                         break;
                     }
@@ -401,6 +415,7 @@ impl Consumer {
             let isolation_level = self.cfg.isolation_level;
             let timeout = self.cfg.request_timeout;
             let fetch_version = self.fetch_version;
+            let rack = self.cfg.rack.clone();
             let mut out = Vec::new();
             let mut retry = false;
             let leaders: Vec<i32> = by_leader.keys().copied().collect();
@@ -429,6 +444,7 @@ impl Consumer {
                                 max_bytes,
                                 isolation_level,
                                 &topics,
+                                rack.as_deref(),
                             )
                         },
                         timeout,
@@ -447,6 +463,17 @@ impl Consumer {
                 let fetched = decode_fetch_response(&mut body.clone())?;
                 for topic in fetched {
                     for part in topic.partitions {
+                        if part.preferred_read_replica >= 0
+                            && self.cfg.rack.is_some()
+                            && part.preferred_read_replica != node
+                        {
+                            let _prev = self.preferred.insert(
+                                (topic.topic.clone(), part.partition),
+                                part.preferred_read_replica,
+                            );
+                            retry = true;
+                            continue;
+                        }
                         if part.error_code == error::OFFSET_OUT_OF_RANGE {
                             self.advance(&topic.topic, part.partition, part.log_start_offset);
                             continue;

@@ -15,8 +15,12 @@ use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request};
 use crate::protocol::api_keys::{
-    API_VERSIONS, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LEAVE_GROUP, OFFSET_COMMIT,
-    OFFSET_FETCH, SYNC_GROUP,
+    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LEAVE_GROUP,
+    OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+};
+use crate::protocol::cgheartbeat::{
+    decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_request,
+    ConsumerGroupHeartbeatRequest,
 };
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
@@ -113,6 +117,7 @@ pub struct ConsumerGroup {
     generation_id: i32,
     topic: String,
     protocol: String,
+    kip848: bool,
     prev_assignment: HashMap<String, Vec<i32>>,
     hb_err: Arc<AtomicI16>,
     hb_generation: Arc<std::sync::atomic::AtomicI32>,
@@ -176,6 +181,7 @@ impl ConsumerGroup {
             generation_id: 0,
             topic,
             protocol: protocol.to_string(),
+            kip848: false,
             prev_assignment: HashMap::new(),
             hb_err,
             hb_generation,
@@ -183,6 +189,55 @@ impl ConsumerGroup {
         };
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
+        Ok(g)
+    }
+
+    /// KIP-848 `group.protocol=consumer`. Join via ConsumerGroupHeartbeat (epoch 0).
+    pub async fn join_consumer(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topic: impl Into<String>,
+    ) -> Result<Self> {
+        let group_id = group_id.into();
+        let topic = topic.into();
+        let mut consumer = Consumer::new(cfg.clone()).await?;
+        let timeout = Duration::from_secs(30);
+        let mut coord = open_coord(&cfg, consumer.conn_mut().addr()).await?;
+        let body = coord
+            .roundtrip(
+                FIND_COORDINATOR,
+                2,
+                |buf| encode_find_coordinator_request(buf, &group_id),
+                timeout,
+            )
+            .await?;
+        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "FindCoordinator"));
+        }
+        let coord_addr = format!("{host}:{port}");
+        if coord_addr != coord.addr() {
+            coord = open_coord(&cfg, &coord_addr).await?;
+        }
+        let hb_err = Arc::new(AtomicI16::new(0));
+        let hb_generation = Arc::new(AtomicI32::new(0));
+        let (hb_stop, hb_rx) = watch::channel(false);
+        let mut g = Self {
+            consumer,
+            coord,
+            group_id,
+            member_id: String::new(),
+            generation_id: 0,
+            topic,
+            protocol: "consumer".into(),
+            kip848: true,
+            prev_assignment: HashMap::new(),
+            hb_err,
+            hb_generation,
+            hb_stop,
+        };
+        g.heartbeat_join().await?;
+        g.spawn_heartbeat_consumer(hb_rx);
         Ok(g)
     }
 
@@ -199,7 +254,7 @@ impl ConsumerGroup {
     }
 
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
-        if self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
+        if !self.kip848 && self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
         self.consumer.fetch().await
@@ -239,6 +294,32 @@ impl ConsumerGroup {
     pub async fn leave(mut self) -> Result<()> {
         self.hb_stop.send(true).unwrap_or(());
         let timeout = Duration::from_secs(30);
+        if self.kip848 {
+            let req = ConsumerGroupHeartbeatRequest {
+                group_id: self.group_id.clone(),
+                member_id: self.member_id.clone(),
+                member_epoch: -1,
+                subscribed_topic_names: None,
+                topic_partitions: None,
+            };
+            let body = self
+                .coord
+                .roundtrip(
+                    CONSUMER_GROUP_HEARTBEAT,
+                    0,
+                    |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                    timeout,
+                )
+                .await?;
+            let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
+            if resp.error_code != 0 {
+                return Err(Error::broker(
+                    resp.error_code,
+                    "ConsumerGroupHeartbeat leave",
+                ));
+            }
+            return Ok(());
+        }
         let body = self
             .coord
             .roundtrip(
@@ -370,6 +451,105 @@ impl ConsumerGroup {
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
         Ok(())
+    }
+
+    async fn heartbeat_join(&mut self) -> Result<()> {
+        let timeout = Duration::from_secs(30);
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: self.group_id.clone(),
+            member_id: self.member_id.clone(),
+            member_epoch: 0,
+            subscribed_topic_names: Some(vec![self.topic.clone()]),
+            topic_partitions: None,
+        };
+        let body = self
+            .coord
+            .roundtrip(
+                CONSUMER_GROUP_HEARTBEAT,
+                0,
+                |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                timeout,
+            )
+            .await?;
+        let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
+        }
+        if let Some(id) = resp.member_id {
+            self.member_id = id;
+        }
+        self.generation_id = resp.member_epoch;
+        self.consumer.clear_assignment();
+        if let Some(assigned) = resp.assignment {
+            for tp in assigned {
+                for p in tp.partitions {
+                    self.consumer.assign(self.topic.clone(), p, 0).await?;
+                }
+            }
+        }
+        self.hb_generation
+            .store(self.generation_id, Ordering::SeqCst);
+        self.hb_err.store(0, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn spawn_heartbeat_consumer(&self, mut stop: watch::Receiver<bool>) {
+        let group_id = self.group_id.clone();
+        let member_id = self.member_id.clone();
+        let hb_err = self.hb_err.clone();
+        let hb_generation = self.hb_generation.clone();
+        let addr = self.coord.addr().to_string();
+        drop(tokio::spawn(async move {
+            let Ok(mut conn) =
+                BrokerConn::connect(&addr, "partitionline-hb", Duration::from_secs(10)).await
+            else {
+                return;
+            };
+            let mut tick = tokio::time::interval(Duration::from_millis(150));
+            loop {
+                tokio::select! {
+                    _ = stop.changed() => {
+                        if *stop.borrow() {
+                            break;
+                        }
+                    }
+                    _ = tick.tick() => {
+                        let timeout = Duration::from_secs(10);
+                        let epoch = hb_generation.load(Ordering::SeqCst);
+                        let req = ConsumerGroupHeartbeatRequest {
+                            group_id: group_id.clone(),
+                            member_id: member_id.clone(),
+                            member_epoch: epoch,
+                            subscribed_topic_names: None,
+                            topic_partitions: None,
+                        };
+                        let res = conn
+                            .roundtrip(
+                                CONSUMER_GROUP_HEARTBEAT,
+                                0,
+                                |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                                timeout,
+                            )
+                            .await;
+                        match res {
+                            Ok(body) => {
+                                if let Ok(resp) =
+                                    decode_consumer_group_heartbeat_response(&mut body.clone())
+                                {
+                                    hb_err.store(resp.error_code, Ordering::SeqCst);
+                                    if resp.member_epoch > 0 {
+                                        hb_generation.store(resp.member_epoch, Ordering::SeqCst);
+                                    }
+                                }
+                            }
+                            Err(_) => {
+                                hb_err.store(error::REQUEST_TIMED_OUT, Ordering::SeqCst);
+                            }
+                        }
+                    }
+                }
+            }
+        }));
     }
 
     fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
