@@ -33,14 +33,14 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL SCRAM-SHA-512 | yes (RFC 5802, PBKDF2-HMAC-SHA-512, no C SASL library) | yes | **done** |
 | SASL GSSAPI / Kerberos | no | yes (cyrus-sasl C) | **blocked on C** |
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
-| SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials HTTP POST, then OAUTHBEARER with `access_token`) | yes | **done** |
+| SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials `http://` or `https://` rustls POST, then OAUTHBEARER) | yes | **done** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs | yes | yes | **done** |
 | Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60) | yes | **done** |
-| KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
-| Fetch from follower / rack awareness | no | yes | **not started** |
+| KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer`, ConsumerGroupHeartbeat api 68; classic Join/Sync still work) | yes (newer releases) | **done** |
+| Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
 | Share groups | no | yes | **not started** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
@@ -63,7 +63,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. KIP-848, fetch-from-follower.
+1. Share groups (out of crate scope unless needed). Latency vs C/Java is not claimed.
 
 ## What “done” on this list does *not* mean
 
