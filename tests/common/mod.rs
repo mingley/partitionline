@@ -591,6 +591,13 @@ impl Mock {
     }
 }
 
+pub async fn closed_tcp_addr() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    format!("{addr}")
+}
+
 pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
     loop {

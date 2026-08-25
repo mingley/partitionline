@@ -17,7 +17,6 @@ use partitionline::{
     ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
-use tokio::net::TcpListener;
 
 #[tokio::test]
 async fn idempotent_produce_gets_pid_and_offset() {
@@ -1090,17 +1089,10 @@ async fn share_group_follows_moved_coordinator() {
     g.leave().await.unwrap();
 }
 
-async fn closed_tcp_addr() -> String {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    drop(listener);
-    format!("{addr}")
-}
-
 #[tokio::test]
 async fn producer_skips_dead_bootstrap() {
     let mock = common::Mock::start().await;
-    let dead = closed_tcp_addr().await;
+    let dead = common::closed_tcp_addr().await;
     let mut pcfg = ProducerConfig::bootstrap([dead, mock.addr.clone()]);
     pcfg.linger = Duration::ZERO;
     let producer = Producer::new(pcfg).await.unwrap();
@@ -1123,7 +1115,7 @@ async fn consumer_skips_dead_bootstrap() {
         .unwrap();
     producer.close().await.unwrap();
 
-    let dead = closed_tcp_addr().await;
+    let dead = common::closed_tcp_addr().await;
     let mut ccfg = ConsumerConfig::bootstrap([dead, mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
     let mut consumer = Consumer::new(ccfg).await.unwrap();
