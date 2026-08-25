@@ -11,16 +11,16 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 
 **Not feature-complete vs librdkafka.** Today: produce, fetch, consumer groups,
 gzip / snappy / lz4, SASL PLAIN, SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL
-OAUTHBEARER (unsecured JWT), TLS (`rustls`, no OpenSSL), idempotent produce.
-Talks Kafka 3.x / 4.x. Missing: admin, transactions, OIDC, zstd, Kerberos.
-Full list: [docs/gaps.md](docs/gaps.md).
+OAUTHBEARER (unsecured JWT), TLS (`rustls`, no OpenSSL), idempotent produce,
+admin CreateTopics / DeleteTopics / DescribeConfigs.
+Talks Kafka 3.x / 4.x. Missing: transactions, OIDC, remaining admin (ACLs,
+AlterConfigs), zstd, Kerberos. Full list: [docs/gaps.md](docs/gaps.md).
 
-**Produce is faster than librdkafka 2.15.0 C** on this machine, including
-idempotent produce, TLS, SCRAM, and OAUTHBEARER (broker high watermark equals
-records sent). Fetch was not measured. Numbers:
-[docs/benchmark.md](docs/benchmark.md).
+**Produce and fetch are faster than librdkafka 2.15.0 C** on this machine
+(broker high watermark / records consumed equal records sent). Latency was
+not measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
 
-| Locked produce, 8e6 × 100B, linger 5ms | partitionline median | C 2.15.0 median |
+| Locked 8e6 × 100B | partitionline median | C 2.15.0 median |
 |---|---|---|
 | uncompressed, `acks=1` | 7.28M rec/s | 3.88M rec/s |
 | lz4 | 6.81M rec/s | 6.05M rec/s |
@@ -29,13 +29,19 @@ records sent). Fetch was not measured. Numbers:
 | SASL SCRAM-SHA-256 | 6.81M rec/s | 3.98M rec/s |
 | SASL SCRAM-SHA-512 | 6.89M rec/s | 3.43M rec/s |
 | SASL OAUTHBEARER | 6.82M rec/s | 3.64M rec/s |
+| fetch (consume, same 8e6×100B log) | 4.38M rec/s | 3.12M rec/s |
 
 ## Example
 
 ```rust,no_run
-use partitionline::{Consumer, ProduceRecord, Producer};
+use partitionline::{Admin, Consumer, NewTopic, ProduceRecord, Producer};
 
 # async fn example() -> partitionline::Result<()> {
+let mut admin = Admin::connect("127.0.0.1:9092").await?;
+admin
+    .create_topics(&[NewTopic::new("topic", 1, 1)], 10_000, false)
+    .await?;
+
 let producer = Producer::connect("127.0.0.1:9092").await?;
 let md = producer
     .send(ProduceRecord::to("topic").value(&b"hello"[..]))

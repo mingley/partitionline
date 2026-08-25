@@ -1,12 +1,19 @@
 use bytes::{BufMut, BytesMut};
+use partitionline::protocol::admin::{
+    decode_create_topics_request, decode_delete_topics_request, decode_describe_configs_request,
+    encode_create_topics_response, encode_delete_topics_response, encode_describe_configs_response,
+    ConfigEntry, DescribeConfigsResult, TopicResult, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+};
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
     encode_produce_response, ApiVersion, ApiVersionsResponse, Broker, MetadataResponse,
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, FETCH, FIND_COORDINATOR, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA,
-    OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
+    API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, FETCH, FIND_COORDINATOR,
+    HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -38,6 +45,12 @@ pub struct Mock {
     state: Arc<Mutex<State>>,
 }
 
+#[derive(Clone)]
+struct CreatedTopic {
+    num_partitions: i32,
+    configs: HashMap<String, Option<String>>,
+}
+
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
@@ -52,6 +65,71 @@ struct State {
     expected_seq: HashMap<(i64, String, i32), i32>,
     produce_error: Option<i16>,
     log_start: HashMap<(String, i32), i64>,
+    created_topics: HashMap<String, CreatedTopic>,
+}
+
+fn new_state(
+    sasl_user: Option<(String, String)>,
+    scram_user: Option<(scram::ScramAlg, String, String)>,
+    oauth_principal: Option<String>,
+) -> State {
+    let mut created_topics = HashMap::new();
+    created_topics.insert(
+        "t".into(),
+        CreatedTopic {
+            num_partitions: 1,
+            configs: HashMap::new(),
+        },
+    );
+    State {
+        log: HashMap::new(),
+        next_offset: HashMap::new(),
+        assignments: HashMap::new(),
+        committed: HashMap::new(),
+        member_seq: 0,
+        sasl_user,
+        scram_user,
+        oauth_principal,
+        next_pid: 1000,
+        last_producer_id: None,
+        expected_seq: HashMap::new(),
+        produce_error: None,
+        log_start: HashMap::new(),
+        created_topics,
+    }
+}
+
+fn metadata_for(host: &str, port: i32, topics: &HashMap<String, CreatedTopic>) -> MetadataResponse {
+    MetadataResponse {
+        throttle_time_ms: 0,
+        brokers: vec![Broker {
+            node_id: 1,
+            host: host.to_string(),
+            port,
+            rack: None,
+        }],
+        cluster_id: Some("mock".into()),
+        controller_id: 1,
+        topics: topics
+            .iter()
+            .map(|(name, spec)| TopicMetadata {
+                error_code: 0,
+                name: Some(name.clone()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: (0..spec.num_partitions)
+                    .map(|i| PartitionMetadata {
+                        error_code: 0,
+                        partition_index: i,
+                        leader_id: 1,
+                        leader_epoch: 0,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                    })
+                    .collect(),
+            })
+            .collect(),
+    }
 }
 
 impl Mock {
@@ -64,21 +142,7 @@ impl Mock {
         let addr = listener.local_addr().unwrap();
         let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(State {
-            log: HashMap::new(),
-            next_offset: HashMap::new(),
-            assignments: HashMap::new(),
-            committed: HashMap::new(),
-            member_seq: 0,
-            sasl_user: creds,
-            scram_user: None,
-            oauth_principal: None,
-            next_pid: 1000,
-            last_producer_id: None,
-            expected_seq: HashMap::new(),
-            produce_error: None,
-            log_start: HashMap::new(),
-        }));
+        let state = Arc::new(Mutex::new(new_state(creds, None, None)));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -103,21 +167,11 @@ impl Mock {
         let addr = listener.local_addr().unwrap();
         let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(State {
-            log: HashMap::new(),
-            next_offset: HashMap::new(),
-            assignments: HashMap::new(),
-            committed: HashMap::new(),
-            member_seq: 0,
-            sasl_user: None,
-            scram_user: Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
-            oauth_principal: None,
-            next_pid: 1000,
-            last_producer_id: None,
-            expected_seq: HashMap::new(),
-            produce_error: None,
-            log_start: HashMap::new(),
-        }));
+        let state = Arc::new(Mutex::new(new_state(
+            None,
+            Some((scram::ScramAlg::Sha256, creds.0, creds.1)),
+            None,
+        )));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -142,21 +196,11 @@ impl Mock {
         let addr = listener.local_addr().unwrap();
         let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(State {
-            log: HashMap::new(),
-            next_offset: HashMap::new(),
-            assignments: HashMap::new(),
-            committed: HashMap::new(),
-            member_seq: 0,
-            sasl_user: None,
-            scram_user: Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
-            oauth_principal: None,
-            next_pid: 1000,
-            last_producer_id: None,
-            expected_seq: HashMap::new(),
-            produce_error: None,
-            log_start: HashMap::new(),
-        }));
+        let state = Arc::new(Mutex::new(new_state(
+            None,
+            Some((scram::ScramAlg::Sha512, creds.0, creds.1)),
+            None,
+        )));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -181,21 +225,7 @@ impl Mock {
         let addr = listener.local_addr().unwrap();
         let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(State {
-            log: HashMap::new(),
-            next_offset: HashMap::new(),
-            assignments: HashMap::new(),
-            committed: HashMap::new(),
-            member_seq: 0,
-            sasl_user: None,
-            scram_user: None,
-            oauth_principal: Some(principal),
-            next_pid: 1000,
-            last_producer_id: None,
-            expected_seq: HashMap::new(),
-            produce_error: None,
-            log_start: HashMap::new(),
-        }));
+        let state = Arc::new(Mutex::new(new_state(None, None, Some(principal))));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -223,21 +253,7 @@ impl Mock {
         let addr = listener.local_addr().unwrap();
         let host = addr.ip().to_string();
         let port = addr.port() as i32;
-        let state = Arc::new(Mutex::new(State {
-            log: HashMap::new(),
-            next_offset: HashMap::new(),
-            assignments: HashMap::new(),
-            committed: HashMap::new(),
-            member_seq: 0,
-            sasl_user: None,
-            scram_user: None,
-            oauth_principal: None,
-            next_pid: 1000,
-            last_producer_id: None,
-            expected_seq: HashMap::new(),
-            produce_error: None,
-            log_start: HashMap::new(),
-        }));
+        let state = Arc::new(Mutex::new(new_state(None, None, None)));
         let st = state.clone();
         tokio::spawn(async move {
             loop {
@@ -362,7 +378,10 @@ fn versions() -> ApiVersionsResponse {
         (SYNC_GROUP, 0, 3),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
+        (CREATE_TOPICS, 0, 4),
+        (DELETE_TOPICS, 0, 3),
         (INIT_PRODUCER_ID, 0, 4),
+        (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
     ];
     ApiVersionsResponse {
@@ -420,35 +439,165 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_api_versions_response(&mut body, header.api_version, &versions())
             }
             METADATA => {
+                let topics = state.lock().unwrap().created_topics.clone();
                 encode_metadata_response(
                     &mut body,
                     header.api_version,
-                    &MetadataResponse {
-                        throttle_time_ms: 0,
-                        brokers: vec![Broker {
-                            node_id: 1,
-                            host: host.clone(),
-                            port,
-                            rack: None,
-                        }],
-                        cluster_id: Some("mock".into()),
-                        controller_id: 1,
-                        topics: vec![TopicMetadata {
-                            error_code: 0,
-                            name: Some("t".into()),
-                            topic_id: [0u8; 16],
-                            is_internal: false,
-                            partitions: vec![PartitionMetadata {
-                                error_code: 0,
-                                partition_index: 0,
-                                leader_id: 1,
-                                leader_epoch: 0,
-                                replica_nodes: vec![1],
-                                isr_nodes: vec![1],
-                            }],
-                        }],
-                    },
+                    &metadata_for(&host, port, &topics),
                 );
+            }
+            CREATE_TOPICS => {
+                let req = decode_create_topics_request(&mut frame, header.api_version).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock().unwrap();
+                for t in req.topics {
+                    if st.created_topics.contains_key(&t.name) {
+                        results.push(TopicResult {
+                            name: t.name,
+                            error_code: 36,
+                            error_message: Some("Topic already exists.".into()),
+                        });
+                        continue;
+                    }
+                    let npart = if t.assignments.is_empty() {
+                        t.num_partitions
+                    } else {
+                        t.assignments.len() as i32
+                    };
+                    let mut error_code = 0i16;
+                    if npart < 1 {
+                        error_code = 37;
+                    } else if t.replication_factor < 1 && t.assignments.is_empty() {
+                        error_code = 38;
+                    }
+                    if error_code == 0 && !req.validate_only {
+                        let mut configs = HashMap::new();
+                        for c in t.configs {
+                            configs.insert(c.name, c.value);
+                        }
+                        st.created_topics.insert(
+                            t.name.clone(),
+                            CreatedTopic {
+                                num_partitions: npart,
+                                configs,
+                            },
+                        );
+                    }
+                    results.push(TopicResult {
+                        name: t.name,
+                        error_code,
+                        error_message: None,
+                    });
+                }
+                encode_create_topics_response(&mut body, header.api_version, &results);
+            }
+            DELETE_TOPICS => {
+                let (names, _timeout) = decode_delete_topics_request(&mut frame).unwrap();
+                let mut results = Vec::new();
+                let mut st = state.lock().unwrap();
+                for name in names {
+                    let error_code = if st.created_topics.remove(&name).is_some() {
+                        0
+                    } else {
+                        3
+                    };
+                    results.push(TopicResult {
+                        name,
+                        error_code,
+                        error_message: None,
+                    });
+                }
+                encode_delete_topics_response(&mut body, header.api_version, &results);
+            }
+            DESCRIBE_CONFIGS => {
+                let (resources, _syn) =
+                    decode_describe_configs_request(&mut frame, header.api_version).unwrap();
+                let st = state.lock().unwrap();
+                let mut results = Vec::new();
+                for r in resources {
+                    if r.resource_type == RESOURCE_TOPIC {
+                        match st.created_topics.get(&r.name) {
+                            None => results.push(DescribeConfigsResult {
+                                error_code: 3,
+                                error_message: Some("Unknown topic.".into()),
+                                resource_type: r.resource_type,
+                                name: r.name,
+                                entries: Vec::new(),
+                            }),
+                            Some(spec) => {
+                                let mut entries = Vec::new();
+                                let mut seen = std::collections::HashSet::new();
+                                let mut push = |name: &str, value: Option<String>, source: i8| {
+                                    if let Some(keys) = &r.keys {
+                                        if !keys.iter().any(|k| k == name) {
+                                            return;
+                                        }
+                                    }
+                                    if seen.insert(name.to_string()) {
+                                        entries.push(ConfigEntry {
+                                            name: name.to_string(),
+                                            value,
+                                            read_only: false,
+                                            source,
+                                            is_sensitive: false,
+                                            synonyms: Vec::new(),
+                                        });
+                                    }
+                                };
+                                push(
+                                    "cleanup.policy",
+                                    spec.configs
+                                        .get("cleanup.policy")
+                                        .cloned()
+                                        .flatten()
+                                        .or_else(|| Some("delete".into())),
+                                    if spec.configs.contains_key("cleanup.policy") {
+                                        CONFIG_SOURCE_DYNAMIC_TOPIC
+                                    } else {
+                                        CONFIG_SOURCE_DEFAULT
+                                    },
+                                );
+                                for (k, v) in &spec.configs {
+                                    if k == "cleanup.policy" {
+                                        continue;
+                                    }
+                                    push(k, v.clone(), CONFIG_SOURCE_DYNAMIC_TOPIC);
+                                }
+                                results.push(DescribeConfigsResult {
+                                    error_code: 0,
+                                    error_message: None,
+                                    resource_type: r.resource_type,
+                                    name: r.name,
+                                    entries,
+                                });
+                            }
+                        }
+                    } else if r.resource_type == RESOURCE_BROKER {
+                        results.push(DescribeConfigsResult {
+                            error_code: 0,
+                            error_message: None,
+                            resource_type: r.resource_type,
+                            name: r.name,
+                            entries: vec![ConfigEntry {
+                                name: "log.retention.hours".into(),
+                                value: Some("168".into()),
+                                read_only: true,
+                                source: CONFIG_SOURCE_DEFAULT,
+                                is_sensitive: false,
+                                synonyms: Vec::new(),
+                            }],
+                        });
+                    } else {
+                        results.push(DescribeConfigsResult {
+                            error_code: 3,
+                            error_message: Some("Unknown resource.".into()),
+                            resource_type: r.resource_type,
+                            name: r.name,
+                            entries: Vec::new(),
+                        });
+                    }
+                }
+                encode_describe_configs_response(&mut body, header.api_version, &results);
             }
             INIT_PRODUCER_ID => {
                 let mut st = state.lock().unwrap();

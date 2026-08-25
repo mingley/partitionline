@@ -34,7 +34,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL OIDC (token endpoint) | no | yes | **not started** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | no | yes | **not started** |
-| Admin APIs (CreateTopics, DeleteTopics, ACLs, configs, …) | no | yes | **not started** |
+| Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
+| Admin: ACLs, AlterConfigs, ListOffsets, … | no | yes | **not started** |
 | KIP-848 next-gen consumer groups | no | yes (newer releases) | **not started** |
 | Fetch from follower / rack awareness | no | yes | **not started** |
 | Share groups | no | yes | **not started** |
@@ -44,8 +45,10 @@ TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
 listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C
 **were measured** on SASL_PLAINTEXT `localhost:9095` (admin `localhost:9096`).
 OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
-(admin `localhost:9098`). See `docs/benchmark.md`. Mock produce over OAUTH is
-`sasl_oauthbearer_then_produce` in `tests/full_surface.rs`.
+(admin `localhost:9098`). Fetch vs C **was measured** on PLAINTEXT `localhost:9092`
+(`examples/bench_fetch.rs` vs `rdkafka_performance -C -p 0..5`). See
+`docs/benchmark.md`. Mock produce over OAUTH is `sasl_oauthbearer_then_produce`
+in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Notes on the C-blocked rows
 
@@ -57,10 +60,10 @@ OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
 
 ## Next implementation order
 
-1. Admin: CreateTopics / DeleteTopics / DescribeConfigs as a first slice.
-2. Transactions, KIP-848, OIDC token endpoint after the data-plane rows above.
+1. Transactions / EOS, KIP-848, OIDC token endpoint.
+2. Remaining admin (ACLs, AlterConfigs) and fetch-from-follower (needs a replica).
 
 ## What “done” on this list does *not* mean
 
-It does not mean a drop-in `rd_kafka_*` C API, rust-rdkafka types, or beating
-C on fetch. Those are separate.
+It does not mean a drop-in `rd_kafka_*` C API or rust-rdkafka types. Fetch vs C
+is measured in `docs/benchmark.md`; that is not an e2e latency claim.
