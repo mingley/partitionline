@@ -46,6 +46,7 @@ pub struct ShareRecord {
 
 pub struct ShareGroup {
     coord: BrokerConn,
+    cfg: ConsumerConfig,
     group_id: String,
     member_id: String,
     member_epoch: i32,
@@ -107,6 +108,7 @@ impl ShareGroup {
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id,
             member_epoch: 0,
@@ -327,10 +329,9 @@ impl ShareGroup {
         let hb_err = self.hb_err.clone();
         let hb_epoch = self.hb_epoch.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-share-hb", Duration::from_secs(10)).await
-            else {
+            let Ok(mut conn) = open_coord(&cfg, &addr).await else {
                 return;
             };
             let mut tick = tokio::time::interval(Duration::from_millis(150));

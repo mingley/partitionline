@@ -95,6 +95,7 @@ use partitionline::protocol::txn::{
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::Notify;
@@ -552,6 +553,19 @@ impl Mock {
             .get(group_id)
             .map(|g| g.hb_total)
             .unwrap_or(0)
+    }
+}
+
+pub async fn wait_pred(what: &str, mut pred: impl FnMut() -> bool) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        if pred() {
+            return;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            panic!("{what} not observed in 2s");
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }
 

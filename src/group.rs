@@ -112,6 +112,7 @@ pub fn assign_sticky(
 pub struct ConsumerGroup {
     consumer: Consumer,
     coord: BrokerConn,
+    cfg: ConsumerConfig,
     group_id: String,
     member_id: String,
     generation_id: i32,
@@ -176,6 +177,7 @@ impl ConsumerGroup {
         let mut g = Self {
             consumer,
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
             generation_id: 0,
@@ -225,6 +227,7 @@ impl ConsumerGroup {
         let mut g = Self {
             consumer,
             coord,
+            cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
             generation_id: 0,
@@ -499,10 +502,9 @@ impl ConsumerGroup {
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-hb", Duration::from_secs(10)).await
-            else {
+            let Ok(mut conn) = open_coord(&cfg, &addr).await else {
                 return;
             };
             let mut tick = tokio::time::interval(Duration::from_millis(150));
@@ -558,10 +560,9 @@ impl ConsumerGroup {
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
         let addr = self.coord.addr().to_string();
+        let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
-            let Ok(mut conn) =
-                BrokerConn::connect(&addr, "partitionline-hb", Duration::from_secs(10)).await
-            else {
+            let Ok(mut conn) = open_coord(&cfg, &addr).await else {
                 return;
             };
             let mut tick = tokio::time::interval(Duration::from_millis(150));
