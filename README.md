@@ -14,7 +14,8 @@ partitionline = { git = "https://github.com/mingley/partitionline" }
 lz4, SASL PLAIN / SCRAM-SHA-256 / SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT),
 TLS (`rustls`, no OpenSSL), idempotent and transactional produce, admin
 CreateTopics / DeleteTopics / CreatePartitions / DescribeConfigs /
-IncrementalAlterConfigs / ACLs, SASL OIDC client_credentials token URL.
+IncrementalAlterConfigs / ACLs, SASL OIDC client_credentials token URL,
+OffsetForLeaderEpoch fetch fencing.
 Talks Kafka 3.x / 4.x. Missing: KIP-848, zstd, Kerberos. Full list:
 [docs/gaps.md](docs/gaps.md).
 

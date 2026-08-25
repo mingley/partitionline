@@ -18,7 +18,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
 | Produce (acks, linger, batches, offsets) | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
-| Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry) | yes | **done** |
+| Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry; Fetch sends Metadata `leader_epoch`) | yes | **done** |
+| OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; Fetch isolation 0 or 1) | yes | **done** |
 | Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
@@ -61,7 +62,7 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. KIP-848, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords), OffsetForLeaderEpoch fencing.
+1. KIP-848, fetch-from-follower, remaining admin (legacy AlterConfigs, DeleteRecords).
 
 ## What “done” on this list does *not* mean
 

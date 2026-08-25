@@ -99,6 +99,55 @@ async fn produce_fetch_follow_metadata_leader() {
 }
 
 #[tokio::test]
+async fn fetch_recovers_from_fenced_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"epoch"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let bumped = mock.bump_leader_epoch("t", md.partition);
+    assert!(bumped > 0);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"epoch"[..]));
+    let ofle = mock
+        .last_offset_for_leader_epoch()
+        .expect("fenced fetch must speak OffsetForLeaderEpoch");
+    assert_eq!(ofle.0, "t");
+    assert_eq!(ofle.1, md.partition);
+}
+
+#[tokio::test]
+async fn fetch_unfenced_does_not_speak_offset_for_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"plain"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"plain"[..]));
+    assert!(
+        mock.last_offset_for_leader_epoch().is_none(),
+        "unfenced fetch must not send OffsetForLeaderEpoch"
+    );
+}
+
+#[tokio::test]
 async fn produce_retries_retriable_then_succeeds() {
     let mock = common::Mock::start().await;
     mock.set_produce_error_times(error::LEADER_NOT_AVAILABLE, 1);

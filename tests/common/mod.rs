@@ -44,8 +44,11 @@ use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS,
     CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FETCH,
     FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SYNC_GROUP, TXN_OFFSET_COMMIT,
+};
+use partitionline::protocol::epoch::{
+    decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
@@ -110,6 +113,8 @@ struct State {
     created_topics: HashMap<String, CreatedTopic>,
     brokers: Vec<Broker>,
     partition_leaders: HashMap<(String, i32), i32>,
+    partition_epochs: HashMap<(String, i32), i32>,
+    last_epoch_req: Option<(String, i32, i32)>,
     accepted_produce: Vec<i32>,
     accepted_fetch: Vec<i32>,
     groups: HashMap<String, GroupReg>,
@@ -161,6 +166,8 @@ fn new_state(
         created_topics,
         brokers: Vec::new(),
         partition_leaders: HashMap::new(),
+        partition_epochs: HashMap::new(),
+        last_epoch_req: None,
         accepted_produce: Vec::new(),
         accepted_fetch: Vec::new(),
         groups: HashMap::new(),
@@ -213,7 +220,11 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
                             error_code: 0,
                             partition_index: i,
                             leader_id,
-                            leader_epoch: 0,
+                            leader_epoch: st
+                                .partition_epochs
+                                .get(&(name.clone(), i))
+                                .copied()
+                                .unwrap_or(0),
                             replica_nodes: replica_nodes.clone(),
                             isr_nodes: replica_nodes.clone(),
                         }
@@ -459,6 +470,20 @@ impl Mock {
         self.state.lock().last_produce_txn_id.clone()
     }
 
+    pub fn bump_leader_epoch(&self, topic: &str, partition: i32) -> i32 {
+        let mut st = self.state.lock();
+        let slot = st
+            .partition_epochs
+            .entry((topic.to_string(), partition))
+            .or_insert(0);
+        *slot += 1;
+        *slot
+    }
+
+    pub fn last_offset_for_leader_epoch(&self) -> Option<(String, i32, i32)> {
+        self.state.lock().last_epoch_req.clone()
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -542,6 +567,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
+        (OFFSET_FOR_LEADER_EPOCH, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
     ];
@@ -1020,6 +1046,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             });
                             continue;
                         }
+                        let current_epoch = st
+                            .partition_epochs
+                            .get(&(t.topic.clone(), p.partition))
+                            .copied()
+                            .unwrap_or(0);
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch < current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::FENCED_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
+                        if p.current_leader_epoch != -1 && p.current_leader_epoch > current_epoch {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: error::UNKNOWN_LEADER_EPOCH,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
                         st.accepted_fetch.push(node_id);
                         let key = (t.topic.clone(), p.partition);
                         let recs = st
@@ -1092,6 +1147,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     });
                 }
                 encode_fetch_response(&mut body, &topics).unwrap();
+            }
+            OFFSET_FOR_LEADER_EPOCH => {
+                let (topic, partition, _current, leader_epoch) =
+                    decode_offset_for_leader_epoch_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.last_epoch_req = Some((topic.clone(), partition, leader_epoch));
+                let epoch = st
+                    .partition_epochs
+                    .get(&(topic.clone(), partition))
+                    .copied()
+                    .unwrap_or(0);
+                let end = *st
+                    .next_offset
+                    .get(&(topic.clone(), partition))
+                    .unwrap_or(&0);
+                encode_offset_for_leader_epoch_response(
+                    &mut body,
+                    header.api_version,
+                    &topic,
+                    partition,
+                    0,
+                    epoch,
+                    end,
+                )
+                .unwrap();
             }
             SASL_HANDSHAKE => {
                 let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
