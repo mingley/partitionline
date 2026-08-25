@@ -19,6 +19,37 @@ use partitionline::{
 use std::time::Duration;
 
 #[tokio::test]
+async fn try_send_flush_writes_record() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let rec = ProduceRecord::to("t").value(&b"try-send"[..]);
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        match producer.try_send(rec.clone()) {
+            Ok(()) => break,
+            Err(Error::QueueFull) => {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "try_send never left QueueFull"
+                );
+                tokio::task::yield_now().await;
+            }
+            Err(e) => panic!("try_send: {e}"),
+        }
+    }
+    producer.flush().await.unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"try-send"[..]));
+}
+
+#[tokio::test]
 async fn idempotent_produce_gets_pid_and_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
@@ -1122,6 +1153,20 @@ async fn consumer_skips_dead_bootstrap() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"boot-c"[..]));
+}
+
+#[tokio::test]
+async fn admin_skips_dead_bootstrap() {
+    let mock = common::Mock::start().await;
+    let dead = common::closed_tcp_addr().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([dead, mock.addr.clone()]))
+        .await
+        .unwrap();
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert!(
+        !cluster.brokers.is_empty(),
+        "admin RPC after bootstrap failover must return brokers, got {cluster:?}"
+    );
 }
 
 #[tokio::test]
