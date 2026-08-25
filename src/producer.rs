@@ -157,6 +157,12 @@ struct WorkerHandle {
     ctrl: mpsc::Sender<Ctrl>,
 }
 
+struct FastRoute {
+    topic: Arc<str>,
+    np: i32,
+    handles: Vec<WorkerHandle>,
+}
+
 struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
@@ -176,6 +182,7 @@ struct Shared {
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
+    fast: parking_lot::Mutex<Option<FastRoute>>,
 }
 
 #[derive(Clone)]
@@ -293,6 +300,7 @@ impl Producer {
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
+            fast: parking_lot::Mutex::new(None),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -430,12 +438,73 @@ impl Producer {
     /// leader are ready. Call again; `send` waits instead. Records are never
     /// queued without a partition, so each partition is pinned to one TCP
     /// connection on its current leader.
+    fn fast_route(&self, rec: &ProduceRecord) -> Option<(i32, WorkerHandle)> {
+        let fast = self.inner.shared.fast.lock();
+        let f = fast.as_ref()?;
+        if f.topic != rec.topic || f.handles.is_empty() || f.np <= 0 {
+            return None;
+        }
+        let p = match rec.partition {
+            Some(p) => p,
+            None => pick_part(rec, f.np, &self.inner.shared.rr),
+        };
+        if p < 0 || p >= f.np {
+            return None;
+        }
+        let i = usize::try_from(p).ok()?;
+        let w = f.handles.get(i)?.clone();
+        Some((p, w))
+    }
+
+    fn remember_fast(&self, rec: &ProduceRecord) {
+        let Some(np) = self
+            .inner
+            .shared
+            .cluster
+            .lock()
+            .partition_count(rec.topic.as_ref())
+        else {
+            return;
+        };
+        if np <= 0 {
+            return;
+        }
+        let n = usize::try_from(np).unwrap_or(0);
+        let mut handles = Vec::with_capacity(n);
+        for i in 0..np {
+            let probe = ProduceRecord {
+                topic: rec.topic.clone(),
+                partition: Some(i),
+                key: None,
+                value: None,
+                timestamp: None,
+                headers: Vec::new(),
+            };
+            let Some(w) = self.worker_for(&probe) else {
+                return;
+            };
+            handles.push(w);
+        }
+        *self.inner.shared.fast.lock() = Some(FastRoute {
+            topic: rec.topic.clone(),
+            np,
+            handles,
+        });
+    }
+
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         let mut rec = rec;
-        let _ = self.apply_cached_partition(&mut rec);
-        let Some(w) = self.worker_for(&rec) else {
-            self.nudge_topic(&rec);
-            return Err(Error::QueueFull);
+        let w = if let Some((p, w)) = self.fast_route(&rec) {
+            rec.partition = Some(p);
+            w
+        } else {
+            let _ = self.apply_cached_partition(&mut rec);
+            let Some(w) = self.worker_for(&rec) else {
+                self.nudge_topic(&rec);
+                return Err(Error::QueueFull);
+            };
+            self.remember_fast(&rec);
+            w
         };
         let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
         w.data
