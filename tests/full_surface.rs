@@ -273,7 +273,6 @@ async fn offset_for_leader_epoch_follows_partition_leader() {
         .send(ProduceRecord::to("t").value(&b"ofle-lead"[..]))
         .await
         .unwrap();
-    producer.close().await.unwrap();
 
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
@@ -292,10 +291,15 @@ async fn offset_for_leader_epoch_follows_partition_leader() {
         "unfenced follower fetch must not speak OffsetForLeaderEpoch"
     );
 
+    producer
+        .send(ProduceRecord::to("t").value(&b"ofle-lead-2"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
     let bumped = mock.bump_leader_epoch("t", md.partition);
     assert!(bumped > 0);
     let recs = consumer.fetch().await.unwrap();
-    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle-lead"[..]));
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle-lead-2"[..]));
     let ofle = mock
         .last_offset_for_leader_epoch()
         .expect("fenced follower fetch must speak OffsetForLeaderEpoch");
