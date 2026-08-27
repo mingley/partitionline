@@ -175,6 +175,9 @@ struct State {
     txn_coord_node: i32,
     find_coordinator_key_types: Vec<i8>,
     last_init_producer_id_node: Option<i32>,
+    init_producer_id_nodes: Vec<i32>,
+    init_producer_id_not_coordinator: u32,
+    stale_txn_finds: u32,
     last_add_partitions_node: Option<i32>,
     last_add_offsets_node: Option<i32>,
     last_end_txn_node: Option<i32>,
@@ -275,6 +278,9 @@ fn new_state(
         txn_coord_node: 1,
         find_coordinator_key_types: Vec::new(),
         last_init_producer_id_node: None,
+        init_producer_id_nodes: Vec::new(),
+        init_producer_id_not_coordinator: 0,
+        stale_txn_finds: 0,
         last_add_partitions_node: None,
         last_add_offsets_node: None,
         last_end_txn_node: None,
@@ -746,6 +752,10 @@ impl Mock {
         self.state.lock().txn_coord_node = node_id;
     }
 
+    pub fn stale_txn_find_once(&self) {
+        self.state.lock().stale_txn_finds = 1;
+    }
+
     pub fn move_txn_coordinator(&self) {
         let mut st = self.state.lock();
         if let Some(other) = st
@@ -764,6 +774,14 @@ impl Mock {
 
     pub fn last_init_producer_id_node(&self) -> Option<i32> {
         self.state.lock().last_init_producer_id_node
+    }
+
+    pub fn init_producer_id_nodes(&self) -> Vec<i32> {
+        self.state.lock().init_producer_id_nodes.clone()
+    }
+
+    pub fn init_producer_id_not_coordinator(&self) -> u32 {
+        self.state.lock().init_producer_id_not_coordinator
     }
 
     pub fn last_add_partitions_node(&self) -> Option<i32> {
@@ -1484,7 +1502,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let _ = buf::get_i16(&mut frame).unwrap();
                 }
                 let mut st = state.lock();
+                st.init_producer_id_nodes.push(node_id);
                 if tid.is_some() && st.txn_coord_node != node_id {
+                    st.init_producer_id_not_coordinator =
+                        st.init_producer_id_not_coordinator.saturating_add(1);
                     encode_init_producer_id_response(&mut body, header.api_version, 16, -1, -1)
                         .unwrap();
                 } else {
@@ -1949,7 +1970,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.find_coordinator_key_types.push(key_type);
                 let coord = if key_type == COORDINATOR_TRANSACTION {
-                    st.txn_coord_node
+                    if st.stale_txn_finds > 0 {
+                        st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
+                        st.brokers
+                            .iter()
+                            .map(|b| b.node_id)
+                            .find(|id| *id != st.txn_coord_node)
+                            .unwrap_or(st.txn_coord_node)
+                    } else {
+                        st.txn_coord_node
+                    }
                 } else {
                     st.coord_node
                 };
