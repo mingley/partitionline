@@ -135,6 +135,8 @@ struct State {
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
+    last_epoch_node: Option<i32>,
+    epoch_not_leader: u32,
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
     list_offsets_not_leader: u32,
@@ -249,6 +251,8 @@ fn new_state(
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
+        last_epoch_node: None,
+        epoch_not_leader: 0,
         last_list_offsets: None,
         last_list_offsets_node: None,
         list_offsets_not_leader: 0,
@@ -665,6 +669,14 @@ impl Mock {
 
     pub fn last_offset_for_leader_epoch(&self) -> Option<(String, i32, i32)> {
         self.state.lock().last_epoch_req.clone()
+    }
+
+    pub fn last_offset_for_leader_epoch_node(&self) -> Option<i32> {
+        self.state.lock().last_epoch_node
+    }
+
+    pub fn offset_for_leader_epoch_not_leader(&self) -> u32 {
+        self.state.lock().epoch_not_leader
     }
 
     pub fn last_list_offsets(&self) -> Option<(String, i32, i32)> {
@@ -1948,25 +1960,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_fetch_response(&mut body, &topics).unwrap();
             }
             OFFSET_FOR_LEADER_EPOCH => {
-                let (topic, partition, _current, leader_epoch) =
+                let (topic, partition, current, leader_epoch) =
                     decode_offset_for_leader_epoch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_epoch_req = Some((topic.clone(), partition, leader_epoch));
-                let epoch = st
-                    .partition_epochs
-                    .get(&(topic.clone(), partition))
-                    .copied()
-                    .unwrap_or(0);
-                let end = *st
-                    .next_offset
-                    .get(&(topic.clone(), partition))
-                    .unwrap_or(&0);
+                let key = (topic.clone(), partition);
+                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                let epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+                let end = *st.next_offset.get(&key).unwrap_or(&0);
+                let error_code = if leader != node_id {
+                    st.epoch_not_leader = st.epoch_not_leader.saturating_add(1);
+                    error::NOT_LEADER_OR_FOLLOWER
+                } else if current != -1 && current < epoch {
+                    error::FENCED_LEADER_EPOCH
+                } else if current != -1 && current > epoch {
+                    error::UNKNOWN_LEADER_EPOCH
+                } else {
+                    st.last_epoch_node = Some(node_id);
+                    0
+                };
                 encode_offset_for_leader_epoch_response(
                     &mut body,
                     header.api_version,
                     &topic,
                     partition,
-                    0,
+                    error_code,
                     epoch,
                     end,
                 )

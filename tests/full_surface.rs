@@ -264,6 +264,61 @@ async fn fetch_from_follower_when_rack_matches() {
 }
 
 #[tokio::test]
+async fn offset_for_leader_epoch_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"ofle-lead"[..]))
+        .await
+        .unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.rack = Some("r1".into());
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle-lead"[..]));
+    let fetched = mock.fetch_nodes();
+    assert!(
+        fetched.contains(&1),
+        "racked consumer must fetch follower node 1 before the epoch bump, got {fetched:?}"
+    );
+    assert!(
+        mock.last_offset_for_leader_epoch().is_none(),
+        "unfenced follower fetch must not speak OffsetForLeaderEpoch"
+    );
+
+    producer
+        .send(ProduceRecord::to("t").value(&b"ofle-lead-2"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let bumped = mock.bump_leader_epoch("t", md.partition);
+    assert!(bumped > 0);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle-lead-2"[..]));
+    let ofle = mock
+        .last_offset_for_leader_epoch()
+        .expect("fenced follower fetch must speak OffsetForLeaderEpoch");
+    assert_eq!(ofle.0, "t");
+    assert_eq!(ofle.1, md.partition);
+    assert_eq!(ofle.2, bumped);
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_node(),
+        Some(2),
+        "OffsetForLeaderEpoch must land on the partition leader, not the fenced follower"
+    );
+    assert_eq!(
+        mock.offset_for_leader_epoch_not_leader(),
+        0,
+        "Metadata refresh must send OffsetForLeaderEpoch to the leader without a follower 6"
+    );
+}
+
+#[tokio::test]
 async fn fetch_without_rack_stays_on_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
