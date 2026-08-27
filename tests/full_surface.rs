@@ -2529,6 +2529,54 @@ async fn incremental_alter_configs_follows_controller() {
 }
 
 #[tokio::test]
+async fn create_acls_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_acls(&[AclBinding {
+            resource_type: ACL_RESOURCE_TOPIC,
+            resource_name: "acl2".into(),
+            principal: "User:alice".into(),
+            host: "*".into(),
+            operation: ACL_OPERATION_ALL,
+            permission: ACL_PERMISSION_ALLOW,
+        }])
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0]);
+    assert_eq!(
+        mock.last_create_acls_node(),
+        Some(2),
+        "CreateAcls must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .create_acls(&[AclBinding {
+            resource_type: ACL_RESOURCE_TOPIC,
+            resource_name: "acl1".into(),
+            principal: "User:bob".into(),
+            host: "*".into(),
+            operation: ACL_OPERATION_ALL,
+            permission: ACL_PERMISSION_ALLOW,
+        }])
+        .await
+        .unwrap();
+    assert_eq!(again, vec![0]);
+    assert_eq!(
+        mock.create_acls_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_create_acls_node(),
+        Some(1),
+        "CreateAcls must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

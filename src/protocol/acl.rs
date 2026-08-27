@@ -193,6 +193,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn create_acls_not_controller_is_not_at_byte_four() {
+        let mut buf = BytesMut::new();
+        encode_create_acls_response(&mut buf, &[crate::error::NOT_CONTROLLER]).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "throttle + creation-array length must not look like error 41"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_acls_response(&mut cur).unwrap(),
+            vec![crate::error::NOT_CONTROLLER]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateAcls v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
     fn create_describe_acls_roundtrip() {
         let acl = AclBinding {
             resource_type: ACL_RESOURCE_TOPIC,

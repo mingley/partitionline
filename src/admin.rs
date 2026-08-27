@@ -593,16 +593,52 @@ impl Admin {
     pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
         let version = self.create_acls_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                CREATE_ACLS,
-                version,
-                |buf| encode_create_acls_request(buf, acls),
-                timeout,
-            )
-            .await?;
-        decode_create_acls_response(&mut body.clone())
+        let deadline = Instant::now() + timeout;
+        let acls = acls.to_vec();
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing create_acls conn"))?;
+                conn.roundtrip(
+                    CREATE_ACLS,
+                    version,
+                    |buf| encode_create_acls_request(buf, &acls),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_create_acls_response(&mut body.clone())?;
+            if results.iter().any(|&e| e == error::NOT_CONTROLLER) {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(results);
+        }
     }
 
     pub async fn describe_acls(&mut self, resource_type: i8) -> Result<Vec<AclBinding>> {
