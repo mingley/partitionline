@@ -761,7 +761,11 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
 }
 
 async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
-    if let Some(n) = shared.cluster.lock().partition_count(topic) {
+    // Drop the parking_lot guard before `nudge_leaders`. An `if let` on
+    // `cluster.lock().partition_count(...)` keeps the guard alive through the
+    // body (edition 2021 temporary scope) and deadlocks the non-reentrant mutex.
+    let cached = shared.cluster.lock().partition_count(topic);
+    if let Some(n) = cached {
         nudge_leaders(shared, topic);
         return Ok(n);
     }

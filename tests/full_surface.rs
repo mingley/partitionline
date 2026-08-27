@@ -482,15 +482,24 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     pcfg.transactional_id = Some("tx-batch".into());
     let producer = Producer::new(pcfg).await.unwrap();
     producer.begin_transaction().await.unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
     for p in 0..3 {
-        producer
-            .send(
-                ProduceRecord::to("txn3")
-                    .partition(p)
-                    .value(format!("txn-{p}").into_bytes()),
-            )
-            .await
-            .unwrap();
+        let rec = ProduceRecord::to("txn3")
+            .partition(p)
+            .value(format!("txn-{p}").into_bytes());
+        loop {
+            match producer.try_send(rec.clone()) {
+                Ok(()) => break,
+                Err(Error::QueueFull) => {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "try_send never left QueueFull"
+                    );
+                    tokio::task::yield_now().await;
+                }
+                Err(e) => panic!("try_send: {e}"),
+            }
+        }
     }
     producer.flush().await.unwrap();
     assert_eq!(
