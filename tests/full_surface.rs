@@ -2840,6 +2840,53 @@ async fn alter_user_scram_credentials_follows_controller() {
 }
 
 #[tokio::test]
+async fn describe_user_scram_credentials_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    mock.set_scram_fixture("alice", SCRAM_SHA_256, 4096);
+    mock.set_scram_fixture("bob", SCRAM_SHA_512, 4096);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .describe_user_scram_credentials(&["alice"])
+        .await
+        .unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].user, "alice");
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].credential_infos.len(), 1);
+    assert_eq!(first[0].credential_infos[0].mechanism, SCRAM_SHA_256);
+    assert_eq!(first[0].credential_infos[0].iterations, 4096);
+    assert_eq!(
+        mock.last_describe_user_scram_node(),
+        Some(2),
+        "DescribeUserScramCredentials must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .describe_user_scram_credentials(&["alice", "bob"])
+        .await
+        .unwrap();
+    assert_eq!(again.len(), 2);
+    assert_eq!(again[0].user, "alice");
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(again[0].credential_infos[0].iterations, 4096);
+    assert_eq!(again[1].user, "bob");
+    assert_eq!(again[1].credential_infos[0].mechanism, SCRAM_SHA_512);
+    assert_eq!(
+        mock.describe_user_scram_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_describe_user_scram_node(),
+        Some(1),
+        "DescribeUserScramCredentials must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
 async fn alter_client_quotas_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

@@ -34,21 +34,23 @@ use partitionline::protocol::admin::{
     decode_alter_user_scram_credentials_request, decode_create_partitions_request,
     decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
     decode_describe_cluster_request, decode_describe_configs_request,
-    decode_describe_transactions_request, decode_incremental_alter_configs_request,
-    decode_list_partition_reassignments_request, decode_list_transactions_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_records_response, encode_delete_topics_response,
+    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
+    decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
+    decode_list_transactions_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
-    encode_describe_transactions_response, encode_incremental_alter_configs_response,
-    encode_list_partition_reassignments_response, encode_list_transactions_response,
-    encode_update_features_response, AllocateProducerIdsResponse,
-    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
-    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, OngoingPartitionReassignment,
-    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult,
+    encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
+    encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
+    encode_list_transactions_response, encode_update_features_response,
+    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
+    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClusterDescription, ConfigEntry,
+    DescribeConfigsResult, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, ListPartitionReassignmentsResponse,
+    ListTransactionsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
+    ReassignmentPartitionResult, ReassignmentTopicResult, ScramCredentialInfo, TopicResult,
     TransactionListing, TransactionState, UpdatableFeatureResult, UpdateFeaturesResponse,
     ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
     RESOURCE_BROKER, RESOURCE_TOPIC,
@@ -63,11 +65,12 @@ use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_TRANSACTIONS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UPDATE_FEATURES,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -182,6 +185,8 @@ struct State {
     features: HashMap<String, i16>,
     last_alter_user_scram_node: Option<i32>,
     alter_user_scram_not_controller: u32,
+    last_describe_user_scram_node: Option<i32>,
+    describe_user_scram_not_controller: u32,
     last_scram_upsert: Option<(String, i8, i32)>,
     last_scram_delete: Option<(String, i8)>,
     scram_users: HashMap<(String, i8), i32>,
@@ -343,6 +348,8 @@ fn new_state(
         features: HashMap::new(),
         last_alter_user_scram_node: None,
         alter_user_scram_not_controller: 0,
+        last_describe_user_scram_node: None,
+        describe_user_scram_not_controller: 0,
         last_scram_upsert: None,
         last_scram_delete: None,
         scram_users: HashMap::new(),
@@ -895,6 +902,22 @@ impl Mock {
         self.state.lock().alter_user_scram_not_controller
     }
 
+    pub fn last_describe_user_scram_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_user_scram_node
+    }
+
+    pub fn describe_user_scram_not_controller(&self) -> u32 {
+        self.state.lock().describe_user_scram_not_controller
+    }
+
+    /// Fixture user/mechanism/iterations only. Not a credential store.
+    pub fn set_scram_fixture(&self, name: &str, mechanism: i8, iterations: i32) {
+        let mut st = self.state.lock();
+        let _ = st
+            .scram_users
+            .insert((name.to_string(), mechanism), iterations);
+    }
+
     pub fn last_scram_upsert(&self) -> Option<(String, i8, i32)> {
         self.state.lock().last_scram_upsert.clone()
     }
@@ -1363,6 +1386,7 @@ fn versions() -> ApiVersionsResponse {
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
         (UPDATE_FEATURES, 0, 0),
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
+        (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
@@ -2111,6 +2135,66 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         });
                     }
                     encode_alter_user_scram_credentials_response(&mut body, &results).unwrap();
+                }
+            }
+            DESCRIBE_USER_SCRAM_CREDENTIALS => {
+                let users = decode_describe_user_scram_credentials_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.describe_user_scram_not_controller =
+                        st.describe_user_scram_not_controller.saturating_add(1);
+                    // 41 only. Do not disclose fixture credential metadata
+                    // on the wrong node.
+                    encode_describe_user_scram_credentials_response(
+                        &mut body,
+                        &DescribeUserScramCredentialsResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            results: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_describe_user_scram_node = Some(node_id);
+                    // Fixture users only. Name/mechanism/iterations; no
+                    // salt, no password, nothing logged.
+                    let mut by_user: std::collections::BTreeMap<String, Vec<ScramCredentialInfo>> =
+                        std::collections::BTreeMap::new();
+                    for ((name, mechanism), iterations) in &st.scram_users {
+                        by_user
+                            .entry(name.clone())
+                            .or_default()
+                            .push(ScramCredentialInfo {
+                                mechanism: *mechanism,
+                                iterations: *iterations,
+                            });
+                    }
+                    let names: Vec<String> = match users {
+                        None => by_user.keys().cloned().collect(),
+                        Some(v) if v.is_empty() => by_user.keys().cloned().collect(),
+                        Some(v) => v,
+                    };
+                    let results = names
+                        .into_iter()
+                        .map(|user| {
+                            let credential_infos = by_user.remove(&user).unwrap_or_default();
+                            DescribeUserScramCredentialsResult {
+                                user,
+                                error_code: 0,
+                                error_message: None,
+                                credential_infos,
+                            }
+                        })
+                        .collect();
+                    encode_describe_user_scram_credentials_response(
+                        &mut body,
+                        &DescribeUserScramCredentialsResponse {
+                            error_code: 0,
+                            error_message: None,
+                            results,
+                        },
+                    )
+                    .unwrap();
                 }
             }
             ALTER_CLIENT_QUOTAS => {

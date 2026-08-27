@@ -7,8 +7,9 @@
 //! idempotent and transactional produce, ListOffsets/seek, and admin
 //! (topics, partitions, configs, ACLs, DeleteRecords, OffsetDelete,
 //! AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures,
-//! AlterUserScramCredentials, AlterClientQuotas, AllocateProducerIds,
-//! DescribeTransactions, ListTransactions, DescribeCluster).
+//! AlterUserScramCredentials, DescribeUserScramCredentials,
+//! AlterClientQuotas, AllocateProducerIds, DescribeTransactions,
+//! ListTransactions, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -36,11 +37,12 @@ pub mod share;
 pub use admin::{
     AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaOp, ClusterDescription, ConfigEntry,
-    ConfigResource, FeatureUpdate, FeatureUpdateResult, NewTopic, OffsetDeleteResult,
-    OngoingReassignment, PartitionReassignment, ProducerIdBlock, ReassignmentResult,
-    TransactionListing, TransactionState, TransactionTopic, UserScramCredentialDeletion,
-    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC, SCRAM_SHA_256, SCRAM_SHA_512,
+    ConfigResource, DescribeUserScramCredentialsResult, FeatureUpdate, FeatureUpdateResult,
+    NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    ReassignmentResult, ScramCredentialInfo, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER,
+    CONFIG_RESOURCE_TOPIC, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
