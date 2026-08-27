@@ -6,7 +6,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
+    ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE,
     SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
 };
@@ -36,6 +36,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | LIST_PARTITION_REASSIGNMENTS
         | UPDATE_FEATURES
         | ALTER_USER_SCRAM_CREDENTIALS => 2,
+        // AlterClientQuotas is classic at v0; flexible from v1
+        // (Apache JSON flexibleVersions: "1+", kafka-protocol 0.18.0).
+        ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
@@ -53,6 +56,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | LIST_PARTITION_REASSIGNMENTS
         | UPDATE_FEATURES
         | ALTER_USER_SCRAM_CREDENTIALS => 1,
+        ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
@@ -162,6 +166,16 @@ mod tests {
     fn alter_user_scram_credentials_v0_is_flexible() {
         assert_eq!(request_header_version(ALTER_USER_SCRAM_CREDENTIALS, 0), 2);
         assert_eq!(response_header_version(ALTER_USER_SCRAM_CREDENTIALS, 0), 1);
+    }
+
+    #[test]
+    fn alter_client_quotas_v1_is_flexible_v0_is_not() {
+        // Official JSON: validVersions 0-1, flexibleVersions 1+.
+        // v0 stays classic (header 1/0). This crate speaks v1.
+        assert_eq!(request_header_version(ALTER_CLIENT_QUOTAS, 0), 1);
+        assert_eq!(response_header_version(ALTER_CLIENT_QUOTAS, 0), 0);
+        assert_eq!(request_header_version(ALTER_CLIENT_QUOTAS, 1), 2);
+        assert_eq!(response_header_version(ALTER_CLIENT_QUOTAS, 1), 1);
     }
 
     #[test]
