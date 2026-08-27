@@ -29,14 +29,16 @@ use partitionline::protocol::acl::{
     AclBinding,
 };
 use partitionline::protocol::admin::{
-    decode_alter_configs_request, decode_create_partitions_request, decode_create_topics_request,
-    decode_delete_records_request, decode_delete_topics_request, decode_describe_cluster_request,
-    decode_describe_configs_request, decode_incremental_alter_configs_request,
-    encode_alter_configs_response, encode_create_partitions_response,
+    decode_alter_configs_request, decode_alter_partition_reassignments_request,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_records_request,
+    decode_delete_topics_request, decode_describe_cluster_request, decode_describe_configs_request,
+    decode_incremental_alter_configs_request, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_create_partitions_response,
     encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
-    encode_incremental_alter_configs_response, ClusterDescription, ConfigEntry,
-    DescribeConfigsResult, TopicResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    encode_incremental_alter_configs_response, AlterPartitionReassignmentsResponse,
+    ClusterDescription, ConfigEntry, DescribeConfigsResult, ReassignmentPartitionResult,
+    ReassignmentTopicResult, TopicResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
@@ -45,11 +47,11 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, API_VERSIONS,
-    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
-    FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS,
+    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
+    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID,
+    JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
     OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
     SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
@@ -154,6 +156,9 @@ struct State {
     incremental_alter_configs_not_controller: u32,
     last_create_acls_node: Option<i32>,
     create_acls_not_controller: u32,
+    last_alter_reassignments_node: Option<i32>,
+    alter_reassignments_not_controller: u32,
+    last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -283,6 +288,9 @@ fn new_state(
         incremental_alter_configs_not_controller: 0,
         last_create_acls_node: None,
         create_acls_not_controller: 0,
+        last_alter_reassignments_node: None,
+        alter_reassignments_not_controller: 0,
+        last_reassignment: None,
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -774,6 +782,18 @@ impl Mock {
         self.state.lock().create_acls_not_controller
     }
 
+    pub fn last_alter_reassignments_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_reassignments_node
+    }
+
+    pub fn alter_reassignments_not_controller(&self) -> u32 {
+        self.state.lock().alter_reassignments_not_controller
+    }
+
+    pub fn last_reassignment(&self) -> Option<(String, i32, Option<Vec<i32>>)> {
+        self.state.lock().last_reassignment.clone()
+    }
+
     pub fn last_offset_delete_node(&self) -> Option<i32> {
         self.state.lock().last_offset_delete_node
     }
@@ -1156,6 +1176,7 @@ fn versions() -> ApiVersionsResponse {
         (CREATE_ACLS, 0, 1),
         (DELETE_ACLS, 0, 1),
         (INCREMENTAL_ALTER_CONFIGS, 0, 0),
+        (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -1689,6 +1710,57 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.last_create_acls_node = Some(node_id);
                     st.acls.extend(acls);
                     encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+                }
+            }
+            ALTER_PARTITION_REASSIGNMENTS => {
+                let (_timeout, topics) =
+                    decode_alter_partition_reassignments_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.alter_reassignments_not_controller =
+                        st.alter_reassignments_not_controller.saturating_add(1);
+                    encode_alter_partition_reassignments_response(
+                        &mut body,
+                        &AlterPartitionReassignmentsResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            results: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_alter_reassignments_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for t in topics {
+                        let mut parts = Vec::new();
+                        for p in t.partitions {
+                            let err = if st.created_topics.contains_key(&t.name) {
+                                st.last_reassignment =
+                                    Some((t.name.clone(), p.partition_index, p.replicas.clone()));
+                                0
+                            } else {
+                                3
+                            };
+                            parts.push(ReassignmentPartitionResult {
+                                partition_index: p.partition_index,
+                                error_code: err,
+                                error_message: None,
+                            });
+                        }
+                        results.push(ReassignmentTopicResult {
+                            name: t.name,
+                            partitions: parts,
+                        });
+                    }
+                    encode_alter_partition_reassignments_response(
+                        &mut body,
+                        &AlterPartitionReassignmentsResponse {
+                            error_code: 0,
+                            error_message: None,
+                            results,
+                        },
+                    )
+                    .unwrap();
                 }
             }
             DESCRIBE_ACLS => {
