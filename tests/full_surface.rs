@@ -14,9 +14,10 @@ use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION}
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, Error, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, ShareGroup, ACL_OPERATION_ALL,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, ShareGroup,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
     ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -2759,6 +2760,82 @@ async fn update_features_follows_controller() {
         "first hop mutation must stay"
     );
     assert_eq!(mock.feature_level("group.version"), Some(1));
+}
+
+#[tokio::test]
+async fn alter_user_scram_credentials_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let alice = UserScramCredentialUpsertion::new(
+        "alice",
+        SCRAM_SHA_256,
+        4096,
+        b"dummy-salt".to_vec(),
+        b"dummy-salted".to_vec(),
+    );
+    let results = admin
+        .alter_user_scram_credentials(&[], &[alice])
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_alter_user_scram_node(),
+        Some(2),
+        "AlterUserScramCredentials must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_scram_upsert(),
+        Some(("alice".into(), SCRAM_SHA_256, 4096)),
+        "controller must store the SCRAM upsert"
+    );
+    assert!(mock.has_scram_credential("alice", SCRAM_SHA_256));
+    assert_eq!(mock.scram_iterations("alice", SCRAM_SHA_256), Some(4096));
+
+    mock.set_controller(1);
+    let bob = UserScramCredentialUpsertion::new(
+        "bob",
+        SCRAM_SHA_512,
+        4096,
+        b"dummy-salt-b".to_vec(),
+        b"dummy-salted-b".to_vec(),
+    );
+    let delete_carol = UserScramCredentialDeletion::new("carol", SCRAM_SHA_256);
+    let again = admin
+        .alter_user_scram_credentials(&[delete_carol], &[bob])
+        .await
+        .unwrap();
+    assert_eq!(again.len(), 2);
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(again[1].error_code, 0);
+    assert_eq!(
+        mock.alter_user_scram_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_alter_user_scram_node(),
+        Some(1),
+        "AlterUserScramCredentials must follow Metadata after NOT_CONTROLLER"
+    );
+    assert_eq!(
+        mock.last_scram_upsert(),
+        Some(("bob".into(), SCRAM_SHA_512, 4096)),
+        "retry on the new controller must store the SCRAM upsert"
+    );
+    assert_eq!(
+        mock.last_scram_delete(),
+        Some(("carol".into(), SCRAM_SHA_256)),
+        "retry on the new controller must apply the SCRAM delete"
+    );
+    assert!(
+        mock.has_scram_credential("alice", SCRAM_SHA_256),
+        "first hop mutation must stay"
+    );
+    assert!(mock.has_scram_credential("bob", SCRAM_SHA_512));
+    assert!(!mock.has_scram_credential("carol", SCRAM_SHA_256));
 }
 
 #[tokio::test]

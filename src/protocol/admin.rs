@@ -3,10 +3,17 @@
     reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
 )]
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::{Error, Result};
+
+/// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
+pub const SCRAM_SHA_256: i8 = 1;
+/// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
+pub const SCRAM_SHA_512: i8 = 2;
 
 pub const RESOURCE_TOPIC: i8 = 2;
 pub const RESOURCE_BROKER: i8 = 4;
@@ -1188,6 +1195,149 @@ pub fn decode_update_features_response<B: Buf>(buf: &mut B) -> Result<UpdateFeat
     })
 }
 
+/// One SCRAM credential to remove (AlterUserScramCredentials v0).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScramCredentialDeletion {
+    pub name: String,
+    pub mechanism: i8,
+}
+
+/// One SCRAM credential to insert or replace (AlterUserScramCredentials v0).
+///
+/// `salt` / `salted_password` are caller-supplied bytes. This type does not
+/// hash a password. `Debug` redacts those fields.
+#[derive(Clone, PartialEq, Eq)]
+pub struct ScramCredentialUpsertion {
+    pub name: String,
+    pub mechanism: i8,
+    pub iterations: i32,
+    pub salt: Vec<u8>,
+    pub salted_password: Vec<u8>,
+}
+
+impl fmt::Debug for ScramCredentialUpsertion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ScramCredentialUpsertion")
+            .field("name", &self.name)
+            .field("mechanism", &self.mechanism)
+            .field("iterations", &self.iterations)
+            .field("salt", &"<redacted>")
+            .field("salted_password", &"<redacted>")
+            .finish()
+    }
+}
+
+/// Per-user result of AlterUserScramCredentials v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterUserScramCredentialsResult {
+    pub user: String,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+/// AlterUserScramCredentials v0 (flexible from v0; KIP-554).
+///
+/// Official Apache JSON (`apiKey: 51`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`) and kafka-protocol 0.18.0: compact
+/// `Deletions` of `{Name, Mechanism, tagged}`, compact `Upsertions` of
+/// `{Name, Mechanism, Iterations, Salt, SaltedPassword, tagged}`, then
+/// tagged. No timeout field. Response: `ThrottleTimeMs` INT32, compact
+/// `Results` of `{User, ErrorCode, ErrorMessage, tagged}`, tagged. There
+/// is no top-level `error_code` — 41 is on each result, after throttle,
+/// the compact results length, and that result's compact `User`.
+pub fn encode_alter_user_scram_credentials_request(
+    buf: &mut BytesMut,
+    deletions: &[ScramCredentialDeletion],
+    upsertions: &[ScramCredentialUpsertion],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(deletions.len()))?;
+    for d in deletions {
+        buf::put_compact_string(buf, Some(&d.name))?;
+        buf.put_i8(d.mechanism);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_array_len(buf, true, Some(upsertions.len()))?;
+    for u in upsertions {
+        buf::put_compact_string(buf, Some(&u.name))?;
+        buf.put_i8(u.mechanism);
+        buf.put_i32(u.iterations);
+        buf::put_compact_bytes(buf, Some(&u.salt))?;
+        buf::put_compact_bytes(buf, Some(&u.salted_password))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_user_scram_credentials_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(Vec<ScramCredentialDeletion>, Vec<ScramCredentialUpsertion>)> {
+    let n_del = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut deletions = Vec::with_capacity(n_del);
+    for _ in 0..n_del {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let mechanism = buf::get_i8(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        deletions.push(ScramCredentialDeletion { name, mechanism });
+    }
+    let n_up = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut upsertions = Vec::with_capacity(n_up);
+    for _ in 0..n_up {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let mechanism = buf::get_i8(buf)?;
+        let iterations = buf::get_i32(buf)?;
+        let salt = buf::get_compact_bytes(buf)?.unwrap_or_default();
+        let salted_password = buf::get_compact_bytes(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        upsertions.push(ScramCredentialUpsertion {
+            name,
+            mechanism,
+            iterations,
+            salt,
+            salted_password,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((deletions, upsertions))
+}
+
+pub fn encode_alter_user_scram_credentials_response(
+    buf: &mut BytesMut,
+    results: &[AlterUserScramCredentialsResult],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(results.len()))?;
+    for r in results {
+        buf::put_compact_string(buf, Some(&r.user))?;
+        buf.put_i16(r.error_code);
+        buf::put_compact_string(buf, r.error_message.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_user_scram_credentials_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<AlterUserScramCredentialsResult>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let user = buf::get_compact_string(buf)?.unwrap_or_default();
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        results.push(AlterUserScramCredentialsResult {
+            user,
+            error_code,
+            error_message,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(results)
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -1804,6 +1954,133 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "UpdateFeatures v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_user_scram_credentials_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 51 v0 is
+        // flexible, no timeout, no top-level response error.
+        const REQ: &[u8] = &[
+            0x02, 0x08, 0x6f, 0x6c, 0x64, 0x75, 0x73, 0x65, 0x72, 0x02, 0x00, 0x02, 0x06, 0x61,
+            0x6c, 0x69, 0x63, 0x65, 0x01, 0x00, 0x00, 0x10, 0x00, 0x0b, 0x64, 0x75, 0x6d, 0x6d,
+            0x79, 0x2d, 0x73, 0x61, 0x6c, 0x74, 0x0d, 0x64, 0x75, 0x6d, 0x6d, 0x79, 0x2d, 0x73,
+            0x61, 0x6c, 0x74, 0x65, 0x64, 0x00, 0x00,
+        ];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00, 0x29, 0x0f,
+            0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72,
+            0x00, 0x00,
+        ];
+        let deletions = vec![ScramCredentialDeletion {
+            name: "olduser".into(),
+            mechanism: SCRAM_SHA_512,
+        }];
+        let upsertions = vec![ScramCredentialUpsertion {
+            name: "alice".into(),
+            mechanism: SCRAM_SHA_256,
+            iterations: 4096,
+            salt: b"dummy-salt".to_vec(),
+            salted_password: b"dummy-salted".to_vec(),
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_request(&mut buf, &deletions, &upsertions).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![AlterUserScramCredentialsResult {
+            user: "alice".into(),
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+        }];
+        buf.clear();
+        encode_alter_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn alter_user_scram_credentials_v0_roundtrip_is_leftover_empty() {
+        let deletions = vec![ScramCredentialDeletion {
+            name: "olduser".into(),
+            mechanism: SCRAM_SHA_512,
+        }];
+        let upsertions = vec![ScramCredentialUpsertion {
+            name: "alice".into(),
+            mechanism: SCRAM_SHA_256,
+            iterations: 4096,
+            salt: b"dummy-salt".to_vec(),
+            salted_password: b"dummy-salted".to_vec(),
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_request(&mut buf, &deletions, &upsertions).unwrap();
+        let mut cur = &buf[..];
+        let (got_del, got_up) = decode_alter_user_scram_credentials_request(&mut cur).unwrap();
+        assert_eq!(got_del, deletions);
+        assert_eq!(got_up, upsertions);
+        assert!(
+            !cur.has_remaining(),
+            "AlterUserScramCredentials v0 request must be leftover-empty"
+        );
+
+        let resp = vec![
+            AlterUserScramCredentialsResult {
+                user: "olduser".into(),
+                error_code: 0,
+                error_message: None,
+            },
+            AlterUserScramCredentialsResult {
+                user: "alice".into(),
+                error_code: 0,
+                error_message: None,
+            },
+        ];
+        buf.clear();
+        encode_alter_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterUserScramCredentials v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_user_scram_credentials_not_controller_is_after_user() {
+        // Official v0 body: throttle INT32, compact Results[], then each
+        // result is compact User then ErrorCode INT16. Verified from Apache
+        // AlterUserScramCredentialsResponse.json and kafka-protocol 0.18.0.
+        // Not copied from UpdateFeatures (top-level 41 at bytes 4-5).
+        let resp = vec![AlterUserScramCredentialsResult {
+            user: "alice".into(),
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 has no top-level error; bytes 4-5 are compact array/user, not 41"
+        );
+        let b11 = buf.get(11).copied().unwrap();
+        let b12 = buf.get(12).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b11, b12]),
+            crate::error::NOT_CONTROLLER,
+            "v0 41 is the first result ErrorCode after throttle, results len, and User"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }

@@ -30,20 +30,22 @@ use partitionline::protocol::acl::{
 };
 use partitionline::protocol::admin::{
     decode_alter_configs_request, decode_alter_partition_reassignments_request,
-    decode_create_partitions_request, decode_create_topics_request, decode_delete_records_request,
-    decode_delete_topics_request, decode_describe_cluster_request, decode_describe_configs_request,
+    decode_alter_user_scram_credentials_request, decode_create_partitions_request,
+    decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
+    decode_describe_cluster_request, decode_describe_configs_request,
     decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
     decode_update_features_request, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
     encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    encode_update_features_response, AlterPartitionReassignmentsResponse, ClusterDescription,
-    ConfigEntry, DescribeConfigsResult, ListPartitionReassignmentsResponse,
-    OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
-    ReassignmentTopicResult, TopicResult, UpdatableFeatureResult, UpdateFeaturesResponse,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_update_features_response, AlterPartitionReassignmentsResponse,
+    AlterUserScramCredentialsResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    ListPartitionReassignmentsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
+    ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -52,13 +54,13 @@ use partitionline::protocol::api::{
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS,
-    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID,
-    JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_COMMIT,
-    OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT, UPDATE_FEATURES,
+    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
+    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -171,6 +173,11 @@ struct State {
     update_features_not_controller: u32,
     last_feature_update: Option<(String, i16, bool)>,
     features: HashMap<String, i16>,
+    last_alter_user_scram_node: Option<i32>,
+    alter_user_scram_not_controller: u32,
+    last_scram_upsert: Option<(String, i8, i32)>,
+    last_scram_delete: Option<(String, i8)>,
+    scram_users: HashMap<(String, i8), i32>,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -310,6 +317,11 @@ fn new_state(
         update_features_not_controller: 0,
         last_feature_update: None,
         features: HashMap::new(),
+        last_alter_user_scram_node: None,
+        alter_user_scram_not_controller: 0,
+        last_scram_upsert: None,
+        last_scram_delete: None,
+        scram_users: HashMap::new(),
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -837,6 +849,37 @@ impl Mock {
         self.state.lock().features.get(name).copied()
     }
 
+    pub fn last_alter_user_scram_node(&self) -> Option<i32> {
+        self.state.lock().last_alter_user_scram_node
+    }
+
+    pub fn alter_user_scram_not_controller(&self) -> u32 {
+        self.state.lock().alter_user_scram_not_controller
+    }
+
+    pub fn last_scram_upsert(&self) -> Option<(String, i8, i32)> {
+        self.state.lock().last_scram_upsert.clone()
+    }
+
+    pub fn last_scram_delete(&self) -> Option<(String, i8)> {
+        self.state.lock().last_scram_delete.clone()
+    }
+
+    pub fn has_scram_credential(&self, name: &str, mechanism: i8) -> bool {
+        self.state
+            .lock()
+            .scram_users
+            .contains_key(&(name.to_string(), mechanism))
+    }
+
+    pub fn scram_iterations(&self, name: &str, mechanism: i8) -> Option<i32> {
+        self.state
+            .lock()
+            .scram_users
+            .get(&(name.to_string(), mechanism))
+            .copied()
+    }
+
     pub fn last_offset_delete_node(&self) -> Option<i32> {
         self.state.lock().last_offset_delete_node
     }
@@ -1222,6 +1265,7 @@ fn versions() -> ApiVersionsResponse {
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
         (UPDATE_FEATURES, 0, 0),
+        (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -1914,6 +1958,58 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         },
                     )
                     .unwrap();
+                }
+            }
+            ALTER_USER_SCRAM_CREDENTIALS => {
+                let (deletions, upsertions) =
+                    decode_alter_user_scram_credentials_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.alter_user_scram_not_controller =
+                        st.alter_user_scram_not_controller.saturating_add(1);
+                    // 41 only. Do not apply the SCRAM mutation on the wrong node.
+                    let mut results = Vec::new();
+                    for d in deletions {
+                        results.push(AlterUserScramCredentialsResult {
+                            user: d.name,
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                    for u in upsertions {
+                        results.push(AlterUserScramCredentialsResult {
+                            user: u.name,
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                    encode_alter_user_scram_credentials_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_alter_user_scram_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for d in deletions {
+                        let _removed = st.scram_users.remove(&(d.name.clone(), d.mechanism));
+                        st.last_scram_delete = Some((d.name.clone(), d.mechanism));
+                        results.push(AlterUserScramCredentialsResult {
+                            user: d.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    for u in upsertions {
+                        // Store name/mechanism/iterations only. Dummy salt
+                        // bytes are not kept and are not logged.
+                        let _prev = st
+                            .scram_users
+                            .insert((u.name.clone(), u.mechanism), u.iterations);
+                        st.last_scram_upsert = Some((u.name.clone(), u.mechanism, u.iterations));
+                        results.push(AlterUserScramCredentialsResult {
+                            user: u.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    encode_alter_user_scram_credentials_response(&mut body, &results).unwrap();
                 }
             }
             DESCRIBE_ACLS => {

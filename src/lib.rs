@@ -7,7 +7,7 @@
 //! idempotent and transactional produce, ListOffsets/seek, and admin
 //! (topics, partitions, configs, ACLs, DeleteRecords, OffsetDelete,
 //! AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures,
-//! DescribeCluster).
+//! AlterUserScramCredentials, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -35,8 +35,9 @@ pub mod share;
 pub use admin::{
     AclBinding, Admin, AdminConfig, AlterConfig, ClusterDescription, ConfigEntry, ConfigResource,
     FeatureUpdate, FeatureUpdateResult, NewTopic, OffsetDeleteResult, OngoingReassignment,
-    PartitionReassignment, ReassignmentResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC,
+    PartitionReassignment, ReassignmentResult, UserScramCredentialDeletion,
+    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
