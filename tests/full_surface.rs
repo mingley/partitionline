@@ -1013,6 +1013,107 @@ async fn kip848_join_resumes_committed_offset() {
 }
 
 #[tokio::test]
+async fn two_members_kip848_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("k4", 4, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for p in 0..4 {
+        producer
+            .send(
+                ProduceRecord::to("k4")
+                    .partition(p)
+                    .value(format!("first-{p}").into_bytes()),
+            )
+            .await
+            .unwrap();
+    }
+    producer.flush().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut a = ConsumerGroup::join_consumer(ccfg.clone(), "kg", "k4")
+        .await
+        .unwrap();
+    assert_eq!(
+        a.assignment().len(),
+        4,
+        "solo KIP-848 member gets every partition"
+    );
+    let first = a.poll().await.unwrap();
+    assert_eq!(first.len(), 4, "solo member reads every partition");
+    let seen: std::collections::HashSet<(i32, i64)> =
+        first.iter().map(|r| (r.partition, r.offset)).collect();
+
+    let mut b = ConsumerGroup::join_consumer(ccfg, "kg", "k4")
+        .await
+        .unwrap();
+    assert_eq!(
+        b.assignment().len(),
+        2,
+        "second member gets a range slice, not every partition"
+    );
+    assert_eq!(
+        mock.join_group_calls(),
+        0,
+        "KIP-848 two-member must not use JoinGroup"
+    );
+
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        let recs = a.poll().await.unwrap();
+        for r in recs {
+            assert!(
+                !seen.contains(&(r.partition, r.offset)),
+                "kept partitions must not rewind to OffsetFetch 0 after revoke"
+            );
+        }
+        if a.assignment().len() == 2 {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "first member never applied heartbeat assignment revoke"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(
+        a_parts.is_disjoint(&b_parts),
+        "KIP-848 assignment must not overlap"
+    );
+    let union: std::collections::HashSet<i32> = a_parts.union(&b_parts).copied().collect();
+    assert_eq!(union.len(), 4, "union of assignments is all partitions");
+
+    a.leave().await.unwrap();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        drop(b.poll().await);
+        if b.assignment().len() == 4 {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "remaining member never covered all partitions after leave"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    b.leave().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_join_fetch_leave_without_classic_join() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

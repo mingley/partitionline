@@ -21,7 +21,7 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_request,
-    ConsumerGroupHeartbeatRequest,
+    ConsumerGroupHeartbeatRequest, TopicPartitions,
 };
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
@@ -123,7 +123,11 @@ pub struct ConsumerGroup {
     kip848: bool,
     prev_assignment: HashMap<String, Vec<i32>>,
     hb_err: Arc<AtomicI16>,
-    hb_generation: Arc<std::sync::atomic::AtomicI32>,
+    hb_generation: Arc<AtomicI32>,
+    /// Assignment from a later ConsumerGroupHeartbeat; applied on `poll` / `commit`.
+    hb_assignment: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
+    /// Last applied assignment, sent once on the next heartbeat (KIP-848 ack).
+    hb_ack: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
     hb_stop: watch::Sender<bool>,
 }
 
@@ -157,6 +161,8 @@ impl ConsumerGroup {
 
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
+        let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
+        let hb_ack = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -171,6 +177,8 @@ impl ConsumerGroup {
             prev_assignment: HashMap::new(),
             hb_err,
             hb_generation,
+            hb_assignment,
+            hb_ack,
             hb_stop,
         };
         g.rejoin().await?;
@@ -190,6 +198,8 @@ impl ConsumerGroup {
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_generation = Arc::new(AtomicI32::new(0));
+        let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
+        let hb_ack = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -204,6 +214,8 @@ impl ConsumerGroup {
             prev_assignment: HashMap::new(),
             hb_err,
             hb_generation,
+            hb_assignment,
+            hb_ack,
             hb_stop,
         };
         g.heartbeat_join().await?;
@@ -224,13 +236,18 @@ impl ConsumerGroup {
     }
 
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
-        if !self.kip848 && self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
+        if self.kip848 {
+            self.apply_pending_assignment().await?;
+        } else if self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
         self.consumer.fetch().await
     }
 
     pub async fn commit(&mut self) -> Result<()> {
+        if self.kip848 {
+            self.apply_pending_assignment().await?;
+        }
         let assigned = self.consumer.assignment().to_vec();
         let topics = group_offset_topics(&assigned);
         if topics.is_empty() {
@@ -451,45 +468,76 @@ impl ConsumerGroup {
             self.member_id = id;
         }
         self.generation_id = resp.member_epoch;
-        let wanted: Vec<(String, i32)> = resp
-            .assignment
-            .unwrap_or_default()
-            .into_iter()
-            .flat_map(|tp| {
-                let topic = self.topic.clone();
-                tp.partitions.into_iter().map(move |p| (topic.clone(), p))
-            })
-            .collect();
+        let assignment = resp.assignment.unwrap_or_default();
+        let wanted = wanted_from_kip848(&self.topic, &assignment);
         self.assign_committed(&wanted).await?;
+        *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
         Ok(())
     }
 
-    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<()> {
-        self.consumer.clear_assignment();
-        if wanted.is_empty() {
+    async fn apply_pending_assignment(&mut self) -> Result<()> {
+        let pending = self.hb_assignment.lock().take();
+        let Some(assignment) = pending else {
             return Ok(());
-        }
-        let topics = group_offset_fetch_topics(wanted);
-        let timeout = Duration::from_secs(30);
-        let body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_GROUP,
-            OFFSET_FETCH,
-            5,
-            |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
-            timeout,
-        )
-        .await?;
-        let fetched = decode_offset_fetch_response(&mut body.clone())?;
-        let starts = committed_starts(wanted, &fetched)?;
-        for (topic, part, start) in starts {
-            self.consumer.assign(topic, part, start).await?;
-        }
+        };
+        let wanted = wanted_from_kip848(&self.topic, &assignment);
+        self.assign_committed(&wanted).await?;
+        *self.hb_ack.lock() = Some(assignment);
+        self.generation_id = self.hb_generation.load(Ordering::SeqCst);
+        Ok(())
+    }
+
+    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<()> {
+        let current: HashMap<(String, i32), i64> = self
+            .consumer
+            .assignment()
+            .iter()
+            .map(|(t, p, o)| ((t.clone(), *p), *o))
+            .collect();
+        let added: Vec<(String, i32)> = wanted
+            .iter()
+            .filter(|(t, p)| !current.contains_key(&(t.clone(), *p)))
+            .cloned()
+            .collect();
+        let fetched = if added.is_empty() {
+            Vec::new()
+        } else {
+            let topics = group_offset_fetch_topics(&added);
+            let timeout = Duration::from_secs(30);
+            let body = coord_roundtrip(
+                &mut self.coord,
+                &self.cfg,
+                &self.group_id,
+                COORDINATOR_GROUP,
+                OFFSET_FETCH,
+                5,
+                |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
+                timeout,
+            )
+            .await?;
+            decode_offset_fetch_response(&mut body.clone())?
+        };
+        let added_starts = committed_starts(&added, &fetched)?;
+        let added_map: HashMap<(String, i32), i64> = added_starts
+            .into_iter()
+            .map(|(t, p, o)| ((t, p), o))
+            .collect();
+        let starts: Vec<(String, i32, i64)> = wanted
+            .iter()
+            .map(|(topic, part)| {
+                let key = (topic.clone(), *part);
+                let start = current
+                    .get(&key)
+                    .copied()
+                    .or_else(|| added_map.get(&key).copied())
+                    .unwrap_or(0);
+                (topic.clone(), *part, start)
+            })
+            .collect();
+        self.consumer.assign_all(&starts).await?;
         Ok(())
     }
 
@@ -498,6 +546,8 @@ impl ConsumerGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
+        let hb_assignment = self.hb_assignment.clone();
+        let hb_ack = self.hb_ack.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -518,12 +568,13 @@ impl ConsumerGroup {
                         };
                         let timeout = Duration::from_secs(10);
                         let epoch = hb_generation.load(Ordering::SeqCst);
+                        let topic_partitions = hb_ack.lock().clone();
                         let req = ConsumerGroupHeartbeatRequest {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
                             member_epoch: epoch,
                             subscribed_topic_names: None,
-                            topic_partitions: None,
+                            topic_partitions,
                         };
                         let res = c
                             .roundtrip(
@@ -544,6 +595,14 @@ impl ConsumerGroup {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
                                         if resp.member_epoch > 0 {
                                             hb_generation.store(resp.member_epoch, Ordering::SeqCst);
+                                        }
+                                        if resp.error_code == 0 {
+                                            if let Some(assignment) = resp.assignment {
+                                                *hb_assignment.lock() = Some(assignment);
+                                                *hb_ack.lock() = None;
+                                            } else {
+                                                *hb_ack.lock() = None;
+                                            }
                                         }
                                     }
                                 }
@@ -612,6 +671,16 @@ impl ConsumerGroup {
             }
         }));
     }
+}
+
+fn wanted_from_kip848(topic: &str, assignment: &[TopicPartitions]) -> Vec<(String, i32)> {
+    let mut out = Vec::new();
+    for tp in assignment {
+        for p in &tp.partitions {
+            out.push((topic.to_string(), *p));
+        }
+    }
+    out
 }
 
 fn group_offset_topics(assigned: &[(String, i32, i64)]) -> Vec<OffsetTopic> {
@@ -848,6 +917,18 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn kip848_wanted_maps_topic_id_to_subscribed_name() {
+        let assignment = vec![TopicPartitions {
+            topic_id: [9u8; 16],
+            partitions: vec![1, 3],
+        }];
+        assert_eq!(
+            wanted_from_kip848("orders", &assignment),
+            vec![("orders".into(), 1), ("orders".into(), 3)]
+        );
     }
 
     #[test]
