@@ -459,6 +459,85 @@ async fn transactional_commit_visible_abort_hidden() {
 }
 
 #[tokio::test]
+async fn transactional_offsets_and_partitions_one_rpc() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("txn3", 3, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let e0 = mock.bump_leader_epoch("txn3", 0);
+    let e1 = mock.bump_leader_epoch("txn3", 1);
+    let e2 = mock.bump_leader_epoch("txn3", 2);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::from_millis(5);
+    pcfg.connections = 1;
+    pcfg.transactional_id = Some("tx-batch".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    for p in 0..3 {
+        let rec = ProduceRecord::to("txn3")
+            .partition(p)
+            .value(format!("txn-{p}").into_bytes());
+        loop {
+            match producer.try_send(rec.clone()) {
+                Ok(()) => break,
+                Err(Error::QueueFull) => {
+                    assert!(
+                        std::time::Instant::now() < deadline,
+                        "try_send never left QueueFull"
+                    );
+                    tokio::task::yield_now().await;
+                }
+                Err(e) => panic!("try_send: {e}"),
+            }
+        }
+    }
+    producer.flush().await.unwrap();
+    assert_eq!(
+        mock.add_partitions_to_txn_calls(),
+        1,
+        "AddPartitionsToTxn must be one RPC, got {}",
+        mock.add_partitions_to_txn_calls()
+    );
+    assert_eq!(mock.last_add_partitions_to_txn(), 3);
+
+    producer
+        .send_offsets_to_transaction(
+            "g",
+            &[
+                ("txn3".into(), 0, 1),
+                ("txn3".into(), 1, 1),
+                ("txn3".into(), 2, 1),
+            ],
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.txn_offset_commit_calls(),
+        1,
+        "TxnOffsetCommit must be one RPC, got {}",
+        mock.txn_offset_commit_calls()
+    );
+    assert_eq!(mock.last_txn_offset_commit_partitions(), 3);
+    assert_eq!(
+        mock.last_txn_offset_epochs(),
+        vec![e0, e1, e2],
+        "TxnOffsetCommit v2 must send Metadata current_leader_epoch"
+    );
+    producer.commit_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_seek_and_read_committed_isolation() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
