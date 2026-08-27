@@ -15,10 +15,10 @@ use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration, ClientQuotaEntity,
     ClientQuotaOp, Compression, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup, Error,
     FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord,
-    Producer, ProducerConfig, ShareGroup, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
-    ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256,
-    SCRAM_SHA_512,
+    Producer, ProducerConfig, ShareGroup, TransactionState, TransactionTopic,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -2960,6 +2960,65 @@ async fn allocate_producer_ids_follows_controller() {
         mock.last_allocate_producer_ids(),
         Some((7, 42, 2000, 1000)),
         "retry on the new controller must hand the next PID block"
+    );
+}
+
+#[tokio::test]
+async fn describe_transactions_follows_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    mock.set_txn_fixture(TransactionState {
+        error_code: 0,
+        transactional_id: "tx-desc".into(),
+        transaction_state: "Ongoing".into(),
+        transaction_timeout_ms: 60_000,
+        transaction_start_time_ms: 1_700_000_000_000,
+        producer_id: 1001,
+        producer_epoch: 3,
+        topics: vec![TransactionTopic {
+            name: "orders".into(),
+            partitions: vec![0, 1],
+        }],
+    });
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.describe_transactions(&["tx-desc"]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].transactional_id, "tx-desc");
+    assert_eq!(first[0].transaction_state, "Ongoing");
+    assert_eq!(first[0].producer_id, 1001);
+    assert_eq!(first[0].producer_epoch, 3);
+    assert_eq!(
+        mock.last_describe_transactions_node(),
+        Some(2),
+        "DescribeTransactions must land on the transaction coordinator, not bootstrap"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_TRANSACTION),
+        "DescribeTransactions must FindCoordinator key_type=1"
+    );
+
+    mock.move_txn_coordinator();
+    let again = admin.describe_transactions(&["tx-desc"]).await.unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(again[0].producer_id, 1001);
+    assert_eq!(
+        again[0].topics[0].name.as_str(),
+        "orders",
+        "retry on the new coordinator must still return fixture state, not the 16 empty body"
+    );
+    assert_eq!(
+        mock.describe_transactions_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_describe_transactions_node(),
+        Some(1),
+        "DescribeTransactions must FindCoordinator after NOT_COORDINATOR"
     );
 }
 
