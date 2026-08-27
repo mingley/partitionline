@@ -2351,6 +2351,37 @@ async fn delete_records_follows_partition_leader() {
 }
 
 #[tokio::test]
+async fn describe_producers_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let first = admin.describe_producers("t", 0).await.unwrap();
+    assert_eq!(first.error_code, 0);
+    assert_eq!(first.partition_index, 0);
+    assert_eq!(first.active_producers.len(), 1);
+    assert_eq!(first.active_producers[0].producer_id, 1000);
+    assert_eq!(
+        mock.last_describe_producers_node(),
+        Some(2),
+        "DescribeProducers must land on the partition leader, not a follower"
+    );
+
+    mock.set_partition_leader("t", 0, 1);
+    let again = admin.describe_producers("t", 0).await.unwrap();
+    assert_eq!(again.error_code, 0);
+    assert_eq!(again.active_producers.len(), 1);
+    assert_eq!(
+        mock.describe_producers_not_leader(),
+        1,
+        "stale leader must return NOT_LEADER_OR_FOLLOWER (6) once"
+    );
+    assert_eq!(
+        mock.last_describe_producers_node(),
+        Some(1),
+        "DescribeProducers must follow Metadata after NOT_LEADER"
+    );
+}
+
+#[tokio::test]
 async fn create_topics_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

@@ -1856,6 +1856,230 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
     })
 }
 
+/// One active producer in DescribeProducers (api 61, KIP-360).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActiveProducer {
+    pub producer_id: i64,
+    pub producer_epoch: i32,
+    pub last_sequence: i32,
+    pub last_timestamp: i64,
+    pub coordinator_epoch: i32,
+    pub current_txn_start_offset: i64,
+}
+
+impl ActiveProducer {
+    pub fn new(
+        producer_id: i64,
+        producer_epoch: i32,
+        last_sequence: i32,
+        last_timestamp: i64,
+        coordinator_epoch: i32,
+        current_txn_start_offset: i64,
+    ) -> Self {
+        Self {
+            producer_id,
+            producer_epoch,
+            last_sequence,
+            last_timestamp,
+            coordinator_epoch,
+            current_txn_start_offset,
+        }
+    }
+}
+
+/// Per-partition DescribeProducers result. ErrorCode sits here, not
+/// at the top of the response body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeProducersPartition {
+    pub partition_index: i32,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub active_producers: Vec<ActiveProducer>,
+}
+
+impl DescribeProducersPartition {
+    pub fn new(
+        partition_index: i32,
+        error_code: i16,
+        error_message: Option<String>,
+        active_producers: Vec<ActiveProducer>,
+    ) -> Self {
+        Self {
+            partition_index,
+            error_code,
+            error_message,
+            active_producers,
+        }
+    }
+}
+
+/// One topic in a DescribeProducers v0 response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeProducersTopic {
+    pub name: String,
+    pub partitions: Vec<DescribeProducersPartition>,
+}
+
+impl DescribeProducersTopic {
+    pub fn new(name: impl Into<String>, partitions: Vec<DescribeProducersPartition>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
+/// DescribeProducers v0 response body. There is no top-level ErrorCode
+/// after throttle; the first-partition code is later in the body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeProducersResponse {
+    pub topics: Vec<DescribeProducersTopic>,
+}
+
+impl DescribeProducersResponse {
+    pub fn new(topics: Vec<DescribeProducersTopic>) -> Self {
+        Self { topics }
+    }
+}
+
+/// DescribeProducers v0 (flexible from v0; KIP-360).
+///
+/// Official Apache JSON (`apiKey: 61`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`, listeners `broker` only) and
+/// kafka-protocol 0.18.0 (`DescribeProducersRequest` /
+/// `DescribeProducersResponse`, `VERSIONS` min=max=0). This crate
+/// targets v0, the only version. Request encode used
+/// `features = ["client"]`; response encode used `broker`.
+/// Request: compact `Topics` of `{Name, compact PartitionIndexes
+/// INT32[], tagged}`, tagged. Response: `ThrottleTimeMs` INT32,
+/// compact `Topics` of `{Name, compact Partitions of
+/// {PartitionIndex INT32, ErrorCode INT16, compact nullable
+/// ErrorMessage, compact ActiveProducers of {ProducerId INT64,
+/// ProducerEpoch INT32, LastSequence INT32, LastTimestamp INT64,
+/// CoordinatorEpoch INT32, CurrentTxnStartOffset INT64, tagged},
+/// tagged}, tagged}`, tagged. **ErrorCode is per-partition**, not
+/// top-level. Measured independently on leftover-empty fixture topic
+/// `"t"` partition `0`: the first-partition ErrorCode is the INT16
+/// at **bytes 12–13**, after throttle, compact topics len, compact
+/// name `"t"`, compact partitions len, and PartitionIndex — not
+/// bytes 4–5. This is a partition-leader hop, not a controller hop
+/// and not a transaction-coordinator hop.
+pub fn encode_describe_producers_request(
+    buf: &mut BytesMut,
+    topic: &str,
+    partitions: &[i32],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(1))?;
+    buf::put_compact_string(buf, Some(topic))?;
+    buf::put_array_len(buf, true, Some(partitions.len()))?;
+    for p in partitions {
+        buf.put_i32(*p);
+    }
+    buf::put_empty_tagged_fields(buf);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_producers_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<i32>)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topic = String::new();
+    let mut partitions = Vec::new();
+    for i in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut idxs = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            idxs.push(buf::get_i32(buf)?);
+        }
+        buf::skip_tagged_fields(buf)?;
+        if i == 0 {
+            topic = name;
+            partitions = idxs;
+        }
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((topic, partitions))
+}
+
+pub fn encode_describe_producers_response(
+    buf: &mut BytesMut,
+    resp: &DescribeProducersResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(resp.topics.len()))?;
+    for topic in &resp.topics {
+        buf::put_compact_string(buf, Some(&topic.name))?;
+        buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+        for p in &topic.partitions {
+            buf.put_i32(p.partition_index);
+            buf.put_i16(p.error_code);
+            buf::put_compact_string(buf, p.error_message.as_deref())?;
+            buf::put_array_len(buf, true, Some(p.active_producers.len()))?;
+            for prod in &p.active_producers {
+                buf.put_i64(prod.producer_id);
+                buf.put_i32(prod.producer_epoch);
+                buf.put_i32(prod.last_sequence);
+                buf.put_i64(prod.last_timestamp);
+                buf.put_i32(prod.coordinator_epoch);
+                buf.put_i64(prod.current_txn_start_offset);
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_producers_response<B: Buf>(
+    buf: &mut B,
+) -> Result<DescribeProducersResponse> {
+    let _th = buf::get_i32(buf)?;
+    let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let error_message = buf::get_compact_string(buf)?;
+            let an = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut active_producers = Vec::with_capacity(an);
+            for _ in 0..an {
+                let producer_id = buf::get_i64(buf)?;
+                let producer_epoch = buf::get_i32(buf)?;
+                let last_sequence = buf::get_i32(buf)?;
+                let last_timestamp = buf::get_i64(buf)?;
+                let coordinator_epoch = buf::get_i32(buf)?;
+                let current_txn_start_offset = buf::get_i64(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                active_producers.push(ActiveProducer {
+                    producer_id,
+                    producer_epoch,
+                    last_sequence,
+                    last_timestamp,
+                    coordinator_epoch,
+                    current_txn_start_offset,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            partitions.push(DescribeProducersPartition {
+                partition_index,
+                error_code,
+                error_message,
+                active_producers,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        topics.push(DescribeProducersTopic { name, partitions });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeProducersResponse { topics })
+}
+
 /// AllocateProducerIds v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocateProducerIdsResponse {
@@ -3698,6 +3922,109 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "UnregisterBroker v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_producers_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 61
+        // validVersions 0, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0. Not copied from DescribeClientQuotas
+        // (top-level ErrorCode at bytes 4-5) or DeleteRecords.
+        const REQ: &[u8] = &[0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const RESP_6: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
+            0x00, 0x01, 0x00, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_producers_request(&mut buf, "t", &[0]).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = DescribeProducersResponse::new(vec![DescribeProducersTopic::new(
+            "t",
+            vec![DescribeProducersPartition::new(
+                0,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+                None,
+                vec![],
+            )],
+        )]);
+        buf.clear();
+        encode_describe_producers_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_6);
+    }
+
+    #[test]
+    fn describe_producers_v0_roundtrip_is_leftover_empty() {
+        let mut buf = BytesMut::new();
+        encode_describe_producers_request(&mut buf, "t", &[0]).unwrap();
+        let mut cur = &buf[..];
+        let (topic, parts) = decode_describe_producers_request(&mut cur).unwrap();
+        assert_eq!(topic, "t");
+        assert_eq!(parts, vec![0]);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeProducers v0 request must be leftover-empty"
+        );
+
+        let resp = DescribeProducersResponse::new(vec![DescribeProducersTopic::new(
+            "t",
+            vec![DescribeProducersPartition::new(
+                0,
+                0,
+                None,
+                vec![ActiveProducer::new(1000, 1, 7, 1_700_000_000_000, 0, -1)],
+            )],
+        )]);
+        buf.clear();
+        encode_describe_producers_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_producers_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeProducers v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_producers_first_partition_error_code_is_at_bytes_12_13() {
+        // Official v0 body: throttle INT32, compact Topics of {Name,
+        // compact Partitions of {PartitionIndex, ErrorCode, ...}}.
+        // Measured independently from Apache DescribeProducersResponse.json
+        // and a kafka-protocol 0.18.0 broker encode (`features =
+        // ["broker"]`) on leftover-empty fixture topic "t" partition 0.
+        // Do not assume bytes 4-5 from DescribeClientQuotas /
+        // UnregisterBroker / ListTransactions (top-level ErrorCode).
+        let resp = DescribeProducersResponse::new(vec![DescribeProducersTopic::new(
+            "t",
+            vec![DescribeProducersPartition::new(
+                0,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+                None,
+                vec![],
+            )],
+        )]);
+        let mut buf = BytesMut::new();
+        encode_describe_producers_response(&mut buf, &resp).unwrap();
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+            "v0 first-partition ErrorCode must be the INT16 at bytes 12-13"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+            "v0 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_producers_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeProducers v0 ErrorCode body must be leftover-empty"
         );
     }
 }
