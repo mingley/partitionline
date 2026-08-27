@@ -4,8 +4,9 @@
 )]
 
 use std::collections::HashMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use crate::cluster::Cluster;
 use crate::error::{Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
@@ -23,11 +24,14 @@ use crate::protocol::admin::{
     DescribeConfigsResource, DescribeConfigsResult, TopicConfig, TopicResult, RESOURCE_BROKER,
     RESOURCE_TOPIC,
 };
-use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request, ApiVersion};
+use crate::protocol::api::{
+    decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
+    encode_metadata_request, ApiVersion,
+};
 use crate::protocol::api_keys::{
     pick_version, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    INCREMENTAL_ALTER_CONFIGS,
+    INCREMENTAL_ALTER_CONFIGS, METADATA,
 };
 use crate::protocol::sasl;
 
@@ -147,6 +151,9 @@ pub struct Admin {
     create_acls_version: i16,
     describe_acls_version: i16,
     delete_acls_version: i16,
+    metadata_version: i16,
+    cluster: Cluster,
+    conns: HashMap<i32, BrokerConn>,
 }
 
 impl Admin {
@@ -243,6 +250,10 @@ impl Admin {
             .get(&DELETE_ACLS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
             .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls".into()))?;
+        let metadata_version = versions
+            .get(&METADATA)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
+            .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -258,6 +269,9 @@ impl Admin {
             create_acls_version,
             describe_acls_version,
             delete_acls_version,
+            metadata_version,
+            cluster: Cluster::default(),
+            conns: HashMap::new(),
         })
     }
 
@@ -470,6 +484,62 @@ impl Admin {
         decode_alter_configs_response(&mut body.clone(), version)
     }
 
+    async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+        let version = self.metadata_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                METADATA,
+                version,
+                |buf| encode_metadata_request(buf, version, topics, false),
+                timeout,
+            )
+            .await?;
+        let md = decode_metadata_response(&mut body.clone(), version)?;
+        self.cluster.apply(&md);
+        Ok(())
+    }
+
+    async fn connect_node(&mut self, node: i32) -> Result<()> {
+        if self.conns.contains_key(&node) {
+            return Ok(());
+        }
+        let addr = self
+            .cluster
+            .brokers
+            .get(&node)
+            .cloned()
+            .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        let mut conn = BrokerConn::connect_tls(
+            &addr,
+            &self.cfg.client_id,
+            self.cfg.connect_timeout,
+            self.cfg.tls.as_ref(),
+        )
+        .await?;
+        let _versions = conn
+            .roundtrip(
+                API_VERSIONS,
+                3,
+                |buf| encode_api_versions_request(buf, 3, "partitionline", "0.1.0"),
+                self.cfg.request_timeout,
+            )
+            .await?;
+        sasl::authenticate(
+            &mut conn,
+            self.cfg.sasl_plain.as_ref(),
+            self.cfg.sasl_scram.as_ref(),
+            self.cfg.sasl_scram_sha512.as_ref(),
+            self.cfg.sasl_oauthbearer.as_deref(),
+            self.cfg.sasl_oauthbearer_oidc.as_ref(),
+            self.cfg.request_timeout,
+        )
+        .await?;
+        let _prev = self.conns.insert(node, conn);
+        Ok(())
+    }
+
     pub async fn delete_records(
         &mut self,
         topic: &str,
@@ -479,17 +549,56 @@ impl Admin {
     ) -> Result<(i64, i16)> {
         let version = self.delete_records_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                DELETE_RECORDS,
-                version,
-                |buf| encode_delete_records_request(buf, topic, partition, offset, timeout_ms),
-                timeout,
-            )
-            .await?;
-        let (_p, low, err) = decode_delete_records_response(&mut body.clone(), version)?;
-        Ok((low, err))
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.leader(topic, partition).is_err() {
+                let topics = [topic.to_string()];
+                self.refresh_metadata(Some(&topics)).await?;
+            }
+            let (node, _) = self.cluster.leader(topic, partition)?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing delete_records conn"))?;
+                conn.roundtrip(
+                    DELETE_RECORDS,
+                    version,
+                    |buf| encode_delete_records_request(buf, topic, partition, offset, timeout_ms),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (_p, low, err) = decode_delete_records_response(&mut body.clone(), version)?;
+            if err == 0 {
+                return Ok((low, err));
+            }
+            let e = Error::broker(err, format!("{topic}-{partition}"));
+            if e.is_retriable() {
+                // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
+                self.cluster.invalidate_topic(topic);
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                let topics = [topic.to_string()];
+                self.refresh_metadata(Some(&topics)).await?;
+                continue;
+            }
+            return Ok((low, err));
+        }
     }
 
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {

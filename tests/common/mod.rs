@@ -138,6 +138,8 @@ struct State {
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
     list_offsets_not_leader: u32,
+    last_delete_records_node: Option<i32>,
+    delete_records_not_leader: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -250,6 +252,8 @@ fn new_state(
         last_list_offsets: None,
         last_list_offsets_node: None,
         list_offsets_not_leader: 0,
+        last_delete_records_node: None,
+        delete_records_not_leader: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -673,6 +677,14 @@ impl Mock {
 
     pub fn list_offsets_not_leader(&self) -> u32 {
         self.state.lock().list_offsets_not_leader
+    }
+
+    pub fn last_delete_records_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_records_node
+    }
+
+    pub fn delete_records_not_leader(&self) -> u32 {
+        self.state.lock().delete_records_not_leader
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1453,27 +1465,42 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_delete_records_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 let key = (topic.clone(), partition);
-                let (low, err) = if st.created_topics.contains_key(&topic) {
-                    let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                    let start = *st.log_start.get(&key).unwrap_or(&0);
-                    let low = offset.clamp(start, hw);
-                    st.log_start.insert(key.clone(), low);
-                    if let Some(recs) = st.log.get_mut(&key) {
-                        recs.retain(|r| r.offset >= low);
-                    }
-                    (low, 0i16)
+                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                if leader != node_id {
+                    st.delete_records_not_leader = st.delete_records_not_leader.saturating_add(1);
+                    encode_delete_records_response(
+                        &mut body,
+                        header.api_version,
+                        &topic,
+                        partition,
+                        -1,
+                        error::NOT_LEADER_OR_FOLLOWER,
+                    )
+                    .unwrap();
                 } else {
-                    (0i64, 3i16)
-                };
-                encode_delete_records_response(
-                    &mut body,
-                    header.api_version,
-                    &topic,
-                    partition,
-                    low,
-                    err,
-                )
-                .unwrap();
+                    let (low, err) = if st.created_topics.contains_key(&topic) {
+                        let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                        let start = *st.log_start.get(&key).unwrap_or(&0);
+                        let low = offset.clamp(start, hw);
+                        st.log_start.insert(key.clone(), low);
+                        if let Some(recs) = st.log.get_mut(&key) {
+                            recs.retain(|r| r.offset >= low);
+                        }
+                        st.last_delete_records_node = Some(node_id);
+                        (low, 0i16)
+                    } else {
+                        (0i64, 3i16)
+                    };
+                    encode_delete_records_response(
+                        &mut body,
+                        header.api_version,
+                        &topic,
+                        partition,
+                        low,
+                        err,
+                    )
+                    .unwrap();
+                }
             }
             DESCRIBE_CLUSTER => {
                 let _include = decode_describe_cluster_request(&mut frame).unwrap();
