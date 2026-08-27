@@ -165,6 +165,8 @@ struct State {
     offset_fetch_calls: u32,
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
+    last_offset_commit_node: Option<i32>,
+    offset_commit_not_coordinator: u32,
     add_partitions_to_txn_calls: u32,
     last_add_partitions_to_txn: usize,
     txn_offset_commit_calls: u32,
@@ -268,6 +270,8 @@ fn new_state(
         offset_fetch_calls: 0,
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
+        last_offset_commit_node: None,
+        offset_commit_not_coordinator: 0,
         add_partitions_to_txn_calls: 0,
         last_add_partitions_to_txn: 0,
         txn_offset_commit_calls: 0,
@@ -695,6 +699,14 @@ impl Mock {
 
     pub fn last_offset_commit_partitions(&self) -> usize {
         self.state.lock().last_offset_commit_partitions
+    }
+
+    pub fn last_offset_commit_node(&self) -> Option<i32> {
+        self.state.lock().last_offset_commit_node
+    }
+
+    pub fn offset_commit_not_coordinator(&self) -> u32 {
+        self.state.lock().offset_commit_not_coordinator
     }
 
     pub fn last_offset_fetch_partitions(&self) -> usize {
@@ -1130,6 +1142,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             st.coord_node != node_id
         };
         if coord_mismatch {
+            {
+                let mut st = state.lock();
+                if header.api_key == OFFSET_COMMIT {
+                    st.offset_commit_not_coordinator =
+                        st.offset_commit_not_coordinator.saturating_add(1);
+                }
+            }
             encode_not_coordinator(header.api_key, &mut body);
             if write_frame(&mut stream, &body).await.is_err() {
                 break;
@@ -2310,6 +2329,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                 }
                 st.last_offset_commit_partitions = nparts;
+                st.last_offset_commit_node = Some(node_id);
                 encode_offset_commit_response(&mut body, &topics, 0).unwrap();
             }
             OFFSET_FETCH => {

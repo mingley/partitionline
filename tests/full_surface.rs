@@ -1729,6 +1729,45 @@ async fn classic_group_follows_moved_coordinator() {
 }
 
 #[tokio::test]
+async fn offset_commit_rediscovers_after_not_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"oc-nc"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg, "oc-nc", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"oc-nc"[..]));
+    g.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_node(),
+        Some(1),
+        "first OffsetCommit must land on the group coordinator"
+    );
+
+    mock.move_coordinator();
+    g.commit().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) on OffsetCommit"
+    );
+    assert_eq!(
+        mock.last_offset_commit_node(),
+        Some(2),
+        "OffsetCommit must rediscover and land on the new coordinator"
+    );
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_follows_moved_coordinator() {
     let mock = common::Mock::start_two_node().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
