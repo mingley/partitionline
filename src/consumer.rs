@@ -639,37 +639,65 @@ impl Consumer {
         timestamp: i64,
     ) -> Result<i64> {
         let topic = topic.into();
-        if self.cluster.leader(&topic, partition).is_err() {
-            let topics = [topic.clone()];
-            self.refresh_metadata(Some(&topics)).await?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        loop {
+            if self.cluster.leader(&topic, partition).is_err() {
+                let topics = [topic.clone()];
+                self.refresh_metadata(Some(&topics)).await?;
+            }
+            let (node, _) = self.cluster.leader(&topic, partition)?;
+            self.connect_node(node).await?;
+            let version = self
+                .versions
+                .get(&LIST_OFFSETS)
+                .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
+                .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
+            let isolation = self.cfg.isolation_level;
+            let timeout = self.cfg.request_timeout;
+            let current_leader_epoch = self.cluster.leader_epoch(&topic, partition);
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+                conn.roundtrip(
+                    LIST_OFFSETS,
+                    version,
+                    |buf| {
+                        encode_list_offsets_request(
+                            buf,
+                            version,
+                            isolation,
+                            &topic,
+                            partition,
+                            current_leader_epoch,
+                            timestamp,
+                        )
+                    },
+                    timeout,
+                )
+                .await?
+            };
+            match decode_list_offsets_response(&mut body.clone(), version) {
+                Ok((_err, _ts, offset)) => return Ok(offset),
+                Err(e)
+                    if matches!(
+                        &e,
+                        Error::Broker {
+                            code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
+                            ..
+                        }
+                    ) =>
+                {
+                    self.recover_leader_epoch(&topic, partition, node).await?;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
         }
-        let (node, _) = self.cluster.leader(&topic, partition)?;
-        self.connect_node(node).await?;
-        let version = self
-            .versions
-            .get(&LIST_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
-            .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
-        let isolation = self.cfg.isolation_level;
-        let timeout = self.cfg.request_timeout;
-        let conn = self
-            .conns
-            .get_mut(&node)
-            .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
-        let body = conn
-            .roundtrip(
-                LIST_OFFSETS,
-                version,
-                |buf| {
-                    encode_list_offsets_request(
-                        buf, version, isolation, &topic, partition, timestamp,
-                    )
-                },
-                timeout,
-            )
-            .await?;
-        let (_err, _ts, offset) = decode_list_offsets_response(&mut body.clone(), version)?;
-        Ok(offset)
     }
 
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
