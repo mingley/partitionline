@@ -900,7 +900,10 @@ mod tests {
             "throttle + topic-array length must not look like error 41"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_create_partitions_response(&mut cur).unwrap(), results);
+        assert_eq!(
+            decode_create_partitions_response(&mut cur).unwrap(),
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v1 NOT_CONTROLLER must be leftover-empty"

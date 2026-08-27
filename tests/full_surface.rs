@@ -2427,10 +2427,7 @@ async fn create_partitions_follows_controller() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let created = admin
         .create_topics(
-            &[
-                NewTopic::new("parts2", 1, 1),
-                NewTopic::new("parts1", 1, 1),
-            ],
+            &[NewTopic::new("parts2", 1, 1), NewTopic::new("parts1", 1, 1)],
             10_000,
             false,
         )
