@@ -29,6 +29,7 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 - Without `InitProducerId`, producer id / epoch / sequence must be `-1`. Zero is a real id.
 - `acks=0` means the broker sends no Produce response. Do not read one.
 - This client uses Produce versions 3–8 (classic record bytes). Version 9+ is compact.
+- ListOffsets v4+ has `current_leader_epoch` before timestamp. The v4+ response has `leader_epoch` after offset.
 
 ## Compression
 

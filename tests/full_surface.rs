@@ -498,6 +498,59 @@ async fn list_offsets_seek_and_read_committed_isolation() {
 }
 
 #[tokio::test]
+async fn list_offsets_sends_current_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let bumped = mock.bump_leader_epoch("t", 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    let got = mock
+        .last_list_offsets()
+        .expect("ListOffsets must send current_leader_epoch");
+    assert_eq!(got.0, "t");
+    assert_eq!(got.1, 0);
+    assert_eq!(got.2, bumped);
+    assert!(
+        mock.last_offset_for_leader_epoch().is_none(),
+        "fresh metadata epoch must not speak OffsetForLeaderEpoch"
+    );
+}
+
+#[tokio::test]
+async fn list_offsets_recovers_from_fenced_leader_epoch() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let first = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(first, 0);
+    let bumped = mock.bump_leader_epoch("t", 0);
+    assert!(bumped > 0);
+    let again = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(again, 0);
+    let ofle = mock
+        .last_offset_for_leader_epoch()
+        .expect("fenced ListOffsets must speak OffsetForLeaderEpoch");
+    assert_eq!(ofle.0, "t");
+    assert_eq!(ofle.1, 0);
+    let sent = mock
+        .last_list_offsets()
+        .expect("retry ListOffsets after recover");
+    assert_eq!(sent.2, bumped);
+}
+
+#[tokio::test]
 async fn fetch_offset_out_of_range_jumps_to_log_start() {
     let mock = common::Mock::start().await;
     mock.set_log_start("t", 0, 10);
