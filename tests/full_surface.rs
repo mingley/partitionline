@@ -2248,6 +2248,51 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
 }
 
 #[tokio::test]
+async fn delete_records_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"del-lead"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let (low, err) = admin
+        .delete_records("t", md.partition, md.offset + 1, 10_000)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(low, md.offset + 1);
+    assert_eq!(
+        mock.last_delete_records_node(),
+        Some(2),
+        "DeleteRecords must land on the partition leader, not a follower"
+    );
+    assert_eq!(mock.log_len("t", md.partition), 0);
+
+    mock.set_partition_leader("t", md.partition, 1);
+    let (again, err) = admin
+        .delete_records("t", md.partition, md.offset + 1, 10_000)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(again, md.offset + 1);
+    assert_eq!(
+        mock.delete_records_not_leader(),
+        1,
+        "stale leader must return NOT_LEADER_OR_FOLLOWER (6) once"
+    );
+    assert_eq!(
+        mock.last_delete_records_node(),
+        Some(1),
+        "DeleteRecords must follow Metadata after NOT_LEADER"
+    );
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await
