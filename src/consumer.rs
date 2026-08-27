@@ -334,6 +334,47 @@ impl Consumer {
         Ok(())
     }
 
+    pub(crate) async fn ensure_topic_metadata(&mut self, topic: &str) -> Result<()> {
+        if self.cluster.partition_count(topic).is_some() {
+            return Ok(());
+        }
+        self.refresh_topic_metadata(topic).await
+    }
+
+    pub(crate) async fn refresh_topic_metadata(&mut self, topic: &str) -> Result<()> {
+        let topics = [topic.to_string()];
+        self.refresh_metadata(Some(&topics)).await
+    }
+
+    pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {
+        self.cluster.leader(topic, partition)
+    }
+
+    pub(crate) fn invalidate_topic(&mut self, topic: &str) {
+        self.cluster.invalidate_topic(topic);
+    }
+
+    pub(crate) fn drop_node(&mut self, node: i32) {
+        let _ = self.conns.remove(&node);
+    }
+
+    pub(crate) async fn roundtrip_node(
+        &mut self,
+        node: i32,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl Fn(&mut bytes::BytesMut) -> Result<()>,
+        timeout: Duration,
+    ) -> Result<Bytes> {
+        self.connect_node(node).await?;
+        let conn = self
+            .conns
+            .get_mut(&node)
+            .ok_or_else(|| Error::protocol("missing node conn"))?;
+        conn.roundtrip(api_key, api_version, encode_body, timeout)
+            .await
+    }
+
     async fn connect_node(&mut self, node: i32) -> Result<()> {
         if self.conns.contains_key(&node) {
             return Ok(());

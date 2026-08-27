@@ -1831,6 +1831,65 @@ async fn kip848_follows_moved_coordinator() {
 }
 
 #[tokio::test]
+async fn share_fetch_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"share-lead"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "sg-lead", "t").await.unwrap();
+    common::wait_pred("share hb on coordinator 1", || {
+        mock.membership_heartbeats_on(1) >= 1
+    })
+    .await;
+
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"share-lead"[..]));
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(2),
+        "ShareFetch must land on the share-partition leader, not the coordinator"
+    );
+    assert_eq!(
+        mock.membership_heartbeats_on(2),
+        0,
+        "ShareGroupHeartbeat must stay on the share coordinator"
+    );
+    g.accept(&recs).await.unwrap();
+    assert_eq!(
+        mock.last_share_ack_node(),
+        Some(2),
+        "ShareAcknowledge must land on the share-partition leader"
+    );
+
+    mock.set_partition_leader("t", 0, 1);
+    let recs = g.poll().await.unwrap();
+    assert!(
+        recs.iter()
+            .all(|r| r.value.as_deref() != Some(&b"share-lead"[..])),
+        "accepted record must stay accepted after the leader hop"
+    );
+    assert_eq!(
+        mock.share_fetch_not_leader(),
+        1,
+        "stale leader must return NOT_LEADER_OR_FOLLOWER (6) once"
+    );
+    assert_eq!(
+        mock.last_share_fetch_node(),
+        Some(1),
+        "ShareFetch must follow Metadata after NOT_LEADER"
+    );
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_group_follows_moved_coordinator() {
     let mock = common::Mock::start_two_node().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

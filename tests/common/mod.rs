@@ -161,6 +161,9 @@ struct State {
     last_share_fetch_epoch: Option<i32>,
     last_share_ack_epoch: Option<i32>,
     last_share_ack_partitions: usize,
+    last_share_fetch_node: Option<i32>,
+    last_share_ack_node: Option<i32>,
+    share_fetch_not_leader: u32,
     offset_commit_calls: u32,
     offset_fetch_calls: u32,
     last_offset_commit_partitions: usize,
@@ -268,6 +271,9 @@ fn new_state(
         last_share_fetch_epoch: None,
         last_share_ack_epoch: None,
         last_share_ack_partitions: 0,
+        last_share_fetch_node: None,
+        last_share_ack_node: None,
+        share_fetch_not_leader: 0,
         offset_commit_calls: 0,
         offset_fetch_calls: 0,
         last_offset_commit_partitions: 0,
@@ -693,6 +699,18 @@ impl Mock {
         self.state.lock().last_share_ack_partitions
     }
 
+    pub fn last_share_fetch_node(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_node
+    }
+
+    pub fn last_share_ack_node(&self) -> Option<i32> {
+        self.state.lock().last_share_ack_node
+    }
+
+    pub fn share_fetch_not_leader(&self) -> u32 {
+        self.state.lock().share_fetch_not_leader
+    }
+
     pub fn offset_commit_calls(&self) -> u32 {
         self.state.lock().offset_commit_calls
     }
@@ -936,6 +954,20 @@ fn apply_share_acks(
 }
 
 /// KIP-932 share session epoch. Returns 0 or a broker error.
+fn share_partition_leader(st: &State, partition: i32) -> i32 {
+    st.partition_leaders
+        .get(&("t".to_string(), partition))
+        .copied()
+        .or_else(|| st.brokers.first().map(|b| b.node_id))
+        .unwrap_or(1)
+}
+
+fn share_wrong_leader(st: &State, node_id: i32, partitions: &[i32]) -> bool {
+    partitions
+        .iter()
+        .any(|p| share_partition_leader(st, *p) != node_id)
+}
+
 fn share_session_step(st: &mut State, member_id: &str, epoch: i32) -> i16 {
     match epoch {
         0 => {
@@ -1147,8 +1179,6 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 | OFFSET_FETCH
                 | CONSUMER_GROUP_HEARTBEAT
                 | SHARE_GROUP_HEARTBEAT
-                | SHARE_FETCH
-                | SHARE_ACKNOWLEDGE
         ) && {
             let st = state.lock();
             st.coord_node != node_id
@@ -2051,81 +2081,103 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SHARE_FETCH => {
                 let (_gid, member_id, epoch, max_records, topics) =
                     decode_share_fetch_request(&mut frame).unwrap();
+                let parts: Vec<i32> = topics
+                    .iter()
+                    .flat_map(|t| t.partitions.iter().map(|p| p.partition))
+                    .collect();
                 let mut st = state.lock();
                 st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
                 st.last_share_fetch_epoch = Some(epoch);
-                let sess = share_session_step(&mut st, &member_id, epoch);
-                if sess != 0 {
-                    encode_share_fetch_error(&mut body, sess).unwrap();
+                if !parts.is_empty() && share_wrong_leader(&st, node_id, &parts) {
+                    st.share_fetch_not_leader = st.share_fetch_not_leader.saturating_add(1);
+                    encode_share_fetch_error(&mut body, error::NOT_LEADER_OR_FOLLOWER).unwrap();
                 } else {
-                    let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
-                    let mut fetched = Vec::new();
-                    for t in topics {
-                        let mut parts = Vec::new();
-                        for p in t.partitions {
-                            apply_share_acks(&mut st, &member_id, p.partition, &p.acknowledgements);
-                            let key = ("t".to_string(), p.partition);
-                            let recs = st.log.get(&key).cloned().unwrap_or_default();
-                            let recs: Vec<_> = recs
-                                .into_iter()
-                                .filter(|r| {
+                    st.last_share_fetch_node = Some(node_id);
+                    let sess = share_session_step(&mut st, &member_id, epoch);
+                    if sess != 0 {
+                        encode_share_fetch_error(&mut body, sess).unwrap();
+                    } else {
+                        let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
+                        let mut fetched = Vec::new();
+                        for t in topics {
+                            let mut parts = Vec::new();
+                            for p in t.partitions {
+                                apply_share_acks(
+                                    &mut st,
+                                    &member_id,
+                                    p.partition,
+                                    &p.acknowledgements,
+                                );
+                                let key = ("t".to_string(), p.partition);
+                                let recs = st.log.get(&key).cloned().unwrap_or_default();
+                                let recs: Vec<_> = recs
+                                    .into_iter()
+                                    .filter(|r| {
+                                        let k = ("t".to_string(), p.partition, r.offset);
+                                        !st.share_accepted.contains(&k)
+                                            && match st.share_acquired.get(&k) {
+                                                None => true,
+                                                Some(owner) => owner == &member_id,
+                                            }
+                                    })
+                                    .collect();
+                                let mut acquired = Vec::new();
+                                let mut taken = Vec::new();
+                                for r in recs {
+                                    if taken.len() >= cap {
+                                        break;
+                                    }
                                     let k = ("t".to_string(), p.partition, r.offset);
-                                    !st.share_accepted.contains(&k)
-                                        && match st.share_acquired.get(&k) {
-                                            None => true,
-                                            Some(owner) => owner == &member_id,
-                                        }
-                                })
-                                .collect();
-                            let mut acquired = Vec::new();
-                            let mut taken = Vec::new();
-                            for r in recs {
-                                if taken.len() >= cap {
-                                    break;
+                                    if let std::collections::hash_map::Entry::Vacant(e) =
+                                        st.share_acquired.entry(k)
+                                    {
+                                        e.insert(member_id.clone());
+                                        acquired.push(AcquiredRange {
+                                            first_offset: r.offset,
+                                            last_offset: r.offset,
+                                            delivery_count: 1,
+                                        });
+                                        taken.push(r);
+                                    }
                                 }
-                                let k = ("t".to_string(), p.partition, r.offset);
-                                if let std::collections::hash_map::Entry::Vacant(e) =
-                                    st.share_acquired.entry(k)
-                                {
-                                    e.insert(member_id.clone());
-                                    acquired.push(AcquiredRange {
-                                        first_offset: r.offset,
-                                        last_offset: r.offset,
-                                        delivery_count: 1,
-                                    });
-                                    taken.push(r);
-                                }
+                                parts.push(ShareFetchedPartition {
+                                    partition: p.partition,
+                                    error_code: 0,
+                                    records: share_record_batches(taken),
+                                    acquired,
+                                });
                             }
-                            parts.push(ShareFetchedPartition {
-                                partition: p.partition,
-                                error_code: 0,
-                                records: share_record_batches(taken),
-                                acquired,
+                            fetched.push(ShareFetchedTopic {
+                                topic_id: t.topic_id,
+                                partitions: parts,
                             });
                         }
-                        fetched.push(ShareFetchedTopic {
-                            topic_id: t.topic_id,
-                            partitions: parts,
-                        });
+                        encode_share_fetch_response(&mut body, &fetched).unwrap();
                     }
-                    encode_share_fetch_response(&mut body, &fetched).unwrap();
                 }
             }
             SHARE_ACKNOWLEDGE => {
                 let (_gid, member_id, epoch, acks) =
                     decode_share_acknowledge_request(&mut frame).unwrap();
+                let parts: Vec<i32> = acks.iter().map(|(_, p, _)| *p).collect();
                 let mut st = state.lock();
                 st.share_ack_calls = st.share_ack_calls.saturating_add(1);
                 st.last_share_ack_epoch = Some(epoch);
                 st.last_share_ack_partitions = acks.len();
-                let sess = share_session_step(&mut st, &member_id, epoch);
-                if sess != 0 {
-                    encode_share_acknowledge_response(&mut body, sess).unwrap();
+                if epoch != -1 && !parts.is_empty() && share_wrong_leader(&st, node_id, &parts) {
+                    encode_share_acknowledge_response(&mut body, error::NOT_LEADER_OR_FOLLOWER)
+                        .unwrap();
                 } else {
-                    for (_tid, partition, batches) in acks {
-                        apply_share_acks(&mut st, &member_id, partition, &batches);
+                    st.last_share_ack_node = Some(node_id);
+                    let sess = share_session_step(&mut st, &member_id, epoch);
+                    if sess != 0 {
+                        encode_share_acknowledge_response(&mut body, sess).unwrap();
+                    } else {
+                        for (_tid, partition, batches) in acks {
+                            apply_share_acks(&mut st, &member_id, partition, &batches);
+                        }
+                        encode_share_acknowledge_response(&mut body, 0).unwrap();
                     }
-                    encode_share_acknowledge_response(&mut body, 0).unwrap();
                 }
             }
             CONSUMER_GROUP_HEARTBEAT => {
