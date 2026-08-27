@@ -10,6 +10,7 @@
 
 mod common;
 
+use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, ProduceRecord, Producer,
@@ -534,6 +535,65 @@ async fn transactional_offsets_and_partitions_one_rpc() {
         "TxnOffsetCommit v2 must send Metadata current_leader_epoch"
     );
     producer.commit_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_producer_finds_txn_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-coord".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_TRANSACTION),
+        "InitProducerId with transactional.id must FindCoordinator key_type=1"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_node(),
+        Some(2),
+        "InitProducerId must land on the transaction coordinator, not bootstrap"
+    );
+
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"coord"[..]))
+        .await
+        .unwrap();
+    producer.flush().await.unwrap();
+    assert_eq!(mock.last_add_partitions_node(), Some(2));
+    producer
+        .send_offsets_to_transaction("g", &[("t".into(), 0, 1)])
+        .await
+        .unwrap();
+    assert_eq!(mock.last_add_offsets_node(), Some(2));
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "TxnOffsetCommit must FindCoordinator key_type=0"
+    );
+    assert_eq!(
+        mock.last_txn_offset_commit_node(),
+        Some(1),
+        "TxnOffsetCommit must land on the group coordinator"
+    );
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(mock.last_end_txn_node(), Some(2));
+
+    mock.move_txn_coordinator();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"moved"[..]))
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    assert_eq!(
+        mock.last_end_txn_node(),
+        Some(1),
+        "EndTxn must rediscover after NOT_COORDINATOR"
+    );
     producer.close().await.unwrap();
 }
 
