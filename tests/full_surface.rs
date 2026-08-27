@@ -717,6 +717,50 @@ async fn list_offsets_recovers_from_fenced_leader_epoch() {
 }
 
 #[tokio::test]
+async fn list_offsets_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"lo-lead"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 1);
+    assert_eq!(
+        mock.last_list_offsets_node(),
+        Some(2),
+        "ListOffsets must land on the partition leader, not a follower"
+    );
+
+    mock.set_partition_leader("t", 0, 1);
+    let again = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(again, 1);
+    assert_eq!(
+        mock.list_offsets_not_leader(),
+        1,
+        "stale leader must return NOT_LEADER_OR_FOLLOWER (6) once"
+    );
+    assert_eq!(
+        mock.last_list_offsets_node(),
+        Some(1),
+        "ListOffsets must follow Metadata after NOT_LEADER"
+    );
+}
+
+#[tokio::test]
 async fn fetch_offset_out_of_range_jumps_to_log_start() {
     let mock = common::Mock::start().await;
     mock.set_log_start("t", 0, 10);

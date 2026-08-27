@@ -717,7 +717,18 @@ impl Consumer {
                     },
                     timeout,
                 )
-                .await?
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
             };
             match decode_list_offsets_response(&mut body.clone(), version) {
                 Ok((_err, _ts, offset)) => return Ok(offset),
@@ -734,6 +745,17 @@ impl Consumer {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
+                    continue;
+                }
+                Err(e) if e.is_retriable() => {
+                    // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
+                    self.cluster.invalidate_topic(&topic);
+                    let _ = self.conns.remove(&node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    let topics = [topic.clone()];
+                    self.refresh_metadata(Some(&topics)).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
