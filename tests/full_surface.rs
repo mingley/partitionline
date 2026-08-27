@@ -49,6 +49,44 @@ async fn try_send_flush_writes_record() {
     assert_eq!(recs[0].value.as_deref(), Some(&b"try-send"[..]));
 }
 
+#[tokio::test]
+async fn fetch_uses_base_offset_plus_record_delta() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for value in [b"a" as &[u8], b"b", b"c"] {
+        producer
+            .send(ProduceRecord::to("t").value(value))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    let offsets: Vec<i64> = recs.iter().map(|r| r.offset).collect();
+    assert_eq!(offsets, vec![0, 1, 2]);
+    assert_eq!(
+        recs.iter()
+            .map(|r| r.value.as_deref().unwrap())
+            .collect::<Vec<_>>(),
+        [b"a" as &[u8], b"b", b"c"]
+    );
+    assert_eq!(consumer.assignment(), &[("t".into(), 0, 3)]);
+
+    consumer.seek("t", 0, 1).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    assert_eq!(consumer.assignment(), &[("t".into(), 0, 3)]);
+}
+
 #[expect(
     clippy::panic,
     reason = "test helper surfaces try_send errors like the in-test loops"

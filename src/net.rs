@@ -25,6 +25,16 @@ use crate::protocol::header::{decode_response_header, encode_request_header_fiel
 
 pub const MAX_FRAME: i32 = 100 * 1024 * 1024;
 
+/// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
+/// memcpy through the 8KiB → 16KiB → … doubling path.
+pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
+    if let Some(need) = total.checked_sub(buf.len()) {
+        if need > 0 {
+            buf.reserve(need);
+        }
+    }
+}
+
 /// rustls client settings. No OpenSSL.
 #[derive(Debug, Clone, Default)]
 pub struct TlsConfig {
@@ -374,6 +384,7 @@ impl BrokerConn {
                     drop(frame.split_to(4));
                     return Ok(frame.freeze());
                 }
+                reserve_frame(&mut self.read_buf, total);
             }
             let n = self.stream.read_buf(&mut self.read_buf).await?;
             if n == 0 {
@@ -389,4 +400,28 @@ impl BrokerConn {
 /// Install rustls `ring` as the process crypto provider. Idempotent.
 pub fn install_crypto_provider() {
     ensure_crypto();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reserve_frame_grows_once_to_known_size() {
+        let mut buf = BytesMut::with_capacity(8);
+        buf.extend_from_slice(&[0, 0, 0, 16]);
+        reserve_frame(&mut buf, 4 + 1_000_000);
+        assert!(buf.capacity() >= 1_000_004);
+        assert_eq!(buf.len(), 4);
+    }
+
+    #[test]
+    fn reserve_frame_is_noop_when_already_filled() {
+        let mut buf = BytesMut::with_capacity(32);
+        buf.extend_from_slice(&[0u8; 16]);
+        let cap = buf.capacity();
+        reserve_frame(&mut buf, 8);
+        assert_eq!(buf.capacity(), cap);
+        assert_eq!(buf.len(), 16);
+    }
 }

@@ -174,7 +174,7 @@ impl ShareGroup {
                 })
                 .collect(),
         }];
-        let body = coord_roundtrip(
+        let mut body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
@@ -202,7 +202,7 @@ impl ShareGroup {
         } else {
             self.share_session_epoch = self.share_session_epoch.saturating_add(1);
         }
-        let fetched = decode_share_fetch_response(&mut body.clone())?;
+        let fetched = decode_share_fetch_response(&mut body)?;
         let mut out = Vec::new();
         for topic in fetched {
             for part in topic.partitions {

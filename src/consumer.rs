@@ -501,7 +501,7 @@ impl Consumer {
                     )
                     .await
                 };
-                let body = match body {
+                let mut body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
                         let _ = self.conns.remove(&node);
@@ -510,7 +510,7 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                let fetched = decode_fetch_response(&mut body.clone())?;
+                let fetched = decode_fetch_response(&mut body)?;
                 for topic in fetched {
                     for part in topic.partitions {
                         if part.preferred_read_replica >= 0

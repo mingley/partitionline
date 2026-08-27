@@ -413,9 +413,8 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
     while buf.remaining() >= 12 {
         let chunk = buf.chunk();
         if chunk.len() < 12 {
-            let rest = buf.copy_to_bytes(buf.remaining());
-            let mut rest_buf = rest.as_ref();
-            out.append(&mut decode_record_batches(&mut rest_buf)?);
+            let mut rest = buf.copy_to_bytes(buf.remaining());
+            out.append(&mut decode_record_batches(&mut rest)?);
             break;
         }
         let len_bytes = chunk
@@ -455,8 +454,7 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         return Err(Error::protocol(format!("unsupported record magic {magic}")));
     }
     let crc = buf::get_u32(&mut body)?;
-    let crc_start = body.clone();
-    let computed = crc32c::crc32c(&crc_start);
+    let computed = crc32c::crc32c(&body);
     if computed != crc {
         return Err(Error::protocol(format!(
             "record batch crc mismatch: wire={crc:#010x} computed={computed:#010x}"
@@ -474,28 +472,19 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     if count < 0 {
         return Err(Error::protocol("negative record count"));
     }
-    let records_bytes = body;
-    let decompressed;
-    let mut records_cur: &[u8] = match compression {
-        Compression::None => &records_bytes,
-        Compression::Gzip => {
-            decompressed = gzip_decompress(&records_bytes)?;
-            &decompressed
-        }
-        Compression::Snappy => {
-            decompressed = snappy_decompress(&records_bytes)?;
-            &decompressed
-        }
-        Compression::Lz4 => {
-            decompressed = lz4_decompress(&records_bytes)?;
-            &decompressed
-        }
+    let mut records_cur = match compression {
+        Compression::None => body,
+        Compression::Gzip => Bytes::from(gzip_decompress(&body)?),
+        Compression::Snappy => Bytes::from(snappy_decompress(&body)?),
+        Compression::Lz4 => Bytes::from(lz4_decompress(&body)?),
     };
     let mut records = Vec::with_capacity(buf::usize_from_i32(count.max(0))?);
-    for i in 0..count {
-        let mut rec = decode_record(&mut records_cur, base_timestamp)?;
-        rec.offset = base_offset + i64::from(i);
-        records.push(rec);
+    for _ in 0..count {
+        records.push(decode_record(
+            &mut records_cur,
+            base_offset,
+            base_timestamp,
+        )?);
     }
     Ok(RecordBatch {
         base_offset,
@@ -510,7 +499,7 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     })
 }
 
-fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
+fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> Result<Record> {
     let len = buf::get_varint(buf)?;
     if len < 0 {
         return Err(Error::protocol("negative record length"));
@@ -520,7 +509,7 @@ fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
     let mut inner = buf.copy_to_bytes(len_usize);
     let _attributes = buf::get_i8(&mut inner)?;
     let timestamp_delta = buf::get_varlong(&mut inner)?;
-    let _offset_delta = buf::get_varint(&mut inner)?;
+    let offset_delta = buf::get_varint(&mut inner)?;
     let key = read_bytes_varint(&mut inner)?;
     let value = read_bytes_varint(&mut inner)?;
     let header_count = buf::get_varint(&mut inner)?;
@@ -542,7 +531,7 @@ fn decode_record<B: Buf>(buf: &mut B, base_timestamp: i64) -> Result<Record> {
         headers.push(Header { key, value });
     }
     Ok(Record {
-        offset: 0,
+        offset: base_offset + i64::from(offset_delta),
         timestamp: base_timestamp + timestamp_delta,
         key,
         value,
@@ -748,5 +737,73 @@ mod tests {
         assert_eq!(batches.len(), 2);
         assert_eq!(batches[0].records[0].value.as_deref(), Some(&b"one"[..]));
         assert_eq!(batches[1].records[0].value.as_deref(), Some(&b"two"[..]));
+    }
+
+    fn ptr_in_bytes(ptr: *const u8, buf: &Bytes) -> bool {
+        let start = buf.as_ptr();
+        let end = start.wrapping_add(buf.len());
+        ptr >= start && ptr < end
+    }
+
+    #[test]
+    fn decode_record_batch_from_bytes_shares_value() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"zero-copy-value")),
+            headers: vec![],
+        };
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &RecordBatch::from_records(vec![rec])).unwrap();
+        let frozen = buf.freeze();
+        let decoded = decode_record_batch(&mut frozen.clone()).unwrap();
+        let key = decoded.records[0].key.as_ref().unwrap();
+        let value = decoded.records[0].value.as_ref().unwrap();
+        assert!(
+            ptr_in_bytes(key.as_ptr(), &frozen),
+            "key must be a view into the fetch frame"
+        );
+        assert!(
+            ptr_in_bytes(value.as_ptr(), &frozen),
+            "value must be a view into the fetch frame"
+        );
+    }
+
+    #[test]
+    fn decode_record_uses_wire_offset_delta() {
+        let mut inner = BytesMut::new();
+        inner.put_i8(0);
+        buf::put_varlong(&mut inner, 3);
+        buf::put_varint(&mut inner, 7);
+        buf::put_varint(&mut inner, -1);
+        buf::put_varint(&mut inner, 1);
+        inner.extend_from_slice(b"x");
+        buf::put_varint(&mut inner, 0);
+        let mut rec = BytesMut::new();
+        buf::put_varint(&mut rec, buf::i32_from_usize(inner.len()).unwrap());
+        rec.extend_from_slice(&inner);
+        let decoded = decode_record(&mut &rec[..], 100, 1_000).unwrap();
+        assert_eq!(decoded.offset, 107);
+        assert_eq!(decoded.timestamp, 1_003);
+        assert_eq!(decoded.value.as_deref(), Some(&b"x"[..]));
+    }
+
+    #[test]
+    fn decode_record_batch_honors_base_offset_plus_delta() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 5,
+            key: None,
+            value: Some(Bytes::from_static(b"off")),
+            headers: vec![],
+        };
+        let mut batch = RecordBatch::from_records(vec![rec.clone(), rec]);
+        batch.base_offset = 50;
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(decoded.records[0].offset, 50);
+        assert_eq!(decoded.records[1].offset, 51);
     }
 }
