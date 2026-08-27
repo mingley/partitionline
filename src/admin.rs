@@ -14,17 +14,17 @@ use crate::protocol::acl::{
     encode_create_acls_request, encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
-    decode_alter_client_quotas_response, decode_alter_configs_response,
-    decode_alter_partition_reassignments_response, decode_alter_user_scram_credentials_response,
-    decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_records_response, decode_delete_topics_response,
+    decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
+    decode_alter_configs_response, decode_alter_partition_reassignments_response,
+    decode_alter_user_scram_credentials_response, decode_create_partitions_response,
+    decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
     decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
-    decode_update_features_response, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_user_scram_credentials_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
     encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
@@ -36,11 +36,11 @@ use crate::protocol::api::{
     encode_metadata_request, ApiVersion,
 };
 use crate::protocol::api_keys::{
-    pick_version, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS,
-    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, METADATA,
-    OFFSET_DELETE, UPDATE_FEATURES,
+    pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
+    ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CREATE_ACLS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
+    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -298,6 +298,15 @@ pub struct UserScramCredentialResult {
     pub error_message: Option<String>,
 }
 
+/// PID block from `Admin::allocate_producer_ids` (AllocateProducerIds api 67).
+///
+/// Fixture broker id/epoch only. This is not a live cluster PID allocator.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProducerIdBlock {
+    pub producer_id_start: i64,
+    pub producer_id_len: i32,
+}
+
 pub struct Admin {
     cfg: AdminConfig,
     conn: BrokerConn,
@@ -321,6 +330,7 @@ pub struct Admin {
     update_features_version: i16,
     alter_user_scram_version: i16,
     alter_client_quotas_version: i16,
+    allocate_producer_ids_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -462,6 +472,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AlterClientQuotas".into())
             })?;
+        let allocate_producer_ids_version = versions
+            .get(&ALLOCATE_PRODUCER_IDS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support AllocateProducerIds".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -485,6 +501,7 @@ impl Admin {
             update_features_version,
             alter_user_scram_version,
             alter_client_quotas_version,
+            allocate_producer_ids_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -1202,6 +1219,71 @@ impl Admin {
                 continue;
             }
             return Ok(results);
+        }
+    }
+
+    /// Allocate a producer-id block (AllocateProducerIds api 67).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller. `broker_id` /
+    /// `broker_epoch` are the requesting broker's fixture identity.
+    pub async fn allocate_producer_ids(
+        &mut self,
+        broker_id: i32,
+        broker_epoch: i64,
+    ) -> Result<ProducerIdBlock> {
+        let version = self.allocate_producer_ids_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing allocate_producer_ids conn"))?;
+                conn.roundtrip(
+                    ALLOCATE_PRODUCER_IDS,
+                    version,
+                    |buf| encode_allocate_producer_ids_request(buf, broker_id, broker_epoch),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_allocate_producer_ids_response(&mut body.clone())?;
+            if resp.error_code == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "AllocateProducerIds"));
+            }
+            return Ok(ProducerIdBlock {
+                producer_id_start: resp.producer_id_start,
+                producer_id_len: resp.producer_id_len,
+            });
         }
     }
 

@@ -1525,6 +1525,70 @@ pub fn decode_alter_client_quotas_response<B: Buf>(
     Ok(results)
 }
 
+/// AllocateProducerIds v0 response (top-level error after throttle).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AllocateProducerIdsResponse {
+    pub error_code: i16,
+    pub producer_id_start: i64,
+    pub producer_id_len: i32,
+}
+
+/// AllocateProducerIds v0 (flexible from v0; KIP-730).
+///
+/// Official Apache JSON (`apiKey: 67`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`) and kafka-protocol 0.18.0: this crate
+/// targets v0, the only version a client encodes (`VERSIONS` min=max=0).
+/// v0 is flexible. Request: `BrokerId` INT32, `BrokerEpoch` INT64,
+/// tagged. No timeout field. Response: `ThrottleTimeMs` INT32,
+/// `ErrorCode` INT16, `ProducerIdStart` INT64, `ProducerIdLen` INT32,
+/// tagged. There is a top-level `error_code` — 41 is that INT16 after
+/// throttle (bytes 4–5). Fixture broker id/epoch only; not a live
+/// cluster PID allocator.
+pub fn encode_allocate_producer_ids_request(
+    buf: &mut BytesMut,
+    broker_id: i32,
+    broker_epoch: i64,
+) -> crate::error::Result<()> {
+    buf.put_i32(broker_id);
+    buf.put_i64(broker_epoch);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_allocate_producer_ids_request<B: Buf>(buf: &mut B) -> Result<(i32, i64)> {
+    let broker_id = buf::get_i32(buf)?;
+    let broker_epoch = buf::get_i64(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((broker_id, broker_epoch))
+}
+
+pub fn encode_allocate_producer_ids_response(
+    buf: &mut BytesMut,
+    resp: &AllocateProducerIdsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf.put_i64(resp.producer_id_start);
+    buf.put_i32(resp.producer_id_len);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_allocate_producer_ids_response<B: Buf>(
+    buf: &mut B,
+) -> Result<AllocateProducerIdsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let producer_id_start = buf::get_i64(buf)?;
+    let producer_id_len = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(AllocateProducerIdsResponse {
+        error_code,
+        producer_id_start,
+        producer_id_len,
+    })
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2383,6 +2447,97 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterClientQuotas v1 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn allocate_producer_ids_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 67
+        // validVersions 0, flexibleVersions 0+. This crate targets v0.
+        // Not copied from AlterClientQuotas / UpdateFeatures / OffsetDelete.
+        const REQ: &[u8] = &[
+            0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2a, 0x00,
+        ];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_allocate_producer_ids_request(&mut buf, 7, 42).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = AllocateProducerIdsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            producer_id_start: 0,
+            producer_id_len: 0,
+        };
+        buf.clear();
+        encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn allocate_producer_ids_v0_roundtrip_is_leftover_empty() {
+        let mut buf = BytesMut::new();
+        encode_allocate_producer_ids_request(&mut buf, 7, 42).unwrap();
+        let mut cur = &buf[..];
+        let (broker_id, broker_epoch) = decode_allocate_producer_ids_request(&mut cur).unwrap();
+        assert_eq!(broker_id, 7);
+        assert_eq!(broker_epoch, 42);
+        assert!(
+            !cur.has_remaining(),
+            "AllocateProducerIds v0 request must be leftover-empty"
+        );
+
+        let resp = AllocateProducerIdsResponse {
+            error_code: 0,
+            producer_id_start: 1000,
+            producer_id_len: 1000,
+        };
+        buf.clear();
+        encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_allocate_producer_ids_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AllocateProducerIds v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn allocate_producer_ids_not_controller_is_at_byte_four() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode INT16,
+        // ProducerIdStart INT64, ProducerIdLen INT32, tagged. Measured from
+        // Apache AllocateProducerIdsResponse.json and an independent
+        // kafka-protocol 0.18.0 broker encode. Not copied from
+        // UpdateFeatures (same byte offset, different fields after 41),
+        // AlterClientQuotas (41 at bytes 5-6), AlterUserScramCredentials
+        // (41 after compact User), or OffsetDelete (error before throttle).
+        let resp = AllocateProducerIdsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            producer_id_start: 0,
+            producer_id_len: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 throttle then top-level error must be 41 at bytes 4-5"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_allocate_producer_ids_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AllocateProducerIds v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }

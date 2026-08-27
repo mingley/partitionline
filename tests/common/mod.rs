@@ -29,23 +29,26 @@ use partitionline::protocol::acl::{
     AclBinding,
 };
 use partitionline::protocol::admin::{
-    decode_alter_client_quotas_request, decode_alter_configs_request,
-    decode_alter_partition_reassignments_request, decode_alter_user_scram_credentials_request,
-    decode_create_partitions_request, decode_create_topics_request, decode_delete_records_request,
-    decode_delete_topics_request, decode_describe_cluster_request, decode_describe_configs_request,
+    decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
+    decode_alter_configs_request, decode_alter_partition_reassignments_request,
+    decode_alter_user_scram_credentials_request, decode_create_partitions_request,
+    decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
+    decode_describe_cluster_request, decode_describe_configs_request,
     decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    decode_update_features_request, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
     encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    encode_update_features_response, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClusterDescription, ConfigEntry,
-    DescribeConfigsResult, ListPartitionReassignmentsResponse, OngoingPartitionReassignment,
-    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult,
-    UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_update_features_response, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
+    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    ListPartitionReassignmentsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
+    ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -53,8 +56,8 @@ use partitionline::protocol::api::{
     PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
-    ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
+    ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
     FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
@@ -185,6 +188,11 @@ struct State {
     last_quota_delete: Option<(String, Option<String>, String)>,
     // Fixture entity/ops only. Not a real cluster quota store.
     quota_fixtures: HashMap<(String, Option<String>, String), f64>,
+    last_allocate_producer_ids_node: Option<i32>,
+    allocate_producer_ids_not_controller: u32,
+    // Fixture broker id/epoch + sequential blocks. Not a real PID allocator.
+    last_allocate_producer_ids: Option<(i32, i64, i64, i32)>,
+    next_producer_id_block_start: i64,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -334,6 +342,10 @@ fn new_state(
         last_quota_upsert: None,
         last_quota_delete: None,
         quota_fixtures: HashMap::new(),
+        last_allocate_producer_ids_node: None,
+        allocate_producer_ids_not_controller: 0,
+        last_allocate_producer_ids: None,
+        next_producer_id_block_start: 1000,
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -900,6 +912,18 @@ impl Mock {
         self.state.lock().last_quota_delete.clone()
     }
 
+    pub fn last_allocate_producer_ids_node(&self) -> Option<i32> {
+        self.state.lock().last_allocate_producer_ids_node
+    }
+
+    pub fn allocate_producer_ids_not_controller(&self) -> u32 {
+        self.state.lock().allocate_producer_ids_not_controller
+    }
+
+    pub fn last_allocate_producer_ids(&self) -> Option<(i32, i64, i64, i32)> {
+        self.state.lock().last_allocate_producer_ids
+    }
+
     pub fn has_quota_fixture(&self, entity_type: &str, name: Option<&str>, key: &str) -> bool {
         self.state.lock().quota_fixtures.contains_key(&(
             entity_type.to_string(),
@@ -1303,6 +1327,7 @@ fn versions() -> ApiVersionsResponse {
         (UPDATE_FEATURES, 0, 0),
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (ALTER_CLIENT_QUOTAS, 0, 1),
+        (ALLOCATE_PRODUCER_IDS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -2094,6 +2119,40 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         });
                     }
                     encode_alter_client_quotas_response(&mut body, &results).unwrap();
+                }
+            }
+            ALLOCATE_PRODUCER_IDS => {
+                let (broker_id, broker_epoch) =
+                    decode_allocate_producer_ids_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.allocate_producer_ids_not_controller =
+                        st.allocate_producer_ids_not_controller.saturating_add(1);
+                    // 41 only. Do not hand out a PID block on the wrong node.
+                    encode_allocate_producer_ids_response(
+                        &mut body,
+                        &AllocateProducerIdsResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            producer_id_start: 0,
+                            producer_id_len: 0,
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_allocate_producer_ids_node = Some(node_id);
+                    let start = st.next_producer_id_block_start;
+                    let len: i32 = 1000;
+                    st.next_producer_id_block_start = start.saturating_add(i64::from(len));
+                    st.last_allocate_producer_ids = Some((broker_id, broker_epoch, start, len));
+                    encode_allocate_producer_ids_response(
+                        &mut body,
+                        &AllocateProducerIdsResponse {
+                            error_code: 0,
+                            producer_id_start: start,
+                            producer_id_len: len,
+                        },
+                    )
+                    .unwrap();
                 }
             }
             DESCRIBE_ACLS => {
