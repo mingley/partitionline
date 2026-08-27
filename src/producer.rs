@@ -21,7 +21,11 @@ use crate::protocol::api::{
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, END_TXN,
-    INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
+    FIND_COORDINATOR, INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
+};
+use crate::protocol::group::{
+    decode_find_coordinator_response, encode_find_coordinator_request_typed, COORDINATOR_GROUP,
+    COORDINATOR_TRANSACTION,
 };
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
@@ -168,6 +172,8 @@ struct Shared {
     cfg: ProducerConfig,
     cluster: parking_lot::Mutex<Cluster>,
     meta: Mutex<BrokerConn>,
+    /// Transaction coordinator. `None` when `transactional.id` is unset.
+    txn: Mutex<Option<BrokerConn>>,
     metadata_version: i16,
     produce_version: i16,
     add_partitions_version: i16,
@@ -266,12 +272,18 @@ impl Producer {
 
         let mut producer_id = -1i64;
         let mut producer_epoch = -1i16;
+        let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
+            Some(discover_typed_coord(&cfg, tid, COORDINATOR_TRANSACTION).await?)
+        } else {
+            None
+        };
         if cfg.enable_idempotence {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 1).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
             let txn_id = cfg.transactional_id.clone();
-            let body = meta
+            let conn = txn.as_mut().unwrap_or(&mut meta);
+            let body = conn
                 .roundtrip(
                     INIT_PRODUCER_ID,
                     ipid_version,
@@ -300,6 +312,7 @@ impl Producer {
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
             meta: Mutex::new(meta),
+            txn: Mutex::new(txn),
             metadata_version,
             produce_version,
             add_partitions_version,
@@ -600,20 +613,18 @@ impl Producer {
         let timeout = self.inner.shared.cfg.request_timeout;
         let pid = self.inner.shared.producer_id;
         let epoch = self.inner.shared.producer_epoch;
-        {
-            let mut meta = self.inner.shared.meta.lock().await;
-            let body = meta
-                .roundtrip(
-                    ADD_OFFSETS_TO_TXN,
-                    0,
-                    |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
-                    timeout,
-                )
-                .await?;
-            let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
-            if err != 0 {
-                return Err(Error::broker(err, "AddOffsetsToTxn"));
-            }
+        let body = txn_roundtrip(
+            &self.inner.shared,
+            ADD_OFFSETS_TO_TXN,
+            0,
+            |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
+            timeout,
+            |body| decode_add_offsets_to_txn_response(&mut { body }),
+        )
+        .await?;
+        let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "AddOffsetsToTxn"));
         }
         let mut topics: Vec<String> = Vec::new();
         for (topic, _, _) in offsets {
@@ -632,19 +643,18 @@ impl Producer {
             let cluster = self.inner.shared.cluster.lock();
             group_txn_offsets(offsets, |topic, part| cluster.leader_epoch(topic, part))
         };
-        let mut meta = self.inner.shared.meta.lock().await;
-        let body = meta
-            .roundtrip(
-                TXN_OFFSET_COMMIT,
-                version,
-                |buf| {
-                    encode_txn_offset_commit_request(
-                        buf, version, &tid, group_id, pid, epoch, &grouped,
-                    )
-                },
-                timeout,
-            )
-            .await?;
+        let body = group_coord_roundtrip(
+            &self.inner.shared.cfg,
+            group_id,
+            TXN_OFFSET_COMMIT,
+            version,
+            |buf| {
+                encode_txn_offset_commit_request(buf, version, &tid, group_id, pid, epoch, &grouped)
+            },
+            timeout,
+            |body| decode_txn_offset_commit_response(&mut { body }),
+        )
+        .await?;
         let err = decode_txn_offset_commit_response(&mut body.clone())?;
         if err != 0 {
             return Err(Error::broker(err, "TxnOffsetCommit"));
@@ -659,15 +669,15 @@ impl Producer {
         let timeout = self.inner.shared.cfg.request_timeout;
         let pid = self.inner.shared.producer_id;
         let epoch = self.inner.shared.producer_epoch;
-        let mut meta = self.inner.shared.meta.lock().await;
-        let body = meta
-            .roundtrip(
-                END_TXN,
-                0,
-                |buf| encode_end_txn_request(buf, &tid, pid, epoch, committed),
-                timeout,
-            )
-            .await?;
+        let body = txn_roundtrip(
+            &self.inner.shared,
+            END_TXN,
+            0,
+            |buf| encode_end_txn_request(buf, &tid, pid, epoch, committed),
+            timeout,
+            |body| decode_end_txn_response(&mut { body }),
+        )
+        .await?;
         let err = decode_end_txn_response(&mut body.clone())?;
         if err != 0 {
             return Err(Error::broker(err, "EndTxn"));
@@ -758,6 +768,125 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
     )
     .await?;
     Ok(conn)
+}
+
+async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> Result<BrokerConn> {
+    let timeout = cfg.request_timeout;
+    let mut last = Error::protocol("find coordinator failed");
+    for addr in &cfg.bootstrap {
+        let mut hop = match open_conn(addr, cfg).await {
+            Ok(c) => c,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let body = match hop
+            .roundtrip(
+                FIND_COORDINATOR,
+                2,
+                |buf| encode_find_coordinator_request_typed(buf, key, key_type),
+                timeout,
+            )
+            .await
+        {
+            Ok(b) => b,
+            Err(e) => {
+                last = e;
+                continue;
+            }
+        };
+        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+        if err != 0 {
+            last = Error::broker(err, "FindCoordinator");
+            continue;
+        }
+        let coord_addr = format!("{host}:{port}");
+        if coord_addr == hop.addr() {
+            return Ok(hop);
+        }
+        return open_conn(&coord_addr, cfg).await;
+    }
+    Err(last)
+}
+
+async fn txn_roundtrip(
+    shared: &Shared,
+    api_key: i16,
+    api_version: i16,
+    encode_body: impl Fn(&mut BytesMut) -> Result<()>,
+    request_timeout: Duration,
+    error_of: impl Fn(&[u8]) -> Result<i16>,
+) -> Result<Bytes> {
+    let tid = shared
+        .cfg
+        .transactional_id
+        .clone()
+        .ok_or_else(|| Error::protocol("transactional.id is not set"))?;
+    let first = {
+        let mut guard = shared.txn.lock().await;
+        let conn = guard
+            .as_mut()
+            .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
+        conn.roundtrip(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            request_timeout,
+        )
+        .await
+    };
+    match first {
+        Ok(body) if error_of(&body)? != error::NOT_COORDINATOR => return Ok(body),
+        Ok(_) => {}
+        Err(e) if e.is_retriable() => {}
+        Err(e) => return Err(e),
+    }
+    let new = discover_typed_coord(&shared.cfg, &tid, COORDINATOR_TRANSACTION).await?;
+    let mut guard = shared.txn.lock().await;
+    *guard = Some(new);
+    let conn = guard
+        .as_mut()
+        .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
+    conn.roundtrip(
+        api_key,
+        api_version,
+        |buf| encode_body(buf),
+        request_timeout,
+    )
+    .await
+}
+
+async fn group_coord_roundtrip(
+    cfg: &ProducerConfig,
+    group_id: &str,
+    api_key: i16,
+    api_version: i16,
+    encode_body: impl Fn(&mut BytesMut) -> Result<()>,
+    request_timeout: Duration,
+    error_of: impl Fn(&[u8]) -> Result<i16>,
+) -> Result<Bytes> {
+    let mut coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP).await?;
+    let body = coord
+        .roundtrip(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            request_timeout,
+        )
+        .await?;
+    if error_of(&body)? != error::NOT_COORDINATOR {
+        return Ok(body);
+    }
+    coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP).await?;
+    coord
+        .roundtrip(
+            api_key,
+            api_version,
+            |buf| encode_body(buf),
+            request_timeout,
+        )
+        .await
 }
 
 async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
@@ -1303,7 +1432,6 @@ impl Worker {
         let pid = self.shared.producer_id;
         let epoch = self.shared.producer_epoch;
         let version = self.shared.add_partitions_version;
-        let mut meta = self.shared.meta.lock().await;
         let added: Vec<(Arc<str>, i32)> = {
             let wanted = self.shared.txn_partitions.lock();
             let sent = self.shared.txn_added.lock();
@@ -1317,14 +1445,15 @@ impl Worker {
             return Ok(());
         }
         let topics = group_txn_partitions(&added);
-        let body = meta
-            .roundtrip(
-                ADD_PARTITIONS_TO_TXN,
-                version,
-                |buf| encode_add_partitions_to_txn_request(buf, &tid, pid, epoch, &topics),
-                timeout,
-            )
-            .await?;
+        let body = txn_roundtrip(
+            &self.shared,
+            ADD_PARTITIONS_TO_TXN,
+            version,
+            |buf| encode_add_partitions_to_txn_request(buf, &tid, pid, epoch, &topics),
+            timeout,
+            |body| decode_add_partitions_to_txn_response(&mut { body }),
+        )
+        .await?;
         let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
         if err != 0 {
             return Err(Error::broker(err, "AddPartitionsToTxn"));

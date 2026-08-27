@@ -9,6 +9,8 @@ use super::buf;
 use crate::error::Result;
 
 pub const COORDINATOR_GROUP: i8 = 0;
+/// FindCoordinator `key_type` for a transactional.id (KIP-98).
+pub const COORDINATOR_TRANSACTION: i8 = 1;
 pub const COORDINATOR_SHARE: i8 = 2;
 
 pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) -> crate::error::Result<()> {
@@ -25,10 +27,10 @@ pub fn encode_find_coordinator_request_typed(
     Ok(())
 }
 
-pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<String> {
+pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<(String, i8)> {
     let key = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _ty = buf::get_i8(buf)?;
-    Ok(key)
+    let key_type = buf::get_i8(buf)?;
+    Ok((key, key_type))
 }
 
 pub fn encode_find_coordinator_response(
@@ -525,6 +527,31 @@ pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn find_coordinator_v2_sends_key_type_and_is_leftover_empty() {
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_request_typed(&mut buf, "tx-1", COORDINATOR_TRANSACTION).unwrap();
+        let mut cur = &buf[..];
+        let (key, key_type) = decode_find_coordinator_request(&mut cur).unwrap();
+        assert_eq!((key.as_str(), key_type), ("tx-1", COORDINATOR_TRANSACTION));
+        assert!(
+            cur.is_empty(),
+            "v2 decoder must consume key_type; leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        encode_find_coordinator_request_typed(&mut buf, "g", COORDINATOR_GROUP).unwrap();
+        let mut cur = &buf[..];
+        let (key, key_type) = decode_find_coordinator_request(&mut cur).unwrap();
+        assert_eq!((key.as_str(), key_type), ("g", COORDINATOR_GROUP));
+        assert!(
+            cur.is_empty(),
+            "group key_type leftover {} bytes",
+            cur.len()
+        );
+    }
 
     #[test]
     fn subscription_assignment_roundtrip() {

@@ -65,12 +65,12 @@ use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
-    decode_heartbeat_request, decode_join_group_request, decode_leave_group_request,
-    decode_offset_commit_request, decode_offset_fetch_request, decode_sync_group_request,
-    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
-    encode_leave_group_response, encode_offset_commit_response, encode_offset_fetch_response,
-    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, OffsetPartition,
-    OffsetTopic,
+    decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
+    decode_leave_group_request, decode_offset_commit_request, decode_offset_fetch_request,
+    decode_sync_group_request, encode_find_coordinator_response, encode_heartbeat_response,
+    encode_join_group_response, encode_leave_group_response, encode_offset_commit_response,
+    encode_offset_fetch_response, encode_sync_group_response, FetchedOffset, FetchedOffsetTopic,
+    JoinMember, OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
@@ -172,6 +172,13 @@ struct State {
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
     coord_node: i32,
+    txn_coord_node: i32,
+    find_coordinator_key_types: Vec<i8>,
+    last_init_producer_id_node: Option<i32>,
+    last_add_partitions_node: Option<i32>,
+    last_add_offsets_node: Option<i32>,
+    last_end_txn_node: Option<i32>,
+    last_txn_offset_commit_node: Option<i32>,
     hb_by_node: HashMap<i32, u32>,
     kip848_groups: HashMap<String, Kip848Reg>,
 }
@@ -265,6 +272,13 @@ fn new_state(
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
         coord_node: 1,
+        txn_coord_node: 1,
+        find_coordinator_key_types: Vec::new(),
+        last_init_producer_id_node: None,
+        last_add_partitions_node: None,
+        last_add_offsets_node: None,
+        last_end_txn_node: None,
+        last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
         kip848_groups: HashMap::new(),
     }
@@ -726,6 +740,46 @@ impl Mock {
         {
             st.coord_node = other;
         }
+    }
+
+    pub fn set_txn_coordinator(&self, node_id: i32) {
+        self.state.lock().txn_coord_node = node_id;
+    }
+
+    pub fn move_txn_coordinator(&self) {
+        let mut st = self.state.lock();
+        if let Some(other) = st
+            .brokers
+            .iter()
+            .map(|b| b.node_id)
+            .find(|id| *id != st.txn_coord_node)
+        {
+            st.txn_coord_node = other;
+        }
+    }
+
+    pub fn find_coordinator_key_types(&self) -> Vec<i8> {
+        self.state.lock().find_coordinator_key_types.clone()
+    }
+
+    pub fn last_init_producer_id_node(&self) -> Option<i32> {
+        self.state.lock().last_init_producer_id_node
+    }
+
+    pub fn last_add_partitions_node(&self) -> Option<i32> {
+        self.state.lock().last_add_partitions_node
+    }
+
+    pub fn last_add_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_add_offsets_node
+    }
+
+    pub fn last_end_txn_node(&self) -> Option<i32> {
+        self.state.lock().last_end_txn_node
+    }
+
+    pub fn last_txn_offset_commit_node(&self) -> Option<i32> {
+        self.state.lock().last_txn_offset_commit_node
     }
 
     pub fn membership_heartbeats_on(&self, node_id: i32) -> u32 {
@@ -1423,58 +1477,93 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             INIT_PRODUCER_ID => {
+                let tid = buf::get_classic_nullable_string(&mut frame).unwrap();
+                let _txn_timeout = buf::get_i32(&mut frame).unwrap();
+                if header.api_version >= 3 {
+                    let _ = buf::get_i64(&mut frame).unwrap();
+                    let _ = buf::get_i16(&mut frame).unwrap();
+                }
                 let mut st = state.lock();
-                let pid = st.next_pid;
-                st.next_pid += 1;
-                encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0).unwrap();
+                if tid.is_some() && st.txn_coord_node != node_id {
+                    encode_init_producer_id_response(&mut body, header.api_version, 16, -1, -1)
+                        .unwrap();
+                } else {
+                    st.last_init_producer_id_node = Some(node_id);
+                    let pid = st.next_pid;
+                    st.next_pid += 1;
+                    encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0)
+                        .unwrap();
+                }
             }
             ADD_PARTITIONS_TO_TXN => {
                 let (_tid, _pid, _epoch, topics) =
                     decode_add_partitions_to_txn_request(&mut frame).unwrap();
-                let n = topics.iter().map(|t| t.partitions.len()).sum();
                 let mut st = state.lock();
-                st.in_txn = true;
-                st.add_partitions_to_txn_calls = st.add_partitions_to_txn_calls.saturating_add(1);
-                st.last_add_partitions_to_txn = n;
-                encode_add_partitions_to_txn_response(&mut body, &topics, 0).unwrap();
+                if st.txn_coord_node != node_id {
+                    encode_add_partitions_to_txn_response(&mut body, &topics, 16).unwrap();
+                } else {
+                    let n = topics.iter().map(|t| t.partitions.len()).sum();
+                    st.in_txn = true;
+                    st.add_partitions_to_txn_calls =
+                        st.add_partitions_to_txn_calls.saturating_add(1);
+                    st.last_add_partitions_to_txn = n;
+                    st.last_add_partitions_node = Some(node_id);
+                    encode_add_partitions_to_txn_response(&mut body, &topics, 0).unwrap();
+                }
             }
             ADD_OFFSETS_TO_TXN => {
                 let _ = decode_add_offsets_to_txn_request(&mut frame);
-                encode_add_offsets_to_txn_response(&mut body, 0).unwrap();
+                let mut st = state.lock();
+                if st.txn_coord_node != node_id {
+                    encode_add_offsets_to_txn_response(&mut body, 16).unwrap();
+                } else {
+                    st.last_add_offsets_node = Some(node_id);
+                    encode_add_offsets_to_txn_response(&mut body, 0).unwrap();
+                }
             }
             END_TXN => {
                 let (_tid, _pid, _epoch, committed) = decode_end_txn_request(&mut frame).unwrap();
                 let mut st = state.lock();
-                if !committed {
-                    let pending = std::mem::take(&mut st.txn_pending);
-                    for rec in pending {
-                        st.txn_aborted.insert(rec);
-                    }
+                if st.txn_coord_node != node_id {
+                    encode_end_txn_response(&mut body, 16).unwrap();
                 } else {
-                    st.txn_pending.clear();
+                    if !committed {
+                        let pending = std::mem::take(&mut st.txn_pending);
+                        for rec in pending {
+                            st.txn_aborted.insert(rec);
+                        }
+                    } else {
+                        st.txn_pending.clear();
+                    }
+                    st.in_txn = false;
+                    st.last_end_txn_node = Some(node_id);
+                    encode_end_txn_response(&mut body, 0).unwrap();
                 }
-                st.in_txn = false;
-                encode_end_txn_response(&mut body, 0).unwrap();
             }
             TXN_OFFSET_COMMIT => {
                 let (_tid, _gid, topics) =
                     decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
-                st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
-                let mut nparts = 0usize;
-                let mut epochs = Vec::new();
-                for t in &topics {
-                    for p in &t.partitions {
-                        nparts = nparts.saturating_add(1);
-                        epochs.push(p.leader_epoch);
-                        let _ = st
-                            .committed
-                            .insert((t.topic.clone(), p.partition), p.offset);
+                if st.coord_node != node_id {
+                    encode_txn_offset_commit_response(&mut body, &topics, 16).unwrap();
+                } else {
+                    st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
+                    let mut nparts = 0usize;
+                    let mut epochs = Vec::new();
+                    for t in &topics {
+                        for p in &t.partitions {
+                            nparts = nparts.saturating_add(1);
+                            epochs.push(p.leader_epoch);
+                            let _ = st
+                                .committed
+                                .insert((t.topic.clone(), p.partition), p.offset);
+                        }
                     }
+                    st.last_txn_offset_commit_partitions = nparts;
+                    st.last_txn_offset_epochs = epochs;
+                    st.last_txn_offset_commit_node = Some(node_id);
+                    encode_txn_offset_commit_response(&mut body, &topics, 0).unwrap();
                 }
-                st.last_txn_offset_commit_partitions = nparts;
-                st.last_txn_offset_epochs = epochs;
-                encode_txn_offset_commit_response(&mut body, &topics, 0).unwrap();
             }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();
@@ -1856,8 +1945,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                let st = state.lock();
-                let coord = st.coord_node;
+                let (_key, key_type) = decode_find_coordinator_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.find_coordinator_key_types.push(key_type);
+                let coord = if key_type == COORDINATOR_TRANSACTION {
+                    st.txn_coord_node
+                } else {
+                    st.coord_node
+                };
                 let (host, port) = broker_host_port(&st, coord);
                 encode_find_coordinator_response(&mut body, coord, &host, port).unwrap();
             }
