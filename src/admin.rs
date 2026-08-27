@@ -452,16 +452,54 @@ impl Admin {
         let topics = topics.to_vec();
         let version = self.partitions_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                CREATE_PARTITIONS,
-                version,
-                |buf| encode_create_partitions_request(buf, &topics, timeout_ms, validate_only),
-                timeout,
-            )
-            .await?;
-        decode_create_partitions_response(&mut body.clone())
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing create_partitions conn"))?;
+                conn.roundtrip(
+                    CREATE_PARTITIONS,
+                    version,
+                    |buf| encode_create_partitions_request(buf, &topics, timeout_ms, validate_only),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_create_partitions_response(&mut body.clone())?;
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(results);
+        }
     }
 
     pub async fn incremental_alter_configs(

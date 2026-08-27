@@ -147,6 +147,8 @@ struct State {
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     delete_topics_not_controller: u32,
+    last_create_partitions_node: Option<i32>,
+    create_partitions_not_controller: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -268,6 +270,8 @@ fn new_state(
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         delete_topics_not_controller: 0,
+        last_create_partitions_node: None,
+        create_partitions_not_controller: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -731,6 +735,14 @@ impl Mock {
 
     pub fn delete_topics_not_controller(&self) -> u32 {
         self.state.lock().delete_topics_not_controller
+    }
+
+    pub fn last_create_partitions_node(&self) -> Option<i32> {
+        self.state.lock().last_create_partitions_node
+    }
+
+    pub fn create_partitions_not_controller(&self) -> u32 {
+        self.state.lock().create_partitions_not_controller
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1464,25 +1476,38 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (topics, validate_only) = decode_create_partitions_request(&mut frame).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
-                for (name, count) in topics {
-                    match st.created_topics.get_mut(&name) {
-                        None => results.push(TopicResult {
+                if st.controller_node != node_id {
+                    st.create_partitions_not_controller =
+                        st.create_partitions_not_controller.saturating_add(1);
+                    for (name, _count) in topics {
+                        results.push(TopicResult {
                             name,
-                            error_code: 3,
-                            error_message: Some("Unknown topic.".into()),
-                        }),
-                        Some(spec) => {
-                            let mut err = 0i16;
-                            if count < spec.num_partitions {
-                                err = 37;
-                            } else if !validate_only {
-                                spec.num_partitions = count;
-                            }
-                            results.push(TopicResult {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                } else {
+                    st.last_create_partitions_node = Some(node_id);
+                    for (name, count) in topics {
+                        match st.created_topics.get_mut(&name) {
+                            None => results.push(TopicResult {
                                 name,
-                                error_code: err,
-                                error_message: None,
-                            });
+                                error_code: 3,
+                                error_message: Some("Unknown topic.".into()),
+                            }),
+                            Some(spec) => {
+                                let mut err = 0i16;
+                                if count < spec.num_partitions {
+                                    err = 37;
+                                } else if !validate_only {
+                                    spec.num_partitions = count;
+                                }
+                                results.push(TopicResult {
+                                    name,
+                                    error_code: err,
+                                    error_message: None,
+                                });
+                            }
                         }
                     }
                 }
