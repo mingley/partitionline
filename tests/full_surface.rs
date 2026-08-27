@@ -13,10 +13,10 @@ mod common;
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, PartitionReassignment,
-    ProduceRecord, Producer, ProducerConfig, ShareGroup, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW,
-    ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP,
+    ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, ShareGroup, ACL_OPERATION_ALL,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2637,6 +2637,73 @@ async fn alter_partition_reassignments_follows_controller() {
         mock.last_reassignment(),
         Some(("re1".into(), 0, Some(vec![1, 2]))),
         "retry on the new controller must store the replica list"
+    );
+}
+
+#[tokio::test]
+async fn list_partition_reassignments_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("lr2", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let assigned = admin
+        .alter_partition_reassignments(
+            &[PartitionReassignment::assign("lr2", 0, vec![2, 1])],
+            10_000,
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code, 0);
+
+    let listed = admin
+        .list_partition_reassignments(Some(&[("lr2".into(), 0)]), 10_000)
+        .await
+        .unwrap();
+    assert_eq!(
+        listed,
+        vec![OngoingReassignment {
+            topic: "lr2".into(),
+            partition: 0,
+            replicas: vec![2, 1],
+            adding_replicas: vec![],
+            removing_replicas: vec![],
+        }]
+    );
+    assert_eq!(
+        mock.last_list_reassignments_node(),
+        Some(2),
+        "ListPartitionReassignments must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .list_partition_reassignments(Some(&[("lr2".into(), 0)]), 10_000)
+        .await
+        .unwrap();
+    assert_eq!(
+        again,
+        vec![OngoingReassignment {
+            topic: "lr2".into(),
+            partition: 0,
+            replicas: vec![2, 1],
+            adding_replicas: vec![],
+            removing_replicas: vec![],
+        }]
+    );
+    assert_eq!(
+        mock.list_reassignments_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_list_reassignments_node(),
+        Some(1),
+        "ListPartitionReassignments must follow Metadata after NOT_CONTROLLER"
     );
 }
 

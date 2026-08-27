@@ -32,14 +32,17 @@ use partitionline::protocol::admin::{
     decode_alter_configs_request, decode_alter_partition_reassignments_request,
     decode_create_partitions_request, decode_create_topics_request, decode_delete_records_request,
     decode_delete_topics_request, decode_describe_cluster_request, decode_describe_configs_request,
-    decode_incremental_alter_configs_request, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
-    encode_incremental_alter_configs_response, AlterPartitionReassignmentsResponse,
-    ClusterDescription, ConfigEntry, DescribeConfigsResult, ReassignmentPartitionResult,
-    ReassignmentTopicResult, TopicResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
+    AlterPartitionReassignmentsResponse, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    ListPartitionReassignmentsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
+    ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
+    RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -51,9 +54,10 @@ use partitionline::protocol::api_keys::{
     API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
     END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID,
-    JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_COMMIT,
+    OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
+    TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -159,6 +163,9 @@ struct State {
     last_alter_reassignments_node: Option<i32>,
     alter_reassignments_not_controller: u32,
     last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
+    reassignments: HashMap<(String, i32), Vec<i32>>,
+    last_list_reassignments_node: Option<i32>,
+    list_reassignments_not_controller: u32,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -291,6 +298,9 @@ fn new_state(
         last_alter_reassignments_node: None,
         alter_reassignments_not_controller: 0,
         last_reassignment: None,
+        reassignments: HashMap::new(),
+        last_list_reassignments_node: None,
+        list_reassignments_not_controller: 0,
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -794,6 +804,14 @@ impl Mock {
         self.state.lock().last_reassignment.clone()
     }
 
+    pub fn last_list_reassignments_node(&self) -> Option<i32> {
+        self.state.lock().last_list_reassignments_node
+    }
+
+    pub fn list_reassignments_not_controller(&self) -> u32 {
+        self.state.lock().list_reassignments_not_controller
+    }
+
     pub fn last_offset_delete_node(&self) -> Option<i32> {
         self.state.lock().last_offset_delete_node
     }
@@ -1177,6 +1195,7 @@ fn versions() -> ApiVersionsResponse {
         (DELETE_ACLS, 0, 1),
         (INCREMENTAL_ALTER_CONFIGS, 0, 0),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
+        (LIST_PARTITION_REASSIGNMENTS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -1737,6 +1756,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             let err = if st.created_topics.contains_key(&t.name) {
                                 st.last_reassignment =
                                     Some((t.name.clone(), p.partition_index, p.replicas.clone()));
+                                match p.replicas {
+                                    Some(replicas) => {
+                                        let _ = st
+                                            .reassignments
+                                            .insert((t.name.clone(), p.partition_index), replicas);
+                                    }
+                                    None => {
+                                        let _ = st
+                                            .reassignments
+                                            .remove(&(t.name.clone(), p.partition_index));
+                                    }
+                                }
                                 0
                             } else {
                                 3
@@ -1758,6 +1789,62 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             error_code: 0,
                             error_message: None,
                             results,
+                        },
+                    )
+                    .unwrap();
+                }
+            }
+            LIST_PARTITION_REASSIGNMENTS => {
+                let (_timeout, topics) =
+                    decode_list_partition_reassignments_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.list_reassignments_not_controller =
+                        st.list_reassignments_not_controller.saturating_add(1);
+                    // 41 only. Do not invent a replica list on the wrong node.
+                    encode_list_partition_reassignments_response(
+                        &mut body,
+                        &ListPartitionReassignmentsResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            topics: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_list_reassignments_node = Some(node_id);
+                    let mut by_topic: BTreeMap<String, Vec<OngoingPartitionReassignment>> =
+                        BTreeMap::new();
+                    for ((name, partition), replicas) in &st.reassignments {
+                        let wanted = match &topics {
+                            None => true,
+                            Some(filter) => filter.iter().any(|t| {
+                                t.name == *name
+                                    && (t.partition_indexes.is_empty()
+                                        || t.partition_indexes.contains(partition))
+                            }),
+                        };
+                        if wanted {
+                            by_topic.entry(name.clone()).or_default().push(
+                                OngoingPartitionReassignment {
+                                    partition_index: *partition,
+                                    replicas: replicas.clone(),
+                                    adding_replicas: Vec::new(),
+                                    removing_replicas: Vec::new(),
+                                },
+                            );
+                        }
+                    }
+                    let listed: Vec<OngoingTopicReassignment> = by_topic
+                        .into_iter()
+                        .map(|(name, partitions)| OngoingTopicReassignment { name, partitions })
+                        .collect();
+                    encode_list_partition_reassignments_response(
+                        &mut body,
+                        &ListPartitionReassignmentsResponse {
+                            error_code: 0,
+                            error_message: None,
+                            topics: listed,
                         },
                     )
                     .unwrap();
