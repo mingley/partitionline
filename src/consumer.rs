@@ -224,6 +224,23 @@ impl Consumer {
         self.assigned.clear();
     }
 
+    /// Replace the assignment. One Metadata refresh for the topic set.
+    pub(crate) async fn assign_all(&mut self, starts: &[(String, i32, i64)]) -> Result<()> {
+        self.clear_assignment();
+        if starts.is_empty() {
+            return Ok(());
+        }
+        let mut topics: Vec<String> = Vec::new();
+        for (topic, _, _) in starts {
+            if !topics.iter().any(|t| t == topic) {
+                topics.push(topic.clone());
+            }
+        }
+        self.refresh_metadata(Some(&topics)).await?;
+        self.assigned.extend(starts.iter().cloned());
+        Ok(())
+    }
+
     pub(crate) async fn partition_ids(&mut self, topic: &str) -> Result<Vec<i32>> {
         let topics = [topic.to_string()];
         self.refresh_metadata(Some(&topics)).await?;

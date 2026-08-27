@@ -22,6 +22,7 @@
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
 use partitionline::error;
+use partitionline::group::assign_range;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
@@ -166,6 +167,19 @@ struct State {
     drop_gen: watch::Sender<u32>,
     coord_node: i32,
     hb_by_node: HashMap<i32, u32>,
+    kip848_groups: HashMap<String, Kip848Reg>,
+}
+
+#[derive(Default)]
+struct Kip848Reg {
+    members: BTreeMap<String, Kip848Member>,
+}
+
+struct Kip848Member {
+    topic: String,
+    epoch: i32,
+    partitions: Vec<i32>,
+    pending: bool,
 }
 
 struct GroupReg {
@@ -240,6 +254,41 @@ fn new_state(
         drop_gen: watch::channel(0).0,
         coord_node: 1,
         hb_by_node: HashMap::new(),
+        kip848_groups: HashMap::new(),
+    }
+}
+
+fn kip848_recompute(st: &mut State, group_id: &str) {
+    let Some(g) = st.kip848_groups.get(group_id) else {
+        return;
+    };
+    let members: Vec<String> = g.members.keys().cloned().collect();
+    if members.is_empty() {
+        return;
+    }
+    let topic = g
+        .members
+        .values()
+        .next()
+        .map(|m| m.topic.clone())
+        .unwrap_or_else(|| "t".into());
+    let npart = st
+        .created_topics
+        .get(&topic)
+        .map(|s| s.num_partitions)
+        .unwrap_or(1);
+    let parts: Vec<i32> = (0..npart).collect();
+    let map = assign_range(&members, &parts);
+    let Some(g) = st.kip848_groups.get_mut(group_id) else {
+        return;
+    };
+    for (id, m) in &mut g.members {
+        let new_parts = map.get(id).cloned().unwrap_or_default();
+        if new_parts != m.partitions {
+            m.partitions = new_parts;
+            m.epoch = m.epoch.saturating_add(1).max(1);
+            m.pending = true;
+        }
     }
 }
 
@@ -1863,7 +1912,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
-                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Less => {
+                        let empty = if let Some(g) = st.kip848_groups.get_mut(&req.group_id) {
+                            let _ = g.members.remove(&req.member_id);
+                            g.members.is_empty()
+                        } else {
+                            false
+                        };
+                        if empty {
+                            let _ = st.kip848_groups.remove(&req.group_id);
+                        } else {
+                            kip848_recompute(&mut st, &req.group_id);
+                        }
+                        (req.member_id, -1, None)
+                    }
                     std::cmp::Ordering::Equal => {
                         st.member_seq += 1;
                         let id = format!("k-{}", st.member_seq);
@@ -1873,22 +1935,56 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .and_then(|n| n.first())
                             .cloned()
                             .unwrap_or_else(|| "t".into());
-                        let npart = st
-                            .created_topics
-                            .get(&topic_name)
-                            .map(|s| s.num_partitions)
-                            .unwrap_or(1);
-                        let partitions: Vec<i32> = (0..npart).collect();
+                        let g = st.kip848_groups.entry(req.group_id.clone()).or_default();
+                        let _ = g.members.insert(
+                            id.clone(),
+                            Kip848Member {
+                                topic: topic_name,
+                                epoch: 0,
+                                partitions: Vec::new(),
+                                pending: false,
+                            },
+                        );
+                        kip848_recompute(&mut st, &req.group_id);
+                        let (epoch, partitions) = st
+                            .kip848_groups
+                            .get_mut(&req.group_id)
+                            .and_then(|g| g.members.get_mut(&id))
+                            .map(|m| {
+                                m.pending = false;
+                                (m.epoch, m.partitions.clone())
+                            })
+                            .unwrap_or((1, vec![0]));
                         (
                             id,
-                            1,
+                            epoch,
                             Some(vec![TopicPartitions {
                                 topic_id: [0u8; 16],
                                 partitions,
                             }]),
                         )
                     }
-                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
+                    std::cmp::Ordering::Greater => {
+                        let found = st
+                            .kip848_groups
+                            .get_mut(&req.group_id)
+                            .and_then(|g| g.members.get_mut(&req.member_id));
+                        match found {
+                            Some(m) if m.pending || req.member_epoch < m.epoch => {
+                                m.pending = false;
+                                (
+                                    req.member_id,
+                                    m.epoch,
+                                    Some(vec![TopicPartitions {
+                                        topic_id: [0u8; 16],
+                                        partitions: m.partitions.clone(),
+                                    }]),
+                                )
+                            }
+                            Some(m) => (req.member_id, m.epoch, None),
+                            None => (req.member_id, req.member_epoch, None),
+                        }
+                    }
                 };
                 encode_consumer_group_heartbeat_response(
                     &mut body,
