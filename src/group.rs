@@ -861,7 +861,7 @@ pub(crate) async fn coord_roundtrip(
         }
         Err(e) => return Err(e),
     };
-    if peek_error_code(&body) == Some(error::NOT_COORDINATOR) {
+    if coordinator_error(api_key, &body) == Some(error::NOT_COORDINATOR) {
         *coord = discover_coord(cfg, group_id, key_type).await?;
         coord
             .roundtrip(
@@ -873,6 +873,29 @@ pub(crate) async fn coord_roundtrip(
             .await
     } else {
         Ok(body)
+    }
+}
+
+/// OffsetCommit / OffsetFetch put `NOT_COORDINATOR` on each partition (and
+/// OffsetFetch also at the tail). Bytes 4–5 are the topic-array length, so a
+/// throttle-then-i16 peek misses 16 and treats a recoverable move as fatal.
+fn coordinator_error(api_key: i16, body: &[u8]) -> Option<i16> {
+    match api_key {
+        OFFSET_COMMIT => match decode_offset_commit_response(&mut { body }) {
+            Ok(0) => None,
+            Ok(code) => Some(code),
+            Err(_) => None,
+        },
+        OFFSET_FETCH => match decode_offset_fetch_response(&mut { body }) {
+            Err(Error::Broker { code, .. }) => Some(code),
+            Ok(topics) => topics
+                .iter()
+                .flat_map(|t| t.partitions.iter())
+                .map(|p| p.error_code)
+                .find(|code| *code != 0),
+            Err(_) => None,
+        },
+        _ => peek_error_code(body),
     }
 }
 
@@ -917,6 +940,57 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn offset_commit_not_coordinator_is_not_at_byte_four() {
+        use crate::protocol::api_keys::OFFSET_COMMIT;
+        use crate::protocol::group::{encode_offset_commit_response, OffsetPartition, OffsetTopic};
+        let topics = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 1,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_response(&mut buf, &topics, error::NOT_COORDINATOR).unwrap();
+        assert_ne!(
+            peek_error_code(&buf),
+            Some(error::NOT_COORDINATOR),
+            "throttle + topic-array length must not look like error 16"
+        );
+        assert_eq!(
+            coordinator_error(OFFSET_COMMIT, &buf),
+            Some(error::NOT_COORDINATOR)
+        );
+    }
+
+    #[test]
+    fn offset_fetch_not_coordinator_is_not_at_byte_four() {
+        use crate::protocol::api_keys::OFFSET_FETCH;
+        use crate::protocol::group::{
+            encode_offset_fetch_response, FetchedOffset, FetchedOffsetTopic,
+        };
+        let topics = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset {
+                partition: 0,
+                offset: -1,
+                error_code: error::NOT_COORDINATOR,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_response(&mut buf, &topics).unwrap();
+        assert_ne!(
+            peek_error_code(&buf),
+            Some(error::NOT_COORDINATOR),
+            "throttle + topic-array length must not look like error 16"
+        );
+        assert_eq!(
+            coordinator_error(OFFSET_FETCH, &buf),
+            Some(error::NOT_COORDINATOR)
+        );
     }
 
     #[test]
