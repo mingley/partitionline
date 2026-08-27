@@ -398,7 +398,7 @@ impl ShareGroup {
                                 if let Ok(resp) =
                                     decode_share_group_heartbeat_response(&mut body.clone())
                                 {
-                                    if resp.error_code == crate::error::NOT_COORDINATOR {
+                                    if crate::error::coordinator_retriable(resp.error_code) {
                                         conn = None;
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);

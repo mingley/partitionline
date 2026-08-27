@@ -1768,6 +1768,48 @@ async fn offset_commit_rediscovers_after_not_coordinator() {
 }
 
 #[tokio::test]
+async fn offset_commit_rediscovers_after_coordinator_load_in_progress() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"oc-14"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg.clone(), "oc-14", "t")
+        .await
+        .unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"oc-14"[..]));
+    mock.offset_commit_load_once();
+    g.commit().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_load_in_progress(),
+        1,
+        "coordinator must return COORDINATOR_LOAD_IN_PROGRESS (14) once"
+    );
+    assert_eq!(
+        mock.last_offset_commit_node(),
+        Some(1),
+        "OffsetCommit must retry after 14 and land on the coordinator"
+    );
+    g.leave().await.unwrap();
+
+    let mut g2 = ConsumerGroup::join(ccfg, "oc-14", "t").await.unwrap();
+    let recs = g2.poll().await.unwrap();
+    assert!(
+        recs.is_empty(),
+        "successful commit after 14 must store the offset"
+    );
+    g2.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_follows_moved_coordinator() {
     let mock = common::Mock::start_two_node().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

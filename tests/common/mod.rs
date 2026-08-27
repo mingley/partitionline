@@ -167,6 +167,8 @@ struct State {
     last_offset_fetch_partitions: usize,
     last_offset_commit_node: Option<i32>,
     offset_commit_not_coordinator: u32,
+    offset_commit_load_left: u32,
+    offset_commit_load_in_progress: u32,
     add_partitions_to_txn_calls: u32,
     last_add_partitions_to_txn: usize,
     txn_offset_commit_calls: u32,
@@ -272,6 +274,8 @@ fn new_state(
         last_offset_fetch_partitions: 0,
         last_offset_commit_node: None,
         offset_commit_not_coordinator: 0,
+        offset_commit_load_left: 0,
+        offset_commit_load_in_progress: 0,
         add_partitions_to_txn_calls: 0,
         last_add_partitions_to_txn: 0,
         txn_offset_commit_calls: 0,
@@ -707,6 +711,14 @@ impl Mock {
 
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
+    }
+
+    pub fn offset_commit_load_once(&self) {
+        self.state.lock().offset_commit_load_left = 1;
+    }
+
+    pub fn offset_commit_load_in_progress(&self) -> u32 {
+        self.state.lock().offset_commit_load_in_progress
     }
 
     pub fn last_offset_fetch_partitions(&self) -> usize {
@@ -2320,17 +2332,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (_g, _m, topics) = decode_offset_commit_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
-                let mut nparts = 0usize;
-                for t in &topics {
-                    nparts = nparts.saturating_add(t.partitions.len());
-                    for p in &t.partitions {
-                        st.committed
-                            .insert((t.topic.clone(), p.partition), p.offset);
+                if st.offset_commit_load_left > 0 {
+                    st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
+                    st.offset_commit_load_in_progress =
+                        st.offset_commit_load_in_progress.saturating_add(1);
+                    encode_offset_commit_response(
+                        &mut body,
+                        &topics,
+                        error::COORDINATOR_LOAD_IN_PROGRESS,
+                    )
+                    .unwrap();
+                } else {
+                    let mut nparts = 0usize;
+                    for t in &topics {
+                        nparts = nparts.saturating_add(t.partitions.len());
+                        for p in &t.partitions {
+                            st.committed
+                                .insert((t.topic.clone(), p.partition), p.offset);
+                        }
                     }
+                    st.last_offset_commit_partitions = nparts;
+                    st.last_offset_commit_node = Some(node_id);
+                    encode_offset_commit_response(&mut body, &topics, 0).unwrap();
                 }
-                st.last_offset_commit_partitions = nparts;
-                st.last_offset_commit_node = Some(node_id);
-                encode_offset_commit_response(&mut body, &topics, 0).unwrap();
             }
             OFFSET_FETCH => {
                 let (_g, topics) = decode_offset_fetch_request(&mut frame).unwrap();

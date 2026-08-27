@@ -40,6 +40,8 @@ impl Error {
                     | NOT_ENOUGH_REPLICAS
                     | NOT_ENOUGH_REPLICAS_AFTER_APPEND
                     | REQUEST_TIMED_OUT
+                    | COORDINATOR_LOAD_IN_PROGRESS
+                    | COORDINATOR_NOT_AVAILABLE
                     | NOT_COORDINATOR
                     | UNKNOWN_TOPIC_OR_PARTITION
                     | SHARE_SESSION_NOT_FOUND
@@ -106,6 +108,8 @@ pub const REQUEST_TIMED_OUT: i16 = 7;
 pub const NOT_ENOUGH_REPLICAS: i16 = 19;
 pub const NOT_ENOUGH_REPLICAS_AFTER_APPEND: i16 = 20;
 pub const INVALID_REQUIRED_ACKS: i16 = 21;
+pub const COORDINATOR_LOAD_IN_PROGRESS: i16 = 14;
+pub const COORDINATOR_NOT_AVAILABLE: i16 = 15;
 pub const NOT_COORDINATOR: i16 = 16;
 pub const INVALID_TOPIC_EXCEPTION: i16 = 17;
 pub const UNSUPPORTED_VERSION: i16 = 35;
@@ -129,6 +133,14 @@ pub const SHARE_SESSION_NOT_FOUND: i16 = 122;
 pub const INVALID_SHARE_SESSION_EPOCH: i16 = 123;
 pub const SHARE_SESSION_LIMIT_REACHED: i16 = 133;
 
+/// Coordinator is loading, missing, or not this node. Rediscover and retry.
+pub fn coordinator_retriable(code: i16) -> bool {
+    matches!(
+        code,
+        COORDINATOR_LOAD_IN_PROGRESS | COORDINATOR_NOT_AVAILABLE | NOT_COORDINATOR
+    )
+}
+
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
         NONE => "NONE",
@@ -137,6 +149,8 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         LEADER_NOT_AVAILABLE => "LEADER_NOT_AVAILABLE",
         NOT_LEADER_OR_FOLLOWER => "NOT_LEADER_OR_FOLLOWER",
         REQUEST_TIMED_OUT => "REQUEST_TIMED_OUT",
+        COORDINATOR_LOAD_IN_PROGRESS => "COORDINATOR_LOAD_IN_PROGRESS",
+        COORDINATOR_NOT_AVAILABLE => "COORDINATOR_NOT_AVAILABLE",
         NOT_ENOUGH_REPLICAS => "NOT_ENOUGH_REPLICAS",
         NOT_ENOUGH_REPLICAS_AFTER_APPEND => "NOT_ENOUGH_REPLICAS_AFTER_APPEND",
         INVALID_REQUIRED_ACKS => "INVALID_REQUIRED_ACKS",
