@@ -136,6 +136,8 @@ struct State {
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
     last_list_offsets: Option<(String, i32, i32)>,
+    last_list_offsets_node: Option<i32>,
+    list_offsets_not_leader: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -246,6 +248,8 @@ fn new_state(
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
         last_list_offsets: None,
+        last_list_offsets_node: None,
+        list_offsets_not_leader: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -661,6 +665,14 @@ impl Mock {
 
     pub fn last_list_offsets(&self) -> Option<(String, i32, i32)> {
         self.state.lock().last_list_offsets.clone()
+    }
+
+    pub fn last_list_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_list_offsets_node
+    }
+
+    pub fn list_offsets_not_leader(&self) -> u32 {
+        self.state.lock().list_offsets_not_leader
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1521,39 +1533,55 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_list_offsets = Some((topic.clone(), partition, current_epoch));
                 let key = (topic.clone(), partition);
-                let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
-                let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
-                    error::FENCED_LEADER_EPOCH
-                } else if current_epoch != -1 && current_epoch > broker_epoch {
-                    error::UNKNOWN_LEADER_EPOCH
+                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                if leader != node_id {
+                    st.list_offsets_not_leader = st.list_offsets_not_leader.saturating_add(1);
+                    encode_list_offsets_response(
+                        &mut body,
+                        header.api_version,
+                        &topic,
+                        partition,
+                        error::NOT_LEADER_OR_FOLLOWER,
+                        timestamp,
+                        -1,
+                    )
+                    .unwrap();
                 } else {
-                    0
-                };
-                let log_start = *st.log_start.get(&key).unwrap_or(&0);
-                let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                let offset = if error_code != 0 {
-                    -1
-                } else if timestamp == EARLIEST_TIMESTAMP {
-                    log_start
-                } else if timestamp == LATEST_TIMESTAMP {
-                    hw
-                } else {
-                    st.log
-                        .get(&key)
-                        .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
-                        .map(|r| r.offset)
-                        .unwrap_or(-1)
-                };
-                encode_list_offsets_response(
-                    &mut body,
-                    header.api_version,
-                    &topic,
-                    partition,
-                    error_code,
-                    timestamp,
-                    offset,
-                )
-                .unwrap();
+                    st.last_list_offsets_node = Some(node_id);
+                    let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+                    let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
+                        error::FENCED_LEADER_EPOCH
+                    } else if current_epoch != -1 && current_epoch > broker_epoch {
+                        error::UNKNOWN_LEADER_EPOCH
+                    } else {
+                        0
+                    };
+                    let log_start = *st.log_start.get(&key).unwrap_or(&0);
+                    let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                    let offset = if error_code != 0 {
+                        -1
+                    } else if timestamp == EARLIEST_TIMESTAMP {
+                        log_start
+                    } else if timestamp == LATEST_TIMESTAMP {
+                        hw
+                    } else {
+                        st.log
+                            .get(&key)
+                            .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
+                            .map(|r| r.offset)
+                            .unwrap_or(-1)
+                    };
+                    encode_list_offsets_response(
+                        &mut body,
+                        header.api_version,
+                        &topic,
+                        partition,
+                        error_code,
+                        timestamp,
+                        offset,
+                    )
+                    .unwrap();
+                }
             }
             INIT_PRODUCER_ID => {
                 let tid = buf::get_classic_nullable_string(&mut frame).unwrap();
