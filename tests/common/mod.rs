@@ -35,21 +35,23 @@ use partitionline::protocol::admin::{
     decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_transactions_request, decode_incremental_alter_configs_request,
-    decode_list_partition_reassignments_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
     encode_describe_transactions_response, encode_incremental_alter_configs_response,
-    encode_list_partition_reassignments_response, encode_update_features_response,
-    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClusterDescription, ConfigEntry,
-    DescribeConfigsResult, ListPartitionReassignmentsResponse, OngoingPartitionReassignment,
+    encode_list_partition_reassignments_response, encode_list_transactions_response,
+    encode_update_features_response, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
+    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, OngoingPartitionReassignment,
     OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult,
-    TransactionState, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
-    RESOURCE_TOPIC,
+    TransactionListing, TransactionState, UpdatableFeatureResult, UpdateFeaturesResponse,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -63,9 +65,9 @@ use partitionline::protocol::api_keys::{
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
     DESCRIBE_TRANSACTIONS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
     INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, TXN_OFFSET_COMMIT, UPDATE_FEATURES,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
+    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -196,6 +198,8 @@ struct State {
     next_producer_id_block_start: i64,
     last_describe_transactions_node: Option<i32>,
     describe_transactions_not_coordinator: u32,
+    last_list_transactions_node: Option<i32>,
+    list_transactions_not_coordinator: u32,
     // Fixture transactional ids only. Not a live txn coordinator store.
     txn_fixtures: HashMap<String, TransactionState>,
     last_offset_delete_node: Option<i32>,
@@ -353,6 +357,8 @@ fn new_state(
         next_producer_id_block_start: 1000,
         last_describe_transactions_node: None,
         describe_transactions_not_coordinator: 0,
+        last_list_transactions_node: None,
+        list_transactions_not_coordinator: 0,
         txn_fixtures: HashMap::new(),
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
@@ -940,6 +946,14 @@ impl Mock {
         self.state.lock().describe_transactions_not_coordinator
     }
 
+    pub fn last_list_transactions_node(&self) -> Option<i32> {
+        self.state.lock().last_list_transactions_node
+    }
+
+    pub fn list_transactions_not_coordinator(&self) -> u32 {
+        self.state.lock().list_transactions_not_coordinator
+    }
+
     pub fn set_txn_fixture(&self, state: TransactionState) {
         let mut st = self.state.lock();
         let _ = st
@@ -1352,6 +1366,7 @@ fn versions() -> ApiVersionsResponse {
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
+        (LIST_TRANSACTIONS, 0, 2),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -2222,6 +2237,45 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         })
                         .collect();
                     encode_describe_transactions_response(&mut body, &results).unwrap();
+                }
+            }
+            LIST_TRANSACTIONS => {
+                let _filters = decode_list_transactions_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.txn_coord_node != node_id {
+                    st.list_transactions_not_coordinator =
+                        st.list_transactions_not_coordinator.saturating_add(1);
+                    // 16 only. Do not disclose fixture txn ids on the wrong node.
+                    encode_list_transactions_response(
+                        &mut body,
+                        &ListTransactionsResponse {
+                            error_code: error::NOT_COORDINATOR,
+                            unknown_state_filters: Vec::new(),
+                            transaction_states: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_list_transactions_node = Some(node_id);
+                    // Fixture transactional ids only.
+                    let transaction_states: Vec<TransactionListing> = st
+                        .txn_fixtures
+                        .values()
+                        .map(|s| TransactionListing {
+                            transactional_id: s.transactional_id.clone(),
+                            producer_id: s.producer_id,
+                            transaction_state: s.transaction_state.clone(),
+                        })
+                        .collect();
+                    encode_list_transactions_response(
+                        &mut body,
+                        &ListTransactionsResponse {
+                            error_code: 0,
+                            unknown_state_filters: Vec::new(),
+                            transaction_states,
+                        },
+                    )
+                    .unwrap();
                 }
             }
             DESCRIBE_ACLS => {

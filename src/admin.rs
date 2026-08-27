@@ -20,17 +20,18 @@ use crate::protocol::admin::{
     decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
     decode_describe_transactions_response, decode_incremental_alter_configs_response,
-    decode_list_partition_reassignments_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_user_scram_credentials_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
+    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_transactions_request, encode_incremental_alter_configs_request,
-    encode_list_partition_reassignments_request, encode_update_features_request, CreatableTopic,
-    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
-    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
+    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
+    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -41,8 +42,8 @@ use crate::protocol::api_keys::{
     ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CREATE_ACLS,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS, FIND_COORDINATOR,
-    INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE,
-    UPDATE_FEATURES,
+    INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_DELETE, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -54,8 +55,8 @@ use crate::protocol::sasl;
 pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
     AlterConfig, ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity,
-    ClientQuotaOp, ClusterDescription, ConfigEntry, ConfigSynonym, TransactionState,
-    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ClientQuotaOp, ClusterDescription, ConfigEntry, ConfigSynonym, TransactionListing,
+    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -335,6 +336,7 @@ pub struct Admin {
     alter_client_quotas_version: i16,
     allocate_producer_ids_version: i16,
     describe_transactions_version: i16,
+    list_transactions_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -489,6 +491,10 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support DescribeTransactions".into())
             })?;
+        let list_transactions_version = versions
+            .get(&LIST_TRANSACTIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -514,6 +520,7 @@ impl Admin {
             alter_client_quotas_version,
             allocate_producer_ids_version,
             describe_transactions_version,
+            list_transactions_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -1368,6 +1375,80 @@ impl Admin {
                 continue;
             }
             return Ok(results);
+        }
+    }
+
+    /// List transactional.id state (ListTransactions api 66).
+    ///
+    /// Lands on the transaction coordinator (`FindCoordinator`
+    /// `key_type=1`). `COORDINATOR_LOAD_IN_PROGRESS` /
+    /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
+    /// coordinator and retry. This is not `NOT_CONTROLLER` (41). Top-level
+    /// `error_code` (bytes 4–5), not a first-result field.
+    pub async fn list_transactions(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+    ) -> Result<Vec<TransactionListing>> {
+        let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();
+        let pids = producer_id_filters.to_vec();
+        // ListTransactions has no transactional.id; FindCoordinator still
+        // needs a key. Empty string is the no-id lookup used here.
+        const COORD_KEY: &str = "";
+        let version = self.list_transactions_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != COORD_KEY);
+            if stale {
+                let node = self.discover_txn_coord(COORD_KEY).await?;
+                self.txn_coord = Some((COORD_KEY.to_string(), node));
+            }
+            let node = self
+                .txn_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing list_transactions conn"))?;
+                conn.roundtrip(
+                    LIST_TRANSACTIONS,
+                    version,
+                    |buf| encode_list_transactions_request(buf, &states, &pids),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.txn_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_list_transactions_response(&mut body.clone())?;
+            if error::coordinator_retriable(resp.error_code) {
+                // 14/15/16: FindCoordinator, then the new txn coordinator.
+                self.txn_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "ListTransactions"));
+            }
+            return Ok(resp.transaction_states);
         }
     }
 

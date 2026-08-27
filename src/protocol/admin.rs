@@ -1714,6 +1714,121 @@ pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<
     Ok(states)
 }
 
+/// One transactional.id listing from ListTransactions (api 66) v0.
+///
+/// This is not [`TransactionState`] (DescribeTransactions api 65).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionListing {
+    pub transactional_id: String,
+    pub producer_id: i64,
+    pub transaction_state: String,
+}
+
+/// ListTransactions v0 body (api 66).
+///
+/// Official Apache JSON (`apiKey: 66`, `validVersions: "0-2"`,
+/// `flexibleVersions: "0+"`) and kafka-protocol 0.18.0: this crate
+/// targets v0. kafka-protocol `VERSIONS` is 0–2; v1 adds
+/// `DurationFilter` and v2 adds `TransactionalIdPattern`. A client
+/// encodes v0 when those fields are unset. v0 is flexible.
+/// Request: compact `StateFilters` `[]string`, compact
+/// `ProducerIdFilters` `[]INT64`, tagged.
+/// Response: `ThrottleTimeMs` INT32, top-level `ErrorCode` INT16,
+/// compact `UnknownStateFilters` `[]string`, compact
+/// `TransactionStates` of `{TransactionalId compact, ProducerId INT64,
+/// TransactionState compact, tagged}`, tagged.
+/// Measured: **16 is the top-level ErrorCode at bytes 4–5**, after
+/// throttle. Not a first-result field (DescribeTransactions puts 16
+/// at bytes 5–6). Fixture transactional ids only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListTransactionsResponse {
+    pub error_code: i16,
+    pub unknown_state_filters: Vec<String>,
+    pub transaction_states: Vec<TransactionListing>,
+}
+
+pub fn encode_list_transactions_request(
+    buf: &mut BytesMut,
+    state_filters: &[String],
+    producer_id_filters: &[i64],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(state_filters.len()))?;
+    for state in state_filters {
+        buf::put_compact_string(buf, Some(state))?;
+    }
+    buf::put_array_len(buf, true, Some(producer_id_filters.len()))?;
+    for id in producer_id_filters {
+        buf.put_i64(*id);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_transactions_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, Vec<i64>)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut state_filters = Vec::with_capacity(n);
+    for _ in 0..n {
+        state_filters.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut producer_id_filters = Vec::with_capacity(pn);
+    for _ in 0..pn {
+        producer_id_filters.push(buf::get_i64(buf)?);
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((state_filters, producer_id_filters))
+}
+
+pub fn encode_list_transactions_response(
+    buf: &mut BytesMut,
+    resp: &ListTransactionsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_array_len(buf, true, Some(resp.unknown_state_filters.len()))?;
+    for state in &resp.unknown_state_filters {
+        buf::put_compact_string(buf, Some(state))?;
+    }
+    buf::put_array_len(buf, true, Some(resp.transaction_states.len()))?;
+    for t in &resp.transaction_states {
+        buf::put_compact_string(buf, Some(&t.transactional_id))?;
+        buf.put_i64(t.producer_id);
+        buf::put_compact_string(buf, Some(&t.transaction_state))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_transactions_response<B: Buf>(buf: &mut B) -> Result<ListTransactionsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let un = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut unknown_state_filters = Vec::with_capacity(un);
+    for _ in 0..un {
+        unknown_state_filters.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut transaction_states = Vec::with_capacity(n);
+    for _ in 0..n {
+        let transactional_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let producer_id = buf::get_i64(buf)?;
+        let transaction_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        transaction_states.push(TransactionListing {
+            transactional_id,
+            producer_id,
+            transaction_state,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ListTransactionsResponse {
+        error_code,
+        unknown_state_filters,
+        transaction_states,
+    })
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2778,6 +2893,104 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeTransactions v0 NOT_COORDINATOR must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_transactions_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 66
+        // validVersions 0-2, flexibleVersions 0+. This crate targets v0.
+        // Not copied from DescribeTransactions (no top-level error;
+        // 16 at bytes 5-6) or AllocateProducerIds (different fields
+        // after the top-level INT16).
+        const REQ: &[u8] = &[
+            0x02, 0x08, 0x4f, 0x6e, 0x67, 0x6f, 0x69, 0x6e, 0x67, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x03, 0xe9, 0x00,
+        ];
+        const RESP_16: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x01, 0x01, 0x00];
+        let states = vec!["Ongoing".to_string()];
+        let pids = vec![1001_i64];
+        let mut buf = BytesMut::new();
+        encode_list_transactions_request(&mut buf, &states, &pids).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = ListTransactionsResponse {
+            error_code: crate::error::NOT_COORDINATOR,
+            unknown_state_filters: Vec::new(),
+            transaction_states: Vec::new(),
+        };
+        buf.clear();
+        encode_list_transactions_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn list_transactions_v0_roundtrip_is_leftover_empty() {
+        let states = vec!["Ongoing".to_string(), "PrepareCommit".to_string()];
+        let pids = vec![1001_i64, 1002];
+        let mut buf = BytesMut::new();
+        encode_list_transactions_request(&mut buf, &states, &pids).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_transactions_request(&mut cur).unwrap(),
+            (states, pids)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListTransactions v0 request must be leftover-empty"
+        );
+
+        let resp = ListTransactionsResponse {
+            error_code: 0,
+            unknown_state_filters: vec!["UnknownState".into()],
+            transaction_states: vec![TransactionListing {
+                transactional_id: "tx-1".into(),
+                producer_id: 1001,
+                transaction_state: "Ongoing".into(),
+            }],
+        };
+        buf.clear();
+        encode_list_transactions_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_list_transactions_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "ListTransactions v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_transactions_not_coordinator_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16. Measured from Apache ListTransactionsResponse.json
+        // and an independent kafka-protocol 0.18.0 broker encode.
+        // Not copied from DescribeTransactions (16 at bytes 5-6, first
+        // result after compact TransactionStates length).
+        let resp = ListTransactionsResponse {
+            error_code: crate::error::NOT_COORDINATOR,
+            unknown_state_filters: Vec::new(),
+            transaction_states: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_list_transactions_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v0 throttle then top-level error must be 16 at bytes 4-5"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v0 16 is not a first-result ErrorCode at bytes 5-6"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_list_transactions_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "ListTransactions v0 NOT_COORDINATOR must be leftover-empty"
         );
     }
 }

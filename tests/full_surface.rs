@@ -3023,6 +3023,62 @@ async fn describe_transactions_follows_coordinator() {
 }
 
 #[tokio::test]
+async fn list_transactions_follows_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    mock.set_txn_fixture(TransactionState {
+        error_code: 0,
+        transactional_id: "tx-list".into(),
+        transaction_state: "Ongoing".into(),
+        transaction_timeout_ms: 60_000,
+        transaction_start_time_ms: 1_700_000_000_000,
+        producer_id: 1001,
+        producer_epoch: 3,
+        topics: vec![TransactionTopic {
+            name: "orders".into(),
+            partitions: vec![0, 1],
+        }],
+    });
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.list_transactions(&[], &[]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].transactional_id, "tx-list");
+    assert_eq!(first[0].transaction_state, "Ongoing");
+    assert_eq!(first[0].producer_id, 1001);
+    assert_eq!(
+        mock.last_list_transactions_node(),
+        Some(2),
+        "ListTransactions must land on the transaction coordinator, not bootstrap"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_TRANSACTION),
+        "ListTransactions must FindCoordinator key_type=1"
+    );
+
+    mock.move_txn_coordinator();
+    let again = admin.list_transactions(&[], &[]).await.unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].producer_id, 1001);
+    assert_eq!(
+        again[0].transactional_id.as_str(),
+        "tx-list",
+        "retry on the new coordinator must still return fixture txn ids, not the 16 empty body"
+    );
+    assert_eq!(
+        mock.list_transactions_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_list_transactions_node(),
+        Some(1),
+        "ListTransactions must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
