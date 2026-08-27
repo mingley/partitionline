@@ -884,6 +884,30 @@ mod tests {
     }
 
     #[test]
+    fn delete_topics_not_controller_is_not_at_byte_four() {
+        let results = vec![TopicResult {
+            name: "t".into(),
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_delete_topics_response(&mut buf, 3, &results).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "throttle + topic-array length must not look like error 41"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_topics_response(&mut cur, 3).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v3 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
     fn describe_configs_v1_roundtrip() {
         let resources = vec![DescribeConfigsResource {
             resource_type: RESOURCE_TOPIC,

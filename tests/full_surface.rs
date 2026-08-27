@@ -2382,6 +2382,45 @@ async fn create_topics_follows_controller() {
 }
 
 #[tokio::test]
+async fn delete_topics_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("del2", 1, 1), NewTopic::new("del1", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let deleted = admin.delete_topics(&["del2"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_delete_topics_node(),
+        Some(2),
+        "DeleteTopics must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin.delete_topics(&["del1"], 10_000).await.unwrap();
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        mock.delete_topics_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_delete_topics_node(),
+        Some(1),
+        "DeleteTopics must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await
