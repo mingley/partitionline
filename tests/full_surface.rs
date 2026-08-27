@@ -2348,6 +2348,40 @@ async fn delete_records_follows_partition_leader() {
 }
 
 #[tokio::test]
+async fn create_topics_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("ctrl2", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_topics_node(),
+        Some(2),
+        "CreateTopics must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .create_topics(&[NewTopic::new("ctrl1", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        mock.create_topics_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_create_topics_node(),
+        Some(1),
+        "CreateTopics must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await

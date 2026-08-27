@@ -142,6 +142,9 @@ struct State {
     list_offsets_not_leader: u32,
     last_delete_records_node: Option<i32>,
     delete_records_not_leader: u32,
+    controller_node: i32,
+    last_create_topics_node: Option<i32>,
+    create_topics_not_controller: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -258,6 +261,9 @@ fn new_state(
         list_offsets_not_leader: 0,
         last_delete_records_node: None,
         delete_records_not_leader: 0,
+        controller_node: 1,
+        last_create_topics_node: None,
+        create_topics_not_controller: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -363,7 +369,11 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
     };
     let replica_nodes: Vec<i32> = brokers.iter().map(|b| b.node_id).collect();
     let default_leader = brokers.first().map(|b| b.node_id).unwrap_or(1);
-    let controller_id = default_leader;
+    let controller_id = if st.controller_node >= 0 {
+        st.controller_node
+    } else {
+        default_leader
+    };
     MetadataResponse {
         throttle_time_ms: 0,
         brokers,
@@ -697,6 +707,18 @@ impl Mock {
 
     pub fn delete_records_not_leader(&self) -> u32 {
         self.state.lock().delete_records_not_leader
+    }
+
+    pub fn set_controller(&self, node_id: i32) {
+        self.state.lock().controller_node = node_id;
+    }
+
+    pub fn last_create_topics_node(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_node
+    }
+
+    pub fn create_topics_not_controller(&self) -> u32 {
+        self.state.lock().create_topics_not_controller
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1251,44 +1273,57 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let req = decode_create_topics_request(&mut frame, header.api_version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
-                for t in req.topics {
-                    if st.created_topics.contains_key(&t.name) {
+                if st.controller_node != node_id {
+                    st.create_topics_not_controller =
+                        st.create_topics_not_controller.saturating_add(1);
+                    for t in req.topics {
                         results.push(TopicResult {
                             name: t.name,
-                            error_code: 36,
-                            error_message: Some("Topic already exists.".into()),
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
                         });
-                        continue;
                     }
-                    let npart = if t.assignments.is_empty() {
-                        t.num_partitions
-                    } else {
-                        t.assignments.len() as i32
-                    };
-                    let mut error_code = 0i16;
-                    if npart < 1 {
-                        error_code = 37;
-                    } else if t.replication_factor < 1 && t.assignments.is_empty() {
-                        error_code = 38;
-                    }
-                    if error_code == 0 && !req.validate_only {
-                        let mut configs = HashMap::new();
-                        for c in t.configs {
-                            configs.insert(c.name, c.value);
+                } else {
+                    st.last_create_topics_node = Some(node_id);
+                    for t in req.topics {
+                        if st.created_topics.contains_key(&t.name) {
+                            results.push(TopicResult {
+                                name: t.name,
+                                error_code: 36,
+                                error_message: Some("Topic already exists.".into()),
+                            });
+                            continue;
                         }
-                        st.created_topics.insert(
-                            t.name.clone(),
-                            CreatedTopic {
-                                num_partitions: npart,
-                                configs,
-                            },
-                        );
+                        let npart = if t.assignments.is_empty() {
+                            t.num_partitions
+                        } else {
+                            t.assignments.len() as i32
+                        };
+                        let mut error_code = 0i16;
+                        if npart < 1 {
+                            error_code = 37;
+                        } else if t.replication_factor < 1 && t.assignments.is_empty() {
+                            error_code = 38;
+                        }
+                        if error_code == 0 && !req.validate_only {
+                            let mut configs = HashMap::new();
+                            for c in t.configs {
+                                configs.insert(c.name, c.value);
+                            }
+                            st.created_topics.insert(
+                                t.name.clone(),
+                                CreatedTopic {
+                                    num_partitions: npart,
+                                    configs,
+                                },
+                            );
+                        }
+                        results.push(TopicResult {
+                            name: t.name,
+                            error_code,
+                            error_message: None,
+                        });
                     }
-                    results.push(TopicResult {
-                        name: t.name,
-                        error_code,
-                        error_message: None,
-                    });
                 }
                 encode_create_topics_response(&mut body, header.api_version, &results).unwrap();
             }
