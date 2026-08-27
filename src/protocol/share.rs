@@ -384,8 +384,11 @@ pub fn encode_share_fetch_response(
 
 pub fn decode_share_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<ShareFetchedTopic>> {
     let _th = buf::get_i32(buf)?;
-    let _err = buf::get_i16(buf)?;
+    let err = buf::get_i16(buf)?;
     let _msg = buf::get_compact_string(buf)?;
+    if err != 0 {
+        return Err(crate::error::Error::broker(err, "ShareFetch"));
+    }
     let _lock = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -452,19 +455,36 @@ pub fn encode_share_acknowledge_request(
     member_id: &str,
     share_session_epoch: i32,
     topic_id: [u8; 16],
-    partition: i32,
-    batches: &[AcknowledgementBatch],
+    partitions: &[(i32, Vec<AcknowledgementBatch>)],
 ) -> crate::error::Result<()> {
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_compact_string(buf, Some(member_id))?;
     buf.put_i32(share_session_epoch);
-    buf::put_array_len(buf, true, Some(1))?;
-    buf.extend_from_slice(&topic_id);
-    buf::put_array_len(buf, true, Some(1))?;
-    buf.put_i32(partition);
-    encode_ack_batches(buf, batches)?;
+    if partitions.is_empty() {
+        buf::put_array_len(buf, true, Some(0))?;
+    } else {
+        buf::put_array_len(buf, true, Some(1))?;
+        buf.extend_from_slice(&topic_id);
+        buf::put_array_len(buf, true, Some(partitions.len()))?;
+        for (partition, batches) in partitions {
+            buf.put_i32(*partition);
+            encode_ack_batches(buf, batches)?;
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
     buf::put_empty_tagged_fields(buf);
-    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Top-level ShareFetch error (session not found / bad epoch).
+pub fn encode_share_fetch_error(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(error_code);
+    buf::put_compact_string(buf, None)?;
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(0))?;
+    buf::put_array_len(buf, true, Some(0))?;
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
@@ -655,20 +675,79 @@ mod tests {
             "m1",
             1,
             [0u8; 16],
-            0,
-            &[AcknowledgementBatch {
-                first_offset: 0,
-                last_offset: 0,
-                types: vec![ACK_ACCEPT],
-            }],
+            &[(
+                0,
+                vec![AcknowledgementBatch {
+                    first_offset: 0,
+                    last_offset: 2,
+                    types: vec![ACK_ACCEPT],
+                }],
+            )],
         )
         .unwrap();
         let (gid, mid, _e, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
         assert_eq!(gid, "sg");
         assert_eq!(mid, "m1");
         assert_eq!(acks[0].2[0].types, vec![ACK_ACCEPT]);
+        assert_eq!(acks[0].2[0].last_offset, 2);
         buf.clear();
         encode_share_acknowledge_response(&mut buf, 0).unwrap();
         assert_eq!(decode_share_acknowledge_response(&mut &buf[..]).unwrap(), 0);
+    }
+
+    #[test]
+    fn share_acknowledge_encodes_several_partitions() {
+        let mut buf = BytesMut::new();
+        encode_share_acknowledge_request(
+            &mut buf,
+            "sg",
+            "m1",
+            2,
+            [7u8; 16],
+            &[
+                (
+                    0,
+                    vec![AcknowledgementBatch {
+                        first_offset: 1,
+                        last_offset: 3,
+                        types: vec![ACK_ACCEPT],
+                    }],
+                ),
+                (
+                    1,
+                    vec![AcknowledgementBatch {
+                        first_offset: 8,
+                        last_offset: 8,
+                        types: vec![ACK_REJECT],
+                    }],
+                ),
+            ],
+        )
+        .unwrap();
+        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
+        assert_eq!(epoch, 2);
+        assert_eq!(acks.len(), 2);
+        assert_eq!(acks[0].1, 0);
+        assert_eq!(acks[1].1, 1);
+        assert_eq!(acks[1].2[0].types, vec![ACK_REJECT]);
+    }
+
+    #[test]
+    fn share_acknowledge_close_session_has_no_topics() {
+        let mut buf = BytesMut::new();
+        encode_share_acknowledge_request(&mut buf, "sg", "m1", -1, [0u8; 16], &[]).unwrap();
+        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
+        assert_eq!(epoch, -1);
+        assert!(acks.is_empty());
+    }
+
+    #[test]
+    fn share_fetch_error_roundtrip() {
+        let mut buf = BytesMut::new();
+        encode_share_fetch_error(&mut buf, crate::error::INVALID_SHARE_SESSION_EPOCH).unwrap();
+        let mut cur = &buf[..];
+        let _th = crate::protocol::buf::get_i32(&mut cur).unwrap();
+        let err = crate::protocol::buf::get_i16(&mut cur).unwrap();
+        assert_eq!(err, crate::error::INVALID_SHARE_SESSION_EPOCH);
     }
 }

@@ -85,9 +85,9 @@ use partitionline::protocol::scram;
 use partitionline::protocol::share::{
     decode_share_acknowledge_request, decode_share_fetch_request,
     decode_share_group_heartbeat_request, encode_share_acknowledge_response,
-    encode_share_fetch_response, encode_share_group_heartbeat_response, AcknowledgementBatch,
-    AcquiredRange, ShareFetchedPartition, ShareFetchedTopic, ShareGroupHeartbeatResponse,
-    ShareTopicPartitions, ACK_ACCEPT,
+    encode_share_fetch_error, encode_share_fetch_response, encode_share_group_heartbeat_response,
+    AcknowledgementBatch, AcquiredRange, ShareFetchedPartition, ShareFetchedTopic,
+    ShareGroupHeartbeatResponse, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
 };
 use partitionline::protocol::txn::{
     decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
@@ -154,6 +154,10 @@ struct State {
     share_ack_calls: u32,
     share_accepted: HashSet<(String, i32, i64)>,
     share_acquired: HashMap<(String, i32, i64), String>,
+    share_epochs: HashMap<String, i32>,
+    last_share_fetch_epoch: Option<i32>,
+    last_share_ack_epoch: Option<i32>,
+    last_share_ack_partitions: usize,
     drop_gen: watch::Sender<u32>,
     coord_node: i32,
     hb_by_node: HashMap<i32, u32>,
@@ -220,6 +224,10 @@ fn new_state(
         share_ack_calls: 0,
         share_accepted: HashSet::new(),
         share_acquired: HashMap::new(),
+        share_epochs: HashMap::new(),
+        last_share_fetch_epoch: None,
+        last_share_ack_epoch: None,
+        last_share_ack_partitions: 0,
         drop_gen: watch::channel(0).0,
         coord_node: 1,
         hb_by_node: HashMap::new(),
@@ -571,6 +579,18 @@ impl Mock {
         self.state.lock().share_ack_calls
     }
 
+    pub fn last_share_fetch_epoch(&self) -> Option<i32> {
+        self.state.lock().last_share_fetch_epoch
+    }
+
+    pub fn last_share_ack_epoch(&self) -> Option<i32> {
+        self.state.lock().last_share_ack_epoch
+    }
+
+    pub fn last_share_ack_partitions(&self) -> usize {
+        self.state.lock().last_share_ack_partitions
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -682,12 +702,16 @@ fn apply_share_acks(
 ) {
     for b in batches {
         let mut off = b.first_offset;
-        let mut ti = 0usize;
         while off <= b.last_offset {
-            let Some(ty) = b.types.get(ti).copied() else {
-                break;
+            let ty = if b.types.len() == 1 {
+                b.types.first().copied().unwrap_or(0)
+            } else {
+                let i = usize::try_from(off.saturating_sub(b.first_offset)).unwrap_or(usize::MAX);
+                match b.types.get(i).copied() {
+                    Some(t) => t,
+                    None => break,
+                }
             };
-            ti = ti.saturating_add(1);
             let k = ("t".to_string(), partition, off);
             let owned = st
                 .share_acquired
@@ -696,12 +720,41 @@ fn apply_share_acks(
                 .unwrap_or(false);
             if owned {
                 let _ = st.share_acquired.remove(&k);
-                if ty == ACK_ACCEPT {
+                if ty == ACK_ACCEPT || ty == ACK_REJECT {
                     let _ = st.share_accepted.insert(k);
                 }
             }
             off = off.saturating_add(1);
         }
+    }
+}
+
+/// KIP-932 share session epoch. Returns 0 or a broker error.
+fn share_session_step(st: &mut State, member_id: &str, epoch: i32) -> i16 {
+    match epoch {
+        0 => {
+            st.share_acquired.retain(|_, owner| owner != member_id);
+            let _ = st.share_epochs.insert(member_id.to_string(), 1);
+            0
+        }
+        -1 => {
+            if st.share_epochs.remove(member_id).is_some() {
+                st.share_acquired.retain(|_, owner| owner != member_id);
+                0
+            } else {
+                error::SHARE_SESSION_NOT_FOUND
+            }
+        }
+        e if e > 0 => match st.share_epochs.get(member_id).copied() {
+            Some(expected) if expected == e => {
+                let next = e.saturating_add(1);
+                let _ = st.share_epochs.insert(member_id.to_string(), next);
+                0
+            }
+            Some(_) => error::INVALID_SHARE_SESSION_EPOCH,
+            None => error::SHARE_SESSION_NOT_FOUND,
+        },
+        _ => error::INVALID_SHARE_SESSION_EPOCH,
     }
 }
 
@@ -1679,71 +1732,84 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             SHARE_FETCH => {
-                let (_gid, member_id, _epoch, max_records, topics) =
+                let (_gid, member_id, epoch, max_records, topics) =
                     decode_share_fetch_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
-                let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
-                let mut out = Vec::new();
-                for t in topics {
-                    let mut parts = Vec::new();
-                    for p in t.partitions {
-                        apply_share_acks(&mut st, &member_id, p.partition, &p.acknowledgements);
-                        let key = ("t".to_string(), p.partition);
-                        let recs = st.log.get(&key).cloned().unwrap_or_default();
-                        let recs: Vec<_> = recs
-                            .into_iter()
-                            .filter(|r| {
+                st.last_share_fetch_epoch = Some(epoch);
+                let sess = share_session_step(&mut st, &member_id, epoch);
+                if sess != 0 {
+                    encode_share_fetch_error(&mut body, sess).unwrap();
+                } else {
+                    let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
+                    let mut fetched = Vec::new();
+                    for t in topics {
+                        let mut parts = Vec::new();
+                        for p in t.partitions {
+                            apply_share_acks(&mut st, &member_id, p.partition, &p.acknowledgements);
+                            let key = ("t".to_string(), p.partition);
+                            let recs = st.log.get(&key).cloned().unwrap_or_default();
+                            let recs: Vec<_> = recs
+                                .into_iter()
+                                .filter(|r| {
+                                    let k = ("t".to_string(), p.partition, r.offset);
+                                    !st.share_accepted.contains(&k)
+                                        && match st.share_acquired.get(&k) {
+                                            None => true,
+                                            Some(owner) => owner == &member_id,
+                                        }
+                                })
+                                .collect();
+                            let mut acquired = Vec::new();
+                            let mut taken = Vec::new();
+                            for r in recs {
+                                if taken.len() >= cap {
+                                    break;
+                                }
                                 let k = ("t".to_string(), p.partition, r.offset);
-                                !st.share_accepted.contains(&k)
-                                    && match st.share_acquired.get(&k) {
-                                        None => true,
-                                        Some(owner) => owner == &member_id,
-                                    }
-                            })
-                            .collect();
-                        let mut acquired = Vec::new();
-                        let mut taken = Vec::new();
-                        for r in recs {
-                            if taken.len() >= cap {
-                                break;
+                                if let std::collections::hash_map::Entry::Vacant(e) =
+                                    st.share_acquired.entry(k)
+                                {
+                                    e.insert(member_id.clone());
+                                    acquired.push(AcquiredRange {
+                                        first_offset: r.offset,
+                                        last_offset: r.offset,
+                                        delivery_count: 1,
+                                    });
+                                    taken.push(r);
+                                }
                             }
-                            let k = ("t".to_string(), p.partition, r.offset);
-                            if let std::collections::hash_map::Entry::Vacant(e) =
-                                st.share_acquired.entry(k)
-                            {
-                                e.insert(member_id.clone());
-                                acquired.push(AcquiredRange {
-                                    first_offset: r.offset,
-                                    last_offset: r.offset,
-                                    delivery_count: 1,
-                                });
-                                taken.push(r);
-                            }
+                            parts.push(ShareFetchedPartition {
+                                partition: p.partition,
+                                error_code: 0,
+                                records: share_record_batches(taken),
+                                acquired,
+                            });
                         }
-                        parts.push(ShareFetchedPartition {
-                            partition: p.partition,
-                            error_code: 0,
-                            records: share_record_batches(taken),
-                            acquired,
+                        fetched.push(ShareFetchedTopic {
+                            topic_id: t.topic_id,
+                            partitions: parts,
                         });
                     }
-                    out.push(ShareFetchedTopic {
-                        topic_id: t.topic_id,
-                        partitions: parts,
-                    });
+                    encode_share_fetch_response(&mut body, &fetched).unwrap();
                 }
-                encode_share_fetch_response(&mut body, &out).unwrap();
             }
             SHARE_ACKNOWLEDGE => {
-                let (_gid, member_id, _epoch, acks) =
+                let (_gid, member_id, epoch, acks) =
                     decode_share_acknowledge_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.share_ack_calls = st.share_ack_calls.saturating_add(1);
-                for (_tid, partition, batches) in acks {
-                    apply_share_acks(&mut st, &member_id, partition, &batches);
+                st.last_share_ack_epoch = Some(epoch);
+                st.last_share_ack_partitions = acks.len();
+                let sess = share_session_step(&mut st, &member_id, epoch);
+                if sess != 0 {
+                    encode_share_acknowledge_response(&mut body, sess).unwrap();
+                } else {
+                    for (_tid, partition, batches) in acks {
+                        apply_share_acks(&mut st, &member_id, partition, &batches);
+                    }
+                    encode_share_acknowledge_response(&mut body, 0).unwrap();
                 }
-                encode_share_acknowledge_response(&mut body, 0).unwrap();
             }
             CONSUMER_GROUP_HEARTBEAT => {
                 let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();

@@ -42,6 +42,8 @@ impl Error {
                     | REQUEST_TIMED_OUT
                     | NOT_COORDINATOR
                     | UNKNOWN_TOPIC_OR_PARTITION
+                    | SHARE_SESSION_NOT_FOUND
+                    | INVALID_SHARE_SESSION_EPOCH
             ),
             Self::Io(_) | Self::Timeout => true,
             _ => false,
@@ -122,6 +124,10 @@ pub const OUT_OF_ORDER_SEQUENCE_NUMBER: i16 = 45;
 pub const DUPLICATE_SEQUENCE_NUMBER: i16 = 46;
 pub const FENCED_LEADER_EPOCH: i16 = 74;
 pub const UNKNOWN_LEADER_EPOCH: i16 = 77;
+pub const INVALID_RECORD_STATE: i16 = 121;
+pub const SHARE_SESSION_NOT_FOUND: i16 = 122;
+pub const INVALID_SHARE_SESSION_EPOCH: i16 = 123;
+pub const SHARE_SESSION_LIMIT_REACHED: i16 = 133;
 
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
@@ -152,6 +158,10 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         DUPLICATE_SEQUENCE_NUMBER => "DUPLICATE_SEQUENCE_NUMBER",
         FENCED_LEADER_EPOCH => "FENCED_LEADER_EPOCH",
         UNKNOWN_LEADER_EPOCH => "UNKNOWN_LEADER_EPOCH",
+        INVALID_RECORD_STATE => "INVALID_RECORD_STATE",
+        SHARE_SESSION_NOT_FOUND => "SHARE_SESSION_NOT_FOUND",
+        INVALID_SHARE_SESSION_EPOCH => "INVALID_SHARE_SESSION_EPOCH",
+        SHARE_SESSION_LIMIT_REACHED => "SHARE_SESSION_LIMIT_REACHED",
         _ => return None,
     })
 }
