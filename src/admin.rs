@@ -31,7 +31,12 @@ use crate::protocol::api::{
 use crate::protocol::api_keys::{
     pick_version, ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    INCREMENTAL_ALTER_CONFIGS, METADATA,
+    FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, METADATA, OFFSET_DELETE,
+};
+use crate::protocol::group::{
+    decode_find_coordinator_response, decode_offset_delete_response,
+    encode_find_coordinator_request_typed, encode_offset_delete_request, OffsetDeleteTopic,
+    COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -41,6 +46,7 @@ pub use crate::protocol::admin::{
     ALTER_CONFIG_SET, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
 };
+pub use crate::protocol::group::OffsetDeleteResult;
 
 #[derive(Debug, Clone)]
 pub struct AdminConfig {
@@ -152,8 +158,11 @@ pub struct Admin {
     describe_acls_version: i16,
     delete_acls_version: i16,
     metadata_version: i16,
+    find_coord_version: i16,
+    offset_delete_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
+    group_coord: Option<(String, i32)>,
 }
 
 impl Admin {
@@ -254,6 +263,16 @@ impl Admin {
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        let find_coord_version = versions
+            .get(&FIND_COORDINATOR)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support FindCoordinator v1-2".into())
+            })?;
+        let offset_delete_version = versions
+            .get(&OFFSET_DELETE)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -270,8 +289,11 @@ impl Admin {
             describe_acls_version,
             delete_acls_version,
             metadata_version,
+            find_coord_version,
+            offset_delete_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            group_coord: None,
         })
     }
 
@@ -781,4 +803,143 @@ impl Admin {
             .await?;
         decode_delete_acls_response(&mut body.clone())
     }
+
+    /// Delete committed offsets for `group_id` (OffsetDelete api 47).
+    ///
+    /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// `COORDINATOR_LOAD_IN_PROGRESS` / `COORDINATOR_NOT_AVAILABLE` /
+    /// `NOT_COORDINATOR` refresh the coordinator and retry.
+    pub async fn delete_offsets(
+        &mut self,
+        group_id: &str,
+        partitions: &[(String, i32)],
+    ) -> Result<Vec<OffsetDeleteResult>> {
+        let topics = offset_delete_topics(partitions);
+        let version = self.offset_delete_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let group_id = group_id.to_string();
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &group_id);
+            if stale {
+                let node = self.discover_group_coord(&group_id).await?;
+                self.group_coord = Some((group_id.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing delete_offsets conn"))?;
+                conn.roundtrip(
+                    OFFSET_DELETE,
+                    version,
+                    |buf| encode_offset_delete_request(buf, &group_id, &topics),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (top, results) = decode_offset_delete_response(&mut body.clone())?;
+            if error::coordinator_retriable(top) {
+                // 14/15/16: FindCoordinator, then the new group coordinator.
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            if top != 0 {
+                return Err(Error::broker(top, "OffsetDelete"));
+            }
+            return Ok(results);
+        }
+    }
+
+    async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {
+        if self.cluster.brokers.is_empty() {
+            self.refresh_metadata(None).await?;
+        }
+        let version = self.find_coord_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let body = self
+                .conn
+                .roundtrip(
+                    FIND_COORDINATOR,
+                    version,
+                    |buf| encode_find_coordinator_request_typed(buf, group_id, COORDINATOR_GROUP),
+                    timeout,
+                )
+                .await;
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (err, node, _host, _port) = decode_find_coordinator_response(&mut body.clone())?;
+            if err == 0 {
+                if !self.cluster.brokers.contains_key(&node) {
+                    self.refresh_metadata(None).await?;
+                }
+                return Ok(node);
+            }
+            if error::coordinator_retriable(err) {
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            return Err(Error::broker(err, "FindCoordinator"));
+        }
+    }
+}
+
+fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> {
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for (topic, part) in partitions {
+        match by_topic.entry(topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(topic.clone());
+                let _ = slot.insert(vec![*part]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(*part);
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|topic| OffsetDeleteTopic {
+            partitions: by_topic.remove(&topic).unwrap_or_default(),
+            topic,
+        })
+        .collect()
 }

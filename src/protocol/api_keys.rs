@@ -33,6 +33,7 @@ pub const ALTER_CONFIGS: i16 = 33;
 pub const SASL_AUTHENTICATE: i16 = 36;
 pub const CREATE_PARTITIONS: i16 = 37;
 pub const INCREMENTAL_ALTER_CONFIGS: i16 = 44;
+pub const OFFSET_DELETE: i16 = 47;
 pub const DESCRIBE_CLUSTER: i16 = 60;
 pub const CONSUMER_GROUP_HEARTBEAT: i16 = 68;
 pub const SHARE_GROUP_HEARTBEAT: i16 = 76;

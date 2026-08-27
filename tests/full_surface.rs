@@ -2529,6 +2529,102 @@ async fn incremental_alter_configs_follows_controller() {
 }
 
 #[tokio::test]
+async fn offset_delete_removes_committed_offset() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"od-keep"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg.clone(), "od-del", "t")
+        .await
+        .unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"od-keep"[..]));
+    g.commit().await.unwrap();
+    g.leave().await.unwrap();
+
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin
+        .delete_offsets("od-del", &[("t".into(), 0)])
+        .await
+        .unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_offset_delete_node(),
+        Some(1),
+        "OffsetDelete must land on the group coordinator"
+    );
+
+    let mut g2 = ConsumerGroup::join(ccfg, "od-del", "t").await.unwrap();
+    let recs = g2.poll().await.unwrap();
+    assert_eq!(
+        recs[0].value.as_deref(),
+        Some(&b"od-keep"[..]),
+        "OffsetDelete must drop the committed offset so rejoin replays"
+    );
+    g2.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn offset_delete_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"od-coord"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ConsumerGroup::join(ccfg, "od-coord", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"od-coord"[..]));
+    g.commit().await.unwrap();
+    g.leave().await.unwrap();
+
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin
+        .delete_offsets("od-coord", &[("t".into(), 0)])
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_offset_delete_node(),
+        Some(2),
+        "OffsetDelete must land on the group coordinator, not bootstrap"
+    );
+
+    mock.move_coordinator();
+    let again = admin
+        .delete_offsets("od-coord", &[("t".into(), 0)])
+        .await
+        .unwrap();
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        mock.offset_delete_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_offset_delete_node(),
+        Some(1),
+        "OffsetDelete must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await
