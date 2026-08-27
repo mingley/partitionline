@@ -34,21 +34,22 @@ use partitionline::protocol::admin::{
     decode_alter_user_scram_credentials_request, decode_create_partitions_request,
     decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
     decode_describe_cluster_request, decode_describe_configs_request,
-    decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_records_response, encode_delete_topics_response,
+    decode_describe_transactions_request, decode_incremental_alter_configs_request,
+    decode_list_partition_reassignments_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
-    encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    encode_update_features_response, AllocateProducerIdsResponse,
-    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
-    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
-    ListPartitionReassignmentsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
-    ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult, UpdatableFeatureResult,
-    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_describe_transactions_response, encode_incremental_alter_configs_response,
+    encode_list_partition_reassignments_response, encode_update_features_response,
+    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
+    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClusterDescription, ConfigEntry,
+    DescribeConfigsResult, ListPartitionReassignmentsResponse, OngoingPartitionReassignment,
+    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult,
+    TransactionState, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
+    RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -59,12 +60,12 @@ use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
-    FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_COMMIT,
-    OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT, UPDATE_FEATURES,
+    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    DESCRIBE_TRANSACTIONS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
+    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, TXN_OFFSET_COMMIT, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -193,6 +194,10 @@ struct State {
     // Fixture broker id/epoch + sequential blocks. Not a real PID allocator.
     last_allocate_producer_ids: Option<(i32, i64, i64, i32)>,
     next_producer_id_block_start: i64,
+    last_describe_transactions_node: Option<i32>,
+    describe_transactions_not_coordinator: u32,
+    // Fixture transactional ids only. Not a live txn coordinator store.
+    txn_fixtures: HashMap<String, TransactionState>,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -346,6 +351,9 @@ fn new_state(
         allocate_producer_ids_not_controller: 0,
         last_allocate_producer_ids: None,
         next_producer_id_block_start: 1000,
+        last_describe_transactions_node: None,
+        describe_transactions_not_coordinator: 0,
+        txn_fixtures: HashMap::new(),
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -924,6 +932,21 @@ impl Mock {
         self.state.lock().last_allocate_producer_ids
     }
 
+    pub fn last_describe_transactions_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_transactions_node
+    }
+
+    pub fn describe_transactions_not_coordinator(&self) -> u32 {
+        self.state.lock().describe_transactions_not_coordinator
+    }
+
+    pub fn set_txn_fixture(&self, state: TransactionState) {
+        let mut st = self.state.lock();
+        let _ = st
+            .txn_fixtures
+            .insert(state.transactional_id.clone(), state);
+    }
+
     pub fn has_quota_fixture(&self, entity_type: &str, name: Option<&str>, key: &str) -> bool {
         self.state.lock().quota_fixtures.contains_key(&(
             entity_type.to_string(),
@@ -1328,6 +1351,7 @@ fn versions() -> ApiVersionsResponse {
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
+        (DESCRIBE_TRANSACTIONS, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -2153,6 +2177,51 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         },
                     )
                     .unwrap();
+                }
+            }
+            DESCRIBE_TRANSACTIONS => {
+                let ids = decode_describe_transactions_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.txn_coord_node != node_id {
+                    st.describe_transactions_not_coordinator =
+                        st.describe_transactions_not_coordinator.saturating_add(1);
+                    // 16 only. Do not disclose fixture txn state on the wrong node.
+                    let results: Vec<TransactionState> = ids
+                        .into_iter()
+                        .map(|transactional_id| TransactionState {
+                            error_code: error::NOT_COORDINATOR,
+                            transactional_id,
+                            transaction_state: String::new(),
+                            transaction_timeout_ms: 0,
+                            transaction_start_time_ms: 0,
+                            producer_id: 0,
+                            producer_epoch: 0,
+                            topics: Vec::new(),
+                        })
+                        .collect();
+                    encode_describe_transactions_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_describe_transactions_node = Some(node_id);
+                    // Fixture transactional ids only.
+                    const TRANSACTIONAL_ID_NOT_FOUND: i16 = 152;
+                    let results: Vec<TransactionState> = ids
+                        .into_iter()
+                        .map(|transactional_id| {
+                            st.txn_fixtures.get(&transactional_id).cloned().unwrap_or(
+                                TransactionState {
+                                    error_code: TRANSACTIONAL_ID_NOT_FOUND,
+                                    transactional_id,
+                                    transaction_state: String::new(),
+                                    transaction_timeout_ms: 0,
+                                    transaction_start_time_ms: 0,
+                                    producer_id: 0,
+                                    producer_epoch: 0,
+                                    topics: Vec::new(),
+                                },
+                            )
+                        })
+                        .collect();
+                    encode_describe_transactions_response(&mut body, &results).unwrap();
                 }
             }
             DESCRIBE_ACLS => {

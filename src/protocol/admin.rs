@@ -1589,6 +1589,131 @@ pub fn decode_allocate_producer_ids_response<B: Buf>(
     })
 }
 
+/// One topic in a DescribeTransactions v0 transaction state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionTopic {
+    pub name: String,
+    pub partitions: Vec<i32>,
+}
+
+/// One transactional.id result from DescribeTransactions (api 65) v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionState {
+    pub error_code: i16,
+    pub transactional_id: String,
+    pub transaction_state: String,
+    pub transaction_timeout_ms: i32,
+    pub transaction_start_time_ms: i64,
+    pub producer_id: i64,
+    pub producer_epoch: i16,
+    pub topics: Vec<TransactionTopic>,
+}
+
+/// DescribeTransactions v0 (flexible from v0; KIP-664).
+///
+/// Official Apache JSON (`apiKey: 65`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`) and kafka-protocol 0.18.0: this crate
+/// targets v0, the only version a client encodes (`VERSIONS` min=max=0).
+/// v0 is flexible. Request: compact `TransactionalIds` `[]string`,
+/// tagged. No timeout field. Response: `ThrottleTimeMs` INT32, compact
+/// `TransactionStates` of `{ErrorCode INT16, TransactionalId compact,
+/// TransactionState compact, TransactionTimeoutMs INT32,
+/// TransactionStartTimeMs INT64, ProducerId INT64, ProducerEpoch INT16,
+/// Topics compact [{Topic compact, Partitions compact []INT32, tagged}],
+/// tagged}`, tagged. There is no top-level `error_code` — 16 is the
+/// first result ErrorCode, after throttle and the compact states length
+/// (bytes 5–6 for a one-result fixture). Fixture transactional ids only.
+pub fn encode_describe_transactions_request(
+    buf: &mut BytesMut,
+    transactional_ids: &[String],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(transactional_ids.len()))?;
+    for id in transactional_ids {
+        buf::put_compact_string(buf, Some(id))?;
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_transactions_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut ids = Vec::with_capacity(n);
+    for _ in 0..n {
+        ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ids)
+}
+
+pub fn encode_describe_transactions_response(
+    buf: &mut BytesMut,
+    states: &[TransactionState],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(states.len()))?;
+    for s in states {
+        buf.put_i16(s.error_code);
+        buf::put_compact_string(buf, Some(&s.transactional_id))?;
+        buf::put_compact_string(buf, Some(&s.transaction_state))?;
+        buf.put_i32(s.transaction_timeout_ms);
+        buf.put_i64(s.transaction_start_time_ms);
+        buf.put_i64(s.producer_id);
+        buf.put_i16(s.producer_epoch);
+        buf::put_array_len(buf, true, Some(s.topics.len()))?;
+        for t in &s.topics {
+            buf::put_compact_string(buf, Some(&t.name))?;
+            buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+            for p in &t.partitions {
+                buf.put_i32(*p);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<TransactionState>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut states = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let transactional_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let transaction_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let transaction_timeout_ms = buf::get_i32(buf)?;
+        let transaction_start_time_ms = buf::get_i64(buf)?;
+        let producer_id = buf::get_i64(buf)?;
+        let producer_epoch = buf::get_i16(buf)?;
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                partitions.push(buf::get_i32(buf)?);
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(TransactionTopic { name, partitions });
+        }
+        buf::skip_tagged_fields(buf)?;
+        states.push(TransactionState {
+            error_code,
+            transactional_id,
+            transaction_state,
+            transaction_timeout_ms,
+            transaction_start_time_ms,
+            producer_id,
+            producer_epoch,
+            topics,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(states)
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2538,6 +2663,121 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AllocateProducerIds v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_transactions_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 65
+        // validVersions 0, flexibleVersions 0+. This crate targets v0.
+        // Not copied from AllocateProducerIds / AlterClientQuotas /
+        // OffsetDelete.
+        const REQ: &[u8] = &[0x02, 0x05, 0x74, 0x78, 0x2d, 0x31, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x05, 0x74, 0x78, 0x2d, 0x31, 0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        ];
+        let ids = vec!["tx-1".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_request(&mut buf, &ids).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![TransactionState {
+            error_code: crate::error::NOT_COORDINATOR,
+            transactional_id: "tx-1".into(),
+            transaction_state: String::new(),
+            transaction_timeout_ms: 0,
+            transaction_start_time_ms: 0,
+            producer_id: 0,
+            producer_epoch: 0,
+            topics: Vec::new(),
+        }];
+        buf.clear();
+        encode_describe_transactions_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn describe_transactions_v0_roundtrip_is_leftover_empty() {
+        let ids = vec!["tx-1".to_string(), "tx-2".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_request(&mut buf, &ids).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_transactions_request(&mut cur).unwrap(), ids);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTransactions v0 request must be leftover-empty"
+        );
+
+        let resp = vec![TransactionState {
+            error_code: 0,
+            transactional_id: "tx-1".into(),
+            transaction_state: "Ongoing".into(),
+            transaction_timeout_ms: 60_000,
+            transaction_start_time_ms: 1_700_000_000_000,
+            producer_id: 1001,
+            producer_epoch: 3,
+            topics: vec![TransactionTopic {
+                name: "orders".into(),
+                partitions: vec![0, 1],
+            }],
+        }];
+        buf.clear();
+        encode_describe_transactions_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_transactions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTransactions v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_transactions_not_coordinator_is_at_byte_five() {
+        // Official v0 body: throttle INT32, compact TransactionStates[],
+        // then each state starts with ErrorCode INT16. Measured from
+        // Apache DescribeTransactionsResponse.json and an independent
+        // kafka-protocol 0.18.0 broker encode. Not copied from
+        // AllocateProducerIds (top-level 41 at bytes 4-5),
+        // AlterClientQuotas (41 at bytes 5-6, different fields after),
+        // or OffsetDelete (error before throttle).
+        let resp = vec![TransactionState {
+            error_code: crate::error::NOT_COORDINATOR,
+            transactional_id: "tx-1".into(),
+            transaction_state: String::new(),
+            transaction_timeout_ms: 0,
+            transaction_start_time_ms: 0,
+            producer_id: 0,
+            producer_epoch: 0,
+            topics: Vec::new(),
+        }];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v0 has no top-level error; bytes 4-5 are compact states len + high byte, not 16"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v0 16 is the first result ErrorCode after throttle and compact states len"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_transactions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTransactions v0 NOT_COORDINATOR must be leftover-empty"
         );
     }
 }
