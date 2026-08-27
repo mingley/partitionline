@@ -14,11 +14,14 @@ pub(crate) struct Cluster {
     pub(crate) leaders: HashMap<String, Vec<i32>>,
     /// Topic → Metadata `leader_epoch` by partition index.
     pub(crate) leader_epochs: HashMap<String, Vec<i32>>,
+    /// Metadata `controller_id`, or `None` until the first Metadata response.
+    pub(crate) controller_id: Option<i32>,
 }
 
 impl Cluster {
     /// Merge a Metadata response into this snapshot.
     pub(crate) fn apply(&mut self, md: &MetadataResponse) {
+        self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
             let _prev = self
                 .brokers
@@ -69,6 +72,23 @@ impl Cluster {
     pub(crate) fn invalidate_topic(&mut self, topic: &str) {
         let _removed = self.leaders.remove(topic);
         let _removed = self.leader_epochs.remove(topic);
+    }
+
+    /// Drop the cached controller so the next admin RPC refetches Metadata.
+    pub(crate) fn invalidate_controller(&mut self) {
+        self.controller_id = None;
+    }
+
+    /// Last Metadata `controller_id`.
+    pub(crate) fn controller(&self) -> Result<i32> {
+        let node = self
+            .controller_id
+            .filter(|&id| id >= 0)
+            .ok_or_else(|| Error::protocol("no controller"))?;
+        if !self.brokers.contains_key(&node) {
+            return Err(Error::protocol(format!("unknown controller {node}")));
+        }
+        Ok(node)
     }
 
     /// Last Metadata `leader_epoch` for `topic`/`partition`, or `-1`.
@@ -137,5 +157,43 @@ impl Cluster {
                 partition,
             })?;
         Ok((node, addr))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error;
+    use crate::protocol::api::{Broker, MetadataResponse};
+
+    #[test]
+    fn apply_stores_controller_id() {
+        let mut cluster = Cluster::default();
+        assert!(cluster.controller().is_err());
+        cluster.apply(&MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 2,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("mock".into()),
+            controller_id: 2,
+            topics: Vec::new(),
+        });
+        assert_eq!(cluster.controller().unwrap(), 2);
+        cluster.invalidate_controller();
+        assert!(cluster.controller().is_err());
+    }
+
+    #[test]
+    fn not_controller_is_retriable() {
+        assert_eq!(error::NOT_CONTROLLER, 41);
+        assert!(Error::broker(error::NOT_CONTROLLER, "CreateTopics").is_retriable());
+        assert_eq!(
+            error::error_name(error::NOT_CONTROLLER),
+            Some("NOT_CONTROLLER")
+        );
     }
 }

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::cluster::Cluster;
-use crate::error::{Error, Result};
+use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
     decode_create_acls_response, decode_delete_acls_response, decode_describe_acls_response,
@@ -308,16 +308,54 @@ impl Admin {
         };
         let version = self.create_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                CREATE_TOPICS,
-                version,
-                |buf| encode_create_topics_request(buf, version, &req),
-                timeout,
-            )
-            .await?;
-        decode_create_topics_response(&mut body.clone(), version)
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing create_topics conn"))?;
+                conn.roundtrip(
+                    CREATE_TOPICS,
+                    version,
+                    |buf| encode_create_topics_request(buf, version, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_create_topics_response(&mut body.clone(), version)?;
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(results);
+        }
     }
 
     pub async fn delete_topics(
