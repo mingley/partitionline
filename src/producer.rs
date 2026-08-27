@@ -619,7 +619,7 @@ impl Producer {
             0,
             |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
             timeout,
-            |body| decode_add_offsets_to_txn_response(&mut body.clone()),
+            |body| decode_add_offsets_to_txn_response(&mut { body }),
         )
         .await?;
         let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
@@ -652,7 +652,7 @@ impl Producer {
                 encode_txn_offset_commit_request(buf, version, &tid, group_id, pid, epoch, &grouped)
             },
             timeout,
-            |body| decode_txn_offset_commit_response(&mut body.clone()),
+            |body| decode_txn_offset_commit_response(&mut { body }),
         )
         .await?;
         let err = decode_txn_offset_commit_response(&mut body.clone())?;
@@ -675,7 +675,7 @@ impl Producer {
             0,
             |buf| encode_end_txn_request(buf, &tid, pid, epoch, committed),
             timeout,
-            |body| decode_end_txn_response(&mut body.clone()),
+            |body| decode_end_txn_response(&mut { body }),
         )
         .await?;
         let err = decode_end_txn_response(&mut body.clone())?;
@@ -1451,7 +1451,7 @@ impl Worker {
             version,
             |buf| encode_add_partitions_to_txn_request(buf, &tid, pid, epoch, &topics),
             timeout,
-            |body| decode_add_partitions_to_txn_response(&mut body.clone()),
+            |body| decode_add_partitions_to_txn_response(&mut { body }),
         )
         .await?;
         let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
