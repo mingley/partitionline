@@ -414,7 +414,7 @@ impl Consumer {
         Ok(())
     }
 
-    async fn recover_leader_epoch(&mut self, topic: &str, partition: i32, node: i32) -> Result<()> {
+    async fn recover_leader_epoch(&mut self, topic: &str, partition: i32) -> Result<()> {
         let version = self
             .versions
             .get(&OFFSET_FOR_LEADER_EPOCH)
@@ -422,46 +422,82 @@ impl Consumer {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support OffsetForLeaderEpoch".into())
             })?;
-        self.connect_node(node).await?;
-        let current = self.cluster.leader_epoch(topic, partition);
-        let timeout = self.cfg.request_timeout;
-        let body = {
-            let conn = self
-                .conns
-                .get_mut(&node)
-                .ok_or_else(|| Error::protocol("missing epoch conn"))?;
-            conn.roundtrip(
-                OFFSET_FOR_LEADER_EPOCH,
-                version,
-                |buf| {
-                    encode_offset_for_leader_epoch_request(
-                        buf, version, topic, partition, current, current,
-                    )
-                },
-                timeout,
-            )
-            .await?
-        };
-        let (err, epoch, end_offset) =
-            decode_offset_for_leader_epoch_response(&mut body.clone(), version)?;
-        if err != 0 {
-            return Err(Error::broker(
-                err,
-                format!("OffsetForLeaderEpoch {topic}-{partition}"),
-            ));
+        // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
+        // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.
+        let _ = self.preferred.remove(&(topic.to_string(), partition));
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        {
+            let topics = [topic.to_string()];
+            self.refresh_metadata(Some(&topics)).await?;
         }
-        self.cluster.set_leader_epoch(topic, partition, epoch);
-        let assigned = self
-            .assigned
-            .iter()
-            .find(|(t, p, _)| t == topic && *p == partition)
-            .map(|(_, _, o)| *o);
-        if let Some(off) = assigned {
-            if off > end_offset {
-                self.advance(topic, partition, end_offset);
+        loop {
+            if self.cluster.leader(topic, partition).is_err() {
+                let topics = [topic.to_string()];
+                self.refresh_metadata(Some(&topics)).await?;
             }
+            let (node, _) = self.cluster.leader(topic, partition)?;
+            self.connect_node(node).await?;
+            let current = self.cluster.leader_epoch(topic, partition);
+            let timeout = self.cfg.request_timeout;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing epoch conn"))?;
+                conn.roundtrip(
+                    OFFSET_FOR_LEADER_EPOCH,
+                    version,
+                    |buf| {
+                        encode_offset_for_leader_epoch_request(
+                            buf, version, topic, partition, current, current,
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (err, epoch, end_offset) =
+                decode_offset_for_leader_epoch_response(&mut body.clone(), version)?;
+            if err == 0 {
+                self.cluster.set_leader_epoch(topic, partition, epoch);
+                let assigned = self
+                    .assigned
+                    .iter()
+                    .find(|(t, p, _)| t == topic && *p == partition)
+                    .map(|(_, _, o)| *o);
+                if let Some(off) = assigned {
+                    if off > end_offset {
+                        self.advance(topic, partition, end_offset);
+                    }
+                }
+                return Ok(());
+            }
+            let e = Error::broker(err, format!("OffsetForLeaderEpoch {topic}-{partition}"));
+            let fence = err == error::FENCED_LEADER_EPOCH || err == error::UNKNOWN_LEADER_EPOCH;
+            if e.is_retriable() || fence {
+                // NOT_LEADER_OR_FOLLOWER (6) / fence: Metadata, then the new leader/epoch.
+                self.cluster.invalidate_topic(topic);
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                let topics = [topic.to_string()];
+                self.refresh_metadata(Some(&topics)).await?;
+                continue;
+            }
+            return Err(e);
         }
-        Ok(())
     }
 
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
@@ -589,7 +625,7 @@ impl Consumer {
                         if part.error_code == error::FENCED_LEADER_EPOCH
                             || part.error_code == error::UNKNOWN_LEADER_EPOCH
                         {
-                            self.recover_leader_epoch(&topic.topic, part.partition, node)
+                            self.recover_leader_epoch(&topic.topic, part.partition)
                                 .await?;
                             retry = true;
                             continue;
@@ -741,7 +777,7 @@ impl Consumer {
                         }
                     ) =>
                 {
-                    self.recover_leader_epoch(&topic, partition, node).await?;
+                    self.recover_leader_epoch(&topic, partition).await?;
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
