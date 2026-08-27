@@ -19,19 +19,20 @@ use crate::protocol::admin::{
     decode_alter_user_scram_credentials_response, decode_create_partitions_response,
     decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
-    decode_describe_transactions_response, decode_incremental_alter_configs_response,
-    decode_list_partition_reassignments_response, decode_list_transactions_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
-    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_transactions_request, encode_incremental_alter_configs_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request,
-    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
+    decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
+    decode_list_transactions_response, decode_update_features_response,
+    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_alter_user_scram_credentials_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
+    encode_list_transactions_request, encode_update_features_request, CreatableTopic,
+    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -41,9 +42,9 @@ use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CREATE_ACLS,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS, FIND_COORDINATOR,
-    INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
-    OFFSET_DELETE, UPDATE_FEATURES,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
+    FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
+    METADATA, OFFSET_DELETE, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -55,8 +56,9 @@ use crate::protocol::sasl;
 pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
     AlterConfig, ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity,
-    ClientQuotaOp, ClusterDescription, ConfigEntry, ConfigSynonym, TransactionListing,
-    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ClientQuotaOp, ClusterDescription, ConfigEntry, ConfigSynonym,
+    DescribeUserScramCredentialsResult, ScramCredentialInfo, TransactionListing, TransactionState,
+    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -333,6 +335,7 @@ pub struct Admin {
     list_reassign_version: i16,
     update_features_version: i16,
     alter_user_scram_version: i16,
+    describe_user_scram_version: i16,
     alter_client_quotas_version: i16,
     allocate_producer_ids_version: i16,
     describe_transactions_version: i16,
@@ -473,6 +476,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AlterUserScramCredentials".into())
             })?;
+        let describe_user_scram_version = versions
+            .get(&DESCRIBE_USER_SCRAM_CREDENTIALS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeUserScramCredentials".into())
+            })?;
         let alter_client_quotas_version = versions
             .get(&ALTER_CLIENT_QUOTAS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
@@ -517,6 +526,7 @@ impl Admin {
             list_reassign_version,
             update_features_version,
             alter_user_scram_version,
+            describe_user_scram_version,
             alter_client_quotas_version,
             allocate_producer_ids_version,
             describe_transactions_version,
@@ -1177,6 +1187,72 @@ impl Admin {
                     error_message: r.error_message,
                 })
                 .collect());
+        }
+    }
+
+    /// Describe user SCRAM credentials (DescribeUserScramCredentials
+    /// api 50).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller. Top-level `error_code`
+    /// (bytes 4–5), not a first-result field. Empty `users` describes all
+    /// fixture users.
+    pub async fn describe_user_scram_credentials(
+        &mut self,
+        users: &[&str],
+    ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
+        let users: Vec<String> = users.iter().map(|s| (*s).to_string()).collect();
+        let version = self.describe_user_scram_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self.conns.get_mut(&node).ok_or_else(|| {
+                    Error::protocol("missing describe_user_scram_credentials conn")
+                })?;
+                conn.roundtrip(
+                    DESCRIBE_USER_SCRAM_CREDENTIALS,
+                    version,
+                    |buf| encode_describe_user_scram_credentials_request(buf, Some(&users)),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_describe_user_scram_credentials_response(&mut body.clone())?;
+            if resp.error_code == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(
+                    resp.error_code,
+                    "DescribeUserScramCredentials",
+                ));
+            }
+            return Ok(resp.results);
         }
     }
 

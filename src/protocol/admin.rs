@@ -1338,6 +1338,143 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
     Ok(results)
 }
 
+/// One SCRAM mechanism + iteration count (DescribeUserScramCredentials v0).
+///
+/// Fixture metadata only. This is not a credential store and does not
+/// carry salt or salted password.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScramCredentialInfo {
+    pub mechanism: i8,
+    pub iterations: i32,
+}
+
+/// Per-user result of DescribeUserScramCredentials v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeUserScramCredentialsResult {
+    pub user: String,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub credential_infos: Vec<ScramCredentialInfo>,
+}
+
+/// DescribeUserScramCredentials v0 body (api 50).
+///
+/// Official Apache JSON (`apiKey: 50`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`, listeners `broker` and `controller`) and
+/// kafka-protocol 0.18.0: this crate targets v0. Request: nullable
+/// compact `Users` of `{Name compact, tagged}`, tagged. Null or empty
+/// means describe all users. Response: `ThrottleTimeMs` INT32, top-level
+/// `ErrorCode` INT16, compact nullable `ErrorMessage`, compact `Results`
+/// of `{User, ErrorCode, ErrorMessage, CredentialInfos[] of
+/// {Mechanism INT8, Iterations INT32, tagged}, tagged}`, tagged.
+/// Measured: **41 is the top-level ErrorCode at bytes 4–5**, after
+/// throttle. Not a first-result field (AlterUserScramCredentials puts
+/// 41 after compact User at bytes 11–12). Fixture users only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeUserScramCredentialsResponse {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub results: Vec<DescribeUserScramCredentialsResult>,
+}
+
+pub fn encode_describe_user_scram_credentials_request(
+    buf: &mut BytesMut,
+    users: Option<&[String]>,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, users.map(|u| u.len()))?;
+    if let Some(users) = users {
+        for name in users {
+            buf::put_compact_string(buf, Some(name))?;
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_user_scram_credentials_request<B: Buf>(
+    buf: &mut B,
+) -> Result<Option<Vec<String>>> {
+    let n = buf::get_array_len(buf, true)?;
+    let users = match n {
+        None => None,
+        Some(n) => {
+            let mut users = Vec::with_capacity(n);
+            for _ in 0..n {
+                let name = buf::get_compact_string(buf)?.unwrap_or_default();
+                buf::skip_tagged_fields(buf)?;
+                users.push(name);
+            }
+            Some(users)
+        }
+    };
+    buf::skip_tagged_fields(buf)?;
+    Ok(users)
+}
+
+pub fn encode_describe_user_scram_credentials_response(
+    buf: &mut BytesMut,
+    resp: &DescribeUserScramCredentialsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_array_len(buf, true, Some(resp.results.len()))?;
+    for r in &resp.results {
+        buf::put_compact_string(buf, Some(&r.user))?;
+        buf.put_i16(r.error_code);
+        buf::put_compact_string(buf, r.error_message.as_deref())?;
+        buf::put_array_len(buf, true, Some(r.credential_infos.len()))?;
+        for c in &r.credential_infos {
+            buf.put_i8(c.mechanism);
+            buf.put_i32(c.iterations);
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_user_scram_credentials_response<B: Buf>(
+    buf: &mut B,
+) -> Result<DescribeUserScramCredentialsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let user = buf::get_compact_string(buf)?.unwrap_or_default();
+        let user_error = buf::get_i16(buf)?;
+        let user_message = buf::get_compact_string(buf)?;
+        let cn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut credential_infos = Vec::with_capacity(cn);
+        for _ in 0..cn {
+            let mechanism = buf::get_i8(buf)?;
+            let iterations = buf::get_i32(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            credential_infos.push(ScramCredentialInfo {
+                mechanism,
+                iterations,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        results.push(DescribeUserScramCredentialsResult {
+            user,
+            error_code: user_error,
+            error_message: user_message,
+            credential_infos,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeUserScramCredentialsResponse {
+        error_code,
+        error_message,
+        results,
+    })
+}
+
 /// One quota entity component (type + optional name). Null name is the default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaEntity {
@@ -2991,6 +3128,126 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ListTransactions v0 NOT_COORDINATOR must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_user_scram_credentials_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 50
+        // validVersions 0, flexibleVersions 0+. This crate targets v0.
+        // Not copied from AlterUserScramCredentials (no top-level error;
+        // 41 after compact User at 11-12) or ListTransactions (16 at
+        // bytes 4-5, different fields after the INT16).
+        const REQ: &[u8] = &[0x02, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00, 0x00];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x0f, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f, 0x6e,
+            0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x01, 0x00,
+        ];
+        let users = vec!["alice".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_request(&mut buf, Some(&users)).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = DescribeUserScramCredentialsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            results: Vec::new(),
+        };
+        buf.clear();
+        encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn describe_user_scram_credentials_v0_roundtrip_is_leftover_empty() {
+        let users = vec!["alice".to_string(), "bob".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_request(&mut buf, Some(&users)).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_user_scram_credentials_request(&mut cur).unwrap(),
+            Some(users)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials v0 request must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_describe_user_scram_credentials_request(&mut buf, None).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_user_scram_credentials_request(&mut cur).unwrap(),
+            None
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials v0 null Users request must be leftover-empty"
+        );
+
+        let resp = DescribeUserScramCredentialsResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![DescribeUserScramCredentialsResult {
+                user: "alice".into(),
+                error_code: 0,
+                error_message: None,
+                credential_infos: vec![ScramCredentialInfo {
+                    mechanism: SCRAM_SHA_256,
+                    iterations: 4096,
+                }],
+            }],
+        };
+        buf.clear();
+        encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_user_scram_credentials_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_user_scram_credentials_not_controller_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16. Measured from Apache DescribeUserScramCredentialsResponse.json
+        // and an independent kafka-protocol 0.18.0 broker encode.
+        // Not copied from AlterUserScramCredentials (41 after compact
+        // User at 11-12) or ListTransactions (same byte offset, different
+        // fields after the INT16).
+        let resp = DescribeUserScramCredentialsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            results: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 throttle then top-level error must be 41 at bytes 4-5"
+        );
+        let b11 = buf.get(11).copied().unwrap();
+        let b12 = buf.get(12).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b11, b12]),
+            crate::error::NOT_CONTROLLER,
+            "v0 41 is not a first-result ErrorCode after compact User"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_user_scram_credentials_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }
