@@ -1126,9 +1126,7 @@ pub fn encode_update_features_request(
     Ok(())
 }
 
-pub fn decode_update_features_request<B: Buf>(
-    buf: &mut B,
-) -> Result<(i32, Vec<FeatureUpdateKey>)> {
+pub fn decode_update_features_request<B: Buf>(buf: &mut B) -> Result<(i32, Vec<FeatureUpdateKey>)> {
     let timeout_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut updates = Vec::with_capacity(n);
