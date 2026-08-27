@@ -36,24 +36,26 @@ use partitionline::protocol::admin::{
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
     decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    decode_list_transactions_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
     encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
     encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    encode_list_transactions_response, encode_update_features_response,
-    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClusterDescription, ConfigEntry,
-    DescribeConfigsResult, DescribeUserScramCredentialsResponse,
-    DescribeUserScramCredentialsResult, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
-    ReassignmentPartitionResult, ReassignmentTopicResult, ScramCredentialInfo, TopicResult,
-    TransactionListing, TransactionState, UpdatableFeatureResult, UpdateFeaturesResponse,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_list_transactions_response, encode_unregister_broker_response,
+    encode_update_features_response, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
+    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, OngoingPartitionReassignment,
+    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult,
+    ScramCredentialInfo, TopicResult, TransactionListing, TransactionState,
+    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
+    RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -70,7 +72,7 @@ use partitionline::protocol::api_keys::{
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
     OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE,
     SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
-    UPDATE_FEATURES,
+    UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -187,6 +189,11 @@ struct State {
     alter_user_scram_not_controller: u32,
     last_describe_user_scram_node: Option<i32>,
     describe_user_scram_not_controller: u32,
+    last_unregister_broker_node: Option<i32>,
+    unregister_broker_not_controller: u32,
+    last_unregistered_broker_id: Option<i32>,
+    // Fixture broker ids only. Not a live KRaft unregistration.
+    unregistered_brokers: HashSet<i32>,
     last_scram_upsert: Option<(String, i8, i32)>,
     last_scram_delete: Option<(String, i8)>,
     scram_users: HashMap<(String, i8), i32>,
@@ -350,6 +357,10 @@ fn new_state(
         alter_user_scram_not_controller: 0,
         last_describe_user_scram_node: None,
         describe_user_scram_not_controller: 0,
+        last_unregister_broker_node: None,
+        unregister_broker_not_controller: 0,
+        last_unregistered_broker_id: None,
+        unregistered_brokers: HashSet::new(),
         last_scram_upsert: None,
         last_scram_delete: None,
         scram_users: HashMap::new(),
@@ -910,6 +921,22 @@ impl Mock {
         self.state.lock().describe_user_scram_not_controller
     }
 
+    pub fn last_unregister_broker_node(&self) -> Option<i32> {
+        self.state.lock().last_unregister_broker_node
+    }
+
+    pub fn unregister_broker_not_controller(&self) -> u32 {
+        self.state.lock().unregister_broker_not_controller
+    }
+
+    pub fn last_unregistered_broker_id(&self) -> Option<i32> {
+        self.state.lock().last_unregistered_broker_id
+    }
+
+    pub fn has_unregistered_broker(&self, broker_id: i32) -> bool {
+        self.state.lock().unregistered_brokers.contains(&broker_id)
+    }
+
     /// Fixture user/mechanism/iterations only. Not a credential store.
     pub fn set_scram_fixture(&self, name: &str, mechanism: i8, iterations: i32) {
         let mut st = self.state.lock();
@@ -1387,6 +1414,7 @@ fn versions() -> ApiVersionsResponse {
         (UPDATE_FEATURES, 0, 0),
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
+        (UNREGISTER_BROKER, 0, 0),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
@@ -2192,6 +2220,36 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             error_code: 0,
                             error_message: None,
                             results,
+                        },
+                    )
+                    .unwrap();
+                }
+            }
+            UNREGISTER_BROKER => {
+                let broker_id = decode_unregister_broker_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.unregister_broker_not_controller =
+                        st.unregister_broker_not_controller.saturating_add(1);
+                    // 41 only. Do not pretend the broker was unregistered
+                    // on the wrong node.
+                    encode_unregister_broker_response(
+                        &mut body,
+                        &UnregisterBrokerResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_unregister_broker_node = Some(node_id);
+                    st.last_unregistered_broker_id = Some(broker_id);
+                    let _ = st.unregistered_brokers.insert(broker_id);
+                    encode_unregister_broker_response(
+                        &mut body,
+                        &UnregisterBrokerResponse {
+                            error_code: 0,
+                            error_message: None,
                         },
                     )
                     .unwrap();

@@ -2887,6 +2887,47 @@ async fn describe_user_scram_credentials_follows_controller() {
 }
 
 #[tokio::test]
+async fn unregister_broker_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    admin.unregister_broker(3).await.unwrap();
+    assert_eq!(
+        mock.last_unregister_broker_node(),
+        Some(2),
+        "UnregisterBroker must land on the controller, not bootstrap"
+    );
+    assert_eq!(mock.last_unregistered_broker_id(), Some(3));
+    assert!(
+        mock.has_unregistered_broker(3),
+        "controller must record the fixture unregistration"
+    );
+
+    mock.set_controller(1);
+    admin.unregister_broker(4).await.unwrap();
+    assert_eq!(
+        mock.unregister_broker_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_unregister_broker_node(),
+        Some(1),
+        "UnregisterBroker must follow Metadata after NOT_CONTROLLER"
+    );
+    assert_eq!(mock.last_unregistered_broker_id(), Some(4));
+    assert!(
+        mock.has_unregistered_broker(3),
+        "first hop unregistration must stay"
+    );
+    assert!(
+        mock.has_unregistered_broker(4),
+        "retry on the new controller must record the fixture unregistration"
+    );
+}
+
+#[tokio::test]
 async fn alter_client_quotas_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

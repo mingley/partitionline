@@ -9,7 +9,7 @@
 //! AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures,
 //! AlterUserScramCredentials, DescribeUserScramCredentials,
 //! AlterClientQuotas, AllocateProducerIds, DescribeTransactions,
-//! ListTransactions, DescribeCluster).
+//! ListTransactions, UnregisterBroker, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
