@@ -152,6 +152,8 @@ struct State {
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     incremental_alter_configs_not_controller: u32,
+    last_create_acls_node: Option<i32>,
+    create_acls_not_controller: u32,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -279,6 +281,8 @@ fn new_state(
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         incremental_alter_configs_not_controller: 0,
+        last_create_acls_node: None,
+        create_acls_not_controller: 0,
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -760,6 +764,14 @@ impl Mock {
 
     pub fn incremental_alter_configs_not_controller(&self) -> u32 {
         self.state.lock().incremental_alter_configs_not_controller
+    }
+
+    pub fn last_create_acls_node(&self) -> Option<i32> {
+        self.state.lock().last_create_acls_node
+    }
+
+    pub fn create_acls_not_controller(&self) -> u32 {
+        self.state.lock().create_acls_not_controller
     }
 
     pub fn last_offset_delete_node(&self) -> Option<i32> {
@@ -1668,8 +1680,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             CREATE_ACLS => {
                 let acls = decode_create_acls_request(&mut frame).unwrap();
                 let n = acls.len();
-                state.lock().acls.extend(acls);
-                encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.create_acls_not_controller = st.create_acls_not_controller.saturating_add(1);
+                    encode_create_acls_response(&mut body, &vec![error::NOT_CONTROLLER; n])
+                        .unwrap();
+                } else {
+                    st.last_create_acls_node = Some(node_id);
+                    st.acls.extend(acls);
+                    encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+                }
             }
             DESCRIBE_ACLS => {
                 let rt = decode_describe_acls_request(&mut frame).unwrap();
