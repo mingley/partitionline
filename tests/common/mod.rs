@@ -33,22 +33,24 @@ use partitionline::protocol::admin::{
     decode_alter_configs_request, decode_alter_partition_reassignments_request,
     decode_alter_user_scram_credentials_request, decode_create_partitions_request,
     decode_create_topics_request, decode_delete_records_request, decode_delete_topics_request,
-    decode_describe_cluster_request, decode_describe_configs_request,
-    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
-    decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_unregister_broker_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_records_response, encode_delete_topics_response,
-    encode_describe_cluster_response, encode_describe_configs_response,
-    encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
-    encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    encode_list_transactions_response, encode_unregister_broker_response,
-    encode_update_features_response, AllocateProducerIdsResponse,
-    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
-    ClientQuotaAlterationResult, ClusterDescription, ConfigEntry, DescribeConfigsResult,
+    decode_describe_client_quotas_request, decode_describe_cluster_request,
+    decode_describe_configs_request, decode_describe_transactions_request,
+    decode_describe_user_scram_credentials_request, decode_incremental_alter_configs_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_unregister_broker_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_user_scram_credentials_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    encode_describe_client_quotas_response, encode_describe_cluster_response,
+    encode_describe_configs_response, encode_describe_transactions_response,
+    encode_describe_user_scram_credentials_response, encode_incremental_alter_configs_response,
+    encode_list_partition_reassignments_response, encode_list_transactions_response,
+    encode_unregister_broker_response, encode_update_features_response,
+    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
+    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClientQuotaEntity,
+    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
+    ConfigEntry, DescribeClientQuotasResponse, DescribeConfigsResult,
     DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
     ListPartitionReassignmentsResponse, ListTransactionsResponse, OngoingPartitionReassignment,
     OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult,
@@ -66,13 +68,13 @@ use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
+    DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
+    LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -197,6 +199,8 @@ struct State {
     last_scram_upsert: Option<(String, i8, i32)>,
     last_scram_delete: Option<(String, i8)>,
     scram_users: HashMap<(String, i8), i32>,
+    last_describe_client_quotas_node: Option<i32>,
+    last_describe_client_quotas: Option<(Vec<ClientQuotaFilterComponent>, bool)>,
     last_alter_client_quotas_node: Option<i32>,
     alter_client_quotas_not_controller: u32,
     last_quota_upsert: Option<(String, Option<String>, String, f64)>,
@@ -364,6 +368,8 @@ fn new_state(
         last_scram_upsert: None,
         last_scram_delete: None,
         scram_users: HashMap::new(),
+        last_describe_client_quotas_node: None,
+        last_describe_client_quotas: None,
         last_alter_client_quotas_node: None,
         alter_client_quotas_not_controller: 0,
         last_quota_upsert: None,
@@ -960,6 +966,14 @@ impl Mock {
             .contains_key(&(name.to_string(), mechanism))
     }
 
+    pub fn last_describe_client_quotas_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_client_quotas_node
+    }
+
+    pub fn last_describe_client_quotas(&self) -> Option<(Vec<ClientQuotaFilterComponent>, bool)> {
+        self.state.lock().last_describe_client_quotas.clone()
+    }
+
     pub fn last_alter_client_quotas_node(&self) -> Option<i32> {
         self.state.lock().last_alter_client_quotas_node
     }
@@ -1415,6 +1429,7 @@ fn versions() -> ApiVersionsResponse {
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
         (UNREGISTER_BROKER, 0, 0),
+        (DESCRIBE_CLIENT_QUOTAS, 0, 1),
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
@@ -2254,6 +2269,27 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     )
                     .unwrap();
                 }
+            }
+            DESCRIBE_CLIENT_QUOTAS => {
+                let (components, strict) =
+                    decode_describe_client_quotas_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture describe only;
+                // not a quota store and not a controller hop.
+                st.last_describe_client_quotas_node = Some(node_id);
+                st.last_describe_client_quotas = Some((components, strict));
+                encode_describe_client_quotas_response(
+                    &mut body,
+                    &DescribeClientQuotasResponse {
+                        error_code: 0,
+                        error_message: None,
+                        entries: Some(vec![ClientQuotaEntry::new(
+                            vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                            vec![ClientQuotaValue::new("producer_byte_rate", 1024.0)],
+                        )]),
+                    },
+                )
+                .unwrap();
             }
             ALTER_CLIENT_QUOTAS => {
                 let (entries, _validate_only) =

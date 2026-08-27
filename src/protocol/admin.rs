@@ -1491,6 +1491,72 @@ impl ClientQuotaEntity {
     }
 }
 
+/// MatchType 0: exact entity name (DescribeClientQuotas, KIP-219).
+pub const QUOTA_MATCH_EXACT: i8 = 0;
+/// MatchType 1: default entity (DescribeClientQuotas, KIP-219).
+pub const QUOTA_MATCH_DEFAULT: i8 = 1;
+/// MatchType 2: any specified name (DescribeClientQuotas, KIP-219).
+pub const QUOTA_MATCH_ANY: i8 = 2;
+
+/// One filter component in DescribeClientQuotas (api 48).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClientQuotaFilterComponent {
+    pub entity_type: String,
+    pub match_type: i8,
+    pub match_value: Option<String>,
+}
+
+impl ClientQuotaFilterComponent {
+    pub fn new(
+        entity_type: impl Into<String>,
+        match_type: i8,
+        match_value: Option<String>,
+    ) -> Self {
+        Self {
+            entity_type: entity_type.into(),
+            match_type,
+            match_value,
+        }
+    }
+}
+
+/// One quota key/value in a DescribeClientQuotas entry.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClientQuotaValue {
+    pub key: String,
+    pub value: f64,
+}
+
+impl ClientQuotaValue {
+    pub fn new(key: impl Into<String>, value: f64) -> Self {
+        Self {
+            key: key.into(),
+            value,
+        }
+    }
+}
+
+/// One described quota entity plus its values.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClientQuotaEntry {
+    pub entity: Vec<ClientQuotaEntity>,
+    pub values: Vec<ClientQuotaValue>,
+}
+
+impl ClientQuotaEntry {
+    pub fn new(entity: Vec<ClientQuotaEntity>, values: Vec<ClientQuotaValue>) -> Self {
+        Self { entity, values }
+    }
+}
+
+/// DescribeClientQuotas v1 response body (top-level ErrorCode).
+#[derive(Debug, Clone, PartialEq)]
+pub struct DescribeClientQuotasResponse {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub entries: Option<Vec<ClientQuotaEntry>>,
+}
+
 /// One quota key to set or remove (AlterClientQuotas).
 ///
 /// `value` is ignored when `remove` is true. This is a fixture op, not a
@@ -1660,6 +1726,134 @@ pub fn decode_alter_client_quotas_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(results)
+}
+
+/// DescribeClientQuotas v1 (classic v0; flexible from v1; KIP-219).
+///
+/// Official Apache JSON (`apiKey: 48`, `validVersions: "0-1"`,
+/// `flexibleVersions: "1+"`, listeners `broker` only) and
+/// kafka-protocol 0.18.0: this crate targets v1, the version a client
+/// encodes (VERSIONS.max). v0 is not flexible. Request: compact
+/// `Components` of `{EntityType, MatchType INT8 (0 exact / 1 default /
+/// 2 any), Match nullable, tagged}`, `Strict` BOOLEAN, tagged. Response:
+/// `ThrottleTimeMs` INT32, **top-level `ErrorCode` INT16**, compact
+/// nullable `ErrorMessage`, compact nullable `Entries` of `{Entity
+/// compact [{EntityType, EntityName nullable, tagged}], Values compact
+/// [{Key, Value FLOAT64, tagged}], tagged}`, tagged. Measured
+/// independently from kafka-protocol 0.18.0 (`client` encodes the
+/// request; `broker` encodes the response): **the top-level ErrorCode
+/// is the INT16 at bytes 4–5**, after throttle — not a first-result
+/// field (AlterClientQuotas puts the first-entry code at bytes 5–6).
+/// This is not a controller hop.
+pub fn encode_describe_client_quotas_request(
+    buf: &mut BytesMut,
+    components: &[ClientQuotaFilterComponent],
+    strict: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(components.len()))?;
+    for c in components {
+        buf::put_compact_string(buf, Some(&c.entity_type))?;
+        buf.put_i8(c.match_type);
+        buf::put_compact_string(buf, c.match_value.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_u8(u8::from(strict));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_client_quotas_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(Vec<ClientQuotaFilterComponent>, bool)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut components = Vec::with_capacity(n);
+    for _ in 0..n {
+        let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        let match_type = buf::get_i8(buf)?;
+        let match_value = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        components.push(ClientQuotaFilterComponent {
+            entity_type,
+            match_type,
+            match_value,
+        });
+    }
+    let strict = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((components, strict))
+}
+
+pub fn encode_describe_client_quotas_response(
+    buf: &mut BytesMut,
+    resp: &DescribeClientQuotasResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    match &resp.entries {
+        None => buf::put_array_len(buf, true, None)?,
+        Some(entries) => {
+            buf::put_array_len(buf, true, Some(entries.len()))?;
+            for e in entries {
+                buf::put_array_len(buf, true, Some(e.entity.len()))?;
+                for ent in &e.entity {
+                    buf::put_compact_string(buf, Some(&ent.entity_type))?;
+                    buf::put_compact_string(buf, ent.name.as_deref())?;
+                    buf::put_empty_tagged_fields(buf);
+                }
+                buf::put_array_len(buf, true, Some(e.values.len()))?;
+                for v in &e.values {
+                    buf::put_compact_string(buf, Some(&v.key))?;
+                    buf.put_f64(v.value);
+                    buf::put_empty_tagged_fields(buf);
+                }
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_client_quotas_response<B: Buf>(
+    buf: &mut B,
+) -> Result<DescribeClientQuotasResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let entries = match buf::get_array_len(buf, true)? {
+        None => None,
+        Some(n) => {
+            let mut entries = Vec::with_capacity(n);
+            for _ in 0..n {
+                let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+                let mut entity = Vec::with_capacity(en);
+                for _ in 0..en {
+                    let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
+                    let name = buf::get_compact_string(buf)?;
+                    buf::skip_tagged_fields(buf)?;
+                    entity.push(ClientQuotaEntity { entity_type, name });
+                }
+                let vn = buf::get_array_len(buf, true)?.unwrap_or(0);
+                let mut values = Vec::with_capacity(vn);
+                for _ in 0..vn {
+                    let key = buf::get_compact_string(buf)?.unwrap_or_default();
+                    let value = buf::get_f64(buf)?;
+                    buf::skip_tagged_fields(buf)?;
+                    values.push(ClientQuotaValue { key, value });
+                }
+                buf::skip_tagged_fields(buf)?;
+                entries.push(ClientQuotaEntry { entity, values });
+            }
+            Some(entries)
+        }
+    };
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeClientQuotasResponse {
+        error_code,
+        error_message,
+        entries,
+    })
 }
 
 /// AllocateProducerIds v0 response (top-level error after throttle).
@@ -2881,6 +3075,117 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterClientQuotas v1 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_client_quotas_v1_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 48
+        // validVersions 0-1, flexibleVersions 1+, listeners broker only.
+        // This crate targets v1. Not copied from AlterClientQuotas
+        // (no top-level error; first-entry 41 at bytes 5-6).
+        const REQ: &[u8] = &[
+            0x02, 0x05, 0x75, 0x73, 0x65, 0x72, 0x00, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00,
+            0x00, 0x00,
+        ];
+        const RESP_ERR: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x0f, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f, 0x6e,
+            0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x00, 0x00,
+        ];
+        let components = vec![ClientQuotaFilterComponent::new(
+            "user",
+            QUOTA_MATCH_EXACT,
+            Some("alice".into()),
+        )];
+        let mut buf = BytesMut::new();
+        encode_describe_client_quotas_request(&mut buf, &components, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = DescribeClientQuotasResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entries: None,
+        };
+        buf.clear();
+        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_ERR);
+    }
+
+    #[test]
+    fn describe_client_quotas_v1_roundtrip_is_leftover_empty() {
+        let components = vec![
+            ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into())),
+            ClientQuotaFilterComponent::new("client-id", QUOTA_MATCH_ANY, None),
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_client_quotas_request(&mut buf, &components, true).unwrap();
+        let mut cur = &buf[..];
+        let (got, strict) = decode_describe_client_quotas_request(&mut cur).unwrap();
+        assert_eq!(got, components);
+        assert!(strict);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeClientQuotas v1 request must be leftover-empty"
+        );
+
+        let resp = DescribeClientQuotasResponse {
+            error_code: 0,
+            error_message: None,
+            entries: Some(vec![ClientQuotaEntry::new(
+                vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                vec![ClientQuotaValue::new("producer_byte_rate", 1024.0)],
+            )]),
+        };
+        buf.clear();
+        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_client_quotas_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeClientQuotas v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_client_quotas_error_code_is_at_bytes_4_5() {
+        // Official v1 body: throttle INT32, then top-level ErrorCode
+        // INT16, ErrorMessage, nullable Entries. Measured independently
+        // from Apache DescribeClientQuotasResponse.json and a
+        // kafka-protocol 0.18.0 broker encode (`features = ["broker"]`).
+        // Do not assume bytes 4-5 from UnregisterBroker /
+        // AllocateProducerIds (same offset, different fields after) or
+        // AlterClientQuotas (first-entry code at bytes 5-6).
+        let resp = DescribeClientQuotasResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entries: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v1 throttle then top-level error must be the INT16 at bytes 4-5"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_CONTROLLER,
+            "v1 ErrorCode is not a first-result field at bytes 5-6"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_client_quotas_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeClientQuotas v1 ErrorCode body must be leftover-empty"
         );
     }
 

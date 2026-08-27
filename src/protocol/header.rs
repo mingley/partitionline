@@ -7,10 +7,10 @@ use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
     ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS,
-    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
+    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -43,9 +43,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | DESCRIBE_TRANSACTIONS
         | LIST_TRANSACTIONS
         | UNREGISTER_BROKER => 2,
-        // AlterClientQuotas is classic at v0; flexible from v1
-        // (Apache JSON flexibleVersions: "1+", kafka-protocol 0.18.0).
-        ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
+        // DescribeClientQuotas / AlterClientQuotas are classic at v0;
+        // flexible from v1 (Apache JSON flexibleVersions: "1+",
+        // kafka-protocol 0.18.0).
+        DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
@@ -68,7 +69,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | DESCRIBE_TRANSACTIONS
         | LIST_TRANSACTIONS
         | UNREGISTER_BROKER => 1,
-        ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
+        DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
@@ -200,6 +201,17 @@ mod tests {
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v0.
         assert_eq!(request_header_version(UNREGISTER_BROKER, 0), 2);
         assert_eq!(response_header_version(UNREGISTER_BROKER, 0), 1);
+    }
+
+    #[test]
+    fn describe_client_quotas_v1_is_flexible_v0_is_not() {
+        // Official JSON: validVersions 0-1, flexibleVersions 1+.
+        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v1; 1 / 0 at v0.
+        // This crate speaks v1.
+        assert_eq!(request_header_version(DESCRIBE_CLIENT_QUOTAS, 0), 1);
+        assert_eq!(response_header_version(DESCRIBE_CLIENT_QUOTAS, 0), 0);
+        assert_eq!(request_header_version(DESCRIBE_CLIENT_QUOTAS, 1), 2);
+        assert_eq!(response_header_version(DESCRIBE_CLIENT_QUOTAS, 1), 1);
     }
 
     #[test]

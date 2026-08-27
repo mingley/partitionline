@@ -8,8 +8,9 @@
 //! (topics, partitions, configs, ACLs, DeleteRecords, OffsetDelete,
 //! AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures,
 //! AlterUserScramCredentials, DescribeUserScramCredentials,
-//! AlterClientQuotas, AllocateProducerIds, DescribeTransactions,
-//! ListTransactions, UnregisterBroker, DescribeCluster).
+//! AlterClientQuotas, DescribeClientQuotas, AllocateProducerIds,
+//! DescribeTransactions, ListTransactions, UnregisterBroker,
+//! DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -36,13 +37,15 @@ pub mod share;
 
 pub use admin::{
     AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaOp, ClusterDescription, ConfigEntry,
-    ConfigResource, DescribeUserScramCredentialsResult, FeatureUpdate, FeatureUpdateResult,
-    NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
+    DescribeUserScramCredentialsResult, FeatureUpdate, FeatureUpdateResult, NewTopic,
+    OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
     ReassignmentResult, ScramCredentialInfo, TransactionListing, TransactionState,
     TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER,
-    CONFIG_RESOURCE_TOPIC, SCRAM_SHA_256, SCRAM_SHA_512,
+    CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
+    SCRAM_SHA_512,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};

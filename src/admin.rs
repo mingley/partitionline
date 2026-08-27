@@ -18,22 +18,23 @@ use crate::protocol::admin::{
     decode_alter_configs_response, decode_alter_partition_reassignments_response,
     decode_alter_user_scram_credentials_response, decode_create_partitions_response,
     decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
-    decode_describe_cluster_response, decode_describe_configs_response,
-    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
-    decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_unregister_broker_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
-    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
-    encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
-    encode_list_transactions_request, encode_unregister_broker_request,
-    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    decode_describe_client_quotas_response, decode_describe_cluster_response,
+    decode_describe_configs_response, decode_describe_transactions_response,
+    decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
+    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_unregister_broker_response, decode_update_features_response,
+    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_alter_user_scram_credentials_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_transactions_request,
+    encode_describe_user_scram_credentials_request, encode_incremental_alter_configs_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
+    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -43,9 +44,10 @@ use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CREATE_ACLS,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
-    FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
-    METADATA, OFFSET_DELETE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, UNREGISTER_BROKER,
+    UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -57,9 +59,10 @@ use crate::protocol::sasl;
 pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
     AlterConfig, ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity,
-    ClientQuotaOp, ClusterDescription, ConfigEntry, ConfigSynonym,
-    DescribeUserScramCredentialsResult, ScramCredentialInfo, TransactionListing, TransactionState,
-    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue,
+    ClusterDescription, ConfigEntry, ConfigSynonym, DescribeUserScramCredentialsResult,
+    ScramCredentialInfo, TransactionListing, TransactionState, TransactionTopic,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -338,6 +341,7 @@ pub struct Admin {
     alter_user_scram_version: i16,
     describe_user_scram_version: i16,
     unregister_broker_version: i16,
+    describe_client_quotas_version: i16,
     alter_client_quotas_version: i16,
     allocate_producer_ids_version: i16,
     describe_transactions_version: i16,
@@ -488,6 +492,12 @@ impl Admin {
             .get(&UNREGISTER_BROKER)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
             .ok_or_else(|| Error::Unsupported("broker does not support UnregisterBroker".into()))?;
+        let describe_client_quotas_version = versions
+            .get(&DESCRIBE_CLIENT_QUOTAS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeClientQuotas".into())
+            })?;
         let alter_client_quotas_version = versions
             .get(&ALTER_CLIENT_QUOTAS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
@@ -534,6 +544,7 @@ impl Admin {
             alter_user_scram_version,
             describe_user_scram_version,
             unregister_broker_version,
+            describe_client_quotas_version,
             alter_client_quotas_version,
             allocate_producer_ids_version,
             describe_transactions_version,
@@ -1320,6 +1331,37 @@ impl Admin {
             }
             return Ok(());
         }
+    }
+
+    /// Describe client quotas (DescribeClientQuotas api 48, KIP-219).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official Apache
+    /// JSON listeners are `broker` only. This is not a controller hop:
+    /// there is no Metadata `controller_id` lookup and no
+    /// `NOT_CONTROLLER` (41) retry. Top-level `error_code` is the INT16
+    /// at bytes 4–5, after throttle.
+    pub async fn describe_client_quotas(
+        &mut self,
+        components: &[ClientQuotaFilterComponent],
+        strict: bool,
+    ) -> Result<Vec<ClientQuotaEntry>> {
+        let components = components.to_vec();
+        let version = self.describe_client_quotas_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DESCRIBE_CLIENT_QUOTAS,
+                version,
+                |buf| encode_describe_client_quotas_request(buf, &components, strict),
+                timeout,
+            )
+            .await?;
+        let resp = decode_describe_client_quotas_response(&mut body.clone())?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "DescribeClientQuotas"));
+        }
+        Ok(resp.entries.unwrap_or_default())
     }
 
     /// Upsert or delete client quotas (AlterClientQuotas api 49).
