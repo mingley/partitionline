@@ -511,24 +511,61 @@ impl Admin {
     ) -> Result<i16> {
         let version = self.alter_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                INCREMENTAL_ALTER_CONFIGS,
-                version,
-                |buf| {
-                    encode_incremental_alter_configs_request(
-                        buf,
-                        resource_type,
-                        name,
-                        configs,
-                        validate_only,
-                    )
-                },
-                timeout,
-            )
-            .await?;
-        decode_incremental_alter_configs_response(&mut body.clone())
+        let deadline = Instant::now() + timeout;
+        let name = name.to_string();
+        let configs = configs.to_vec();
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing incremental_alter_configs conn"))?;
+                conn.roundtrip(
+                    INCREMENTAL_ALTER_CONFIGS,
+                    version,
+                    |buf| {
+                        encode_incremental_alter_configs_request(
+                            buf,
+                            resource_type,
+                            &name,
+                            &configs,
+                            validate_only,
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let err = decode_incremental_alter_configs_response(&mut body.clone())?;
+            if err == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(err);
+        }
     }
 
     pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {

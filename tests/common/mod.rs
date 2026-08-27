@@ -149,6 +149,8 @@ struct State {
     delete_topics_not_controller: u32,
     last_create_partitions_node: Option<i32>,
     create_partitions_not_controller: u32,
+    last_incremental_alter_configs_node: Option<i32>,
+    incremental_alter_configs_not_controller: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -272,6 +274,8 @@ fn new_state(
         delete_topics_not_controller: 0,
         last_create_partitions_node: None,
         create_partitions_not_controller: 0,
+        last_incremental_alter_configs_node: None,
+        incremental_alter_configs_not_controller: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -743,6 +747,14 @@ impl Mock {
 
     pub fn create_partitions_not_controller(&self) -> u32 {
         self.state.lock().create_partitions_not_controller
+    }
+
+    pub fn last_incremental_alter_configs_node(&self) -> Option<i32> {
+        self.state.lock().last_incremental_alter_configs_node
+    }
+
+    pub fn incremental_alter_configs_not_controller(&self) -> u32 {
+        self.state.lock().incremental_alter_configs_not_controller
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1518,20 +1530,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_incremental_alter_configs_request(&mut frame).unwrap();
                 let mut err = 0i16;
                 let mut st = state.lock();
-                if rt != RESOURCE_TOPIC {
-                    err = 3;
-                } else if let Some(spec) = st.created_topics.get_mut(&name) {
-                    if !validate_only {
-                        for c in configs {
-                            if c.op == ALTER_CONFIG_DELETE {
-                                spec.configs.remove(&c.name);
-                            } else if c.op == ALTER_CONFIG_SET {
-                                spec.configs.insert(c.name, c.value);
+                if st.controller_node != node_id {
+                    st.incremental_alter_configs_not_controller = st
+                        .incremental_alter_configs_not_controller
+                        .saturating_add(1);
+                    err = error::NOT_CONTROLLER;
+                } else {
+                    st.last_incremental_alter_configs_node = Some(node_id);
+                    if rt != RESOURCE_TOPIC {
+                        err = 3;
+                    } else if let Some(spec) = st.created_topics.get_mut(&name) {
+                        if !validate_only {
+                            for c in configs {
+                                if c.op == ALTER_CONFIG_DELETE {
+                                    spec.configs.remove(&c.name);
+                                } else if c.op == ALTER_CONFIG_SET {
+                                    spec.configs.insert(c.name, c.value);
+                                }
                             }
                         }
+                    } else {
+                        err = 3;
                     }
-                } else {
-                    err = 3;
                 }
                 encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
             }

@@ -583,8 +583,14 @@ pub fn encode_incremental_alter_configs_response(
 
 pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    buf::get_i16(buf)
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let error_code = buf::get_i16(buf)?;
+    if n > 0 {
+        let _msg = buf::get_classic_nullable_string(buf)?;
+        let _rt = buf::get_i8(buf)?;
+        let _name = buf::get_classic_nullable_string(buf)?;
+    }
+    Ok(error_code)
 }
 
 pub fn encode_alter_configs_request(
@@ -907,6 +913,29 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v1 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn incremental_alter_configs_not_controller_is_not_at_byte_four() {
+        let mut buf = BytesMut::new();
+        encode_incremental_alter_configs_response(&mut buf, crate::error::NOT_CONTROLLER, "t")
+            .unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "throttle + resource-array length must not look like error 41"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_incremental_alter_configs_response(&mut cur).unwrap(),
+            crate::error::NOT_CONTROLLER
+        );
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 
