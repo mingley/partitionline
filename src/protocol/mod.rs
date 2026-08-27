@@ -1,7 +1,7 @@
 /// ACL create/describe/delete codecs.
 pub mod acl;
 /// CreateTopics, DeleteTopics, DescribeConfigs, UpdateFeatures,
-/// AlterUserScramCredentials codecs.
+/// AlterUserScramCredentials, AlterClientQuotas codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

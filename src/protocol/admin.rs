@@ -1338,6 +1338,193 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
     Ok(results)
 }
 
+/// One quota entity component (type + optional name). Null name is the default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClientQuotaEntity {
+    pub entity_type: String,
+    pub name: Option<String>,
+}
+
+impl ClientQuotaEntity {
+    pub fn new(entity_type: impl Into<String>, name: Option<String>) -> Self {
+        Self {
+            entity_type: entity_type.into(),
+            name,
+        }
+    }
+}
+
+/// One quota key to set or remove (AlterClientQuotas).
+///
+/// `value` is ignored when `remove` is true. This is a fixture op, not a
+/// live cluster quota store.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClientQuotaOp {
+    pub key: String,
+    pub value: f64,
+    pub remove: bool,
+}
+
+impl ClientQuotaOp {
+    pub fn set(key: impl Into<String>, value: f64) -> Self {
+        Self {
+            key: key.into(),
+            value,
+            remove: false,
+        }
+    }
+
+    pub fn remove(key: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            value: 0.0,
+            remove: true,
+        }
+    }
+}
+
+/// One entity plus its ops in AlterClientQuotas v1.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClientQuotaAlteration {
+    pub entity: Vec<ClientQuotaEntity>,
+    pub ops: Vec<ClientQuotaOp>,
+}
+
+impl ClientQuotaAlteration {
+    pub fn new(entity: Vec<ClientQuotaEntity>, ops: Vec<ClientQuotaOp>) -> Self {
+        Self { entity, ops }
+    }
+}
+
+/// Per-entry result of AlterClientQuotas v1. Error sits on the entry;
+/// there is no top-level response error_code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClientQuotaAlterationResult {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub entity: Vec<ClientQuotaEntity>,
+}
+
+/// AlterClientQuotas v1 (classic v0; flexible from v1; KIP-546 / KIP-599).
+///
+/// Official Apache JSON (`apiKey: 49`, `validVersions: "0-1"`,
+/// `flexibleVersions: "1+"`) and kafka-protocol 0.18.0: this crate
+/// targets v1, the version a client encodes (VERSIONS.max). v0 is not
+/// flexible. Request: compact `Entries` of `{Entity compact
+/// [{EntityType, EntityName nullable, tagged}], Ops compact [{Key,
+/// Value FLOAT64, Remove BOOLEAN, tagged}], tagged}`, `ValidateOnly`
+/// BOOLEAN, tagged. No timeout field. Response: `ThrottleTimeMs`
+/// INT32, compact `Entries` of `{ErrorCode INT16, ErrorMessage
+/// compact-nullable, Entity, tagged}`, tagged. There is no top-level
+/// `error_code` — 41 is the first entry ErrorCode, after throttle and
+/// the compact entries length (bytes 5–6 for a one-entry fixture).
+pub fn encode_alter_client_quotas_request(
+    buf: &mut BytesMut,
+    entries: &[ClientQuotaAlteration],
+    validate_only: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(entries.len()))?;
+    for e in entries {
+        buf::put_array_len(buf, true, Some(e.entity.len()))?;
+        for ent in &e.entity {
+            buf::put_compact_string(buf, Some(&ent.entity_type))?;
+            buf::put_compact_string(buf, ent.name.as_deref())?;
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_array_len(buf, true, Some(e.ops.len()))?;
+        for op in &e.ops {
+            buf::put_compact_string(buf, Some(&op.key))?;
+            buf.put_f64(op.value);
+            buf.put_u8(u8::from(op.remove));
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_u8(u8::from(validate_only));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_client_quotas_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(Vec<ClientQuotaAlteration>, bool)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut entries = Vec::with_capacity(n);
+    for _ in 0..n {
+        let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut entity = Vec::with_capacity(en);
+        for _ in 0..en {
+            let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
+            let name = buf::get_compact_string(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            entity.push(ClientQuotaEntity { entity_type, name });
+        }
+        let on = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut ops = Vec::with_capacity(on);
+        for _ in 0..on {
+            let key = buf::get_compact_string(buf)?.unwrap_or_default();
+            let value = buf::get_f64(buf)?;
+            let remove = buf::get_bool(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            ops.push(ClientQuotaOp { key, value, remove });
+        }
+        buf::skip_tagged_fields(buf)?;
+        entries.push(ClientQuotaAlteration { entity, ops });
+    }
+    let validate_only = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((entries, validate_only))
+}
+
+pub fn encode_alter_client_quotas_response(
+    buf: &mut BytesMut,
+    results: &[ClientQuotaAlterationResult],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(results.len()))?;
+    for r in results {
+        buf.put_i16(r.error_code);
+        buf::put_compact_string(buf, r.error_message.as_deref())?;
+        buf::put_array_len(buf, true, Some(r.entity.len()))?;
+        for ent in &r.entity {
+            buf::put_compact_string(buf, Some(&ent.entity_type))?;
+            buf::put_compact_string(buf, ent.name.as_deref())?;
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_client_quotas_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<ClientQuotaAlterationResult>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut entity = Vec::with_capacity(en);
+        for _ in 0..en {
+            let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
+            let name = buf::get_compact_string(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            entity.push(ClientQuotaEntity { entity_type, name });
+        }
+        buf::skip_tagged_fields(buf)?;
+        results.push(ClientQuotaAlterationResult {
+            error_code,
+            error_message,
+            entity,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(results)
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2081,6 +2268,121 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_client_quotas_v1_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 49
+        // validVersions 0-1, flexibleVersions 1+. This crate targets v1.
+        // v0 is classic (not copied from AlterUserScramCredentials).
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x05, 0x75, 0x73, 0x65, 0x72, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00,
+            0x02, 0x13, 0x70, 0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x5f, 0x62, 0x79, 0x74,
+            0x65, 0x5f, 0x72, 0x61, 0x74, 0x65, 0x40, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x29, 0x0f, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f,
+            0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x02, 0x05, 0x75, 0x73, 0x65, 0x72,
+            0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00, 0x00, 0x00,
+        ];
+        let entries = vec![ClientQuotaAlteration::new(
+            vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+            vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+        )];
+        let mut buf = BytesMut::new();
+        encode_alter_client_quotas_request(&mut buf, &entries, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![ClientQuotaAlterationResult {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+        }];
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn alter_client_quotas_v1_roundtrip_is_leftover_empty() {
+        let entries = vec![
+            ClientQuotaAlteration::new(
+                vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+            ),
+            ClientQuotaAlteration::new(
+                vec![ClientQuotaEntity::new("user", Some("carol".into()))],
+                vec![ClientQuotaOp::remove("producer_byte_rate")],
+            ),
+        ];
+        let mut buf = BytesMut::new();
+        encode_alter_client_quotas_request(&mut buf, &entries, true).unwrap();
+        let mut cur = &buf[..];
+        let (got, validate_only) = decode_alter_client_quotas_request(&mut cur).unwrap();
+        assert_eq!(got, entries);
+        assert!(validate_only);
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas v1 request must be leftover-empty"
+        );
+
+        let resp = vec![
+            ClientQuotaAlterationResult {
+                error_code: 0,
+                error_message: None,
+                entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+            },
+            ClientQuotaAlterationResult {
+                error_code: 0,
+                error_message: None,
+                entity: vec![ClientQuotaEntity::new("user", Some("carol".into()))],
+            },
+        ];
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_alter_client_quotas_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_client_quotas_not_controller_is_at_byte_five() {
+        // Official v1 body: throttle INT32, compact Entries[], then each
+        // entry is ErrorCode INT16, ErrorMessage, Entity. Verified from
+        // Apache AlterClientQuotasResponse.json and kafka-protocol 0.18.0.
+        // Not copied from UpdateFeatures (top-level 41 at bytes 4-5) or
+        // AlterUserScramCredentials (41 after compact User at 11-12).
+        // ErrorCode is before Entity, not after.
+        let resp = vec![ClientQuotaAlterationResult {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v1 has no top-level error; bytes 4-5 are compact entries len + high byte, not 41"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_CONTROLLER,
+            "v1 41 is the first entry ErrorCode after throttle and compact entries len"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_alter_client_quotas_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas v1 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }

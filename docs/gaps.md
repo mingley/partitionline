@@ -37,7 +37,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
-| Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete, AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures, AlterUserScramCredentials | yes | yes | **done** |
+| Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete, AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures, AlterUserScramCredentials, AlterClientQuotas | yes | yes | **done** |
 | Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60) | yes | **done** |
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer`, ConsumerGroupHeartbeat api 68; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |

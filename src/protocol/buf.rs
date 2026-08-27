@@ -399,6 +399,11 @@ pub fn get_i64<B: Buf>(buf: &mut B) -> Result<i64> {
     Ok(buf.get_i64())
 }
 
+pub fn get_f64<B: Buf>(buf: &mut B) -> Result<f64> {
+    need(buf, 8)?;
+    Ok(buf.get_f64())
+}
+
 pub fn get_u32<B: Buf>(buf: &mut B) -> Result<u32> {
     need(buf, 4)?;
     Ok(buf.get_u32())
