@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, BytesMut};
 use super::api_keys::{
     ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER,
     LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
-    SHARE_GROUP_HEARTBEAT,
+    SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -31,7 +31,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS if api_version >= 3 => 2,
         PRODUCE if api_version >= 9 => 2,
         METADATA if api_version >= 9 => 2,
-        DESCRIBE_CLUSTER | ALTER_PARTITION_REASSIGNMENTS | LIST_PARTITION_REASSIGNMENTS => 2,
+        DESCRIBE_CLUSTER
+        | ALTER_PARTITION_REASSIGNMENTS
+        | LIST_PARTITION_REASSIGNMENTS
+        | UPDATE_FEATURES => 2,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
@@ -44,7 +47,10 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS => 0,
         PRODUCE if api_version >= 9 => 1,
         METADATA if api_version >= 9 => 1,
-        DESCRIBE_CLUSTER | ALTER_PARTITION_REASSIGNMENTS | LIST_PARTITION_REASSIGNMENTS => 1,
+        DESCRIBE_CLUSTER
+        | ALTER_PARTITION_REASSIGNMENTS
+        | LIST_PARTITION_REASSIGNMENTS
+        | UPDATE_FEATURES => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
@@ -142,6 +148,12 @@ mod tests {
     fn list_partition_reassignments_v0_is_flexible() {
         assert_eq!(request_header_version(LIST_PARTITION_REASSIGNMENTS, 0), 2);
         assert_eq!(response_header_version(LIST_PARTITION_REASSIGNMENTS, 0), 1);
+    }
+
+    #[test]
+    fn update_features_v0_is_flexible() {
+        assert_eq!(request_header_version(UPDATE_FEATURES, 0), 2);
+        assert_eq!(response_header_version(UPDATE_FEATURES, 0), 1);
     }
 
     #[test]

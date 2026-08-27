@@ -13,7 +13,7 @@ mod common;
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, NewTopic, OidcConfig, OngoingReassignment,
+    ConsumerConfig, ConsumerGroup, Error, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, ShareGroup, ACL_OPERATION_ALL,
     ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC,
     EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
@@ -2705,6 +2705,60 @@ async fn list_partition_reassignments_follows_controller() {
         Some(1),
         "ListPartitionReassignments must follow Metadata after NOT_CONTROLLER"
     );
+}
+
+#[tokio::test]
+async fn update_features_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let results = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_update_features_node(),
+        Some(2),
+        "UpdateFeatures must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_feature_update(),
+        Some(("metadata.version".into(), 17, false)),
+        "controller must store the feature update"
+    );
+    assert_eq!(mock.feature_level("metadata.version"), Some(17));
+
+    mock.set_controller(1);
+    let again = admin
+        .update_features(&[FeatureUpdate::new("group.version", 1)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        mock.update_features_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_update_features_node(),
+        Some(1),
+        "UpdateFeatures must follow Metadata after NOT_CONTROLLER"
+    );
+    assert_eq!(
+        mock.last_feature_update(),
+        Some(("group.version".into(), 1, false)),
+        "retry on the new controller must store the feature update"
+    );
+    assert_eq!(
+        mock.feature_level("metadata.version"),
+        Some(17),
+        "first hop mutation must stay"
+    );
+    assert_eq!(mock.feature_level("group.version"), Some(1));
 }
 
 #[tokio::test]

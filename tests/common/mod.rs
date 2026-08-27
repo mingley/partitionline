@@ -33,16 +33,17 @@ use partitionline::protocol::admin::{
     decode_create_partitions_request, decode_create_topics_request, decode_delete_records_request,
     decode_delete_topics_request, decode_describe_cluster_request, decode_describe_configs_request,
     decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_records_response, encode_delete_topics_response,
+    decode_update_features_request, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
     encode_describe_cluster_response, encode_describe_configs_response,
     encode_incremental_alter_configs_response, encode_list_partition_reassignments_response,
-    AlterPartitionReassignmentsResponse, ClusterDescription, ConfigEntry, DescribeConfigsResult,
-    ListPartitionReassignmentsResponse, OngoingPartitionReassignment, OngoingTopicReassignment,
-    ReassignmentPartitionResult, ReassignmentTopicResult, TopicResult, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
-    RESOURCE_TOPIC,
+    encode_update_features_response, AlterPartitionReassignmentsResponse, ClusterDescription,
+    ConfigEntry, DescribeConfigsResult, ListPartitionReassignmentsResponse,
+    OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
+    ReassignmentTopicResult, TopicResult, UpdatableFeatureResult, UpdateFeaturesResponse,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -57,7 +58,7 @@ use partitionline::protocol::api_keys::{
     JOIN_GROUP, LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_COMMIT,
     OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
     SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT,
+    TXN_OFFSET_COMMIT, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -166,6 +167,10 @@ struct State {
     reassignments: HashMap<(String, i32), Vec<i32>>,
     last_list_reassignments_node: Option<i32>,
     list_reassignments_not_controller: u32,
+    last_update_features_node: Option<i32>,
+    update_features_not_controller: u32,
+    last_feature_update: Option<(String, i16, bool)>,
+    features: HashMap<String, i16>,
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
@@ -301,6 +306,10 @@ fn new_state(
         reassignments: HashMap::new(),
         last_list_reassignments_node: None,
         list_reassignments_not_controller: 0,
+        last_update_features_node: None,
+        update_features_not_controller: 0,
+        last_feature_update: None,
+        features: HashMap::new(),
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
@@ -812,6 +821,22 @@ impl Mock {
         self.state.lock().list_reassignments_not_controller
     }
 
+    pub fn last_update_features_node(&self) -> Option<i32> {
+        self.state.lock().last_update_features_node
+    }
+
+    pub fn update_features_not_controller(&self) -> u32 {
+        self.state.lock().update_features_not_controller
+    }
+
+    pub fn last_feature_update(&self) -> Option<(String, i16, bool)> {
+        self.state.lock().last_feature_update.clone()
+    }
+
+    pub fn feature_level(&self, name: &str) -> Option<i16> {
+        self.state.lock().features.get(name).copied()
+    }
+
     pub fn last_offset_delete_node(&self) -> Option<i32> {
         self.state.lock().last_offset_delete_node
     }
@@ -1196,6 +1221,7 @@ fn versions() -> ApiVersionsResponse {
         (INCREMENTAL_ALTER_CONFIGS, 0, 0),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
+        (UPDATE_FEATURES, 0, 0),
         (INIT_PRODUCER_ID, 0, 4),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
@@ -1845,6 +1871,46 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             error_code: 0,
                             error_message: None,
                             topics: listed,
+                        },
+                    )
+                    .unwrap();
+                }
+            }
+            UPDATE_FEATURES => {
+                let (_timeout, updates) = decode_update_features_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.update_features_not_controller =
+                        st.update_features_not_controller.saturating_add(1);
+                    // 41 only. Do not apply the feature mutation on the wrong node.
+                    encode_update_features_response(
+                        &mut body,
+                        &UpdateFeaturesResponse {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            results: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    st.last_update_features_node = Some(node_id);
+                    let mut results = Vec::new();
+                    for u in updates {
+                        st.last_feature_update =
+                            Some((u.name.clone(), u.max_version_level, u.allow_downgrade));
+                        let _ = st.features.insert(u.name.clone(), u.max_version_level);
+                        results.push(UpdatableFeatureResult {
+                            name: u.name,
+                            error_code: 0,
+                            error_message: None,
+                        });
+                    }
+                    encode_update_features_response(
+                        &mut body,
+                        &UpdateFeaturesResponse {
+                            error_code: 0,
+                            error_message: None,
+                            results,
                         },
                     )
                     .unwrap();
