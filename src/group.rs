@@ -29,8 +29,8 @@ use crate::protocol::group::{
     decode_offset_fetch_response, decode_sync_group_response, encode_assignment,
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_sync_group_request, FetchedOffset, FetchedOffsetTopic,
-    OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
+    encode_subscription, encode_sync_group_request, FetchedOffsetTopic, OffsetFetchTopic,
+    OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -810,6 +810,7 @@ pub(crate) async fn coord_roundtrip(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::protocol::group::FetchedOffset;
 
     #[test]
     fn range_splits_all_partitions_without_overlap() {

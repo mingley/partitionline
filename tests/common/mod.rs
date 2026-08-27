@@ -1751,19 +1751,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
-                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
-                    (req.member_id, -1, None)
-                } else if req.member_epoch == 0 {
-                    (
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Equal => (
                         req.member_id,
                         1,
                         Some(vec![ShareTopicPartitions {
                             topic_id: [0u8; 16],
                             partitions: vec![0],
                         }]),
-                    )
-                } else {
-                    (req.member_id, req.member_epoch, None)
+                    ),
+                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 encode_share_group_heartbeat_response(
                     &mut body,
@@ -1864,33 +1862,33 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
-                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
-                    (req.member_id, -1, None)
-                } else if req.member_epoch == 0 {
-                    st.member_seq += 1;
-                    let id = format!("k-{}", st.member_seq);
-                    let topic_name = req
-                        .subscribed_topic_names
-                        .as_ref()
-                        .and_then(|n| n.first())
-                        .cloned()
-                        .unwrap_or_else(|| "t".into());
-                    let npart = st
-                        .created_topics
-                        .get(&topic_name)
-                        .map(|s| s.num_partitions)
-                        .unwrap_or(1);
-                    let partitions: Vec<i32> = (0..npart).collect();
-                    (
-                        id,
-                        1,
-                        Some(vec![TopicPartitions {
-                            topic_id: [0u8; 16],
-                            partitions,
-                        }]),
-                    )
-                } else {
-                    (req.member_id, req.member_epoch, None)
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Equal => {
+                        st.member_seq += 1;
+                        let id = format!("k-{}", st.member_seq);
+                        let topic_name = req
+                            .subscribed_topic_names
+                            .as_ref()
+                            .and_then(|n| n.first())
+                            .cloned()
+                            .unwrap_or_else(|| "t".into());
+                        let npart = st
+                            .created_topics
+                            .get(&topic_name)
+                            .map(|s| s.num_partitions)
+                            .unwrap_or(1);
+                        let partitions: Vec<i32> = (0..npart).collect();
+                        (
+                            id,
+                            1,
+                            Some(vec![TopicPartitions {
+                                topic_id: [0u8; 16],
+                                partitions,
+                            }]),
+                        )
+                    }
+                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 encode_consumer_group_heartbeat_response(
                     &mut body,
