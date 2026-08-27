@@ -6,8 +6,8 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
+    ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER,
+    METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
 };
 use super::buf;
 use crate::error::Result;
@@ -30,7 +30,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS if api_version >= 3 => 2,
         PRODUCE if api_version >= 9 => 2,
         METADATA if api_version >= 9 => 2,
-        DESCRIBE_CLUSTER => 2,
+        DESCRIBE_CLUSTER | ALTER_PARTITION_REASSIGNMENTS => 2,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
@@ -43,7 +43,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS => 0,
         PRODUCE if api_version >= 9 => 1,
         METADATA if api_version >= 9 => 1,
-        DESCRIBE_CLUSTER => 1,
+        DESCRIBE_CLUSTER | ALTER_PARTITION_REASSIGNMENTS => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
@@ -129,6 +129,12 @@ mod tests {
         assert_eq!(response_header_version(API_VERSIONS, 0), 0);
         assert_eq!(response_header_version(API_VERSIONS, 3), 0);
         assert_eq!(response_header_version(API_VERSIONS, 4), 0);
+    }
+
+    #[test]
+    fn alter_partition_reassignments_v0_is_flexible() {
+        assert_eq!(request_header_version(ALTER_PARTITION_REASSIGNMENTS, 0), 2);
+        assert_eq!(response_header_version(ALTER_PARTITION_REASSIGNMENTS, 0), 1);
     }
 
     #[test]
