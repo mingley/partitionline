@@ -13,12 +13,12 @@ mod common;
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration, ClientQuotaEntity,
-    ClientQuotaOp, Compression, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup, Error,
-    FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord,
-    Producer, ProducerConfig, ShareGroup, TransactionState, TransactionTopic,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
+    ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
+    ConsumerConfig, ConsumerGroup, Error, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, ShareGroup, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
     ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -2924,6 +2924,41 @@ async fn unregister_broker_follows_controller() {
     assert!(
         mock.has_unregistered_broker(4),
         "retry on the new controller must record the fixture unregistration"
+    );
+}
+
+#[tokio::test]
+async fn describe_client_quotas_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let filter = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let entries = admin
+        .describe_client_quotas(&[filter.clone()], false)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(
+        entries[0].entity,
+        vec![ClientQuotaEntity::new("user", Some("alice".into()))]
+    );
+    assert_eq!(entries[0].values.len(), 1);
+    assert_eq!(entries[0].values[0].key, "producer_byte_rate");
+    assert_eq!(entries[0].values[0].value, 1024.0);
+    assert_eq!(
+        mock.last_describe_client_quotas_node(),
+        Some(1),
+        "DescribeClientQuotas must land on the connected broker, not the controller"
+    );
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![filter], false))
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "DescribeClientQuotas must not hop via AlterClientQuotas or Metadata controller_id"
     );
 }
 
