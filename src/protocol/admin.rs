@@ -932,6 +932,153 @@ pub fn decode_alter_partition_reassignments_response<B: Buf>(
     })
 }
 
+/// One topic in ListPartitionReassignments v0 (flexible; topics nullable).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListReassignmentTopic {
+    pub name: String,
+    pub partition_indexes: Vec<i32>,
+}
+
+/// One ongoing partition reassignment in the List response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OngoingPartitionReassignment {
+    pub partition_index: i32,
+    pub replicas: Vec<i32>,
+    pub adding_replicas: Vec<i32>,
+    pub removing_replicas: Vec<i32>,
+}
+
+/// One topic in ListPartitionReassignments response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OngoingTopicReassignment {
+    pub name: String,
+    pub partitions: Vec<OngoingPartitionReassignment>,
+}
+
+/// ListPartitionReassignments v0 response (top-level error after throttle).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListPartitionReassignmentsResponse {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub topics: Vec<OngoingTopicReassignment>,
+}
+
+fn put_compact_i32_array(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
+    put_compact_nullable_i32_array(buf, Some(items))
+}
+
+fn get_compact_i32_array<B: Buf>(buf: &mut B) -> Result<Vec<i32>> {
+    Ok(get_compact_nullable_i32_array(buf)?.unwrap_or_default())
+}
+
+/// ListPartitionReassignments v0 (flexible from v0; KIP-455).
+///
+/// `topics = None` lists every ongoing reassignment.
+pub fn encode_list_partition_reassignments_request(
+    buf: &mut BytesMut,
+    timeout_ms: i32,
+    topics: Option<&[ListReassignmentTopic]>,
+) -> crate::error::Result<()> {
+    buf.put_i32(timeout_ms);
+    match topics {
+        None => buf::put_array_len(buf, true, None)?,
+        Some(topics) => {
+            buf::put_array_len(buf, true, Some(topics.len()))?;
+            for t in topics {
+                buf::put_compact_string(buf, Some(&t.name))?;
+                put_compact_i32_array(buf, &t.partition_indexes)?;
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_partition_reassignments_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(i32, Option<Vec<ListReassignmentTopic>>)> {
+    let timeout_ms = buf::get_i32(buf)?;
+    let topics = match buf::get_array_len(buf, true)? {
+        None => None,
+        Some(n) => {
+            let mut topics = Vec::with_capacity(n);
+            for _ in 0..n {
+                let name = buf::get_compact_string(buf)?.unwrap_or_default();
+                let partition_indexes = get_compact_i32_array(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                topics.push(ListReassignmentTopic {
+                    name,
+                    partition_indexes,
+                });
+            }
+            Some(topics)
+        }
+    };
+    buf::skip_tagged_fields(buf)?;
+    Ok((timeout_ms, topics))
+}
+
+pub fn encode_list_partition_reassignments_response(
+    buf: &mut BytesMut,
+    resp: &ListPartitionReassignmentsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_array_len(buf, true, Some(resp.topics.len()))?;
+    for t in &resp.topics {
+        buf::put_compact_string(buf, Some(&t.name))?;
+        buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition_index);
+            put_compact_i32_array(buf, &p.replicas)?;
+            put_compact_i32_array(buf, &p.adding_replicas)?;
+            put_compact_i32_array(buf, &p.removing_replicas)?;
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_partition_reassignments_response<B: Buf>(
+    buf: &mut B,
+) -> Result<ListPartitionReassignmentsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let replicas = get_compact_i32_array(buf)?;
+            let adding_replicas = get_compact_i32_array(buf)?;
+            let removing_replicas = get_compact_i32_array(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            partitions.push(OngoingPartitionReassignment {
+                partition_index,
+                replicas,
+                adding_replicas,
+                removing_replicas,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        topics.push(OngoingTopicReassignment { name, partitions });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ListPartitionReassignmentsResponse {
+        error_code,
+        error_message,
+        topics,
+    })
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -1344,6 +1491,90 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterPartitionReassignments v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_partition_reassignments_v0_roundtrip_is_leftover_empty() {
+        let topics = vec![ListReassignmentTopic {
+            name: "t".into(),
+            partition_indexes: vec![0, 1],
+        }];
+        let mut buf = BytesMut::new();
+        encode_list_partition_reassignments_request(&mut buf, 10_000, Some(&topics)).unwrap();
+        let mut cur = &buf[..];
+        let (timeout, got) = decode_list_partition_reassignments_request(&mut cur).unwrap();
+        assert_eq!(timeout, 10_000);
+        assert_eq!(got.as_deref(), Some(topics.as_slice()));
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments v0 request must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_list_partition_reassignments_request(&mut buf, 5_000, None).unwrap();
+        let mut cur = &buf[..];
+        let (timeout, got) = decode_list_partition_reassignments_request(&mut cur).unwrap();
+        assert_eq!(timeout, 5_000);
+        assert_eq!(got, None);
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments v0 null-topics request must be leftover-empty"
+        );
+
+        let resp = ListPartitionReassignmentsResponse {
+            error_code: 0,
+            error_message: None,
+            topics: vec![OngoingTopicReassignment {
+                name: "t".into(),
+                partitions: vec![OngoingPartitionReassignment {
+                    partition_index: 0,
+                    replicas: vec![1, 2, 3],
+                    adding_replicas: vec![3],
+                    removing_replicas: vec![1],
+                }],
+            }],
+        };
+        buf.clear();
+        encode_list_partition_reassignments_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_partition_reassignments_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_partition_reassignments_not_controller_is_at_byte_four() {
+        // Official v0 body: throttle_time_ms INT32, then error_code INT16.
+        // That is the same field order as AlterPartitionReassignments v0,
+        // verified from the Apache JSON (not copied from Alter).
+        let resp = ListPartitionReassignmentsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            topics: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_list_partition_reassignments_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 throttle then top-level error must be 41 at bytes 4-5"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_partition_reassignments_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }

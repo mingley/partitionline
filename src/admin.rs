@@ -18,13 +18,14 @@ use crate::protocol::admin::{
     decode_create_partitions_response, decode_create_topics_response,
     decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
-    decode_incremental_alter_configs_response, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_incremental_alter_configs_request, CreatableTopic, CreateTopicsRequest,
-    DescribeConfigsResource, DescribeConfigsResult, ReassignablePartition, ReassignableTopic,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
+    decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
+    encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
+    CreatableTopic, CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -33,8 +34,8 @@ use crate::protocol::api::{
 use crate::protocol::api_keys::{
     pick_version, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CREATE_ACLS,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, METADATA,
-    OFFSET_DELETE,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
+    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -182,6 +183,16 @@ pub struct ReassignmentResult {
     pub error_message: Option<String>,
 }
 
+/// Flattened ongoing reassignment from ListPartitionReassignments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OngoingReassignment {
+    pub topic: String,
+    pub partition: i32,
+    pub replicas: Vec<i32>,
+    pub adding_replicas: Vec<i32>,
+    pub removing_replicas: Vec<i32>,
+}
+
 pub struct Admin {
     cfg: AdminConfig,
     conn: BrokerConn,
@@ -201,6 +212,7 @@ pub struct Admin {
     find_coord_version: i16,
     offset_delete_version: i16,
     reassign_version: i16,
+    list_reassign_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -320,6 +332,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AlterPartitionReassignments".into())
             })?;
+        let list_reassign_version = versions
+            .get(&LIST_PARTITION_REASSIGNMENTS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support ListPartitionReassignments".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -339,6 +357,7 @@ impl Admin {
             find_coord_version,
             offset_delete_version,
             reassign_version,
+            list_reassign_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -760,6 +779,75 @@ impl Admin {
         }
     }
 
+    /// List ongoing replica moves (ListPartitionReassignments api 46).
+    ///
+    /// `partitions = None` lists every ongoing reassignment. Lands on the
+    /// Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata and
+    /// retries on the new controller.
+    pub async fn list_partition_reassignments(
+        &mut self,
+        partitions: Option<&[(String, i32)]>,
+        timeout_ms: i32,
+    ) -> Result<Vec<OngoingReassignment>> {
+        let topics = partitions.map(group_list_reassignments);
+        let version = self.list_reassign_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing list_partition_reassignments conn"))?;
+                conn.roundtrip(
+                    LIST_PARTITION_REASSIGNMENTS,
+                    version,
+                    |buf| {
+                        encode_list_partition_reassignments_request(
+                            buf,
+                            timeout_ms,
+                            topics.as_deref(),
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_list_partition_reassignments_response(&mut body.clone())?;
+            if resp.error_code == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "ListPartitionReassignments"));
+            }
+            return Ok(flatten_list_reassignments(&resp.topics));
+        }
+    }
+
     pub async fn describe_acls(&mut self, resource_type: i8) -> Result<Vec<AclBinding>> {
         let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
@@ -1103,6 +1191,47 @@ fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<Reassignabl
             name,
         })
         .collect()
+}
+
+fn group_list_reassignments(partitions: &[(String, i32)]) -> Vec<ListReassignmentTopic> {
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for (topic, part) in partitions {
+        match by_topic.entry(topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(topic.clone());
+                let _ = slot.insert(vec![*part]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(*part);
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|name| ListReassignmentTopic {
+            partition_indexes: by_topic.remove(&name).unwrap_or_default(),
+            name,
+        })
+        .collect()
+}
+
+fn flatten_list_reassignments(
+    topics: &[crate::protocol::admin::OngoingTopicReassignment],
+) -> Vec<OngoingReassignment> {
+    let mut out = Vec::new();
+    for t in topics {
+        for p in &t.partitions {
+            out.push(OngoingReassignment {
+                topic: t.name.clone(),
+                partition: p.partition_index,
+                replicas: p.replicas.clone(),
+                adding_replicas: p.adding_replicas.clone(),
+                removing_replicas: p.removing_replicas.clone(),
+            });
+        }
+    }
+    out
 }
 
 fn flatten_reassignment_results(
