@@ -2466,6 +2466,69 @@ async fn create_partitions_follows_controller() {
 }
 
 #[tokio::test]
+async fn incremental_alter_configs_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("iac2", 1, 1), NewTopic::new("iac1", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let err = admin
+        .incremental_alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "iac2",
+            &[AlterConfig {
+                name: "retention.ms".into(),
+                op: ALTER_CONFIG_SET,
+                value: Some("1000".into()),
+            }],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(
+        mock.last_incremental_alter_configs_node(),
+        Some(2),
+        "IncrementalAlterConfigs must land on the controller, not bootstrap"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .incremental_alter_configs(
+            CONFIG_RESOURCE_TOPIC,
+            "iac1",
+            &[AlterConfig {
+                name: "retention.ms".into(),
+                op: ALTER_CONFIG_SET,
+                value: Some("2000".into()),
+            }],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(again, 0);
+    assert_eq!(
+        mock.incremental_alter_configs_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_incremental_alter_configs_node(),
+        Some(1),
+        "IncrementalAlterConfigs must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
 async fn admin_against_kafka_if_present() {
     if tokio::net::TcpStream::connect("127.0.0.1:9092")
         .await
