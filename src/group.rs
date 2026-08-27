@@ -29,7 +29,8 @@ use crate::protocol::group::{
     decode_offset_fetch_response, decode_sync_group_response, encode_assignment,
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_sync_group_request, COORDINATOR_GROUP,
+    encode_subscription, encode_sync_group_request, FetchedOffset, FetchedOffsetTopic,
+    OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -230,34 +231,34 @@ impl ConsumerGroup {
     }
 
     pub async fn commit(&mut self) -> Result<()> {
-        let timeout = Duration::from_secs(30);
         let assigned = self.consumer.assignment().to_vec();
-        for (topic, part, next) in assigned {
-            let body = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
-                COORDINATOR_GROUP,
-                OFFSET_COMMIT,
-                7,
-                |buf| {
-                    encode_offset_commit_request(
-                        buf,
-                        &self.group_id,
-                        self.generation_id,
-                        &self.member_id,
-                        &topic,
-                        part,
-                        next,
-                    )
-                },
-                timeout,
-            )
-            .await?;
-            let err = decode_offset_commit_response(&mut body.clone())?;
-            if err != 0 {
-                return Err(Error::broker(err, "OffsetCommit"));
-            }
+        let topics = group_offset_topics(&assigned);
+        if topics.is_empty() {
+            return Ok(());
+        }
+        let timeout = Duration::from_secs(30);
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
+            OFFSET_COMMIT,
+            7,
+            |buf| {
+                encode_offset_commit_request(
+                    buf,
+                    &self.group_id,
+                    self.generation_id,
+                    &self.member_id,
+                    &topics,
+                )
+            },
+            timeout,
+        )
+        .await?;
+        let err = decode_offset_commit_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "OffsetCommit"));
         }
         Ok(())
     }
@@ -411,25 +412,11 @@ impl ConsumerGroup {
             return Err(Error::broker(err, "SyncGroup"));
         }
         let assigned = decode_assignment(&assignment)?;
-        self.consumer.clear_assignment();
-        for (t, ps) in assigned {
-            for p in ps {
-                let body = coord_roundtrip(
-                    &mut self.coord,
-                    &self.cfg,
-                    &self.group_id,
-                    COORDINATOR_GROUP,
-                    OFFSET_FETCH,
-                    5,
-                    |buf| encode_offset_fetch_request(buf, &self.group_id, &t, p),
-                    timeout,
-                )
-                .await?;
-                let committed = decode_offset_fetch_response(&mut body.clone()).unwrap_or(-1);
-                let start = if committed < 0 { 0 } else { committed };
-                self.consumer.assign(t.clone(), p, start).await?;
-            }
-        }
+        let wanted: Vec<(String, i32)> = assigned
+            .into_iter()
+            .flat_map(|(t, ps)| ps.into_iter().map(move |p| (t.clone(), p)))
+            .collect();
+        self.assign_committed(&wanted).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
@@ -464,17 +451,45 @@ impl ConsumerGroup {
             self.member_id = id;
         }
         self.generation_id = resp.member_epoch;
-        self.consumer.clear_assignment();
-        if let Some(assigned) = resp.assignment {
-            for tp in assigned {
-                for p in tp.partitions {
-                    self.consumer.assign(self.topic.clone(), p, 0).await?;
-                }
-            }
-        }
+        let wanted: Vec<(String, i32)> = resp
+            .assignment
+            .unwrap_or_default()
+            .into_iter()
+            .flat_map(|tp| {
+                let topic = self.topic.clone();
+                tp.partitions.into_iter().map(move |p| (topic.clone(), p))
+            })
+            .collect();
+        self.assign_committed(&wanted).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
+        Ok(())
+    }
+
+    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<()> {
+        self.consumer.clear_assignment();
+        if wanted.is_empty() {
+            return Ok(());
+        }
+        let topics = group_offset_fetch_topics(wanted);
+        let timeout = Duration::from_secs(30);
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            5,
+            |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
+            timeout,
+        )
+        .await?;
+        let fetched = decode_offset_fetch_response(&mut body.clone())?;
+        let starts = committed_starts(wanted, &fetched)?;
+        for (topic, part, start) in starts {
+            self.consumer.assign(topic, part, start).await?;
+        }
         Ok(())
     }
 
@@ -597,6 +612,60 @@ impl ConsumerGroup {
             }
         }));
     }
+}
+
+fn group_offset_topics(assigned: &[(String, i32, i64)]) -> Vec<OffsetTopic> {
+    let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
+    for (topic, part, next) in assigned {
+        by_topic
+            .entry(topic.clone())
+            .or_default()
+            .push(OffsetPartition {
+                partition: *part,
+                offset: *next,
+            });
+    }
+    by_topic
+        .into_iter()
+        .map(|(topic, partitions)| OffsetTopic { topic, partitions })
+        .collect()
+}
+
+fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    for (topic, part) in wanted {
+        by_topic.entry(topic.clone()).or_default().push(*part);
+    }
+    by_topic
+        .into_iter()
+        .map(|(topic, partitions)| OffsetFetchTopic { topic, partitions })
+        .collect()
+}
+
+fn committed_starts(
+    wanted: &[(String, i32)],
+    fetched: &[FetchedOffsetTopic],
+) -> Result<Vec<(String, i32, i64)>> {
+    let mut map = HashMap::new();
+    for t in fetched {
+        for p in &t.partitions {
+            if p.error_code != 0 {
+                return Err(Error::broker(
+                    p.error_code,
+                    format!("OffsetFetch {}-{}", t.topic, p.partition),
+                ));
+            }
+            let _ = map.insert((t.topic.clone(), p.partition), p.offset);
+        }
+    }
+    Ok(wanted
+        .iter()
+        .map(|(topic, part)| {
+            let committed = map.get(&(topic.clone(), *part)).copied().unwrap_or(-1);
+            let start = if committed < 0 { 0 } else { committed };
+            (topic.clone(), *part, start)
+        })
+        .collect())
 }
 
 fn peek_error_code(body: &[u8]) -> Option<i16> {
@@ -767,5 +836,31 @@ mod tests {
         let map = assign_sticky(&members, &parts, &prev);
         assert_eq!(map.get("a").cloned().unwrap_or_default(), vec![2, 3]);
         assert_eq!(map.get("b").cloned().unwrap_or_default(), vec![0, 1]);
+    }
+
+    #[test]
+    fn group_offset_topics_collapses_partitions() {
+        let assigned = vec![("t".into(), 1, 4), ("t".into(), 0, 2), ("u".into(), 0, 9)];
+        let topics = group_offset_topics(&assigned);
+        assert_eq!(topics.len(), 2);
+        let t = topics.iter().find(|x| x.topic == "t").unwrap();
+        assert_eq!(t.partitions.len(), 2);
+        let u = topics.iter().find(|x| x.topic == "u").unwrap();
+        assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn committed_starts_uses_fetched_or_zero() {
+        let wanted = vec![("t".into(), 0), ("t".into(), 1)];
+        let fetched = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset {
+                partition: 0,
+                offset: 5,
+                error_code: 0,
+            }],
+        }];
+        let starts = committed_starts(&wanted, &fetched).unwrap();
+        assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);
     }
 }
