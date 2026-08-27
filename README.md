@@ -22,13 +22,14 @@ Talks Kafka 3.x / 4.x.
 Kerberos (both blocked on C libraries in default features), Schema Registry.
 Full list: [docs/gaps.md](docs/gaps.md).
 
-**Produce and fetch are faster than librdkafka 2.15.0 C** on this machine
-(broker high watermark / records consumed equal records sent). Latency was
-not measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
+Locked produce and fetch vs librdkafka 2.15.0 C on this machine (broker
+high watermark / records consumed equal records sent). Latency was not
+measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
 
 | Locked 8e6 × 100B | partitionline median | C 2.15.0 median |
 |---|---|---|
-| uncompressed, `acks=1` | 7.28M rec/s | 3.88M rec/s |
+| uncompressed, `acks=1` (2026-08-25) | 6.17M rec/s | 4.94M rec/s |
+| uncompressed, `acks=1` (2026-08-24) | 7.28M rec/s | 3.88M rec/s |
 | lz4 | 6.81M rec/s | 6.05M rec/s |
 | idempotent (`acks=all`) | 7.16M rec/s | 3.13M rec/s |
 | TLS / SSL | 7.42M rec/s | 1.52M rec/s |
