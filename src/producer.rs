@@ -281,16 +281,7 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 1).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
-            let txn_id = cfg.transactional_id.clone();
-            let conn = txn.as_mut().unwrap_or(&mut meta);
-            let body = conn
-                .roundtrip(
-                    INIT_PRODUCER_ID,
-                    ipid_version,
-                    |buf| encode_init_producer_id_request(buf, ipid_version, txn_id.as_deref()),
-                    cfg.request_timeout,
-                )
-                .await?;
+            let body = init_producer_id_roundtrip(&cfg, &mut txn, &mut meta, ipid_version).await?;
             let (err, pid, epoch) =
                 decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
             if err != 0 {
@@ -808,6 +799,51 @@ async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> 
         return open_conn(&coord_addr, cfg).await;
     }
     Err(last)
+}
+
+async fn init_producer_id_roundtrip(
+    cfg: &ProducerConfig,
+    txn: &mut Option<BrokerConn>,
+    meta: &mut BrokerConn,
+    version: i16,
+) -> Result<Bytes> {
+    let txn_id = cfg.transactional_id.clone();
+    let timeout = cfg.request_timeout;
+    let first = {
+        let conn = txn.as_mut().unwrap_or(meta);
+        conn.roundtrip(
+            INIT_PRODUCER_ID,
+            version,
+            |buf| encode_init_producer_id_request(buf, version, txn_id.as_deref()),
+            timeout,
+        )
+        .await
+    };
+    let Some(tid) = txn_id else {
+        return first;
+    };
+    match first {
+        Ok(body) => {
+            let err = decode_init_producer_id_response(&mut body.clone(), version)?.0;
+            if err != error::NOT_COORDINATOR {
+                return Ok(body);
+            }
+        }
+        Err(e) if e.is_retriable() => {}
+        Err(e) => return Err(e),
+    }
+    let new = discover_typed_coord(cfg, &tid, COORDINATOR_TRANSACTION).await?;
+    *txn = Some(new);
+    let conn = txn
+        .as_mut()
+        .ok_or_else(|| Error::protocol("no transaction coordinator"))?;
+    conn.roundtrip(
+        INIT_PRODUCER_ID,
+        version,
+        |buf| encode_init_producer_id_request(buf, version, Some(tid.as_str())),
+        timeout,
+    )
+    .await
 }
 
 async fn txn_roundtrip(

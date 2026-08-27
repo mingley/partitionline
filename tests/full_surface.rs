@@ -598,6 +598,33 @@ async fn transactional_producer_finds_txn_coordinator() {
 }
 
 #[tokio::test]
+async fn init_producer_id_rediscovers_after_not_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_txn_coordinator(2);
+    mock.stale_txn_find_once();
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-stale".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.init_producer_id_nodes(),
+        vec![1, 2],
+        "InitProducerId must hit the stale node then the coordinator"
+    );
+    assert_eq!(
+        mock.init_producer_id_not_coordinator(),
+        1,
+        "wrong node must return NOT_COORDINATOR (16)"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_node(),
+        Some(2),
+        "InitProducerId must rediscover and land on the transaction coordinator"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_seek_and_read_committed_isolation() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
