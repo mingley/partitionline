@@ -2935,7 +2935,7 @@ async fn describe_client_quotas_follows_broker() {
 
     let filter = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
     let entries = admin
-        .describe_client_quotas(&[filter.clone()], false)
+        .describe_client_quotas(std::slice::from_ref(&filter), false)
         .await
         .unwrap();
     assert_eq!(entries.len(), 1);
