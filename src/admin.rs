@@ -627,7 +627,7 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let results = decode_create_acls_response(&mut body.clone())?;
-            if results.iter().any(|&e| e == error::NOT_CONTROLLER) {
+            if results.contains(&error::NOT_CONTROLLER) {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
