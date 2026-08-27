@@ -165,6 +165,11 @@ struct State {
     offset_fetch_calls: u32,
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
+    add_partitions_to_txn_calls: u32,
+    last_add_partitions_to_txn: usize,
+    txn_offset_commit_calls: u32,
+    last_txn_offset_commit_partitions: usize,
+    last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
     coord_node: i32,
     hb_by_node: HashMap<i32, u32>,
@@ -253,6 +258,11 @@ fn new_state(
         offset_fetch_calls: 0,
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
+        add_partitions_to_txn_calls: 0,
+        last_add_partitions_to_txn: 0,
+        txn_offset_commit_calls: 0,
+        last_txn_offset_commit_partitions: 0,
+        last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
         coord_node: 1,
         hb_by_node: HashMap::new(),
@@ -669,6 +679,26 @@ impl Mock {
 
     pub fn last_offset_fetch_partitions(&self) -> usize {
         self.state.lock().last_offset_fetch_partitions
+    }
+
+    pub fn add_partitions_to_txn_calls(&self) -> u32 {
+        self.state.lock().add_partitions_to_txn_calls
+    }
+
+    pub fn last_add_partitions_to_txn(&self) -> usize {
+        self.state.lock().last_add_partitions_to_txn
+    }
+
+    pub fn txn_offset_commit_calls(&self) -> u32 {
+        self.state.lock().txn_offset_commit_calls
+    }
+
+    pub fn last_txn_offset_commit_partitions(&self) -> usize {
+        self.state.lock().last_txn_offset_commit_partitions
+    }
+
+    pub fn last_txn_offset_epochs(&self) -> Vec<i32> {
+        self.state.lock().last_txn_offset_epochs.clone()
     }
 
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
@@ -1399,9 +1429,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_init_producer_id_response(&mut body, header.api_version, 0, pid, 0).unwrap();
             }
             ADD_PARTITIONS_TO_TXN => {
-                let _ = decode_add_partitions_to_txn_request(&mut frame);
-                state.lock().in_txn = true;
-                encode_add_partitions_to_txn_response(&mut body, 0).unwrap();
+                let (_tid, _pid, _epoch, topics) =
+                    decode_add_partitions_to_txn_request(&mut frame).unwrap();
+                let n = topics.iter().map(|t| t.partitions.len()).sum();
+                let mut st = state.lock();
+                st.in_txn = true;
+                st.add_partitions_to_txn_calls = st.add_partitions_to_txn_calls.saturating_add(1);
+                st.last_add_partitions_to_txn = n;
+                encode_add_partitions_to_txn_response(&mut body, &topics, 0).unwrap();
             }
             ADD_OFFSETS_TO_TXN => {
                 let _ = decode_add_offsets_to_txn_request(&mut frame);
@@ -1422,9 +1457,24 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_end_txn_response(&mut body, 0).unwrap();
             }
             TXN_OFFSET_COMMIT => {
-                let (_tid, _gid, part, off) = decode_txn_offset_commit_request(&mut frame).unwrap();
-                state.lock().committed.insert(("t".into(), part), off);
-                encode_txn_offset_commit_response(&mut body, 0).unwrap();
+                let (_tid, _gid, topics) =
+                    decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
+                let mut st = state.lock();
+                st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
+                let mut nparts = 0usize;
+                let mut epochs = Vec::new();
+                for t in &topics {
+                    for p in &t.partitions {
+                        nparts = nparts.saturating_add(1);
+                        epochs.push(p.leader_epoch);
+                        let _ = st
+                            .committed
+                            .insert((t.topic.clone(), p.partition), p.offset);
+                    }
+                }
+                st.last_txn_offset_commit_partitions = nparts;
+                st.last_txn_offset_epochs = epochs;
+                encode_txn_offset_commit_response(&mut body, &topics, 0).unwrap();
             }
             PRODUCE => {
                 let decoded = decode_produce_request(&mut frame, header.api_version).unwrap();

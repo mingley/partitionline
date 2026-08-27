@@ -32,6 +32,7 @@ use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
     decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
+    TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
 #[derive(Debug, Clone)]
@@ -169,6 +170,8 @@ struct Shared {
     meta: Mutex<BrokerConn>,
     metadata_version: i16,
     produce_version: i16,
+    add_partitions_version: i16,
+    txn_offset_version: i16,
     rr: AtomicI32,
     producer_id: i64,
     producer_epoch: i16,
@@ -182,6 +185,7 @@ struct Shared {
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
+    txn_added: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
     fast: parking_lot::Mutex<Option<FastRoute>>,
 }
 
@@ -248,6 +252,17 @@ impl Producer {
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-8".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        let (add_partitions_version, txn_offset_version) = if cfg.transactional_id.is_some() {
+            let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 1).ok_or_else(|| {
+                Error::Unsupported("broker does not support AddPartitionsToTxn".into())
+            })?;
+            let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 2).ok_or_else(|| {
+                Error::Unsupported("broker does not support TxnOffsetCommit".into())
+            })?;
+            (add_p, toc)
+        } else {
+            (0, 0)
+        };
 
         let mut producer_id = -1i64;
         let mut producer_epoch = -1i16;
@@ -287,6 +302,8 @@ impl Producer {
             meta: Mutex::new(meta),
             metadata_version,
             produce_version,
+            add_partitions_version,
+            txn_offset_version,
             rr: AtomicI32::new(0),
             producer_id,
             producer_epoch,
@@ -300,6 +317,7 @@ impl Producer {
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
+            txn_added: parking_lot::Mutex::new(HashSet::new()),
             fast: parking_lot::Mutex::new(None),
         });
         let weak = Arc::downgrade(&shared);
@@ -554,6 +572,7 @@ impl Producer {
         }
         self.inner.shared.in_txn.store(true, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
+        self.inner.shared.txn_added.lock().clear();
         Ok(())
     }
 
@@ -596,24 +615,39 @@ impl Producer {
                 return Err(Error::broker(err, "AddOffsetsToTxn"));
             }
         }
-        let mut meta = self.inner.shared.meta.lock().await;
-        for (topic, part, off) in offsets {
-            let body = meta
-                .roundtrip(
-                    TXN_OFFSET_COMMIT,
-                    0,
-                    |buf| {
-                        encode_txn_offset_commit_request(
-                            buf, &tid, group_id, pid, epoch, topic, *part, *off,
-                        )
-                    },
-                    timeout,
-                )
-                .await?;
-            let err = decode_txn_offset_commit_response(&mut body.clone())?;
-            if err != 0 {
-                return Err(Error::broker(err, "TxnOffsetCommit"));
+        let mut topics: Vec<String> = Vec::new();
+        for (topic, _, _) in offsets {
+            if !topics.iter().any(|t| t == topic) {
+                topics.push(topic.clone());
             }
+        }
+        for topic in &topics {
+            let name = Arc::<str>::from(topic.as_str());
+            if partitions_for(&self.inner.shared, &name).await? <= 0 {
+                return Err(Error::UnknownTopic(topic.clone()));
+            }
+        }
+        let version = self.inner.shared.txn_offset_version;
+        let grouped = {
+            let cluster = self.inner.shared.cluster.lock();
+            group_txn_offsets(offsets, |topic, part| cluster.leader_epoch(topic, part))
+        };
+        let mut meta = self.inner.shared.meta.lock().await;
+        let body = meta
+            .roundtrip(
+                TXN_OFFSET_COMMIT,
+                version,
+                |buf| {
+                    encode_txn_offset_commit_request(
+                        buf, version, &tid, group_id, pid, epoch, &grouped,
+                    )
+                },
+                timeout,
+            )
+            .await?;
+        let err = decode_txn_offset_commit_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "TxnOffsetCommit"));
         }
         Ok(())
     }
@@ -640,6 +674,7 @@ impl Producer {
         }
         self.inner.shared.in_txn.store(false, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
+        self.inner.shared.txn_added.lock().clear();
         Ok(())
     }
 
@@ -1254,43 +1289,46 @@ impl Worker {
         if !self.shared.in_txn.load(Ordering::SeqCst) {
             return Err(Error::protocol("produce outside a transaction"));
         }
-        let mut added: Vec<(Arc<str>, i32)> = Vec::new();
         {
             let mut set = self.shared.txn_partitions.lock();
             for (topic, part, _) in groups {
-                if set.insert((topic.clone(), *part)) {
-                    added.push((topic.clone(), *part));
-                }
+                let _ = set.insert((topic.clone(), *part));
             }
-        }
-        if added.is_empty() {
-            return Ok(());
         }
         let timeout = self.shared.cfg.request_timeout;
         let pid = self.shared.producer_id;
         let epoch = self.shared.producer_epoch;
+        let version = self.shared.add_partitions_version;
         let mut meta = self.shared.meta.lock().await;
-        for (topic, part) in added {
-            let body = meta
-                .roundtrip(
-                    ADD_PARTITIONS_TO_TXN,
-                    0,
-                    |buf| {
-                        encode_add_partitions_to_txn_request(
-                            buf,
-                            &tid,
-                            pid,
-                            epoch,
-                            topic.as_ref(),
-                            part,
-                        )
-                    },
-                    timeout,
-                )
-                .await?;
-            let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
-            if err != 0 {
-                return Err(Error::broker(err, "AddPartitionsToTxn"));
+        let added: Vec<(Arc<str>, i32)> = {
+            let wanted = self.shared.txn_partitions.lock();
+            let sent = self.shared.txn_added.lock();
+            wanted
+                .iter()
+                .filter(|k| !sent.contains(*k))
+                .cloned()
+                .collect()
+        };
+        if added.is_empty() {
+            return Ok(());
+        }
+        let topics = group_txn_partitions(&added);
+        let body = meta
+            .roundtrip(
+                ADD_PARTITIONS_TO_TXN,
+                version,
+                |buf| encode_add_partitions_to_txn_request(buf, &tid, pid, epoch, &topics),
+                timeout,
+            )
+            .await?;
+        let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "AddPartitionsToTxn"));
+        }
+        {
+            let mut sent = self.shared.txn_added.lock();
+            for k in added {
+                let _ = sent.insert(k);
             }
         }
         Ok(())
@@ -1334,6 +1372,42 @@ impl Worker {
             }
         }
     }
+}
+
+fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
+    let mut topics: Vec<TxnPartitionsTopic> = Vec::new();
+    for (topic, part) in parts {
+        match topics.iter_mut().find(|t| t.topic == topic.as_ref()) {
+            Some(slot) => slot.partitions.push(*part),
+            None => topics.push(TxnPartitionsTopic {
+                topic: topic.to_string(),
+                partitions: vec![*part],
+            }),
+        }
+    }
+    topics
+}
+
+fn group_txn_offsets(
+    offsets: &[(String, i32, i64)],
+    epoch_of: impl Fn(&str, i32) -> i32,
+) -> Vec<TxnOffsetTopic> {
+    let mut topics: Vec<TxnOffsetTopic> = Vec::new();
+    for (topic, part, off) in offsets {
+        let partition = TxnOffsetPartition {
+            partition: *part,
+            offset: *off,
+            leader_epoch: epoch_of(topic, *part),
+        };
+        match topics.iter_mut().find(|t| t.topic == *topic) {
+            Some(slot) => slot.partitions.push(partition),
+            None => topics.push(TxnOffsetTopic {
+                topic: topic.clone(),
+                partitions: vec![partition],
+            }),
+        }
+    }
+    topics
 }
 
 fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
