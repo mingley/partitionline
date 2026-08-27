@@ -5,16 +5,16 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bytes::Bytes;
 use tokio::sync::watch;
 
-use crate::consumer::ConsumerConfig;
-use crate::error::{Error, Result};
+use crate::consumer::{Consumer, ConsumerConfig};
+use crate::error::{self, Error, Result};
 use crate::group::{coord_roundtrip, discover_coord};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
@@ -44,6 +44,7 @@ pub struct ShareRecord {
 }
 
 pub struct ShareGroup {
+    consumer: Consumer,
     coord: BrokerConn,
     cfg: ConsumerConfig,
     group_id: String,
@@ -52,7 +53,8 @@ pub struct ShareGroup {
     topic: String,
     topic_id: [u8; 16],
     partitions: Vec<i32>,
-    share_session_epoch: i32,
+    /// Share session epoch per share-partition leader (KIP-932).
+    share_epochs: HashMap<i32, i32>,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
     hb_stop: watch::Sender<bool>,
@@ -82,12 +84,14 @@ impl ShareGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topic = topic.into();
+        let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
         let hb_err = Arc::new(AtomicI16::new(0));
         let hb_epoch = Arc::new(AtomicI32::new(0));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
+            consumer,
             coord,
             cfg: cfg.clone(),
             group_id,
@@ -96,7 +100,7 @@ impl ShareGroup {
             topic,
             topic_id: [0u8; 16],
             partitions: Vec::new(),
-            share_session_epoch: 0,
+            share_epochs: HashMap::new(),
             hb_err,
             hb_epoch,
             hb_stop,
@@ -164,72 +168,20 @@ impl ShareGroup {
         if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
         }
-        let timeout = Duration::from_secs(30);
-        let max_wait = 10i32;
-        let topics = vec![ShareFetchTopic {
-            topic_id: self.topic_id,
-            partitions: self
-                .partitions
-                .iter()
-                .map(|p| ShareFetchPartition {
-                    partition: *p,
-                    acknowledgements: Vec::new(),
-                })
-                .collect(),
-        }];
-        let mut body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_SHARE,
-            SHARE_FETCH,
-            1,
-            |buf| {
-                encode_share_fetch_request(
-                    buf,
-                    &self.group_id,
-                    &self.member_id,
-                    self.share_session_epoch,
-                    max_wait,
-                    1,
-                    1_048_576,
-                    16,
-                    &topics,
-                )
-            },
-            timeout,
-        )
-        .await?;
-        let fetched = decode_share_fetch_response(&mut body)?;
-        self.advance_share_epoch();
-        let mut out = Vec::new();
-        for topic in fetched {
-            for part in topic.partitions {
-                if part.error_code != 0 {
-                    return Err(Error::broker(part.error_code, "ShareFetch"));
-                }
-                for batch in part.records {
-                    for rec in batch.records {
-                        let delivery = part
-                            .acquired
-                            .iter()
-                            .find(|a| rec.offset >= a.first_offset && rec.offset <= a.last_offset)
-                            .map(|a| a.delivery_count)
-                            .unwrap_or(1);
-                        out.push(ShareRecord {
-                            topic: self.topic.clone(),
-                            partition: part.partition,
-                            offset: rec.offset,
-                            timestamp: rec.timestamp,
-                            key: rec.key,
-                            value: rec.value,
-                            delivery_count: delivery,
-                        });
+        let deadline = Instant::now() + Duration::from_secs(30);
+        loop {
+            match self.poll_leaders().await {
+                Ok(recs) => return Ok(recs),
+                Err(e) if share_leader_retriable(&e) => {
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
                     }
+                    self.consumer.invalidate_topic(&self.topic);
+                    self.consumer.refresh_topic_metadata(&self.topic).await?;
                 }
+                Err(e) => return Err(e),
             }
         }
-        Ok(out)
     }
 
     pub async fn accept(&mut self, recs: &[ShareRecord]) -> Result<()> {
@@ -244,11 +196,126 @@ impl ShareGroup {
         self.acknowledge(recs, ACK_REJECT).await
     }
 
-    fn advance_share_epoch(&mut self) {
-        if self.share_session_epoch < 0 {
-            return;
+    fn session_epoch(&self, node: i32) -> i32 {
+        self.share_epochs.get(&node).copied().unwrap_or(0)
+    }
+
+    fn advance_node_epoch(&mut self, node: i32) {
+        let next = self.session_epoch(node).saturating_add(1);
+        let _ = self.share_epochs.insert(node, next);
+    }
+
+    fn reset_node_session(&mut self, node: i32) {
+        let _ = self.share_epochs.remove(&node);
+        self.consumer.drop_node(node);
+    }
+
+    async fn leaders_of(&mut self, parts: &[i32]) -> Result<HashMap<i32, Vec<i32>>> {
+        self.consumer.ensure_topic_metadata(&self.topic).await?;
+        let mut by_leader: HashMap<i32, Vec<i32>> = HashMap::new();
+        for p in parts {
+            let (node, _) = self.consumer.leader_of(&self.topic, *p)?;
+            by_leader.entry(node).or_default().push(*p);
         }
-        self.share_session_epoch = self.share_session_epoch.saturating_add(1);
+        Ok(by_leader)
+    }
+
+    async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
+        let assigned = self.partitions.clone();
+        let by_leader = self.leaders_of(&assigned).await?;
+        let timeout = Duration::from_secs(30);
+        let max_wait = 10i32;
+        let mut out = Vec::new();
+        for (node, parts) in by_leader {
+            let epoch = self.session_epoch(node);
+            let topics = vec![ShareFetchTopic {
+                topic_id: self.topic_id,
+                partitions: parts
+                    .iter()
+                    .map(|p| ShareFetchPartition {
+                        partition: *p,
+                        acknowledgements: Vec::new(),
+                    })
+                    .collect(),
+            }];
+            let body = self
+                .consumer
+                .roundtrip_node(
+                    node,
+                    SHARE_FETCH,
+                    1,
+                    |buf| {
+                        encode_share_fetch_request(
+                            buf,
+                            &self.group_id,
+                            &self.member_id,
+                            epoch,
+                            max_wait,
+                            1,
+                            1_048_576,
+                            16,
+                            &topics,
+                        )
+                    },
+                    timeout,
+                )
+                .await;
+            let mut body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    self.reset_node_session(node);
+                    return Err(e);
+                }
+                Err(e) => return Err(e),
+            };
+            let fetched = match decode_share_fetch_response(&mut body) {
+                Ok(f) => f,
+                Err(e) => {
+                    if share_session_reset(&e) || share_leader_retriable(&e) {
+                        self.reset_node_session(node);
+                    }
+                    return Err(e);
+                }
+            };
+            for topic in &fetched {
+                for part in &topic.partitions {
+                    if part.error_code != 0 {
+                        let e = Error::broker(part.error_code, "ShareFetch");
+                        if share_leader_retriable(&e) || share_session_reset(&e) {
+                            self.reset_node_session(node);
+                        }
+                        return Err(e);
+                    }
+                }
+            }
+            self.advance_node_epoch(node);
+            for topic in fetched {
+                for part in topic.partitions {
+                    for batch in part.records {
+                        for rec in batch.records {
+                            let delivery = part
+                                .acquired
+                                .iter()
+                                .find(|a| {
+                                    rec.offset >= a.first_offset && rec.offset <= a.last_offset
+                                })
+                                .map(|a| a.delivery_count)
+                                .unwrap_or(1);
+                            out.push(ShareRecord {
+                                topic: self.topic.clone(),
+                                partition: part.partition,
+                                offset: rec.offset,
+                                timestamp: rec.timestamp,
+                                key: rec.key,
+                                value: rec.value,
+                                delivery_count: delivery,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        Ok(out)
     }
 
     async fn acknowledge(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -259,72 +326,125 @@ impl ShareGroup {
         if partitions.is_empty() {
             return Ok(());
         }
-        if self.share_session_epoch <= 0 {
-            return Err(Error::protocol(
-                "ShareAcknowledge requires an open share session (poll first)",
-            ));
+        let deadline = Instant::now() + Duration::from_secs(30);
+        loop {
+            match self.acknowledge_leaders(&partitions).await {
+                Ok(()) => return Ok(()),
+                Err(e) if share_leader_retriable(&e) => {
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    self.consumer.invalidate_topic(&self.topic);
+                    self.consumer.refresh_topic_metadata(&self.topic).await?;
+                }
+                Err(e) => return Err(e),
+            }
         }
+    }
+
+    async fn acknowledge_leaders(
+        &mut self,
+        partitions: &[(i32, Vec<AcknowledgementBatch>)],
+    ) -> Result<()> {
+        let parts: Vec<i32> = partitions.iter().map(|(p, _)| *p).collect();
+        let by_leader = self.leaders_of(&parts).await?;
         let timeout = Duration::from_secs(30);
-        let epoch = self.share_session_epoch;
-        let body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_SHARE,
-            SHARE_ACKNOWLEDGE,
-            1,
-            |buf| {
-                encode_share_acknowledge_request(
-                    buf,
-                    &self.group_id,
-                    &self.member_id,
-                    epoch,
-                    self.topic_id,
-                    &partitions,
+        for (node, node_parts) in by_leader {
+            let epoch = self.session_epoch(node);
+            if epoch <= 0 {
+                return Err(Error::protocol(
+                    "ShareAcknowledge requires an open share session (poll first)",
+                ));
+            }
+            let batches: Vec<(i32, Vec<AcknowledgementBatch>)> = partitions
+                .iter()
+                .filter(|(p, _)| node_parts.contains(p))
+                .map(|(p, b)| (*p, b.clone()))
+                .collect();
+            let topic_id = self.topic_id;
+            let body = self
+                .consumer
+                .roundtrip_node(
+                    node,
+                    SHARE_ACKNOWLEDGE,
+                    1,
+                    |buf| {
+                        encode_share_acknowledge_request(
+                            buf,
+                            &self.group_id,
+                            &self.member_id,
+                            epoch,
+                            topic_id,
+                            &batches,
+                        )
+                    },
+                    timeout,
                 )
-            },
-            timeout,
-        )
-        .await?;
-        let err = decode_share_acknowledge_response(&mut body.clone())?;
-        if err != 0 {
-            return Err(Error::broker(err, "ShareAcknowledge"));
+                .await;
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    self.reset_node_session(node);
+                    return Err(e);
+                }
+                Err(e) => return Err(e),
+            };
+            let err = decode_share_acknowledge_response(&mut body.clone())?;
+            if err != 0 {
+                let e = Error::broker(err, "ShareAcknowledge");
+                if share_leader_retriable(&e) || share_session_reset(&e) {
+                    self.reset_node_session(node);
+                }
+                return Err(e);
+            }
+            self.advance_node_epoch(node);
         }
-        self.advance_share_epoch();
         Ok(())
     }
 
     async fn close_share_session(&mut self) -> Result<()> {
-        if self.share_session_epoch <= 0 {
+        let open: Vec<i32> = self
+            .share_epochs
+            .iter()
+            .filter(|(_, e)| **e > 0)
+            .map(|(n, _)| *n)
+            .collect();
+        if open.is_empty() {
             return Ok(());
         }
         let timeout = Duration::from_secs(30);
-        let body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_SHARE,
-            SHARE_ACKNOWLEDGE,
-            1,
-            |buf| {
-                encode_share_acknowledge_request(
-                    buf,
-                    &self.group_id,
-                    &self.member_id,
-                    -1,
-                    self.topic_id,
-                    &[],
+        let topic_id = self.topic_id;
+        let mut last = Ok(());
+        for node in open {
+            let body = self
+                .consumer
+                .roundtrip_node(
+                    node,
+                    SHARE_ACKNOWLEDGE,
+                    1,
+                    |buf| {
+                        encode_share_acknowledge_request(
+                            buf,
+                            &self.group_id,
+                            &self.member_id,
+                            -1,
+                            topic_id,
+                            &[],
+                        )
+                    },
+                    timeout,
                 )
-            },
-            timeout,
-        )
-        .await?;
-        let err = decode_share_acknowledge_response(&mut body.clone())?;
-        self.share_session_epoch = 0;
-        if err != 0 && err != crate::error::SHARE_SESSION_NOT_FOUND {
-            return Err(Error::broker(err, "ShareAcknowledge close"));
+                .await;
+            let err = match body {
+                Ok(body) => decode_share_acknowledge_response(&mut body.clone())?,
+                Err(_) => error::SHARE_SESSION_NOT_FOUND,
+            };
+            let _ = self.share_epochs.remove(&node);
+            if err != 0 && err != error::SHARE_SESSION_NOT_FOUND {
+                last = Err(Error::broker(err, "ShareAcknowledge close"));
+            }
         }
-        Ok(())
+        last
     }
 
     pub async fn leave(mut self) -> Result<()> {
@@ -419,6 +539,30 @@ impl ShareGroup {
     }
 }
 
+fn share_leader_retriable(e: &Error) -> bool {
+    match e {
+        Error::NoLeader { .. } => true,
+        Error::Broker { code, .. } => matches!(
+            *code,
+            error::NOT_LEADER_OR_FOLLOWER
+                | error::LEADER_NOT_AVAILABLE
+                | error::UNKNOWN_TOPIC_OR_PARTITION
+        ),
+        Error::Io(_) | Error::Timeout => true,
+        _ => false,
+    }
+}
+
+fn share_session_reset(e: &Error) -> bool {
+    matches!(
+        e,
+        Error::Broker {
+            code: error::SHARE_SESSION_NOT_FOUND | error::INVALID_SHARE_SESSION_EPOCH,
+            ..
+        }
+    )
+}
+
 /// Collapse records into KIP-932 acknowledgement batches.
 ///
 /// Contiguous offsets with the same type become one batch with a single
@@ -491,6 +635,26 @@ mod tests {
         assert_eq!(batches[1].0, 1);
         assert_eq!(batches[1].1[0].first_offset, 9);
         assert_eq!(batches[1].1[0].last_offset, 9);
+    }
+
+    #[test]
+    fn share_leader_retriable_is_not_leader_or_missing() {
+        assert!(share_leader_retriable(&Error::broker(
+            error::NOT_LEADER_OR_FOLLOWER,
+            "x"
+        )));
+        assert!(share_leader_retriable(&Error::NoLeader {
+            topic: "t".into(),
+            partition: 0,
+        }));
+        assert!(!share_leader_retriable(&Error::broker(
+            error::INVALID_RECORD_STATE,
+            "x"
+        )));
+        assert!(share_session_reset(&Error::broker(
+            error::INVALID_SHARE_SESSION_EPOCH,
+            "x"
+        )));
     }
 
     #[test]
