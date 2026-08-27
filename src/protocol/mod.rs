@@ -3,7 +3,7 @@ pub mod acl;
 /// CreateTopics, DeleteTopics, DescribeConfigs, UpdateFeatures,
 /// AlterUserScramCredentials, DescribeUserScramCredentials,
 /// AlterClientQuotas, AllocateProducerIds, DescribeTransactions,
-/// ListTransactions codecs.
+/// ListTransactions, UnregisterBroker codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

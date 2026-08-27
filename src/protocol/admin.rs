@@ -1966,6 +1966,63 @@ pub fn decode_list_transactions_response<B: Buf>(buf: &mut B) -> Result<ListTran
     })
 }
 
+/// UnregisterBroker v0 body (api 64, KIP-500).
+///
+/// Official Apache JSON (`apiKey: 64`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`, listeners `broker` and `controller`) and
+/// kafka-protocol 0.18.0: this crate targets v0, the only version a
+/// client encodes (`VERSIONS` min=max=0). v0 is flexible. Request:
+/// `BrokerId` INT32, tagged. Response: `ThrottleTimeMs` INT32, top-level
+/// `ErrorCode` INT16, compact nullable `ErrorMessage`, tagged.
+/// Measured independently from kafka-protocol 0.18.0 (`client` encodes
+/// the request; `broker` encodes the response): **41 is the top-level
+/// ErrorCode at bytes 4–5**, after throttle. Not a first-result field
+/// (AlterUserScramCredentials puts 41 after compact User at bytes
+/// 11–12; DescribeTransactions puts the first-result code at bytes
+/// 5–6). Fixture broker id only; not a live KRaft unregistration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnregisterBrokerResponse {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+pub fn encode_unregister_broker_request(
+    buf: &mut BytesMut,
+    broker_id: i32,
+) -> crate::error::Result<()> {
+    buf.put_i32(broker_id);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_unregister_broker_request<B: Buf>(buf: &mut B) -> Result<i32> {
+    let broker_id = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(broker_id)
+}
+
+pub fn encode_unregister_broker_response(
+    buf: &mut BytesMut,
+    resp: &UnregisterBrokerResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<UnregisterBrokerResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(UnregisterBrokerResponse {
+        error_code,
+        error_message,
+    })
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -3248,6 +3305,94 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn unregister_broker_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes the
+        // request; broker encodes the response). Apache JSON api 64
+        // validVersions 0, flexibleVersions 0+. This crate targets v0.
+        // Not copied from AllocateProducerIds (BrokerId then BrokerEpoch)
+        // or DescribeUserScramCredentials (same 41 offset, Results after
+        // ErrorMessage).
+        const REQ: &[u8] = &[0x00, 0x00, 0x00, 0x07, 0x00];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x0f, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f, 0x6e,
+            0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_unregister_broker_request(&mut buf, 7).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = UnregisterBrokerResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+        };
+        buf.clear();
+        encode_unregister_broker_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn unregister_broker_v0_roundtrip_is_leftover_empty() {
+        let mut buf = BytesMut::new();
+        encode_unregister_broker_request(&mut buf, 7).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_unregister_broker_request(&mut cur).unwrap(), 7);
+        assert!(
+            !cur.has_remaining(),
+            "UnregisterBroker v0 request must be leftover-empty"
+        );
+
+        let resp = UnregisterBrokerResponse {
+            error_code: 0,
+            error_message: None,
+        };
+        buf.clear();
+        encode_unregister_broker_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_unregister_broker_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "UnregisterBroker v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn unregister_broker_not_controller_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16. Measured independently from Apache
+        // UnregisterBrokerResponse.json and a kafka-protocol 0.18.0
+        // broker encode (`features = ["broker"]`). Not copied from
+        // AlterUserScramCredentials (41 after compact User at 11-12),
+        // DescribeTransactions (first-result code at bytes 5-6), or
+        // DescribeUserScramCredentials (same offset, Results after the
+        // INT16 + ErrorMessage).
+        let resp = UnregisterBrokerResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+        };
+        let mut buf = BytesMut::new();
+        encode_unregister_broker_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 throttle then top-level error must be 41 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::NOT_CONTROLLER,
+            "v0 41 is not a first-result ErrorCode at bytes 5-6"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_unregister_broker_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "UnregisterBroker v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }
