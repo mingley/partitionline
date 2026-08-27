@@ -877,6 +877,142 @@ async fn consumer_group_join_fetch_commit() {
 }
 
 #[tokio::test]
+async fn consumer_group_commit_one_rpc_then_resume() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("off3", 3, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for p in 0..3 {
+        producer
+            .send(
+                ProduceRecord::to("off3")
+                    .partition(p)
+                    .value(format!("first-{p}").into_bytes()),
+            )
+            .await
+            .unwrap();
+    }
+    producer.flush().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg.clone(), "offg", "off3")
+        .await
+        .unwrap();
+    assert_eq!(group.assignment().len(), 3);
+    assert_eq!(
+        mock.offset_fetch_calls(),
+        1,
+        "join OffsetFetch must be one RPC, got {}",
+        mock.offset_fetch_calls()
+    );
+    assert_eq!(mock.last_offset_fetch_partitions(), 3);
+
+    let first = group.poll().await.unwrap();
+    assert_eq!(first.len(), 3);
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_calls(),
+        1,
+        "commit must be one OffsetCommit, got {}",
+        mock.offset_commit_calls()
+    );
+    assert_eq!(mock.last_offset_commit_partitions(), 3);
+    group.leave().await.unwrap();
+
+    for p in 0..3 {
+        producer
+            .send(
+                ProduceRecord::to("off3")
+                    .partition(p)
+                    .value(format!("second-{p}").into_bytes()),
+            )
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(ccfg, "offg", "off3").await.unwrap();
+    assert_eq!(
+        mock.offset_fetch_calls(),
+        2,
+        "rejoin OffsetFetch must be one more RPC, got {}",
+        mock.offset_fetch_calls()
+    );
+    assert_eq!(mock.last_offset_fetch_partitions(), 3);
+    let second = group.poll().await.unwrap();
+    let vals: Vec<Vec<u8>> = second
+        .iter()
+        .filter_map(|r| r.value.as_ref().map(|v| v.to_vec()))
+        .collect();
+    assert_eq!(second.len(), 3, "must not re-read committed records");
+    for p in 0..3 {
+        assert!(
+            vals.iter().any(|v| v == format!("second-{p}").as_bytes()),
+            "missing second-{p}"
+        );
+        assert!(
+            vals.iter().all(|v| v != format!("first-{p}").as_bytes()),
+            "replayed first-{p}"
+        );
+    }
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_join_resumes_committed_offset() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"old"[..]))
+        .await
+        .unwrap();
+    producer.flush().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join_consumer(ccfg.clone(), "g848-off", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"old"[..]));
+    group.commit().await.unwrap();
+    assert_eq!(mock.offset_commit_calls(), 1);
+    group.leave().await.unwrap();
+
+    producer
+        .send(ProduceRecord::to("t").value(&b"new"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join_consumer(ccfg, "g848-off", "t")
+        .await
+        .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.value.as_deref()).collect::<Vec<_>>(),
+        vec![Some(&b"new"[..])],
+        "KIP-848 rejoin must OffsetFetch committed offsets, not restart at 0"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_join_fetch_leave_without_classic_join() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

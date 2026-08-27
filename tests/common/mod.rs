@@ -68,7 +68,8 @@ use partitionline::protocol::group::{
     decode_offset_commit_request, decode_offset_fetch_request, decode_sync_group_request,
     encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
     encode_leave_group_response, encode_offset_commit_response, encode_offset_fetch_response,
-    encode_sync_group_response, JoinMember,
+    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, OffsetPartition,
+    OffsetTopic,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
@@ -158,6 +159,10 @@ struct State {
     last_share_fetch_epoch: Option<i32>,
     last_share_ack_epoch: Option<i32>,
     last_share_ack_partitions: usize,
+    offset_commit_calls: u32,
+    offset_fetch_calls: u32,
+    last_offset_commit_partitions: usize,
+    last_offset_fetch_partitions: usize,
     drop_gen: watch::Sender<u32>,
     coord_node: i32,
     hb_by_node: HashMap<i32, u32>,
@@ -228,6 +233,10 @@ fn new_state(
         last_share_fetch_epoch: None,
         last_share_ack_epoch: None,
         last_share_ack_partitions: 0,
+        offset_commit_calls: 0,
+        offset_fetch_calls: 0,
+        last_offset_commit_partitions: 0,
+        last_offset_fetch_partitions: 0,
         drop_gen: watch::channel(0).0,
         coord_node: 1,
         hb_by_node: HashMap::new(),
@@ -591,6 +600,22 @@ impl Mock {
         self.state.lock().last_share_ack_partitions
     }
 
+    pub fn offset_commit_calls(&self) -> u32 {
+        self.state.lock().offset_commit_calls
+    }
+
+    pub fn offset_fetch_calls(&self) -> u32 {
+        self.state.lock().offset_fetch_calls
+    }
+
+    pub fn last_offset_commit_partitions(&self) -> usize {
+        self.state.lock().last_offset_commit_partitions
+    }
+
+    pub fn last_offset_fetch_partitions(&self) -> usize {
+        self.state.lock().last_offset_fetch_partitions
+    }
+
     pub fn heartbeat_total(&self, group_id: &str) -> u32 {
         self.state
             .lock()
@@ -829,8 +854,30 @@ fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
         LEAVE_GROUP => encode_leave_group_response(body, NC).unwrap(),
         JOIN_GROUP => encode_join_group_response(body, NC, -1, "", "", "", &[]).unwrap(),
         SYNC_GROUP => encode_sync_group_response(body, NC, &[]).unwrap(),
-        OFFSET_COMMIT => encode_offset_commit_response(body, "t", 0, NC).unwrap(),
-        OFFSET_FETCH => encode_offset_fetch_response(body, "t", 0, -1).unwrap(),
+        OFFSET_COMMIT => encode_offset_commit_response(
+            body,
+            &[OffsetTopic {
+                topic: "t".into(),
+                partitions: vec![OffsetPartition {
+                    partition: 0,
+                    offset: -1,
+                }],
+            }],
+            NC,
+        )
+        .unwrap(),
+        OFFSET_FETCH => encode_offset_fetch_response(
+            body,
+            &[FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset {
+                    partition: 0,
+                    offset: -1,
+                    error_code: NC,
+                }],
+            }],
+        )
+        .unwrap(),
         CONSUMER_GROUP_HEARTBEAT => encode_consumer_group_heartbeat_response(
             body,
             &ConsumerGroupHeartbeatResponse {
@@ -1704,19 +1751,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
-                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
-                    (req.member_id, -1, None)
-                } else if req.member_epoch == 0 {
-                    (
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Equal => (
                         req.member_id,
                         1,
                         Some(vec![ShareTopicPartitions {
                             topic_id: [0u8; 16],
                             partitions: vec![0],
                         }]),
-                    )
-                } else {
-                    (req.member_id, req.member_epoch, None)
+                    ),
+                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 encode_share_group_heartbeat_response(
                     &mut body,
@@ -1817,21 +1862,33 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
-                let (member_id, epoch, assignment) = if req.member_epoch < 0 {
-                    (req.member_id, -1, None)
-                } else if req.member_epoch == 0 {
-                    st.member_seq += 1;
-                    let id = format!("k-{}", st.member_seq);
-                    (
-                        id,
-                        1,
-                        Some(vec![TopicPartitions {
-                            topic_id: [0u8; 16],
-                            partitions: vec![0],
-                        }]),
-                    )
-                } else {
-                    (req.member_id, req.member_epoch, None)
+                let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
+                    std::cmp::Ordering::Less => (req.member_id, -1, None),
+                    std::cmp::Ordering::Equal => {
+                        st.member_seq += 1;
+                        let id = format!("k-{}", st.member_seq);
+                        let topic_name = req
+                            .subscribed_topic_names
+                            .as_ref()
+                            .and_then(|n| n.first())
+                            .cloned()
+                            .unwrap_or_else(|| "t".into());
+                        let npart = st
+                            .created_topics
+                            .get(&topic_name)
+                            .map(|s| s.num_partitions)
+                            .unwrap_or(1);
+                        let partitions: Vec<i32> = (0..npart).collect();
+                        (
+                            id,
+                            1,
+                            Some(vec![TopicPartitions {
+                                topic_id: [0u8; 16],
+                                partitions,
+                            }]),
+                        )
+                    }
+                    std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 encode_consumer_group_heartbeat_response(
                     &mut body,
@@ -1953,21 +2010,44 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_leave_group_response(&mut body, 0).unwrap();
             }
             OFFSET_COMMIT => {
-                let (_g, _m, partition, offset) = decode_offset_commit_request(&mut frame).unwrap();
-                state
-                    .lock()
-                    .committed
-                    .insert(("t".into(), partition), offset);
-                encode_offset_commit_response(&mut body, "t", partition, 0).unwrap();
+                let (_g, _m, topics) = decode_offset_commit_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
+                let mut nparts = 0usize;
+                for t in &topics {
+                    nparts = nparts.saturating_add(t.partitions.len());
+                    for p in &t.partitions {
+                        st.committed
+                            .insert((t.topic.clone(), p.partition), p.offset);
+                    }
+                }
+                st.last_offset_commit_partitions = nparts;
+                encode_offset_commit_response(&mut body, &topics, 0).unwrap();
             }
             OFFSET_FETCH => {
-                let (_g, topic, partition) = decode_offset_fetch_request(&mut frame).unwrap();
-                let off = *state
-                    .lock()
-                    .committed
-                    .get(&(topic.clone(), partition))
-                    .unwrap_or(&-1);
-                encode_offset_fetch_response(&mut body, &topic, partition, off).unwrap();
+                let (_g, topics) = decode_offset_fetch_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                st.offset_fetch_calls = st.offset_fetch_calls.saturating_add(1);
+                let mut nparts = 0usize;
+                let mut out = Vec::with_capacity(topics.len());
+                for t in topics {
+                    nparts = nparts.saturating_add(t.partitions.len());
+                    let mut parts = Vec::with_capacity(t.partitions.len());
+                    for p in t.partitions {
+                        let off = *st.committed.get(&(t.topic.clone(), p)).unwrap_or(&-1);
+                        parts.push(FetchedOffset {
+                            partition: p,
+                            offset: off,
+                            error_code: 0,
+                        });
+                    }
+                    out.push(FetchedOffsetTopic {
+                        topic: t.topic,
+                        partitions: parts,
+                    });
+                }
+                st.last_offset_fetch_partitions = nparts;
+                encode_offset_fetch_response(&mut body, &out).unwrap();
             }
             _ => break,
         }

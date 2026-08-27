@@ -263,116 +263,209 @@ pub fn decode_leave_group_response<B: Buf>(buf: &mut B) -> Result<i16> {
     buf::get_i16(buf)
 }
 
+/// One partition in OffsetCommit v7 / OffsetFetch v5.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetPartition {
+    pub partition: i32,
+    pub offset: i64,
+}
+
+/// Topic + partitions for OffsetCommit v7.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetTopic {
+    pub topic: String,
+    pub partitions: Vec<OffsetPartition>,
+}
+
+/// Topic + partition indexes for OffsetFetch v5.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetFetchTopic {
+    pub topic: String,
+    pub partitions: Vec<i32>,
+}
+
+/// One partition in an OffsetFetch v5 response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchedOffset {
+    pub partition: i32,
+    pub offset: i64,
+    pub error_code: i16,
+}
+
+/// Topic + committed offsets from OffsetFetch v5.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FetchedOffsetTopic {
+    pub topic: String,
+    pub partitions: Vec<FetchedOffset>,
+}
+
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     group_id: &str,
     generation_id: i32,
     member_id: &str,
-    topic: &str,
-    partition: i32,
-    offset: i64,
+    topics: &[OffsetTopic],
 ) -> crate::error::Result<()> {
     buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(generation_id);
     buf::put_classic_nullable_string(buf, Some(member_id))?;
     buf::put_classic_nullable_string(buf, None)?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i64(offset);
-    buf.put_i32(-1); // leader epoch
-    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i64(p.offset);
+            buf.put_i32(-1); // committed_leader_epoch
+            buf::put_classic_nullable_string(buf, None)?;
+        }
+    }
     Ok(())
 }
 
-pub fn decode_offset_commit_request<B: Buf>(buf: &mut B) -> Result<(String, String, i32, i64)> {
+pub fn decode_offset_commit_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(String, String, Vec<OffsetTopic>)> {
     let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
     let member = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let _inst = buf::get_classic_nullable_string(buf)?;
-    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _topic = buf::get_classic_nullable_string(buf)?;
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    let offset = buf::get_i64(buf)?;
-    Ok((group, member, partition, offset))
+    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let offset = buf::get_i64(buf)?;
+            let _epoch = buf::get_i32(buf)?;
+            let _meta = buf::get_classic_nullable_string(buf)?;
+            partitions.push(OffsetPartition { partition, offset });
+        }
+        topics.push(OffsetTopic { topic, partitions });
+    }
+    Ok((group, member, topics))
 }
 
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
-    topic: &str,
-    partition: i32,
+    topics: &[OffsetTopic],
     error: i16,
 ) -> crate::error::Result<()> {
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i16(error);
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i16(error);
+        }
+    }
     Ok(())
 }
 
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _throttle = buf::get_i32(buf)?;
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _topic = buf::get_classic_nullable_string(buf)?;
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _p = buf::get_i32(buf)?;
-    buf::get_i16(buf)
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut first_err = 0i16;
+    for _ in 0..n {
+        let _topic = buf::get_classic_nullable_string(buf)?;
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for _ in 0..pn {
+            let _p = buf::get_i32(buf)?;
+            let err = buf::get_i16(buf)?;
+            if first_err == 0 && err != 0 {
+                first_err = err;
+            }
+        }
+    }
+    Ok(first_err)
 }
 
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     group_id: &str,
-    topic: &str,
-    partition: i32,
+    topics: &[OffsetFetchTopic],
 ) -> crate::error::Result<()> {
     buf::put_classic_nullable_string(buf, Some(group_id))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(*p);
+        }
+    }
     Ok(())
 }
 
-pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, String, i32)> {
+pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<OffsetFetchTopic>)> {
     let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    Ok((group, topic, partition))
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(buf::get_i32(buf)?);
+        }
+        topics.push(OffsetFetchTopic { topic, partitions });
+    }
+    Ok((group, topics))
 }
 
 pub fn encode_offset_fetch_response(
     buf: &mut BytesMut,
-    topic: &str,
-    partition: i32,
-    offset: i64,
+    topics: &[FetchedOffsetTopic],
 ) -> crate::error::Result<()> {
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i64(offset);
-    buf.put_i32(-1);
-    buf::put_classic_nullable_string(buf, None)?;
-    buf.put_i16(0);
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i64(p.offset);
+            buf.put_i32(-1);
+            buf::put_classic_nullable_string(buf, None)?;
+            buf.put_i16(p.error_code);
+        }
+    }
     buf.put_i16(0); // top-level error
     Ok(())
 }
 
-pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<i64> {
+pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOffsetTopic>> {
     let _throttle = buf::get_i32(buf)?;
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _topic = buf::get_classic_nullable_string(buf)?;
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _p = buf::get_i32(buf)?;
-    let offset = buf::get_i64(buf)?;
-    Ok(offset)
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let offset = buf::get_i64(buf)?;
+            let _epoch = buf::get_i32(buf)?;
+            let _meta = buf::get_classic_nullable_string(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            partitions.push(FetchedOffset {
+                partition,
+                offset,
+                error_code,
+            });
+        }
+        topics.push(FetchedOffsetTopic { topic, partitions });
+    }
+    let top = buf::get_i16(buf)?;
+    if top != 0 {
+        return Err(crate::error::Error::broker(top, "OffsetFetch"));
+    }
+    Ok(topics)
 }
 
 /// ConsumerProtocol subscription v0.
@@ -441,5 +534,97 @@ mod tests {
         let decoded = decode_assignment(&asg).unwrap();
         assert_eq!(decoded[0].0, "t");
         assert_eq!(decoded[0].1, vec![0, 1]);
+    }
+
+    #[test]
+    fn offset_commit_v7_batches_partitions_and_consumes_epoch_metadata() {
+        let topics = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![
+                OffsetPartition {
+                    partition: 0,
+                    offset: 3,
+                },
+                OffsetPartition {
+                    partition: 2,
+                    offset: 9,
+                },
+            ],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(&mut buf, "g", 7, "m1", &topics).unwrap();
+        let mut cur = &buf[..];
+        let (gid, mid, got) = decode_offset_commit_request(&mut cur).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got, topics);
+        assert!(
+            cur.is_empty(),
+            "v7 decoder must consume leader epoch and metadata; leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        encode_offset_commit_response(&mut buf, &topics, 0).unwrap();
+        assert_eq!(decode_offset_commit_response(&mut &buf[..]).unwrap(), 0);
+    }
+
+    #[test]
+    fn offset_commit_response_returns_first_partition_error() {
+        let topics = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![
+                OffsetPartition {
+                    partition: 0,
+                    offset: 1,
+                },
+                OffsetPartition {
+                    partition: 1,
+                    offset: 2,
+                },
+            ],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_response(&mut buf, &topics, 16).unwrap();
+        assert_eq!(decode_offset_commit_response(&mut &buf[..]).unwrap(), 16);
+    }
+
+    #[test]
+    fn offset_fetch_v5_batches_partitions_and_consumes_tail() {
+        let req = vec![OffsetFetchTopic {
+            topic: "t".into(),
+            partitions: vec![0, 1, 2],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(&mut buf, "g", &req).unwrap();
+        let mut cur = &buf[..];
+        let (gid, got) = decode_offset_fetch_request(&mut cur).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(got, req);
+        assert!(cur.is_empty());
+
+        let resp = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![
+                FetchedOffset {
+                    partition: 0,
+                    offset: 4,
+                    error_code: 0,
+                },
+                FetchedOffset {
+                    partition: 1,
+                    offset: -1,
+                    error_code: 0,
+                },
+            ],
+        }];
+        buf.clear();
+        encode_offset_fetch_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_offset_fetch_response(&mut cur).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            cur.is_empty(),
+            "v5 decoder must consume epoch, metadata, partition error, and top-level error"
+        );
     }
 }
