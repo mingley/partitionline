@@ -3,7 +3,7 @@
     reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
 )]
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
 use super::records::{self, RecordBatch};
@@ -178,11 +178,11 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                 }
             }
             let preferred_read_replica = buf::get_i32(buf)?;
-            let rec_bytes = buf::get_classic_bytes(buf)?.unwrap_or_default();
-            let mut rec_buf = &rec_bytes[..];
-            let records = if rec_buf.is_empty() {
+            let rec_bytes = buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new);
+            let records = if rec_bytes.is_empty() {
                 Vec::new()
             } else {
+                let mut rec_buf = rec_bytes;
                 records::decode_record_batches(&mut rec_buf)?
             };
             partitions.push(FetchedPartition {
@@ -383,6 +383,46 @@ mod tests {
                 .value
                 .as_deref(),
             Some(&b"two"[..])
+        );
+    }
+
+    #[test]
+    fn decode_fetch_response_from_bytes_shares_record_value() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"view-me")),
+            headers: vec![],
+        };
+        let mut batch = RecordBatch::from_records(vec![rec]);
+        batch.base_offset = 20;
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 21,
+                last_stable_offset: 21,
+                log_start_offset: 0,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
+                records: vec![batch],
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, &topics).unwrap();
+        let frozen = buf.freeze();
+        let decoded = decode_fetch_response(&mut frozen.clone()).unwrap();
+        let got = &decoded[0].partitions[0].records[0].records[0];
+        assert_eq!(got.offset, 20);
+        assert_eq!(got.value.as_deref(), Some(&b"view-me"[..]));
+        let start = frozen.as_ptr();
+        let end = start.wrapping_add(frozen.len());
+        let value = got.value.as_ref().unwrap();
+        assert!(
+            value.as_ptr() >= start && value.as_ptr() < end,
+            "fetch record value must be a view into the response frame"
         );
     }
 }

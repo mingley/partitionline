@@ -6,7 +6,7 @@
     reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
 )]
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
 use super::records::{self, RecordBatch};
@@ -400,11 +400,12 @@ pub fn decode_share_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<ShareFetch
             let _ack_err = buf::get_i16(buf)?;
             let _ack_msg = buf::get_compact_string(buf)?;
             let _leader = decode_leader(buf)?;
-            let rec_bytes = buf::get_compact_bytes(buf)?.unwrap_or_default();
+            let rec_bytes = buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new);
             let records = if rec_bytes.is_empty() {
                 Vec::new()
             } else {
-                records::decode_record_batches(&mut &rec_bytes[..])?
+                let mut rec_buf = rec_bytes;
+                records::decode_record_batches(&mut rec_buf)?
             };
             let an = buf::get_array_len(buf, true)?.unwrap_or(0);
             let mut acquired = Vec::with_capacity(an);

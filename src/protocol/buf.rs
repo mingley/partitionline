@@ -3,7 +3,7 @@
     reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
 )]
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::error::{Error, Result};
 
@@ -253,16 +253,18 @@ pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()>
     Ok(())
 }
 
-pub fn get_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
+pub fn take_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     let n = get_unsigned_varint(buf)?;
     if n == 0 {
         return Ok(None);
     }
     let len = usize_from_u32(n - 1)?;
     need(buf, len)?;
-    let mut bytes = vec![0u8; len];
-    buf.copy_to_slice(&mut bytes);
-    Ok(Some(bytes))
+    Ok(Some(buf.copy_to_bytes(len)))
+}
+
+pub fn get_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
+    Ok(take_compact_bytes(buf)?.map(|b| b.to_vec()))
 }
 
 pub fn put_classic_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
@@ -276,7 +278,11 @@ pub fn put_classic_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()>
     Ok(())
 }
 
-pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
+/// Length-prefixed classic bytes as a `Bytes` view.
+///
+/// When `buf` is `Bytes` (a frozen fetch frame), this is a refcount bump, not a
+/// memcpy. Slice-backed test buffers still copy once.
+pub fn take_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     need(buf, 4)?;
     let len = buf.get_i32();
     if len < 0 {
@@ -284,9 +290,11 @@ pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
     }
     let len = usize_from_i32(len)?;
     need(buf, len)?;
-    let mut bytes = vec![0u8; len];
-    buf.copy_to_slice(&mut bytes);
-    Ok(Some(bytes))
+    Ok(Some(buf.copy_to_bytes(len)))
+}
+
+pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
+    Ok(take_classic_bytes(buf)?.map(|b| b.to_vec()))
 }
 
 pub fn put_bytes(buf: &mut BytesMut, flexible: bool, bytes: Option<&[u8]>) -> Result<()> {
@@ -454,5 +462,40 @@ mod tests {
             put_varlong(&mut buf, v);
             assert_eq!(buf.len(), varlong_size(v), "varlong {v}");
         }
+    }
+
+    #[test]
+    fn take_classic_bytes_from_bytes_is_a_view() {
+        let payload = [7u8; 32];
+        let mut buf = BytesMut::new();
+        put_classic_bytes(&mut buf, Some(&payload)).unwrap();
+        let frozen = buf.freeze();
+        let expected = frozen.slice(4..);
+        let mut cur = frozen;
+        let taken = take_classic_bytes(&mut cur).unwrap().unwrap();
+        assert_eq!(&taken[..], &payload[..]);
+        assert_eq!(taken.as_ptr(), expected.as_ptr());
+        assert!(cur.remaining() == 0);
+    }
+
+    #[test]
+    fn take_compact_bytes_from_bytes_is_a_view() {
+        let payload = [9u8; 16];
+        let mut buf = BytesMut::new();
+        put_compact_bytes(&mut buf, Some(&payload)).unwrap();
+        let frozen = buf.freeze();
+        let prefix = unsigned_varint_size(u32_from_usize(payload.len()).unwrap() + 1);
+        let expected = frozen.slice(prefix..);
+        let mut cur = frozen;
+        let taken = take_compact_bytes(&mut cur).unwrap().unwrap();
+        assert_eq!(&taken[..], &payload[..]);
+        assert_eq!(taken.as_ptr(), expected.as_ptr());
+    }
+
+    #[test]
+    fn take_classic_bytes_null_is_none() {
+        let mut buf = BytesMut::new();
+        put_classic_bytes(&mut buf, None).unwrap();
+        assert_eq!(take_classic_bytes(&mut buf.freeze()).unwrap(), None);
     }
 }
