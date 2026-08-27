@@ -764,39 +764,46 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
 async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> Result<BrokerConn> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
-    for addr in &cfg.bootstrap {
-        let mut hop = match open_conn(addr, cfg).await {
-            Ok(c) => c,
-            Err(e) => {
-                last = e;
+    // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
+    for _ in 0..3 {
+        for addr in &cfg.bootstrap {
+            let mut hop = match open_conn(addr, cfg).await {
+                Ok(c) => c,
+                Err(e) => {
+                    last = e;
+                    continue;
+                }
+            };
+            let body = match hop
+                .roundtrip(
+                    FIND_COORDINATOR,
+                    2,
+                    |buf| encode_find_coordinator_request_typed(buf, key, key_type),
+                    timeout,
+                )
+                .await
+            {
+                Ok(b) => b,
+                Err(e) => {
+                    last = e;
+                    continue;
+                }
+            };
+            let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+            if err != 0 {
+                last = Error::broker(err, "FindCoordinator");
                 continue;
             }
-        };
-        let body = match hop
-            .roundtrip(
-                FIND_COORDINATOR,
-                2,
-                |buf| encode_find_coordinator_request_typed(buf, key, key_type),
-                timeout,
-            )
-            .await
-        {
-            Ok(b) => b,
-            Err(e) => {
-                last = e;
-                continue;
+            let coord_addr = format!("{host}:{port}");
+            if coord_addr == hop.addr() {
+                return Ok(hop);
             }
-        };
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
-        if err != 0 {
-            last = Error::broker(err, "FindCoordinator");
-            continue;
+            return open_conn(&coord_addr, cfg).await;
         }
-        let coord_addr = format!("{host}:{port}");
-        if coord_addr == hop.addr() {
-            return Ok(hop);
+        match &last {
+            Error::Broker { code, .. } if error::coordinator_retriable(*code) => {}
+            _ => break,
         }
-        return open_conn(&coord_addr, cfg).await;
     }
     Err(last)
 }
@@ -825,7 +832,7 @@ async fn init_producer_id_roundtrip(
     match first {
         Ok(body) => {
             let err = decode_init_producer_id_response(&mut body.clone(), version)?.0;
-            if err != error::NOT_COORDINATOR {
+            if !error::coordinator_retriable(err) {
                 return Ok(body);
             }
         }
@@ -873,7 +880,7 @@ async fn txn_roundtrip(
         .await
     };
     match first {
-        Ok(body) if error_of(&body)? != error::NOT_COORDINATOR => return Ok(body),
+        Ok(body) if !error::coordinator_retriable(error_of(&body)?) => return Ok(body),
         Ok(_) => {}
         Err(e) if e.is_retriable() => {}
         Err(e) => return Err(e),
@@ -911,7 +918,7 @@ async fn group_coord_roundtrip(
             request_timeout,
         )
         .await?;
-    if error_of(&body)? != error::NOT_COORDINATOR {
+    if !error::coordinator_retriable(error_of(&body)?) {
         return Ok(body);
     }
     coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP).await?;

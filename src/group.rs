@@ -589,7 +589,7 @@ impl ConsumerGroup {
                                 if let Ok(resp) =
                                     decode_consumer_group_heartbeat_response(&mut body.clone())
                                 {
-                                    if resp.error_code == error::NOT_COORDINATOR {
+                                    if error::coordinator_retriable(resp.error_code) {
                                         conn = None;
                                     } else {
                                         hb_err.store(resp.error_code, Ordering::SeqCst);
@@ -655,7 +655,7 @@ impl ConsumerGroup {
                         match res {
                             Ok(body) => {
                                 if let Ok(err) = decode_heartbeat_response(&mut body.clone()) {
-                                    if err == error::NOT_COORDINATOR {
+                                    if error::coordinator_retriable(err) {
                                         conn = None;
                                     } else {
                                         hb_err.store(err, Ordering::SeqCst);
@@ -758,39 +758,46 @@ pub(crate) async fn discover_coord(
 ) -> Result<BrokerConn> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
-    for addr in &cfg.bootstrap {
-        let mut hop = match open_coord(cfg, addr).await {
-            Ok(c) => c,
-            Err(e) => {
-                last = e;
+    // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
+    for _ in 0..3 {
+        for addr in &cfg.bootstrap {
+            let mut hop = match open_coord(cfg, addr).await {
+                Ok(c) => c,
+                Err(e) => {
+                    last = e;
+                    continue;
+                }
+            };
+            let body = match hop
+                .roundtrip(
+                    FIND_COORDINATOR,
+                    2,
+                    |buf| encode_find_coordinator_request_typed(buf, group_id, key_type),
+                    timeout,
+                )
+                .await
+            {
+                Ok(b) => b,
+                Err(e) => {
+                    last = e;
+                    continue;
+                }
+            };
+            let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+            if err != 0 {
+                last = Error::broker(err, "FindCoordinator");
                 continue;
             }
-        };
-        let body = match hop
-            .roundtrip(
-                FIND_COORDINATOR,
-                2,
-                |buf| encode_find_coordinator_request_typed(buf, group_id, key_type),
-                timeout,
-            )
-            .await
-        {
-            Ok(b) => b,
-            Err(e) => {
-                last = e;
-                continue;
+            let coord_addr = format!("{host}:{port}");
+            if coord_addr == hop.addr() {
+                return Ok(hop);
             }
-        };
-        let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
-        if err != 0 {
-            last = Error::broker(err, "FindCoordinator");
-            continue;
+            return open_coord(cfg, &coord_addr).await;
         }
-        let coord_addr = format!("{host}:{port}");
-        if coord_addr == hop.addr() {
-            return Ok(hop);
+        match &last {
+            Error::Broker { code, .. } if error::coordinator_retriable(*code) => {}
+            _ => break,
         }
-        return open_coord(cfg, &coord_addr).await;
     }
     Err(last)
 }
@@ -861,7 +868,7 @@ pub(crate) async fn coord_roundtrip(
         }
         Err(e) => return Err(e),
     };
-    if coordinator_error(api_key, &body) == Some(error::NOT_COORDINATOR) {
+    if coordinator_error(api_key, &body).is_some_and(error::coordinator_retriable) {
         *coord = discover_coord(cfg, group_id, key_type).await?;
         coord
             .roundtrip(
@@ -876,9 +883,9 @@ pub(crate) async fn coord_roundtrip(
     }
 }
 
-/// OffsetCommit / OffsetFetch put `NOT_COORDINATOR` on each partition (and
+/// OffsetCommit / OffsetFetch put coordinator errors on each partition (and
 /// OffsetFetch also at the tail). Bytes 4–5 are the topic-array length, so a
-/// throttle-then-i16 peek misses 16 and treats a recoverable move as fatal.
+/// throttle-then-i16 peek misses 14/15/16 and treats a recoverable code as fatal.
 fn coordinator_error(api_key: i16, body: &[u8]) -> Option<i16> {
     match api_key {
         OFFSET_COMMIT => match decode_offset_commit_response(&mut { body }) {
@@ -940,6 +947,46 @@ mod tests {
         assert_eq!(t.partitions.len(), 2);
         let u = topics.iter().find(|x| x.topic == "u").unwrap();
         assert_eq!(u.partitions[0].offset, 9);
+    }
+
+    #[test]
+    fn coordinator_retriable_covers_load_and_move() {
+        assert!(error::coordinator_retriable(
+            error::COORDINATOR_LOAD_IN_PROGRESS
+        ));
+        assert!(error::coordinator_retriable(
+            error::COORDINATOR_NOT_AVAILABLE
+        ));
+        assert!(error::coordinator_retriable(error::NOT_COORDINATOR));
+        assert!(!error::coordinator_retriable(0));
+        assert!(!error::coordinator_retriable(error::INVALID_TXN_STATE));
+        assert!(Error::broker(error::COORDINATOR_LOAD_IN_PROGRESS, "x").is_retriable());
+        assert!(Error::broker(error::COORDINATOR_NOT_AVAILABLE, "x").is_retriable());
+    }
+
+    #[test]
+    fn offset_commit_load_in_progress_is_not_at_byte_four() {
+        use crate::protocol::api_keys::OFFSET_COMMIT;
+        use crate::protocol::group::{encode_offset_commit_response, OffsetPartition, OffsetTopic};
+        let topics = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 1,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_response(&mut buf, &topics, error::COORDINATOR_LOAD_IN_PROGRESS)
+            .unwrap();
+        assert_ne!(
+            peek_error_code(&buf),
+            Some(error::COORDINATOR_LOAD_IN_PROGRESS),
+            "throttle + topic-array length must not look like error 14"
+        );
+        assert_eq!(
+            coordinator_error(OFFSET_COMMIT, &buf),
+            Some(error::COORDINATOR_LOAD_IN_PROGRESS)
+        );
     }
 
     #[test]
