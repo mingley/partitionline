@@ -366,16 +366,54 @@ impl Admin {
         let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let version = self.delete_version;
         let timeout = self.cfg.request_timeout;
-        let body = self
-            .conn
-            .roundtrip(
-                DELETE_TOPICS,
-                version,
-                |buf| encode_delete_topics_request(buf, &names, timeout_ms),
-                timeout,
-            )
-            .await?;
-        decode_delete_topics_response(&mut body.clone(), version)
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing delete_topics conn"))?;
+                conn.roundtrip(
+                    DELETE_TOPICS,
+                    version,
+                    |buf| encode_delete_topics_request(buf, &names, timeout_ms),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_delete_topics_response(&mut body.clone(), version)?;
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(results);
+        }
     }
 
     pub async fn describe_configs(

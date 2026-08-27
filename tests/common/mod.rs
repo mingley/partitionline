@@ -145,6 +145,8 @@ struct State {
     controller_node: i32,
     last_create_topics_node: Option<i32>,
     create_topics_not_controller: u32,
+    last_delete_topics_node: Option<i32>,
+    delete_topics_not_controller: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -264,6 +266,8 @@ fn new_state(
         controller_node: 1,
         last_create_topics_node: None,
         create_topics_not_controller: 0,
+        last_delete_topics_node: None,
+        delete_topics_not_controller: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -719,6 +723,14 @@ impl Mock {
 
     pub fn create_topics_not_controller(&self) -> u32 {
         self.state.lock().create_topics_not_controller
+    }
+
+    pub fn last_delete_topics_node(&self) -> Option<i32> {
+        self.state.lock().last_delete_topics_node
+    }
+
+    pub fn delete_topics_not_controller(&self) -> u32 {
+        self.state.lock().delete_topics_not_controller
     }
 
     pub fn join_group_calls(&self) -> u32 {
@@ -1331,17 +1343,30 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (names, _timeout) = decode_delete_topics_request(&mut frame).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
-                for name in names {
-                    let error_code = if st.created_topics.remove(&name).is_some() {
-                        0
-                    } else {
-                        3
-                    };
-                    results.push(TopicResult {
-                        name,
-                        error_code,
-                        error_message: None,
-                    });
+                if st.controller_node != node_id {
+                    st.delete_topics_not_controller =
+                        st.delete_topics_not_controller.saturating_add(1);
+                    for name in names {
+                        results.push(TopicResult {
+                            name,
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                        });
+                    }
+                } else {
+                    st.last_delete_topics_node = Some(node_id);
+                    for name in names {
+                        let error_code = if st.created_topics.remove(&name).is_some() {
+                            0
+                        } else {
+                            3
+                        };
+                        results.push(TopicResult {
+                            name,
+                            error_code,
+                            error_message: None,
+                        });
+                    }
                 }
                 encode_delete_topics_response(&mut body, header.api_version, &results).unwrap();
             }
