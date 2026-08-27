@@ -470,6 +470,114 @@ pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOf
     Ok(topics)
 }
 
+/// Topic + partitions for OffsetDelete (api 47) v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetDeleteTopic {
+    pub topic: String,
+    pub partitions: Vec<i32>,
+}
+
+/// One partition result from OffsetDelete (api 47) v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetDeleteResult {
+    pub topic: String,
+    pub partition: i32,
+    pub error_code: i16,
+}
+
+/// OffsetDelete v0 (classic; error_code is *before* throttle).
+pub fn encode_offset_delete_request(
+    buf: &mut BytesMut,
+    group_id: &str,
+    topics: &[OffsetDeleteTopic],
+) -> crate::error::Result<()> {
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(*p);
+        }
+    }
+    Ok(())
+}
+
+pub fn decode_offset_delete_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(String, Vec<OffsetDeleteTopic>)> {
+    let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(buf::get_i32(buf)?);
+        }
+        topics.push(OffsetDeleteTopic { topic, partitions });
+    }
+    Ok((group, topics))
+}
+
+pub fn encode_offset_delete_response(
+    buf: &mut BytesMut,
+    error_code: i16,
+    results: &[OffsetDeleteResult],
+) -> crate::error::Result<()> {
+    buf.put_i16(error_code);
+    buf.put_i32(0);
+    let mut by_topic: std::collections::HashMap<String, Vec<(i32, i16)>> =
+        std::collections::HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for r in results {
+        match by_topic.entry(r.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(r.topic.clone());
+                let _ = slot.insert(vec![(r.partition, r.error_code)]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push((r.partition, r.error_code));
+            }
+        }
+    }
+    buf::put_array_len(buf, false, Some(order.len()))?;
+    for name in &order {
+        let parts = by_topic.get(name).map(Vec::as_slice).unwrap_or(&[]);
+        buf::put_classic_nullable_string(buf, Some(name))?;
+        buf::put_array_len(buf, false, Some(parts.len()))?;
+        for (partition, err) in parts {
+            buf.put_i32(*partition);
+            buf.put_i16(*err);
+        }
+    }
+    Ok(())
+}
+
+pub fn decode_offset_delete_response<B: Buf>(
+    buf: &mut B,
+) -> Result<(i16, Vec<OffsetDeleteResult>)> {
+    let error_code = buf::get_i16(buf)?;
+    let _throttle = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut out = Vec::new();
+    for _ in 0..n {
+        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let part_err = buf::get_i16(buf)?;
+            out.push(OffsetDeleteResult {
+                topic: topic.clone(),
+                partition,
+                error_code: part_err,
+            });
+        }
+    }
+    Ok((error_code, out))
+}
+
 /// ConsumerProtocol subscription v0.
 pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
@@ -652,6 +760,68 @@ mod tests {
         assert!(
             cur.is_empty(),
             "v5 decoder must consume epoch, metadata, partition error, and top-level error"
+        );
+    }
+
+    #[test]
+    fn offset_delete_v0_roundtrip_is_leftover_empty() {
+        let topics = vec![OffsetDeleteTopic {
+            topic: "t".into(),
+            partitions: vec![0, 1],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_delete_request(&mut buf, "g", &topics).unwrap();
+        let mut cur = &buf[..];
+        let (gid, got) = decode_offset_delete_request(&mut cur).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(got, topics);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete v0 request must be leftover-empty"
+        );
+
+        let results = vec![
+            OffsetDeleteResult {
+                topic: "t".into(),
+                partition: 0,
+                error_code: 0,
+            },
+            OffsetDeleteResult {
+                topic: "t".into(),
+                partition: 1,
+                error_code: 0,
+            },
+        ];
+        buf.clear();
+        encode_offset_delete_response(&mut buf, 0, &results).unwrap();
+        let mut cur = &buf[..];
+        let (err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(decoded, results);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn offset_delete_not_coordinator_is_not_at_byte_four() {
+        let mut buf = BytesMut::new();
+        encode_offset_delete_response(&mut buf, crate::error::NOT_COORDINATOR, &[]).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "error is at bytes 0-1; throttle occupies bytes 2-5"
+        );
+        let mut cur = &buf[..];
+        let (err, results) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(err, crate::error::NOT_COORDINATOR);
+        assert!(results.is_empty());
+        assert!(
+            !cur.has_remaining(),
+            "OffsetDelete v0 NOT_COORDINATOR must be leftover-empty"
         );
     }
 }

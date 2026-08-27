@@ -49,9 +49,9 @@ use partitionline::protocol::api_keys::{
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN,
     FETCH, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
+    LEAVE_GROUP, LIST_OFFSETS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
+    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -66,11 +66,12 @@ use partitionline::protocol::fetch::{
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
-    decode_leave_group_request, decode_offset_commit_request, decode_offset_fetch_request,
-    decode_sync_group_request, encode_find_coordinator_response, encode_heartbeat_response,
-    encode_join_group_response, encode_leave_group_response, encode_offset_commit_response,
-    encode_offset_fetch_response, encode_sync_group_response, FetchedOffset, FetchedOffsetTopic,
-    JoinMember, OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
+    decode_leave_group_request, decode_offset_commit_request, decode_offset_delete_request,
+    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
+    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response,
+    encode_offset_commit_response, encode_offset_delete_response, encode_offset_fetch_response,
+    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, OffsetDeleteResult,
+    OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
@@ -151,6 +152,8 @@ struct State {
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     incremental_alter_configs_not_controller: u32,
+    last_offset_delete_node: Option<i32>,
+    offset_delete_not_coordinator: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -276,6 +279,8 @@ fn new_state(
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         incremental_alter_configs_not_controller: 0,
+        last_offset_delete_node: None,
+        offset_delete_not_coordinator: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -757,6 +762,14 @@ impl Mock {
         self.state.lock().incremental_alter_configs_not_controller
     }
 
+    pub fn last_offset_delete_node(&self) -> Option<i32> {
+        self.state.lock().last_offset_delete_node
+    }
+
+    pub fn offset_delete_not_coordinator(&self) -> u32 {
+        self.state.lock().offset_delete_not_coordinator
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1136,6 +1149,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
+        (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
         (SASL_AUTHENTICATE, 0, 1),
@@ -1219,6 +1233,7 @@ fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
             buf::put_array_len(body, true, Some(0)).unwrap();
             buf::put_empty_tagged_fields(body);
         }
+        OFFSET_DELETE => encode_offset_delete_response(body, NC, &[]).unwrap(),
         _ => {}
     }
 }
@@ -1271,6 +1286,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 | LEAVE_GROUP
                 | OFFSET_COMMIT
                 | OFFSET_FETCH
+                | OFFSET_DELETE
                 | CONSUMER_GROUP_HEARTBEAT
                 | SHARE_GROUP_HEARTBEAT
         ) && {
@@ -1283,6 +1299,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 if header.api_key == OFFSET_COMMIT {
                     st.offset_commit_not_coordinator =
                         st.offset_commit_not_coordinator.saturating_add(1);
+                }
+                if header.api_key == OFFSET_DELETE {
+                    st.offset_delete_not_coordinator =
+                        st.offset_delete_not_coordinator.saturating_add(1);
                 }
             }
             encode_not_coordinator(header.api_key, &mut body);
@@ -2610,6 +2630,23 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
                 st.last_offset_fetch_partitions = nparts;
                 encode_offset_fetch_response(&mut body, &out).unwrap();
+            }
+            OFFSET_DELETE => {
+                let (_gid, topics) = decode_offset_delete_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                let mut results = Vec::new();
+                for t in topics {
+                    for p in t.partitions {
+                        let _removed = st.committed.remove(&(t.topic.clone(), p));
+                        results.push(OffsetDeleteResult {
+                            topic: t.topic.clone(),
+                            partition: p,
+                            error_code: 0,
+                        });
+                    }
+                }
+                st.last_offset_delete_node = Some(node_id);
+                encode_offset_delete_response(&mut body, 0, &results).unwrap();
             }
             _ => break,
         }

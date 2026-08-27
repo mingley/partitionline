@@ -5,7 +5,8 @@
 //! OIDC client_credentials http/https token URL), TLS (rustls), fetch from
 //! follower, KIP-848 groups, share groups,
 //! idempotent and transactional produce, ListOffsets/seek, and admin
-//! (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
+//! (topics, partitions, configs, ACLs, DeleteRecords, OffsetDelete,
+//! DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -32,7 +33,8 @@ pub mod share;
 
 pub use admin::{
     AclBinding, Admin, AdminConfig, AlterConfig, ClusterDescription, ConfigEntry, ConfigResource,
-    NewTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC,
+    NewTopic, OffsetDeleteResult, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_RESOURCE_BROKER,
+    CONFIG_RESOURCE_TOPIC,
 };
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
