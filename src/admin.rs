@@ -15,28 +15,30 @@ use crate::protocol::acl::{
 };
 use crate::protocol::admin::{
     decode_alter_configs_response, decode_alter_partition_reassignments_response,
-    decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_records_response, decode_delete_topics_response,
+    decode_alter_user_scram_credentials_response, decode_create_partitions_response,
+    decode_create_topics_response, decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
     decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
     decode_update_features_response, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
     encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
+    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
     encode_metadata_request, ApiVersion,
 };
 use crate::protocol::api_keys::{
-    pick_version, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CREATE_ACLS,
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
-    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE, UPDATE_FEATURES,
+    pick_version, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS,
+    API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR,
+    INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE,
+    UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -49,7 +51,7 @@ pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
     AlterConfig, ClusterDescription, ConfigEntry, ConfigSynonym, ALTER_CONFIG_DELETE,
     ALTER_CONFIG_SET, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
-    RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
+    RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use crate::protocol::group::OffsetDeleteResult;
 
@@ -225,6 +227,74 @@ pub struct FeatureUpdateResult {
     pub error_message: Option<String>,
 }
 
+/// One SCRAM credential to remove for `Admin::alter_user_scram_credentials`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UserScramCredentialDeletion {
+    pub name: String,
+    pub mechanism: i8,
+}
+
+impl UserScramCredentialDeletion {
+    pub fn new(name: impl Into<String>, mechanism: i8) -> Self {
+        Self {
+            name: name.into(),
+            mechanism,
+        }
+    }
+}
+
+/// One SCRAM credential to insert or replace.
+///
+/// Callers supply dummy `salt` / `salted_password` bytes. This crate does
+/// not hash a password or keep a credential store. `Debug` redacts those
+/// fields.
+#[derive(Clone, PartialEq, Eq)]
+pub struct UserScramCredentialUpsertion {
+    pub name: String,
+    pub mechanism: i8,
+    pub iterations: i32,
+    pub salt: Vec<u8>,
+    pub salted_password: Vec<u8>,
+}
+
+impl UserScramCredentialUpsertion {
+    pub fn new(
+        name: impl Into<String>,
+        mechanism: i8,
+        iterations: i32,
+        salt: impl Into<Vec<u8>>,
+        salted_password: impl Into<Vec<u8>>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            mechanism,
+            iterations,
+            salt: salt.into(),
+            salted_password: salted_password.into(),
+        }
+    }
+}
+
+impl std::fmt::Debug for UserScramCredentialUpsertion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UserScramCredentialUpsertion")
+            .field("name", &self.name)
+            .field("mechanism", &self.mechanism)
+            .field("iterations", &self.iterations)
+            .field("salt", &"<redacted>")
+            .field("salted_password", &"<redacted>")
+            .finish()
+    }
+}
+
+/// Per-user result of AlterUserScramCredentials.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UserScramCredentialResult {
+    pub user: String,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
 pub struct Admin {
     cfg: AdminConfig,
     conn: BrokerConn,
@@ -246,6 +316,7 @@ pub struct Admin {
     reassign_version: i16,
     list_reassign_version: i16,
     update_features_version: i16,
+    alter_user_scram_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -375,6 +446,12 @@ impl Admin {
             .get(&UPDATE_FEATURES)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
             .ok_or_else(|| Error::Unsupported("broker does not support UpdateFeatures".into()))?;
+        let alter_user_scram_version = versions
+            .get(&ALTER_USER_SCRAM_CREDENTIALS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support AlterUserScramCredentials".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -396,6 +473,7 @@ impl Admin {
             reassign_version,
             list_reassign_version,
             update_features_version,
+            alter_user_scram_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -961,6 +1039,92 @@ impl Admin {
                 .into_iter()
                 .map(|r| FeatureUpdateResult {
                     name: r.name,
+                    error_code: r.error_code,
+                    error_message: r.error_message,
+                })
+                .collect());
+        }
+    }
+
+    /// Upsert or delete user SCRAM credentials (AlterUserScramCredentials
+    /// api 51).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller.
+    pub async fn alter_user_scram_credentials(
+        &mut self,
+        deletions: &[UserScramCredentialDeletion],
+        upsertions: &[UserScramCredentialUpsertion],
+    ) -> Result<Vec<UserScramCredentialResult>> {
+        let deletions: Vec<ScramCredentialDeletion> = deletions
+            .iter()
+            .map(|d| ScramCredentialDeletion {
+                name: d.name.clone(),
+                mechanism: d.mechanism,
+            })
+            .collect();
+        let upsertions: Vec<ScramCredentialUpsertion> = upsertions
+            .iter()
+            .map(|u| ScramCredentialUpsertion {
+                name: u.name.clone(),
+                mechanism: u.mechanism,
+                iterations: u.iterations,
+                salt: u.salt.clone(),
+                salted_password: u.salted_password.clone(),
+            })
+            .collect();
+        let version = self.alter_user_scram_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing alter_user_scram_credentials conn"))?;
+                conn.roundtrip(
+                    ALTER_USER_SCRAM_CREDENTIALS,
+                    version,
+                    |buf| encode_alter_user_scram_credentials_request(buf, &deletions, &upsertions),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_alter_user_scram_credentials_response(&mut body.clone())?;
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            return Ok(results
+                .into_iter()
+                .map(|r| UserScramCredentialResult {
+                    user: r.user,
                     error_code: r.error_code,
                     error_message: r.error_message,
                 })

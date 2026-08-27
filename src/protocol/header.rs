@@ -6,9 +6,9 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER,
-    LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
-    SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
+    ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
+    CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -34,7 +34,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
-        | UPDATE_FEATURES => 2,
+        | UPDATE_FEATURES
+        | ALTER_USER_SCRAM_CREDENTIALS => 2,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 2,
         _ => 1,
     }
@@ -50,7 +51,8 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
-        | UPDATE_FEATURES => 1,
+        | UPDATE_FEATURES
+        | ALTER_USER_SCRAM_CREDENTIALS => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
     }
@@ -154,6 +156,12 @@ mod tests {
     fn update_features_v0_is_flexible() {
         assert_eq!(request_header_version(UPDATE_FEATURES, 0), 2);
         assert_eq!(response_header_version(UPDATE_FEATURES, 0), 1);
+    }
+
+    #[test]
+    fn alter_user_scram_credentials_v0_is_flexible() {
+        assert_eq!(request_header_version(ALTER_USER_SCRAM_CREDENTIALS, 0), 2);
+        assert_eq!(response_header_version(ALTER_USER_SCRAM_CREDENTIALS, 0), 1);
     }
 
     #[test]
