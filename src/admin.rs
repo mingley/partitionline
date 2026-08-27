@@ -19,13 +19,14 @@ use crate::protocol::admin::{
     decode_delete_records_response, decode_delete_topics_response,
     decode_describe_cluster_response, decode_describe_configs_response,
     decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
-    encode_delete_topics_request, encode_describe_cluster_request, encode_describe_configs_request,
+    decode_update_features_response, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
     encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
-    CreatableTopic, CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult,
-    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
+    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
+    ReassignableTopic, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -35,7 +36,7 @@ use crate::protocol::api_keys::{
     pick_version, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, API_VERSIONS, CREATE_ACLS,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
-    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE,
+    LIST_PARTITION_REASSIGNMENTS, METADATA, OFFSET_DELETE, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -193,6 +194,37 @@ pub struct OngoingReassignment {
     pub removing_replicas: Vec<i32>,
 }
 
+/// One finalized-feature update for `Admin::update_features` (v0).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeatureUpdate {
+    pub name: String,
+    pub max_version_level: i16,
+    pub allow_downgrade: bool,
+}
+
+impl FeatureUpdate {
+    pub fn new(name: impl Into<String>, max_version_level: i16) -> Self {
+        Self {
+            name: name.into(),
+            max_version_level,
+            allow_downgrade: false,
+        }
+    }
+
+    pub fn allow_downgrade(mut self, allow: bool) -> Self {
+        self.allow_downgrade = allow;
+        self
+    }
+}
+
+/// Per-feature result of UpdateFeatures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeatureUpdateResult {
+    pub name: String,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
 pub struct Admin {
     cfg: AdminConfig,
     conn: BrokerConn,
@@ -213,6 +245,7 @@ pub struct Admin {
     offset_delete_version: i16,
     reassign_version: i16,
     list_reassign_version: i16,
+    update_features_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -338,6 +371,10 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ListPartitionReassignments".into())
             })?;
+        let update_features_version = versions
+            .get(&UPDATE_FEATURES)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support UpdateFeatures".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -358,6 +395,7 @@ impl Admin {
             offset_delete_version,
             reassign_version,
             list_reassign_version,
+            update_features_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -845,6 +883,88 @@ impl Admin {
                 return Err(Error::broker(resp.error_code, "ListPartitionReassignments"));
             }
             return Ok(flatten_list_reassignments(&resp.topics));
+        }
+    }
+
+    /// Update finalized feature versions (UpdateFeatures api 57).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller.
+    pub async fn update_features(
+        &mut self,
+        updates: &[FeatureUpdate],
+        timeout_ms: i32,
+    ) -> Result<Vec<FeatureUpdateResult>> {
+        let keys: Vec<FeatureUpdateKey> = updates
+            .iter()
+            .map(|u| FeatureUpdateKey {
+                name: u.name.clone(),
+                max_version_level: u.max_version_level,
+                allow_downgrade: u.allow_downgrade,
+            })
+            .collect();
+        let version = self.update_features_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing update_features conn"))?;
+                conn.roundtrip(
+                    UPDATE_FEATURES,
+                    version,
+                    |buf| encode_update_features_request(buf, timeout_ms, &keys),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_update_features_response(&mut body.clone())?;
+            if resp.error_code == error::NOT_CONTROLLER
+                || resp
+                    .results
+                    .iter()
+                    .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "UpdateFeatures"));
+            }
+            return Ok(resp
+                .results
+                .into_iter()
+                .map(|r| FeatureUpdateResult {
+                    name: r.name,
+                    error_code: r.error_code,
+                    error_message: r.error_message,
+                })
+                .collect());
         }
     }
 

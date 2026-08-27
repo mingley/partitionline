@@ -1079,6 +1079,117 @@ pub fn decode_list_partition_reassignments_response<B: Buf>(
     })
 }
 
+/// One finalized-feature update in UpdateFeatures v0 (flexible; KIP-584).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeatureUpdateKey {
+    pub name: String,
+    pub max_version_level: i16,
+    pub allow_downgrade: bool,
+}
+
+/// Per-feature result of UpdateFeatures v0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdatableFeatureResult {
+    pub name: String,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+/// UpdateFeatures v0 response (top-level error after throttle).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateFeaturesResponse {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub results: Vec<UpdatableFeatureResult>,
+}
+
+/// UpdateFeatures v0 (flexible from v0; KIP-584).
+///
+/// Official Apache JSON (`validVersions: "0-2"`, `flexibleVersions: "0+"`)
+/// and kafka-protocol 0.18.0: v0 encodes `AllowDowngrade` BOOLEAN; v1+
+/// replaces it with `UpgradeType` and adds top-level `ValidateOnly`.
+/// This crate targets v0.
+pub fn encode_update_features_request(
+    buf: &mut BytesMut,
+    timeout_ms: i32,
+    updates: &[FeatureUpdateKey],
+) -> crate::error::Result<()> {
+    buf.put_i32(timeout_ms);
+    buf::put_array_len(buf, true, Some(updates.len()))?;
+    for u in updates {
+        buf::put_compact_string(buf, Some(&u.name))?;
+        buf.put_i16(u.max_version_level);
+        buf.put_u8(u8::from(u.allow_downgrade));
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_update_features_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(i32, Vec<FeatureUpdateKey>)> {
+    let timeout_ms = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut updates = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let max_version_level = buf::get_i16(buf)?;
+        let allow_downgrade = buf::get_bool(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        updates.push(FeatureUpdateKey {
+            name,
+            max_version_level,
+            allow_downgrade,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((timeout_ms, updates))
+}
+
+pub fn encode_update_features_response(
+    buf: &mut BytesMut,
+    resp: &UpdateFeaturesResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_array_len(buf, true, Some(resp.results.len()))?;
+    for r in &resp.results {
+        buf::put_compact_string(buf, Some(&r.name))?;
+        buf.put_i16(r.error_code);
+        buf::put_compact_string(buf, r.error_message.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_update_features_response<B: Buf>(buf: &mut B) -> Result<UpdateFeaturesResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let feat_err = buf::get_i16(buf)?;
+        let feat_msg = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        results.push(UpdatableFeatureResult {
+            name,
+            error_code: feat_err,
+            error_message: feat_msg,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(UpdateFeaturesResponse {
+        error_code,
+        error_message,
+        results,
+    })
+}
+
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -1575,6 +1686,126 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ListPartitionReassignments v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn update_features_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client+broker).
+        // Apache JSON: timeout INT32, compact FeatureUpdates
+        // {Feature compact string, MaxVersionLevel INT16, AllowDowngrade
+        // BOOLEAN, tagged}, tagged. Response: throttle INT32, error INT16,
+        // compact-nullable ErrorMessage, compact Results (v0-1), tagged.
+        const REQ: &[u8] = &[
+            0x00, 0x00, 0x27, 0x10, 0x03, 0x11, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
+            0x2e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x11, 0x00, 0x00, 0x0e, 0x67,
+            0x72, 0x6f, 0x75, 0x70, 0x2e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x01,
+            0x01, 0x00, 0x00,
+        ];
+        const RESP_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x0f, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f, 0x6e,
+            0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x01, 0x00,
+        ];
+        let updates = vec![
+            FeatureUpdateKey {
+                name: "metadata.version".into(),
+                max_version_level: 17,
+                allow_downgrade: false,
+            },
+            FeatureUpdateKey {
+                name: "group.version".into(),
+                max_version_level: 1,
+                allow_downgrade: true,
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_update_features_request(&mut buf, 10_000, &updates).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = UpdateFeaturesResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            results: Vec::new(),
+        };
+        buf.clear();
+        encode_update_features_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn update_features_v0_roundtrip_is_leftover_empty() {
+        let updates = vec![
+            FeatureUpdateKey {
+                name: "metadata.version".into(),
+                max_version_level: 17,
+                allow_downgrade: false,
+            },
+            FeatureUpdateKey {
+                name: "group.version".into(),
+                max_version_level: 1,
+                allow_downgrade: true,
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_update_features_request(&mut buf, 10_000, &updates).unwrap();
+        let mut cur = &buf[..];
+        let (timeout, got) = decode_update_features_request(&mut cur).unwrap();
+        assert_eq!(timeout, 10_000);
+        assert_eq!(got, updates);
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v0 request must be leftover-empty"
+        );
+
+        let resp = UpdateFeaturesResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![
+                UpdatableFeatureResult {
+                    name: "metadata.version".into(),
+                    error_code: 0,
+                    error_message: None,
+                },
+                UpdatableFeatureResult {
+                    name: "group.version".into(),
+                    error_code: 0,
+                    error_message: None,
+                },
+            ],
+        };
+        buf.clear();
+        encode_update_features_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_update_features_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn update_features_not_controller_is_at_byte_four() {
+        // Official v0 body: throttle_time_ms INT32, then error_code INT16.
+        // Verified from Apache UpdateFeaturesResponse.json and
+        // kafka-protocol 0.18.0 (not copied from List/Alter).
+        let resp = UpdateFeaturesResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            results: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_update_features_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 throttle then top-level error must be 41 at bytes 4-5"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_update_features_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v0 NOT_CONTROLLER must be leftover-empty"
         );
     }
 }
