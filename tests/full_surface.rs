@@ -2923,6 +2923,47 @@ async fn alter_client_quotas_follows_controller() {
 }
 
 #[tokio::test]
+async fn allocate_producer_ids_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.allocate_producer_ids(7, 42).await.unwrap();
+    assert_eq!(first.producer_id_start, 1000);
+    assert_eq!(first.producer_id_len, 1000);
+    assert_eq!(
+        mock.last_allocate_producer_ids_node(),
+        Some(2),
+        "AllocateProducerIds must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_allocate_producer_ids(),
+        Some((7, 42, 1000, 1000)),
+        "controller must store/hand the first fixture PID block"
+    );
+
+    mock.set_controller(1);
+    let again = admin.allocate_producer_ids(7, 42).await.unwrap();
+    assert_eq!(again.producer_id_start, 2000);
+    assert_eq!(again.producer_id_len, 1000);
+    assert_eq!(
+        mock.allocate_producer_ids_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_allocate_producer_ids_node(),
+        Some(1),
+        "AllocateProducerIds must follow Metadata after NOT_CONTROLLER"
+    );
+    assert_eq!(
+        mock.last_allocate_producer_ids(),
+        Some((7, 42, 2000, 1000)),
+        "retry on the new controller must hand the next PID block"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

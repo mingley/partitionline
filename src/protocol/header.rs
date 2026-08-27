@@ -6,9 +6,10 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
-    CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER, LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
+    ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS,
+    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLUSTER,
+    LIST_PARTITION_REASSIGNMENTS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_HEARTBEAT, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -35,7 +36,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
         | UPDATE_FEATURES
-        | ALTER_USER_SCRAM_CREDENTIALS => 2,
+        | ALTER_USER_SCRAM_CREDENTIALS
+        | ALLOCATE_PRODUCER_IDS => 2,
         // AlterClientQuotas is classic at v0; flexible from v1
         // (Apache JSON flexibleVersions: "1+", kafka-protocol 0.18.0).
         ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
@@ -55,7 +57,8 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
         | UPDATE_FEATURES
-        | ALTER_USER_SCRAM_CREDENTIALS => 1,
+        | ALTER_USER_SCRAM_CREDENTIALS
+        | ALLOCATE_PRODUCER_IDS => 1,
         ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
@@ -176,6 +179,14 @@ mod tests {
         assert_eq!(response_header_version(ALTER_CLIENT_QUOTAS, 0), 0);
         assert_eq!(request_header_version(ALTER_CLIENT_QUOTAS, 1), 2);
         assert_eq!(response_header_version(ALTER_CLIENT_QUOTAS, 1), 1);
+    }
+
+    #[test]
+    fn allocate_producer_ids_v0_is_flexible() {
+        // Official JSON: validVersions 0, flexibleVersions 0+.
+        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v0.
+        assert_eq!(request_header_version(ALLOCATE_PRODUCER_IDS, 0), 2);
+        assert_eq!(response_header_version(ALLOCATE_PRODUCER_IDS, 0), 1);
     }
 
     #[test]
