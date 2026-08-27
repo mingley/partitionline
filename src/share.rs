@@ -5,6 +5,7 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -22,11 +23,13 @@ use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
     decode_share_group_heartbeat_response, encode_share_acknowledge_request,
     encode_share_fetch_request, encode_share_group_heartbeat_request, AcknowledgementBatch,
-    ShareFetchPartition, ShareFetchTopic, ShareGroupHeartbeatRequest, ACK_ACCEPT, ACK_RELEASE,
+    ShareFetchPartition, ShareFetchTopic, ShareGroupHeartbeatRequest, ACK_ACCEPT, ACK_REJECT,
+    ACK_RELEASE,
 };
 
 pub use crate::protocol::share::{
-    ACK_ACCEPT as SHARE_ACK_ACCEPT, ACK_RELEASE as SHARE_ACK_RELEASE,
+    ACK_ACCEPT as SHARE_ACK_ACCEPT, ACK_REJECT as SHARE_ACK_REJECT,
+    ACK_RELEASE as SHARE_ACK_RELEASE,
 };
 
 #[derive(Debug, Clone)]
@@ -197,12 +200,8 @@ impl ShareGroup {
             timeout,
         )
         .await?;
-        if self.share_session_epoch == 0 {
-            self.share_session_epoch = 1;
-        } else {
-            self.share_session_epoch = self.share_session_epoch.saturating_add(1);
-        }
         let fetched = decode_share_fetch_response(&mut body)?;
+        self.advance_share_epoch();
         let mut out = Vec::new();
         for topic in fetched {
             for part in topic.partitions {
@@ -241,41 +240,89 @@ impl ShareGroup {
         self.acknowledge(recs, ACK_RELEASE).await
     }
 
+    pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
+        self.acknowledge(recs, ACK_REJECT).await
+    }
+
+    fn advance_share_epoch(&mut self) {
+        if self.share_session_epoch < 0 {
+            return;
+        }
+        self.share_session_epoch = self.share_session_epoch.saturating_add(1);
+    }
+
     async fn acknowledge(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
         if recs.is_empty() {
             return Ok(());
         }
+        let partitions = acknowledgement_batches(recs, ack);
+        if partitions.is_empty() {
+            return Ok(());
+        }
+        if self.share_session_epoch <= 0 {
+            return Err(Error::protocol(
+                "ShareAcknowledge requires an open share session (poll first)",
+            ));
+        }
         let timeout = Duration::from_secs(30);
-        for rec in recs {
-            let body = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
-                COORDINATOR_SHARE,
-                SHARE_ACKNOWLEDGE,
-                1,
-                |buf| {
-                    encode_share_acknowledge_request(
-                        buf,
-                        &self.group_id,
-                        &self.member_id,
-                        self.share_session_epoch,
-                        self.topic_id,
-                        rec.partition,
-                        &[AcknowledgementBatch {
-                            first_offset: rec.offset,
-                            last_offset: rec.offset,
-                            types: vec![ack],
-                        }],
-                    )
-                },
-                timeout,
-            )
-            .await?;
-            let err = decode_share_acknowledge_response(&mut body.clone())?;
-            if err != 0 {
-                return Err(Error::broker(err, "ShareAcknowledge"));
-            }
+        let epoch = self.share_session_epoch;
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_SHARE,
+            SHARE_ACKNOWLEDGE,
+            1,
+            |buf| {
+                encode_share_acknowledge_request(
+                    buf,
+                    &self.group_id,
+                    &self.member_id,
+                    epoch,
+                    self.topic_id,
+                    &partitions,
+                )
+            },
+            timeout,
+        )
+        .await?;
+        let err = decode_share_acknowledge_response(&mut body.clone())?;
+        if err != 0 {
+            return Err(Error::broker(err, "ShareAcknowledge"));
+        }
+        self.advance_share_epoch();
+        Ok(())
+    }
+
+    async fn close_share_session(&mut self) -> Result<()> {
+        if self.share_session_epoch <= 0 {
+            return Ok(());
+        }
+        let timeout = Duration::from_secs(30);
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_SHARE,
+            SHARE_ACKNOWLEDGE,
+            1,
+            |buf| {
+                encode_share_acknowledge_request(
+                    buf,
+                    &self.group_id,
+                    &self.member_id,
+                    -1,
+                    self.topic_id,
+                    &[],
+                )
+            },
+            timeout,
+        )
+        .await?;
+        let err = decode_share_acknowledge_response(&mut body.clone())?;
+        self.share_session_epoch = 0;
+        if err != 0 && err != crate::error::SHARE_SESSION_NOT_FOUND {
+            return Err(Error::broker(err, "ShareAcknowledge close"));
         }
         Ok(())
     }
@@ -283,6 +330,7 @@ impl ShareGroup {
     pub async fn leave(mut self) -> Result<()> {
         self.hb_stop.send(true).unwrap_or(());
         let timeout = Duration::from_secs(30);
+        self.close_share_session().await?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -368,5 +416,91 @@ impl ShareGroup {
                 }
             }
         }));
+    }
+}
+
+/// Collapse records into KIP-932 acknowledgement batches.
+///
+/// Contiguous offsets with the same type become one batch with a single
+/// `AcknowledgeType` (applies to the whole range). Gaps start a new batch.
+fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<(i32, Vec<AcknowledgementBatch>)> {
+    let mut by_part: BTreeMap<i32, Vec<i64>> = BTreeMap::new();
+    for rec in recs {
+        by_part.entry(rec.partition).or_default().push(rec.offset);
+    }
+    let mut out = Vec::with_capacity(by_part.len());
+    for (partition, mut offs) in by_part {
+        offs.sort_unstable();
+        offs.dedup();
+        let mut batches = Vec::new();
+        let mut range: Option<(i64, i64)> = None;
+        for off in offs {
+            range = match range {
+                None => Some((off, off)),
+                Some((s, p)) if off == p.saturating_add(1) => Some((s, off)),
+                Some((s, p)) => {
+                    batches.push(AcknowledgementBatch {
+                        first_offset: s,
+                        last_offset: p,
+                        types: vec![ack],
+                    });
+                    Some((off, off))
+                }
+            };
+        }
+        if let Some((s, p)) = range {
+            batches.push(AcknowledgementBatch {
+                first_offset: s,
+                last_offset: p,
+                types: vec![ack],
+            });
+        }
+        if !batches.is_empty() {
+            out.push((partition, batches));
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rec(partition: i32, offset: i64) -> ShareRecord {
+        ShareRecord {
+            topic: "t".into(),
+            partition,
+            offset,
+            timestamp: 0,
+            key: None,
+            value: None,
+            delivery_count: 1,
+        }
+    }
+
+    #[test]
+    fn acknowledgement_batches_collapses_contiguous_offsets() {
+        let recs = [rec(0, 1), rec(0, 3), rec(0, 2), rec(1, 9)];
+        let batches = acknowledgement_batches(&recs, ACK_ACCEPT);
+        assert_eq!(batches.len(), 2);
+        assert_eq!(batches[0].0, 0);
+        assert_eq!(batches[0].1.len(), 1);
+        assert_eq!(batches[0].1[0].first_offset, 1);
+        assert_eq!(batches[0].1[0].last_offset, 3);
+        assert_eq!(batches[0].1[0].types, vec![ACK_ACCEPT]);
+        assert_eq!(batches[1].0, 1);
+        assert_eq!(batches[1].1[0].first_offset, 9);
+        assert_eq!(batches[1].1[0].last_offset, 9);
+    }
+
+    #[test]
+    fn acknowledgement_batches_splits_on_gap() {
+        let recs = [rec(0, 1), rec(0, 4)];
+        let batches = acknowledgement_batches(&recs, ACK_REJECT);
+        assert_eq!(batches[0].1.len(), 2);
+        assert_eq!(batches[0].1[0].first_offset, 1);
+        assert_eq!(batches[0].1[0].last_offset, 1);
+        assert_eq!(batches[0].1[1].first_offset, 4);
+        assert_eq!(batches[0].1[1].types, vec![ACK_REJECT]);
     }
 }

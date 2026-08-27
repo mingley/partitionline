@@ -44,7 +44,7 @@ pub use protocol::admin::{DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
-pub use share::{ShareGroup, ShareRecord, SHARE_ACK_ACCEPT, SHARE_ACK_RELEASE};
+pub use share::{ShareGroup, ShareRecord, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE};
 
 /// Software name sent in ApiVersions v3+.
 pub const CLIENT_NAME: &str = "partitionline";

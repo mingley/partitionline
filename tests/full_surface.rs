@@ -945,7 +945,12 @@ async fn share_fetch_accept_then_release() {
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-a"[..]));
     let off = recs[0].offset;
     g.accept(&recs).await.unwrap();
-    assert!(mock.share_ack_calls() >= 1);
+    assert_eq!(
+        mock.share_ack_calls(),
+        1,
+        "accept must be one ShareAcknowledge, not one RPC per record"
+    );
+    assert_eq!(mock.last_share_ack_epoch(), Some(1));
     let again = g.poll().await.unwrap();
     assert!(
         again.iter().all(|r| r.offset != off),
@@ -1006,6 +1011,86 @@ async fn share_two_members_same_partition() {
     );
     g1.leave().await.unwrap();
     g2.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_accept_batches_one_rpc_and_advances_epoch() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    for i in 0..5u8 {
+        producer
+            .send(ProduceRecord::to("t").value(vec![i]))
+            .await
+            .unwrap();
+    }
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "sg-batch", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert!(
+        recs.len() >= 2,
+        "need several acquired records, got {recs:?}"
+    );
+    assert_eq!(mock.last_share_fetch_epoch(), Some(0));
+    let offs: Vec<i64> = recs.iter().map(|r| r.offset).collect();
+    g.accept(&recs).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    assert_eq!(mock.last_share_ack_epoch(), Some(1));
+    assert_eq!(mock.last_share_ack_partitions(), 1);
+    let again = g.poll().await.unwrap();
+    assert_eq!(
+        mock.last_share_fetch_epoch(),
+        Some(2),
+        "ShareAcknowledge must increment the share session epoch"
+    );
+    assert!(
+        again.iter().all(|r| !offs.contains(&r.offset)),
+        "batched accept must not redeliver, got {again:?}"
+    );
+    g.leave().await.unwrap();
+    assert_eq!(mock.last_share_ack_epoch(), Some(-1));
+}
+
+#[tokio::test]
+async fn share_reject_does_not_redeliver() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"rej"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "sg-rej", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    let off = recs[0].offset;
+    g.reject(&recs).await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 1);
+    let again = g.poll().await.unwrap();
+    assert!(
+        again.iter().all(|r| r.offset != off),
+        "rejected record must not be redelivered, got {again:?}"
+    );
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_leave_without_poll_does_not_acknowledge() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let g = ShareGroup::join(ccfg, "sg-nopoll", "t").await.unwrap();
+    g.leave().await.unwrap();
+    assert_eq!(mock.share_ack_calls(), 0);
+    assert_eq!(mock.last_share_ack_epoch(), None);
 }
 
 #[tokio::test]
