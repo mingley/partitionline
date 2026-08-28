@@ -45,6 +45,10 @@ KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
 offset (`Earliest` by default). `committed` is OffsetFetch for the current
 assignment. `commit_offsets` commits caller-chosen offsets.
+`commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
+(leader epoch and a metadata string). `committed` returns the same type.
+`current_lag` is high watermark minus position. `subscription` is the
+topic list. `enforce_rebalance` rejoins on the next poll.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.

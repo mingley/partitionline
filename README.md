@@ -65,6 +65,9 @@ the heartbeat thread leaves the group if it is exceeded.
 `Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch
 interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`.
+`OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
+metadata string. `current_lag` is Java `currentLag`. `enforce_rebalance`
+rejoins on the next poll. `subscription` is the topic list.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
 
 ```rust,no_run
@@ -118,7 +121,8 @@ Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
 cargo run --release --example roundtrip
 ```
 
-Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`.
+Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`,
+`examples/offsets.rs`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

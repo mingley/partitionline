@@ -371,6 +371,72 @@ impl From<TopicPartition> for (String, i32) {
     }
 }
 
+impl fmt::Display for TopicPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{}", self.topic, self.partition)
+    }
+}
+
+/// Committed offset plus optional leader epoch and user metadata.
+///
+/// Java `OffsetAndMetadata`. The epoch is `None` when the wire value is `-1`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetAndMetadata {
+    /// Next fetch offset (the committed offset).
+    pub offset: i64,
+    /// Broker leader epoch, or `None` when unknown.
+    pub leader_epoch: Option<i32>,
+    /// Caller-supplied metadata string (Kafka `committed.metadata`).
+    pub metadata: String,
+}
+
+impl OffsetAndMetadata {
+    /// Offset only: unknown epoch, empty metadata.
+    #[must_use]
+    pub fn new(offset: i64) -> Self {
+        Self {
+            offset,
+            leader_epoch: None,
+            metadata: String::new(),
+        }
+    }
+
+    /// Offset plus a metadata string.
+    #[must_use]
+    pub fn with_metadata(offset: i64, metadata: impl Into<String>) -> Self {
+        Self {
+            offset,
+            leader_epoch: None,
+            metadata: metadata.into(),
+        }
+    }
+
+    /// Set the leader epoch. Negative values become `None`.
+    #[must_use]
+    pub fn with_leader_epoch(mut self, epoch: i32) -> Self {
+        self.leader_epoch = (epoch >= 0).then_some(epoch);
+        self
+    }
+
+    pub(crate) fn from_wire(offset: i64, leader_epoch: i32, metadata: String) -> Self {
+        Self {
+            offset,
+            leader_epoch: (leader_epoch >= 0).then_some(leader_epoch),
+            metadata,
+        }
+    }
+
+    pub(crate) fn wire_epoch(&self) -> i32 {
+        self.leader_epoch.unwrap_or(-1)
+    }
+}
+
+impl From<i64> for OffsetAndMetadata {
+    fn from(offset: i64) -> Self {
+        Self::new(offset)
+    }
+}
+
 /// Offset plus the matching record timestamp from ListOffsets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OffsetAndTimestamp {
@@ -562,6 +628,10 @@ impl Consumer {
     /// Assigned `(topic, partition, next_offset)` triples.
     pub fn assignment(&self) -> &[(String, i32, i64)] {
         &self.assigned
+    }
+
+    pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
+        self.cluster.leader_epoch(topic, partition)
     }
 
     /// Next fetch offset for an assigned partition.
@@ -1478,6 +1548,25 @@ impl Consumer {
         partitions: &[(String, i32)],
     ) -> Result<Vec<(String, i32, i64)>> {
         self.offsets_at(partitions, crate::LATEST_TIMESTAMP).await
+    }
+
+    /// High watermark minus position (Java `currentLag`).
+    ///
+    /// `None` when the high watermark is unknown (`-1`).
+    pub async fn current_lag(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+    ) -> Result<Option<i64>> {
+        let tp = partition.into();
+        let pos = self.position(&tp.topic, tp.partition)?;
+        let hw = self
+            .list_offsets(tp.topic.clone(), tp.partition, crate::LATEST_TIMESTAMP)
+            .await?;
+        if hw < 0 {
+            Ok(None)
+        } else {
+            Ok(Some(hw - pos))
+        }
     }
 
     /// First offset at or after each timestamp (Java `offsetsForTimes`).

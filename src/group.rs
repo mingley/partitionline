@@ -9,7 +9,7 @@ use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
 
 use crate::config::AutoOffsetReset;
-use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord};
+use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord, OffsetAndMetadata, TopicPartition};
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request};
@@ -296,6 +296,8 @@ pub struct ConsumerGroup {
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
     /// Heartbeat thread left the group after `max.poll.interval.ms`.
     left_max_poll: Arc<AtomicBool>,
+    /// Next [`poll`](Self::poll) must rejoin (Java `enforceRebalance`).
+    rebalance_needed: bool,
 }
 
 impl ConsumerGroup {
@@ -391,6 +393,7 @@ impl ConsumerGroup {
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
+            rebalance_needed: false,
         };
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
@@ -440,6 +443,7 @@ impl ConsumerGroup {
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
+            rebalance_needed: false,
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
@@ -449,6 +453,12 @@ impl ConsumerGroup {
     /// Subscribed topic names, in join order.
     pub fn topics(&self) -> &[String] {
         &self.topics
+    }
+
+    /// Subscribed topic names. Same as [`Self::topics`] (Java `subscription`).
+    #[must_use]
+    pub fn subscription(&self) -> &[String] {
+        self.topics()
     }
 
     /// Assigned `(topic, partition)` pairs (offsets live on the consumer).
@@ -487,18 +497,42 @@ impl ConsumerGroup {
         self.consumer.position(topic, partition)
     }
 
+    /// High watermark minus position (Java `currentLag`).
+    pub async fn current_lag(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+    ) -> Result<Option<i64>> {
+        self.consumer.current_lag(partition).await
+    }
+
     /// Last committed offsets for the current assignment (`OffsetFetch`).
     ///
-    /// Partitions with no committed offset return `-1`.
-    pub async fn committed(&mut self) -> Result<Vec<(String, i32, i64)>> {
+    /// Partitions with no committed offset return offset `-1`.
+    pub async fn committed(&mut self) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
+        let assigned: Vec<TopicPartition> = self
+            .assignment()
+            .into_iter()
+            .map(TopicPartition::from)
+            .collect();
+        self.committed_for(&assigned).await
+    }
+
+    /// Last committed offsets for these partitions (`OffsetFetch`).
+    pub async fn committed_for(
+        &mut self,
+        partitions: &[TopicPartition],
+    ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
-        let assigned: Vec<(String, i32)> = self.assignment();
-        if assigned.is_empty() {
+        if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let topics = group_offset_fetch_topics(&assigned);
+        let wanted: Vec<(String, i32)> = partitions
+            .iter()
+            .map(|tp| (tp.topic.clone(), tp.partition))
+            .collect();
+        let topics = group_offset_fetch_topics(&wanted);
         let timeout = Duration::from_secs(30);
         let body = coord_roundtrip(
             &mut self.coord,
@@ -513,11 +547,14 @@ impl ConsumerGroup {
         .await?;
         let fetched = decode_offset_fetch_response(&mut body.clone())?;
         let map = committed_offset_map(&fetched)?;
-        Ok(assigned
-            .into_iter()
-            .map(|(t, p)| {
-                let off = map.get(&(t.clone(), p)).copied().unwrap_or(-1);
-                (t, p, off)
+        Ok(partitions
+            .iter()
+            .map(|tp| {
+                let md = map
+                    .get(&(tp.topic.clone(), tp.partition))
+                    .cloned()
+                    .unwrap_or_else(|| OffsetAndMetadata::new(-1));
+                (tp.clone(), md)
             })
             .collect())
     }
@@ -535,9 +572,13 @@ impl ConsumerGroup {
             return Err(Error::MaxPollInterval);
         }
         self.check_max_poll_interval()?;
+        let force = std::mem::replace(&mut self.rebalance_needed, false);
         if self.kip848 {
             self.apply_pending_assignment().await?;
-        } else if self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
+            if force {
+                self.heartbeat_join().await?;
+            }
+        } else if force || self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
         let recs = self.consumer.fetch().await?;
@@ -594,6 +635,13 @@ impl ConsumerGroup {
         self.consumer.offsets_for_times(queries).await
     }
 
+    /// Ask the coordinator to rebalance on the next [`Self::poll`] (Java `enforceRebalance`).
+    ///
+    /// Classic groups rejoin. KIP-848 members send a join heartbeat.
+    pub fn enforce_rebalance(&mut self) {
+        self.rebalance_needed = true;
+    }
+
     /// Commit the next fetch offsets for the current assignment.
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {
@@ -606,7 +654,31 @@ impl ConsumerGroup {
     }
 
     /// Commit these `(topic, partition, offset)` triples (`OffsetCommit`).
+    ///
+    /// Leader epoch is taken from Metadata. For epoch plus a metadata string,
+    /// use [`Self::commit_with_metadata`].
     pub async fn commit_offsets(&mut self, offsets: &[(String, i32, i64)]) -> Result<()> {
+        let items: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
+            .iter()
+            .map(|(t, p, o)| {
+                (
+                    TopicPartition::new(t.clone(), *p),
+                    OffsetAndMetadata::from_wire(
+                        *o,
+                        self.consumer.leader_epoch(t, *p),
+                        String::new(),
+                    ),
+                )
+            })
+            .collect();
+        self.commit_with_metadata(&items).await
+    }
+
+    /// Commit offsets with optional leader epoch and user metadata.
+    pub async fn commit_with_metadata(
+        &mut self,
+        offsets: &[(TopicPartition, OffsetAndMetadata)],
+    ) -> Result<()> {
         let topics = group_offset_topics(offsets);
         if topics.is_empty() {
             return Ok(());
@@ -973,7 +1045,7 @@ impl ConsumerGroup {
                 starts.push((topic.clone(), *part, *o));
                 continue;
             }
-            let committed = map.get(&key).copied().unwrap_or(-1);
+            let committed = map.get(&key).map(|m| m.offset).unwrap_or(-1);
             let start = if committed >= 0 {
                 committed
             } else {
@@ -1280,15 +1352,17 @@ pub(crate) fn collect_topics(
     Ok(out)
 }
 
-fn group_offset_topics(assigned: &[(String, i32, i64)]) -> Vec<OffsetTopic> {
+fn group_offset_topics(items: &[(TopicPartition, OffsetAndMetadata)]) -> Vec<OffsetTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
-    for (topic, part, next) in assigned {
+    for (tp, md) in items {
         by_topic
-            .entry(topic.clone())
+            .entry(tp.topic.clone())
             .or_default()
             .push(OffsetPartition {
-                partition: *part,
-                offset: *next,
+                partition: tp.partition,
+                offset: md.offset,
+                leader_epoch: md.wire_epoch(),
+                metadata: md.metadata.clone(),
             });
     }
     by_topic
@@ -1308,7 +1382,9 @@ fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> 
         .collect()
 }
 
-fn committed_offset_map(fetched: &[FetchedOffsetTopic]) -> Result<HashMap<(String, i32), i64>> {
+fn committed_offset_map(
+    fetched: &[FetchedOffsetTopic],
+) -> Result<HashMap<(String, i32), OffsetAndMetadata>> {
     let mut map = HashMap::new();
     for t in fetched {
         for p in &t.partitions {
@@ -1318,7 +1394,10 @@ fn committed_offset_map(fetched: &[FetchedOffsetTopic]) -> Result<HashMap<(Strin
                     format!("OffsetFetch {}-{}", t.topic, p.partition),
                 ));
             }
-            let _ = map.insert((t.topic.clone(), p.partition), p.offset);
+            let _ = map.insert(
+                (t.topic.clone(), p.partition),
+                OffsetAndMetadata::from_wire(p.offset, p.leader_epoch, p.metadata.clone()),
+            );
         }
     }
     Ok(map)
@@ -1333,7 +1412,10 @@ fn committed_starts(
     let map = committed_offset_map(fetched)?;
     let mut out = Vec::with_capacity(wanted.len());
     for (topic, part) in wanted {
-        let committed = map.get(&(topic.clone(), *part)).copied().unwrap_or(-1);
+        let committed = map
+            .get(&(topic.clone(), *part))
+            .map(|m| m.offset)
+            .unwrap_or(-1);
         let start = if committed >= 0 {
             committed
         } else {
@@ -1597,7 +1679,11 @@ mod tests {
 
     #[test]
     fn group_offset_topics_collapses_partitions() {
-        let assigned = vec![("t".into(), 1, 4), ("t".into(), 0, 2), ("u".into(), 0, 9)];
+        let assigned = vec![
+            (TopicPartition::new("t", 1), OffsetAndMetadata::new(4)),
+            (TopicPartition::new("t", 0), OffsetAndMetadata::new(2)),
+            (TopicPartition::new("u", 0), OffsetAndMetadata::new(9)),
+        ];
         let topics = group_offset_topics(&assigned);
         assert_eq!(topics.len(), 2);
         let t = topics.iter().find(|x| x.topic == "t").unwrap();
@@ -1627,10 +1713,7 @@ mod tests {
         use crate::protocol::group::{encode_offset_commit_response, OffsetPartition, OffsetTopic};
         let topics = vec![OffsetTopic {
             topic: "t".into(),
-            partitions: vec![OffsetPartition {
-                partition: 0,
-                offset: 1,
-            }],
+            partitions: vec![OffsetPartition::new(0, 1)],
         }];
         let mut buf = BytesMut::new();
         encode_offset_commit_response(&mut buf, &topics, error::COORDINATOR_LOAD_IN_PROGRESS)
@@ -1652,10 +1735,7 @@ mod tests {
         use crate::protocol::group::{encode_offset_commit_response, OffsetPartition, OffsetTopic};
         let topics = vec![OffsetTopic {
             topic: "t".into(),
-            partitions: vec![OffsetPartition {
-                partition: 0,
-                offset: 1,
-            }],
+            partitions: vec![OffsetPartition::new(0, 1)],
         }];
         let mut buf = BytesMut::new();
         encode_offset_commit_response(&mut buf, &topics, error::NOT_COORDINATOR).unwrap();
@@ -1678,11 +1758,7 @@ mod tests {
         };
         let topics = vec![FetchedOffsetTopic {
             topic: "t".into(),
-            partitions: vec![FetchedOffset {
-                partition: 0,
-                offset: -1,
-                error_code: error::NOT_COORDINATOR,
-            }],
+            partitions: vec![FetchedOffset::new(0, -1, error::NOT_COORDINATOR)],
         }];
         let mut buf = BytesMut::new();
         encode_offset_fetch_response(&mut buf, &topics).unwrap();
@@ -1769,11 +1845,7 @@ mod tests {
         let wanted = vec![("t".into(), 0), ("t".into(), 1)];
         let fetched = vec![FetchedOffsetTopic {
             topic: "t".into(),
-            partitions: vec![FetchedOffset {
-                partition: 0,
-                offset: 5,
-                error_code: 0,
-            }],
+            partitions: vec![FetchedOffset::new(0, 5, 0)],
         }];
         let starts = committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).unwrap();
         assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);

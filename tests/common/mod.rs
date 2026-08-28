@@ -188,10 +188,17 @@ struct CreatedTopic {
     configs: HashMap<String, Option<String>>,
 }
 
+#[derive(Clone)]
+struct CommittedOffset {
+    offset: i64,
+    leader_epoch: i32,
+    metadata: String,
+}
+
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
-    committed: HashMap<(String, i32), i64>,
+    committed: HashMap<(String, i32), CommittedOffset>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
     scram_user: Option<(scram::ScramAlg, String, String)>,
@@ -1858,10 +1865,7 @@ fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
             body,
             &[OffsetTopic {
                 topic: "t".into(),
-                partitions: vec![OffsetPartition {
-                    partition: 0,
-                    offset: -1,
-                }],
+                partitions: vec![OffsetPartition::new(0, -1)],
             }],
             NC,
         )
@@ -1870,11 +1874,7 @@ fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
             body,
             &[FetchedOffsetTopic {
                 topic: "t".into(),
-                partitions: vec![FetchedOffset {
-                    partition: 0,
-                    offset: -1,
-                    error_code: NC,
-                }],
+                partitions: vec![FetchedOffset::new(0, -1, NC)],
             }],
         )
         .unwrap(),
@@ -3043,9 +3043,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         for p in &t.partitions {
                             nparts = nparts.saturating_add(1);
                             epochs.push(p.leader_epoch);
-                            let _ = st
-                                .committed
-                                .insert((t.topic.clone(), p.partition), p.offset);
+                            let _ = st.committed.insert(
+                                (t.topic.clone(), p.partition),
+                                CommittedOffset {
+                                    offset: p.offset,
+                                    leader_epoch: p.leader_epoch,
+                                    metadata: String::new(),
+                                },
+                            );
                         }
                     }
                     st.last_txn_offset_commit_partitions = nparts;
@@ -3830,8 +3835,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     for t in &topics {
                         nparts = nparts.saturating_add(t.partitions.len());
                         for p in &t.partitions {
-                            st.committed
-                                .insert((t.topic.clone(), p.partition), p.offset);
+                            st.committed.insert(
+                                (t.topic.clone(), p.partition),
+                                CommittedOffset {
+                                    offset: p.offset,
+                                    leader_epoch: p.leader_epoch,
+                                    metadata: p.metadata.clone(),
+                                },
+                            );
                         }
                     }
                     st.last_offset_commit_partitions = nparts;
@@ -3849,10 +3860,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     nparts = nparts.saturating_add(t.partitions.len());
                     let mut parts = Vec::with_capacity(t.partitions.len());
                     for p in t.partitions {
-                        let off = *st.committed.get(&(t.topic.clone(), p)).unwrap_or(&-1);
+                        let (off, epoch, meta) = st
+                            .committed
+                            .get(&(t.topic.clone(), p))
+                            .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
+                            .unwrap_or((-1, -1, String::new()));
                         parts.push(FetchedOffset {
                             partition: p,
                             offset: off,
+                            leader_epoch: epoch,
+                            metadata: meta,
                             error_code: 0,
                         });
                     }

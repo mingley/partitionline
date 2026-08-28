@@ -13,8 +13,8 @@ mod common;
 use partitionline::{
     partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
     ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
-    NewTopic, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig,
-    ProducerInterceptor, RecordMetadata, Sasl, ShareGroup, TopicPartition,
+    NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer,
+    ProducerConfig, ProducerInterceptor, RecordMetadata, Sasl, ShareGroup, TopicPartition,
 };
 use std::time::Duration;
 
@@ -651,12 +651,16 @@ async fn group_committed_after_commit() {
     .await
     .unwrap();
     let before = group.committed().await.unwrap();
-    assert_eq!(before, vec![("t".into(), 0, -1)]);
+    assert_eq!(before.len(), 1);
+    assert_eq!(before[0].0, TopicPartition::new("t", 0));
+    assert_eq!(before[0].1.offset, -1);
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     group.commit().await.unwrap();
     let after = group.committed().await.unwrap();
-    assert_eq!(after, vec![("t".into(), 0, 1)]);
+    assert_eq!(after.len(), 1);
+    assert_eq!(after[0].1.offset, 1);
+    assert_eq!(after[0].1.leader_epoch, Some(0));
     group.leave().await.unwrap();
 }
 
@@ -1013,10 +1017,122 @@ async fn offsets_for_times_finds_record_and_misses() {
 fn topic_partition_from_tuple() {
     let tp: TopicPartition = ("orders", 3).into();
     assert_eq!(tp, TopicPartition::new("orders", 3));
-    let pair: (String, i32) = tp.into();
+    let pair: (String, i32) = tp.clone().into();
     assert_eq!(pair, ("orders".into(), 3));
+    assert_eq!(format!("{tp}"), "orders-3");
+    let md = OffsetAndMetadata::with_metadata(9, "ckpt").with_leader_epoch(2);
+    assert_eq!(md.offset, 9);
+    assert_eq!(md.leader_epoch, Some(2));
+    assert_eq!(md.metadata, "ckpt");
     let _ = OffsetAndTimestamp {
         offset: 1,
         timestamp: 2,
     };
+}
+
+#[tokio::test]
+async fn current_lag_is_hw_minus_position() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.current_lag(("t", 0)).await.unwrap(), Some(2));
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    assert_eq!(
+        consumer
+            .current_lag(TopicPartition::new("t", 0))
+            .await
+            .unwrap(),
+        Some(0)
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_with_metadata_roundtrip() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"old"[..]),
+            ProduceRecord::to("t").value(&b"new"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "meta",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.subscription(), &["t".to_string()]);
+    group
+        .commit_with_metadata(&[(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::with_metadata(1, "ckpt").with_leader_epoch(0),
+        )])
+        .await
+        .unwrap();
+    group.leave().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "meta",
+        "t",
+    )
+    .await
+    .unwrap();
+    let committed = group.committed().await.unwrap();
+    assert_eq!(committed.len(), 1);
+    assert_eq!(committed[0].1.offset, 1);
+    assert_eq!(committed[0].1.leader_epoch, Some(0));
+    assert_eq!(committed[0].1.metadata, "ckpt");
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"new"[..]));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn enforce_rebalance_rejoins_on_next_poll() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "erb",
+        "t",
+    )
+    .await
+    .unwrap();
+    let before = mock.join_group_calls();
+    assert!(before >= 1);
+    group.enforce_rebalance();
+    let _recs = group.poll().await.unwrap();
+    let after = mock.join_group_calls();
+    assert!(
+        after > before,
+        "enforce_rebalance must JoinGroup again (before {before}, after {after})"
+    );
+    group.leave().await.unwrap();
 }

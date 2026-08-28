@@ -43,6 +43,7 @@
 //! Metadata (leader, replicas, ISR). [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
+//! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records.
 //!
@@ -55,6 +56,9 @@
 //! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
+//! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
+//! (leader epoch and a metadata string). [`ConsumerGroup::enforce_rebalance`]
+//! rejoins on the next poll.
 //!
 //! # Configure
 //!
@@ -144,8 +148,8 @@ pub use admin::{
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
-    Consumer, ConsumerConfig, FetchedRecord, OffsetAndTimestamp, PartitionInfo, RebalanceListener,
-    TopicPartition, WakeupHandle,
+    Consumer, ConsumerConfig, FetchedRecord, OffsetAndMetadata, OffsetAndTimestamp, PartitionInfo,
+    RebalanceListener, TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;

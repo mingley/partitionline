@@ -141,6 +141,12 @@ impl ShareGroup {
         &self.topics
     }
 
+    /// Subscribed topic names. Same as [`Self::topics`] (Java `subscription`).
+    #[must_use]
+    pub fn subscription(&self) -> &[String] {
+        self.topics()
+    }
+
     /// Assigned `(topic, partition)` pairs.
     pub fn assignment(&self) -> Vec<(String, i32)> {
         self.assigned.clone()
