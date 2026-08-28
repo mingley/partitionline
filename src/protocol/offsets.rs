@@ -36,6 +36,98 @@ impl ListOffsetsPartition {
     }
 }
 
+/// One partition in a ListOffsets request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListOffsetsPartitionRequest {
+    /// Partition index.
+    pub partition: i32,
+    /// Current leader epoch (v4+), or `-1`.
+    pub current_leader_epoch: i32,
+    /// Timestamp to search (`-2` earliest, `-1` latest, or milliseconds).
+    pub timestamp: i64,
+}
+
+impl ListOffsetsPartitionRequest {
+    /// Partition `partition` at `timestamp` with leader epoch.
+    #[must_use]
+    pub fn new(partition: i32, current_leader_epoch: i32, timestamp: i64) -> Self {
+        Self {
+            partition,
+            current_leader_epoch,
+            timestamp,
+        }
+    }
+}
+
+/// One topic in a ListOffsets request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListOffsetsTopicRequest {
+    /// Topic name.
+    pub name: String,
+    /// Partitions in this topic (duplicates keep separate timestamps).
+    pub partitions: Vec<ListOffsetsPartitionRequest>,
+}
+
+impl ListOffsetsTopicRequest {
+    /// Topic `name` with these partition queries.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partitions: Vec<ListOffsetsPartitionRequest>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
+/// One partition in a ListOffsets response, including index.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListOffsetsResponsePartition {
+    /// Partition index.
+    pub partition_index: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// Matched timestamp, or `-1` when unknown.
+    pub timestamp: i64,
+    /// Log offset, or `-1` when unknown.
+    pub offset: i64,
+    /// Leader epoch (v4+). `-1` when unknown or the request version is below 4.
+    pub leader_epoch: i32,
+}
+
+impl ListOffsetsResponsePartition {
+    /// Partition `partition_index` with this result body.
+    #[must_use]
+    pub fn new(partition_index: i32, result: ListOffsetsPartition) -> Self {
+        Self {
+            partition_index,
+            error_code: result.error_code,
+            timestamp: result.timestamp,
+            offset: result.offset,
+            leader_epoch: result.leader_epoch,
+        }
+    }
+}
+
+/// One topic in a ListOffsets response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListOffsetsTopicResponse {
+    /// Topic name.
+    pub name: String,
+    /// Partition results in request order.
+    pub partitions: Vec<ListOffsetsResponsePartition>,
+}
+
+impl ListOffsetsTopicResponse {
+    /// Topic `name` with these partition results.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partitions: Vec<ListOffsetsResponsePartition>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
 /// ListOffsets v1–v5 (classic). Isolation is v2+. `current_leader_epoch` is v4+.
 pub fn encode_list_offsets_request(
     buf: &mut BytesMut,
@@ -46,18 +138,44 @@ pub fn encode_list_offsets_request(
     current_leader_epoch: i32,
     timestamp: i64,
 ) -> crate::error::Result<()> {
+    encode_list_offsets_topics_request(
+        buf,
+        version,
+        isolation_level,
+        &[ListOffsetsTopicRequest::new(
+            topic,
+            vec![ListOffsetsPartitionRequest::new(
+                partition,
+                current_leader_epoch,
+                timestamp,
+            )],
+        )],
+    )
+}
+
+/// Encode ListOffsets with one or more topics (classic v1–v5).
+pub fn encode_list_offsets_topics_request(
+    buf: &mut BytesMut,
+    version: i16,
+    isolation_level: i8,
+    topics: &[ListOffsetsTopicRequest],
+) -> crate::error::Result<()> {
     buf.put_i32(-1); // replica_id
     if version >= 2 {
         buf.put_i8(isolation_level);
     }
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
-    if version >= 4 {
-        buf.put_i32(current_leader_epoch);
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.name))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            if version >= 4 {
+                buf.put_i32(p.current_leader_epoch);
+            }
+            buf.put_i64(p.timestamp);
+        }
     }
-    buf.put_i64(timestamp);
     Ok(())
 }
 
@@ -65,19 +183,54 @@ pub fn encode_list_offsets_request(
 ///
 /// Returns `(isolation_level, topic, partition, current_leader_epoch, timestamp)`.
 /// Isolation is `0` below v2. `current_leader_epoch` is `-1` below v4.
+/// Extra topics or partitions in the body are consumed and ignored.
 pub fn decode_list_offsets_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, String, i32, i32, i64)> {
+    let (isolation, topics) = decode_list_offsets_topics_request(buf, version)?;
+    let t = topics
+        .first()
+        .ok_or_else(|| Error::protocol("empty ListOffsets topics"))?;
+    let p = t
+        .partitions
+        .first()
+        .ok_or_else(|| Error::protocol("empty ListOffsets partitions"))?;
+    Ok((
+        isolation,
+        t.name.clone(),
+        p.partition,
+        p.current_leader_epoch,
+        p.timestamp,
+    ))
+}
+
+/// Decode ListOffsets topics (classic v1–v5).
+pub fn decode_list_offsets_topics_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i8, Vec<ListOffsetsTopicRequest>)> {
     let _replica = buf::get_i32(buf)?;
     let isolation = if version >= 2 { buf::get_i8(buf)? } else { 0 };
-    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    let current_leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
-    let timestamp = buf::get_i64(buf)?;
-    Ok((isolation, topic, partition, current_leader_epoch, timestamp))
+    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let current_leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
+            let timestamp = buf::get_i64(buf)?;
+            partitions.push(ListOffsetsPartitionRequest {
+                partition,
+                current_leader_epoch,
+                timestamp,
+            });
+        }
+        topics.push(ListOffsetsTopicRequest { name, partitions });
+    }
+    Ok((isolation, topics))
 }
 
 /// Encode a single-topic, single-partition ListOffsets response.
@@ -88,18 +241,38 @@ pub fn encode_list_offsets_response(
     partition: i32,
     result: ListOffsetsPartition,
 ) -> crate::error::Result<()> {
+    encode_list_offsets_topics_response(
+        buf,
+        version,
+        &[ListOffsetsTopicResponse::new(
+            topic,
+            vec![ListOffsetsResponsePartition::new(partition, result)],
+        )],
+    )
+}
+
+/// Encode ListOffsets with one or more topics (classic v1–v5).
+pub fn encode_list_offsets_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ListOffsetsTopicResponse],
+) -> crate::error::Result<()> {
     if version >= 2 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i16(result.error_code);
-    buf.put_i64(result.timestamp);
-    buf.put_i64(result.offset);
-    if version >= 4 {
-        buf.put_i32(result.leader_epoch);
+    buf::put_array_len(buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(buf, Some(&t.name))?;
+        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition_index);
+            buf.put_i16(p.error_code);
+            buf.put_i64(p.timestamp);
+            buf.put_i64(p.offset);
+            if version >= 4 {
+                buf.put_i32(p.leader_epoch);
+            }
+        }
     }
     Ok(())
 }
@@ -112,26 +285,56 @@ pub fn decode_list_offsets_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ListOffsetsPartition> {
+    let topics = decode_list_offsets_topics_response(buf, version)?;
+    let t = topics
+        .first()
+        .ok_or_else(|| Error::protocol("empty ListOffsets response topics"))?;
+    let p = t
+        .partitions
+        .first()
+        .ok_or_else(|| Error::protocol("empty ListOffsets response partitions"))?;
+    if p.error_code != 0 {
+        return Err(Error::broker(p.error_code, "ListOffsets"));
+    }
+    Ok(ListOffsetsPartition {
+        error_code: p.error_code,
+        timestamp: p.timestamp,
+        offset: p.offset,
+        leader_epoch: p.leader_epoch,
+    })
+}
+
+/// Decode ListOffsets topics (classic v1–v5). Partition errors stay on the row.
+pub fn decode_list_offsets_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<ListOffsetsTopicResponse>> {
     if version >= 2 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _topic = buf::get_classic_nullable_string(buf)?;
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _p = buf::get_i32(buf)?;
-    let error_code = buf::get_i16(buf)?;
-    let timestamp = buf::get_i64(buf)?;
-    let offset = buf::get_i64(buf)?;
-    let leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
-    if error_code != 0 {
-        return Err(Error::broker(error_code, "ListOffsets"));
+    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let timestamp = buf::get_i64(buf)?;
+            let offset = buf::get_i64(buf)?;
+            let leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
+            partitions.push(ListOffsetsResponsePartition {
+                partition_index,
+                error_code,
+                timestamp,
+                offset,
+                leader_epoch,
+            });
+        }
+        topics.push(ListOffsetsTopicResponse { name, partitions });
     }
-    Ok(ListOffsetsPartition {
-        error_code,
-        timestamp,
-        offset,
-        leader_epoch,
-    })
+    Ok(topics)
 }
 
 #[cfg(test)]
@@ -210,5 +413,45 @@ mod tests {
         let got = decode_list_offsets_response(&mut cur, 5).unwrap();
         assert_eq!(got, ListOffsetsPartition::ok(1_700_000_000_000, 44, 3));
         assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn list_offsets_v4_two_partitions_roundtrip_is_leftover_empty() {
+        let req_topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![
+                ListOffsetsPartitionRequest::new(0, 1, EARLIEST_TIMESTAMP),
+                ListOffsetsPartitionRequest::new(1, 1, LATEST_TIMESTAMP),
+            ],
+        )];
+        let mut req = BytesMut::new();
+        encode_list_offsets_topics_request(&mut req, 4, 0, &req_topics).unwrap();
+        let mut cur = &req[..];
+        let (iso, got) = decode_list_offsets_topics_request(&mut cur, 4).unwrap();
+        assert_eq!(iso, 0);
+        assert_eq!(got, req_topics);
+        assert!(
+            cur.is_empty(),
+            "v4 multi request leftover {} bytes",
+            cur.len()
+        );
+
+        let resp_topics = [ListOffsetsTopicResponse::new(
+            "t",
+            vec![
+                ListOffsetsResponsePartition::new(0, ListOffsetsPartition::ok(-2, 0, 1)),
+                ListOffsetsResponsePartition::new(1, ListOffsetsPartition::ok(-1, 4, 1)),
+            ],
+        )];
+        let mut resp = BytesMut::new();
+        encode_list_offsets_topics_response(&mut resp, 4, &resp_topics).unwrap();
+        let mut cur = &resp[..];
+        let got = decode_list_offsets_topics_response(&mut cur, 4).unwrap();
+        assert_eq!(got, resp_topics);
+        assert!(
+            cur.is_empty(),
+            "v4 multi response leftover {} bytes",
+            cur.len()
+        );
     }
 }

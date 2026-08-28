@@ -2419,6 +2419,12 @@ async fn admin_list_offsets_earliest_and_latest() {
     assert_eq!(listed[1].0, TopicPartition::new("t", 0));
     assert_eq!(listed[1].1.offset, 1);
     assert_eq!(listed[1].1.leader_epoch, Some(0));
+    assert_eq!(
+        mock.list_offsets_calls(),
+        1,
+        "same-leader queries must share one ListOffsets RPC"
+    );
+    assert_eq!(mock.last_list_offsets_n(), Some(2));
     let empty = admin
         .list_offsets(Vec::<(TopicPartition, i64)>::new())
         .await

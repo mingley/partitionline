@@ -143,8 +143,8 @@ use partitionline::protocol::header::{decode_request_header, encode_response_hea
 use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::oauth;
 use partitionline::protocol::offsets::{
-    decode_list_offsets_request, encode_list_offsets_response, ListOffsetsPartition,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
+    ListOffsetsResponsePartition, ListOffsetsTopicResponse, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
@@ -229,6 +229,8 @@ struct State {
     epoch_not_leader: u32,
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
+    last_list_offsets_n: Option<usize>,
+    list_offsets_calls: u32,
     list_offsets_not_leader: u32,
     last_delete_records_node: Option<i32>,
     delete_records_not_leader: u32,
@@ -453,6 +455,8 @@ fn new_state(
         epoch_not_leader: 0,
         last_list_offsets: None,
         last_list_offsets_node: None,
+        last_list_offsets_n: None,
+        list_offsets_calls: 0,
         list_offsets_not_leader: 0,
         last_delete_records_node: None,
         delete_records_not_leader: 0,
@@ -753,6 +757,69 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
             })
             .collect(),
     }
+}
+
+fn list_offsets_partition_result(
+    st: &mut State,
+    node_id: i32,
+    topic: &str,
+    partition: i32,
+    current_epoch: i32,
+    timestamp: i64,
+) -> (bool, ListOffsetsResponsePartition) {
+    st.last_list_offsets = Some((topic.to_string(), partition, current_epoch));
+    let key = (topic.to_string(), partition);
+    let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+    if leader != node_id {
+        st.list_offsets_not_leader = st.list_offsets_not_leader.saturating_add(1);
+        return (
+            false,
+            ListOffsetsResponsePartition::new(
+                partition,
+                ListOffsetsPartition {
+                    error_code: error::NOT_LEADER_OR_FOLLOWER,
+                    timestamp,
+                    offset: -1,
+                    leader_epoch: -1,
+                },
+            ),
+        );
+    }
+    let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+    let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
+        error::FENCED_LEADER_EPOCH
+    } else if current_epoch != -1 && current_epoch > broker_epoch {
+        error::UNKNOWN_LEADER_EPOCH
+    } else {
+        0
+    };
+    let log_start = *st.log_start.get(&key).unwrap_or(&0);
+    let hw = *st.next_offset.get(&key).unwrap_or(&0);
+    let (resp_ts, offset) = if error_code != 0 {
+        (-1, -1)
+    } else if timestamp == EARLIEST_TIMESTAMP {
+        (timestamp, log_start)
+    } else if timestamp == LATEST_TIMESTAMP {
+        (timestamp, hw)
+    } else {
+        st.log
+            .get(&key)
+            .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
+            .map(|r| (r.timestamp, r.offset))
+            .unwrap_or((-1, -1))
+    };
+    (
+        true,
+        ListOffsetsResponsePartition::new(
+            partition,
+            ListOffsetsPartition {
+                error_code,
+                timestamp: resp_ts,
+                offset,
+                leader_epoch: if error_code == 0 { broker_epoch } else { -1 },
+            },
+        ),
+    )
 }
 
 fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
@@ -1088,6 +1155,14 @@ impl Mock {
 
     pub fn last_list_offsets_node(&self) -> Option<i32> {
         self.state.lock().last_list_offsets_node
+    }
+
+    pub fn last_list_offsets_n(&self) -> Option<usize> {
+        self.state.lock().last_list_offsets_n
+    }
+
+    pub fn list_offsets_calls(&self) -> u32 {
+        self.state.lock().list_offsets_calls
     }
 
     pub fn list_offsets_not_leader(&self) -> u32 {
@@ -3024,67 +3099,37 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_delete_acls_response(&mut body, removed).unwrap();
             }
             LIST_OFFSETS => {
-                let (iso, topic, partition, current_epoch, timestamp) =
-                    decode_list_offsets_request(&mut frame, header.api_version).unwrap();
+                let (iso, topics) =
+                    decode_list_offsets_topics_request(&mut frame, header.api_version).unwrap();
                 let _ = iso;
                 let mut st = state.lock();
-                st.last_list_offsets = Some((topic.clone(), partition, current_epoch));
-                let key = (topic.clone(), partition);
-                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
-                if leader != node_id {
-                    st.list_offsets_not_leader = st.list_offsets_not_leader.saturating_add(1);
-                    encode_list_offsets_response(
-                        &mut body,
-                        header.api_version,
-                        &topic,
-                        partition,
-                        ListOffsetsPartition {
-                            error_code: error::NOT_LEADER_OR_FOLLOWER,
-                            timestamp,
-                            offset: -1,
-                            leader_epoch: -1,
-                        },
-                    )
-                    .unwrap();
-                } else {
-                    st.last_list_offsets_node = Some(node_id);
-                    let broker_epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
-                    let error_code = if current_epoch != -1 && current_epoch < broker_epoch {
-                        error::FENCED_LEADER_EPOCH
-                    } else if current_epoch != -1 && current_epoch > broker_epoch {
-                        error::UNKNOWN_LEADER_EPOCH
-                    } else {
-                        0
-                    };
-                    let log_start = *st.log_start.get(&key).unwrap_or(&0);
-                    let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                    let (resp_ts, offset) = if error_code != 0 {
-                        (-1, -1)
-                    } else if timestamp == EARLIEST_TIMESTAMP {
-                        (timestamp, log_start)
-                    } else if timestamp == LATEST_TIMESTAMP {
-                        (timestamp, hw)
-                    } else {
-                        st.log
-                            .get(&key)
-                            .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
-                            .map(|r| (r.timestamp, r.offset))
-                            .unwrap_or((-1, -1))
-                    };
-                    encode_list_offsets_response(
-                        &mut body,
-                        header.api_version,
-                        &topic,
-                        partition,
-                        ListOffsetsPartition {
-                            error_code,
-                            timestamp: resp_ts,
-                            offset,
-                            leader_epoch: if error_code == 0 { broker_epoch } else { -1 },
-                        },
-                    )
-                    .unwrap();
+                st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
+                let mut n = 0usize;
+                let mut any_leader = false;
+                let mut resp_topics = Vec::with_capacity(topics.len());
+                for t in &topics {
+                    let mut parts = Vec::with_capacity(t.partitions.len());
+                    for p in &t.partitions {
+                        n = n.saturating_add(1);
+                        let (on_leader, part) = list_offsets_partition_result(
+                            &mut st,
+                            node_id,
+                            &t.name,
+                            p.partition,
+                            p.current_leader_epoch,
+                            p.timestamp,
+                        );
+                        any_leader = any_leader || on_leader;
+                        parts.push(part);
+                    }
+                    resp_topics.push(ListOffsetsTopicResponse::new(t.name.clone(), parts));
                 }
+                st.last_list_offsets_n = Some(n);
+                if any_leader {
+                    st.last_list_offsets_node = Some(node_id);
+                }
+                encode_list_offsets_topics_response(&mut body, header.api_version, &resp_topics)
+                    .unwrap();
             }
             INIT_PRODUCER_ID => {
                 let tid = buf::get_classic_nullable_string(&mut frame).unwrap();

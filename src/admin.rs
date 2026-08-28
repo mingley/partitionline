@@ -4,7 +4,7 @@
 //! must land on the controller retry on `NOT_CONTROLLER`. Group and
 //! transaction methods retry on coordinator errors.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
@@ -88,7 +88,10 @@ use crate::protocol::group::{
     LeaveGroupMember, OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
-use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
+use crate::protocol::offsets::{
+    decode_list_offsets_topics_response, encode_list_offsets_topics_request,
+    ListOffsetsPartitionRequest, ListOffsetsResponsePartition, ListOffsetsTopicRequest,
+};
 use crate::protocol::sasl;
 use crate::protocol::txn::{
     decode_write_txn_markers_response, encode_write_txn_markers_request, WritableTxnMarker,
@@ -2926,30 +2929,22 @@ impl Admin {
     /// Each item is a [`crate::TopicPartition`] and a timestamp:
     /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
     /// (`-1`), or milliseconds since the Unix epoch. Isolation is
-    /// read-uncommitted. Lands on each Metadata partition leader;
+    /// read-uncommitted. One ListOffsets RPC per Metadata partition
+    /// leader (duplicate partitions keep separate timestamps).
     /// `NOT_LEADER_OR_FOLLOWER` refreshes Metadata and retries.
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
+    /// Empty input is a no-op.
     pub async fn list_offsets(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
-        let mut out = Vec::new();
-        for (tp, timestamp) in queries {
-            let tp = tp.into();
-            let ot = self
-                .list_offset_one(&tp.topic, tp.partition, timestamp)
-                .await?;
-            out.push((tp, ot));
+        let queries: Vec<(crate::TopicPartition, i64)> = queries
+            .into_iter()
+            .map(|(tp, ts)| (tp.into(), ts))
+            .collect();
+        if queries.is_empty() {
+            return Ok(Vec::new());
         }
-        Ok(out)
-    }
-
-    async fn list_offset_one(
-        &mut self,
-        topic: &str,
-        partition: i32,
-        timestamp: i64,
-    ) -> Result<crate::OffsetAndTimestamp> {
         let version = self
             .versions
             .get(&LIST_OFFSETS)
@@ -2959,70 +2954,168 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let isolation = crate::IsolationLevel::ReadUncommitted.as_i8();
+        let mut out: Vec<Option<crate::OffsetAndTimestamp>> = vec![None; queries.len()];
+        let mut pending: Vec<usize> = (0..queries.len()).collect();
         loop {
-            if self.cluster.leader(topic, partition).is_err() {
-                let topics = [topic.to_string()];
+            if pending.is_empty() {
+                break;
+            }
+            let mut need: Vec<String> = Vec::new();
+            for &i in &pending {
+                let Some((tp, _)) = queries.get(i) else {
+                    continue;
+                };
+                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                    && !need.iter().any(|t| t == &tp.topic)
+                {
+                    need.push(tp.topic.clone());
+                }
+            }
+            if !need.is_empty() {
+                self.refresh_metadata(Some(&need)).await?;
+            }
+            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+            let mut nodes: Vec<i32> = Vec::new();
+            for &i in &pending {
+                let (tp, _) = queries
+                    .get(i)
+                    .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
+                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                match by_node.entry(node) {
+                    std::collections::hash_map::Entry::Vacant(slot) => {
+                        nodes.push(node);
+                        let _ = slot.insert(vec![i]);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut slot) => {
+                        slot.get_mut().push(i);
+                    }
+                }
+            }
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.remove(&node).unwrap_or_default();
+                match self
+                    .list_offsets_on_node(node, version, isolation, &queries, &idxs, timeout)
+                    .await
+                {
+                    Ok((done, retry)) => {
+                        for (i, ot) in done {
+                            if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(ot);
+                            }
+                        }
+                        still.extend(retry);
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
+            for &i in &pending {
+                if let Some((tp, _)) = queries.get(i) {
+                    self.cluster.invalidate_topic(&tp.topic);
+                }
+            }
+            let topics: Vec<String> = {
+                let mut t = Vec::new();
+                for &i in &pending {
+                    if let Some((tp, _)) = queries.get(i) {
+                        if !t.iter().any(|n| n == &tp.topic) {
+                            t.push(tp.topic.clone());
+                        }
+                    }
+                }
+                t
+            };
+            if !topics.is_empty() {
                 self.refresh_metadata(Some(&topics)).await?;
             }
-            let (node, _) = self.cluster.leader(topic, partition)?;
-            self.connect_node(node).await?;
-            let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
-                conn.roundtrip(
-                    LIST_OFFSETS,
-                    version,
-                    |buf| {
-                        encode_list_offsets_request(
-                            buf,
-                            version,
-                            isolation,
-                            topic,
-                            partition,
-                            current_leader_epoch,
-                            timestamp,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
-                }
-                Err(e) => return Err(e),
-            };
-            match decode_list_offsets_response(&mut body.clone(), version) {
-                Ok(got) => {
-                    return Ok(crate::OffsetAndTimestamp::new(got.offset, got.timestamp)
-                        .with_leader_epoch(got.leader_epoch));
-                }
-                Err(e)
-                    if matches!(
-                        &e,
-                        Error::Broker {
-                            code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
-                            ..
-                        }
-                    ) || e.is_retriable() =>
-                {
-                    self.cluster.invalidate_topic(topic);
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    let topics = [topic.to_string()];
-                    self.refresh_metadata(Some(&topics)).await?;
-                    continue;
-                }
-                Err(e) => return Err(e),
+        }
+        out.into_iter()
+            .zip(queries)
+            .map(|(ot, (tp, _))| {
+                ot.map(|ot| (tp, ot))
+                    .ok_or_else(|| Error::protocol("ListOffsets missing result"))
+            })
+            .collect()
+    }
+
+    async fn list_offsets_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        isolation: i8,
+        queries: &[(crate::TopicPartition, i64)],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<(Vec<(usize, crate::OffsetAndTimestamp)>, Vec<usize>)> {
+        let topics = list_offset_topic_requests(queries, idxs, &self.cluster);
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+            conn.roundtrip(
+                LIST_OFFSETS,
+                version,
+                |buf| encode_list_offsets_topics_request(buf, version, isolation, &topics),
+                timeout,
+            )
+            .await
+        }?;
+        let resp = decode_list_offsets_topics_response(&mut body.clone(), version)?;
+        let mut by_key: HashMap<(String, i32), VecDeque<ListOffsetsResponsePartition>> =
+            HashMap::new();
+        for t in resp {
+            for p in t.partitions {
+                by_key
+                    .entry((t.name.clone(), p.partition_index))
+                    .or_default()
+                    .push_back(p);
             }
         }
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        for &i in idxs {
+            let (tp, _) = queries
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing ListOffsets query"))?;
+            let part = by_key
+                .get_mut(&(tp.topic.clone(), tp.partition))
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| {
+                    Error::protocol(format!("ListOffsets missing {}-{}", tp.topic, tp.partition))
+                })?;
+            if part.error_code == 0 {
+                done.push((
+                    i,
+                    crate::OffsetAndTimestamp::new(part.offset, part.timestamp)
+                        .with_leader_epoch(part.leader_epoch),
+                ));
+                continue;
+            }
+            let e = Error::broker(part.error_code, format!("{}-{}", tp.topic, tp.partition));
+            if matches!(
+                part.error_code,
+                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+            ) || e.is_retriable()
+            {
+                self.cluster.invalidate_topic(&tp.topic);
+                let _ = self.conns.remove(&node);
+                retry.push(i);
+            } else {
+                return Err(e);
+            }
+        }
+        Ok((done, retry))
     }
 
     /// Describe active producers on a partition (DescribeProducers api 61,
@@ -4897,6 +4990,41 @@ fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
         .collect()
 }
 
+fn list_offset_topic_requests(
+    queries: &[(crate::TopicPartition, i64)],
+    idxs: &[usize],
+    cluster: &Cluster,
+) -> Vec<ListOffsetsTopicRequest> {
+    let mut order: Vec<String> = Vec::new();
+    let mut by_topic: HashMap<String, Vec<ListOffsetsPartitionRequest>> = HashMap::new();
+    for &i in idxs {
+        let Some((tp, ts)) = queries.get(i) else {
+            continue;
+        };
+        let part = ListOffsetsPartitionRequest {
+            partition: tp.partition,
+            current_leader_epoch: cluster.leader_epoch(&tp.topic, tp.partition),
+            timestamp: *ts,
+        };
+        match by_topic.entry(tp.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(tp.topic.clone());
+                let _ = slot.insert(vec![part]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(part);
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|name| ListOffsetsTopicRequest {
+            partitions: by_topic.remove(&name).unwrap_or_default(),
+            name,
+        })
+        .collect()
+}
+
 fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
     let mut ids = Vec::new();
     for r in replicas {
@@ -5109,5 +5237,25 @@ mod tests {
         assert_eq!(info.future_offset_lag, 7);
         let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
         assert_eq!(missing, ReplicaLogDirInfo::unknown());
+    }
+
+    #[test]
+    fn list_offset_topic_requests_keeps_duplicate_partitions() {
+        let cluster = Cluster::default();
+        let queries = [
+            (
+                crate::TopicPartition::new("t", 0),
+                crate::EARLIEST_TIMESTAMP,
+            ),
+            (crate::TopicPartition::new("t", 0), crate::LATEST_TIMESTAMP),
+            (crate::TopicPartition::new("t", 1), crate::LATEST_TIMESTAMP),
+        ];
+        let topics = list_offset_topic_requests(&queries, &[0, 1, 2], &cluster);
+        assert_eq!(topics.len(), 1);
+        assert_eq!(topics[0].name, "t");
+        assert_eq!(topics[0].partitions.len(), 3);
+        assert_eq!(topics[0].partitions[0].timestamp, crate::EARLIEST_TIMESTAMP);
+        assert_eq!(topics[0].partitions[1].timestamp, crate::LATEST_TIMESTAMP);
+        assert_eq!(topics[0].partitions[2].partition, 1);
     }
 }

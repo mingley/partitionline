@@ -1143,6 +1143,45 @@ async fn list_offsets_follows_partition_leader() {
 }
 
 #[tokio::test]
+async fn admin_list_offsets_batches_by_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("u", 2, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let listed = admin
+        .list_offsets([
+            (("t", 0), LATEST_TIMESTAMP),
+            (("u", 0), LATEST_TIMESTAMP),
+            (("u", 1), LATEST_TIMESTAMP),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 3);
+    assert_eq!(listed[0].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[1].0, TopicPartition::new("u", 0));
+    assert_eq!(listed[2].0, TopicPartition::new("u", 1));
+    assert_eq!(
+        mock.list_offsets_calls(),
+        2,
+        "t-0 is on node 2; u-0 and u-1 share node 1"
+    );
+    assert_eq!(
+        mock.last_list_offsets_n(),
+        Some(2),
+        "last ListOffsets must carry both u partitions"
+    );
+    assert_eq!(
+        mock.last_list_offsets_node(),
+        Some(1),
+        "u partitions must land on the default leader, not t's leader"
+    );
+}
+
+#[tokio::test]
 async fn fetch_offset_out_of_range_jumps_to_log_start() {
     let mock = common::Mock::start().await;
     mock.set_log_start("t", 0, 10);
