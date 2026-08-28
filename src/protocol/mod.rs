@@ -9,7 +9,8 @@ pub mod acl;
 /// AlterShareGroupOffsets, DeleteShareGroupOffsets,
 /// DescribeTopicPartitions, ListConfigResources,
 /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
-/// AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken codecs.
+/// AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
+/// RenewDelegationToken codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

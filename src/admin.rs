@@ -30,24 +30,25 @@ use crate::protocol::admin::{
     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_response,
     decode_list_config_resources_response, decode_list_groups_response,
     decode_list_partition_reassignments_response, decode_list_transactions_response,
-    decode_push_telemetry_response, decode_share_group_describe_response,
-    decode_unregister_broker_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
-    encode_alter_user_scram_credentials_request, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_request, encode_create_delegation_token_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
-    encode_delete_records_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_groups_request, encode_describe_log_dirs_request,
-    encode_describe_producers_request, encode_describe_share_group_offsets_request,
-    encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_request, encode_list_config_resources_request,
-    encode_list_groups_request, encode_list_partition_reassignments_request,
-    encode_list_transactions_request, encode_push_telemetry_request,
+    decode_push_telemetry_response, decode_renew_delegation_token_response,
+    decode_share_group_describe_response, decode_unregister_broker_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_replica_log_dirs_request,
+    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
+    encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
+    encode_create_delegation_token_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    encode_delete_share_group_offsets_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_groups_request,
+    encode_describe_log_dirs_request, encode_describe_producers_request,
+    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_request,
+    encode_list_config_resources_request, encode_list_groups_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_push_telemetry_request, encode_renew_delegation_token_request,
     encode_share_group_describe_request, encode_unregister_broker_request,
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
@@ -69,7 +70,7 @@ use crate::protocol::api_keys::{
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR,
     GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY,
-    SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -100,10 +101,11 @@ pub use crate::protocol::admin::{
     DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup,
-    PushTelemetryRequest, PushTelemetryResponse, ScramCredentialInfo, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
+    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
@@ -407,6 +409,7 @@ pub struct Admin {
     alter_replica_log_dirs_version: i16,
     describe_log_dirs_version: i16,
     create_delegation_token_version: i16,
+    renew_delegation_token_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -673,6 +676,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support CreateDelegationToken".into())
             })?;
+        let renew_delegation_token_version = versions
+            .get(&RENEW_DELEGATION_TOKEN)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support RenewDelegationToken".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -719,6 +728,7 @@ impl Admin {
             alter_replica_log_dirs_version,
             describe_log_dirs_version,
             create_delegation_token_version,
+            renew_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -3150,6 +3160,46 @@ impl Admin {
             )
             .await?;
         decode_create_delegation_token_response(&mut body.clone())
+    }
+
+    /// Renew a delegation token (RenewDelegationToken api 39, KIP-48 /
+    /// KIP-373).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Apache JSON listeners are `broker` and `controller`. Official
+    /// JSON lists no `errorCodes`. Official Java
+    /// `KafkaApis.handleRenewTokenRequest` validates the connection
+    /// then `forwardToController` (broker-side envelope, not a client
+    /// hop). Official Java `KafkaAdminClient.renewDelegationToken`
+    /// uses `LeastLoadedNodeProvider`. Official handler writes
+    /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64) onto the top-level
+    /// ErrorCode when the channel is not allowed. `NOT_COORDINATOR`
+    /// (16) is not listed. `NOT_CONTROLLER` (41) is not listed. This
+    /// is not a group-coordinator hop, not a controller hop, and not
+    /// a partition-leader hop: there is no FindCoordinator, no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41)
+    /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
+    /// `error_code` is the INT16 at bytes 0–1, first field — not after
+    /// throttle and not a first-token field. Fixture hmac / period
+    /// only; this is not a token store. Speaks v2 only
+    /// (`VERSIONS.max`). Do not copy CreateDelegationToken just
+    /// because it is the previous slice.
+    pub async fn renew_delegation_token(
+        &mut self,
+        req: RenewDelegationTokenRequest,
+    ) -> Result<RenewDelegationTokenResponse> {
+        let version = self.renew_delegation_token_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                RENEW_DELEGATION_TOKEN,
+                version,
+                |buf| encode_renew_delegation_token_request(buf, &req),
+                timeout,
+            )
+            .await?;
+        decode_renew_delegation_token_response(&mut body.clone())
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

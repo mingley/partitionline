@@ -15,7 +15,7 @@
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
 //! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs,
-//! CreateDelegationToken, DescribeCluster).
+//! CreateDelegationToken, RenewDelegationToken, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -63,9 +63,10 @@ pub use admin::{
     DescribedTopicPartitions, FeatureUpdate, FeatureUpdateResult,
     GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, NewTopic,
     OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
-    PushTelemetryResponse, ReassignmentResult, ScramCredentialInfo, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    PushTelemetryResponse, ReassignmentResult, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
