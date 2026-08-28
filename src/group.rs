@@ -1957,7 +1957,9 @@ pub(crate) fn filter_matching_topics(
     names
 }
 
-fn group_offset_topics(items: &[(TopicPartition, OffsetAndMetadata)]) -> Vec<OffsetTopic> {
+pub(crate) fn group_offset_topics(
+    items: &[(TopicPartition, OffsetAndMetadata)],
+) -> Vec<OffsetTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
     for (tp, md) in items {
         by_topic
@@ -1976,7 +1978,7 @@ fn group_offset_topics(items: &[(TopicPartition, OffsetAndMetadata)]) -> Vec<Off
         .collect()
 }
 
-fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
+pub(crate) fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> {
     let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
     for (topic, part) in wanted {
         by_topic.entry(topic.clone()).or_default().push(*part);
@@ -1987,7 +1989,7 @@ fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> 
         .collect()
 }
 
-fn committed_offset_map(
+pub(crate) fn committed_offset_map(
     fetched: &[FetchedOffsetTopic],
 ) -> Result<HashMap<(String, i32), OffsetAndMetadata>> {
     let mut map = HashMap::new();

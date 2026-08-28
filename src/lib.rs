@@ -84,7 +84,8 @@
 //! [`ConsumerGroup::commit_with_metadata`] takes
 //! [`ConsumerRecords::next_offsets`] (Java `commitSync(records.nextOffsets())`).
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
-//! [`Admin::delete_offsets`] take [`TopicPartition`].
+//! [`Admin::delete_offsets`] / [`Admin::list_consumer_group_offsets`] /
+//! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /

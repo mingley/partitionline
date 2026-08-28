@@ -2351,3 +2351,36 @@ async fn assign_partitions_uses_auto_offset_reset() {
     assert!(matches!(err, Error::Protocol(_)));
     none.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_list_and_alter_consumer_group_offsets() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g-off",
+            [(
+                TopicPartition::new("t", 0),
+                OffsetAndMetadata::with_metadata(3, "admin").with_leader_epoch(0),
+            )],
+        )
+        .await
+        .unwrap();
+    let listed = admin
+        .list_consumer_group_offsets("g-off", [TopicPartition::new("t", 0)])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[0].1.offset, 3);
+    assert_eq!(listed[0].1.metadata, "admin");
+    assert_eq!(listed[0].1.leader_epoch, Some(0));
+    let empty = admin
+        .list_consumer_group_offsets("g-off", Vec::<TopicPartition>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}

@@ -76,13 +76,14 @@ use crate::protocol::api_keys::{
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
     INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
-    SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
-    decode_find_coordinator_response, decode_offset_delete_response,
-    encode_find_coordinator_request_typed, encode_offset_delete_request, OffsetDeleteTopic,
-    COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
+    decode_find_coordinator_response, decode_offset_commit_response, decode_offset_delete_response,
+    decode_offset_fetch_response, encode_find_coordinator_request_typed,
+    encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_request,
+    OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
 use crate::protocol::sasl;
 
@@ -2565,6 +2566,178 @@ impl Admin {
                 return Err(Error::broker(top, "OffsetDelete"));
             }
             return Ok(results);
+        }
+    }
+
+    /// List committed offsets for `group_id` (Java `listConsumerGroupOffsets`).
+    ///
+    /// OffsetFetch v5 on the group coordinator. Partitions with no committed
+    /// offset return [`crate::OffsetAndMetadata`] offset `-1`. Empty
+    /// `partitions` returns an empty list. `COORDINATOR_LOAD_IN_PROGRESS` /
+    /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` refresh the coordinator
+    /// and retry.
+    pub async fn list_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+        let partitions: Vec<crate::TopicPartition> =
+            partitions.into_iter().map(Into::into).collect();
+        if partitions.is_empty() {
+            return Ok(Vec::new());
+        }
+        let wanted: Vec<(String, i32)> = partitions
+            .iter()
+            .map(|tp| (tp.topic.clone(), tp.partition))
+            .collect();
+        let topics = crate::group::group_offset_fetch_topics(&wanted);
+        let version = self
+            .versions
+            .get(&OFFSET_FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v5".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let group_id = group_id.to_string();
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &group_id);
+            if stale {
+                let node = self.discover_group_coord(&group_id).await?;
+                self.group_coord = Some((group_id.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing list_consumer_group_offsets conn"))?;
+                conn.roundtrip(
+                    OFFSET_FETCH,
+                    version,
+                    |buf| encode_offset_fetch_request(buf, &group_id, &topics),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let fetched = match decode_offset_fetch_response(&mut body.clone()) {
+                Ok(t) => t,
+                Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
+                    self.group_coord = None;
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let map = crate::group::committed_offset_map(&fetched)?;
+            return Ok(partitions
+                .iter()
+                .map(|tp| {
+                    let md = map
+                        .get(&(tp.topic.clone(), tp.partition))
+                        .cloned()
+                        .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+                    (tp.clone(), md)
+                })
+                .collect());
+        }
+    }
+
+    /// Write committed offsets for `group_id` (Java `alterConsumerGroupOffsets`).
+    ///
+    /// OffsetCommit v7 on the group coordinator with generation `-1` and an
+    /// empty member id (admin, not a group member). Empty `offsets` is a
+    /// no-op. Coordinator load / move errors refresh and retry.
+    pub async fn alter_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+        offsets: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, crate::OffsetAndMetadata)>,
+    ) -> Result<()> {
+        let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
+            .into_iter()
+            .map(|(tp, md)| (tp.into(), md))
+            .collect();
+        if offsets.is_empty() {
+            return Ok(());
+        }
+        let topics = crate::group::group_offset_topics(&offsets);
+        let version = self
+            .versions
+            .get(&OFFSET_COMMIT)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 7, 7))
+            .ok_or_else(|| Error::Unsupported("broker does not support OffsetCommit v7".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let group_id = group_id.to_string();
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &group_id);
+            if stale {
+                let node = self.discover_group_coord(&group_id).await?;
+                self.group_coord = Some((group_id.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing alter_consumer_group_offsets conn"))?;
+                conn.roundtrip(
+                    OFFSET_COMMIT,
+                    version,
+                    |buf| encode_offset_commit_request(buf, &group_id, -1, "", &topics),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let err = decode_offset_commit_response(&mut body.clone())?;
+            if error::coordinator_retriable(err) {
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            if err != 0 {
+                return Err(Error::broker(err, "OffsetCommit"));
+            }
+            return Ok(());
         }
     }
 
