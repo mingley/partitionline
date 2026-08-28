@@ -72,7 +72,11 @@
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java
 //! `committed(Duration)`. [`ConsumerGroup::commit_timeout`] is Java
-//! `commitSync(Duration)`.
+//! `commitSync(Duration)`. [`Consumer::partitions_for_timeout`] /
+//! [`Consumer::list_topics_timeout`] / [`Consumer::beginning_offsets_timeout`] /
+//! [`Consumer::end_offsets_timeout`] / [`Consumer::offsets_for_times_timeout`]
+//! are Java `partitionsFor` / `listTopics` / `beginningOffsets` / `endOffsets` /
+//! `offsetsForTimes` with a `Duration`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
 //! [`ConsumerGroup::commit_with_metadata`] takes
@@ -160,6 +164,10 @@
 //! [`ProducerConfig::metadata_max_age`] / [`ConsumerConfig::metadata_max_age`]
 //! are Kafka `metadata.max.age.ms` (default 5 minutes; zero refreshes every
 //! lookup).
+//! [`ProducerConfig::allow_auto_create_topics`] /
+//! [`ConsumerConfig::allow_auto_create_topics`] are Kafka
+//! `allow.auto.create.topics` (this crate defaults to `false`; Java consumer
+//! defaults to `true`).
 //! [`ConsumerConfig::isolation`] is [`IsolationLevel`].
 //! [`ConfigResourceType`] / [`ScramMechanism`] type admin config
 //! resources and user SCRAM.

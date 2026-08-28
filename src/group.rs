@@ -652,6 +652,15 @@ impl ConsumerGroup {
         self.consumer.current_lag(partition).await
     }
 
+    /// [`Self::current_lag`] with a one-shot timeout for the ListOffsets RPC.
+    pub async fn current_lag_timeout(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timeout: Duration,
+    ) -> Result<Option<i64>> {
+        self.consumer.current_lag_timeout(partition, timeout).await
+    }
+
     /// Last committed offsets for the current assignment (`OffsetFetch`).
     ///
     /// Partitions with no committed offset return offset `-1`.
@@ -790,6 +799,9 @@ impl ConsumerGroup {
     }
 
     /// Metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::partitions_for_timeout`].
     pub async fn partitions_for(
         &mut self,
         topic: impl Into<String>,
@@ -797,12 +809,35 @@ impl ConsumerGroup {
         self.consumer.partitions_for(topic).await
     }
 
+    /// [`Self::partitions_for`] with a one-shot timeout (Java `partitionsFor(String, Duration)`).
+    pub async fn partitions_for_timeout(
+        &mut self,
+        topic: impl Into<String>,
+        timeout: Duration,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.partitions_for_timeout(topic, timeout).await
+    }
+
     /// Cluster Metadata for every topic (Java `listTopics`).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_topics_timeout`].
     pub async fn list_topics(&mut self) -> Result<Vec<crate::PartitionInfo>> {
         self.consumer.list_topics().await
     }
 
+    /// [`Self::list_topics`] with a one-shot timeout (Java `listTopics(Duration)`).
+    pub async fn list_topics_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.list_topics_timeout(timeout).await
+    }
+
     /// Log-start offset for each partition.
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::beginning_offsets_timeout`].
     pub async fn beginning_offsets(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
@@ -810,7 +845,22 @@ impl ConsumerGroup {
         self.consumer.beginning_offsets(partitions).await
     }
 
+    /// [`Self::beginning_offsets`] with a one-shot timeout
+    /// (Java `beginningOffsets(Collection, Duration)`).
+    pub async fn beginning_offsets_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
+        self.consumer
+            .beginning_offsets_timeout(partitions, timeout)
+            .await
+    }
+
     /// High-watermark offset for each partition.
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::end_offsets_timeout`].
     pub async fn end_offsets(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
@@ -818,7 +868,20 @@ impl ConsumerGroup {
         self.consumer.end_offsets(partitions).await
     }
 
+    /// [`Self::end_offsets`] with a one-shot timeout
+    /// (Java `endOffsets(Collection, Duration)`).
+    pub async fn end_offsets_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
+        self.consumer.end_offsets_timeout(partitions, timeout).await
+    }
+
     /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_offsets_timeout`].
     pub async fn list_offsets(
         &mut self,
         topic: impl Into<String>,
@@ -827,6 +890,19 @@ impl ConsumerGroup {
     ) -> Result<i64> {
         self.consumer
             .list_offsets(topic, partition, timestamp)
+            .await
+    }
+
+    /// [`Self::list_offsets`] with a one-shot timeout.
+    pub async fn list_offsets_timeout(
+        &mut self,
+        topic: impl Into<String>,
+        partition: i32,
+        timestamp: i64,
+        timeout: Duration,
+    ) -> Result<i64> {
+        self.consumer
+            .list_offsets_timeout(topic, partition, timestamp, timeout)
             .await
     }
 
@@ -839,14 +915,40 @@ impl ConsumerGroup {
         self.consumer.list_offset(partition, timestamp).await
     }
 
+    /// [`Self::list_offset`] with a one-shot timeout.
+    pub async fn list_offset_timeout(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timestamp: i64,
+        timeout: Duration,
+    ) -> Result<i64> {
+        self.consumer
+            .list_offset_timeout(partition, timestamp, timeout)
+            .await
+    }
+
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     ///
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::offsets_for_times_timeout`].
     pub async fn offsets_for_times(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
     ) -> Result<Vec<(TopicPartition, Option<crate::OffsetAndTimestamp>)>> {
         self.consumer.offsets_for_times(queries).await
+    }
+
+    /// [`Self::offsets_for_times`] with a one-shot timeout
+    /// (Java `offsetsForTimes(Map, Duration)`).
+    pub async fn offsets_for_times_timeout(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, Option<crate::OffsetAndTimestamp>)>> {
+        self.consumer
+            .offsets_for_times_timeout(queries, timeout)
+            .await
     }
 
     /// Ask the coordinator to rebalance on the next [`Self::poll`] (Java `enforceRebalance`).

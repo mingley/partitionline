@@ -148,7 +148,9 @@ let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 let _iso = IsolationLevel::ReadCommitted;
 ```
 
-`ProducerConfig::allow_auto_create_topics` is Kafka `allow.auto.create.topics`.
+`ProducerConfig::allow_auto_create_topics` /
+`ConsumerConfig::allow_auto_create_topics` are Kafka `allow.auto.create.topics`
+(this crate defaults to `false`; Java consumer defaults to `true`).
 `ProducerConfig::delivery_timeout` is Kafka `delivery.timeout.ms` (default 30s;
 Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
 (how long `send` waits for metadata and `buffer.memory`; default 30s, Java 60s).

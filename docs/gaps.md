@@ -18,7 +18,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
 | Produce (acks, linger, batches, offsets, `delivery.timeout.ms`, `max.block.ms`, `buffer.memory`, `max.request.size`, `retry.backoff.ms`, `reconnect.backoff.ms`, `connections.max.idle.ms`, `metadata.max.age.ms`) | yes (to Metadata leader; retriable errors refresh and retry with exponential `retry_backoff` / `retry_backoff_max`; failed broker TCP/handshake retries with exponential `reconnect_backoff` / `reconnect_backoff_max`; idle TCP connections close after `connections_max_idle`; `delivery_timeout` caps queue-to-ack; `max_block` caps `send` metadata and `buffer.memory` wait; `buffer_memory` caps queued key+value bytes; `max_request_size` rejects oversized records with `Error::RecordTooLarge` and caps Produce batches; `metadata_max_age` refreshes cached Metadata) | yes | **done** |
-| Fetch with manual assignment | yes (to Metadata leader; retriable errors wait `retry.backoff.ms` then refresh and retry; preferred-replica redirects are immediate; failed broker TCP/handshake retries with `reconnect.backoff.ms`; idle TCP connections close after `connections.max.idle.ms`; `metadata.max.age.ms` refreshes cached Metadata; Fetch sends Metadata `leader_epoch`; `ConsumerRecords` including `nextOffsets`) | yes | **done** |
+| Fetch with manual assignment | yes (to Metadata leader; retriable errors wait `retry.backoff.ms` then refresh and retry; preferred-replica redirects are immediate; failed broker TCP/handshake retries with `reconnect.backoff.ms`; idle TCP connections close after `connections.max.idle.ms`; `metadata.max.age.ms` refreshes cached Metadata; Fetch sends Metadata `leader_epoch`; `ConsumerRecords` including `nextOffsets`; `allow.auto.create.topics` on Metadata) | yes | **done** |
 | OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; `offsets_for_times` with `OffsetAndTimestamp.leader_epoch`; Fetch isolation 0 or 1; `FetchedRecord.leader_epoch`) | yes | **done** |
 | Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; several topics via `join_topics`; cooperative-sticky / KIP-429; `group.instance.id`; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
@@ -44,7 +44,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; rebalance listener too) | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`; `committed_timeout` is Java `committed(Duration)`; group/share RPCs use `request_timeout`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
-| `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
+| `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for` / `Consumer::partitions_for_timeout`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters plus produce-ack / fetch-round latency min/mean/max and p50/p99 over the last 1024 samples; per-topic rows on `topics`; share includes bytes/errors) | yes | **done** |
 | `clientInstanceId` | yes (`Producer` / `Consumer` / `ConsumerGroup` / `ShareGroup` / `Admin`; KIP-714 GetTelemetrySubscriptions, cached after first call) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
@@ -54,7 +54,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `ConsumerGroup::subscribe_matching` / `join_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `unassign`) | yes | **done** |
-| `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
+| `listTopics` / `ConsumerGroupMetadata` | yes (`list_topics_timeout` is Java `listTopics(Duration)`; `partitions_for_timeout` / `beginning_offsets_timeout` / `end_offsets_timeout` / `offsets_for_times_timeout` match the Java `Duration` overloads) | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
 | `close(Duration)` | yes (`Producer::close_timeout`; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`) | yes | **done** |

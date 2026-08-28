@@ -285,8 +285,19 @@ impl ShareGroup {
     }
 
     /// Cluster Metadata for every topic (Java `listTopics`).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_topics_timeout`].
     pub async fn list_topics(&mut self) -> Result<Vec<crate::PartitionInfo>> {
         self.consumer.list_topics().await
+    }
+
+    /// [`Self::list_topics`] with a one-shot timeout (Java `listTopics(Duration)`).
+    pub async fn list_topics_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.list_topics_timeout(timeout).await
     }
 
     /// ShareFetch / ShareAcknowledge counters and poll latency since join

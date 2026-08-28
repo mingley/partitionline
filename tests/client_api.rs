@@ -179,6 +179,7 @@ async fn seek_to_beginning_rereads_from_start() {
 fn config_builders_set_typed_knobs() {
     assert_eq!(ProducerConfig::default().buffer_memory, 32 * 1024 * 1024);
     assert_eq!(ProducerConfig::default().max_request_size, 1024 * 1024);
+    assert!(!ConsumerConfig::default().allow_auto_topic_creation);
     assert_eq!(
         ProducerConfig::default().connections_max_idle,
         Duration::from_millis(9 * 60 * 1000)
@@ -238,6 +239,7 @@ fn config_builders_set_typed_knobs() {
         .reconnect_backoff(Duration::from_millis(15))
         .reconnect_backoff_max(Duration::from_millis(120))
         .connections_max_idle(Duration::from_secs(90))
+        .allow_auto_create_topics(true)
         .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
     assert_eq!(c.max_bytes, 1024);
@@ -256,6 +258,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(c.reconnect_backoff, Duration::from_millis(15));
     assert_eq!(c.reconnect_backoff_max, Duration::from_millis(120));
     assert_eq!(c.connections_max_idle, Duration::from_secs(90));
+    assert!(c.allow_auto_topic_creation);
     assert_eq!(c.connect_timeout, Duration::from_secs(4));
 
     let a = AdminConfig::bootstrap(["127.0.0.1:9092"])
@@ -640,17 +643,29 @@ async fn partitions_for_and_end_offsets() {
         Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
             .await
             .unwrap();
-    let info = consumer.partitions_for("t").await.unwrap();
+    let info = consumer
+        .partitions_for_timeout("t", Duration::from_secs(5))
+        .await
+        .unwrap();
     assert_eq!(info.len(), 1);
     assert_eq!(info[0].partition, 0);
     assert_eq!(info[0].leader, 1);
     assert_eq!(info[0].leader_epoch, 0);
     assert!(info[0].offline_replicas.is_empty());
-    let end = consumer.end_offsets([("t", 0)]).await.unwrap();
+    let end = consumer
+        .end_offsets_timeout([("t", 0)], Duration::from_secs(5))
+        .await
+        .unwrap();
     assert_eq!(end, vec![(TopicPartition::new("t", 0), 1)]);
-    let begin = consumer.beginning_offsets([("t", 0)]).await.unwrap();
+    let begin = consumer
+        .beginning_offsets_timeout([("t", 0)], Duration::from_secs(5))
+        .await
+        .unwrap();
     assert_eq!(begin, vec![(TopicPartition::new("t", 0), 0)]);
-    let listed = consumer.list_topics().await.unwrap();
+    let listed = consumer
+        .list_topics_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
     assert!(listed.iter().any(|p| p.topic == "t" && p.partition == 0));
     consumer
         .assign_many([(TopicPartition::new("t", 0), 0)])
@@ -659,6 +674,26 @@ async fn partitions_for_and_end_offsets() {
     assert_eq!(consumer.assignment().len(), 1);
     consumer.unassign();
     assert!(consumer.assignment().is_empty());
+}
+
+#[tokio::test]
+async fn consumer_metadata_sends_allow_auto_create_topics() {
+    let mock = common::Mock::start().await;
+    let mut on = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).allow_auto_create_topics(true),
+    )
+    .await
+    .unwrap();
+    let _ = on.partitions_for("t").await.unwrap();
+    assert_eq!(mock.last_metadata_allow_auto(), Some(true));
+    on.close().await.unwrap();
+
+    let mut off = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let _ = off.list_topics().await.unwrap();
+    assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    off.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -1349,7 +1384,7 @@ async fn offsets_for_times_finds_record_and_misses() {
             .unwrap();
     let tp = TopicPartition::new("t", 0);
     let hit = consumer
-        .offsets_for_times([(tp.clone(), 1_500)])
+        .offsets_for_times_timeout([(tp.clone(), 1_500)], Duration::from_secs(5))
         .await
         .unwrap();
     assert_eq!(hit.len(), 1);
@@ -1400,7 +1435,13 @@ async fn current_lag_is_hw_minus_position() {
             .await
             .unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
-    assert_eq!(consumer.current_lag(("t", 0)).await.unwrap(), Some(2));
+    assert_eq!(
+        consumer
+            .current_lag_timeout(("t", 0), Duration::from_secs(5))
+            .await
+            .unwrap(),
+        Some(2)
+    );
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 2);
     assert_eq!(

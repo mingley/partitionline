@@ -150,6 +150,10 @@ pub struct ConsumerConfig {
     /// has been unused for this long and reconnect on the next RPC. Default
     /// 9 minutes (Java). Zero never closes for idle.
     pub connections_max_idle: Duration,
+    /// Kafka `allow.auto.create.topics` on Metadata. Default `false` (Java
+    /// consumer defaults to `true`). When `true`, a Metadata request for a
+    /// missing topic may create it on brokers that allow auto-create.
+    pub allow_auto_topic_creation: bool,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
@@ -187,6 +191,7 @@ impl Default for ConsumerConfig {
             reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
             reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
             connections_max_idle: crate::config::DEFAULT_CONNECTIONS_MAX_IDLE,
+            allow_auto_topic_creation: false,
             interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
@@ -368,6 +373,15 @@ impl ConsumerConfig {
     #[must_use]
     pub fn connections_max_idle(mut self, idle: Duration) -> Self {
         self.connections_max_idle = idle;
+        self
+    }
+
+    /// Kafka `allow.auto.create.topics` on Metadata.
+    ///
+    /// Default `false` (this crate; Java consumer defaults to `true`).
+    #[must_use]
+    pub fn allow_auto_create_topics(mut self, allow: bool) -> Self {
+        self.allow_auto_topic_creation = allow;
         self
     }
 
@@ -1129,18 +1143,27 @@ impl Consumer {
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+        self.refresh_metadata_timeout(topics, self.cfg.request_timeout)
+            .await
+    }
+
+    async fn refresh_metadata_timeout(
+        &mut self,
+        topics: Option<&[String]>,
+        timeout: Duration,
+    ) -> Result<()> {
         if self.conn.idle_expired(self.cfg.connections_max_idle) {
             let addr = self.conn.addr().to_string();
             self.conn = self.open_node_conn(&addr).await?;
         }
         let version = self.metadata_version;
-        let timeout = self.cfg.request_timeout;
+        let allow = self.cfg.allow_auto_topic_creation;
         let body = match self
             .conn
             .roundtrip(
                 METADATA,
                 version,
-                |buf| encode_metadata_request(buf, version, topics, false),
+                |buf| encode_metadata_request(buf, version, topics, allow),
                 timeout,
             )
             .await
@@ -1152,7 +1175,7 @@ impl Consumer {
                     .roundtrip(
                         METADATA,
                         version,
-                        |buf| encode_metadata_request(buf, version, topics, false),
+                        |buf| encode_metadata_request(buf, version, topics, allow),
                         timeout,
                     )
                     .await?
@@ -1920,14 +1943,33 @@ impl Consumer {
     }
 
     /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_offsets_timeout`].
     pub async fn list_offsets(
         &mut self,
         topic: impl Into<String>,
         partition: i32,
         timestamp: i64,
     ) -> Result<i64> {
+        let timeout = self.cfg.request_timeout;
+        self.list_offsets_timeout(topic, partition, timestamp, timeout)
+            .await
+    }
+
+    /// [`Self::list_offsets`] with a one-shot timeout.
+    pub async fn list_offsets_timeout(
+        &mut self,
+        topic: impl Into<String>,
+        partition: i32,
+        timestamp: i64,
+        timeout: Duration,
+    ) -> Result<i64> {
         let topic = topic.into();
-        Ok(self.list_offset_at(&topic, partition, timestamp).await?.0)
+        Ok(self
+            .list_offset_at(&topic, partition, timestamp, timeout)
+            .await?
+            .0)
     }
 
     /// [`Self::list_offsets`] for a [`TopicPartition`].
@@ -1936,8 +1978,21 @@ impl Consumer {
         partition: impl Into<TopicPartition>,
         timestamp: i64,
     ) -> Result<i64> {
+        let timeout = self.cfg.request_timeout;
+        self.list_offset_timeout(partition, timestamp, timeout)
+            .await
+    }
+
+    /// [`Self::list_offset`] with a one-shot timeout.
+    pub async fn list_offset_timeout(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timestamp: i64,
+        timeout: Duration,
+    ) -> Result<i64> {
         let tp = partition.into();
-        self.list_offsets(tp.topic, tp.partition, timestamp).await
+        self.list_offsets_timeout(tp.topic, tp.partition, timestamp, timeout)
+            .await
     }
 
     async fn list_offset_at(
@@ -1945,12 +2000,14 @@ impl Consumer {
         topic: &str,
         partition: i32,
         timestamp: i64,
+        timeout: Duration,
     ) -> Result<(i64, i64, i32)> {
-        let deadline = Instant::now() + self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
         loop {
             if self.cluster.leader(topic, partition).is_err() {
                 let topics = [topic.to_string()];
-                self.refresh_metadata(Some(&topics)).await?;
+                self.refresh_metadata_timeout(Some(&topics), timeout)
+                    .await?;
             }
             let (node, _) = self.cluster.leader(topic, partition)?;
             self.connect_node(node).await?;
@@ -1960,7 +2017,6 @@ impl Consumer {
                 .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
                 .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
             let isolation = self.cfg.isolation_level.as_i8();
-            let timeout = self.cfg.request_timeout;
             let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
             let body = {
                 let conn = self
@@ -2021,7 +2077,8 @@ impl Consumer {
                         return Err(Error::Timeout);
                     }
                     let topics = [topic.to_string()];
-                    self.refresh_metadata(Some(&topics)).await?;
+                    self.refresh_metadata_timeout(Some(&topics), timeout)
+                        .await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2114,9 +2171,22 @@ impl Consumer {
     }
 
     /// Partition metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::partitions_for_timeout`].
     pub async fn partitions_for(&mut self, topic: impl Into<String>) -> Result<Vec<PartitionInfo>> {
+        let timeout = self.cfg.request_timeout;
+        self.partitions_for_timeout(topic, timeout).await
+    }
+
+    /// [`Self::partitions_for`] with a one-shot timeout (Java `partitionsFor(String, Duration)`).
+    pub async fn partitions_for_timeout(
+        &mut self,
+        topic: impl Into<String>,
+        timeout: Duration,
+    ) -> Result<Vec<PartitionInfo>> {
         let topic = topic.into();
-        self.refresh_metadata(Some(std::slice::from_ref(&topic)))
+        self.refresh_metadata_timeout(Some(std::slice::from_ref(&topic)), timeout)
             .await?;
         let infos = self.partition_infos(Some(topic.as_str()))?;
         if infos.is_empty() {
@@ -2126,8 +2196,17 @@ impl Consumer {
     }
 
     /// Cluster Metadata for every topic (Java `listTopics`).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_topics_timeout`].
     pub async fn list_topics(&mut self) -> Result<Vec<PartitionInfo>> {
-        self.refresh_metadata(None).await?;
+        let timeout = self.cfg.request_timeout;
+        self.list_topics_timeout(timeout).await
+    }
+
+    /// [`Self::list_topics`] with a one-shot timeout (Java `listTopics(Duration)`).
+    pub async fn list_topics_timeout(&mut self, timeout: Duration) -> Result<Vec<PartitionInfo>> {
+        self.refresh_metadata_timeout(None, timeout).await?;
         self.partition_infos(None)
     }
 
@@ -2139,19 +2218,49 @@ impl Consumer {
     }
 
     /// Log-start offset for each partition (`ListOffsets` earliest).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::beginning_offsets_timeout`].
     pub async fn beginning_offsets(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
     ) -> Result<Vec<(TopicPartition, i64)>> {
-        self.offsets_at(partitions, crate::EARLIEST_TIMESTAMP).await
+        let timeout = self.cfg.request_timeout;
+        self.beginning_offsets_timeout(partitions, timeout).await
+    }
+
+    /// [`Self::beginning_offsets`] with a one-shot timeout
+    /// (Java `beginningOffsets(Collection, Duration)`).
+    pub async fn beginning_offsets_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
+        self.offsets_at(partitions, crate::EARLIEST_TIMESTAMP, timeout)
+            .await
     }
 
     /// High-watermark offset for each partition (`ListOffsets` latest).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::end_offsets_timeout`].
     pub async fn end_offsets(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
     ) -> Result<Vec<(TopicPartition, i64)>> {
-        self.offsets_at(partitions, crate::LATEST_TIMESTAMP).await
+        let timeout = self.cfg.request_timeout;
+        self.end_offsets_timeout(partitions, timeout).await
+    }
+
+    /// [`Self::end_offsets`] with a one-shot timeout
+    /// (Java `endOffsets(Collection, Duration)`).
+    pub async fn end_offsets_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
+        self.offsets_at(partitions, crate::LATEST_TIMESTAMP, timeout)
+            .await
     }
 
     /// High watermark minus position (Java `currentLag`).
@@ -2161,10 +2270,25 @@ impl Consumer {
         &mut self,
         partition: impl Into<TopicPartition>,
     ) -> Result<Option<i64>> {
+        let timeout = self.cfg.request_timeout;
+        self.current_lag_timeout(partition, timeout).await
+    }
+
+    /// [`Self::current_lag`] with a one-shot timeout for the ListOffsets RPC.
+    pub async fn current_lag_timeout(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timeout: Duration,
+    ) -> Result<Option<i64>> {
         let tp = partition.into();
         let pos = self.position_of(tp.clone())?;
         let hw = self
-            .list_offsets(tp.topic.clone(), tp.partition, crate::LATEST_TIMESTAMP)
+            .list_offsets_timeout(
+                tp.topic.clone(),
+                tp.partition,
+                crate::LATEST_TIMESTAMP,
+                timeout,
+            )
             .await?;
         if hw < 0 {
             Ok(None)
@@ -2177,15 +2301,28 @@ impl Consumer {
     ///
     /// Partitions with no matching record return `None`.
     /// [`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::offsets_for_times_timeout`].
     pub async fn offsets_for_times(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+    ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
+        let timeout = self.cfg.request_timeout;
+        self.offsets_for_times_timeout(queries, timeout).await
+    }
+
+    /// [`Self::offsets_for_times`] with a one-shot timeout
+    /// (Java `offsetsForTimes(Map, Duration)`).
+    pub async fn offsets_for_times_timeout(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+        timeout: Duration,
     ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
         let mut out = Vec::new();
         for (tp, timestamp) in queries {
             let tp = tp.into();
             let (offset, ts, epoch) = self
-                .list_offset_at(&tp.topic, tp.partition, timestamp)
+                .list_offset_at(&tp.topic, tp.partition, timestamp, timeout)
                 .await?;
             let found = if offset < 0 {
                 None
@@ -2205,12 +2342,13 @@ impl Consumer {
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
         timestamp: i64,
+        timeout: Duration,
     ) -> Result<Vec<(TopicPartition, i64)>> {
         let mut out = Vec::new();
         for p in partitions {
             let tp = p.into();
             let offset = self
-                .list_offsets(tp.topic.clone(), tp.partition, timestamp)
+                .list_offsets_timeout(tp.topic.clone(), tp.partition, timestamp, timeout)
                 .await?;
             out.push((tp, offset));
         }

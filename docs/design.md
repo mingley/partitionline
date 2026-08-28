@@ -40,7 +40,10 @@ ListOffsets for every assigned partition; `seek_to_beginning_of` /
 assigned partitions without dropping them; pause survives group rebalance.
 `position` is the next fetch offset (`position_of` takes `TopicPartition`).
 `partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
-ListOffsets and take `TopicPartition`. `partitions_for` includes leader epoch
+ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
+(Java `partitionsFor(String, Duration)` / `beginningOffsets` /
+`endOffsets` / `listTopics(Duration)` / `offsetsForTimes(Map, Duration)`).
+`partitions_for` includes leader epoch
 and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
@@ -57,7 +60,8 @@ them, then rejoins so the new owner can take them. `ConsumerConfig::group_instan
 Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
-offset (`Earliest` by default). `committed` / `committed_timeout` are OffsetFetch
+offset (`Earliest` by default). `ConsumerConfig::allow_auto_create_topics` is
+Kafka `allow.auto.create.topics` on Metadata (default `false`). `committed` / `committed_timeout` are OffsetFetch
 for the current assignment (Java `committed` / `committed(Duration)`). `commit` / `commit_timeout` are Java `commitSync` / `commitSync(Duration)`. `commit_offsets` commits caller-chosen offsets
 ([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
 `commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)

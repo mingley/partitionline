@@ -94,9 +94,9 @@ use partitionline::protocol::admin::{
     CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
-    decode_produce_request, encode_api_versions_response, encode_metadata_response,
-    encode_produce_response, ApiVersion, ApiVersionsResponse, Broker, MetadataResponse,
-    PartitionMetadata, ProducePartitionResponse, TopicMetadata,
+    decode_metadata_request, decode_produce_request, encode_api_versions_response,
+    encode_metadata_response, encode_produce_response, ApiVersion, ApiVersionsResponse, Broker,
+    MetadataResponse, PartitionMetadata, ProducePartitionResponse, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -212,6 +212,7 @@ struct State {
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
+    last_metadata_allow_auto: Option<bool>,
     brokers: Vec<Broker>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
@@ -429,6 +430,7 @@ fn new_state(
         log_start: HashMap::new(),
         created_topics,
         metadata_calls: 0,
+        last_metadata_allow_auto: None,
         brokers: Vec::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
@@ -966,6 +968,10 @@ impl Mock {
 
     pub fn metadata_calls(&self) -> u32 {
         self.state.lock().metadata_calls
+    }
+
+    pub fn last_metadata_allow_auto(&self) -> Option<bool> {
+        self.state.lock().last_metadata_allow_auto
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -2048,6 +2054,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             METADATA => {
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
+                let (_, allow) =
+                    decode_metadata_request(&mut frame.clone(), header.api_version).unwrap();
+                st.last_metadata_allow_auto = Some(allow);
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,

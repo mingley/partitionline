@@ -202,6 +202,52 @@ pub fn encode_metadata_request(
     Ok(())
 }
 
+/// Decode Metadata request: topic names (`None` is all topics) and `allow.auto.create.topics`.
+pub fn decode_metadata_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Option<Vec<String>>, bool)> {
+    let flexible = version >= 9;
+    let topics = match buf::get_array_len(buf, flexible)? {
+        None => None,
+        Some(n) => {
+            let mut names = Vec::with_capacity(n);
+            for _ in 0..n {
+                if version >= 10 {
+                    buf::need(buf, 16)?;
+                    buf.advance(16);
+                }
+                let name = buf::get_string(buf, flexible)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+                if let Some(name) = name {
+                    names.push(name);
+                }
+            }
+            Some(names)
+        }
+    };
+    let allow_auto = if version >= 4 {
+        buf::need(buf, 1)?;
+        buf.get_u8() != 0
+    } else {
+        false
+    };
+    if (8..=10).contains(&version) {
+        buf::need(buf, 1)?;
+        let _include_cluster = buf.get_u8();
+    }
+    if version >= 8 {
+        buf::need(buf, 1)?;
+        let _include_topic = buf.get_u8();
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((topics, allow_auto))
+}
+
 fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
@@ -768,5 +814,21 @@ mod tests {
         encode_metadata_response(&mut buf, 12, &resp).unwrap();
         let decoded = decode_metadata_response(&mut &buf[..], 12).unwrap();
         assert_eq!(decoded, resp);
+    }
+
+    #[test]
+    fn metadata_request_roundtrips_topics_and_allow_auto() {
+        let topics = ["orders".to_string(), "payments".to_string()];
+        let mut buf = BytesMut::new();
+        encode_metadata_request(&mut buf, 12, Some(&topics), true).unwrap();
+        let (got, allow) = decode_metadata_request(&mut &buf[..], 12).unwrap();
+        assert_eq!(got.as_deref(), Some(topics.as_slice()));
+        assert!(allow);
+
+        let mut all = BytesMut::new();
+        encode_metadata_request(&mut all, 12, None, false).unwrap();
+        let (got, allow) = decode_metadata_request(&mut &all[..], 12).unwrap();
+        assert!(got.is_none());
+        assert!(!allow);
     }
 }
