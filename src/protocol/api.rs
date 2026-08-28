@@ -98,20 +98,24 @@ pub fn decode_api_versions_response<B: Buf>(
         });
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
-    let (supported_features, finalized_features_epoch, finalized_features, zk_migration_ready) =
-        if flexible {
-            decode_api_versions_tagged_fields(buf)?
-        } else {
-            (Vec::new(), None, Vec::new(), false)
-        };
+    let tagged = if flexible {
+        decode_api_versions_tagged_fields(buf)?
+    } else {
+        ApiVersionsTaggedFields {
+            supported: Vec::new(),
+            epoch: None,
+            finalized: Vec::new(),
+            zk_migration_ready: false,
+        }
+    };
     Ok(ApiVersionsResponse {
         error_code,
         api_keys,
         throttle_time_ms,
-        supported_features,
-        finalized_features_epoch,
-        finalized_features,
-        zk_migration_ready,
+        supported_features: tagged.supported,
+        finalized_features_epoch: tagged.epoch,
+        finalized_features: tagged.finalized,
+        zk_migration_ready: tagged.zk_migration_ready,
     })
 }
 
@@ -139,6 +143,13 @@ pub fn encode_api_versions_response(
         encode_api_versions_tagged_fields(buf, resp)?;
     }
     Ok(())
+}
+
+struct ApiVersionsTaggedFields {
+    supported: Vec<SupportedFeatureKey>,
+    epoch: Option<i64>,
+    finalized: Vec<FinalizedFeatureKey>,
+    zk_migration_ready: bool,
 }
 
 fn leftover_empty<B: Buf>(buf: &B, what: &'static str) -> Result<()> {
@@ -228,14 +239,7 @@ fn encode_api_versions_tagged_fields(buf: &mut BytesMut, resp: &ApiVersionsRespo
     buf::put_tagged_fields(buf, &tags)
 }
 
-fn decode_api_versions_tagged_fields<B: Buf>(
-    buf: &mut B,
-) -> Result<(
-    Vec<SupportedFeatureKey>,
-    Option<i64>,
-    Vec<FinalizedFeatureKey>,
-    bool,
-)> {
+fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsTaggedFields> {
     let tags = buf::get_tagged_fields(buf)?;
     let mut supported = Vec::new();
     let mut epoch = None;
@@ -267,7 +271,12 @@ fn decode_api_versions_tagged_fields<B: Buf>(
             _ => {}
         }
     }
-    Ok((supported, epoch, finalized, zk))
+    Ok(ApiVersionsTaggedFields {
+        supported,
+        epoch,
+        finalized,
+        zk_migration_ready: zk,
+    })
 }
 
 /// One broker in a Metadata response.
