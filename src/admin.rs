@@ -23,17 +23,18 @@ use crate::protocol::admin::{
     decode_describe_configs_response, decode_describe_groups_response,
     decode_describe_producers_response, decode_describe_transactions_response,
     decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
-    decode_list_partition_reassignments_response, decode_list_transactions_response,
-    decode_unregister_broker_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_groups_request, encode_describe_producers_request,
-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
-    encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
+    decode_list_groups_response, decode_list_partition_reassignments_response,
+    decode_list_transactions_response, decode_unregister_broker_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
+    encode_consumer_group_describe_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_groups_request,
+    encode_describe_producers_request, encode_describe_transactions_request,
+    encode_describe_user_scram_credentials_request, encode_incremental_alter_configs_request,
+    encode_list_groups_request, encode_list_partition_reassignments_request,
     encode_list_transactions_request, encode_unregister_broker_request,
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
@@ -50,7 +51,7 @@ use crate::protocol::api_keys::{
     CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
     DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, UNREGISTER_BROKER,
     UPDATE_FEATURES,
 };
@@ -68,7 +69,7 @@ pub use crate::protocol::admin::{
     ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
     ConsumerGroupMember, ConsumerGroupTopicPartitions, DescribeProducersPartition,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedGroupMember, ScramCredentialInfo, TransactionListing, TransactionState,
+    DescribedGroupMember, ListedGroup, ScramCredentialInfo, TransactionListing, TransactionState,
     TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
     QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -357,6 +358,7 @@ pub struct Admin {
     list_transactions_version: i16,
     consumer_group_describe_version: i16,
     describe_groups_version: i16,
+    list_groups_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -547,6 +549,10 @@ impl Admin {
             .get(&DESCRIBE_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 6, 6))
             .ok_or_else(|| Error::Unsupported("broker does not support DescribeGroups".into()))?;
+        let list_groups_version = versions
+            .get(&LIST_GROUPS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support ListGroups".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -579,6 +585,7 @@ impl Admin {
             list_transactions_version,
             consumer_group_describe_version,
             describe_groups_version,
+            list_groups_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2179,6 +2186,43 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// List consumer groups (ListGroups api 16).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official Apache
+    /// JSON listeners are `broker` only. Official listed errors are
+    /// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
+    /// (15), `AUTHORIZATION_FAILED` (29). `NOT_COORDINATOR` (16) is not
+    /// listed. This is not a group-coordinator hop, not a controller hop,
+    /// and not a partition-leader hop: there is no FindCoordinator,
+    /// no Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41)
+    /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
+    /// `error_code` is the INT16 at bytes 4–5, after throttle — not a
+    /// first-group field.
+    pub async fn list_groups(
+        &mut self,
+        states_filter: &[&str],
+        types_filter: &[&str],
+    ) -> Result<Vec<ListedGroup>> {
+        let states: Vec<String> = states_filter.iter().map(|s| (*s).to_string()).collect();
+        let types: Vec<String> = types_filter.iter().map(|s| (*s).to_string()).collect();
+        let version = self.list_groups_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                LIST_GROUPS,
+                version,
+                |buf| encode_list_groups_request(buf, &states, &types),
+                timeout,
+            )
+            .await?;
+        let resp = decode_list_groups_response(&mut body.clone())?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ListGroups"));
+        }
+        Ok(resp.groups)
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {
