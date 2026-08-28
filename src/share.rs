@@ -15,15 +15,16 @@ use tokio::sync::watch;
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
-use crate::group::{coord_roundtrip, discover_coord};
+use crate::group::{collect_topics, coord_roundtrip, discover_coord};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
 use crate::protocol::group::COORDINATOR_SHARE;
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
     decode_share_group_heartbeat_response, encode_share_acknowledge_request,
-    encode_share_fetch_request, encode_share_group_heartbeat_request, AcknowledgementBatch,
-    ShareFetchPartition, ShareFetchTopic, ShareGroupHeartbeatRequest, ACK_ACCEPT, ACK_REJECT,
+    encode_share_acknowledge_topics, encode_share_fetch_request,
+    encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
+    ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
     ACK_RELEASE,
 };
 
@@ -50,9 +51,9 @@ pub struct ShareGroup {
     group_id: String,
     member_id: String,
     member_epoch: i32,
-    topic: String,
-    topic_id: [u8; 16],
-    partitions: Vec<i32>,
+    topics: Vec<String>,
+    assigned: Vec<(String, i32)>,
+    topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
     hb_err: Arc<AtomicI16>,
@@ -77,13 +78,23 @@ fn new_member_id() -> Result<String> {
 }
 
 impl ShareGroup {
+    /// Join a share group. One topic.
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         topic: impl Into<String>,
     ) -> Result<Self> {
+        Self::join_topics(cfg, group_id, std::iter::once(topic)).await
+    }
+
+    /// Join a share group. Several topics.
+    pub async fn join_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
         let group_id = group_id.into();
-        let topic = topic.into();
+        let topics = collect_topics(topics)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
@@ -97,9 +108,9 @@ impl ShareGroup {
             group_id,
             member_id,
             member_epoch: 0,
-            topic,
-            topic_id: [0u8; 16],
-            partitions: Vec::new(),
+            topics,
+            assigned: Vec::new(),
+            topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             hb_err,
             hb_epoch,
@@ -114,20 +125,23 @@ impl ShareGroup {
         &self.member_id
     }
 
+    /// Subscribed topic names, in join order.
+    pub fn topics(&self) -> &[String] {
+        &self.topics
+    }
+
     pub fn assignment(&self) -> Vec<(String, i32)> {
-        self.partitions
-            .iter()
-            .map(|p| (self.topic.clone(), *p))
-            .collect()
+        self.assigned.clone()
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
+        self.consumer.refresh_topics(&self.topics).await?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
             member_epoch: 0,
-            subscribed_topic_names: Some(vec![self.topic.clone()]),
+            subscribed_topic_names: Some(self.topics.clone()),
         };
         let body = self
             .coord
@@ -148,19 +162,41 @@ impl ShareGroup {
             }
         }
         self.member_epoch = resp.member_epoch;
-        self.partitions.clear();
-        if let Some(assigned) = resp.assignment {
-            for tp in assigned {
-                self.topic_id = tp.topic_id;
-                self.partitions.extend(tp.partitions);
+        self.apply_share_assignment(resp.assignment.as_deref());
+        if self.assigned.is_empty() {
+            if let Some(topic) = self.topics.first() {
+                self.assigned.push((topic.clone(), 0));
+                let _ = self.topic_ids.entry(topic.clone()).or_insert([0u8; 16]);
             }
-        }
-        if self.partitions.is_empty() {
-            self.partitions.push(0);
         }
         self.hb_epoch.store(self.member_epoch, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
         Ok(())
+    }
+
+    fn apply_share_assignment(&mut self, assignment: Option<&[ShareTopicPartitions]>) {
+        self.assigned.clear();
+        self.topic_ids.clear();
+        let Some(assigned) = assignment else {
+            return;
+        };
+        let id_to_name = self.consumer.topic_id_names();
+        for tp in assigned {
+            let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
+                if self.topics.len() == 1 || tp.topic_id == [0u8; 16] {
+                    self.topics.first().cloned()
+                } else {
+                    None
+                }
+            });
+            let Some(name) = name else {
+                continue;
+            };
+            let _ = self.topic_ids.insert(name.clone(), tp.topic_id);
+            for p in &tp.partitions {
+                self.assigned.push((name.clone(), *p));
+            }
+        }
     }
 
     pub async fn poll(&mut self) -> Result<Vec<ShareRecord>> {
@@ -176,8 +212,7 @@ impl ShareGroup {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    self.consumer.invalidate_topic(&self.topic);
-                    self.consumer.refresh_topic_metadata(&self.topic).await?;
+                    self.refresh_assigned_metadata().await?;
                 }
                 Err(e) => return Err(e),
             }
@@ -210,34 +245,55 @@ impl ShareGroup {
         self.consumer.drop_node(node);
     }
 
-    async fn leaders_of(&mut self, parts: &[i32]) -> Result<HashMap<i32, Vec<i32>>> {
-        self.consumer.ensure_topic_metadata(&self.topic).await?;
-        let mut by_leader: HashMap<i32, Vec<i32>> = HashMap::new();
-        for p in parts {
-            let (node, _) = self.consumer.leader_of(&self.topic, *p)?;
-            by_leader.entry(node).or_default().push(*p);
+    async fn refresh_assigned_metadata(&mut self) -> Result<()> {
+        let topics = self.topics.clone();
+        for t in &topics {
+            self.consumer.invalidate_topic(t);
+        }
+        self.consumer.refresh_topics(&topics).await
+    }
+
+    async fn leaders_of(
+        &mut self,
+        tps: &[(String, i32)],
+    ) -> Result<HashMap<i32, Vec<(String, i32)>>> {
+        for (topic, _) in tps {
+            self.consumer.ensure_topic_metadata(topic).await?;
+        }
+        let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
+        for (topic, p) in tps {
+            let (node, _) = self.consumer.leader_of(topic, *p)?;
+            by_leader.entry(node).or_default().push((topic.clone(), *p));
         }
         Ok(by_leader)
     }
 
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
-        let assigned = self.partitions.clone();
+        let assigned = self.assigned.clone();
         let by_leader = self.leaders_of(&assigned).await?;
         let timeout = Duration::from_secs(30);
         let max_wait = 10i32;
         let mut out = Vec::new();
-        for (node, parts) in by_leader {
+        for (node, tps) in by_leader {
             let epoch = self.session_epoch(node);
-            let topics = vec![ShareFetchTopic {
-                topic_id: self.topic_id,
-                partitions: parts
-                    .iter()
-                    .map(|p| ShareFetchPartition {
-                        partition: *p,
-                        acknowledgements: Vec::new(),
-                    })
-                    .collect(),
-            }];
+            let mut by_id: HashMap<[u8; 16], Vec<i32>> = HashMap::new();
+            for (topic, p) in &tps {
+                let id = self.topic_ids.get(topic).copied().unwrap_or([0u8; 16]);
+                by_id.entry(id).or_default().push(*p);
+            }
+            let topics: Vec<ShareFetchTopic> = by_id
+                .into_iter()
+                .map(|(topic_id, partitions)| ShareFetchTopic {
+                    topic_id,
+                    partitions: partitions
+                        .into_iter()
+                        .map(|p| ShareFetchPartition {
+                            partition: p,
+                            acknowledgements: Vec::new(),
+                        })
+                        .collect(),
+                })
+                .collect();
             let body = self
                 .consumer
                 .roundtrip_node(
@@ -290,6 +346,7 @@ impl ShareGroup {
             }
             self.advance_node_epoch(node);
             for topic in fetched {
+                let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
                     for batch in part.records {
                         for rec in batch.records {
@@ -302,7 +359,7 @@ impl ShareGroup {
                                 .map(|a| a.delivery_count)
                                 .unwrap_or(1);
                             out.push(ShareRecord {
-                                topic: self.topic.clone(),
+                                topic: name.clone(),
                                 partition: part.partition,
                                 offset: rec.offset,
                                 timestamp: rec.timestamp,
@@ -316,6 +373,15 @@ impl ShareGroup {
             }
         }
         Ok(out)
+    }
+
+    fn name_for_topic_id(&self, id: [u8; 16]) -> String {
+        self.topic_ids
+            .iter()
+            .find(|(_, v)| **v == id)
+            .map(|(n, _)| n.clone())
+            .or_else(|| self.topics.first().cloned())
+            .unwrap_or_default()
     }
 
     async fn acknowledge(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
@@ -334,8 +400,7 @@ impl ShareGroup {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    self.consumer.invalidate_topic(&self.topic);
-                    self.consumer.refresh_topic_metadata(&self.topic).await?;
+                    self.refresh_assigned_metadata().await?;
                 }
                 Err(e) => return Err(e),
             }
@@ -344,24 +409,32 @@ impl ShareGroup {
 
     async fn acknowledge_leaders(
         &mut self,
-        partitions: &[(i32, Vec<AcknowledgementBatch>)],
+        partitions: &[(String, i32, Vec<AcknowledgementBatch>)],
     ) -> Result<()> {
-        let parts: Vec<i32> = partitions.iter().map(|(p, _)| *p).collect();
-        let by_leader = self.leaders_of(&parts).await?;
+        let tps: Vec<(String, i32)> = partitions.iter().map(|(t, p, _)| (t.clone(), *p)).collect();
+        let by_leader = self.leaders_of(&tps).await?;
         let timeout = Duration::from_secs(30);
-        for (node, node_parts) in by_leader {
+        for (node, node_tps) in by_leader {
             let epoch = self.session_epoch(node);
             if epoch <= 0 {
                 return Err(Error::protocol(
                     "ShareAcknowledge requires an open share session (poll first)",
                 ));
             }
-            let batches: Vec<(i32, Vec<AcknowledgementBatch>)> = partitions
-                .iter()
-                .filter(|(p, _)| node_parts.contains(p))
-                .map(|(p, b)| (*p, b.clone()))
-                .collect();
-            let topic_id = self.topic_id;
+            let mut topics: Vec<ShareAckTopic> = Vec::new();
+            for (topic, part, batches) in partitions {
+                if !node_tps.iter().any(|(t, p)| t == topic && p == part) {
+                    continue;
+                }
+                let id = self.topic_ids.get(topic).copied().unwrap_or([0u8; 16]);
+                match topics.iter_mut().find(|t| t.topic_id == id) {
+                    Some(slot) => slot.partitions.push((*part, batches.clone())),
+                    None => topics.push(ShareAckTopic {
+                        topic_id: id,
+                        partitions: vec![(*part, batches.clone())],
+                    }),
+                }
+            }
             let body = self
                 .consumer
                 .roundtrip_node(
@@ -369,13 +442,12 @@ impl ShareGroup {
                     SHARE_ACKNOWLEDGE,
                     1,
                     |buf| {
-                        encode_share_acknowledge_request(
+                        encode_share_acknowledge_topics(
                             buf,
                             &self.group_id,
                             &self.member_id,
                             epoch,
-                            topic_id,
-                            &batches,
+                            &topics,
                         )
                     },
                     timeout,
@@ -413,7 +485,6 @@ impl ShareGroup {
             return Ok(());
         }
         let timeout = Duration::from_secs(30);
-        let topic_id = self.topic_id;
         let mut last = Ok(());
         for node in open {
             let body = self
@@ -428,7 +499,7 @@ impl ShareGroup {
                             &self.group_id,
                             &self.member_id,
                             -1,
-                            topic_id,
+                            [0u8; 16],
                             &[],
                         )
                     },
@@ -567,13 +638,19 @@ fn share_session_reset(e: &Error) -> bool {
 ///
 /// Contiguous offsets with the same type become one batch with a single
 /// `AcknowledgeType` (applies to the whole range). Gaps start a new batch.
-fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<(i32, Vec<AcknowledgementBatch>)> {
-    let mut by_part: BTreeMap<i32, Vec<i64>> = BTreeMap::new();
+fn acknowledgement_batches(
+    recs: &[ShareRecord],
+    ack: i8,
+) -> Vec<(String, i32, Vec<AcknowledgementBatch>)> {
+    let mut by_part: BTreeMap<(String, i32), Vec<i64>> = BTreeMap::new();
     for rec in recs {
-        by_part.entry(rec.partition).or_default().push(rec.offset);
+        by_part
+            .entry((rec.topic.clone(), rec.partition))
+            .or_default()
+            .push(rec.offset);
     }
     let mut out = Vec::with_capacity(by_part.len());
-    for (partition, mut offs) in by_part {
+    for ((topic, partition), mut offs) in by_part {
         offs.sort_unstable();
         offs.dedup();
         let mut batches = Vec::new();
@@ -600,7 +677,7 @@ fn acknowledgement_batches(recs: &[ShareRecord], ack: i8) -> Vec<(i32, Vec<Ackno
             });
         }
         if !batches.is_empty() {
-            out.push((partition, batches));
+            out.push((topic, partition, batches));
         }
     }
     out
@@ -627,14 +704,16 @@ mod tests {
         let recs = [rec(0, 1), rec(0, 3), rec(0, 2), rec(1, 9)];
         let batches = acknowledgement_batches(&recs, ACK_ACCEPT);
         assert_eq!(batches.len(), 2);
-        assert_eq!(batches[0].0, 0);
-        assert_eq!(batches[0].1.len(), 1);
-        assert_eq!(batches[0].1[0].first_offset, 1);
-        assert_eq!(batches[0].1[0].last_offset, 3);
-        assert_eq!(batches[0].1[0].types, vec![ACK_ACCEPT]);
-        assert_eq!(batches[1].0, 1);
-        assert_eq!(batches[1].1[0].first_offset, 9);
-        assert_eq!(batches[1].1[0].last_offset, 9);
+        assert_eq!(batches[0].0, "t");
+        assert_eq!(batches[0].1, 0);
+        assert_eq!(batches[0].2.len(), 1);
+        assert_eq!(batches[0].2[0].first_offset, 1);
+        assert_eq!(batches[0].2[0].last_offset, 3);
+        assert_eq!(batches[0].2[0].types, vec![ACK_ACCEPT]);
+        assert_eq!(batches[1].0, "t");
+        assert_eq!(batches[1].1, 1);
+        assert_eq!(batches[1].2[0].first_offset, 9);
+        assert_eq!(batches[1].2[0].last_offset, 9);
     }
 
     #[test]
@@ -661,10 +740,10 @@ mod tests {
     fn acknowledgement_batches_splits_on_gap() {
         let recs = [rec(0, 1), rec(0, 4)];
         let batches = acknowledgement_batches(&recs, ACK_REJECT);
-        assert_eq!(batches[0].1.len(), 2);
-        assert_eq!(batches[0].1[0].first_offset, 1);
-        assert_eq!(batches[0].1[0].last_offset, 1);
-        assert_eq!(batches[0].1[1].first_offset, 4);
-        assert_eq!(batches[0].1[1].types, vec![ACK_REJECT]);
+        assert_eq!(batches[0].2.len(), 2);
+        assert_eq!(batches[0].2[0].first_offset, 1);
+        assert_eq!(batches[0].2[0].last_offset, 1);
+        assert_eq!(batches[0].2[1].first_offset, 4);
+        assert_eq!(batches[0].2[1].types, vec![ACK_REJECT]);
     }
 }

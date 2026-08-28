@@ -48,7 +48,8 @@ partition leader at once when there is more than one.
 
 ## Groups
 
-Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups.
+Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups
+(`ShareGroup::join` / `join_topics`).
 `join_topics` / `join_sticky_topics` / `join_consumer_topics` subscribe to
 several topics. Set `group.instance.id` with
 `ConsumerConfig::group_instance_id` for static membership.

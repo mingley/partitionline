@@ -32,6 +32,9 @@ among members who subscribed to it. `ConsumerConfig::group_instance_id` is
 Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 
+`ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
+topics.
+
 ## Wire format notes (for people changing encode/decode)
 
 - Request `ClientId` is always a classic nullable string, even on flexible headers.

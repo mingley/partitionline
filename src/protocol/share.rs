@@ -457,16 +457,44 @@ pub fn encode_share_acknowledge_request(
     topic_id: [u8; 16],
     partitions: &[(i32, Vec<AcknowledgementBatch>)],
 ) -> crate::error::Result<()> {
+    if partitions.is_empty() {
+        encode_share_acknowledge_topics(buf, group_id, member_id, share_session_epoch, &[])
+    } else {
+        encode_share_acknowledge_topics(
+            buf,
+            group_id,
+            member_id,
+            share_session_epoch,
+            &[ShareAckTopic {
+                topic_id,
+                partitions: partitions.to_vec(),
+            }],
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ShareAckTopic {
+    pub topic_id: [u8; 16],
+    pub partitions: Vec<(i32, Vec<AcknowledgementBatch>)>,
+}
+
+/// ShareAcknowledge with several topics in one request.
+pub fn encode_share_acknowledge_topics(
+    buf: &mut BytesMut,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    topics: &[ShareAckTopic],
+) -> crate::error::Result<()> {
     buf::put_compact_string(buf, Some(group_id))?;
     buf::put_compact_string(buf, Some(member_id))?;
     buf.put_i32(share_session_epoch);
-    if partitions.is_empty() {
-        buf::put_array_len(buf, true, Some(0))?;
-    } else {
-        buf::put_array_len(buf, true, Some(1))?;
-        buf.extend_from_slice(&topic_id);
-        buf::put_array_len(buf, true, Some(partitions.len()))?;
-        for (partition, batches) in partitions {
+    buf::put_array_len(buf, true, Some(topics.len()))?;
+    for t in topics {
+        buf.extend_from_slice(&t.topic_id);
+        buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+        for (partition, batches) in &t.partitions {
             buf.put_i32(*partition);
             encode_ack_batches(buf, batches)?;
             buf::put_empty_tagged_fields(buf);

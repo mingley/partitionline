@@ -1662,9 +1662,21 @@ async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, payload: &[u8]) -> s
     stream.write_all(&out).await
 }
 
+fn topic_name_for_id(st: &State, id: [u8; 16]) -> String {
+    if id == [0u8; 16] {
+        return "t".into();
+    }
+    st.created_topics
+        .keys()
+        .find(|name| mock_topic_id(name) == id)
+        .cloned()
+        .unwrap_or_else(|| "t".into())
+}
+
 fn apply_share_acks(
     st: &mut State,
     member_id: &str,
+    topic: &str,
     partition: i32,
     batches: &[AcknowledgementBatch],
 ) {
@@ -1680,7 +1692,7 @@ fn apply_share_acks(
                     None => break,
                 }
             };
-            let k = ("t".to_string(), partition, off);
+            let k = (topic.to_string(), partition, off);
             let owned = st
                 .share_acquired
                 .get(&k)
@@ -1698,18 +1710,17 @@ fn apply_share_acks(
 }
 
 /// KIP-932 share session epoch. Returns 0 or a broker error.
-fn share_partition_leader(st: &State, partition: i32) -> i32 {
+fn share_partition_leader(st: &State, topic: &str, partition: i32) -> i32 {
     st.partition_leaders
-        .get(&("t".to_string(), partition))
+        .get(&(topic.to_string(), partition))
         .copied()
         .or_else(|| st.brokers.first().map(|b| b.node_id))
         .unwrap_or(1)
 }
 
-fn share_wrong_leader(st: &State, node_id: i32, partitions: &[i32]) -> bool {
-    partitions
-        .iter()
-        .any(|p| share_partition_leader(st, *p) != node_id)
+fn share_wrong_leader(st: &State, node_id: i32, tps: &[(String, i32)]) -> bool {
+    tps.iter()
+        .any(|(topic, p)| share_partition_leader(st, topic, *p) != node_id)
 }
 
 fn share_session_step(st: &mut State, member_id: &str, epoch: i32) -> i16 {
@@ -3457,14 +3468,28 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
                     std::cmp::Ordering::Less => (req.member_id, -1, None),
-                    std::cmp::Ordering::Equal => (
-                        req.member_id,
-                        1,
-                        Some(vec![ShareTopicPartitions {
-                            topic_id: [0u8; 16],
-                            partitions: vec![0],
-                        }]),
-                    ),
+                    std::cmp::Ordering::Equal => {
+                        let names = req
+                            .subscribed_topic_names
+                            .clone()
+                            .filter(|n| !n.is_empty())
+                            .unwrap_or_else(|| vec!["t".into()]);
+                        let assignment = names
+                            .iter()
+                            .map(|name| {
+                                let npart = st
+                                    .created_topics
+                                    .get(name)
+                                    .map(|s| s.num_partitions)
+                                    .unwrap_or(1);
+                                ShareTopicPartitions {
+                                    topic_id: mock_topic_id(name),
+                                    partitions: (0..npart).collect(),
+                                }
+                            })
+                            .collect();
+                        (req.member_id, 1, Some(assignment))
+                    }
                     std::cmp::Ordering::Greater => (req.member_id, req.member_epoch, None),
                 };
                 encode_share_group_heartbeat_response(
@@ -3483,14 +3508,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SHARE_FETCH => {
                 let (_gid, member_id, epoch, max_records, topics) =
                     decode_share_fetch_request(&mut frame).unwrap();
-                let parts: Vec<i32> = topics
-                    .iter()
-                    .flat_map(|t| t.partitions.iter().map(|p| p.partition))
-                    .collect();
                 let mut st = state.lock();
+                let tps: Vec<(String, i32)> = topics
+                    .iter()
+                    .flat_map(|t| {
+                        let name = topic_name_for_id(&st, t.topic_id);
+                        t.partitions
+                            .iter()
+                            .map(move |p| (name.clone(), p.partition))
+                    })
+                    .collect();
                 st.share_fetch_calls = st.share_fetch_calls.saturating_add(1);
                 st.last_share_fetch_epoch = Some(epoch);
-                if !parts.is_empty() && share_wrong_leader(&st, node_id, &parts) {
+                if !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
                     st.share_fetch_not_leader = st.share_fetch_not_leader.saturating_add(1);
                     encode_share_fetch_error(&mut body, error::NOT_LEADER_OR_FOLLOWER).unwrap();
                 } else {
@@ -3502,20 +3532,22 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
                         let mut fetched = Vec::new();
                         for t in topics {
+                            let name = topic_name_for_id(&st, t.topic_id);
                             let mut parts = Vec::new();
                             for p in t.partitions {
                                 apply_share_acks(
                                     &mut st,
                                     &member_id,
+                                    &name,
                                     p.partition,
                                     &p.acknowledgements,
                                 );
-                                let key = ("t".to_string(), p.partition);
+                                let key = (name.clone(), p.partition);
                                 let recs = st.log.get(&key).cloned().unwrap_or_default();
                                 let recs: Vec<_> = recs
                                     .into_iter()
                                     .filter(|r| {
-                                        let k = ("t".to_string(), p.partition, r.offset);
+                                        let k = (name.clone(), p.partition, r.offset);
                                         !st.share_accepted.contains(&k)
                                             && match st.share_acquired.get(&k) {
                                                 None => true,
@@ -3529,7 +3561,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     if taken.len() >= cap {
                                         break;
                                     }
-                                    let k = ("t".to_string(), p.partition, r.offset);
+                                    let k = (name.clone(), p.partition, r.offset);
                                     if let std::collections::hash_map::Entry::Vacant(e) =
                                         st.share_acquired.entry(k)
                                     {
@@ -3561,12 +3593,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             SHARE_ACKNOWLEDGE => {
                 let (_gid, member_id, epoch, acks) =
                     decode_share_acknowledge_request(&mut frame).unwrap();
-                let parts: Vec<i32> = acks.iter().map(|(_, p, _)| *p).collect();
                 let mut st = state.lock();
+                let tps: Vec<(String, i32)> = acks
+                    .iter()
+                    .map(|(tid, p, _)| (topic_name_for_id(&st, *tid), *p))
+                    .collect();
                 st.share_ack_calls = st.share_ack_calls.saturating_add(1);
                 st.last_share_ack_epoch = Some(epoch);
                 st.last_share_ack_partitions = acks.len();
-                if epoch != -1 && !parts.is_empty() && share_wrong_leader(&st, node_id, &parts) {
+                if epoch != -1 && !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
                     encode_share_acknowledge_response(&mut body, error::NOT_LEADER_OR_FOLLOWER)
                         .unwrap();
                 } else {
@@ -3575,8 +3610,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     if sess != 0 {
                         encode_share_acknowledge_response(&mut body, sess).unwrap();
                     } else {
-                        for (_tid, partition, batches) in acks {
-                            apply_share_acks(&mut st, &member_id, partition, &batches);
+                        for (tid, partition, batches) in acks {
+                            let name = topic_name_for_id(&st, tid);
+                            apply_share_acks(&mut st, &member_id, &name, partition, &batches);
                         }
                         encode_share_acknowledge_response(&mut body, 0).unwrap();
                     }

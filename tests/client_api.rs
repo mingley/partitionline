@@ -12,7 +12,7 @@ mod common;
 
 use partitionline::{
     Acks, Admin, AdminConfig, Compression, Consumer, ConsumerConfig, ConsumerGroup, Error,
-    IsolationLevel, NewTopic, ProduceRecord, Producer, ProducerConfig, Sasl,
+    IsolationLevel, NewTopic, ProduceRecord, Producer, ProducerConfig, Sasl, ShareGroup,
 };
 use std::time::Duration;
 
@@ -349,5 +349,42 @@ async fn kip848_join_sends_instance_id_and_rack() {
     .unwrap();
     assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-2"));
     assert_eq!(mock.last_group_rack().as_deref(), Some("az1"));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_join_topics_fetches_both() {
+    let mock = common::Mock::start().await;
+    create_two_topics(&mock.addr, "orders", "payments")
+        .await
+        .unwrap();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("orders").value(&b"o"[..]),
+            ProduceRecord::to("payments").value(&b"p"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ShareGroup::join_topics(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "share-multi",
+        ["orders", "payments"],
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        group.topics(),
+        &["orders".to_string(), "payments".to_string()]
+    );
+    let recs = group.poll().await.unwrap();
+    let mut names: Vec<&str> = recs.iter().map(|r| r.topic.as_str()).collect();
+    names.sort_unstable();
+    assert_eq!(names, vec!["orders", "payments"]);
     group.leave().await.unwrap();
 }

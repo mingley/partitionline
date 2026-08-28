@@ -45,7 +45,7 @@
 //! is sticky, [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
 //! `_topics` variant for several topics.
 //! [`ConsumerConfig::group_instance_id`] is static membership.
-//! [`ShareGroup`] is KIP-932.
+//! [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
 //!
 //! # Configure
 //!

@@ -860,7 +860,9 @@ fn wanted_from_kip848(
     out
 }
 
-fn collect_topics(topics: impl IntoIterator<Item = impl Into<String>>) -> Result<Vec<String>> {
+pub(crate) fn collect_topics(
+    topics: impl IntoIterator<Item = impl Into<String>>,
+) -> Result<Vec<String>> {
     let mut out = Vec::new();
     for topic in topics {
         let topic = topic.into();
