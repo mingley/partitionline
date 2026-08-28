@@ -15,7 +15,8 @@
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
 //! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs,
-//! CreateDelegationToken, RenewDelegationToken, DescribeCluster).
+//! CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken,
+//! DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -60,10 +61,10 @@ pub use admin::{
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, FeatureUpdate, FeatureUpdateResult,
-    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, NewTopic,
-    OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
-    PushTelemetryResponse, ReassignmentResult, RenewDelegationTokenRequest,
+    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    FeatureUpdate, FeatureUpdateResult, GetTelemetrySubscriptionsResponse, ListedConfigResource,
+    ListedGroup, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
+    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RenewDelegationTokenRequest,
     RenewDelegationTokenResponse, ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
     TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,

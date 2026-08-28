@@ -19,9 +19,9 @@ use partitionline::{
     ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
     ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
     DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeLogDirsRequest,
-    DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, NewTopic, OidcConfig,
-    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
-    RenewDelegationTokenRequest, ShareGroup, TransactionState, TransactionTopic,
+    DescribeShareGroupOffsetsGroup, Error, ExpireDelegationTokenRequest, FeatureUpdate, NewTopic,
+    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, RenewDelegationTokenRequest, ShareGroup, TransactionState, TransactionTopic,
     UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
     ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS,
     CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
@@ -3797,6 +3797,60 @@ async fn renew_delegation_token_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "RenewDelegationToken must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn expire_delegation_token_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let req = ExpireDelegationTokenRequest::new(vec![0xaa], -1);
+    let first = admin.expire_delegation_token(req.clone()).await.unwrap();
+    assert_eq!(first.error_code, 0);
+    assert_eq!(first.expiry_timestamp_ms, 0);
+    assert_eq!(
+        mock.last_expire_delegation_token_node(),
+        Some(1),
+        "ExpireDelegationToken must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(mock.last_expire_delegation_token(), Some(req));
+    assert_eq!(
+        mock.last_renew_delegation_token_node(),
+        None,
+        "ExpireDelegationToken must not hop via RenewDelegationToken"
+    );
+    assert_eq!(
+        mock.last_create_delegation_token_node(),
+        None,
+        "ExpireDelegationToken must not hop via CreateDelegationToken"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs_node(),
+        None,
+        "ExpireDelegationToken must not hop via DescribeLogDirs"
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        None,
+        "ExpireDelegationToken must not hop via AssignReplicasToDirs"
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        None,
+        "ExpireDelegationToken must not hop via AlterReplicaLogDirs"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "ExpireDelegationToken must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "ExpireDelegationToken must not hop via Metadata controller_id"
     );
 }
 
