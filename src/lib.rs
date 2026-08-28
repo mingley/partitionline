@@ -12,7 +12,7 @@
 //! AllocateProducerIds, DescribeTransactions, ListTransactions,
 //! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
 //! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
-//! DescribeCluster).
+//! AlterShareGroupOffsets, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -38,13 +38,15 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    DeletableGroupResult, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
-    DescribeShareGroupOffsetsTopic, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsPartition,
+    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
+    AlteredShareGroupOffsetsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
+    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConsumerGroupAssignment,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
+    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, FeatureUpdate,
     FeatureUpdateResult, ListedGroup, NewTopic, OffsetDeleteResult, OngoingReassignment,
     PartitionReassignment, ProducerIdBlock, ReassignmentResult, ScramCredentialInfo,

@@ -12,11 +12,12 @@ mod common;
 
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AclBinding, Admin, AdminConfig, AlterConfig, ClientQuotaAlteration, ClientQuotaEntity,
-    ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, NewTopic,
-    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
+    error, AclBinding, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsTopic,
+    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
+    Compression, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup,
+    DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, NewTopic, OidcConfig,
+    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
+    ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
     UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
     ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
     QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
@@ -3501,6 +3502,51 @@ async fn describe_share_group_offsets_follows_group_coordinator() {
         mock.last_describe_share_group_offsets_node(),
         Some(1),
         "DescribeShareGroupOffsets must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
+async fn alter_share_group_offsets_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .alter_share_group_offsets("sg-alt", &[])
+        .await
+        .unwrap();
+    assert_eq!(first.error_code, 0);
+    assert!(first.topics.is_empty());
+    assert_eq!(
+        mock.last_alter_share_group_offsets_node(),
+        Some(2),
+        "AlterShareGroupOffsets must land on the group coordinator, not bootstrap"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "AlterShareGroupOffsets must FindCoordinator key_type=0"
+    );
+
+    mock.move_coordinator();
+    let again = admin
+        .alter_share_group_offsets("sg-alt", &[AlterShareGroupOffsetsTopic::new("t", vec![])])
+        .await
+        .unwrap();
+    assert_eq!(again.error_code, 0);
+    assert!(
+        again.topics.is_empty(),
+        "retry on the new coordinator must still return fixture empty topics, not the 16 empty body"
+    );
+    assert_eq!(
+        mock.alter_share_group_offsets_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_alter_share_group_offsets_node(),
+        Some(1),
+        "AlterShareGroupOffsets must FindCoordinator after NOT_COORDINATOR"
     );
 }
 
