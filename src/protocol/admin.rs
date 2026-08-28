@@ -5783,6 +5783,253 @@ pub fn decode_describe_log_dirs_response<B: Buf>(buf: &mut B) -> Result<Describe
     })
 }
 
+/// One renewer principal in a CreateDelegationToken (api 38) request.
+///
+/// Official JSON `CreatableRenewers` has PrincipalType and
+/// PrincipalName only. There is no per-renewer ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreatableRenewer {
+    pub principal_type: String,
+    pub principal_name: String,
+}
+
+impl CreatableRenewer {
+    pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
+        Self {
+            principal_type: principal_type.into(),
+            principal_name: principal_name.into(),
+        }
+    }
+}
+
+/// CreateDelegationToken (api 38) v3 request body.
+///
+/// Official Apache JSON (`apiKey: 38`, request `listeners: ["broker",
+/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
+/// the 3.9.1 JSON kafka-protocol 0.18.0 was generated against,
+/// `validVersions: "1-3"` on trunk / `"0-3"` on 3.9.1,
+/// `flexibleVersions: "2+"`). Official JSON lists no `errorCodes`.
+/// Request has no ErrorCode field. `OwnerPrincipalType` /
+/// `OwnerPrincipalName` are nullable (v3+); null means the token
+/// request principal. `MaxLifetimeMs` `-1` uses the server default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreateDelegationTokenRequest {
+    pub owner_principal_type: Option<String>,
+    pub owner_principal_name: Option<String>,
+    pub renewers: Vec<CreatableRenewer>,
+    pub max_lifetime_ms: i64,
+}
+
+impl CreateDelegationTokenRequest {
+    pub fn new(
+        owner_principal_type: Option<String>,
+        owner_principal_name: Option<String>,
+        renewers: Vec<CreatableRenewer>,
+        max_lifetime_ms: i64,
+    ) -> Self {
+        Self {
+            owner_principal_type,
+            owner_principal_name,
+            renewers,
+            max_lifetime_ms,
+        }
+    }
+}
+
+/// CreateDelegationToken (api 38) v3 response body.
+///
+/// **ErrorCode is top-level**, first field — not after throttle.
+/// Official JSON places `ThrottleTimeMs` last. This is a single token,
+/// not a token array: there is no first-token ErrorCode and no
+/// first-renewer ErrorCode (renewers are request-only).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreateDelegationTokenResponse {
+    pub error_code: i16,
+    pub principal_type: String,
+    pub principal_name: String,
+    pub token_requester_principal_type: String,
+    pub token_requester_principal_name: String,
+    pub issue_timestamp_ms: i64,
+    pub expiry_timestamp_ms: i64,
+    pub max_timestamp_ms: i64,
+    pub token_id: String,
+    pub hmac: Vec<u8>,
+}
+
+impl CreateDelegationTokenResponse {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "wire type follows the Kafka spec field-for-field"
+    )]
+    pub fn new(
+        error_code: i16,
+        principal_type: impl Into<String>,
+        principal_name: impl Into<String>,
+        token_requester_principal_type: impl Into<String>,
+        token_requester_principal_name: impl Into<String>,
+        issue_timestamp_ms: i64,
+        expiry_timestamp_ms: i64,
+        max_timestamp_ms: i64,
+        token_id: impl Into<String>,
+        hmac: Vec<u8>,
+    ) -> Self {
+        Self {
+            error_code,
+            principal_type: principal_type.into(),
+            principal_name: principal_name.into(),
+            token_requester_principal_type: token_requester_principal_type.into(),
+            token_requester_principal_name: token_requester_principal_name.into(),
+            issue_timestamp_ms,
+            expiry_timestamp_ms,
+            max_timestamp_ms,
+            token_id: token_id.into(),
+            hmac,
+        }
+    }
+}
+
+/// CreateDelegationToken v3 (flexible from v2; KIP-48 / KIP-373).
+///
+/// Official Apache JSON (`apiKey: 38`, request `listeners: ["broker",
+/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
+/// 3.9.1, trunk `validVersions: "1-3"`, 3.9.1 `validVersions: "0-3"`,
+/// `flexibleVersions: "2+"`). Official JSON lists **no** `errorCodes`.
+/// Official Java `KafkaApis.handleCreateTokenRequest` validates the
+/// connection (`allowTokenRequests` →
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64)), owner
+/// `CREATE_TOKENS` (`DELEGATION_TOKEN_AUTHORIZATION_FAILED` (65)),
+/// and renewer principal type (`INVALID_PRINCIPAL_TYPE` (67)), then
+/// `forwardToController` — broker-side envelope forwarding, not a
+/// client hop. Official Java `CreateDelegationTokenRequest.getErrorResponse`
+/// writes `Errors.forException(e).code()` onto the **top-level**
+/// ErrorCode. Official Java `KafkaAdminClient.createDelegationToken`
+/// uses `LeastLoadedNodeProvider` (any broker). `NOT_COORDINATOR`
+/// (16) is **not** listed. `NOT_CONTROLLER` (41) is **not** listed.
+/// `NOT_LEADER_OR_FOLLOWER` (6) is **not** a client hop.
+/// kafka-protocol 0.18.0 (`CreateDelegationTokenRequest` /
+/// `CreateDelegationTokenResponse`, `VERSIONS` min=1 max=3). This
+/// crate targets v3, the version a client encodes (`VERSIONS.max`).
+/// Official 3.9.1 lists a deprecated v0; that version is not encoded.
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: compact nullable `OwnerPrincipalType`, compact
+/// nullable `OwnerPrincipalName` (v3+), compact `Renewers` of
+/// `{PrincipalType compact STRING, PrincipalName compact STRING,
+/// tagged}`, `MaxLifetimeMs` INT64, tagged. Response: **top-level
+/// `ErrorCode` INT16 first**, compact `PrincipalType`, compact
+/// `PrincipalName`, compact `TokenRequesterPrincipalType` (v3+),
+/// compact `TokenRequesterPrincipalName` (v3+), `IssueTimestampMs`
+/// INT64, `ExpiryTimestampMs` INT64, `MaxTimestampMs` INT64, compact
+/// `TokenId`, compact `Hmac` BYTES, `ThrottleTimeMs` INT32 last,
+/// tagged. **ErrorCode is top-level**, first field — not after
+/// throttle, not a first-renewer field, and not a first-token field.
+/// Measured independently from kafka-protocol 0.18.0 (`broker`
+/// encodes the response) on leftover-empty fixture throttle `0`,
+/// empty principals / token / hmac, error
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64): the leftover-empty
+/// body is **37 bytes** and the top-level ErrorCode is the INT16 at
+/// **bytes 0–1**. i16=64 hits only at byte 0. There is no
+/// first-renewer ErrorCode and no first-token ErrorCode. Do not
+/// assume bytes 4–5 from DescribeLogDirs / AssignReplicasToDirs /
+/// PushTelemetry / GetTelemetrySubscriptions / ListConfigResources:
+/// this offset was measured on this API's official first field.
+/// Not bytes 5–6 (DescribeTopicPartitions / ShareGroupDescribe), 7–8
+/// (DeleteGroups after GroupId; DescribeLogDirs first-directory),
+/// 8–9 (DescribeShareGroupOffsets), 12–13 (AlterReplicaLogDirs /
+/// DescribeProducers first-partition), 27–28, or 45–46. Because 41
+/// is not listed, 16 is not listed, and 6 is not a client hop, this
+/// is broker-only: no FindCoordinator, no `key_type`, no controller
+/// hop, no partition-leader hop. This is not a token store.
+pub fn encode_create_delegation_token_request(
+    buf: &mut BytesMut,
+    req: &CreateDelegationTokenRequest,
+) -> crate::error::Result<()> {
+    buf::put_compact_string(buf, req.owner_principal_type.as_deref())?;
+    buf::put_compact_string(buf, req.owner_principal_name.as_deref())?;
+    buf::put_array_len(buf, true, Some(req.renewers.len()))?;
+    for renewer in &req.renewers {
+        buf::put_compact_string(buf, Some(&renewer.principal_type))?;
+        buf::put_compact_string(buf, Some(&renewer.principal_name))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_i64(req.max_lifetime_ms);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_create_delegation_token_request<B: Buf>(
+    buf: &mut B,
+) -> Result<CreateDelegationTokenRequest> {
+    let owner_principal_type = buf::get_compact_string(buf)?;
+    let owner_principal_name = buf::get_compact_string(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut renewers = Vec::with_capacity(n);
+    for _ in 0..n {
+        let principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        let principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        renewers.push(CreatableRenewer {
+            principal_type,
+            principal_name,
+        });
+    }
+    let max_lifetime_ms = buf::get_i64(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(CreateDelegationTokenRequest {
+        owner_principal_type,
+        owner_principal_name,
+        renewers,
+        max_lifetime_ms,
+    })
+}
+
+pub fn encode_create_delegation_token_response(
+    buf: &mut BytesMut,
+    resp: &CreateDelegationTokenResponse,
+) -> crate::error::Result<()> {
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, Some(&resp.principal_type))?;
+    buf::put_compact_string(buf, Some(&resp.principal_name))?;
+    buf::put_compact_string(buf, Some(&resp.token_requester_principal_type))?;
+    buf::put_compact_string(buf, Some(&resp.token_requester_principal_name))?;
+    buf.put_i64(resp.issue_timestamp_ms);
+    buf.put_i64(resp.expiry_timestamp_ms);
+    buf.put_i64(resp.max_timestamp_ms);
+    buf::put_compact_string(buf, Some(&resp.token_id))?;
+    buf::put_compact_bytes(buf, Some(&resp.hmac))?;
+    buf.put_i32(0);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_create_delegation_token_response<B: Buf>(
+    buf: &mut B,
+) -> Result<CreateDelegationTokenResponse> {
+    let error_code = buf::get_i16(buf)?;
+    let principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
+    let principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
+    let token_requester_principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
+    let token_requester_principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
+    let issue_timestamp_ms = buf::get_i64(buf)?;
+    let expiry_timestamp_ms = buf::get_i64(buf)?;
+    let max_timestamp_ms = buf::get_i64(buf)?;
+    let token_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let hmac = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    let _th = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(CreateDelegationTokenResponse {
+        error_code,
+        principal_type,
+        principal_name,
+        token_requester_principal_type,
+        token_requester_principal_name,
+        issue_timestamp_ms,
+        expiry_timestamp_ms,
+        max_timestamp_ms,
+        token_id,
+        hmac,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9691,6 +9938,375 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "v4 body must be leftover-empty; a later-version directory field would leave leftover"
+        );
+    }
+
+    #[test]
+    fn create_delegation_token_v3_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 38
+        // listeners broker + controller. This crate targets v3
+        // (VERSIONS.max). Not copied from DescribeLogDirs /
+        // AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups
+        // (top-level ErrorCode at bytes 4-5),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), AlterReplicaLogDirs / DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13), or
+        // DescribeTopicPartitions first-partition (bytes 27-28).
+        // kafka-protocol Default owner is Some(""); null owner is 0x00.
+        const REQ_DEFAULT: &[u8] = &[
+            0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const REQ_NULL: &[u8] = &[
+            0x00, 0x00, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
+        ];
+        const REQ_ONE: &[u8] = &[
+            0x00, 0x00, 0x02, 0x05, 0x55, 0x73, 0x65, 0x72, 0x02, 0x72, 0x00, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
+        ];
+        // DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64). Leftover-empty
+        // body is 37 bytes. Top-level ErrorCode is at bytes 0-1.
+        const RESP_64: &[u8] = &[
+            0x00, 0x40, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const RESP_OK: &[u8] = &[
+            0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let req_default =
+            CreateDelegationTokenRequest::new(Some(String::new()), Some(String::new()), vec![], 0);
+        let mut buf = BytesMut::new();
+        encode_create_delegation_token_request(&mut buf, &req_default).unwrap();
+        assert_eq!(&buf[..], REQ_DEFAULT);
+        buf.clear();
+        encode_create_delegation_token_request(
+            &mut buf,
+            &CreateDelegationTokenRequest::new(None, None, vec![], -1),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ_NULL);
+        buf.clear();
+        encode_create_delegation_token_request(
+            &mut buf,
+            &CreateDelegationTokenRequest::new(
+                None,
+                None,
+                vec![CreatableRenewer::new("User", "r")],
+                -1,
+            ),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ_ONE);
+        let resp = CreateDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "",
+            "",
+            "",
+            "",
+            0,
+            0,
+            0,
+            "",
+            vec![],
+        );
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_64);
+        buf.clear();
+        encode_create_delegation_token_response(
+            &mut buf,
+            &CreateDelegationTokenResponse::new(0, "", "", "", "", 0, 0, 0, "", vec![]),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], RESP_OK);
+    }
+
+    #[test]
+    fn create_delegation_token_v3_roundtrip_is_leftover_empty() {
+        let req = CreateDelegationTokenRequest::new(
+            Some("User".into()),
+            Some("alice".into()),
+            vec![CreatableRenewer::new("User", "r")],
+            -1,
+        );
+        let mut buf = BytesMut::new();
+        encode_create_delegation_token_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 request must be leftover-empty"
+        );
+
+        let resp = CreateDelegationTokenResponse::new(
+            0,
+            "User",
+            "u",
+            "User",
+            "u",
+            0,
+            0,
+            0,
+            "tid",
+            vec![0xaa],
+        );
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 response must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_create_delegation_token_request(
+            &mut buf,
+            &CreateDelegationTokenRequest::new(None, None, vec![], -1),
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_request(&mut cur).unwrap(),
+            CreateDelegationTokenRequest::new(None, None, vec![], -1)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 null-owner request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn create_delegation_token_top_level_error_code_is_at_bytes_0_1() {
+        // Official v3 body: top-level ErrorCode INT16 first, then
+        // compact principals, timestamps, compact TokenId, compact
+        // Hmac, ThrottleTimeMs INT32 last. Measured independently
+        // from Apache CreateDelegationTokenResponse.json and a
+        // kafka-protocol 0.18.0 broker encode (`features =
+        // ["broker"]`) on leftover-empty fixture throttle 0, empty
+        // principals / token / hmac, error
+        // DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64). Do not assume
+        // bytes 4-5 from DescribeLogDirs / AssignReplicasToDirs /
+        // PushTelemetry / GetTelemetrySubscriptions /
+        // ListConfigResources / ListGroups, bytes 5-6 from
+        // DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // AlterReplicaLogDirs / DescribeProducers first-partition,
+        // bytes 27-28 from DescribeTopicPartitions first-partition, or
+        // bytes 45-46 from AssignReplicasToDirs first-partition.
+        // Official JSON lists no errorCodes; official handler writes
+        // DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64) onto the
+        // top-level field when allowTokenRequests fails.
+        let empty = CreateDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "",
+            "",
+            "",
+            "",
+            0,
+            0,
+            0,
+            "",
+            vec![],
+        );
+        let mut buf = BytesMut::new();
+        encode_create_delegation_token_response(&mut buf, &empty).unwrap();
+        assert_eq!(
+            buf.len(),
+            37,
+            "v3 leftover-empty empty-token body is top-level INT16 + empty principals + timestamps + empty token/hmac + throttle + tagged"
+        );
+        let b0 = buf.get(0).copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 top-level ErrorCode must be the INT16 at bytes 0-1"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not after throttle at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not a first-renewer / first-topic field at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not at DeleteGroups / first-directory bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not a first-partition field at bytes 12-13"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=64 hits only at byte 0");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 empty-token body must be leftover-empty"
+        );
+
+        let resp = CreateDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "User",
+            "u",
+            "User",
+            "u",
+            0,
+            0,
+            0,
+            "tid",
+            vec![0xaa],
+        );
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            51,
+            "v3 one-token body is top-level INT16 + User/u principals + timestamps + tid + hmac + throttle + tagged"
+        );
+        let b0 = buf.get(0).copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 top-level ErrorCode stays at bytes 0-1 when token fields are present"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not after throttle at bytes 4-5"
+        );
+        assert!(
+            buf.get(27).is_some(),
+            "v3 one-token body reaches DescribeTopicPartitions first-partition bytes 27-28 as timestamp bytes, not ErrorCode"
+        );
+        let b27 = buf.get(27).copied().unwrap();
+        let b28 = buf.get(28).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b27, b28]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not at DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        assert!(
+            buf.get(45).is_some(),
+            "v3 one-token body reaches AssignReplicasToDirs first-partition bytes 45-46 as hmac/throttle, not ErrorCode"
+        );
+        let b45 = buf.get(45).copied().unwrap();
+        let b46 = buf.get(46).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b45, b46]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v3 ErrorCode is not at AssignReplicasToDirs first-partition bytes 45-46"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=64 hits only at byte 0");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 one-token body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn create_delegation_token_does_not_speak_v0() {
+        // kafka-protocol 0.18.0 VERSIONS.min = 1, VERSIONS.max = 3.
+        // This crate negotiates 3 only. Official 3.9.1 lists deprecated
+        // v0; that version is not encoded. Official trunk removed v0.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 3, 3, 3), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 3, 3), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 3, 3), None);
+        let req = CreateDelegationTokenRequest::new(None, None, vec![], -1);
+        let mut buf = BytesMut::new();
+        encode_create_delegation_token_request(&mut buf, &req).unwrap();
+        assert_eq!(
+            buf.len(),
+            12,
+            "v3 leftover-empty null-owner request has no extra field after MaxLifetimeMs"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_delegation_token_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "v3 request must be leftover-empty; a later-version field would leave leftover"
         );
     }
 }

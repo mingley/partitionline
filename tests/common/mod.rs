@@ -33,24 +33,25 @@ use partitionline::protocol::admin::{
     decode_alter_configs_request, decode_alter_partition_reassignments_request,
     decode_alter_replica_log_dirs_request, decode_alter_share_group_offsets_request,
     decode_alter_user_scram_credentials_request, decode_assign_replicas_to_dirs_request,
-    decode_consumer_group_describe_request, decode_create_partitions_request,
-    decode_create_topics_request, decode_delete_groups_request, decode_delete_records_request,
-    decode_delete_share_group_offsets_request, decode_delete_topics_request,
-    decode_describe_client_quotas_request, decode_describe_cluster_request,
-    decode_describe_configs_request, decode_describe_groups_request,
-    decode_describe_log_dirs_request, decode_describe_producers_request,
-    decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
-    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
-    decode_get_telemetry_subscriptions_request, decode_incremental_alter_configs_request,
-    decode_list_config_resources_request, decode_list_groups_request,
-    decode_list_partition_reassignments_request, decode_list_transactions_request,
-    decode_push_telemetry_request, decode_share_group_describe_request,
-    decode_unregister_broker_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_replica_log_dirs_response, encode_alter_share_group_offsets_response,
-    encode_alter_user_scram_credentials_response, encode_assign_replicas_to_dirs_response,
-    encode_consumer_group_describe_response, encode_create_partitions_response,
+    decode_consumer_group_describe_request, decode_create_delegation_token_request,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_groups_request,
+    decode_delete_records_request, decode_delete_share_group_offsets_request,
+    decode_delete_topics_request, decode_describe_client_quotas_request,
+    decode_describe_cluster_request, decode_describe_configs_request,
+    decode_describe_groups_request, decode_describe_log_dirs_request,
+    decode_describe_producers_request, decode_describe_share_group_offsets_request,
+    decode_describe_topic_partitions_request, decode_describe_transactions_request,
+    decode_describe_user_scram_credentials_request, decode_get_telemetry_subscriptions_request,
+    decode_incremental_alter_configs_request, decode_list_config_resources_request,
+    decode_list_groups_request, decode_list_partition_reassignments_request,
+    decode_list_transactions_request, decode_push_telemetry_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_replica_log_dirs_response,
+    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
+    encode_assign_replicas_to_dirs_response, encode_consumer_group_describe_response,
+    encode_create_delegation_token_response, encode_create_partitions_response,
     encode_create_topics_response, encode_delete_groups_response, encode_delete_records_response,
     encode_delete_share_group_offsets_response, encode_delete_topics_response,
     encode_describe_client_quotas_response, encode_describe_cluster_response,
@@ -70,21 +71,21 @@ use partitionline::protocol::admin::{
     AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
     AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
     ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
-    ConfigEntry, DeletableGroupResult, DeletedShareGroupOffsets, DescribeClientQuotasResponse,
-    DescribeConfigsResult, DescribeLogDirsPartition, DescribeLogDirsRequest,
-    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
-    DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse,
-    ListGroupsResponse, ListPartitionReassignmentsResponse, ListTransactionsResponse,
-    ListedConfigResource, ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment,
-    PushTelemetryResponse, ReassignmentPartitionResult, ReassignmentTopicResult,
-    ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
-    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    ConfigEntry, CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
+    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, DescribedShareGroupOffsets,
+    DescribedTopicPartition, DescribedTopicPartitions, GetTelemetrySubscriptionsResponse,
+    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
+    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
+    OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
+    ReassignmentTopicResult, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
+    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -95,17 +96,18 @@ use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
     ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS,
-    CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS,
-    CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
-    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
+    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
+    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, SASL_AUTHENTICATE, SASL_HANDSHAKE,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
+    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -293,6 +295,8 @@ struct State {
     last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
     last_describe_log_dirs_node: Option<i32>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
+    last_create_delegation_token_node: Option<i32>,
+    last_create_delegation_token: Option<CreateDelegationTokenRequest>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -492,6 +496,8 @@ fn new_state(
         last_alter_replica_log_dirs: None,
         last_describe_log_dirs_node: None,
         last_describe_log_dirs: None,
+        last_create_delegation_token_node: None,
+        last_create_delegation_token: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1291,6 +1297,14 @@ impl Mock {
         self.state.lock().last_describe_log_dirs.clone()
     }
 
+    pub fn last_create_delegation_token_node(&self) -> Option<i32> {
+        self.state.lock().last_create_delegation_token_node
+    }
+
+    pub fn last_create_delegation_token(&self) -> Option<CreateDelegationTokenRequest> {
+        self.state.lock().last_create_delegation_token.clone()
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1665,6 +1679,7 @@ fn versions() -> ApiVersionsResponse {
         (ASSIGN_REPLICAS_TO_DIRS, 0, 0),
         (ALTER_REPLICA_LOG_DIRS, 1, 2),
         (DESCRIBE_LOG_DIRS, 1, 4),
+        (CREATE_DELEGATION_TOKEN, 1, 3),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -4152,6 +4167,38 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     &DescribeLogDirsResponse::new(
                         0,
                         vec![DescribeLogDirsResult::new(0, "/d", topics, -1, -1)],
+                    ),
+                )
+                .unwrap();
+            }
+            CREATE_DELEGATION_TOKEN => {
+                let req = decode_create_delegation_token_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a token store, not a coordinator hop, not a 41/6
+                // path. Official JSON lists no error codes; official
+                // handler forwards to the controller internally after
+                // local validation. Official Java AdminClient uses
+                // LeastLoadedNodeProvider. NOT_COORDINATOR (16) and
+                // NOT_CONTROLLER (41) are not listed, so the wrong
+                // node does not return 16 or 41.
+                st.last_create_delegation_token_node = Some(node_id);
+                let owner_type = req.owner_principal_type.clone().unwrap_or_default();
+                let owner_name = req.owner_principal_name.clone().unwrap_or_default();
+                st.last_create_delegation_token = Some(req);
+                encode_create_delegation_token_response(
+                    &mut body,
+                    &CreateDelegationTokenResponse::new(
+                        0,
+                        owner_type,
+                        owner_name,
+                        String::new(),
+                        String::new(),
+                        0,
+                        0,
+                        0,
+                        String::new(),
+                        Vec::new(),
                     ),
                 )
                 .unwrap();
