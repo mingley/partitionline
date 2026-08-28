@@ -85,10 +85,14 @@ pub struct TopicResult {
     pub error_message: Option<String>,
 }
 
+/// One resource in a DescribeConfigs request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResource {
+    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, …).
     pub resource_type: i8,
+    /// Resource name (topic, broker id, …).
     pub name: String,
+    /// Keys to return, or `None` for every key on the resource.
     pub keys: Option<Vec<String>>,
 }
 

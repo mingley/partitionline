@@ -15,6 +15,7 @@ use partitionline::{
     ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
     NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer,
     ProducerConfig, ProducerInterceptor, RecordMetadata, Sasl, ShareGroup, TopicPartition,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -142,6 +143,20 @@ async fn seek_to_beginning_rereads_from_start() {
             .await
             .unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(
+        consumer
+            .list_offset(("t", 0), EARLIEST_TIMESTAMP)
+            .await
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        consumer
+            .list_offsets("t", 0, LATEST_TIMESTAMP)
+            .await
+            .unwrap(),
+        1
+    );
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 1);
     consumer.seek_to_beginning().await.unwrap();
@@ -1655,6 +1670,10 @@ async fn group_seek_to_beginning_rereads() {
     .unwrap();
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
+    assert_eq!(
+        group.list_offset(("t", 0), LATEST_TIMESTAMP).await.unwrap(),
+        1
+    );
     group.seek_to_beginning().await.unwrap();
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);

@@ -56,7 +56,8 @@
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
 //! [`Consumer::beginning_offsets`] / [`Consumer::end_offsets`] take
-//! [`TopicPartition`]. [`Consumer::assignment`] is Java `assignment`
+//! [`TopicPartition`]. [`Consumer::list_offset`] is ListOffsets for one
+//! partition. [`Consumer::assignment`] is Java `assignment`
 //! ([`Consumer::assigned_partitions`] is the same list; [`Consumer::positions`]
 //! pairs each partition with its next fetch offset).
 //! [`Consumer::fetch`] / [`ConsumerGroup::poll`] return [`ConsumerRecords`]

@@ -51,6 +51,7 @@ let recs = consumer.fetch().await?;
 partition leader at once when there is more than one. `partitions_for`
 returns Metadata (leader, replicas, ISR) on both `Consumer` and
 `Producer`. `beginning_offsets` / `end_offsets` take `TopicPartition`.
+`list_offset` is ListOffsets for one partition.
 `commit_offsets` takes `TopicPartition` (or anything that converts to one)
 plus the next fetch offset. `assignment` is Java `assignment` (`positions`
 is next fetch offset). `Admin::delete_records` / `describe_producers` /

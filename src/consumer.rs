@@ -1640,6 +1640,16 @@ impl Consumer {
         Ok(self.list_offset_at(&topic, partition, timestamp).await?.0)
     }
 
+    /// [`Self::list_offsets`] for a [`TopicPartition`].
+    pub async fn list_offset(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timestamp: i64,
+    ) -> Result<i64> {
+        let tp = partition.into();
+        self.list_offsets(tp.topic, tp.partition, timestamp).await
+    }
+
     async fn list_offset_at(
         &mut self,
         topic: &str,

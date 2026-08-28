@@ -747,6 +747,27 @@ impl ConsumerGroup {
         self.consumer.end_offsets(partitions).await
     }
 
+    /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
+    pub async fn list_offsets(
+        &mut self,
+        topic: impl Into<String>,
+        partition: i32,
+        timestamp: i64,
+    ) -> Result<i64> {
+        self.consumer
+            .list_offsets(topic, partition, timestamp)
+            .await
+    }
+
+    /// [`Self::list_offsets`] for a [`TopicPartition`].
+    pub async fn list_offset(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        timestamp: i64,
+    ) -> Result<i64> {
+        self.consumer.list_offset(partition, timestamp).await
+    }
+
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     pub async fn offsets_for_times(
         &mut self,
