@@ -43,7 +43,7 @@ let recs = consumer.fetch().await?;
 ```
 
 `fetch` / group `poll` return `ConsumerRecords` (Java `count` /
-`partitions` / `records`). Share `poll` returns `ShareRecords`.
+`partitions` / `records` / `nextOffsets`). Share `poll` returns `ShareRecords`.
 `assign_topic` assigns every partition. `seek` / `seek_to` /
 `seek_to_beginning` / `seek_to_end` move the next fetch offset. `pause` /
 `resume` skip partitions without dropping the assignment. `fetch` talks to every

@@ -374,7 +374,8 @@ fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
 /// Records from one fetch or poll (Java `ConsumerRecords`).
 ///
 /// Indexes and iterates like a slice of [`FetchedRecord`]. [`Self::partitions`]
-/// / [`Self::records`] match Java `partitions` / `records(TopicPartition)`.
+/// / [`Self::records`] / [`Self::next_offsets`] match Java `partitions` /
+/// `records(TopicPartition)` / `nextOffsets`.
 #[derive(Debug, Clone, Default)]
 pub struct ConsumerRecords {
     records: Vec<FetchedRecord>,
@@ -418,6 +419,38 @@ impl ConsumerRecords {
         topic: &'a str,
     ) -> impl Iterator<Item = &'a FetchedRecord> {
         self.records.iter().filter(move |r| r.topic == topic)
+    }
+
+    /// Next offset to consume per partition (Java `nextOffsets`).
+    ///
+    /// For each partition that has at least one record, this is the last
+    /// record's offset plus one, with that record's leader epoch and empty
+    /// metadata. Partitions appear in first-seen order.
+    #[must_use]
+    pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+        let mut last = HashMap::new();
+        let mut order = Vec::new();
+        for rec in &self.records {
+            let tp = rec.topic_partition();
+            if last.insert(tp.clone(), rec).is_none() {
+                order.push(tp);
+            }
+        }
+        order
+            .into_iter()
+            .filter_map(|tp| {
+                last.remove(&tp).map(|rec| {
+                    (
+                        tp,
+                        OffsetAndMetadata {
+                            offset: rec.offset.saturating_add(1),
+                            leader_epoch: rec.leader_epoch,
+                            metadata: String::new(),
+                        },
+                    )
+                })
+            })
+            .collect()
     }
 }
 
@@ -1967,10 +2000,12 @@ mod tests {
 
     #[test]
     fn consumer_records_partitions_and_filters() {
+        let mut last_a0 = rec("a", 0, 3);
+        last_a0.leader_epoch = Some(7);
         let recs = ConsumerRecords::from(vec![
             rec("a", 0, 1),
             rec("a", 1, 2),
-            rec("a", 0, 3),
+            last_a0,
             rec("b", 0, 4),
         ]);
         assert_eq!(recs.count(), 4);
@@ -1989,5 +2024,20 @@ mod tests {
         assert_eq!(recs.records_for_topic("missing").count(), 0);
         let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset).collect();
         assert_eq!(via_ref, vec![1, 2, 3, 4]);
+        assert_eq!(
+            recs.next_offsets(),
+            vec![
+                (
+                    TopicPartition::new("a", 0),
+                    OffsetAndMetadata {
+                        offset: 4,
+                        leader_epoch: Some(7),
+                        metadata: String::new(),
+                    }
+                ),
+                (TopicPartition::new("a", 1), OffsetAndMetadata::new(3),),
+                (TopicPartition::new("b", 0), OffsetAndMetadata::new(5),),
+            ]
+        );
     }
 }

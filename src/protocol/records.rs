@@ -10,20 +10,29 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use super::buf;
 use crate::error::{Error, Result};
 
+/// Record batch magic for Kafka 0.11+ (v2).
 pub const MAGIC_V2: i8 = 2;
 const _BATCH_OVERHEAD: usize = 61;
 
+/// Kafka record-batch compression codec.
+///
+/// zstd is not implemented (the usual ecosystem codec is C).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i16)]
 pub enum Compression {
+    /// Uncompressed.
     #[default]
     None = 0,
+    /// gzip (`flate2` Rust backend).
     Gzip = 1,
+    /// Snappy.
     Snappy = 2,
+    /// LZ4 frame.
     Lz4 = 3,
 }
 
 impl Compression {
+    /// Codec from the low 3 bits of batch attributes.
     pub fn from_attributes(attr: i16) -> Result<Self> {
         match attr & 0x07 {
             0 => Ok(Self::None),
@@ -34,6 +43,7 @@ impl Compression {
         }
     }
 
+    /// `none` / `gzip` / `snappy` / `lz4`.
     pub fn from_name(name: &str) -> Result<Self> {
         match name {
             "none" | "" => Ok(Self::None),
@@ -44,6 +54,7 @@ impl Compression {
         }
     }
 
+    /// Config name for this codec.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::None => "none",
@@ -54,9 +65,12 @@ impl Compression {
     }
 }
 
+/// One Kafka record header (`RecordHeader`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Header {
+    /// Header key.
     pub key: String,
+    /// Header value, or `None` when the wire value is null.
     pub value: Option<Bytes>,
 }
 
@@ -70,12 +84,19 @@ impl Header {
     }
 }
 
+/// One record inside a magic-v2 batch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
+    /// Log offset after decode; relative to the batch base when building with
+    /// [`RecordBatch::from_records`].
     pub offset: i64,
+    /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Optional key.
     pub key: Option<Bytes>,
+    /// Optional value.
     pub value: Option<Bytes>,
+    /// Record headers.
     pub headers: Vec<Header>,
 }
 
@@ -84,20 +105,34 @@ pub const ATTR_TRANSACTIONAL: i16 = 0x10;
 /// RecordBatch attributes: control batch (commit/abort marker).
 pub const ATTR_CONTROL: i16 = 0x20;
 
+/// Magic-v2 record batch (Kafka 0.11+).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordBatch {
+    /// First offset in this batch.
     pub base_offset: i64,
+    /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
+    /// Attribute bits: compression in the low 3, plus
+    /// [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
     pub attributes: i16,
+    /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
+    /// Max timestamp among records in this batch.
     pub max_timestamp: i64,
+    /// Idempotent / transactional producer id, or `-1`.
     pub producer_id: i64,
+    /// Producer epoch, or `-1`.
     pub producer_epoch: i16,
+    /// First sequence number in this batch, or `-1`.
     pub base_sequence: i32,
+    /// Records in this batch.
     pub records: Vec<Record>,
 }
 
 impl RecordBatch {
+    /// Build a batch from records. Offsets become `0..n`; timestamps set
+    /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
+    /// stay `-1`.
     pub fn from_records(mut records: Vec<Record>) -> Self {
         for (i, rec) in records.iter_mut().enumerate() {
             rec.offset = i64::try_from(i).unwrap_or(i64::MAX);
@@ -121,6 +156,7 @@ impl RecordBatch {
         }
     }
 
+    /// Set the compression bits in [`Self::attributes`].
     pub fn with_compression(mut self, compression: Compression) -> Self {
         self.attributes = (self.attributes & !0x07) | (compression as i16);
         self

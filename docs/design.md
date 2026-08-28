@@ -30,7 +30,7 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 
 `Consumer` is manual: you say topic, partition, offset, then `fetch`.
 `fetch` / group `poll` return [`ConsumerRecords`](../src/consumer.rs)
-(Java `count` / `partitions` / `records`). Share `poll` returns
+(Java `count` / `partitions` / `records` / `nextOffsets`). Share `poll` returns
 [`ShareRecords`](../src/share.rs).
 `fetch` sends one request per partition leader and waits for all of them
 when there is more than one. `seek_to_beginning` / `seek_to_end` call
