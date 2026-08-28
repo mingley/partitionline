@@ -6,7 +6,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Once;
 use std::task::{Context, Poll};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bytes::{BufMut, Bytes, BytesMut};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
@@ -249,6 +249,7 @@ pub struct BrokerConn {
     next_correlation: i32,
     client_id: String,
     addr: String,
+    last_io: Instant,
 }
 
 impl BrokerConn {
@@ -300,6 +301,7 @@ impl BrokerConn {
             next_correlation: 1,
             client_id: client_id.to_string(),
             addr: addr.to_string(),
+            last_io: Instant::now(),
         })
     }
 
@@ -328,6 +330,7 @@ impl BrokerConn {
         )
         .await
         .map_err(|_| Error::Timeout)??;
+        self.touch();
         Ok(())
     }
 
@@ -350,6 +353,7 @@ impl BrokerConn {
                 header.correlation_id
             )));
         }
+        self.touch();
         Ok(cur)
     }
 
@@ -357,6 +361,16 @@ impl BrokerConn {
     #[must_use]
     pub fn addr(&self) -> &str {
         &self.addr
+    }
+
+    /// Kafka `connections.max.idle.ms`. Zero never expires.
+    #[must_use]
+    pub(crate) fn idle_expired(&self, max_idle: Duration) -> bool {
+        crate::config::connection_idle_expired(self.last_io.elapsed(), max_idle)
+    }
+
+    fn touch(&mut self) {
+        self.last_io = Instant::now();
     }
 
     /// Encode and write one request. Returns the correlation id.

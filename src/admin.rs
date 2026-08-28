@@ -141,6 +141,10 @@ pub struct AdminConfig {
     /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
     /// exponential growth. Default 1s (Java).
     pub reconnect_backoff_max: Duration,
+    /// Kafka `connections.max.idle.ms`. Close a broker TCP connection that
+    /// has been unused for this long and reconnect on the next RPC. Default
+    /// 9 minutes (Java). Zero never closes for idle.
+    pub connections_max_idle: Duration,
     /// Kafka `retry.backoff.ms`. Wait after a retriable admin error
     /// (`NOT_CONTROLLER`, coordinator moves, IO) before the next attempt.
     /// Default 100ms (Java / librdkafka). Zero retries immediately.
@@ -173,6 +177,7 @@ impl Default for AdminConfig {
             connect_timeout: Duration::from_secs(10),
             reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
             reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
+            connections_max_idle: crate::config::DEFAULT_CONNECTIONS_MAX_IDLE,
             retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
             retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             sasl_plain: None,
@@ -252,6 +257,16 @@ impl AdminConfig {
     #[must_use]
     pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
         self.reconnect_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `connections.max.idle.ms`. Close unused broker TCP connections.
+    ///
+    /// Default 9 minutes (Java). Zero never closes for idle. The next admin
+    /// RPC reconnects.
+    #[must_use]
+    pub fn connections_max_idle(mut self, idle: Duration) -> Self {
+        self.connections_max_idle = idle;
         self
     }
 
@@ -2163,6 +2178,7 @@ impl Admin {
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+        self.ensure_bootstrap().await?;
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -2198,7 +2214,23 @@ impl Admin {
         Ok(())
     }
 
+    async fn ensure_bootstrap(&mut self) -> Result<()> {
+        if !self.conn.idle_expired(self.cfg.connections_max_idle) {
+            return Ok(());
+        }
+        let addr = self.conn.addr().to_string();
+        self.conn = self.open_node_conn(&addr).await?;
+        Ok(())
+    }
+
     async fn connect_node(&mut self, node: i32) -> Result<()> {
+        if self
+            .conns
+            .get(&node)
+            .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
+        {
+            let _ = self.conns.remove(&node);
+        }
         if self.conns.contains_key(&node) {
             return Ok(());
         }
@@ -2415,6 +2447,7 @@ impl Admin {
 
     /// Brokers, controller, and cluster id (`DescribeCluster`).
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
+        self.ensure_bootstrap().await?;
         let version = self.describe_cluster_version;
         let timeout = self.cfg.request_timeout;
         let body = self

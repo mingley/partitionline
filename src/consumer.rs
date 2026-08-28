@@ -146,6 +146,10 @@ pub struct ConsumerConfig {
     /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
     /// exponential growth. Default 1s (Java).
     pub reconnect_backoff_max: Duration,
+    /// Kafka `connections.max.idle.ms`. Close a broker TCP connection that
+    /// has been unused for this long and reconnect on the next RPC. Default
+    /// 9 minutes (Java). Zero never closes for idle.
+    pub connections_max_idle: Duration,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
@@ -182,6 +186,7 @@ impl Default for ConsumerConfig {
             metadata_max_age: Duration::from_secs(300),
             reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
             reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
+            connections_max_idle: crate::config::DEFAULT_CONNECTIONS_MAX_IDLE,
             interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
@@ -353,6 +358,16 @@ impl ConsumerConfig {
     #[must_use]
     pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
         self.reconnect_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `connections.max.idle.ms`. Close unused broker TCP connections.
+    ///
+    /// Default 9 minutes (Java). Zero never closes for idle. The next Fetch
+    /// reconnects.
+    #[must_use]
+    pub fn connections_max_idle(mut self, idle: Duration) -> Self {
+        self.connections_max_idle = idle;
         self
     }
 
@@ -1114,6 +1129,10 @@ impl Consumer {
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+        if self.conn.idle_expired(self.cfg.connections_max_idle) {
+            let addr = self.conn.addr().to_string();
+            self.conn = self.open_node_conn(&addr).await?;
+        }
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = match self
@@ -1211,6 +1230,13 @@ impl Consumer {
     }
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
+        if self
+            .conns
+            .get(&node)
+            .is_some_and(|c| c.idle_expired(self.cfg.connections_max_idle))
+        {
+            let _ = self.conns.remove(&node);
+        }
         if self.conns.contains_key(&node) {
             return Ok(());
         }

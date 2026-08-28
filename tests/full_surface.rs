@@ -501,6 +501,75 @@ async fn fetch_reconnect_honors_backoff() {
 }
 
 #[tokio::test]
+async fn fetch_reconnects_when_connection_idle() {
+    let mock = common::Mock::start().await;
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let _ = consumer.fetch().await.unwrap();
+    let after_fetch = mock.accept_count();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let _ = consumer.fetch().await.unwrap();
+    let after_idle = mock.accept_count();
+    assert!(
+        after_idle > after_fetch,
+        "idle Fetch must open a new TCP connection (before {after_fetch}, after {after_idle})"
+    );
+}
+
+#[tokio::test]
+async fn produce_reconnects_when_connection_idle() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"idle-a"[..]))
+        .await
+        .unwrap();
+    let after_send = mock.accept_count();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    producer
+        .send(ProduceRecord::to("t").value(&b"idle-b"[..]))
+        .await
+        .unwrap();
+    let after_idle = mock.accept_count();
+    assert!(
+        after_idle > after_send,
+        "idle Produce must open a new TCP connection (before {after_send}, after {after_idle})"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_reconnects_when_connection_idle() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    admin.describe_cluster().await.unwrap();
+    let after_first = mock.accept_count();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    admin.describe_cluster().await.unwrap();
+    let after_idle = mock.accept_count();
+    assert!(
+        after_idle > after_first,
+        "idle DescribeCluster must open a new TCP connection (before {after_first}, after {after_idle})"
+    );
+}
+
+#[tokio::test]
 async fn admin_reconnect_honors_backoff() {
     let mock = common::Mock::start().await;
     let mut acfg = AdminConfig::bootstrap([mock.addr.clone()]);

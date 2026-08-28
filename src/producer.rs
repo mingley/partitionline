@@ -96,6 +96,10 @@ pub struct ProducerConfig {
     /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
     /// exponential growth. Default 1s (Java).
     pub reconnect_backoff_max: Duration,
+    /// Kafka `connections.max.idle.ms`. Close a broker TCP connection that
+    /// has been unused for this long and reconnect on the next RPC. Default
+    /// 9 minutes (Java). Zero never closes for idle.
+    pub connections_max_idle: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
     pub allow_auto_topic_creation: bool,
     /// Record batch compression.
@@ -152,6 +156,7 @@ impl Default for ProducerConfig {
             connect_timeout: Duration::from_secs(10),
             reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
             reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
+            connections_max_idle: crate::config::DEFAULT_CONNECTIONS_MAX_IDLE,
             allow_auto_topic_creation: false,
             compression: Compression::None,
             sasl_plain: None,
@@ -391,6 +396,16 @@ impl ProducerConfig {
     #[must_use]
     pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
         self.reconnect_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `connections.max.idle.ms`. Close unused broker TCP connections.
+    ///
+    /// Default 9 minutes (Java). Zero never closes for idle. The next Produce
+    /// reconnects.
+    #[must_use]
+    pub fn connections_max_idle(mut self, idle: Duration) -> Self {
+        self.connections_max_idle = idle;
         self
     }
 
@@ -2064,6 +2079,11 @@ impl Worker {
     async fn fire(&mut self) -> Result<()> {
         if self.pending.is_empty() {
             return Ok(());
+        }
+        if self.in_flight.is_empty() && self.conn.idle_expired(self.shared.cfg.connections_max_idle)
+        {
+            let addr = self.conn.addr().to_string();
+            self.conn = open_conn(&addr, &self.shared.cfg).await?;
         }
         let n = take_count(
             &self.pending,

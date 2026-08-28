@@ -363,6 +363,7 @@ struct State {
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
     refuse_conns: u32,
+    accepts: u32,
     coord_node: i32,
     txn_coord_node: i32,
     find_coordinator_key_types: Vec<i8>,
@@ -575,6 +576,7 @@ fn new_state(
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
         refuse_conns: 0,
+        accepts: 0,
         coord_node: 1,
         txn_coord_node: 1,
         find_coordinator_key_types: Vec::new(),
@@ -741,6 +743,7 @@ fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
             if take_refuse(&state) {
                 continue;
             }
+            note_accept(&state);
             stream.set_nodelay(true).ok();
             let st = state.clone();
             tokio::spawn(handle_conn(stream, node_id, st));
@@ -756,6 +759,11 @@ fn take_refuse(state: &Mutex<State>) -> bool {
     } else {
         false
     }
+}
+
+fn note_accept(state: &Mutex<State>) {
+    let mut st = state.lock();
+    st.accepts = st.accepts.saturating_add(1);
 }
 
 fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
@@ -909,6 +917,7 @@ impl Mock {
                 if take_refuse(&st) {
                     continue;
                 }
+                note_accept(&st);
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
                 let acceptor = acceptor.clone();
@@ -1560,6 +1569,10 @@ impl Mock {
     /// Accept then immediately drop the next `n` TCP connections (no Kafka handshake).
     pub fn refuse_connections(&self, n: u32) {
         self.state.lock().refuse_conns = n;
+    }
+
+    pub fn accept_count(&self) -> u32 {
+        self.state.lock().accepts
     }
 
     pub fn move_coordinator(&self) {

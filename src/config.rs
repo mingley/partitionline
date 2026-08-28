@@ -18,6 +18,15 @@ pub(crate) const DEFAULT_RETRY_BACKOFF_MAX: Duration = Duration::from_millis(100
 pub(crate) const DEFAULT_RECONNECT_BACKOFF: Duration = Duration::from_millis(50);
 /// Kafka `reconnect.backoff.max.ms` default (Java: 1000).
 pub(crate) const DEFAULT_RECONNECT_BACKOFF_MAX: Duration = Duration::from_millis(1000);
+/// Kafka `connections.max.idle.ms` default (Java: 9 minutes).
+pub(crate) const DEFAULT_CONNECTIONS_MAX_IDLE: Duration = Duration::from_millis(9 * 60 * 1000);
+
+/// True when a socket has been unused for at least `max_idle`.
+///
+/// A zero `max_idle` never expires (this crate; Java 0 would close immediately).
+pub(crate) fn connection_idle_expired(elapsed: Duration, max_idle: Duration) -> bool {
+    !max_idle.is_zero() && elapsed >= max_idle
+}
 
 /// Exponential delay for retry attempt `n` (0-based): `base * 2^n`, capped at `max`.
 ///
@@ -354,6 +363,22 @@ mod tests {
         assert_eq!(bump_reconnect_fails(&mut fails, 1), 1);
         assert_eq!(bump_reconnect_fails(&mut fails, 1), 2);
         assert_eq!(fails.get(&1).copied(), Some(2));
+    }
+
+    #[test]
+    fn connection_idle_expired_zero_never_closes() {
+        assert!(!connection_idle_expired(
+            Duration::from_secs(3600),
+            Duration::ZERO
+        ));
+        assert!(!connection_idle_expired(
+            Duration::from_millis(29),
+            Duration::from_millis(30)
+        ));
+        assert!(connection_idle_expired(
+            Duration::from_millis(30),
+            Duration::from_millis(30)
+        ));
     }
 
     #[test]
