@@ -42,13 +42,14 @@ use partitionline::protocol::admin::{
     decode_describe_user_scram_credentials_request, decode_get_telemetry_subscriptions_request,
     decode_incremental_alter_configs_request, decode_list_config_resources_request,
     decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_share_group_describe_request,
-    decode_unregister_broker_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
-    encode_consumer_group_describe_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_groups_response, encode_delete_records_response,
+    decode_list_transactions_request, decode_push_telemetry_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_share_group_offsets_response,
+    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_groups_response, encode_delete_records_response,
     encode_delete_share_group_offsets_response, encode_delete_topics_response,
     encode_describe_client_quotas_response, encode_describe_cluster_response,
     encode_describe_configs_response, encode_describe_groups_response,
@@ -57,20 +58,21 @@ use partitionline::protocol::admin::{
     encode_describe_user_scram_credentials_response, encode_get_telemetry_subscriptions_response,
     encode_incremental_alter_configs_response, encode_list_config_resources_response,
     encode_list_groups_response, encode_list_partition_reassignments_response,
-    encode_list_transactions_response, encode_share_group_describe_response,
-    encode_unregister_broker_response, encode_update_features_response, ActiveProducer,
-    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, AlteredShareGroupOffsets, ClientQuotaAlterationResult,
-    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue,
-    ClusterDescription, ConfigEntry, DeletableGroupResult, DeletedShareGroupOffsets,
-    DescribeClientQuotasResponse, DescribeConfigsResult, DescribeProducersPartition,
-    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedTopicPartition, DescribedTopicPartitions, GetTelemetrySubscriptionsResponse,
-    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
-    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult,
+    encode_list_transactions_response, encode_push_telemetry_response,
+    encode_share_group_describe_response, encode_unregister_broker_response,
+    encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult, AlteredShareGroupOffsets,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, DeletableGroupResult,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
+    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse,
+    ListGroupsResponse, ListPartitionReassignmentsResponse, ListTransactionsResponse,
+    ListedConfigResource, ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment,
+    PushTelemetryResponse, ReassignmentPartitionResult, ReassignmentTopicResult,
     ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
     UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
     ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
@@ -93,9 +95,9 @@ use partitionline::protocol::api_keys::{
     HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, SASL_AUTHENTICATE, SASL_HANDSHAKE,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
+    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -265,6 +267,8 @@ struct State {
     last_list_config_resources: Option<Vec<i8>>,
     last_get_telemetry_subscriptions_node: Option<i32>,
     last_get_telemetry_subscriptions: Option<[u8; 16]>,
+    last_push_telemetry_node: Option<i32>,
+    last_push_telemetry: Option<([u8; 16], i32, bool, i8, Vec<u8>)>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -455,6 +459,8 @@ fn new_state(
         last_list_config_resources: None,
         last_get_telemetry_subscriptions_node: None,
         last_get_telemetry_subscriptions: None,
+        last_push_telemetry_node: None,
+        last_push_telemetry: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1218,6 +1224,14 @@ impl Mock {
         self.state.lock().last_get_telemetry_subscriptions
     }
 
+    pub fn last_push_telemetry_node(&self) -> Option<i32> {
+        self.state.lock().last_push_telemetry_node
+    }
+
+    pub fn last_push_telemetry(&self) -> Option<([u8; 16], i32, bool, i8, Vec<u8>)> {
+        self.state.lock().last_push_telemetry.clone()
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1588,6 +1602,7 @@ fn versions() -> ApiVersionsResponse {
         (DESCRIBE_TOPIC_PARTITIONS, 0, 0),
         (LIST_CONFIG_RESOURCES, 0, 1),
         (GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
+        (PUSH_TELEMETRY, 0, 0),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3939,6 +3954,24 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     ),
                 )
                 .unwrap();
+            }
+            PUSH_TELEMETRY => {
+                let req = decode_push_telemetry_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture ack only; not
+                // a telemetry store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16),
+                // so the wrong node does not return 16.
+                st.last_push_telemetry_node = Some(node_id);
+                st.last_push_telemetry = Some((
+                    req.client_instance_id,
+                    req.subscription_id,
+                    req.terminating,
+                    req.compression_type,
+                    req.metrics,
+                ));
+                encode_push_telemetry_response(&mut body, &PushTelemetryResponse::new(0)).unwrap();
             }
             _ => break,
         }

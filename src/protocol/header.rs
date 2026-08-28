@@ -12,8 +12,8 @@ use super::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -71,7 +71,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | DELETE_SHARE_GROUP_OFFSETS
         | DESCRIBE_TOPIC_PARTITIONS
         | LIST_CONFIG_RESOURCES
-        | GET_TELEMETRY_SUBSCRIPTIONS => 2,
+        | GET_TELEMETRY_SUBSCRIPTIONS
+        | PUSH_TELEMETRY => 2,
         _ => 1,
     }
 }
@@ -109,7 +110,8 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | DELETE_SHARE_GROUP_OFFSETS
         | DESCRIBE_TOPIC_PARTITIONS
         | LIST_CONFIG_RESOURCES
-        | GET_TELEMETRY_SUBSCRIPTIONS => 1,
+        | GET_TELEMETRY_SUBSCRIPTIONS
+        | PUSH_TELEMETRY => 1,
         _ => 0,
     }
 }
@@ -368,6 +370,15 @@ mod tests {
         // 2 / 1 at v0. This crate speaks v0 (VERSIONS.max).
         assert_eq!(request_header_version(GET_TELEMETRY_SUBSCRIPTIONS, 0), 2);
         assert_eq!(response_header_version(GET_TELEMETRY_SUBSCRIPTIONS, 0), 1);
+    }
+
+    #[test]
+    fn push_telemetry_v0_is_flexible() {
+        // Official JSON: validVersions 0, flexibleVersions 0+.
+        // kafka-protocol 0.18.0 VERSIONS min=max=0; HeaderVersion is
+        // 2 / 1 at v0. This crate speaks v0 (VERSIONS.max).
+        assert_eq!(request_header_version(PUSH_TELEMETRY, 0), 2);
+        assert_eq!(response_header_version(PUSH_TELEMETRY, 0), 1);
     }
 
     #[test]

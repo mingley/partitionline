@@ -3487,6 +3487,49 @@ async fn get_telemetry_subscriptions_follows_broker() {
 }
 
 #[tokio::test]
+async fn push_telemetry_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .push_telemetry([0x11; 16], 1, false, 0, b"m")
+        .await
+        .unwrap();
+    assert_eq!(first.error_code, 0);
+    assert_eq!(
+        mock.last_push_telemetry_node(),
+        Some(1),
+        "PushTelemetry must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_push_telemetry(),
+        Some(([0x11; 16], 1, false, 0, b"m".to_vec()))
+    );
+    assert_eq!(
+        mock.last_get_telemetry_subscriptions_node(),
+        None,
+        "PushTelemetry must not hop via GetTelemetrySubscriptions"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "PushTelemetry must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "PushTelemetry must not hop via Metadata controller_id"
+    );
+    assert_eq!(
+        mock.last_list_config_resources_node(),
+        None,
+        "PushTelemetry must not hop via ListConfigResources"
+    );
+}
+
+#[tokio::test]
 async fn delete_groups_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();

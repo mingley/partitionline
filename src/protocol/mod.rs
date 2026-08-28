@@ -8,7 +8,7 @@ pub mod acl;
 /// DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
 /// AlterShareGroupOffsets, DeleteShareGroupOffsets,
 /// DescribeTopicPartitions, ListConfigResources,
-/// GetTelemetrySubscriptions codecs.
+/// GetTelemetrySubscriptions, PushTelemetry codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;
