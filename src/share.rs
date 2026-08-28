@@ -45,6 +45,8 @@ pub struct ShareRecord {
     pub value: Option<Bytes>,
     /// Broker delivery count for this share.
     pub delivery_count: i16,
+    /// Partition leader epoch from the record batch, or `None` when `-1`.
+    pub leader_epoch: Option<i32>,
 }
 
 impl ShareRecord {
@@ -459,6 +461,8 @@ impl ShareGroup {
                                 key: rec.key,
                                 value: rec.value,
                                 delivery_count: delivery,
+                                leader_epoch: (batch.partition_leader_epoch >= 0)
+                                    .then_some(batch.partition_leader_epoch),
                             });
                         }
                     }
@@ -886,6 +890,7 @@ mod tests {
             key: None,
             value: None,
             delivery_count: 1,
+            leader_epoch: None,
         }
     }
 

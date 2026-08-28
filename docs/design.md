@@ -66,7 +66,8 @@ and the heartbeat thread leaves the group.
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
-`offsetsForTimes`. `assign_many` / `unassign` replace or drop a manual assignment.
+`offsetsForTimes`. `FetchedRecord.leader_epoch` is the record-batch partition
+leader epoch. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several

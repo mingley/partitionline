@@ -1758,13 +1758,14 @@ fn share_session_step(st: &mut State, member_id: &str, epoch: i32) -> i16 {
     }
 }
 
-fn share_record_batches(taken: Vec<Record>) -> Vec<RecordBatch> {
+fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatch> {
     taken
         .into_iter()
         .map(|r| {
             let off = r.offset;
             let mut batch = RecordBatch::from_records(vec![r]);
             batch.base_offset = off;
+            batch.partition_leader_epoch = leader_epoch;
             batch
         })
         .collect()
@@ -3284,6 +3285,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             let mut batch = RecordBatch::from_records(recs);
                             batch.base_offset = first;
                             batch.producer_id = pid;
+                            batch.partition_leader_epoch = st
+                                .partition_epochs
+                                .get(&(t.topic.clone(), p.partition))
+                                .copied()
+                                .unwrap_or(0);
                             vec![batch]
                         };
                         parts.push(FetchedPartition {
@@ -3579,10 +3585,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         taken.push(r);
                                     }
                                 }
+                                let epoch = st
+                                    .partition_epochs
+                                    .get(&(name.clone(), p.partition))
+                                    .copied()
+                                    .unwrap_or(0);
                                 parts.push(ShareFetchedPartition {
                                     partition: p.partition,
                                     error_code: 0,
-                                    records: share_record_batches(taken),
+                                    records: share_record_batches(taken, epoch),
                                     acquired,
                                 });
                             }

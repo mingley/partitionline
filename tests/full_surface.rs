@@ -20,12 +20,13 @@ use partitionline::{
     ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
     DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error,
-    ExpireDelegationTokenRequest, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
-    ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
-    ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ExpireDelegationTokenRequest, FeatureUpdate, NewPartitions, NewTopic, OidcConfig,
+    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
+    RenewDelegationTokenRequest, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS,
+    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
+    SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -2197,7 +2198,7 @@ async fn admin_partitions_alter_configs_and_acls() {
         0
     );
     let parts = admin
-        .create_partitions(&[("acl-t".into(), 3)], 10_000, false)
+        .create_partitions(&[NewPartitions::increase_to("acl-t", 3)], 10_000, false)
         .await
         .unwrap();
     assert_eq!(parts[0].error_code, 0);
@@ -2482,7 +2483,7 @@ async fn create_partitions_follows_controller() {
     assert_eq!(created[1].error_code, 0);
 
     let parts = admin
-        .create_partitions(&[("parts2".into(), 3)], 10_000, false)
+        .create_partitions(&[NewPartitions::increase_to("parts2", 3)], 10_000, false)
         .await
         .unwrap();
     assert_eq!(parts[0].error_code, 0);
@@ -2494,7 +2495,7 @@ async fn create_partitions_follows_controller() {
 
     mock.set_controller(1);
     let again = admin
-        .create_partitions(&[("parts1".into(), 2)], 10_000, false)
+        .create_partitions(&[NewPartitions::increase_to("parts1", 2)], 10_000, false)
         .await
         .unwrap();
     assert_eq!(again[0].error_code, 0);
@@ -2705,7 +2706,7 @@ async fn list_partition_reassignments_follows_controller() {
     assert_eq!(assigned[0].error_code, 0);
 
     let listed = admin
-        .list_partition_reassignments(Some(&[("lr2".into(), 0)]), 10_000)
+        .list_partition_reassignments(Some(&[TopicPartition::new("lr2", 0)]), 10_000)
         .await
         .unwrap();
     assert_eq!(
@@ -2726,7 +2727,7 @@ async fn list_partition_reassignments_follows_controller() {
 
     mock.set_controller(1);
     let again = admin
-        .list_partition_reassignments(Some(&[("lr2".into(), 0)]), 10_000)
+        .list_partition_reassignments(Some(&[TopicPartition::new("lr2", 0)]), 10_000)
         .await
         .unwrap();
     assert_eq!(

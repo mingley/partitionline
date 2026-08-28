@@ -586,17 +586,18 @@ impl ConsumerGroup {
             .into_iter()
             .map(TopicPartition::from)
             .collect();
-        self.committed_for(&assigned).await
+        self.committed_for(assigned).await
     }
 
     /// Last committed offsets for these partitions (`OffsetFetch`).
     pub async fn committed_for(
         &mut self,
-        partitions: &[TopicPartition],
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
     ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
+        let partitions: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
@@ -719,8 +720,8 @@ impl ConsumerGroup {
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     pub async fn offsets_for_times(
         &mut self,
-        queries: &[(crate::TopicPartition, i64)],
-    ) -> Result<Vec<(crate::TopicPartition, Option<crate::OffsetAndTimestamp>)>> {
+        queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+    ) -> Result<Vec<(TopicPartition, Option<crate::OffsetAndTimestamp>)>> {
         self.consumer.offsets_for_times(queries).await
     }
 

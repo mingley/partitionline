@@ -338,6 +338,10 @@ pub struct FetchedRecord {
     pub value: Option<Bytes>,
     /// Record headers.
     pub headers: Vec<Header>,
+    /// Partition leader epoch from the record batch (Java `leaderEpoch`).
+    ///
+    /// `None` when the wire value is `-1`.
+    pub leader_epoch: Option<i32>,
 }
 
 impl FetchedRecord {
@@ -1433,6 +1437,8 @@ impl Consumer {
                             key: rec.key,
                             value: rec.value,
                             headers: rec.headers,
+                            leader_epoch: (batch.partition_leader_epoch >= 0)
+                                .then_some(batch.partition_leader_epoch),
                         });
                     }
                 }
@@ -1669,12 +1675,13 @@ impl Consumer {
     /// Partitions with no matching record return `None`.
     pub async fn offsets_for_times(
         &mut self,
-        queries: &[(TopicPartition, i64)],
+        queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
     ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
-        let mut out = Vec::with_capacity(queries.len());
+        let mut out = Vec::new();
         for (tp, timestamp) in queries {
+            let tp = tp.into();
             let (offset, ts) = self
-                .list_offset_at(&tp.topic, tp.partition, *timestamp)
+                .list_offset_at(&tp.topic, tp.partition, timestamp)
                 .await?;
             let found = if offset < 0 {
                 None
@@ -1684,7 +1691,7 @@ impl Consumer {
                     timestamp: ts,
                 })
             };
-            out.push((tp.clone(), found));
+            out.push((tp, found));
         }
         Ok(out)
     }

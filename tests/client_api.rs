@@ -67,6 +67,7 @@ async fn produce_header_survives_fetch() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"with-header"[..]));
     assert_eq!(recs[0].timestamp, 1_700_000_000_000);
+    assert_eq!(recs[0].leader_epoch, Some(0));
     assert_eq!(recs[0].headers.len(), 1);
     assert_eq!(recs[0].headers[0].key, "k");
     assert_eq!(recs[0].headers[0].value.as_deref(), Some(&b"v"[..]));
@@ -414,6 +415,7 @@ async fn share_join_topics_fetches_both() {
     assert_eq!(sm.bytes_fetched, 2);
     assert_eq!(sm.fetch_errors, 0);
     assert_eq!(sm.records_acknowledged, 0);
+    assert!(recs.iter().all(|r| r.leader_epoch == Some(0)));
     group.accept(&recs).await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
@@ -1022,14 +1024,14 @@ async fn offsets_for_times_finds_record_and_misses() {
             .unwrap();
     let tp = TopicPartition::new("t", 0);
     let hit = consumer
-        .offsets_for_times(&[(tp.clone(), 1_500)])
+        .offsets_for_times([(tp.clone(), 1_500)])
         .await
         .unwrap();
     assert_eq!(hit.len(), 1);
     let found = hit[0].1.expect("should find the 2000ms record");
     assert_eq!(found.offset, 1);
     assert_eq!(found.timestamp, 2_000);
-    let miss = consumer.offsets_for_times(&[(tp, 9_999)]).await.unwrap();
+    let miss = consumer.offsets_for_times([(tp, 9_999)]).await.unwrap();
     assert!(miss[0].1.is_none());
     consumer.close().await.unwrap();
 }

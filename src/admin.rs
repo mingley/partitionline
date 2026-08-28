@@ -245,6 +245,26 @@ impl NewTopic {
     }
 }
 
+/// Increase a topic's partition count (`CreatePartitions`). Java `NewPartitions`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewPartitions {
+    /// Topic name.
+    pub name: String,
+    /// Total partition count after the increase (not a delta).
+    pub total_count: i32,
+}
+
+impl NewPartitions {
+    /// Set `name` to `total_count` partitions (Java `NewPartitions.increaseTo`).
+    #[must_use]
+    pub fn increase_to(name: impl Into<String>, total_count: i32) -> Self {
+        Self {
+            name: name.into(),
+            total_count,
+        }
+    }
+}
+
 /// Resource for DescribeConfigs / IncrementalAlterConfigs / AlterConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigResource {
@@ -1057,15 +1077,19 @@ impl Admin {
 
     /// Increase partition count (`CreatePartitions`).
     ///
-    /// Each item is `(topic, total_partition_count)`. Lands on the Metadata
-    /// controller. `NOT_CONTROLLER` (41) refreshes Metadata and retries.
+    /// [`NewPartitions::total_count`] is the new total, not a delta. Lands on
+    /// the Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata and
+    /// retries.
     pub async fn create_partitions(
         &mut self,
-        topics: &[(String, i32)],
+        topics: &[NewPartitions],
         timeout_ms: i32,
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
-        let topics = topics.to_vec();
+        let topics: Vec<(String, i32)> = topics
+            .iter()
+            .map(|t| (t.name.clone(), t.total_count))
+            .collect();
         let version = self.partitions_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
@@ -1321,7 +1345,7 @@ impl Admin {
     /// retries on the new controller.
     pub async fn list_partition_reassignments(
         &mut self,
-        partitions: Option<&[(String, i32)]>,
+        partitions: Option<&[crate::TopicPartition]>,
         timeout_ms: i32,
     ) -> Result<Vec<OngoingReassignment>> {
         let topics = partitions.map(group_list_reassignments);
@@ -3586,17 +3610,17 @@ fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<Reassignabl
         .collect()
 }
 
-fn group_list_reassignments(partitions: &[(String, i32)]) -> Vec<ListReassignmentTopic> {
+fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<ListReassignmentTopic> {
     let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
-    for (topic, part) in partitions {
-        match by_topic.entry(topic.clone()) {
+    for tp in partitions {
+        match by_topic.entry(tp.topic.clone()) {
             std::collections::hash_map::Entry::Vacant(slot) => {
-                order.push(topic.clone());
-                let _ = slot.insert(vec![*part]);
+                order.push(tp.topic.clone());
+                let _ = slot.insert(vec![tp.partition]);
             }
             std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(*part);
+                slot.get_mut().push(tp.partition);
             }
         }
     }

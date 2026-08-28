@@ -69,6 +69,8 @@ the heartbeat thread leaves the group if it is exceeded.
 `Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch
 interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`.
+`FetchedRecord::leader_epoch` is the record-batch partition leader epoch.
+`Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.
@@ -137,7 +139,7 @@ cargo run --release --example roundtrip
 
 Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`,
 `examples/offsets.rs`, `examples/share.rs`, `examples/wakeup.rs`,
-`examples/pause.rs`, `examples/metrics.rs`.
+`examples/pause.rs`, `examples/metrics.rs`, `examples/cooperative.rs`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

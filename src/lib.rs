@@ -45,6 +45,8 @@
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
+//! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
+//! [`Admin::create_partitions`] takes [`NewPartitions`].
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
@@ -156,12 +158,12 @@ pub use admin::{
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     FeatureUpdate, FeatureUpdateResult, GetTelemetrySubscriptionsResponse, ListedConfigResource,
-    ListedGroup, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RenewDelegationTokenRequest,
-    RenewDelegationTokenResponse, ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
-    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ListedGroup, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
+    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
+    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor,
+    TransactionListing, TransactionState, TransactionTopic, UserScramCredentialDeletion,
+    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
