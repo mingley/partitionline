@@ -17,8 +17,9 @@ use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
     decode_alter_configs_response, decode_alter_partition_reassignments_response,
     decode_alter_share_group_offsets_response, decode_alter_user_scram_credentials_response,
-    decode_consumer_group_describe_response, decode_create_partitions_response,
-    decode_create_topics_response, decode_delete_groups_response, decode_delete_records_response,
+    decode_assign_replicas_to_dirs_response, decode_consumer_group_describe_response,
+    decode_create_partitions_response, decode_create_topics_response,
+    decode_delete_groups_response, decode_delete_records_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response, decode_describe_groups_response,
@@ -32,22 +33,23 @@ use crate::protocol::admin::{
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_request,
     encode_alter_partition_reassignments_request, encode_alter_share_group_offsets_request,
-    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
-    encode_delete_records_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_groups_request, encode_describe_producers_request,
-    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_request,
-    encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request,
-    encode_push_telemetry_request, encode_share_group_describe_request,
-    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
-    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
-    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_alter_user_scram_credentials_request, encode_assign_replicas_to_dirs_request,
+    encode_consumer_group_describe_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    encode_delete_share_group_offsets_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_groups_request,
+    encode_describe_producers_request, encode_describe_share_group_offsets_request,
+    encode_describe_topic_partitions_request, encode_describe_transactions_request,
+    encode_describe_user_scram_credentials_request, encode_get_telemetry_subscriptions_request,
+    encode_incremental_alter_configs_request, encode_list_config_resources_request,
+    encode_list_groups_request, encode_list_partition_reassignments_request,
+    encode_list_transactions_request, encode_push_telemetry_request,
+    encode_share_group_describe_request, encode_unregister_broker_request,
+    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
+    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
+    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -56,10 +58,10 @@ use crate::protocol::api::{
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS,
-    API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS,
-    DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
-    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS,
+    CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR,
     GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY,
@@ -76,14 +78,17 @@ pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
     AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
-    ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry,
-    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry,
-    ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
-    DeletedShareGroupOffsetsTopic, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
-    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
+    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
+    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
+    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
+    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup,
     PushTelemetryRequest, PushTelemetryResponse, ScramCredentialInfo, ShareGroupAssignment,
@@ -389,6 +394,7 @@ pub struct Admin {
     list_config_resources_version: i16,
     get_telemetry_subscriptions_version: i16,
     push_telemetry_version: i16,
+    assign_replicas_to_dirs_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -633,6 +639,12 @@ impl Admin {
             .get(&PUSH_TELEMETRY)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
             .ok_or_else(|| Error::Unsupported("broker does not support PushTelemetry".into()))?;
+        let assign_replicas_to_dirs_version = versions
+            .get(&ASSIGN_REPLICAS_TO_DIRS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support AssignReplicasToDirs".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -675,6 +687,7 @@ impl Admin {
             list_config_resources_version,
             get_telemetry_subscriptions_version,
             push_telemetry_version,
+            assign_replicas_to_dirs_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2903,6 +2916,87 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "PushTelemetry"));
         }
         Ok(resp)
+    }
+
+    /// Assign replicas to log directories (AssignReplicasToDirs api 73,
+    /// KIP-858).
+    ///
+    /// Lands on the Metadata controller. Official Apache JSON listeners
+    /// are `controller` only. Official JSON lists no `errorCodes`.
+    /// Official Java `AssignReplicasToDirsRequest.getErrorResponse`
+    /// writes `Errors.forException(e).code()` onto the top-level
+    /// ErrorCode. Official Java `QuorumController.assignReplicasToDirs`
+    /// is an `appendWriteEvent`; `ControllerWriteEvent.run` throws
+    /// `NotControllerException` when the node is not the active
+    /// controller, which `getErrorResponse` writes as
+    /// `NOT_CONTROLLER` (41). `NOT_CONTROLLER` (41) refreshes Metadata
+    /// and retries on the new controller. Official
+    /// `ReplicationControlManager.handleAssignReplicasToDirs` does not
+    /// write `NOT_COORDINATOR` (16); per-partition
+    /// `NOT_LEADER_OR_FOLLOWER` (6) is a handler code when the broker
+    /// is not a replica, not a partition-leader hop. This is not a
+    /// FindCoordinator hop and has no `key_type`. Top-level
+    /// `error_code` is the INT16 at bytes 4–5, after throttle — not a
+    /// first-directory field and not a first-partition field. Fixture
+    /// broker id/epoch and directory UUIDs only; this is not a replica
+    /// directory store.
+    pub async fn assign_replicas_to_dirs(
+        &mut self,
+        broker_id: i32,
+        broker_epoch: i64,
+        directories: Vec<AssignReplicasToDirsDirectory>,
+    ) -> Result<AssignReplicasToDirsResponse> {
+        let version = self.assign_replicas_to_dirs_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);
+        loop {
+            if self.cluster.controller().is_err() {
+                self.refresh_metadata(None).await?;
+            }
+            let node = self.cluster.controller()?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing assign_replicas_to_dirs conn"))?;
+                conn.roundtrip(
+                    ASSIGN_REPLICAS_TO_DIRS,
+                    version,
+                    |buf| encode_assign_replicas_to_dirs_request(buf, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.cluster.invalidate_controller();
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_assign_replicas_to_dirs_response(&mut body.clone())?;
+            if resp.error_code == error::NOT_CONTROLLER {
+                // NOT_CONTROLLER (41): Metadata, then the new controller.
+                self.cluster.invalidate_controller();
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                self.refresh_metadata(None).await?;
+                continue;
+            }
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "AssignReplicasToDirs"));
+            }
+            return Ok(resp);
+        }
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

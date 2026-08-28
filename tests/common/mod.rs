@@ -32,22 +32,23 @@ use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
     decode_alter_configs_request, decode_alter_partition_reassignments_request,
     decode_alter_share_group_offsets_request, decode_alter_user_scram_credentials_request,
-    decode_consumer_group_describe_request, decode_create_partitions_request,
-    decode_create_topics_request, decode_delete_groups_request, decode_delete_records_request,
-    decode_delete_share_group_offsets_request, decode_delete_topics_request,
-    decode_describe_client_quotas_request, decode_describe_cluster_request,
-    decode_describe_configs_request, decode_describe_groups_request,
-    decode_describe_producers_request, decode_describe_share_group_offsets_request,
-    decode_describe_topic_partitions_request, decode_describe_transactions_request,
-    decode_describe_user_scram_credentials_request, decode_get_telemetry_subscriptions_request,
-    decode_incremental_alter_configs_request, decode_list_config_resources_request,
-    decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_push_telemetry_request,
-    decode_share_group_describe_request, decode_unregister_broker_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_share_group_offsets_response,
-    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
+    decode_assign_replicas_to_dirs_request, decode_consumer_group_describe_request,
+    decode_create_partitions_request, decode_create_topics_request, decode_delete_groups_request,
+    decode_delete_records_request, decode_delete_share_group_offsets_request,
+    decode_delete_topics_request, decode_describe_client_quotas_request,
+    decode_describe_cluster_request, decode_describe_configs_request,
+    decode_describe_groups_request, decode_describe_producers_request,
+    decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
+    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
+    decode_get_telemetry_subscriptions_request, decode_incremental_alter_configs_request,
+    decode_list_config_resources_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_push_telemetry_request, decode_share_group_describe_request,
+    decode_unregister_broker_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
+    encode_assign_replicas_to_dirs_response, encode_consumer_group_describe_response,
     encode_create_partitions_response, encode_create_topics_response,
     encode_delete_groups_response, encode_delete_records_response,
     encode_delete_share_group_offsets_response, encode_delete_topics_response,
@@ -62,11 +63,13 @@ use partitionline::protocol::admin::{
     encode_share_group_describe_response, encode_unregister_broker_response,
     encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
     AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult, AlteredShareGroupOffsets,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaValue, ClusterDescription, ConfigEntry, DeletableGroupResult,
-    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
-    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
+    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
+    ConfigEntry, DeletableGroupResult, DeletedShareGroupOffsets, DescribeClientQuotasResponse,
+    DescribeConfigsResult, DescribeProducersPartition, DescribeProducersResponse,
+    DescribeProducersTopic, DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
     DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
     DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse,
@@ -86,18 +89,18 @@ use partitionline::protocol::api::{
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_SHARE_GROUP_OFFSETS,
-    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT,
-    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
-    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
-    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP,
-    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, SASL_AUTHENTICATE, SASL_HANDSHAKE,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
-    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
+    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
+    DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
+    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR,
+    GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID,
+    JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -278,6 +281,9 @@ struct State {
     last_get_telemetry_subscriptions: Option<[u8; 16]>,
     last_push_telemetry_node: Option<i32>,
     last_push_telemetry: Option<LastPushTelemetry>,
+    last_assign_replicas_to_dirs_node: Option<i32>,
+    assign_replicas_to_dirs_not_controller: u32,
+    last_assign_replicas_to_dirs: Option<AssignReplicasToDirsRequest>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -470,6 +476,9 @@ fn new_state(
         last_get_telemetry_subscriptions: None,
         last_push_telemetry_node: None,
         last_push_telemetry: None,
+        last_assign_replicas_to_dirs_node: None,
+        assign_replicas_to_dirs_not_controller: 0,
+        last_assign_replicas_to_dirs: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1241,6 +1250,18 @@ impl Mock {
         self.state.lock().last_push_telemetry.clone()
     }
 
+    pub fn last_assign_replicas_to_dirs_node(&self) -> Option<i32> {
+        self.state.lock().last_assign_replicas_to_dirs_node
+    }
+
+    pub fn assign_replicas_to_dirs_not_controller(&self) -> u32 {
+        self.state.lock().assign_replicas_to_dirs_not_controller
+    }
+
+    pub fn last_assign_replicas_to_dirs(&self) -> Option<AssignReplicasToDirsRequest> {
+        self.state.lock().last_assign_replicas_to_dirs.clone()
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1612,6 +1633,7 @@ fn versions() -> ApiVersionsResponse {
         (LIST_CONFIG_RESOURCES, 0, 1),
         (GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
         (PUSH_TELEMETRY, 0, 0),
+        (ASSIGN_REPLICAS_TO_DIRS, 0, 0),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3981,6 +4003,58 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     metrics: req.metrics,
                 });
                 encode_push_telemetry_response(&mut body, &PushTelemetryResponse::new(0)).unwrap();
+            }
+            ASSIGN_REPLICAS_TO_DIRS => {
+                let req = decode_assign_replicas_to_dirs_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.controller_node != node_id {
+                    st.assign_replicas_to_dirs_not_controller =
+                        st.assign_replicas_to_dirs_not_controller.saturating_add(1);
+                    // 41 only. Do not invent a replica-dir store on
+                    // the wrong node.
+                    encode_assign_replicas_to_dirs_response(
+                        &mut body,
+                        &AssignReplicasToDirsResponse::new(error::NOT_CONTROLLER, vec![]),
+                    )
+                    .unwrap();
+                } else {
+                    st.last_assign_replicas_to_dirs_node = Some(node_id);
+                    // Echo the request directories with per-partition
+                    // error 0. Fixture ack only; not a replica-dir
+                    // store.
+                    let directories = req
+                        .directories
+                        .iter()
+                        .map(|d| {
+                            AssignReplicasToDirsResponseDirectory::new(
+                                d.id,
+                                d.topics
+                                    .iter()
+                                    .map(|t| {
+                                        AssignReplicasToDirsResponseTopic::new(
+                                            t.topic_id,
+                                            t.partitions
+                                                .iter()
+                                                .map(|p| {
+                                                    AssignReplicasToDirsResponsePartition::new(
+                                                        p.partition_index,
+                                                        0,
+                                                    )
+                                                })
+                                                .collect(),
+                                        )
+                                    })
+                                    .collect(),
+                            )
+                        })
+                        .collect();
+                    st.last_assign_replicas_to_dirs = Some(req);
+                    encode_assign_replicas_to_dirs_response(
+                        &mut body,
+                        &AssignReplicasToDirsResponse::new(0, directories),
+                    )
+                    .unwrap();
+                }
             }
             _ => break,
         }
