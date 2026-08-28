@@ -34,9 +34,12 @@ assigned partitions without dropping them; pause survives group rebalance.
 how many records one `fetch` returns; the rest stay buffered.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
-`join_topics` (range), `join_sticky_topics`, and `join_consumer_topics`
+`join_topics` (range), `join_sticky_topics`, `join_cooperative_sticky_topics`,
+and `join_consumer_topics`
 subscribe to several topics. Range and sticky assign each topic independently
-among members who subscribed to it. `ConsumerConfig::group_instance_id` is
+among members who subscribed to it. Sticky rebalances load when a member joins.
+Cooperative-sticky (KIP-429) keeps owned partitions until the owner revokes
+them, then rejoins so the new owner can take them. `ConsumerConfig::group_instance_id` is
 Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
@@ -45,8 +48,9 @@ assignment. `commit_offsets` commits caller-chosen offsets.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
-`max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`).
-`Producer::metrics` / `Consumer::metrics` are counter snapshots.
+`max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`)
+and the heartbeat thread leaves the group.
+`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

@@ -45,7 +45,8 @@
 //! # Groups
 //!
 //! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
-//! is sticky, [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
+//! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429, and
+//! [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
 //! `_topics` variant for several topics.
 //! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
@@ -88,7 +89,7 @@ pub mod consumer;
 pub mod error;
 /// Consumer-group join / sync / heartbeat / commit.
 pub mod group;
-/// Client counters: [`ProducerMetrics`], [`ConsumerMetrics`].
+/// Client counters: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
@@ -139,7 +140,7 @@ pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
-pub use metrics::{ConsumerMetrics, ProducerMetrics};
+pub use metrics::{ConsumerMetrics, ProducerMetrics, ShareMetrics};
 pub use net::TlsConfig;
 pub use partitioner::{
     murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,

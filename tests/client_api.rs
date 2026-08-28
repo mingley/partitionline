@@ -401,6 +401,12 @@ async fn share_join_topics_fetches_both() {
     let mut names: Vec<&str> = recs.iter().map(|r| r.topic.as_str()).collect();
     names.sort_unstable();
     assert_eq!(names, vec!["orders", "payments"]);
+    let sm = group.metrics();
+    assert_eq!(sm.fetch_rounds, 1);
+    assert_eq!(sm.records_fetched, 2);
+    assert_eq!(sm.records_acknowledged, 0);
+    group.accept(&recs).await.unwrap();
+    assert_eq!(group.metrics().records_acknowledged, 2);
     group.leave().await.unwrap();
 }
 
@@ -808,4 +814,86 @@ async fn max_poll_interval_errors_on_second_poll() {
         matches!(err, Error::MaxPollInterval),
         "expected MaxPollInterval, got {err}"
     );
+}
+
+#[tokio::test]
+async fn two_members_cooperative_sticky_partition_all() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("cs4", 4, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    let mut a = ConsumerGroup::join_cooperative_sticky(ccfg.clone(), "csg", "cs4")
+        .await
+        .unwrap();
+    let b_join = tokio::spawn({
+        let ccfg = ccfg.clone();
+        async move { ConsumerGroup::join_cooperative_sticky(ccfg, "csg", "cs4").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(a.poll().await);
+    let mut b = b_join.await.unwrap().unwrap();
+    let mut split = false;
+    for _ in 0..12 {
+        drop(a.poll().await);
+        drop(b.poll().await);
+        let a_n = a.assignment().len();
+        let b_n = b.assignment().len();
+        if a_n == 2 && b_n == 2 {
+            split = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(40)).await;
+    }
+    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
+    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    assert!(
+        split && a_parts.is_disjoint(&b_parts) && a_parts.len() + b_parts.len() == 4,
+        "cooperative-sticky should settle on a 2/2 split, got a={a_parts:?} b={b_parts:?}"
+    );
+    a.leave().await.unwrap();
+    b.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn max_poll_interval_heartbeat_leaves_group() {
+    let mock = common::Mock::start().await;
+    let mut a = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .heartbeat_interval(Duration::from_millis(20))
+            .max_poll_interval(Duration::from_millis(30)),
+        "mpi-leave",
+        "t",
+    )
+    .await
+    .unwrap();
+    a.poll().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    let b = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "mpi-leave",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        b.assignment().len(),
+        1,
+        "first member must have left after max.poll.interval"
+    );
+    let err = a.poll().await.unwrap_err();
+    assert!(
+        matches!(err, Error::MaxPollInterval),
+        "expected MaxPollInterval, got {err}"
+    );
+    b.leave().await.unwrap();
 }

@@ -3724,7 +3724,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         hb_total: 0,
                     });
                     let mut bumped = false;
-                    if !g.members.contains_key(&member_id) {
+                    if !g.members.contains_key(&member_id) || g.joined.contains(&member_id) {
                         g.generation += 1;
                         g.joined.clear();
                         g.assignments.clear();

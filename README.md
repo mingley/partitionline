@@ -50,16 +50,18 @@ returns Metadata (leader, replicas, ISR).
 
 ## Groups
 
-Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups
+Classic range, sticky, cooperative-sticky (KIP-429), KIP-848 (`join_consumer`), and KIP-932 share groups
 (`ShareGroup::join` / `join_topics`).
-`join_topics` / `join_sticky_topics` / `join_consumer_topics` subscribe to
+`join_topics` / `join_sticky_topics` / `join_cooperative_sticky_topics` /
+`join_consumer_topics` subscribe to
 several topics. Set `group.instance.id` with
 `ConsumerConfig::group_instance_id` for static membership.
 `ConsumerConfig::auto_offset_reset` is used when the group has no
 committed offset (`Earliest` by default, unlike Java's `latest`).
 `auto_commit(true)` commits after poll (off by default).
-`Producer::metrics` / `Consumer::metrics` are counter snapshots.
-`max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes).
+`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
+`max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes);
+the heartbeat thread leaves the group if it is exceeded.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

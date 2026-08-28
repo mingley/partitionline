@@ -63,6 +63,9 @@ pub struct ShareGroup {
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
     hb_stop: watch::Sender<bool>,
+    fetch_rounds: u64,
+    records_fetched: u64,
+    records_acknowledged: u64,
 }
 
 fn new_member_id() -> Result<String> {
@@ -119,6 +122,9 @@ impl ShareGroup {
             hb_err,
             hb_epoch,
             hb_stop,
+            fetch_rounds: 0,
+            records_fetched: 0,
+            records_acknowledged: 0,
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat(hb_rx);
@@ -138,6 +144,16 @@ impl ShareGroup {
     /// Assigned `(topic, partition)` pairs.
     pub fn assignment(&self) -> Vec<(String, i32)> {
         self.assigned.clone()
+    }
+
+    /// ShareFetch / ShareAcknowledge counters since join.
+    #[must_use]
+    pub fn metrics(&self) -> crate::ShareMetrics {
+        crate::ShareMetrics {
+            fetch_rounds: self.fetch_rounds,
+            records_fetched: self.records_fetched,
+            records_acknowledged: self.records_acknowledged,
+        }
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
@@ -214,7 +230,12 @@ impl ShareGroup {
         let deadline = Instant::now() + Duration::from_secs(30);
         loop {
             match self.poll_leaders().await {
-                Ok(recs) => return Ok(recs),
+                Ok(recs) => {
+                    self.fetch_rounds = self.fetch_rounds.saturating_add(1);
+                    let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
+                    self.records_fetched = self.records_fetched.saturating_add(n);
+                    return Ok(recs);
+                }
                 Err(e) if share_leader_retriable(&e) => {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
@@ -405,7 +426,11 @@ impl ShareGroup {
         let deadline = Instant::now() + Duration::from_secs(30);
         loop {
             match self.acknowledge_leaders(&partitions).await {
-                Ok(()) => return Ok(()),
+                Ok(()) => {
+                    let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
+                    self.records_acknowledged = self.records_acknowledged.saturating_add(n);
+                    return Ok(());
+                }
                 Err(e) if share_leader_retriable(&e) => {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);

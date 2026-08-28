@@ -26,6 +26,17 @@ pub struct ConsumerMetrics {
     pub fetch_errors: u64,
 }
 
+/// Share-group counters since this [`crate::ShareGroup`] joined.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ShareMetrics {
+    /// Successful [`crate::ShareGroup::poll`] calls.
+    pub fetch_rounds: u64,
+    /// Records returned from ShareFetch.
+    pub records_fetched: u64,
+    /// Records sent on ShareAcknowledge (`accept` / `release` / `reject`).
+    pub records_acknowledged: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -34,5 +45,6 @@ mod tests {
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
+        assert_eq!(ShareMetrics::default().records_acknowledged, 0);
     }
 }

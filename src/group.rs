@@ -1,7 +1,7 @@
 //! Consumer-group join / sync / heartbeat / commit.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -24,10 +24,11 @@ use crate::protocol::cgheartbeat::{
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response, decode_offset_commit_response,
-    decode_offset_fetch_response, decode_subscription, decode_sync_group_response,
+    decode_offset_fetch_response, decode_subscription_owned, decode_sync_group_response,
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_sync_group_request, encode_tp_assignment, FetchedOffsetTopic,
+    encode_subscription, encode_subscription_owned, encode_sync_group_request,
+    encode_tp_assignment, FetchedOffsetTopic,
     JoinGroupRequest, OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
@@ -103,6 +104,73 @@ pub fn assign_sticky(
         if let Some(m) = target {
             if let Some(slot) = out.get_mut(&m) {
                 slot.push(p);
+            }
+        }
+    }
+    rebalance_counts(&mut out);
+    out
+}
+
+/// Move partitions until every member has `floor(n/m)` or `ceil(n/m)`.
+fn rebalance_counts<T: Clone>(out: &mut HashMap<String, Vec<T>>) {
+    loop {
+        let max_id = out
+            .iter()
+            .max_by_key(|(m, v)| (v.len(), (*m).as_str()))
+            .map(|(m, _)| m.clone());
+        let min_id = out
+            .iter()
+            .min_by_key(|(m, v)| (v.len(), (*m).as_str()))
+            .map(|(m, _)| m.clone());
+        let (Some(max_id), Some(min_id)) = (max_id, min_id) else {
+            break;
+        };
+        if max_id == min_id {
+            break;
+        }
+        let max_n = out.get(&max_id).map(Vec::len).unwrap_or(0);
+        let min_n = out.get(&min_id).map(Vec::len).unwrap_or(0);
+        if max_n <= min_n.saturating_add(1) {
+            break;
+        }
+        let Some(tp) = out.get_mut(&max_id).and_then(Vec::pop) else {
+            break;
+        };
+        if let Some(slot) = out.get_mut(&min_id) {
+            slot.push(tp);
+        }
+    }
+}
+
+/// Sticky assignment that does not give a partition to a new owner until the
+/// current owner has revoked it (KIP-429 cooperative-sticky).
+pub fn assign_cooperative_sticky(
+    members: &[String],
+    partitions: &[i32],
+    prev: &HashMap<String, Vec<i32>>,
+) -> HashMap<String, Vec<i32>> {
+    cooperative_filter(assign_sticky(members, partitions, prev), prev)
+}
+
+fn cooperative_filter<T: Clone + Eq + std::hash::Hash>(
+    computed: HashMap<String, Vec<T>>,
+    prev: &HashMap<String, Vec<T>>,
+) -> HashMap<String, Vec<T>> {
+    let mut owner: HashMap<T, String> = HashMap::new();
+    for (m, tps) in prev {
+        for tp in tps {
+            if !owner.contains_key(tp) {
+                let _ = owner.insert(tp.clone(), m.clone());
+            }
+        }
+    }
+    let mut out: HashMap<String, Vec<T>> = HashMap::new();
+    for (m, tps) in computed {
+        let slot = out.entry(m.clone()).or_default();
+        for tp in tps {
+            match owner.get(&tp) {
+                Some(o) if o != &m => {}
+                _ => slot.push(tp),
             }
         }
     }
@@ -188,6 +256,15 @@ pub fn assign_sticky_subscribed(
     out
 }
 
+/// Cooperative-sticky across several topics (KIP-429).
+pub fn assign_cooperative_sticky_subscribed(
+    member_subs: &[(String, Vec<String>)],
+    topics: &[(String, Vec<i32>)],
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<String, Vec<(String, i32)>> {
+    cooperative_filter(assign_sticky_subscribed(member_subs, topics, prev), prev)
+}
+
 fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<String> {
     member_subs
         .iter()
@@ -217,6 +294,8 @@ pub struct ConsumerGroup {
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
     last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
+    /// Heartbeat thread left the group after `max.poll.interval.ms`.
+    left_max_poll: Arc<AtomicBool>,
 }
 
 impl ConsumerGroup {
@@ -256,6 +335,27 @@ impl ConsumerGroup {
         Self::join_with_protocol(cfg, group_id, topics, "sticky").await
     }
 
+    /// Join with cooperative-sticky (KIP-429). One topic.
+    ///
+    /// Partitions move only after the previous owner has revoked them, so two
+    /// members never fetch the same partition during a rebalance.
+    pub async fn join_cooperative_sticky(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topic: impl Into<String>,
+    ) -> Result<Self> {
+        Self::join_cooperative_sticky_topics(cfg, group_id, std::iter::once(topic)).await
+    }
+
+    /// Join with cooperative-sticky (KIP-429). Several topics.
+    pub async fn join_cooperative_sticky_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
+        Self::join_with_protocol(cfg, group_id, topics, "cooperative-sticky").await
+    }
+
     async fn join_with_protocol(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -290,6 +390,7 @@ impl ConsumerGroup {
             hb_stop,
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
+            left_max_poll: Arc::new(AtomicBool::new(false)),
         };
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
@@ -338,6 +439,7 @@ impl ConsumerGroup {
             hb_stop,
             last_auto_commit: Instant::now(),
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
+            left_max_poll: Arc::new(AtomicBool::new(false)),
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
@@ -424,7 +526,14 @@ impl ConsumerGroup {
     ///
     /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
     /// elapsed, commits after a successful fetch.
+    ///
+    /// Returns [`Error::MaxPollInterval`] if this member did not poll within
+    /// [`ConsumerConfig::max_poll_interval`]. The heartbeat thread also leaves
+    /// the group when that happens.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
+        if self.left_max_poll.load(Ordering::SeqCst) {
+            return Err(Error::MaxPollInterval);
+        }
         self.check_max_poll_interval()?;
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -566,8 +675,26 @@ impl ConsumerGroup {
     }
 
     async fn rejoin(&mut self) -> Result<()> {
+        for _ in 0..8 {
+            let revoked = self.rejoin_once().await?;
+            if self.protocol != "cooperative-sticky" || revoked.is_empty() {
+                return Ok(());
+            }
+        }
+        Err(Error::protocol("cooperative-sticky did not settle"))
+    }
+
+    fn join_metadata(&self) -> Result<Vec<u8>> {
+        if self.protocol == "range" {
+            encode_subscription(&self.topics)
+        } else {
+            encode_subscription_owned(&self.topics, &self.assignment())
+        }
+    }
+
+    async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
         let timeout = Duration::from_secs(30);
-        let metadata = encode_subscription(&self.topics)?;
+        let metadata = self.join_metadata()?;
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
                 &mut self.coord,
@@ -599,6 +726,7 @@ impl ConsumerGroup {
                 return Err(Error::broker(error, "JoinGroup"));
             }
         }
+        let metadata = self.join_metadata()?;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -633,17 +761,20 @@ impl ConsumerGroup {
         let _ = protocol;
 
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
+        let mut owned_prev = self.prev_assignment.clone();
         let mut topic_set = self.topics.clone();
         for m in &members {
-            let subs = match decode_subscription(&m.metadata) {
-                Ok(t) if !t.is_empty() => t,
-                _ => self.topics.clone(),
+            let (subs, owned) = match decode_subscription_owned(&m.metadata) {
+                Ok((t, o)) if !t.is_empty() => (t, o),
+                Ok((_, o)) => (self.topics.clone(), o),
+                Err(_) => (self.topics.clone(), Vec::new()),
             };
             for t in &subs {
                 if !topic_set.iter().any(|x| x == t) {
                     topic_set.push(t.clone());
                 }
             }
+            let _ = owned_prev.insert(m.member_id.clone(), owned);
             member_subs.push((m.member_id.clone(), subs));
         }
         self.consumer.refresh_topics(&topic_set).await?;
@@ -652,10 +783,12 @@ impl ConsumerGroup {
             by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
         }
         let assignments = if leader == self.member_id {
-            let map = if self.protocol == "sticky" {
-                assign_sticky_subscribed(&member_subs, &by_topic, &self.prev_assignment)
-            } else {
-                assign_range_subscribed(&member_subs, &by_topic)
+            let map = match self.protocol.as_str() {
+                "cooperative-sticky" => {
+                    assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
+                }
+                "sticky" => assign_sticky_subscribed(&member_subs, &by_topic, &owned_prev),
+                _ => assign_range_subscribed(&member_subs, &by_topic),
             };
             self.prev_assignment = map.clone();
             map.into_iter()
@@ -692,11 +825,11 @@ impl ConsumerGroup {
             .into_iter()
             .flat_map(|(t, ps)| ps.into_iter().map(move |p| (t.clone(), p)))
             .collect();
-        self.assign_committed(&wanted).await?;
+        let revoked = self.assign_committed(&wanted).await?;
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
         self.hb_err.store(0, Ordering::SeqCst);
-        Ok(())
+        Ok(revoked)
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
@@ -732,7 +865,7 @@ impl ConsumerGroup {
         self.generation_id = resp.member_epoch;
         let assignment = resp.assignment.unwrap_or_default();
         let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
-        self.assign_committed(&wanted).await?;
+        let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
             .store(self.generation_id, Ordering::SeqCst);
@@ -747,13 +880,13 @@ impl ConsumerGroup {
         };
         self.consumer.refresh_topics(&self.topics).await?;
         let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
-        self.assign_committed(&wanted).await?;
+        let _ = self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.generation_id = self.hb_generation.load(Ordering::SeqCst);
         Ok(())
     }
 
-    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<()> {
+    async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<Vec<(String, i32)>> {
         let current: HashMap<(String, i32), i64> = self
             .consumer
             .assignment()
@@ -821,7 +954,7 @@ impl ConsumerGroup {
         if !revoked.is_empty() || !added_tps.is_empty() {
             self.cfg.rebalance.call(&revoked, &added_tps);
         }
-        Ok(())
+        Ok(revoked)
     }
 
     fn spawn_heartbeat_consumer(&self, mut stop: watch::Receiver<bool>) {
@@ -831,6 +964,8 @@ impl ConsumerGroup {
         let hb_generation = self.hb_generation.clone();
         let hb_assignment = self.hb_assignment.clone();
         let hb_ack = self.hb_ack.clone();
+        let last_poll = self.last_poll.clone();
+        let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -844,6 +979,18 @@ impl ConsumerGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if leave_if_max_poll(
+                            &cfg,
+                            &group_id,
+                            &member_id,
+                            true,
+                            &last_poll,
+                            &left_max_poll,
+                        )
+                        .await
+                        {
+                            break;
+                        }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
@@ -908,6 +1055,8 @@ impl ConsumerGroup {
         let member_id = self.member_id.clone();
         let hb_err = self.hb_err.clone();
         let hb_generation = self.hb_generation.clone();
+        let last_poll = self.last_poll.clone();
+        let left_max_poll = self.left_max_poll.clone();
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
@@ -921,6 +1070,18 @@ impl ConsumerGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if leave_if_max_poll(
+                            &cfg,
+                            &group_id,
+                            &member_id,
+                            false,
+                            &last_poll,
+                            &left_max_poll,
+                        )
+                        .await
+                        {
+                            break;
+                        }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
@@ -967,6 +1128,65 @@ impl ConsumerGroup {
             }
         }));
     }
+}
+
+async fn leave_if_max_poll(
+    cfg: &ConsumerConfig,
+    group_id: &str,
+    member_id: &str,
+    kip848: bool,
+    last_poll: &parking_lot::Mutex<Option<Instant>>,
+    left: &AtomicBool,
+) -> bool {
+    if left.load(Ordering::SeqCst) {
+        return true;
+    }
+    if cfg.max_poll_interval.is_zero() {
+        return false;
+    }
+    let expired = last_poll
+        .lock()
+        .is_some_and(|t| t.elapsed() > cfg.max_poll_interval);
+    if !expired {
+        return false;
+    }
+    left.store(true, Ordering::SeqCst);
+    if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
+        let timeout = Duration::from_secs(10);
+        if kip848 {
+            let req = ConsumerGroupHeartbeatRequest {
+                group_id: group_id.to_string(),
+                member_id: member_id.to_string(),
+                member_epoch: -1,
+                instance_id: cfg.group_instance_id.clone(),
+                rack_id: cfg.rack.clone(),
+                subscribed_topic_names: None,
+                topic_partitions: None,
+            };
+            drop(
+                c.roundtrip(
+                    CONSUMER_GROUP_HEARTBEAT,
+                    0,
+                    |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                    timeout,
+                )
+                .await,
+            );
+        } else {
+            let gid = group_id.to_string();
+            let mid = member_id.to_string();
+            drop(
+                c.roundtrip(
+                    LEAVE_GROUP,
+                    0,
+                    |buf| encode_leave_group_request(buf, &gid, &mid),
+                    timeout,
+                )
+                .await,
+            );
+        }
+    }
+    true
 }
 
 fn wanted_from_kip848(
@@ -1288,6 +1508,43 @@ mod tests {
         let map = assign_sticky(&members, &parts, &prev);
         assert_eq!(map.get("a").cloned().unwrap_or_default(), vec![2, 3]);
         assert_eq!(map.get("b").cloned().unwrap_or_default(), vec![0, 1]);
+    }
+
+    #[test]
+    fn sticky_rebalances_when_a_member_joins() {
+        let members = vec!["a".into(), "b".into()];
+        let parts = vec![0, 1, 2, 3];
+        let mut prev = HashMap::new();
+        let _ = prev.insert("a".into(), vec![0, 1, 2, 3]);
+        let map = assign_sticky(&members, &parts, &prev);
+        let a = map.get("a").cloned().unwrap_or_default();
+        let b = map.get("b").cloned().unwrap_or_default();
+        assert_eq!(a.len(), 2);
+        assert_eq!(b.len(), 2);
+        let mut union = a;
+        union.extend(b);
+        union.sort();
+        assert_eq!(union, parts);
+    }
+
+    #[test]
+    fn cooperative_sticky_holds_owned_until_revoke() {
+        let members = vec!["a".into(), "b".into()];
+        let parts = vec![0, 1, 2, 3];
+        let mut prev = HashMap::new();
+        let _ = prev.insert("a".into(), vec![0, 1, 2, 3]);
+        let first = assign_cooperative_sticky(&members, &parts, &prev);
+        assert_eq!(first.get("a").map(Vec::len), Some(2));
+        assert_eq!(first.get("b").map(Vec::len), Some(0));
+        let mut prev2 = HashMap::new();
+        let _ = prev2.insert("a".into(), first.get("a").cloned().unwrap_or_default());
+        let _ = prev2.insert("b".into(), Vec::new());
+        let second = assign_cooperative_sticky(&members, &parts, &prev2);
+        let a = second.get("a").cloned().unwrap_or_default();
+        let b = second.get("b").cloned().unwrap_or_default();
+        assert_eq!(a.len(), 2);
+        assert_eq!(b.len(), 2);
+        assert!(a.iter().all(|p| !b.contains(p)));
     }
 
     #[test]

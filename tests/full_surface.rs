@@ -1180,7 +1180,8 @@ async fn two_members_sticky_partition_all() {
     let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
     let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
     assert!(a_parts.is_disjoint(&b_parts));
-    assert_eq!(a_parts.len() + b_parts.len(), 4);
+    assert_eq!(a_parts.len(), 2);
+    assert_eq!(b_parts.len(), 2);
 }
 
 #[tokio::test]

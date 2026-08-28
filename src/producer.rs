@@ -1,8 +1,3 @@
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
-
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -372,6 +367,7 @@ struct Shared {
     m_bytes: AtomicU64,
 }
 
+/// Produce client: queue records, batch, and wait for offsets.
 #[derive(Clone)]
 pub struct Producer {
     inner: Arc<Inner>,
@@ -823,6 +819,7 @@ impl Producer {
     }
 
     /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
+    /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(Error::protocol("transactional.id is not set"));
@@ -833,16 +830,20 @@ impl Producer {
         Ok(())
     }
 
+    /// Flush, then commit the current transaction (`EndTxn` commit).
     pub async fn commit_transaction(&self) -> Result<()> {
         self.flush().await?;
         self.end_txn(true).await
     }
 
+    /// Flush, then abort the current transaction (`EndTxn` abort).
     pub async fn abort_transaction(&self) -> Result<()> {
         self.flush().await?;
         self.end_txn(false).await
     }
 
+    /// Send these offsets to the transaction coordinator (`AddOffsetsToTxn`
+    /// then `TxnOffsetCommit`).
     pub async fn send_offsets_to_transaction(
         &self,
         group_id: &str,

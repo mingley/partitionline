@@ -587,7 +587,7 @@ pub fn decode_offset_delete_response<B: Buf>(
     Ok((error_code, out))
 }
 
-/// ConsumerProtocol subscription v0.
+/// ConsumerProtocol subscription v0 (topics only).
 pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
     buf.put_i16(0);
@@ -599,14 +599,71 @@ pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
     Ok(buf.to_vec())
 }
 
-pub fn decode_subscription(mut bytes: &[u8]) -> Result<Vec<String>> {
-    let _ver = buf::get_i16(&mut bytes)?;
+/// ConsumerProtocol subscription v1: topics plus currently owned partitions
+/// (KIP-429 cooperative / sticky).
+pub fn encode_subscription_owned(topics: &[String], owned: &[(String, i32)]) -> Result<Vec<u8>> {
+    let mut buf = BytesMut::new();
+    buf.put_i16(1);
+    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
+    for t in topics {
+        buf::put_classic_nullable_string(&mut buf, Some(t))?;
+    }
+    buf::put_classic_bytes(&mut buf, None)?;
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in owned {
+        match by_topic.iter_mut().find(|(t, _)| t == topic) {
+            Some((_, ps)) => ps.push(*part),
+            None => by_topic.push((topic.clone(), vec![*part])),
+        }
+    }
+    buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
+    for (topic, parts) in &by_topic {
+        buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+        buf::put_array_len(&mut buf, false, Some(parts.len()))?;
+        for p in parts {
+            buf.put_i32(*p);
+        }
+    }
+    Ok(buf.to_vec())
+}
+
+pub fn decode_subscription(bytes: &[u8]) -> Result<Vec<String>> {
+    Ok(decode_subscription_owned(bytes)?.0)
+}
+
+/// Topics plus owned `(topic, partition)` pairs from subscription metadata.
+///
+/// v0 metadata yields an empty owned list.
+#[expect(
+    clippy::type_complexity,
+    reason = "subscription is topics plus owned topic-partitions"
+)]
+pub fn decode_subscription_owned(mut bytes: &[u8]) -> Result<(Vec<String>, Vec<(String, i32)>)> {
+    if bytes.is_empty() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+    let ver = buf::get_i16(&mut bytes)?;
     let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
         topics.push(buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default());
     }
-    Ok(topics)
+    let mut owned = Vec::new();
+    if bytes.is_empty() {
+        return Ok((topics, owned));
+    }
+    let _user = buf::get_classic_bytes(&mut bytes)?;
+    if ver >= 1 && !bytes.is_empty() {
+        let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+        for _ in 0..tn {
+            let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+            let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+            for _ in 0..pn {
+                owned.push((topic.clone(), buf::get_i32(&mut bytes)?));
+            }
+        }
+    }
+    Ok((topics, owned))
 }
 
 pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
@@ -693,6 +750,18 @@ mod tests {
     fn subscription_assignment_roundtrip() {
         let sub = encode_subscription(&["t".into()]).unwrap();
         assert_eq!(decode_subscription(&sub).unwrap(), vec!["t".to_string()]);
+        let owned = encode_subscription_owned(
+            &["t".into(), "u".into()],
+            &[("t".into(), 0), ("u".into(), 1), ("t".into(), 2)],
+        )
+        .unwrap();
+        let (topics, tps) = decode_subscription_owned(&owned).unwrap();
+        assert_eq!(topics, vec!["t".to_string(), "u".to_string()]);
+        assert_eq!(
+            tps,
+            vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]
+        );
+        assert_eq!(decode_subscription(&owned).unwrap(), topics);
         let asg = encode_assignment("t", &[0, 1]).unwrap();
         let decoded = decode_assignment(&asg).unwrap();
         assert_eq!(decoded[0].0, "t");

@@ -21,7 +21,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry; Fetch sends Metadata `leader_epoch`) | yes | **done** |
 | OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; Fetch isolation 0 or 1) | yes | **done** |
-| Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; several topics via `join_topics`; `group.instance.id`; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
+| Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; several topics via `join_topics`; cooperative-sticky / KIP-429; `group.instance.id`; heartbeat loop; rebalance; LeaveGroup) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
 | SASL PLAIN | yes | yes | **done** |
@@ -44,8 +44,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Pause / resume, position, `max.poll.records` | yes | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
-| Client metrics | yes (`Producer::metrics` / `Consumer::metrics` counters) | yes | **done** |
-| `max.poll.interval.ms` | yes | yes | **done** |
+| Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters) | yes | **done** |
+| `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

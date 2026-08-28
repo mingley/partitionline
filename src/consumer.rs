@@ -116,6 +116,10 @@ pub struct ConsumerConfig {
     /// A zero interval commits after every [`crate::ConsumerGroup::poll`].
     pub auto_commit_interval: Duration,
     /// Kafka `max.poll.interval.ms`. Zero means no limit. Default 5 minutes.
+    ///
+    /// The next [`crate::ConsumerGroup::poll`] errors with
+    /// [`crate::Error::MaxPollInterval`] if exceeded. The heartbeat thread
+    /// also leaves the group (classic `LeaveGroup` or KIP-848 epoch `-1`).
     pub max_poll_interval: Duration,
 }
 
