@@ -2349,7 +2349,8 @@ impl Admin {
     /// coordinator (`FindCoordinator` `key_type=1`). Empty
     /// `transactional_ids` returns an empty list. Coordinator load /
     /// move errors refresh and retry. [`AdminConfig::request_timeout`]
-    /// is sent as `transaction.timeout.ms`.
+    /// is sent as `transaction.timeout.ms`. Java
+    /// `forceTerminateTransaction` is [`Self::force_terminate_transaction`].
     pub async fn fence_producers(
         &mut self,
         transactional_ids: impl IntoIterator<Item = impl Into<String>>,
@@ -2365,6 +2366,26 @@ impl Admin {
             });
         }
         Ok(out)
+    }
+
+    /// Force-terminate a transactional id (Java
+    /// `Admin.forceTerminateTransaction`).
+    ///
+    /// Same wire as [`Self::fence_producers`] for one id: InitProducerId
+    /// on the transaction coordinator (`FindCoordinator` `key_type=1`).
+    /// Java's `forceTerminateTransaction` calls `fenceProducers` with a
+    /// singleton set.
+    pub async fn force_terminate_transaction(
+        &mut self,
+        transactional_id: impl Into<String>,
+    ) -> Result<FencedProducer> {
+        let transactional_id = transactional_id.into();
+        let (producer_id, epoch) = self.fence_one(&transactional_id).await?;
+        Ok(FencedProducer {
+            transactional_id,
+            producer_id,
+            epoch,
+        })
     }
 
     async fn fence_one(&mut self, transactional_id: &str) -> Result<(i64, i16)> {
@@ -3588,6 +3609,7 @@ impl Admin {
     /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. ErrorCode is per-group (bytes 5–6 on
     /// leftover-empty fixture group `"g"`), not top-level after throttle.
+    /// Java `describeClassicGroups` is [`Self::describe_classic_groups`].
     pub async fn describe_groups(
         &mut self,
         group_ids: &[&str],
@@ -3654,6 +3676,20 @@ impl Admin {
         }
     }
 
+    /// Describe classic groups (Java `Admin.describeClassicGroups`).
+    ///
+    /// Same wire as [`Self::describe_groups`]: DescribeGroups api 15 on
+    /// the group coordinator. Java's `DescribeClassicGroupsHandler`
+    /// builds a DescribeGroups request. Empty input is a no-op.
+    pub async fn describe_classic_groups(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedGroup>> {
+        self.describe_groups(group_ids, include_authorized_operations)
+            .await
+    }
+
     /// List consumer groups (ListGroups api 16).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official Apache
@@ -3701,9 +3737,14 @@ impl Admin {
     /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. ErrorCode is per-group after GroupId
     /// (bytes 7–8 on leftover-empty fixture group `"g"`), not top-level
-    /// after throttle.
+    /// after throttle. Java `deleteShareGroups` is
+    /// [`Self::delete_share_groups`].
     pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
-        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        self.delete_group_ids(group_ids.iter().map(|s| (*s).to_string()).collect())
+            .await
+    }
+
+    async fn delete_group_ids(&mut self, ids: Vec<String>) -> Result<Vec<DeletableGroupResult>> {
         let Some(coord_key) = ids.first().cloned() else {
             return Ok(Vec::new());
         };
@@ -3762,6 +3803,23 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// Delete share groups (Java `Admin.deleteShareGroups`).
+    ///
+    /// Same wire as [`Self::delete_groups`]: DeleteGroups api 42 on the
+    /// group coordinator (`FindCoordinator` `key_type=0`). Java's
+    /// `DeleteShareGroupsHandler` extends `DeleteGroupsHandler`. Empty
+    /// input is a no-op.
+    pub async fn delete_share_groups(
+        &mut self,
+        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<DeletableGroupResult>> {
+        let ids: Vec<String> = group_ids
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
+        self.delete_group_ids(ids).await
     }
 
     /// Remove static members from a consumer group (Java

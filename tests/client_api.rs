@@ -2471,6 +2471,59 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
 }
 
 #[tokio::test]
+async fn admin_force_terminate_transaction_fences_one_id() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let terminated = admin.force_terminate_transaction("tid-term").await.unwrap();
+    assert_eq!(terminated.transactional_id, "tid-term");
+    assert_eq!(terminated.producer_id, 1000);
+    assert_eq!(terminated.epoch, 0);
+    assert_eq!(mock.last_init_producer_id_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_delete_share_groups_uses_delete_groups() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let empty = admin
+        .delete_share_groups(Vec::<String>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(mock.last_delete_groups_node(), None);
+    let deleted = admin.delete_share_groups(["g-share"]).await.unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].group_id, "g-share");
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_delete_groups_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_describe_classic_groups_uses_describe_groups() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let described = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "g-classic");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
+    let empty = admin.describe_classic_groups(&[], false).await.unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_remove_members_from_consumer_group() {
     let mock = common::Mock::start().await;
     let group = ConsumerGroup::join(

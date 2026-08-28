@@ -63,6 +63,8 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
 `Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
+`Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
+`Admin::delete_share_groups` is Java `deleteShareGroups`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
 `RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::describe_broker_log_dirs` is Java

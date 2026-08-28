@@ -4536,6 +4536,76 @@ async fn delete_groups_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn delete_share_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let empty = admin
+        .delete_share_groups(Vec::<String>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        None,
+        "empty delete_share_groups is a no-op"
+    );
+
+    let first = admin.delete_share_groups(["g-share"]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].group_id, "g-share");
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        Some(2),
+        "deleteShareGroups must land on the group coordinator"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "deleteShareGroups must FindCoordinator key_type=0"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_classic_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "g-classic");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        Some(2),
+        "describeClassicGroups must land on the group coordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn force_terminate_transaction_inits_on_txn_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_txn_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let terminated = admin.force_terminate_transaction("tid-term").await.unwrap();
+    assert_eq!(terminated.transactional_id, "tid-term");
+    assert_eq!(terminated.producer_id, 1000);
+    assert_eq!(
+        mock.last_init_producer_id_node(),
+        Some(2),
+        "forceTerminateTransaction must InitProducerId on the txn coordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_group_describe_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();

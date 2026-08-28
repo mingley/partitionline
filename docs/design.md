@@ -50,6 +50,8 @@ timestamp; one ListOffsets RPC per partition leader; returns
 `OffsetAndTimestamp`). `Admin::list_offsets_with_isolation` is Java
 `listOffsets` plus `ListOffsetsOptions.isolationLevel`. `Admin::fence_producers` is Java
 `Admin.fenceProducers` (InitProducerId on the transaction coordinator).
+`Admin::force_terminate_transaction` is Java `forceTerminateTransaction`
+(same InitProducerId fence for one `transactional.id`).
 `Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
 ABORT on the partition leader).
 `Admin::remove_members_from_consumer_group` is Java
@@ -59,7 +61,9 @@ ABORT on the partition leader).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
 tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
-`describeTopics`. `Admin::describe_replica_log_dirs` is Java
+`describeTopics`. `Admin::describe_classic_groups` is Java
+`describeClassicGroups` (DescribeGroups). `Admin::delete_share_groups` is Java
+`deleteShareGroups` (DeleteGroups). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
 each broker). `assignment` is Java `assignment`

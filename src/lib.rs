@@ -95,6 +95,9 @@
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
+//! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
+//! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
+//! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers).
 //! [`Admin::remove_members_from_consumer_group`] is Java
