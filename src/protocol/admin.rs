@@ -4785,6 +4785,139 @@ pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
     })
 }
 
+/// PushTelemetry (api 72) v0 request body.
+///
+/// Official Apache JSON (`apiKey: 72`, request `listeners: ["broker"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Metrics are compact
+/// BYTES (OTLP MetricsData). There is no per-metric ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PushTelemetryRequest {
+    pub client_instance_id: [u8; 16],
+    pub subscription_id: i32,
+    pub terminating: bool,
+    pub compression_type: i8,
+    pub metrics: Vec<u8>,
+}
+
+impl PushTelemetryRequest {
+    pub fn new(
+        client_instance_id: [u8; 16],
+        subscription_id: i32,
+        terminating: bool,
+        compression_type: i8,
+        metrics: Vec<u8>,
+    ) -> Self {
+        Self {
+            client_instance_id,
+            subscription_id,
+            terminating,
+            compression_type,
+            metrics,
+        }
+    }
+}
+
+/// PushTelemetry (api 72) v0 response body.
+///
+/// **ErrorCode is top-level**, after throttle — not a first-metric
+/// field and not a first-payload field. The response has no Metrics
+/// array. Official JSON lists only `ThrottleTimeMs` and `ErrorCode`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PushTelemetryResponse {
+    pub error_code: i16,
+}
+
+impl PushTelemetryResponse {
+    pub fn new(error_code: i16) -> Self {
+        Self { error_code }
+    }
+}
+
+/// PushTelemetry v0 (flexible from v0; KIP-714).
+///
+/// Official Apache JSON (`apiKey: 72`, request `listeners: ["broker"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Official JSON lists
+/// **no** `errorCodes`. Official Java
+/// `KafkaApis.handlePushTelemetryRequest` answers from the connected
+/// broker (`clientMetricsManager.processPushTelemetryRequest`).
+/// Official Java `PushTelemetryRequest.getErrorResponse` writes the
+/// exception onto the top-level `ErrorCode`. Handler-observed codes:
+/// `INVALID_REQUEST` (42) on catch-all / reserved ClientInstanceId /
+/// already-terminating, `UNKNOWN_SUBSCRIPTION_ID` (117) on subscription
+/// mismatch, `THROTTLING_QUOTA_EXCEEDED` (89) when a push arrives
+/// before the interval, `UNSUPPORTED_COMPRESSION_TYPE` (76) on unknown
+/// compression, `TELEMETRY_TOO_LARGE` (118) when metrics exceed
+/// `client.telemetry.max.bytes`, `INVALID_RECORD` (87) on plugin
+/// export failure. `NOT_COORDINATOR` (16) is **not** listed.
+/// kafka-protocol 0.18.0 (`PushTelemetryRequest` /
+/// `PushTelemetryResponse`, `VERSIONS` min=0 max=0). This crate
+/// targets v0, the version a client encodes (`VERSIONS.max`).
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: `ClientInstanceId` UUID, `SubscriptionId` INT32,
+/// `Terminating` BOOLEAN, `CompressionType` INT8, compact `Metrics`
+/// BYTES, tagged. Response: `ThrottleTimeMs` INT32, top-level
+/// `ErrorCode` INT16, tagged.
+/// **ErrorCode is top-level**, after throttle — not a first-metric
+/// field and not a first-payload field. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on leftover-
+/// empty fixture throttle `0`, error `INVALID_REQUEST` (42): the
+/// top-level ErrorCode is the INT16 at **bytes 4–5**. The leftover-
+/// empty body is 7 bytes, so there is no first-metric / first-payload
+/// ErrorCode and no INT16 at bytes 7–8 (DeleteGroups), 8–9
+/// (DescribeShareGroupOffsets), 12–13 (DescribeProducers), or 27–28
+/// (DescribeTopicPartitions first-partition). i16=42 hits only at
+/// byte 4. This offset happens to match GetTelemetrySubscriptions /
+/// ListConfigResources / DeleteShareGroupOffsets /
+/// AlterShareGroupOffsets / ListGroups top-level INT16; it was
+/// measured on this API's official top-level field, not copied.
+/// Because 16 is not listed, this is broker-only: no
+/// FindCoordinator, no controller hop, no partition-leader hop.
+pub fn encode_push_telemetry_request(
+    buf: &mut BytesMut,
+    req: &PushTelemetryRequest,
+) -> crate::error::Result<()> {
+    buf.extend_from_slice(&req.client_instance_id);
+    buf.put_i32(req.subscription_id);
+    buf.put_u8(u8::from(req.terminating));
+    buf.put_i8(req.compression_type);
+    buf::put_compact_bytes(buf, Some(&req.metrics))?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_push_telemetry_request<B: Buf>(buf: &mut B) -> Result<PushTelemetryRequest> {
+    let client_instance_id = buf::get_uuid(buf)?;
+    let subscription_id = buf::get_i32(buf)?;
+    let terminating = buf::get_bool(buf)?;
+    let compression_type = buf::get_i8(buf)?;
+    let metrics = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    buf::skip_tagged_fields(buf)?;
+    Ok(PushTelemetryRequest {
+        client_instance_id,
+        subscription_id,
+        terminating,
+        compression_type,
+        metrics,
+    })
+}
+
+pub fn encode_push_telemetry_response(
+    buf: &mut BytesMut,
+    resp: &PushTelemetryResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_push_telemetry_response<B: Buf>(buf: &mut B) -> Result<PushTelemetryResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(PushTelemetryResponse { error_code })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7844,6 +7977,126 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "GetTelemetrySubscriptions v0 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn push_telemetry_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 72
+        // validVersions 0, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0 (VERSIONS.max). Not copied from
+        // GetTelemetrySubscriptions / ListConfigResources /
+        // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups
+        // (top-level ErrorCode at bytes 4-5, different fields after),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), DescribeProducers (first-partition
+        // ErrorCode at bytes 12-13), or DescribeTopicPartitions
+        // first-partition (bytes 27-28).
+        const REQ: &[u8] = &[
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x6d, 0x00,
+        ];
+        // INVALID_REQUEST (42). Leftover-empty body is 7 bytes.
+        const RESP_42: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x2a, 0x00];
+        let req = PushTelemetryRequest::new([0x11; 16], 1, false, 0, b"m".to_vec());
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_request(&mut buf, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = PushTelemetryResponse::new(42);
+        buf.clear();
+        encode_push_telemetry_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_42);
+    }
+
+    #[test]
+    fn push_telemetry_v0_roundtrip_is_leftover_empty() {
+        let req = PushTelemetryRequest::new([0x11; 16], 1, false, 0, b"m".to_vec());
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_push_telemetry_request(&mut cur).unwrap(), req);
+        assert!(
+            !cur.has_remaining(),
+            "PushTelemetry v0 request must be leftover-empty"
+        );
+
+        let resp = PushTelemetryResponse::new(0);
+        buf.clear();
+        encode_push_telemetry_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_push_telemetry_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "PushTelemetry v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn push_telemetry_top_level_error_code_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16, then tagged. There is no first-metric ErrorCode and
+        // no first-payload ErrorCode. Metrics live on the request.
+        // Measured independently from Apache PushTelemetryResponse.json
+        // and a kafka-protocol 0.18.0 broker encode
+        // (`features = ["broker"]`) on leftover-empty fixture throttle
+        // 0, error INVALID_REQUEST (42). Do not assume bytes 4-5 from
+        // GetTelemetrySubscriptions / ListConfigResources /
+        // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // DescribeProducers, or bytes 27-28 from DescribeTopicPartitions
+        // first-partition. Official JSON lists no errorCodes; official
+        // handler writes INVALID_REQUEST (42) via getErrorResponse on
+        // catch-all / reserved ClientInstanceId.
+        let resp = PushTelemetryResponse::new(42);
+        let mut buf = BytesMut::new();
+        encode_push_telemetry_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            7,
+            "v0 leftover-empty ErrorCode body is throttle + INT16 + tagged"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            42,
+            "v0 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            42,
+            "v0 ErrorCode is not a first-metric / first-payload field at bytes 5-6"
+        );
+        assert!(
+            buf.get(7).is_none(),
+            "v0 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        assert!(
+            buf.get(8).is_none(),
+            "v0 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        assert!(
+            buf.get(12).is_none(),
+            "v0 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        assert!(
+            buf.get(27).is_none(),
+            "v0 ErrorCode is not at DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_push_telemetry_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "PushTelemetry v0 ErrorCode body must be leftover-empty"
         );
     }
 }

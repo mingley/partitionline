@@ -27,22 +27,23 @@ use crate::protocol::admin::{
     decode_describe_user_scram_credentials_response, decode_get_telemetry_subscriptions_response,
     decode_incremental_alter_configs_response, decode_list_config_resources_response,
     decode_list_groups_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_share_group_describe_response,
-    decode_unregister_broker_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
-    encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
-    encode_delete_share_group_offsets_request, encode_delete_topics_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_groups_request,
-    encode_describe_producers_request, encode_describe_share_group_offsets_request,
-    encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_request, encode_list_config_resources_request,
-    encode_list_groups_request, encode_list_partition_reassignments_request,
-    encode_list_transactions_request, encode_share_group_describe_request,
+    decode_list_transactions_response, decode_push_telemetry_response,
+    decode_share_group_describe_response, decode_unregister_broker_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_share_group_offsets_request,
+    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
+    encode_delete_records_request, encode_delete_share_group_offsets_request,
+    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_groups_request, encode_describe_producers_request,
+    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_request,
+    encode_list_config_resources_request, encode_list_groups_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_push_telemetry_request, encode_share_group_describe_request,
     encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
     CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
     ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
@@ -61,8 +62,8 @@ use crate::protocol::api_keys::{
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR,
     GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, SHARE_GROUP_DESCRIBE,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY,
+    SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -85,10 +86,11 @@ pub use crate::protocol::admin::{
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup,
-    ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions,
-    TopicPartitionCursor, TransactionListing, TransactionState, TransactionTopic,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY,
-    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+    PushTelemetryRequest, PushTelemetryResponse, ScramCredentialInfo, ShareGroupAssignment,
+    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
+    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -386,6 +388,7 @@ pub struct Admin {
     describe_topic_partitions_version: i16,
     list_config_resources_version: i16,
     get_telemetry_subscriptions_version: i16,
+    push_telemetry_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -626,6 +629,10 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
             })?;
+        let push_telemetry_version = versions
+            .get(&PUSH_TELEMETRY)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support PushTelemetry".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -667,6 +674,7 @@ impl Admin {
             describe_topic_partitions_version,
             list_config_resources_version,
             get_telemetry_subscriptions_version,
+            push_telemetry_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2841,6 +2849,58 @@ impl Admin {
         let resp = decode_get_telemetry_subscriptions_response(&mut body.clone())?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
+        }
+        Ok(resp)
+    }
+
+    /// Push client telemetry metrics (PushTelemetry api 72, KIP-714).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Apache JSON listeners are `broker` only. Official JSON lists no
+    /// `errorCodes`. Official Java
+    /// `KafkaApis.handlePushTelemetryRequest` answers from the
+    /// connected broker (`clientMetricsManager`). Official Java
+    /// `PushTelemetryRequest.getErrorResponse` writes the exception
+    /// onto the top-level ErrorCode. `INVALID_REQUEST` (42),
+    /// `UNKNOWN_SUBSCRIPTION_ID` (117), `THROTTLING_QUOTA_EXCEEDED`
+    /// (89), `UNSUPPORTED_COMPRESSION_TYPE` (76),
+    /// `TELEMETRY_TOO_LARGE` (118), and `INVALID_RECORD` (87) are
+    /// handler-observed. `NOT_COORDINATOR` (16) is not listed.
+    /// This is not a group-coordinator hop, not a controller hop, and
+    /// not a partition-leader hop: there is no FindCoordinator, no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
+    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code`
+    /// is the INT16 at bytes 4–5, after throttle — not a first-metric
+    /// field and not a first-payload field.
+    pub async fn push_telemetry(
+        &mut self,
+        client_instance_id: [u8; 16],
+        subscription_id: i32,
+        terminating: bool,
+        compression_type: i8,
+        metrics: &[u8],
+    ) -> Result<PushTelemetryResponse> {
+        let version = self.push_telemetry_version;
+        let timeout = self.cfg.request_timeout;
+        let req = PushTelemetryRequest::new(
+            client_instance_id,
+            subscription_id,
+            terminating,
+            compression_type,
+            metrics.to_vec(),
+        );
+        let body = self
+            .conn
+            .roundtrip(
+                PUSH_TELEMETRY,
+                version,
+                |buf| encode_push_telemetry_request(buf, &req),
+                timeout,
+            )
+            .await?;
+        let resp = decode_push_telemetry_response(&mut body.clone())?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "PushTelemetry"));
         }
         Ok(resp)
     }
