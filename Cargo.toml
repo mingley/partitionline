@@ -99,6 +99,9 @@ name = "roundtrip"
 [[example]]
 name = "bench_fetch"
 
+[[example]]
+name = "bench_latency"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
