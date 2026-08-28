@@ -3364,6 +3364,50 @@ async fn list_groups_follows_broker() {
 }
 
 #[tokio::test]
+async fn describe_topic_partitions_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .describe_topic_partitions(&["t"], 2000, None)
+        .await
+        .unwrap();
+    assert_eq!(first.topics.len(), 1);
+    assert_eq!(first.topics[0].name.as_deref(), Some("t"));
+    assert_eq!(first.topics[0].error_code, 0);
+    assert_eq!(first.topics[0].partitions.len(), 1);
+    assert_eq!(first.topics[0].partitions[0].error_code, 0);
+    assert_eq!(first.topics[0].partitions[0].partition_index, 0);
+    assert_eq!(first.next_cursor, None);
+    assert_eq!(
+        mock.last_describe_topic_partitions_node(),
+        Some(1),
+        "DescribeTopicPartitions must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None))
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "DescribeTopicPartitions must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "DescribeTopicPartitions must not hop via Metadata controller_id"
+    );
+    assert_eq!(
+        mock.last_delete_share_group_offsets_node(),
+        None,
+        "DescribeTopicPartitions must not hop via DeleteShareGroupOffsets"
+    );
+}
+
+#[tokio::test]
 async fn delete_groups_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();
