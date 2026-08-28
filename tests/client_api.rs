@@ -674,6 +674,14 @@ async fn partitions_for_and_end_offsets() {
     assert_eq!(consumer.assignment().len(), 1);
     consumer.unassign();
     assert!(consumer.assignment().is_empty());
+    consumer.assign_partitions([("t", 0)]).await.unwrap();
+    assert_eq!(consumer.position_of(("t", 0)).unwrap(), 0);
+    consumer
+        .assign_partitions(Vec::<TopicPartition>::new())
+        .await
+        .unwrap();
+    assert!(consumer.assignment().is_empty());
+    consumer.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -2290,4 +2298,56 @@ async fn group_and_share_close_timeout_leaves() {
     .await
     .unwrap();
     share.close_timeout(Duration::from_secs(5)).await.unwrap();
+}
+
+#[tokio::test]
+async fn assign_partitions_uses_auto_offset_reset() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut earliest =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    earliest.assign_partitions([("t", 0)]).await.unwrap();
+    assert_eq!(earliest.position_of(("t", 0)).unwrap(), 0);
+    let recs = earliest.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    earliest
+        .close_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+
+    let mut latest = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_offset_reset(AutoOffsetReset::Latest),
+    )
+    .await
+    .unwrap();
+    latest
+        .assign_partitions_timeout([("t", 0)], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(latest.position_of(("t", 0)).unwrap(), 1);
+    let recs = latest.fetch().await.unwrap();
+    assert!(recs.is_empty());
+    latest.close().await.unwrap();
+
+    let mut none = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_offset_reset(AutoOffsetReset::None),
+    )
+    .await
+    .unwrap();
+    let err = none.assign_partitions([("t", 0)]).await.unwrap_err();
+    assert!(matches!(err, Error::Protocol(_)));
+    none.close().await.unwrap();
 }

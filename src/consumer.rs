@@ -943,6 +943,51 @@ impl Consumer {
         self.assign_all(&triples).await
     }
 
+    /// Replace the assignment (Java `assign(Collection)`).
+    ///
+    /// Offsets come from [`ConsumerConfig::auto_offset_reset`] via ListOffsets
+    /// (`earliest` or `latest`). [`crate::AutoOffsetReset::None`] is an error
+    /// (a manual consumer has no committed offsets). An empty list drops the
+    /// assignment ([`Self::unassign`]).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::assign_partitions_timeout`].
+    pub async fn assign_partitions(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.assign_partitions_timeout(partitions, timeout).await
+    }
+
+    /// [`Self::assign_partitions`] with a one-shot timeout for ListOffsets.
+    pub async fn assign_partitions_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<()> {
+        let tps: Vec<TopicPartition> = partitions.into_iter().map(Into::into).collect();
+        if tps.is_empty() {
+            self.unassign();
+            return Ok(());
+        }
+        let timestamp = match self.cfg.auto_offset_reset {
+            crate::AutoOffsetReset::Earliest => crate::EARLIEST_TIMESTAMP,
+            crate::AutoOffsetReset::Latest => crate::LATEST_TIMESTAMP,
+            crate::AutoOffsetReset::None => {
+                return Err(Error::protocol(
+                    "auto.offset.reset=none: no offset for manual assign",
+                ));
+            }
+        };
+        let starts = self.offsets_at(tps, timestamp, timeout).await?;
+        let triples: Vec<(String, i32, i64)> = starts
+            .into_iter()
+            .map(|(tp, offset)| (tp.topic, tp.partition, offset))
+            .collect();
+        self.assign_all(&triples).await
+    }
+
     /// Drop every assigned partition (Java `unsubscribe` for a manual consumer).
     pub fn unassign(&mut self) {
         self.clear_assignment();
@@ -1566,6 +1611,16 @@ impl Consumer {
         self.cfg.interceptors.close();
         self.conns.clear();
         Ok(())
+    }
+
+    /// Drop fetch connections (Java `close(Duration)`).
+    ///
+    /// A manual consumer has no LeaveGroup RPC; this is the same as
+    /// [`Self::close`]. Group and share members use
+    /// [`crate::ConsumerGroup::close_timeout`] /
+    /// [`crate::ShareGroup::close_timeout`].
+    pub async fn close_timeout(self, _timeout: Duration) -> Result<()> {
+        self.close().await
     }
 
     pub(crate) fn close_interceptors(&self) {

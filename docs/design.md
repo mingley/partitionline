@@ -97,8 +97,10 @@ fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or 
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
 `offsetsForTimes` (`OffsetAndTimestamp.leader_epoch` is Java `getLeaderEpoch`).
 leader epoch. `FetchedRecord.serialized_key_size` / `serialized_value_size`
-match Java. `assign_many` / `unassign` replace or drop a manual assignment.
-`Consumer::close` drops fetch connections.
+match Java. `assign_many` / `assign_partitions` / `unassign` replace or drop a
+manual assignment (`assign_partitions` is Java `assign(Collection)` and uses
+`auto.offset.reset`).
+`Consumer::close` / `Consumer::close_timeout` drop fetch connections.
 `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
 (Java `close(Duration)`).
 

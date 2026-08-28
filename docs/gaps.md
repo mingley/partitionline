@@ -41,7 +41,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60); `Admin::close`; `delete_records` / `describe_producers` / `delete_offsets` take `TopicPartition`; `PartitionReassignment::assign` takes `TopicPartition`; `AclBinding::allow_topic` / `AclResourceType` / `AclOperation` / `AclPermission` | yes | **done** |
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
-| Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; rebalance listener too) | yes | **done** |
+| Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; `assign_partitions` is Java `assign(Collection)` using `auto.offset.reset`; rebalance listener too) | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`; `committed_timeout` is Java `committed(Duration)`; group/share RPCs use `request_timeout`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for` / `Consumer::partitions_for_timeout`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
@@ -53,10 +53,10 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
-| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `unassign`) | yes | **done** |
+| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `assign_partitions` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes (`list_topics_timeout` is Java `listTopics(Duration)`; `partitions_for_timeout` / `beginning_offsets_timeout` / `end_offsets_timeout` / `offsets_for_times_timeout` match the Java `Duration` overloads) | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
-| `close(Duration)` | yes (`Producer::close_timeout`; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |
+| `close(Duration)` | yes (`Producer::close_timeout`; `Consumer::close_timeout` drops fetch connections; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |

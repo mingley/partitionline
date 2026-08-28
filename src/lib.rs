@@ -60,7 +60,9 @@
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
-//! / [`Consumer::unassign`] replace or drop a manual assignment.
+//! / [`Consumer::assign_partitions`] / [`Consumer::unassign`] replace or
+//! drop a manual assignment ([`Consumer::assign_partitions`] is Java
+//! `assign(Collection)` and uses [`ConsumerConfig::auto_offset_reset`]).
 //! [`Consumer::beginning_offsets`] / [`Consumer::end_offsets`] take
 //! [`TopicPartition`]. [`Consumer::list_offset`] is ListOffsets for one
 //! partition. [`Consumer::assignment`] is Java `assignment`
@@ -86,8 +88,10 @@
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
-//! [`Producer::close_timeout`] match Java. [`ConsumerGroup::close_timeout`] /
-//! [`ShareGroup::close_timeout`] cap `leave` (Java `close(Duration)`).
+//! [`Producer::close_timeout`] match Java. [`Consumer::close_timeout`]
+//! drops fetch connections (Java `close(Duration)`; no LeaveGroup).
+//! [`ConsumerGroup::close_timeout`] / [`ShareGroup::close_timeout`] cap
+//! `leave`.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
 //!

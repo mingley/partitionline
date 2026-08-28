@@ -101,21 +101,25 @@ rejoins on the next poll. `subscription` is the topic list.
 names starting with `__` are skipped). Share groups have the same
 `subscribe_matching` / `join_matching`.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
-Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
+Metadata. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
+assignment (`assign_partitions` is Java `assign(Collection)` and uses
+`auto.offset.reset`).
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
 `committed_timeout` is Java `committed(Duration)`. Group and share
 coordinator RPCs use `ConsumerConfig::request_timeout`.
 `commit_timeout` / `commit_offsets_timeout` /
 `commit_with_metadata_timeout` are Java `commitSync(Duration)` (they do
 not change `request_timeout` for heartbeats).
-`Consumer::close` drops fetch connections; group `close` is `leave`.
+`Consumer::close` / `Consumer::close_timeout` drop fetch connections;
+group `close` is `leave`.
 `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
 (Java `close(Duration)`).
 `Admin::close` drops the admin connection. Interceptors have `close`;
 consumer interceptors also see `on_commit`.
 `Producer::init_transactions` is a no-op after connect when
 `transactional.id` is set. `flush_timeout` caps `flush`.
-`close_timeout` is Java `close(Duration)` (producer flush, group/share leave).
+`close_timeout` is Java `close(Duration)` (producer flush, consumer drop
+connections, group/share leave).
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
