@@ -40,7 +40,10 @@
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. [`Consumer::partitions_for`] returns
-//! Metadata (leader, replicas, ISR).
+//! Metadata (leader, replicas, ISR). [`Consumer::wakeup`] interrupts fetch
+//! (clone [`WakeupHandle`] for another task).
+//! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
+//! or rewrite records.
 //!
 //! # Groups
 //!
@@ -89,6 +92,8 @@ pub mod consumer;
 pub mod error;
 /// Consumer-group join / sync / heartbeat / commit.
 pub mod group;
+/// Produce and fetch interceptors.
+pub mod interceptor;
 /// Client counters: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
@@ -137,9 +142,12 @@ pub use admin::{
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
-pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener};
+pub use consumer::{
+    Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener, WakeupHandle,
+};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
+pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{ConsumerMetrics, ProducerMetrics, ShareMetrics};
 pub use net::TlsConfig;
 pub use partitioner::{

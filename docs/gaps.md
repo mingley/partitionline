@@ -46,6 +46,9 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
+| `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
+| Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`) | yes | **done** |
+| Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

@@ -28,6 +28,8 @@ pub enum Error {
     QueueFull,
     /// [`crate::ConsumerGroup::poll`] was not called within `max.poll.interval.ms`.
     MaxPollInterval,
+    /// [`crate::Consumer::wakeup`] interrupted fetch or poll.
+    Wakeup,
 }
 
 impl Error {
@@ -98,6 +100,7 @@ impl fmt::Display for Error {
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
             Self::MaxPollInterval => write!(f, "max.poll.interval.ms exceeded"),
+            Self::Wakeup => write!(f, "wakeup"),
         }
     }
 }
@@ -136,6 +139,7 @@ impl Clone for Error {
             Self::Timeout => Self::Timeout,
             Self::QueueFull => Self::QueueFull,
             Self::MaxPollInterval => Self::MaxPollInterval,
+            Self::Wakeup => Self::Wakeup,
         }
     }
 }

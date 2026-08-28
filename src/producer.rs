@@ -79,6 +79,8 @@ pub struct ProducerConfig {
     pub tls: Option<TlsConfig>,
     /// How records without an explicit partition are mapped.
     pub partitioner: PartitionerBox,
+    /// Produce interceptors. Empty is a no-op.
+    pub interceptors: crate::interceptor::ProducerInterceptors,
 }
 
 impl Default for ProducerConfig {
@@ -105,6 +107,7 @@ impl Default for ProducerConfig {
             transactional_id: None,
             tls: None,
             partitioner: PartitionerBox::default(),
+            interceptors: crate::interceptor::ProducerInterceptors::default(),
         }
     }
 }
@@ -192,6 +195,13 @@ impl ProducerConfig {
     #[must_use]
     pub fn partitioner(mut self, p: impl Partitioner) -> Self {
         self.partitioner = PartitionerBox::new(p);
+        self
+    }
+
+    /// Append a produce interceptor. They run in insertion order.
+    #[must_use]
+    pub fn interceptor(mut self, i: impl crate::interceptor::ProducerInterceptor) -> Self {
+        self.interceptors.push(i);
         self
     }
 
@@ -365,6 +375,7 @@ struct Shared {
     m_acked: AtomicU64,
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
+    interceptors: crate::interceptor::ProducerInterceptors,
 }
 
 /// Produce client: queue records, batch, and wait for offsets.
@@ -524,6 +535,7 @@ impl Producer {
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
+            interceptors: cfg.interceptors.clone(),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -664,7 +676,7 @@ impl Producer {
         let mut rxs = Vec::with_capacity(recs.len());
         for rec in recs {
             let (tx, rx) = oneshot::channel();
-            let mut rec = rec;
+            let mut rec = self.inner.shared.interceptors.on_send(rec);
             self.ensure_ready(&mut rec).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
@@ -749,7 +761,7 @@ impl Producer {
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
-        let mut rec = rec;
+        let mut rec = self.inner.shared.interceptors.on_send(rec);
         let w = if let Some((p, w)) = self.fast_route(&rec) {
             rec.partition = Some(p);
             w
@@ -1700,12 +1712,14 @@ impl Worker {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                     self.shared.note_acked(n);
                     for (i, p) in pendings.into_iter().enumerate() {
+                        let md = RecordMetadata {
+                            topic: topic.to_string(),
+                            partition: part,
+                            offset: r.base_offset + i64::try_from(i).unwrap_or(0),
+                        };
+                        self.shared.interceptors.on_ack(&md);
                         if let Some(tx) = p.tx {
-                            drop(tx.send(Ok(RecordMetadata {
-                                topic: topic.to_string(),
-                                partition: part,
-                                offset: r.base_offset + i64::try_from(i).unwrap_or(0),
-                            })));
+                            drop(tx.send(Ok(md)));
                         }
                     }
                 }
@@ -2095,12 +2109,14 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
     for (topic, part, pendings) in groups {
         for p in pendings {
             n = n.saturating_add(1);
+            let md = RecordMetadata {
+                topic: topic.to_string(),
+                partition: part,
+                offset: -1,
+            };
+            shared.interceptors.on_ack(&md);
             if let Some(tx) = p.tx {
-                drop(tx.send(Ok(RecordMetadata {
-                    topic: topic.to_string(),
-                    partition: part,
-                    offset: -1,
-                })));
+                drop(tx.send(Ok(md)));
             }
         }
     }
@@ -2123,6 +2139,7 @@ fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
     shared.note_errors(n);
     for p in pendings {
+        shared.interceptors.on_error(&err);
         if let Some(tx) = p.tx {
             drop(tx.send(Err(clone_err(&err))));
         }

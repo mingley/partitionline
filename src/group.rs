@@ -551,6 +551,17 @@ impl ConsumerGroup {
         self.consumer.metrics()
     }
 
+    /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
+    pub fn wakeup(&self) {
+        self.consumer.wakeup();
+    }
+
+    /// Cloneable handle for [`Self::wakeup`] from another task.
+    #[must_use]
+    pub fn wakeup_handle(&self) -> crate::WakeupHandle {
+        self.consumer.wakeup_handle()
+    }
+
     /// Commit the next fetch offsets for the current assignment.
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {

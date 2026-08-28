@@ -2,11 +2,12 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
+use tokio::sync::Notify;
 
 use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
@@ -121,6 +122,8 @@ pub struct ConsumerConfig {
     /// [`crate::Error::MaxPollInterval`] if exceeded. The heartbeat thread
     /// also leaves the group (classic `LeaveGroup` or KIP-848 epoch `-1`).
     pub max_poll_interval: Duration,
+    /// Fetch interceptors. Empty is a no-op.
+    pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
 
 impl Default for ConsumerConfig {
@@ -150,6 +153,7 @@ impl Default for ConsumerConfig {
             enable_auto_commit: false,
             auto_commit_interval: Duration::from_secs(5),
             max_poll_interval: Duration::from_secs(300),
+            interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
 }
@@ -273,6 +277,13 @@ impl ConsumerConfig {
         self
     }
 
+    /// Append a fetch interceptor.
+    #[must_use]
+    pub fn interceptor(mut self, i: impl crate::interceptor::ConsumerInterceptor) -> Self {
+        self.interceptors.push(i);
+        self
+    }
+
     /// SASL. Replaces any previously set mechanism.
     #[must_use]
     pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
@@ -353,6 +364,25 @@ pub struct Consumer {
     m_records: AtomicU64,
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
+    wakeup: Arc<AtomicBool>,
+    wakeup_notify: Arc<Notify>,
+}
+
+/// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
+///
+/// [`Consumer`] is not `Sync`. Clone this handle onto another task for shutdown.
+#[derive(Clone)]
+pub struct WakeupHandle {
+    flag: Arc<AtomicBool>,
+    notify: Arc<Notify>,
+}
+
+impl WakeupHandle {
+    /// Make the next (or in-flight) fetch return [`Error::Wakeup`].
+    pub fn wakeup(&self) {
+        self.flag.store(true, Ordering::SeqCst);
+        self.notify.notify_one();
+    }
 }
 
 impl Consumer {
@@ -424,6 +454,8 @@ impl Consumer {
             m_records: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
+            wakeup: Arc::new(AtomicBool::new(false)),
+            wakeup_notify: Arc::new(Notify::new()),
         })
     }
 
@@ -832,20 +864,28 @@ impl Consumer {
     /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
     /// the Fetch stay buffered and are returned on the next call.
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
+        if self.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         let result = self.fetch_assigned().await;
-        match &result {
+        match result {
             Ok(recs) => {
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
                 let bytes: u64 = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+                Ok(self.cfg.interceptors.on_consume(recs))
             }
-            Err(_) => {
+            Err(Error::Wakeup) => {
+                let _ = self.take_wakeup();
+                Err(Error::Wakeup)
+            }
+            Err(e) => {
                 let _ = self.m_errors.fetch_add(1, Ordering::Relaxed);
+                Err(e)
             }
         }
-        result
     }
 
     /// Fetch counters since connect.
@@ -859,6 +899,32 @@ impl Consumer {
         }
     }
 
+    /// Interrupt [`Self::fetch`] (and group `poll` that calls it).
+    ///
+    /// Safe to call while fetch is running on this task. From another task,
+    /// use [`Self::wakeup_handle`].
+    pub fn wakeup(&self) {
+        self.wakeup.store(true, Ordering::SeqCst);
+        self.wakeup_notify.notify_one();
+    }
+
+    /// Cloneable handle for [`Self::wakeup`] from another task.
+    #[must_use]
+    pub fn wakeup_handle(&self) -> WakeupHandle {
+        WakeupHandle {
+            flag: Arc::clone(&self.wakeup),
+            notify: Arc::clone(&self.wakeup_notify),
+        }
+    }
+
+    pub(crate) fn take_wakeup(&self) -> bool {
+        self.wakeup.swap(false, Ordering::SeqCst)
+    }
+
+    fn woken(&self) -> bool {
+        self.wakeup.load(Ordering::SeqCst)
+    }
+
     async fn fetch_assigned(&mut self) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
             return Ok(ready);
@@ -868,6 +934,9 @@ impl Consumer {
         }
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
+            if self.woken() {
+                return Err(Error::Wakeup);
+            }
             if self.cluster.leaders.is_empty() {
                 let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
                 self.refresh_metadata(Some(&topics)).await?;
@@ -948,6 +1017,29 @@ impl Consumer {
     }
 
     async fn fetch_from_leaders(
+        &mut self,
+        by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+    ) -> Result<Vec<(i32, Result<Bytes>)>> {
+        let notify = Arc::clone(&self.wakeup_notify);
+        let flag = Arc::clone(&self.wakeup);
+        let fut = self.fetch_from_leaders_io(by_leader);
+        tokio::pin!(fut);
+        loop {
+            if flag.load(Ordering::SeqCst) {
+                return Err(Error::Wakeup);
+            }
+            tokio::select! {
+                _ = notify.notified() => {
+                    continue;
+                }
+                result = &mut fut => {
+                    return result;
+                }
+            }
+        }
+    }
+
+    async fn fetch_from_leaders_io(
         &mut self,
         mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
     ) -> Result<Vec<(i32, Result<Bytes>)>> {

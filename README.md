@@ -62,6 +62,8 @@ committed offset (`Earliest` by default, unlike Java's `latest`).
 `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
 `max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes);
 the heartbeat thread leaves the group if it is exceeded.
+`Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch
+interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

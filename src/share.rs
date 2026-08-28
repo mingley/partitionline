@@ -156,6 +156,17 @@ impl ShareGroup {
         }
     }
 
+    /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
+    pub fn wakeup(&self) {
+        self.consumer.wakeup();
+    }
+
+    /// Cloneable handle for [`Self::wakeup`] from another task.
+    #[must_use]
+    pub fn wakeup_handle(&self) -> crate::WakeupHandle {
+        self.consumer.wakeup_handle()
+    }
+
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
         self.consumer.refresh_topics(&self.topics).await?;
@@ -223,6 +234,9 @@ impl ShareGroup {
 
     /// Fetch records from assigned share partitions.
     pub async fn poll(&mut self) -> Result<Vec<ShareRecord>> {
+        if self.consumer.take_wakeup() {
+            return Err(Error::Wakeup);
+        }
         let hb = self.hb_err.load(Ordering::SeqCst);
         if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));

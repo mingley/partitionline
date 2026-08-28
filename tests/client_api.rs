@@ -12,8 +12,9 @@ mod common;
 
 use partitionline::{
     partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
-    ConsumerConfig, ConsumerGroup, Error, IsolationLevel, NewTopic, Partitioner, ProduceRecord,
-    Producer, ProducerConfig, Sasl, ShareGroup,
+    ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
+    NewTopic, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
+    RecordMetadata, Sasl, ShareGroup,
 };
 use std::time::Duration;
 
@@ -896,4 +897,79 @@ async fn max_poll_interval_heartbeat_leaves_group() {
         "expected MaxPollInterval, got {err}"
     );
     b.leave().await.unwrap();
+}
+
+struct TagValue;
+
+impl ProducerInterceptor for TagValue {
+    fn on_send(&self, rec: ProduceRecord) -> ProduceRecord {
+        rec.value(&b"tagged"[..])
+    }
+}
+
+struct CountAck(std::sync::Arc<std::sync::atomic::AtomicU64>);
+
+impl ProducerInterceptor for CountAck {
+    fn on_ack(&self, _md: &RecordMetadata) {
+        let _ = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+struct CountFetch(std::sync::Arc<std::sync::atomic::AtomicU64>);
+
+impl ConsumerInterceptor for CountFetch {
+    fn on_consume(&self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
+        let _ = self.0.fetch_add(n, std::sync::atomic::Ordering::SeqCst);
+        recs
+    }
+}
+
+#[tokio::test]
+async fn wakeup_errors_then_fetch_succeeds() {
+    let mock = common::Mock::start().await;
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.wakeup();
+    let err = consumer.fetch().await.unwrap_err();
+    assert!(matches!(err, Error::Wakeup), "expected Wakeup, got {err}");
+    let recs = consumer.fetch().await.unwrap();
+    assert!(recs.is_empty());
+}
+
+#[tokio::test]
+async fn interceptors_rewrite_produce_and_count_fetch() {
+    let mock = common::Mock::start().await;
+    let acks = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let fetched = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .interceptor(TagValue)
+            .interceptor(CountAck(std::sync::Arc::clone(&acks))),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"orig"[..]))
+        .await
+        .unwrap();
+    assert_eq!(acks.load(std::sync::atomic::Ordering::SeqCst), 1);
+    producer.close().await.unwrap();
+
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .interceptor(CountFetch(std::sync::Arc::clone(&fetched))),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"tagged"[..]));
+    assert_eq!(fetched.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
