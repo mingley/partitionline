@@ -750,6 +750,15 @@ impl Producer {
             if let Some(e) = peek_meta_err(&self.inner.shared) {
                 return Err(e);
             }
+            let fresh = self
+                .inner
+                .shared
+                .cluster
+                .lock()
+                .topic_fresh(rec.topic.as_ref(), self.inner.shared.cfg.metadata_max_age);
+            if !fresh {
+                let _ = partitions_for(&self.inner.shared, &rec.topic).await?;
+            }
             let _ = self.apply_cached_partition(rec);
             if self.worker_for(rec).is_some() {
                 return Ok(());
