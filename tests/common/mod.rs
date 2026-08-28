@@ -211,6 +211,7 @@ struct State {
     produce_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
     created_topics: HashMap<String, CreatedTopic>,
+    metadata_calls: u32,
     brokers: Vec<Broker>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
@@ -425,6 +426,7 @@ fn new_state(
         produce_error_left: None,
         log_start: HashMap::new(),
         created_topics,
+        metadata_calls: 0,
         brokers: Vec::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
@@ -933,6 +935,10 @@ impl Mock {
             .get(&(topic.to_string(), partition))
             .map(|v| v.len())
             .unwrap_or(0)
+    }
+
+    pub fn metadata_calls(&self) -> u32 {
+        self.state.lock().metadata_calls
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -2004,7 +2010,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
             }
             METADATA => {
-                let st = state.lock();
+                let mut st = state.lock();
+                st.metadata_calls = st.metadata_calls.saturating_add(1);
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,

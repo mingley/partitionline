@@ -1,6 +1,7 @@
 //! Cluster metadata: brokers and per-partition leaders.
 
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
 use crate::protocol::api::MetadataResponse;
@@ -16,6 +17,8 @@ pub(crate) struct Cluster {
     pub(crate) leader_epochs: HashMap<String, Vec<i32>>,
     /// Metadata `controller_id`, or `None` until the first Metadata response.
     pub(crate) controller_id: Option<i32>,
+    /// When each topic's leaders were last applied from Metadata.
+    topic_fetched_at: HashMap<String, Instant>,
 }
 
 impl Cluster {
@@ -65,6 +68,7 @@ impl Cluster {
             }
             let _prev = self.leaders.insert(name.clone(), leaders);
             let _prev = self.leader_epochs.insert(name.clone(), epochs);
+            let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
         }
     }
 
@@ -72,6 +76,19 @@ impl Cluster {
     pub(crate) fn invalidate_topic(&mut self, topic: &str) {
         let _removed = self.leaders.remove(topic);
         let _removed = self.leader_epochs.remove(topic);
+        let _removed = self.topic_fetched_at.remove(topic);
+    }
+
+    /// True when `topic` has Metadata newer than `max_age`.
+    ///
+    /// A zero `max_age` is always stale (refresh on every lookup).
+    pub(crate) fn topic_fresh(&self, topic: &str, max_age: Duration) -> bool {
+        if max_age.is_zero() {
+            return false;
+        }
+        self.topic_fetched_at
+            .get(topic)
+            .is_some_and(|at| at.elapsed() < max_age)
     }
 
     /// Drop the cached controller so the next admin RPC refetches Metadata.
@@ -195,5 +212,47 @@ mod tests {
             error::error_name(error::NOT_CONTROLLER),
             Some("NOT_CONTROLLER")
         );
+    }
+
+    #[test]
+    fn topic_fresh_respects_max_age() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        use std::time::Duration;
+
+        let mut cluster = Cluster::default();
+        assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+        cluster.apply(&MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 0,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+            }],
+        });
+        assert!(cluster.topic_fresh("t", Duration::from_secs(5)));
+        assert!(
+            !cluster.topic_fresh("t", Duration::ZERO),
+            "zero max.age must refresh every lookup"
+        );
+        cluster.invalidate_topic("t");
+        assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
     }
 }

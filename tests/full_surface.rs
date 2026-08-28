@@ -447,6 +447,44 @@ async fn produce_retry_honors_backoff() {
 }
 
 #[tokio::test]
+async fn produce_refreshes_metadata_after_max_age() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.metadata_max_age = Duration::from_millis(40);
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    let after_first = mock.metadata_calls();
+    assert!(
+        after_first >= 1,
+        "first send must fetch Metadata, got {after_first}"
+    );
+    producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.metadata_calls(),
+        after_first,
+        "fresh metadata.max.age.ms cache must not Metadata again"
+    );
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    producer
+        .send(ProduceRecord::to("t").value(&b"c"[..]))
+        .await
+        .unwrap();
+    assert!(
+        mock.metadata_calls() > after_first,
+        "stale metadata.max.age.ms must Metadata again, first {after_first} now {}",
+        mock.metadata_calls()
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn flush_fails_on_broker_produce_error() {
     let mock = common::Mock::start().await;
     mock.set_produce_error(error::OUT_OF_ORDER_SEQUENCE_NUMBER);

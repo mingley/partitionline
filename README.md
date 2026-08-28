@@ -147,6 +147,8 @@ Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable
 Fetch (preferred-replica redirects do not wait).
 `ProducerConfig::transaction_timeout` is Kafka `transaction.timeout.ms` on
 InitProducerId (default 60s, same as Java).
+`ProducerConfig::metadata_max_age` / `ConsumerConfig::metadata_max_age` are
+Kafka `metadata.max.age.ms` (default 5 minutes; zero refreshes every lookup).
 `connect_timeout` is on the producer, consumer, and admin builders.
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and

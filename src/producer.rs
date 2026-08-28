@@ -67,6 +67,11 @@ pub struct ProducerConfig {
     /// Kafka `retry.backoff.max.ms`. Cap on [`Self::retry_backoff`]
     /// exponential growth. Default 1s.
     pub retry_backoff_max: Duration,
+    /// Kafka `metadata.max.age.ms`. Refresh cached Metadata after this age.
+    /// Default 5 minutes (Java). Zero refreshes on every lookup.
+    /// [`crate::Producer::try_send`] still uses a stale cache and nudges a
+    /// background refresh; [`crate::Producer::send`] waits for a fresh copy.
+    pub metadata_max_age: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
@@ -119,6 +124,7 @@ impl Default for ProducerConfig {
             max_block: Duration::from_secs(30),
             retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
             retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
+            metadata_max_age: Duration::from_secs(300),
             connect_timeout: Duration::from_secs(10),
             allow_auto_topic_creation: false,
             compression: Compression::None,
@@ -302,6 +308,15 @@ impl ProducerConfig {
     #[must_use]
     pub fn retry_backoff_max(mut self, backoff: Duration) -> Self {
         self.retry_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `metadata.max.age.ms`. Refresh cached Metadata after this age.
+    ///
+    /// Default 5 minutes (Java). Zero refreshes on every lookup.
+    #[must_use]
+    pub fn metadata_max_age(mut self, max_age: Duration) -> Self {
+        self.metadata_max_age = max_age;
         self
     }
 
@@ -652,8 +667,7 @@ impl Producer {
                 if shared
                     .cluster
                     .lock()
-                    .partition_count(topic.as_ref())
-                    .is_some()
+                    .topic_fresh(topic.as_ref(), shared.cfg.metadata_max_age)
                 {
                     shared.cache_nudge.notify_waiters();
                     continue;
@@ -1449,7 +1463,13 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
     // Drop the parking_lot guard before `nudge_leaders`. An `if let` on
     // `cluster.lock().partition_count(...)` keeps the guard alive through the
     // body (edition 2021 temporary scope) and deadlocks the non-reentrant mutex.
-    let cached = shared.cluster.lock().partition_count(topic);
+    let cached = {
+        let cluster = shared.cluster.lock();
+        match cluster.partition_count(topic) {
+            Some(n) if cluster.topic_fresh(topic, shared.cfg.metadata_max_age) => Some(n),
+            _ => None,
+        }
+    };
     if let Some(n) = cached {
         nudge_leaders(shared, topic);
         return Ok(n);

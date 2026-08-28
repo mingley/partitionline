@@ -134,6 +134,9 @@ pub struct ConsumerConfig {
     /// Kafka `retry.backoff.max.ms`. Cap on [`Self::retry_backoff`]
     /// exponential growth. Default 1s.
     pub retry_backoff_max: Duration,
+    /// Kafka `metadata.max.age.ms`. Refresh cached Metadata after this age.
+    /// Default 5 minutes (Java). Zero refreshes on every lookup.
+    pub metadata_max_age: Duration,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
@@ -167,6 +170,7 @@ impl Default for ConsumerConfig {
             max_poll_interval: Duration::from_secs(300),
             retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
             retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
+            metadata_max_age: Duration::from_secs(300),
             interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
@@ -308,6 +312,15 @@ impl ConsumerConfig {
     #[must_use]
     pub fn retry_backoff_max(mut self, backoff: Duration) -> Self {
         self.retry_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `metadata.max.age.ms`. Refresh cached Metadata after this age.
+    ///
+    /// Default 5 minutes (Java). Zero refreshes on every lookup.
+    #[must_use]
+    pub fn metadata_max_age(mut self, max_age: Duration) -> Self {
+        self.metadata_max_age = max_age;
         self
     }
 
@@ -1098,7 +1111,7 @@ impl Consumer {
     }
 
     pub(crate) async fn ensure_topic_metadata(&mut self, topic: &str) -> Result<()> {
-        if self.cluster.partition_count(topic).is_some() {
+        if self.cluster.topic_fresh(topic, self.cfg.metadata_max_age) {
             return Ok(());
         }
         self.refresh_topic_metadata(topic).await
@@ -1453,8 +1466,17 @@ impl Consumer {
             if self.woken() {
                 return Err(Error::Wakeup);
             }
-            if self.cluster.leaders.is_empty() {
-                let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+            let mut topics = Vec::new();
+            let mut seen = HashSet::new();
+            for (t, _, _) in &self.assigned {
+                if seen.insert(t.clone()) {
+                    topics.push(t.clone());
+                }
+            }
+            if topics
+                .iter()
+                .any(|t| !self.cluster.topic_fresh(t, self.cfg.metadata_max_age))
+            {
                 self.refresh_metadata(Some(&topics)).await?;
             }
             let mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>> = HashMap::new();
