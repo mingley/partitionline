@@ -178,6 +178,7 @@ async fn seek_to_beginning_rereads_from_start() {
 #[test]
 fn config_builders_set_typed_knobs() {
     assert_eq!(ProducerConfig::default().buffer_memory, 32 * 1024 * 1024);
+    assert_eq!(ProducerConfig::default().max_request_size, 1024 * 1024);
     let p = ProducerConfig::bootstrap(["127.0.0.1:9092"])
         .acks(Acks::All)
         .compression(Compression::Lz4)
@@ -187,6 +188,7 @@ fn config_builders_set_typed_knobs() {
         .delivery_timeout(Duration::from_secs(45))
         .max_block(Duration::from_secs(15))
         .buffer_memory(4096)
+        .max_request_size(2048)
         .retry_backoff(Duration::from_millis(80))
         .retry_backoff_max(Duration::from_millis(400))
         .transaction_timeout(Duration::from_secs(45))
@@ -202,6 +204,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.delivery_timeout, Duration::from_secs(45));
     assert_eq!(p.max_block, Duration::from_secs(15));
     assert_eq!(p.buffer_memory, 4096);
+    assert_eq!(p.max_request_size, 2048);
     assert_eq!(p.retry_backoff, Duration::from_millis(80));
     assert_eq!(p.retry_backoff_max, Duration::from_millis(400));
     assert_eq!(p.transaction_timeout, Duration::from_secs(45));
@@ -775,7 +778,7 @@ async fn group_committed_after_commit() {
     assert_eq!(before[0].1.offset, -1);
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
-    group.commit().await.unwrap();
+    group.commit_timeout(Duration::from_secs(5)).await.unwrap();
     let after = group.committed().await.unwrap();
     assert_eq!(after.len(), 1);
     assert_eq!(after[0].1.offset, 1);
@@ -822,7 +825,10 @@ async fn commit_next_offsets_from_poll() {
     assert_eq!(next.len(), 1);
     assert_eq!(next[0].0, TopicPartition::new("t", 0));
     assert_eq!(next[0].1.offset, recs[1].offset + 1);
-    group.commit_with_metadata(next).await.unwrap();
+    group
+        .commit_with_metadata_timeout(next, Duration::from_secs(5))
+        .await
+        .unwrap();
     let after = group.committed().await.unwrap();
     assert_eq!(after[0].1.offset, recs[1].offset + 1);
     group.leave().await.unwrap();
@@ -932,7 +938,7 @@ async fn commit_offsets_skips_without_poll() {
     .await
     .unwrap();
     group
-        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .commit_offsets_timeout([(TopicPartition::new("t", 0), 1)], Duration::from_secs(5))
         .await
         .unwrap();
     group.leave().await.unwrap();
@@ -1071,6 +1077,58 @@ async fn send_times_out_when_record_exceeds_buffer_memory() {
         .unwrap_err();
     assert!(matches!(err, Error::Timeout), "got {err}");
     assert_eq!(producer.metrics().bytes_buffered, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn try_send_rejects_when_record_exceeds_max_request_size() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .max_request_size(3),
+    )
+    .await
+    .unwrap();
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"abc"[..]))
+        .unwrap();
+    producer.flush().await.unwrap();
+    let err = producer
+        .try_send(ProduceRecord::to("t").value(&b"abcd"[..]))
+        .unwrap_err();
+    assert!(
+        matches!(err, Error::RecordTooLarge { size: 4, max: 3 }),
+        "got {err}"
+    );
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn send_rejects_when_record_exceeds_max_request_size() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .max_request_size(3)
+            .max_block(Duration::from_secs(5)),
+    )
+    .await
+    .unwrap();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"abcd"[..]))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, Error::RecordTooLarge { size: 4, max: 3 }),
+        "got {err}"
+    );
+    assert!(!err.is_retriable());
+    assert_eq!(
+        err.to_string(),
+        "record too large: 4 bytes (max.request.size 3)"
+    );
     producer.close().await.unwrap();
 }
 
@@ -1366,10 +1424,13 @@ async fn commit_with_metadata_roundtrip() {
     .unwrap();
     assert_eq!(group.subscription(), &["t".to_string()]);
     group
-        .commit_with_metadata([(
-            TopicPartition::new("t", 0),
-            OffsetAndMetadata::with_metadata(1, "ckpt").with_leader_epoch(0),
-        )])
+        .commit_with_metadata_timeout(
+            [(
+                TopicPartition::new("t", 0),
+                OffsetAndMetadata::with_metadata(1, "ckpt").with_leader_epoch(0),
+            )],
+            Duration::from_secs(5),
+        )
         .await
         .unwrap();
     group.leave().await.unwrap();

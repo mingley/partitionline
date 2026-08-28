@@ -34,6 +34,13 @@ pub enum Error {
     Timeout,
     /// `try_send` could not queue (metadata, connection, or `buffer.memory`).
     QueueFull,
+    /// Record key plus value exceeds [`crate::ProducerConfig::max_request_size`].
+    RecordTooLarge {
+        /// Key plus value bytes of the record.
+        size: u64,
+        /// Configured [`crate::ProducerConfig::max_request_size`].
+        max: u64,
+    },
     /// [`crate::ConsumerGroup::poll`] was not called within `max.poll.interval.ms`.
     MaxPollInterval,
     /// [`crate::Consumer::wakeup`] interrupted fetch or poll.
@@ -109,6 +116,9 @@ impl fmt::Display for Error {
             Self::Closed => write!(f, "producer closed"),
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
+            Self::RecordTooLarge { size, max } => {
+                write!(f, "record too large: {size} bytes (max.request.size {max})")
+            }
             Self::MaxPollInterval => write!(f, "max.poll.interval.ms exceeded"),
             Self::Wakeup => write!(f, "wakeup"),
         }
@@ -148,6 +158,10 @@ impl Clone for Error {
             Self::Closed => Self::Closed,
             Self::Timeout => Self::Timeout,
             Self::QueueFull => Self::QueueFull,
+            Self::RecordTooLarge { size, max } => Self::RecordTooLarge {
+                size: *size,
+                max: *max,
+            },
             Self::MaxPollInterval => Self::MaxPollInterval,
             Self::Wakeup => Self::Wakeup,
         }

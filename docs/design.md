@@ -18,7 +18,7 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 
 `ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
 builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`,
-`buffer_memory`, `retry_backoff`, `reconnect_backoff`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.
+`buffer_memory`, `max_request_size`, `retry_backoff`, `reconnect_backoff`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.
 
 `ConsumerConfig.isolation_level` is [`IsolationLevel`](../src/config.rs)
 (not a raw `i8`). `ConfigResourceType` and `ScramMechanism` type admin
@@ -58,10 +58,11 @@ Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
 offset (`Earliest` by default). `committed` / `committed_timeout` are OffsetFetch
-for the current assignment (Java `committed` / `committed(Duration)`). `commit_offsets` commits caller-chosen offsets
+for the current assignment (Java `committed` / `committed(Duration)`). `commit` / `commit_timeout` are Java `commitSync` / `commitSync(Duration)`. `commit_offsets` commits caller-chosen offsets
 ([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
 `commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
-(leader epoch and a metadata string). Pass
+(leader epoch and a metadata string). `commit_with_metadata_timeout` is Java
+`commitSync(Map, Duration)`. Pass
 [`ConsumerRecords::next_offsets`](../src/consumer.rs) to match Java
 `commitSync(records.nextOffsets())`. `committed` returns the same type.
 `current_lag` is high watermark minus position. `subscription` is the

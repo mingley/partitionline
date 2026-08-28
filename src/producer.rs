@@ -56,6 +56,12 @@ pub struct ProducerConfig {
     /// [`crate::Producer::send`] waits up to [`Self::max_block`];
     /// [`crate::Producer::try_send`] returns [`crate::Error::QueueFull`].
     pub buffer_memory: usize,
+    /// Kafka `max.request.size`. Key plus value bytes of one record must not
+    /// exceed this. Produce batches are also capped at
+    /// `min(batch_bytes, max_request_size)` when both are non-zero. Default
+    /// 1 MiB (Java). Zero means no extra cap ([`Self::batch_bytes`] still
+    /// applies). Oversized records return [`crate::Error::RecordTooLarge`].
+    pub max_request_size: usize,
     /// Per-request timeout (produce, metadata, init pid).
     pub request_timeout: Duration,
     /// Kafka `delivery.timeout.ms`. Time from queue until ack or timeout,
@@ -136,6 +142,7 @@ impl Default for ProducerConfig {
             batch_records: 32_768,
             batch_bytes: 1_000_000,
             buffer_memory: 32 * 1024 * 1024,
+            max_request_size: 1024 * 1024,
             request_timeout: Duration::from_secs(30),
             delivery_timeout: Duration::from_secs(30),
             max_block: Duration::from_secs(30),
@@ -214,6 +221,17 @@ impl ProducerConfig {
     #[must_use]
     pub fn buffer_memory(mut self, bytes: usize) -> Self {
         self.buffer_memory = bytes;
+        self
+    }
+
+    /// Kafka `max.request.size`. Key plus value bytes of one record.
+    ///
+    /// Default 1 MiB (Java). Zero means no extra cap. A record larger than
+    /// this returns [`crate::Error::RecordTooLarge`] from `send` / `try_send`
+    /// without waiting for [`Self::max_block`].
+    #[must_use]
+    pub fn max_request_size(mut self, bytes: usize) -> Self {
+        self.max_request_size = bytes;
         self
     }
 
@@ -381,6 +399,14 @@ impl ProducerConfig {
     pub fn allow_auto_create_topics(mut self, allow: bool) -> Self {
         self.allow_auto_topic_creation = allow;
         self
+    }
+
+    fn produce_batch_bytes(&self) -> usize {
+        match (self.batch_bytes, self.max_request_size) {
+            (b, 0) => b,
+            (0, m) => m,
+            (b, m) => b.min(m),
+        }
     }
 }
 
@@ -614,6 +640,22 @@ fn rec_bytes(rec: &ProduceRecord) -> u64 {
     let k = rec.key.as_ref().map(bytes::Bytes::len).unwrap_or(0);
     let v = rec.value.as_ref().map(bytes::Bytes::len).unwrap_or(0);
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
+}
+
+fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
+    let bytes = rec_bytes(rec);
+    let cap = cfg.max_request_size;
+    if cap == 0 {
+        return Ok(bytes);
+    }
+    let cap = u64::try_from(cap).unwrap_or(u64::MAX);
+    if bytes > cap {
+        return Err(Error::RecordTooLarge {
+            size: bytes,
+            max: cap,
+        });
+    }
+    Ok(bytes)
 }
 
 fn pendings_bytes(pendings: &[Pending]) -> u64 {
@@ -924,12 +966,12 @@ impl Producer {
         for rec in recs {
             let (tx, rx) = oneshot::channel();
             let mut rec = self.inner.shared.interceptors.on_send(rec);
+            let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
             let block_deadline = Instant::now() + self.inner.shared.cfg.max_block;
             self.ensure_ready(&mut rec, block_deadline).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             let now = Instant::now();
             let deadline = now + self.inner.shared.cfg.delivery_timeout;
-            let bytes = rec_bytes(&rec);
             let topic = rec.topic.clone();
             self.wait_buffer(bytes, block_deadline).await?;
             if w.data
@@ -1017,10 +1059,13 @@ impl Producer {
     /// partition leader are ready, or when [`ProducerConfig::buffer_memory`]
     /// is full. Call again; [`Self::send`] waits up to
     /// [`ProducerConfig::max_block`].
+    /// A record larger than [`ProducerConfig::max_request_size`] returns
+    /// [`Error::RecordTooLarge`] without waiting.
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         let mut rec = self.inner.shared.interceptors.on_send(rec);
+        let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
         let w = if let Some((p, w)) = self.fast_route(&rec) {
             rec.partition = Some(p);
             w
@@ -1035,7 +1080,6 @@ impl Producer {
         };
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
-        let bytes = rec_bytes(&rec);
         let topic = rec.topic.clone();
         if !self.inner.shared.try_reserve_buffer(bytes) {
             return Err(Error::QueueFull);
@@ -1929,7 +1973,7 @@ impl Worker {
         batch_ready(
             &self.pending,
             self.shared.cfg.batch_records,
-            self.shared.cfg.batch_bytes,
+            self.shared.cfg.produce_batch_bytes(),
         ) || self.linger_expired(linger_start)
     }
 
@@ -2024,7 +2068,7 @@ impl Worker {
         let n = take_count(
             &self.pending,
             self.shared.cfg.batch_records,
-            self.shared.cfg.batch_bytes,
+            self.shared.cfg.produce_batch_bytes(),
         );
         let batch: Vec<Pending> = self.pending.drain(..n).collect();
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {

@@ -17,7 +17,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
-| Produce (acks, linger, batches, offsets, `delivery.timeout.ms`, `max.block.ms`, `buffer.memory`, `retry.backoff.ms`, `reconnect.backoff.ms`, `metadata.max.age.ms`) | yes (to Metadata leader; retriable errors refresh and retry with exponential `retry_backoff` / `retry_backoff_max`; failed broker TCP/handshake retries with exponential `reconnect_backoff` / `reconnect_backoff_max`; `delivery_timeout` caps queue-to-ack; `max_block` caps `send` metadata and `buffer.memory` wait; `buffer_memory` caps queued key+value bytes; `metadata_max_age` refreshes cached Metadata) | yes | **done** |
+| Produce (acks, linger, batches, offsets, `delivery.timeout.ms`, `max.block.ms`, `buffer.memory`, `max.request.size`, `retry.backoff.ms`, `reconnect.backoff.ms`, `metadata.max.age.ms`) | yes (to Metadata leader; retriable errors refresh and retry with exponential `retry_backoff` / `retry_backoff_max`; failed broker TCP/handshake retries with exponential `reconnect_backoff` / `reconnect_backoff_max`; `delivery_timeout` caps queue-to-ack; `max_block` caps `send` metadata and `buffer.memory` wait; `buffer_memory` caps queued key+value bytes; `max_request_size` rejects oversized records with `Error::RecordTooLarge` and caps Produce batches; `metadata_max_age` refreshes cached Metadata) | yes | **done** |
 | Fetch with manual assignment | yes (to Metadata leader; retriable errors wait `retry.backoff.ms` then refresh and retry; preferred-replica redirects are immediate; failed broker TCP/handshake retries with `reconnect.backoff.ms`; `metadata.max.age.ms` refreshes cached Metadata; Fetch sends Metadata `leader_epoch`; `ConsumerRecords` including `nextOffsets`) | yes | **done** |
 | OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; `offsets_for_times` with `OffsetAndTimestamp.leader_epoch`; Fetch isolation 0 or 1; `FetchedRecord.leader_epoch`) | yes | **done** |
@@ -50,7 +50,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
-| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
+| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |

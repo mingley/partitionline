@@ -816,16 +816,24 @@ impl ConsumerGroup {
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. To commit only
     /// partitions from the last poll, pass [`ConsumerRecords::next_offsets`]
-    /// to [`Self::commit_with_metadata`].
+    /// to [`Self::commit_with_metadata`]. For a one-shot timeout, use
+    /// [`Self::commit_timeout`].
     pub async fn commit(&mut self) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.commit_timeout(timeout).await
+    }
+
+    /// [`Self::commit`] with a one-shot timeout (Java `commitSync(Duration)`).
+    pub async fn commit_timeout(&mut self, timeout: Duration) -> Result<()> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
         let assigned = self.consumer.assigned_offsets().to_vec();
-        self.commit_offsets(
+        self.commit_offsets_timeout(
             assigned
                 .into_iter()
                 .map(|(topic, partition, offset)| (TopicPartition::new(topic, partition), offset)),
+            timeout,
         )
         .await?;
         self.last_auto_commit = Instant::now();
@@ -837,9 +845,20 @@ impl ConsumerGroup {
     /// Each item is a [`TopicPartition`] (or anything that converts to one)
     /// and the next fetch offset. Leader epoch is taken from Metadata. For
     /// epoch plus a metadata string, use [`Self::commit_with_metadata`].
+    /// Waits up to [`ConsumerConfig::request_timeout`].
     pub async fn commit_offsets(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+    ) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.commit_offsets_timeout(offsets, timeout).await
+    }
+
+    /// [`Self::commit_offsets`] with a one-shot timeout.
+    pub async fn commit_offsets_timeout(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+        timeout: Duration,
     ) -> Result<()> {
         let items: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
             .into_iter()
@@ -852,7 +871,7 @@ impl ConsumerGroup {
                 )
             })
             .collect();
-        self.commit_with_metadata(items).await
+        self.commit_with_metadata_timeout(items, timeout).await
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
@@ -860,10 +879,23 @@ impl ConsumerGroup {
     /// Pass [`ConsumerRecords::next_offsets`] to match Java
     /// `commitSync(records.nextOffsets())`. That commits only partitions
     /// present in the batch. [`Self::commit`] commits every assigned
-    /// partition's current position.
+    /// partition's current position. Waits up to
+    /// [`ConsumerConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::commit_with_metadata_timeout`].
     pub async fn commit_with_metadata(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+    ) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.commit_with_metadata_timeout(offsets, timeout).await
+    }
+
+    /// [`Self::commit_with_metadata`] with a one-shot timeout
+    /// (Java `commitSync(Map, Duration)`).
+    pub async fn commit_with_metadata_timeout(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+        timeout: Duration,
     ) -> Result<()> {
         let offsets: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
             .into_iter()
@@ -873,7 +905,6 @@ impl ConsumerGroup {
         if topics.is_empty() {
             return Ok(());
         }
-        let timeout = self.cfg.request_timeout;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,

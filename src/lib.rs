@@ -71,7 +71,8 @@
 //! [`ShareGroup::poll`] returns [`ShareRecords`]. [`Consumer::fetch_timeout`] /
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java
-//! `committed(Duration)`.
+//! `committed(Duration)`. [`ConsumerGroup::commit_timeout`] is Java
+//! `commitSync(Duration)`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
 //! [`ConsumerGroup::commit_with_metadata`] takes
@@ -97,7 +98,9 @@
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
 //! [`ShareGroup::subscribe`] / [`ShareGroup::unsubscribe`]).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
-//! (leader epoch and a metadata string). [`ConsumerGroup::enforce_rebalance`]
+//! (leader epoch and a metadata string). [`ConsumerGroup::commit_timeout`] /
+//! [`ConsumerGroup::commit_with_metadata_timeout`] are Java
+//! `commitSync(Duration)`. [`ConsumerGroup::enforce_rebalance`]
 //! rejoins on the next poll. [`ConsumerConfig::on_rebalance`] receives
 //! [`TopicPartition`] slices. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::unsubscribe`] change the topic list without dropping
@@ -129,7 +132,10 @@
 //! [`ProducerConfig::buffer_memory`]; default 30s, Java 60s).
 //! [`ProducerConfig::buffer_memory`] is Kafka `buffer.memory` (queued
 //! key-plus-value bytes not yet acked; default 32 MiB, Java; zero is no
-//! client-side cap). [`ProducerConfig::retry_backoff`] /
+//! client-side cap). [`ProducerConfig::max_request_size`] is Kafka
+//! `max.request.size` (key-plus-value bytes of one record; default 1 MiB,
+//! Java; zero is no extra cap; oversized records return
+//! [`Error::RecordTooLarge`]). [`ProducerConfig::retry_backoff`] /
 //! [`ProducerConfig::retry_backoff_max`] are Kafka `retry.backoff.ms` /
 //! `retry.backoff.max.ms` (exponential wait after a retriable Produce;
 //! default 100ms / 1s). [`ConsumerConfig::retry_backoff`] is the same pair

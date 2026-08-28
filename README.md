@@ -90,7 +90,8 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `incremental_alter_configs` / `alter_configs` take `ConfigResource`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `commit_with_metadata(recs.next_offsets())` is Java
-`commitSync(records.nextOffsets())`. `ProduceRecord::null_header` is a
+`commitSync(records.nextOffsets())`. `commit_timeout` /
+`commit_with_metadata_timeout` are Java `commitSync(Duration)`. `ProduceRecord::null_header` is a
 null header value. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.
 `subscribe` / `unsubscribe` change topics without dropping the handle.
@@ -99,6 +100,9 @@ Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
 `committed_timeout` is Java `committed(Duration)`. Group and share
 coordinator RPCs use `ConsumerConfig::request_timeout`.
+`commit_timeout` / `commit_offsets_timeout` /
+`commit_with_metadata_timeout` are Java `commitSync(Duration)` (they do
+not change `request_timeout` for heartbeats).
 `Consumer::close` drops fetch connections; group `close` is `leave`.
 `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
 (Java `close(Duration)`).
@@ -147,6 +151,9 @@ Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
 (how long `send` waits for metadata and `buffer.memory`; default 30s, Java 60s).
 `ProducerConfig::buffer_memory` is Kafka `buffer.memory` (queued key-plus-value
 bytes not yet acked; default 32 MiB, same as Java; zero is no client-side cap).
+`ProducerConfig::max_request_size` is Kafka `max.request.size` (key-plus-value
+bytes of one record; default 1 MiB, same as Java; zero is no extra cap;
+oversized records return `Error::RecordTooLarge`).
 `ProducerConfig::retry_backoff` / `retry_backoff_max` are Kafka
 `retry.backoff.ms` / `retry.backoff.max.ms` (exponential wait after a retriable
 Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable
