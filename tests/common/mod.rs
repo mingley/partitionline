@@ -218,6 +218,9 @@ struct State {
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
     last_metadata_allow_auto: Option<bool>,
+    /// Last Metadata topic filter: `None` = never recorded;
+    /// `Some(None)` = all topics; `Some(Some(names))` = named.
+    last_metadata_topics: Option<Option<Vec<String>>>,
     brokers: Vec<Broker>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
@@ -441,6 +444,7 @@ fn new_state(
         created_topics,
         metadata_calls: 0,
         last_metadata_allow_auto: None,
+        last_metadata_topics: None,
         brokers: Vec::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
@@ -987,6 +991,10 @@ impl Mock {
 
     pub fn last_metadata_allow_auto(&self) -> Option<bool> {
         self.state.lock().last_metadata_allow_auto
+    }
+
+    pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
+        self.state.lock().last_metadata_topics.clone()
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -2102,9 +2110,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             METADATA => {
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
-                let (_, allow) =
+                let (topics, allow) =
                     decode_metadata_request(&mut frame.clone(), header.api_version).unwrap();
                 st.last_metadata_allow_auto = Some(allow);
+                st.last_metadata_topics = Some(topics);
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,

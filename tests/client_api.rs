@@ -2522,3 +2522,37 @@ async fn admin_abort_transaction_writes_abort_marker() {
     assert_eq!(marker.topics[0].partitions, vec![0]);
     admin.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_list_and_describe_topics() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = admin.list_topics().await.unwrap();
+    assert!(
+        listed.iter().any(|t| t.name == "t" && !t.is_internal),
+        "seeded topic t"
+    );
+    assert_eq!(mock.last_metadata_topics(), Some(None));
+    assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    let described = admin.describe_topics(["t"]).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].name, "t");
+    assert_eq!(described[0].error_code, 0);
+    assert!(!described[0].is_internal);
+    assert_eq!(described[0].partitions.len(), 1);
+    assert_eq!(described[0].partitions[0].partition, 0);
+    assert_eq!(described[0].topic_id[0], b't');
+    assert_eq!(mock.last_metadata_topics(), Some(Some(vec!["t".into()])));
+    assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    let calls = mock.metadata_calls();
+    let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.metadata_calls(),
+        calls,
+        "empty describe_topics is a no-op"
+    );
+    admin.close().await.unwrap();
+}

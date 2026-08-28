@@ -63,7 +63,7 @@ use crate::protocol::admin::{
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
-    encode_metadata_request, ApiVersion,
+    encode_metadata_request, ApiVersion, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -331,6 +331,64 @@ impl NewTopic {
     pub fn config(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.configs.push((name.into(), Some(value.into())));
         self
+    }
+}
+
+/// One topic from [`Admin::list_topics`] (Java `TopicListing`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopicListing {
+    /// Topic name.
+    pub name: String,
+    /// Topic id (Metadata v10+), or zeros.
+    pub topic_id: [u8; 16],
+    /// Internal topic (for example `__consumer_offsets`).
+    pub is_internal: bool,
+}
+
+impl TopicListing {
+    /// Topic `name` with optional id and internal flag.
+    #[must_use]
+    pub fn new(name: impl Into<String>, topic_id: [u8; 16], is_internal: bool) -> Self {
+        Self {
+            name: name.into(),
+            topic_id,
+            is_internal,
+        }
+    }
+}
+
+/// One topic from [`Admin::describe_topics`] (Java `TopicDescription`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopicDescription {
+    /// Topic name.
+    pub name: String,
+    /// Topic id (Metadata v10+), or zeros.
+    pub topic_id: [u8; 16],
+    /// Internal topic.
+    pub is_internal: bool,
+    /// Per-topic Metadata error (`0` is success).
+    pub error_code: i16,
+    /// Partitions (empty when [`Self::error_code`] is not `0`).
+    pub partitions: Vec<crate::PartitionInfo>,
+}
+
+impl TopicDescription {
+    /// Topic `name` with id, internal flag, error, and partitions.
+    #[must_use]
+    pub fn new(
+        name: impl Into<String>,
+        topic_id: [u8; 16],
+        is_internal: bool,
+        error_code: i16,
+        partitions: Vec<crate::PartitionInfo>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            topic_id,
+            is_internal,
+            error_code,
+            partitions,
+        }
     }
 }
 
@@ -1365,6 +1423,34 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// Cluster topics (Java `Admin.listTopics`).
+    ///
+    /// Sends Metadata with a null topic array (all topics) on the
+    /// bootstrap connection. Includes internal topics;
+    /// [`TopicListing::is_internal`] is Metadata `IsInternal`.
+    pub async fn list_topics(&mut self) -> Result<Vec<TopicListing>> {
+        let md = self.fetch_metadata(None).await?;
+        Ok(topic_listings_from(&md))
+    }
+
+    /// Topic partition layouts (Java `Admin.describeTopics`).
+    ///
+    /// Sends Metadata for these names on the bootstrap connection.
+    /// Empty input is a no-op (no RPC). Per-topic Metadata errors live
+    /// on [`TopicDescription::error_code`]; [`TopicDescription::partitions`]
+    /// is filled only when that code is `0`.
+    pub async fn describe_topics(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<TopicDescription>> {
+        let names: Vec<String> = topics.into_iter().map(|s| s.as_ref().to_string()).collect();
+        if names.is_empty() {
+            return Ok(Vec::new());
+        }
+        let md = self.fetch_metadata(Some(&names)).await?;
+        Ok(topic_descriptions_from(&md))
     }
 
     /// Describe broker or topic configs (`DescribeConfigs`).
@@ -2566,7 +2652,7 @@ impl Admin {
         decode_alter_configs_response(&mut body.clone(), version)
     }
 
-    async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+    async fn fetch_metadata(&mut self, topics: Option<&[String]>) -> Result<MetadataResponse> {
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -2579,7 +2665,11 @@ impl Admin {
             .await?;
         let md = decode_metadata_response(&mut body.clone(), version)?;
         self.cluster.apply(&md);
-        Ok(())
+        Ok(md)
+    }
+
+    async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
+        self.fetch_metadata(topics).await.map(|_| ())
     }
 
     /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
@@ -4611,6 +4701,52 @@ fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> 
         .collect()
 }
 
+fn topic_listings_from(md: &MetadataResponse) -> Vec<TopicListing> {
+    md.topics
+        .iter()
+        .filter(|t| t.error_code == 0)
+        .filter_map(|t| {
+            t.name.as_ref().map(|name| TopicListing {
+                name: name.clone(),
+                topic_id: t.topic_id,
+                is_internal: t.is_internal,
+            })
+        })
+        .collect()
+}
+
+fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
+    md.topics
+        .iter()
+        .filter_map(|t| {
+            let name = t.name.clone()?;
+            let partitions = if t.error_code == 0 {
+                t.partitions
+                    .iter()
+                    .map(|p| crate::PartitionInfo {
+                        topic: name.clone(),
+                        partition: p.partition_index,
+                        leader: p.leader_id,
+                        leader_epoch: p.leader_epoch,
+                        replicas: p.replica_nodes.clone(),
+                        isr: p.isr_nodes.clone(),
+                        offline_replicas: p.offline_replicas.clone(),
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            };
+            Some(TopicDescription {
+                name,
+                topic_id: t.topic_id,
+                is_internal: t.is_internal,
+                error_code: t.error_code,
+                partitions,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4638,5 +4774,68 @@ mod tests {
     fn scram_mechanism_matches_protocol_consts() {
         assert_eq!(i8::from(ScramMechanism::Sha256), SCRAM_SHA_256);
         assert_eq!(i8::from(ScramMechanism::Sha512), SCRAM_SHA_512);
+    }
+
+    #[test]
+    fn topic_listings_skip_errors_and_unnamed() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: 1,
+            topics: vec![
+                TopicMetadata {
+                    error_code: 0,
+                    name: Some("ok".into()),
+                    topic_id: [1; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 3,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                },
+                TopicMetadata {
+                    error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+                    name: Some("gone".into()),
+                    topic_id: [0; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+                        partition_index: 0,
+                        leader_id: -1,
+                        leader_epoch: -1,
+                        replica_nodes: Vec::new(),
+                        isr_nodes: Vec::new(),
+                        offline_replicas: Vec::new(),
+                    }],
+                },
+                TopicMetadata {
+                    error_code: 0,
+                    name: None,
+                    topic_id: [2; 16],
+                    is_internal: true,
+                    partitions: Vec::new(),
+                },
+            ],
+        };
+        let listed = topic_listings_from(&md);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].name, "ok");
+        assert_eq!(listed[0].topic_id, [1; 16]);
+        let described = topic_descriptions_from(&md);
+        assert_eq!(described.len(), 2);
+        assert_eq!(described[0].name, "ok");
+        assert_eq!(described[0].partitions.len(), 1);
+        assert_eq!(described[0].partitions[0].leader_epoch, 3);
+        assert_eq!(described[1].name, "gone");
+        assert_eq!(described[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert!(described[1].partitions.is_empty());
     }
 }

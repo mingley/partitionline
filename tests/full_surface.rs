@@ -2739,6 +2739,36 @@ async fn abort_transaction_follows_partition_leader() {
 }
 
 #[tokio::test]
+async fn admin_list_and_describe_topics_on_bootstrap() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin.list_topics().await.unwrap();
+    assert!(listed.iter().any(|t| t.name == "t" && !t.is_internal));
+    assert_eq!(
+        mock.last_metadata_topics(),
+        Some(None),
+        "list_topics must send Metadata with a null topic array"
+    );
+    let described = admin.describe_topics(["t"]).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].partitions.len(), 1);
+    assert_eq!(described[0].partitions[0].leader, 1);
+    assert_eq!(
+        mock.last_metadata_topics(),
+        Some(Some(vec!["t".into()])),
+        "describe_topics must send Metadata for the named topics"
+    );
+    let calls = mock.metadata_calls();
+    let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.metadata_calls(),
+        calls,
+        "empty describe_topics is a no-op"
+    );
+}
+
+#[tokio::test]
 async fn create_topics_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

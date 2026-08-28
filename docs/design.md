@@ -53,7 +53,9 @@ ABORT on the partition leader).
 `Admin::remove_members_from_consumer_group` is Java
 `removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
-tagged fields; [`FeatureMetadata`](../src/admin.rs)). `assignment` is Java `assignment`
+tagged fields; [`FeatureMetadata`](../src/admin.rs)).
+`Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
+`describeTopics`. `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.

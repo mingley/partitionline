@@ -99,6 +99,8 @@
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3 tagged fields).
+//! [`Admin::list_topics`] / [`Admin::describe_topics`] are Java
+//! `listTopics` / `describeTopics` ([`TopicListing`] / [`TopicDescription`]).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -259,12 +261,12 @@ pub use admin::{
     ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RemovedMember,
     RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
     ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
-    TopicPartitionCursor, TransactionListing, TransactionState, TransactionTopic,
-    UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
-    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
-    CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
-    SCRAM_SHA_512,
+    TopicDescription, TopicListing, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
+    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
+    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
