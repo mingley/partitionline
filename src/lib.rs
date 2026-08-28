@@ -15,7 +15,7 @@
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
 //! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs,
-//! DescribeCluster).
+//! CreateDelegationToken, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -51,10 +51,11 @@ pub use admin::{
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
-    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
+    DescribableLogDirTopic, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,

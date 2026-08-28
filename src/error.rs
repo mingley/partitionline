@@ -113,6 +113,10 @@ pub const COORDINATOR_LOAD_IN_PROGRESS: i16 = 14;
 pub const COORDINATOR_NOT_AVAILABLE: i16 = 15;
 pub const NOT_COORDINATOR: i16 = 16;
 pub const NOT_CONTROLLER: i16 = 41;
+/// Official Java `KafkaApis.handleCreateTokenRequest` writes this when
+/// the connection is not allowed to issue a delegation token (PLAINTEXT /
+/// one-way SSL / already token-authenticated).
+pub const DELEGATION_TOKEN_REQUEST_NOT_ALLOWED: i16 = 64;
 pub const INVALID_TOPIC_EXCEPTION: i16 = 17;
 pub const UNSUPPORTED_VERSION: i16 = 35;
 pub const TOPIC_ALREADY_EXISTS: i16 = 36;
@@ -159,6 +163,7 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         INVALID_REQUIRED_ACKS => "INVALID_REQUIRED_ACKS",
         NOT_COORDINATOR => "NOT_COORDINATOR",
         NOT_CONTROLLER => "NOT_CONTROLLER",
+        DELEGATION_TOKEN_REQUEST_NOT_ALLOWED => "DELEGATION_TOKEN_REQUEST_NOT_ALLOWED",
         INVALID_TOPIC_EXCEPTION => "INVALID_TOPIC_EXCEPTION",
         UNSUPPORTED_VERSION => "UNSUPPORTED_VERSION",
         TOPIC_ALREADY_EXISTS => "TOPIC_ALREADY_EXISTS",
