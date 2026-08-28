@@ -23,7 +23,7 @@ impl LatencyStats {
     /// Mean sample duration in nanoseconds, or `None` when [`Self::count`] is `0`.
     #[must_use]
     pub fn mean_nanos(&self) -> Option<u64> {
-        (self.count > 0).then_some(self.sum_nanos / self.count)
+        (self.count > 0).then(|| self.sum_nanos / self.count)
     }
 }
 
