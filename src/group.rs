@@ -36,6 +36,8 @@ use crate::protocol::group::{
 };
 use crate::protocol::sasl;
 
+type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
     let mut members: Vec<String> = members.to_vec();
@@ -312,6 +314,9 @@ pub struct ConsumerGroup {
     member_id: String,
     generation_id: i32,
     topics: Vec<String>,
+    /// Java `subscribe(Pattern)`: re-list cluster topics on poll.
+    topic_match: Option<TopicMatch>,
+    last_match_refresh: Instant,
     protocol: String,
     kip848: bool,
     prev_assignment: HashMap<String, Vec<(String, i32)>>,
@@ -396,6 +401,16 @@ impl ConsumerGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topics = collect_topics(topics)?;
+        Self::join_with_protocol_list(cfg, group_id, topics, protocol, None).await
+    }
+
+    async fn join_with_protocol_list(
+        cfg: ConsumerConfig,
+        group_id: String,
+        topics: Vec<String>,
+        protocol: &str,
+        topic_match: Option<TopicMatch>,
+    ) -> Result<Self> {
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
 
@@ -412,6 +427,8 @@ impl ConsumerGroup {
             member_id: String::new(),
             generation_id: 0,
             topics,
+            topic_match,
+            last_match_refresh: Instant::now(),
             protocol: protocol.to_string(),
             kip848: false,
             prev_assignment: HashMap::new(),
@@ -425,9 +442,34 @@ impl ConsumerGroup {
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
         };
+        if g.topic_match.is_some() {
+            g.topics = g.matching_topic_names().await?;
+            g.last_match_refresh = Instant::now();
+        }
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
         Ok(g)
+    }
+
+    /// Join with the range assignor and a topic predicate (Java `subscribe(Pattern)`).
+    ///
+    /// Cluster topics for which `matches` is true become the subscription.
+    /// Names starting with `__` are skipped (Java `exclude.internal.topics`).
+    /// [`Self::poll`] re-lists Metadata when [`ConsumerConfig::metadata_max_age`]
+    /// has elapsed (every poll when that age is zero).
+    pub async fn join_matching(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::join_with_protocol_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            "range",
+            Some(Arc::new(matches)),
+        )
+        .await
     }
 
     /// KIP-848 `group.protocol=consumer`. One topic.
@@ -462,6 +504,8 @@ impl ConsumerGroup {
             member_id: String::new(),
             generation_id: 0,
             topics,
+            topic_match: None,
+            last_match_refresh: Instant::now(),
             protocol: "consumer".into(),
             kip848: true,
             prev_assignment: HashMap::new(),
@@ -705,6 +749,7 @@ impl ConsumerGroup {
             return Err(Error::MaxPollInterval);
         }
         self.check_max_poll_interval()?;
+        self.maybe_refresh_matching().await?;
         let force = std::mem::replace(&mut self.rebalance_needed, false);
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -963,6 +1008,7 @@ impl ConsumerGroup {
     pub async fn unsubscribe(&mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.topics.clear();
+            self.topic_match = None;
             self.consumer.clear_assignment();
             return Ok(());
         }
@@ -977,6 +1023,7 @@ impl ConsumerGroup {
         }
         self.consumer.clear_assignment();
         self.topics.clear();
+        self.topic_match = None;
         self.member_id.clear();
         self.generation_id = 0;
         self.hb_generation.store(0, Ordering::SeqCst);
@@ -991,12 +1038,35 @@ impl ConsumerGroup {
     ///
     /// If this member is already in the group, the coordinator is not left;
     /// a rejoin uses the new topic list. After [`Self::unsubscribe`], this
-    /// starts a new heartbeat loop.
+    /// starts a new heartbeat loop. Drops a [`Self::subscribe_matching`]
+    /// predicate, if one was set.
     pub async fn subscribe(
         &mut self,
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<()> {
+        self.topic_match = None;
         let topics = collect_topics(topics)?;
+        self.apply_subscription(topics).await
+    }
+
+    /// Subscribe to cluster topics for which `matches` is true
+    /// (Java `subscribe(Pattern)`).
+    ///
+    /// Names starting with `__` are skipped (Java `exclude.internal.topics`).
+    /// [`Self::poll`] re-lists Metadata when [`ConsumerConfig::metadata_max_age`]
+    /// has elapsed (every poll when that age is zero). [`Self::subscribe`]
+    /// with an explicit list drops the predicate.
+    pub async fn subscribe_matching(
+        &mut self,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<()> {
+        self.topic_match = Some(Arc::new(matches));
+        let topics = self.matching_topic_names().await?;
+        self.last_match_refresh = Instant::now();
+        self.apply_subscription(topics).await
+    }
+
+    async fn apply_subscription(&mut self, topics: Vec<String>) -> Result<()> {
         if topics == self.topics && !self.member_id.is_empty() {
             return Ok(());
         }
@@ -1029,6 +1099,37 @@ impl ConsumerGroup {
             self.spawn_heartbeat(hb_rx);
         }
         Ok(())
+    }
+
+    async fn matching_topic_names(&mut self) -> Result<Vec<String>> {
+        let Some(pred) = self.topic_match.clone() else {
+            return Ok(self.topics.clone());
+        };
+        let infos = self.consumer.list_topics().await?;
+        let mut names = Vec::new();
+        for info in infos {
+            if info.topic.is_empty() || info.topic.starts_with("__") {
+                continue;
+            }
+            if pred(&info.topic) && !names.contains(&info.topic) {
+                names.push(info.topic);
+            }
+        }
+        names.sort();
+        Ok(names)
+    }
+
+    async fn maybe_refresh_matching(&mut self) -> Result<()> {
+        if self.topic_match.is_none() {
+            return Ok(());
+        }
+        let age = self.cfg.metadata_max_age;
+        if !age.is_zero() && self.last_match_refresh.elapsed() < age {
+            return Ok(());
+        }
+        let topics = self.matching_topic_names().await?;
+        self.last_match_refresh = Instant::now();
+        self.apply_subscription(topics).await
     }
 
     /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).

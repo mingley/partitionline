@@ -95,6 +95,9 @@ metadata string. `commit_with_metadata(recs.next_offsets())` is Java
 null header value. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.
 `subscribe` / `unsubscribe` change topics without dropping the handle.
+`subscribe_matching` / `join_matching` are Java `subscribe(Pattern)` (re-list
+on poll when `metadata.max.age.ms` elapses; names starting with `__` are
+skipped).
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
 Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.

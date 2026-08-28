@@ -53,7 +53,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
-| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |
+| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `ConsumerGroup::subscribe_matching` / `join_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
 | `close(Duration)` | yes (`Producer::close_timeout`; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |

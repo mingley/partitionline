@@ -1535,6 +1535,124 @@ async fn subscribe_switches_topics_without_leave() {
 }
 
 #[tokio::test]
+async fn subscribe_matching_fetches_matching_topics() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(
+            &[
+                NewTopic::new("orders-a", 1, 1),
+                NewTopic::new("orders-b", 1, 1),
+                NewTopic::new("payments", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "pat",
+        "t",
+    )
+    .await
+    .unwrap();
+    group
+        .subscribe_matching(|n: &str| n.starts_with("orders-"))
+        .await
+        .unwrap();
+    assert_eq!(
+        group.subscription(),
+        &["orders-a".to_string(), "orders-b".to_string()]
+    );
+    assert!(group
+        .assignment()
+        .iter()
+        .all(|tp| tp.topic.starts_with("orders-")));
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("orders-a").value(&b"a"[..]),
+            ProduceRecord::to("orders-b").value(&b"b"[..]),
+            ProduceRecord::to("payments").value(&b"p"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut got = Vec::new();
+    for _ in 0..8 {
+        let recs = group.poll().await.unwrap();
+        got.extend(recs.iter().cloned());
+        if got.len() >= 2 {
+            break;
+        }
+    }
+    assert_eq!(got.len(), 2, "got {got:?}");
+    assert!(got.iter().all(|r| r.topic.starts_with("orders-")));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn join_matching_picks_up_new_topic_on_poll() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .metadata_max_age(Duration::ZERO),
+        "pat-new",
+        |n: &str| n.starts_with("ord-"),
+    )
+    .await
+    .unwrap();
+    assert!(
+        !group.subscription().iter().any(|t| t.starts_with("ord-")),
+        "seeded topic t must not match, got {:?}",
+        group.subscription()
+    );
+
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("ord-1", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    let _ = group.poll().await.unwrap();
+    assert_eq!(group.subscription(), &["ord-1".to_string()]);
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("ord-1").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut got = Vec::new();
+    for _ in 0..8 {
+        let recs = group.poll().await.unwrap();
+        got.extend(recs.iter().cloned());
+        if !got.is_empty() {
+            break;
+        }
+    }
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].topic, "ord-1");
+    assert_eq!(got[0].value.as_deref(), Some(&b"x"[..]));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_unsubscribe_then_subscribe() {
     let mock = common::Mock::start().await;
     let mut group = ConsumerGroup::join_consumer(
