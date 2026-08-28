@@ -114,9 +114,10 @@ pub const COORDINATOR_NOT_AVAILABLE: i16 = 15;
 pub const NOT_COORDINATOR: i16 = 16;
 pub const NOT_CONTROLLER: i16 = 41;
 /// Official Java `KafkaApis.handleCreateTokenRequest` /
-/// `handleRenewTokenRequest` write this when the connection is not
-/// allowed to issue or renew a delegation token (PLAINTEXT / one-way
-/// SSL / already token-authenticated).
+/// `handleRenewTokenRequest` / `handleExpireTokenRequest` /
+/// `handleDescribeTokensRequest` write this when the connection is
+/// not allowed to issue, renew, expire, or describe a delegation
+/// token (PLAINTEXT / one-way SSL / already token-authenticated).
 pub const DELEGATION_TOKEN_REQUEST_NOT_ALLOWED: i16 = 64;
 pub const INVALID_TOPIC_EXCEPTION: i16 = 17;
 pub const UNSUPPORTED_VERSION: i16 = 35;

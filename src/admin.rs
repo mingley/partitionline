@@ -23,25 +23,26 @@ use crate::protocol::admin::{
     decode_delete_groups_response, decode_delete_records_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
-    decode_describe_configs_response, decode_describe_groups_response,
-    decode_describe_log_dirs_response, decode_describe_producers_response,
-    decode_describe_share_group_offsets_response, decode_describe_topic_partitions_response,
-    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
-    decode_expire_delegation_token_response, decode_get_telemetry_subscriptions_response,
-    decode_incremental_alter_configs_response, decode_list_config_resources_response,
-    decode_list_groups_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_push_telemetry_response,
-    decode_renew_delegation_token_response, decode_share_group_describe_response,
-    decode_unregister_broker_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_replica_log_dirs_request, encode_alter_share_group_offsets_request,
-    encode_alter_user_scram_credentials_request, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_request, encode_create_delegation_token_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
-    encode_delete_records_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
+    decode_describe_configs_response, decode_describe_delegation_token_response,
+    decode_describe_groups_response, decode_describe_log_dirs_response,
+    decode_describe_producers_response, decode_describe_share_group_offsets_response,
+    decode_describe_topic_partitions_response, decode_describe_transactions_response,
+    decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
+    decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_response,
+    decode_list_config_resources_response, decode_list_groups_response,
+    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_push_telemetry_response, decode_renew_delegation_token_response,
+    decode_share_group_describe_response, decode_unregister_broker_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_replica_log_dirs_request,
+    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
+    encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
+    encode_create_delegation_token_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    encode_delete_share_group_offsets_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_delegation_token_request,
     encode_describe_groups_request, encode_describe_log_dirs_request,
     encode_describe_producers_request, encode_describe_share_group_offsets_request,
     encode_describe_topic_partitions_request, encode_describe_transactions_request,
@@ -66,13 +67,13 @@ use crate::protocol::api_keys::{
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
     CREATE_ACLS, CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
-    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN,
-    FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS,
-    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
-    OFFSET_DELETE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER,
-    UPDATE_FEATURES,
+    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN,
+    DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
+    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
+    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
+    INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
+    SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -96,11 +97,13 @@ pub use crate::protocol::admin::{
     ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
     DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
@@ -413,6 +416,7 @@ pub struct Admin {
     create_delegation_token_version: i16,
     renew_delegation_token_version: i16,
     expire_delegation_token_version: i16,
+    describe_delegation_token_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -691,6 +695,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ExpireDelegationToken".into())
             })?;
+        let describe_delegation_token_version = versions
+            .get(&DESCRIBE_DELEGATION_TOKEN)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 3))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeDelegationToken".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -739,6 +749,7 @@ impl Admin {
             create_delegation_token_version,
             renew_delegation_token_version,
             expire_delegation_token_version,
+            describe_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -3250,6 +3261,48 @@ impl Admin {
             )
             .await?;
         decode_expire_delegation_token_response(&mut body.clone())
+    }
+
+    /// Describe delegation tokens (DescribeDelegationToken api 41,
+    /// KIP-48 / KIP-373).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Apache JSON listeners are `broker` and `controller`. Official
+    /// JSON lists no `errorCodes`. Official Java
+    /// `KafkaApis.handleDescribeTokensRequest` answers locally
+    /// (`allowTokenRequests` → `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`
+    /// (64); it does not `forwardToController`). Official Java
+    /// `KafkaAdminClient.describeDelegationToken` uses
+    /// `LeastLoadedNodeProvider`. Official handler writes
+    /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64) onto the top-level
+    /// ErrorCode when the channel is not allowed. `NOT_COORDINATOR`
+    /// (16) is not listed. `NOT_CONTROLLER` (41) is not listed.
+    /// apiKey 41 is not error code 41 and is not a hop. This is not a
+    /// group-coordinator hop, not a controller hop, and not a
+    /// partition-leader hop: there is no FindCoordinator, no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41)
+    /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
+    /// `error_code` is the INT16 at bytes 0–1, first field — not after
+    /// throttle and not a first-token field. Fixture owners only;
+    /// this is not a token store. Speaks v3 only
+    /// (`VERSIONS.max`). Do not copy ExpireDelegationToken just
+    /// because it is the previous slice.
+    pub async fn describe_delegation_token(
+        &mut self,
+        req: DescribeDelegationTokenRequest,
+    ) -> Result<DescribeDelegationTokenResponse> {
+        let version = self.describe_delegation_token_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DESCRIBE_DELEGATION_TOKEN,
+                version,
+                |buf| encode_describe_delegation_token_request(buf, &req),
+                timeout,
+            )
+            .await?;
+        decode_describe_delegation_token_response(&mut body.clone())
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

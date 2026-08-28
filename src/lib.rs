@@ -16,7 +16,7 @@
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
 //! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs,
 //! CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken,
-//! DescribeCluster).
+//! DescribeDelegationToken, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -55,11 +55,13 @@ pub use admin::{
     ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
     DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     FeatureUpdate, FeatureUpdateResult, GetTelemetrySubscriptionsResponse, ListedConfigResource,
