@@ -10,7 +10,8 @@ pub mod acl;
 /// DescribeTopicPartitions, ListConfigResources,
 /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
 /// AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken,
-/// RenewDelegationToken, ExpireDelegationToken codecs.
+/// RenewDelegationToken, ExpireDelegationToken,
+/// DescribeDelegationToken codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;
