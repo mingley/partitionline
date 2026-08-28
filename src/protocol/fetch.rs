@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Fetch (api key 1). This crate speaks classic v11.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -9,37 +6,55 @@ use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::Result;
 
+/// One partition in a Fetch request.
 #[derive(Debug, Clone)]
 pub struct FetchPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Current leader epoch from Metadata, or `-1`.
     pub current_leader_epoch: i32,
+    /// Next offset to fetch.
     pub fetch_offset: i64,
+    /// Max bytes for this partition.
     pub partition_max_bytes: i32,
 }
 
+/// One topic in a Fetch request.
 #[derive(Debug, Clone)]
 pub struct FetchTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partitions to fetch.
     pub partitions: Vec<FetchPartition>,
 }
 
+/// One partition in a Fetch response.
 #[derive(Debug, Clone)]
 pub struct FetchedPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// High watermark.
     pub high_watermark: i64,
+    /// Last stable offset (transactions).
     pub last_stable_offset: i64,
+    /// Log start offset.
     pub log_start_offset: i64,
     /// `(producer_id, first_offset)` for aborted transactions (Fetch isolation=1).
     pub aborted_transactions: Vec<(i64, i64)>,
     /// Broker id to fetch from next, or `-1`.
     pub preferred_read_replica: i32,
+    /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
 }
 
+/// One topic in a Fetch response.
 #[derive(Debug, Clone)]
 pub struct FetchedTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partition bodies.
     pub partitions: Vec<FetchedPartition>,
 }
 
@@ -80,6 +95,7 @@ pub fn encode_fetch_request(
     Ok(())
 }
 
+/// Decode Fetch v11: `(isolation_level, topics, rack_id)`.
 pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>, String)> {
     let _replica = buf::get_i32(buf)?;
     let _max_wait = buf::get_i32(buf)?;
@@ -121,6 +137,7 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>,
     Ok((isolation, topics, rack))
 }
 
+/// Encode a Fetch v11 response (throttle `0`, session `0`).
 pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Result<()> {
     buf.put_i32(0); // throttle
     buf.put_i16(0); // top-level error
@@ -155,6 +172,7 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
     Ok(())
 }
 
+/// Decode a Fetch v11 response into topic/partition bodies.
 pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
     let _throttle = buf::get_i32(buf)?;
     let _error = buf::get_i16(buf)?;

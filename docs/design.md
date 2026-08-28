@@ -81,7 +81,7 @@ and the heartbeat thread leaves the group.
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
-`offsetsForTimes`. `FetchedRecord.leader_epoch` is the record-batch partition
+`offsetsForTimes` (`OffsetAndTimestamp.leader_epoch` is Java `getLeaderEpoch`).
 leader epoch. `FetchedRecord.serialized_key_size` / `serialized_value_size`
 match Java. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections.

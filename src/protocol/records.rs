@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Magic-v2 RecordBatch codec (gzip, snappy, lz4).
 
 use std::io::{Read, Write};
 
@@ -268,15 +265,21 @@ fn lz4_decompress(src: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
+/// One record as borrowed slices for the produce encode path.
 #[derive(Clone, Copy)]
 pub struct EncodeRecord<'a> {
+    /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Optional key.
     pub key: Option<&'a [u8]>,
+    /// Optional value.
     pub value: Option<&'a [u8]>,
+    /// Record headers.
     pub headers: &'a [Header],
 }
 
 impl<'a> EncodeRecord<'a> {
+    /// Borrow a [`Record`] for encoding.
     pub fn from_record(rec: &'a Record) -> Self {
         Self {
             timestamp: rec.timestamp,
@@ -287,15 +290,26 @@ impl<'a> EncodeRecord<'a> {
     }
 }
 
+/// Magic-v2 batch header fields used by [`write_record_batch`].
 pub struct BatchHeader {
+    /// First offset in this batch.
     pub base_offset: i64,
+    /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
+    /// Attribute bits: compression in the low 3, plus
+    /// [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
     pub attributes: i16,
+    /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
+    /// Max timestamp among records in this batch.
     pub max_timestamp: i64,
+    /// Idempotent / transactional producer id, or `-1`.
     pub producer_id: i64,
+    /// Producer epoch, or `-1`.
     pub producer_epoch: i16,
+    /// First sequence number in this batch, or `-1`.
     pub base_sequence: i32,
+    /// Number of records that will be written.
     pub count: i32,
 }
 
@@ -315,6 +329,7 @@ impl Default for BatchHeader {
     }
 }
 
+/// Encode a [`RecordBatch`] (CRC32-C, optional compression).
 pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()> {
     write_record_batch(
         buf,
@@ -333,6 +348,7 @@ pub fn encode_record_batch(buf: &mut BytesMut, batch: &RecordBatch) -> Result<()
     )
 }
 
+/// Encode a magic-v2 batch from a header plus borrowed records (produce hot path).
 pub fn write_record_batch<'a, I>(buf: &mut BytesMut, header: &BatchHeader, records: I) -> Result<()>
 where
     I: Iterator<Item = EncodeRecord<'a>>,
@@ -463,6 +479,7 @@ fn encode_record(
     Ok(())
 }
 
+/// Decode zero or more consecutive magic-v2 batches until the buffer is too short.
 pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
     let mut out = Vec::new();
     while buf.remaining() >= 12 {
@@ -492,6 +509,7 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
     Ok(out)
 }
 
+/// Decode one magic-v2 batch (CRC32-C checked).
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;

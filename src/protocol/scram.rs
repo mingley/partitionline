@@ -1,10 +1,6 @@
 //! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
 //! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
 
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
 use sha2::{Digest, Sha256, Sha512};
@@ -15,13 +11,17 @@ const CLIENT_KEY: &[u8] = b"Client Key";
 const SERVER_KEY: &[u8] = b"Server Key";
 const GS2: &str = "n,,";
 
+/// SCRAM hash algorithm used by Kafka SASL.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScramAlg {
+    /// `SCRAM-SHA-256`.
     Sha256,
+    /// `SCRAM-SHA-512`.
     Sha512,
 }
 
 impl ScramAlg {
+    /// Kafka SASL mechanism name.
     pub fn name(self) -> &'static str {
         match self {
             Self::Sha256 => "SCRAM-SHA-256",
@@ -107,6 +107,7 @@ fn attr_map(msg: &str) -> Result<std::collections::HashMap<char, String>> {
     Ok(m)
 }
 
+/// Random client nonce (`r=`), printable ASCII.
 pub fn client_nonce() -> String {
     let mut raw = [0u8; 18];
     if getrandom::getrandom(&mut raw).is_err() {
@@ -121,11 +122,13 @@ pub fn client_nonce() -> String {
         .collect()
 }
 
+/// GS2 header plus `n=,r=` client-first; returns `(full, client_first_bare)`.
 pub fn client_first(user: &str, nonce: &str) -> (String, String) {
     let bare = format!("n={},r={}", escape_user(user), nonce);
     (format!("{GS2}{bare}"), bare)
 }
 
+/// Client-final message (`c=,r=,p=`) after the server-first challenge.
 pub fn client_final(
     alg: ScramAlg,
     password: &str,
@@ -159,6 +162,7 @@ pub fn client_final(
     Ok(format!("{without},p={}", b64(&proof)))
 }
 
+/// Verify the server-final `v=` signature (or surface a server `e=` error).
 pub fn verify_server_final(
     alg: ScramAlg,
     password: &str,

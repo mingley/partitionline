@@ -139,7 +139,8 @@ use partitionline::protocol::header::{decode_request_header, encode_response_hea
 use partitionline::protocol::idem::encode_init_producer_id_response;
 use partitionline::protocol::oauth;
 use partitionline::protocol::offsets::{
-    decode_list_offsets_request, encode_list_offsets_response, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    decode_list_offsets_request, encode_list_offsets_response, ListOffsetsPartition,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
@@ -2921,9 +2922,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         header.api_version,
                         &topic,
                         partition,
-                        error::NOT_LEADER_OR_FOLLOWER,
-                        timestamp,
-                        -1,
+                        ListOffsetsPartition {
+                            error_code: error::NOT_LEADER_OR_FOLLOWER,
+                            timestamp,
+                            offset: -1,
+                            leader_epoch: -1,
+                        },
                     )
                     .unwrap();
                 } else {
@@ -2956,9 +2960,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         header.api_version,
                         &topic,
                         partition,
-                        error_code,
-                        resp_ts,
-                        offset,
+                        ListOffsetsPartition {
+                            error_code,
+                            timestamp: resp_ts,
+                            offset,
+                            leader_epoch: if error_code == 0 { broker_epoch } else { -1 },
+                        },
                     )
                     .unwrap();
                 }

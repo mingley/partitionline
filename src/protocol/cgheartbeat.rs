@@ -1,42 +1,56 @@
 //! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0.
 
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
-
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::Result;
 
+/// Topic UUID plus partition indexes in a KIP-848 assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicPartitions {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// Assigned partition indexes.
     pub partitions: Vec<i32>,
 }
 
+/// ConsumerGroupHeartbeat request (join, heartbeat, or leave).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupHeartbeatRequest {
+    /// Group id.
     pub group_id: String,
+    /// Member id (`""` on join).
     pub member_id: String,
+    /// Member epoch (`0` join, `-1` leave, otherwise heartbeat).
     pub member_epoch: i32,
+    /// Kafka `group.instance.id`.
     pub instance_id: Option<String>,
+    /// Kafka `client.rack`.
     pub rack_id: Option<String>,
+    /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
+    /// Owned partitions (`None` means unchanged).
     pub topic_partitions: Option<Vec<TopicPartitions>>,
 }
 
+/// ConsumerGroupHeartbeat response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupHeartbeatResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message.
     pub error_message: Option<String>,
+    /// Assigned member id.
     pub member_id: Option<String>,
+    /// Current member epoch.
     pub member_epoch: i32,
+    /// Next heartbeat interval.
     pub heartbeat_interval_ms: i32,
+    /// New assignment, or `None` when unchanged.
     pub assignment: Option<Vec<TopicPartitions>>,
 }
 
+/// Encode a flexible v0 ConsumerGroupHeartbeat request.
 pub fn encode_consumer_group_heartbeat_request(
     buf: &mut BytesMut,
     req: &ConsumerGroupHeartbeatRequest,
@@ -62,6 +76,7 @@ pub fn encode_consumer_group_heartbeat_request(
     Ok(())
 }
 
+/// Decode a flexible v0 ConsumerGroupHeartbeat request.
 pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     buf: &mut B,
 ) -> Result<ConsumerGroupHeartbeatRequest> {
@@ -98,6 +113,7 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     })
 }
 
+/// Encode a flexible v0 ConsumerGroupHeartbeat response (throttle `0`).
 pub fn encode_consumer_group_heartbeat_response(
     buf: &mut BytesMut,
     resp: &ConsumerGroupHeartbeatResponse,
@@ -120,6 +136,7 @@ pub fn encode_consumer_group_heartbeat_response(
     Ok(())
 }
 
+/// Decode a flexible v0 ConsumerGroupHeartbeat response.
 pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ConsumerGroupHeartbeatResponse> {

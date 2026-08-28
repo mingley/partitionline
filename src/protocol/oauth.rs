@@ -1,10 +1,6 @@
 //! SASL OAUTHBEARER (RFC 7628) with Kafka's unsecured JWT (`alg=none`).
 //! Matches librdkafka's builtin `enable.sasl.oauthbearer.unsecure.jwt` token.
 
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::{Error, Result};
@@ -39,6 +35,7 @@ pub fn unsecured_jwt(principal: &str, iat: f64, life_seconds: f64) -> String {
     format!("{HEADER_B64}.{}.", b64url(claims.as_bytes()))
 }
 
+/// [`unsecured_jwt`] with `iat` truncated to whole Unix seconds and a 1h lifetime.
 pub fn unsecured_jwt_now(principal: &str) -> String {
     // Whole seconds, truncated. `{:.3f}` rounding of as_secs_f64() can put
     // `iat` 1ms in the future; Kafka's unsecured validator has 0ms skew.
@@ -61,6 +58,7 @@ pub fn client_initial(token: &str) -> Vec<u8> {
     out
 }
 
+/// Extract the Bearer token from an RFC 7628 client-first message.
 pub fn token_from_initial(bytes: &[u8]) -> Result<String> {
     let s = std::str::from_utf8(bytes).map_err(|_| Error::protocol("oauth initial not utf8"))?;
     let rest = s
@@ -81,6 +79,7 @@ pub fn token_from_initial(bytes: &[u8]) -> Result<String> {
     Err(Error::protocol("oauth missing auth=Bearer"))
 }
 
+/// Read `sub` from an unsecured (`alg=none`) compact JWS. Signature must be empty.
 pub fn principal_from_jwt(token: &str) -> Result<String> {
     let mut parts = token.split('.');
     let header = parts

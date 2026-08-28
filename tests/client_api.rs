@@ -1131,6 +1131,7 @@ async fn offsets_for_times_finds_record_and_misses() {
     let found = hit[0].1.expect("should find the 2000ms record");
     assert_eq!(found.offset, 1);
     assert_eq!(found.timestamp, 2_000);
+    assert_eq!(found.leader_epoch, Some(0));
     let miss = consumer.offsets_for_times([(tp, 9_999)]).await.unwrap();
     assert!(miss[0].1.is_none());
     consumer.close().await.unwrap();
@@ -1147,10 +1148,10 @@ fn topic_partition_from_tuple() {
     assert_eq!(md.offset, 9);
     assert_eq!(md.leader_epoch, Some(2));
     assert_eq!(md.metadata, "ckpt");
-    let _ = OffsetAndTimestamp {
-        offset: 1,
-        timestamp: 2,
-    };
+    let oat = OffsetAndTimestamp::new(1, 2).with_leader_epoch(0);
+    assert_eq!(oat.offset, 1);
+    assert_eq!(oat.timestamp, 2);
+    assert_eq!(oat.leader_epoch, Some(0));
 }
 
 #[tokio::test]

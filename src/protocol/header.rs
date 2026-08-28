@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Request and response headers (classic header v0/v1 and flexible v1/v2).
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -21,19 +18,27 @@ use super::api_keys::{
 use super::buf;
 use crate::error::Result;
 
+/// Kafka request header (`api_key` through `client_id`, plus tagged fields when flexible).
 #[derive(Debug, Clone)]
 pub struct RequestHeader {
+    /// Api key.
     pub api_key: i16,
+    /// Api version.
     pub api_version: i16,
+    /// Correlation id echoed on the response.
     pub correlation_id: i32,
+    /// Kafka `client.id`, or `None` for a null string.
     pub client_id: Option<String>,
 }
 
+/// Kafka response header (correlation id, plus tagged fields when flexible).
 #[derive(Debug, Clone)]
 pub struct ResponseHeader {
+    /// Correlation id from the request.
     pub correlation_id: i32,
 }
 
+/// Request header version: `1` classic, `2` flexible (KIP-482 tagged fields).
 pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
     match api_key {
         API_VERSIONS if api_version >= 3 => 2,
@@ -104,6 +109,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
     }
 }
 
+/// Response header version: `0` classic, `1` flexible. ApiVersions is always `0`.
 pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
     match api_key {
         // KIP-482: ApiVersions response header is never flexible so the
@@ -150,6 +156,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
     }
 }
 
+/// Write a request header from fields (used by the produce hot path).
 pub fn encode_request_header_fields(
     buf: &mut BytesMut,
     api_key: i16,
@@ -167,6 +174,7 @@ pub fn encode_request_header_fields(
     Ok(())
 }
 
+/// Write [`RequestHeader`].
 pub fn encode_request_header(
     buf: &mut BytesMut,
     header: &RequestHeader,
@@ -180,6 +188,7 @@ pub fn encode_request_header(
     )
 }
 
+/// Read [`RequestHeader`], including tagged fields when the header is flexible.
 pub fn decode_request_header<B: Buf>(buf: &mut B) -> Result<RequestHeader> {
     let api_key = buf::get_i16(buf)?;
     let api_version = buf::get_i16(buf)?;
@@ -196,6 +205,7 @@ pub fn decode_request_header<B: Buf>(buf: &mut B) -> Result<RequestHeader> {
     })
 }
 
+/// Write a response header for `api_key` / `api_version`.
 pub fn encode_response_header(
     buf: &mut BytesMut,
     api_key: i16,
@@ -209,6 +219,7 @@ pub fn encode_response_header(
     Ok(())
 }
 
+/// Read [`ResponseHeader`] for `api_key` / `api_version`.
 pub fn decode_response_header<B: Buf>(
     buf: &mut B,
     api_key: i16,

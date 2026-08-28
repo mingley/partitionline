@@ -79,7 +79,8 @@ committed offset (`Earliest` by default, unlike Java's `latest`).
 the heartbeat thread leaves the group if it is exceeded.
 `Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch
 interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
-`TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`.
+`TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`
+(`OffsetAndTimestamp::leader_epoch` is Java `getLeaderEpoch`).
 `FetchedRecord::leader_epoch` is the record-batch partition leader epoch.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
 `incremental_alter_configs` / `alter_configs` take `ConfigResource`.

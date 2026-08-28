@@ -45,7 +45,8 @@
 //! [`Producer::partitions_for`] return Metadata (leader, replicas, ISR).
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
-//! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
+//! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`
+//! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.

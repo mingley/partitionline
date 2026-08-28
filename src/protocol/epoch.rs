@@ -1,15 +1,13 @@
 //! OffsetForLeaderEpoch (api key 23). Classic v0–v2.
 
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
-
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::Result;
 
+/// Encode a single-topic, single-partition OffsetForLeaderEpoch request.
+///
+/// `replica_id` is written on v1+. `current_leader_epoch` is written on v2+.
 pub fn encode_offset_for_leader_epoch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -32,6 +30,10 @@ pub fn encode_offset_for_leader_epoch_request(
     Ok(())
 }
 
+/// Decode a single-topic, single-partition OffsetForLeaderEpoch request.
+///
+/// Returns `(topic, partition, current_leader_epoch, leader_epoch)`.
+/// `current_leader_epoch` is `-1` below v2.
 pub fn decode_offset_for_leader_epoch_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -48,6 +50,9 @@ pub fn decode_offset_for_leader_epoch_request<B: Buf>(
     Ok((topic, partition, current_leader_epoch, leader_epoch))
 }
 
+/// Encode a single-topic, single-partition OffsetForLeaderEpoch response.
+///
+/// Throttle is `0` on v1+. `leader_epoch` is written on v2+.
 pub fn encode_offset_for_leader_epoch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -72,6 +77,9 @@ pub fn encode_offset_for_leader_epoch_response(
     Ok(())
 }
 
+/// Decode a single-topic, single-partition OffsetForLeaderEpoch response.
+///
+/// Returns `(error_code, leader_epoch, end_offset)`. `leader_epoch` is `-1` below v2.
 pub fn decode_offset_for_leader_epoch_response<B: Buf>(
     buf: &mut B,
     version: i16,

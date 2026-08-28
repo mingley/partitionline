@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! InitProducerId (api key 22). Classic v0–v1.
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -23,6 +20,7 @@ pub fn encode_init_producer_id_request(
     Ok(())
 }
 
+/// Decode InitProducerId: `(error_code, producer_id, producer_epoch)`.
 pub fn decode_init_producer_id_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -34,6 +32,7 @@ pub fn decode_init_producer_id_response<B: Buf>(
     Ok((error_code, producer_id, producer_epoch))
 }
 
+/// Encode InitProducerId. Throttle is `0` on v1+.
 pub fn encode_init_producer_id_response(
     buf: &mut BytesMut,
     version: i16,

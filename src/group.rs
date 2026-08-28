@@ -769,6 +769,8 @@ impl ConsumerGroup {
     }
 
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
+    ///
+    /// [`crate::OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
     pub async fn offsets_for_times(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,

@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! SaslHandshake and SaslAuthenticate (api keys 17 and 36), plus PLAIN / SCRAM / OAUTHBEARER helpers.
 
 use std::time::Duration;
 
@@ -12,6 +9,7 @@ use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{SASL_AUTHENTICATE, SASL_HANDSHAKE};
 
+/// Encode SaslHandshake with the requested mechanism name.
 pub fn encode_sasl_handshake_request(
     buf: &mut BytesMut,
     mechanism: &str,
@@ -20,10 +18,12 @@ pub fn encode_sasl_handshake_request(
     Ok(())
 }
 
+/// Decode SaslHandshake: mechanism name.
 pub fn decode_sasl_handshake_request<B: Buf>(buf: &mut B) -> Result<String> {
     Ok(buf::get_classic_nullable_string(buf)?.unwrap_or_default())
 }
 
+/// Encode SaslHandshake: error code plus enabled mechanism names.
 pub fn encode_sasl_handshake_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -37,6 +37,7 @@ pub fn encode_sasl_handshake_response(
     Ok(())
 }
 
+/// Decode SaslHandshake: `(error_code, mechanisms)`.
 pub fn decode_sasl_handshake_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<String>)> {
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -47,6 +48,7 @@ pub fn decode_sasl_handshake_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<S
     Ok((error_code, mechs))
 }
 
+/// Encode SaslAuthenticate with the SASL client bytes.
 pub fn encode_sasl_authenticate_request(
     buf: &mut BytesMut,
     auth_bytes: &[u8],
@@ -55,10 +57,12 @@ pub fn encode_sasl_authenticate_request(
     Ok(())
 }
 
+/// Decode SaslAuthenticate: client/server SASL bytes.
 pub fn decode_sasl_authenticate_request<B: Buf>(buf: &mut B) -> Result<Vec<u8>> {
     Ok(buf::get_classic_bytes(buf)?.unwrap_or_default())
 }
 
+/// Encode SaslAuthenticate: error, optional message, SASL bytes, session lifetime `0`.
 pub fn encode_sasl_authenticate_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -72,6 +76,7 @@ pub fn encode_sasl_authenticate_response(
     Ok(())
 }
 
+/// Decode SaslAuthenticate: `(error_code, error_message, auth_bytes)`.
 pub fn decode_sasl_authenticate_response<B: Buf>(
     buf: &mut B,
 ) -> Result<(i16, Option<String>, Vec<u8>)> {
@@ -84,6 +89,7 @@ pub fn decode_sasl_authenticate_response<B: Buf>(
     Ok((error_code, message, bytes.to_vec()))
 }
 
+/// RFC 4616 PLAIN: `NUL authcid NUL passwd`.
 pub fn plain_auth_bytes(user: &str, pass: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(user.len() + pass.len() + 2);
     out.push(0);
@@ -93,6 +99,7 @@ pub fn plain_auth_bytes(user: &str, pass: &str) -> Vec<u8> {
     out
 }
 
+/// Parse RFC 4616 PLAIN client bytes into `(authcid, passwd)`.
 pub fn parse_plain_auth_bytes(bytes: &[u8]) -> Option<(String, String)> {
     // RFC 4616: [authzid] NUL authcid NUL passwd. Clients send NUL user NUL pass.
     let mut parts = bytes.split(|b| *b == 0);
@@ -102,6 +109,7 @@ pub fn parse_plain_auth_bytes(bytes: &[u8]) -> Option<(String, String)> {
     Some((user.to_string(), pass.to_string()))
 }
 
+/// SaslHandshake + SaslAuthenticate for PLAIN.
 pub async fn authenticate_plain(
     conn: &mut BrokerConn,
     user: &str,
@@ -148,6 +156,7 @@ pub async fn authenticate_plain(
     Ok(())
 }
 
+/// SaslHandshake + RFC 5802 client/server messages for SCRAM-SHA-256 or SHA-512.
 pub async fn authenticate_scram(
     conn: &mut BrokerConn,
     alg: super::scram::ScramAlg,
@@ -220,6 +229,7 @@ pub async fn authenticate_scram(
     )
 }
 
+/// [`authenticate_scram`] with [`super::scram::ScramAlg::Sha256`].
 pub async fn authenticate_scram_sha256(
     conn: &mut BrokerConn,
     user: &str,
@@ -229,6 +239,7 @@ pub async fn authenticate_scram_sha256(
     authenticate_scram(conn, super::scram::ScramAlg::Sha256, user, pass, timeout).await
 }
 
+/// OAUTHBEARER with an unsecured JWT for `principal` (librdkafka unsecure jwt).
 pub async fn authenticate_oauthbearer(
     conn: &mut BrokerConn,
     principal: &str,
@@ -238,6 +249,7 @@ pub async fn authenticate_oauthbearer(
     authenticate_oauthbearer_token(conn, &token, timeout).await
 }
 
+/// OAUTHBEARER with a caller-supplied access token (OIDC or unsecured JWT).
 pub async fn authenticate_oauthbearer_token(
     conn: &mut BrokerConn,
     token: &str,
@@ -294,6 +306,7 @@ pub async fn authenticate_oauthbearer_token(
     Ok(())
 }
 
+/// Run the one configured SASL mechanism, or return immediately when none is set.
 pub async fn authenticate(
     conn: &mut BrokerConn,
     sasl_plain: Option<&(String, String)>,

@@ -627,12 +627,35 @@ impl From<i64> for OffsetAndMetadata {
 }
 
 /// Offset plus the matching record timestamp from ListOffsets.
+///
+/// Java `OffsetAndTimestamp`. [`Self::leader_epoch`] is Java `getLeaderEpoch`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OffsetAndTimestamp {
     /// Log offset, or `-1` when the broker has no match.
     pub offset: i64,
     /// Record timestamp in milliseconds since the Unix epoch, or `-1`.
     pub timestamp: i64,
+    /// Leader epoch from ListOffsets v4+, or `None` when unknown.
+    pub leader_epoch: Option<i32>,
+}
+
+impl OffsetAndTimestamp {
+    /// Offset and timestamp with an unknown leader epoch.
+    #[must_use]
+    pub fn new(offset: i64, timestamp: i64) -> Self {
+        Self {
+            offset,
+            timestamp,
+            leader_epoch: None,
+        }
+    }
+
+    /// Set the leader epoch. Negative values become `None`.
+    #[must_use]
+    pub fn with_leader_epoch(mut self, epoch: i32) -> Self {
+        self.leader_epoch = (epoch >= 0).then_some(epoch);
+        self
+    }
 }
 
 /// One partition from Metadata: leader, replicas, and ISR.
@@ -1655,7 +1678,7 @@ impl Consumer {
         topic: &str,
         partition: i32,
         timestamp: i64,
-    ) -> Result<(i64, i64)> {
+    ) -> Result<(i64, i64, i32)> {
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             if self.cluster.leader(topic, partition).is_err() {
@@ -1707,7 +1730,7 @@ impl Consumer {
                 Err(e) => return Err(e),
             };
             match decode_list_offsets_response(&mut body.clone(), version) {
-                Ok((_err, ts, offset)) => return Ok((offset, ts)),
+                Ok(got) => return Ok((got.offset, got.timestamp, got.leader_epoch)),
                 Err(e)
                     if matches!(
                         &e,
@@ -1886,6 +1909,7 @@ impl Consumer {
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     ///
     /// Partitions with no matching record return `None`.
+    /// [`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
     pub async fn offsets_for_times(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
@@ -1893,7 +1917,7 @@ impl Consumer {
         let mut out = Vec::new();
         for (tp, timestamp) in queries {
             let tp = tp.into();
-            let (offset, ts) = self
+            let (offset, ts, epoch) = self
                 .list_offset_at(&tp.topic, tp.partition, timestamp)
                 .await?;
             let found = if offset < 0 {
@@ -1902,6 +1926,7 @@ impl Consumer {
                 Some(OffsetAndTimestamp {
                     offset,
                     timestamp: ts,
+                    leader_epoch: (epoch >= 0).then_some(epoch),
                 })
             };
             out.push((tp, found));
