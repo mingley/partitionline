@@ -2990,6 +2990,128 @@ pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<Descri
     Ok(groups)
 }
 
+/// One listed group in ListGroups (api 16) v5.
+///
+/// There is no per-group ErrorCode. The response error sits at the top
+/// of the body, after throttle.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListedGroup {
+    pub group_id: String,
+    pub protocol_type: String,
+    pub group_state: String,
+    pub group_type: String,
+}
+
+impl ListedGroup {
+    pub fn new(group_id: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            protocol_type: String::new(),
+            group_state: String::new(),
+            group_type: String::new(),
+        }
+    }
+}
+
+/// ListGroups v5 body (classic through v2; flexible from v3; KIP-518 / KIP-848).
+///
+/// Official Apache JSON (`apiKey: 16`, request `listeners: ["broker"]`,
+/// `validVersions: "0-5"`, `flexibleVersions: "3+"`) and
+/// kafka-protocol 0.18.0 (`ListGroupsRequest` /
+/// `ListGroupsResponse`, `VERSIONS` min=0 max=5). This crate
+/// targets v5, the version a client encodes (`VERSIONS.max`). Request
+/// encode used `features = ["client"]`; response encode used `broker`.
+/// Official listed errors (`ListGroupsRequest.java`):
+/// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
+/// (15), `AUTHORIZATION_FAILED` (29). `NOT_COORDINATOR` (16) is **not**
+/// listed. Request: compact `StatesFilter` (v4+), compact `TypesFilter`
+/// (v5+), tagged. Response: `ThrottleTimeMs` INT32 (v1+), top-level
+/// `ErrorCode` INT16, compact `Groups` of `{GroupId, ProtocolType,
+/// GroupState (v4+), GroupType (v5+), tagged}`, tagged. **ErrorCode is
+/// top-level**, after throttle — not a first-group field. Measured
+/// independently on leftover-empty fixture group `"g"`: the top-level
+/// ErrorCode is the INT16 at **bytes 4–5** — not bytes 5–6
+/// (DescribeGroups / ConsumerGroupDescribe first-group) or 12–13
+/// (DescribeProducers first partition). This is broker-only: no
+/// FindCoordinator hop, no controller hop, no partition-leader hop.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListGroupsResponse {
+    pub error_code: i16,
+    pub groups: Vec<ListedGroup>,
+}
+
+pub fn encode_list_groups_request(
+    buf: &mut BytesMut,
+    states_filter: &[String],
+    types_filter: &[String],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(states_filter.len()))?;
+    for state in states_filter {
+        buf::put_compact_string(buf, Some(state))?;
+    }
+    buf::put_array_len(buf, true, Some(types_filter.len()))?;
+    for ty in types_filter {
+        buf::put_compact_string(buf, Some(ty))?;
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, Vec<String>)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut states_filter = Vec::with_capacity(n);
+    for _ in 0..n {
+        states_filter.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut types_filter = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        types_filter.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((states_filter, types_filter))
+}
+
+pub fn encode_list_groups_response(
+    buf: &mut BytesMut,
+    resp: &ListGroupsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_array_len(buf, true, Some(resp.groups.len()))?;
+    for g in &resp.groups {
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_compact_string(buf, Some(&g.protocol_type))?;
+        buf::put_compact_string(buf, Some(&g.group_state))?;
+        buf::put_compact_string(buf, Some(&g.group_type))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let protocol_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        groups.push(ListedGroup {
+            group_id,
+            protocol_type,
+            group_state,
+            group_type,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ListGroupsResponse { error_code, groups })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4764,6 +4886,116 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v6 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_groups_v5_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 16
+        // validVersions 0-5, flexibleVersions 3+, listeners broker only.
+        // This crate targets v5. Not copied from DescribeGroups
+        // (first-group ErrorCode at bytes 5-6), DescribeClientQuotas
+        // (top-level ErrorCode at bytes 4-5, different fields after),
+        // or DescribeProducers (first-partition ErrorCode at bytes
+        // 12-13).
+        const REQ: &[u8] = &[
+            0x02, 0x07, 0x53, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x02, 0x08, 0x63, 0x6c, 0x61, 0x73,
+            0x73, 0x69, 0x63, 0x00,
+        ];
+        const RESP_15: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x02, 0x02, 0x67, 0x01, 0x01, 0x01, 0x00, 0x00,
+        ];
+        let states = vec!["Stable".to_string()];
+        let types = vec!["classic".to_string()];
+        let mut buf = BytesMut::new();
+        encode_list_groups_request(&mut buf, &states, &types).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = ListGroupsResponse {
+            error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
+            groups: vec![ListedGroup::new("g")],
+        };
+        buf.clear();
+        encode_list_groups_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_15);
+    }
+
+    #[test]
+    fn list_groups_v5_roundtrip_is_leftover_empty() {
+        let states = vec!["Stable".to_string(), "Empty".to_string()];
+        let types = vec!["classic".to_string(), "consumer".to_string()];
+        let mut buf = BytesMut::new();
+        encode_list_groups_request(&mut buf, &states, &types).unwrap();
+        let mut cur = &buf[..];
+        let (got_states, got_types) = decode_list_groups_request(&mut cur).unwrap();
+        assert_eq!(got_states, states);
+        assert_eq!(got_types, types);
+        assert!(
+            !cur.has_remaining(),
+            "ListGroups v5 request must be leftover-empty"
+        );
+
+        let resp = ListGroupsResponse {
+            error_code: 0,
+            groups: vec![ListedGroup {
+                group_id: "g".into(),
+                protocol_type: "consumer".into(),
+                group_state: "Stable".into(),
+                group_type: "classic".into(),
+            }],
+        };
+        buf.clear();
+        encode_list_groups_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_list_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "ListGroups v5 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_groups_error_code_is_at_bytes_4_5() {
+        // Official v5 body: throttle INT32, then top-level ErrorCode
+        // INT16, then compact Groups. Measured independently from
+        // Apache ListGroupsResponse.json and a kafka-protocol 0.18.0
+        // broker encode (`features = ["broker"]`) on leftover-empty
+        // fixture group "g". Do not assume bytes 5-6 from
+        // DescribeGroups / ConsumerGroupDescribe first-group, or
+        // bytes 12-13 from DescribeProducers first partition. Official
+        // listed errors include COORDINATOR_NOT_AVAILABLE (15), not
+        // NOT_COORDINATOR (16).
+        let resp = ListGroupsResponse {
+            error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
+            groups: vec![ListedGroup::new("g")],
+        };
+        let mut buf = BytesMut::new();
+        encode_list_groups_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::COORDINATOR_NOT_AVAILABLE,
+            "v5 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::COORDINATOR_NOT_AVAILABLE,
+            "v5 ErrorCode is not a first-group field at bytes 5-6"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::COORDINATOR_NOT_AVAILABLE,
+            "v5 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_list_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "ListGroups v5 ErrorCode body must be leftover-empty"
         );
     }
 }

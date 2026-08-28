@@ -3328,6 +3328,40 @@ async fn describe_groups_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn list_groups_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.list_groups(&["Stable"], &["classic"]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].group_id, "g");
+    assert_eq!(first[0].protocol_type, "consumer");
+    assert_eq!(first[0].group_state, "Stable");
+    assert_eq!(first[0].group_type, "classic");
+    assert_eq!(
+        mock.last_list_groups_node(),
+        Some(1),
+        "ListGroups must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Stable".into()], vec!["classic".into()]))
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "ListGroups must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "ListGroups must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

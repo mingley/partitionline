@@ -37,31 +37,33 @@ use partitionline::protocol::admin::{
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_groups_request, decode_describe_producers_request,
     decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
-    decode_incremental_alter_configs_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_unregister_broker_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
-    encode_consumer_group_describe_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_records_response, encode_delete_topics_response,
+    decode_incremental_alter_configs_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_unregister_broker_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_records_response, encode_delete_topics_response,
     encode_describe_client_quotas_response, encode_describe_cluster_response,
     encode_describe_configs_response, encode_describe_groups_response,
     encode_describe_producers_response, encode_describe_transactions_response,
     encode_describe_user_scram_credentials_response, encode_incremental_alter_configs_response,
-    encode_list_partition_reassignments_response, encode_list_transactions_response,
-    encode_unregister_broker_response, encode_update_features_response, ActiveProducer,
-    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClientQuotaEntity,
-    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
-    ConfigEntry, DescribeClientQuotasResponse, DescribeConfigsResult, DescribeProducersPartition,
-    DescribeProducersResponse, DescribeProducersTopic, DescribeUserScramCredentialsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, OngoingPartitionReassignment,
-    OngoingTopicReassignment, ReassignmentPartitionResult, ReassignmentTopicResult,
-    ScramCredentialInfo, TopicResult, TransactionListing, TransactionState,
-    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
-    RESOURCE_TOPIC,
+    encode_list_groups_response, encode_list_partition_reassignments_response,
+    encode_list_transactions_response, encode_unregister_broker_response,
+    encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, DescribeClientQuotasResponse,
+    DescribeConfigsResult, DescribeProducersPartition, DescribeProducersResponse,
+    DescribeProducersTopic, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedGroup,
+    OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
+    ReassignmentTopicResult, ScramCredentialInfo, TopicResult, TransactionListing,
+    TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -76,8 +78,8 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
     DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH,
     FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
-    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
+    LEAVE_GROUP, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
+    METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
     SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
     SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
@@ -231,6 +233,8 @@ struct State {
     consumer_group_describe_not_coordinator: u32,
     last_describe_groups_node: Option<i32>,
     describe_groups_not_coordinator: u32,
+    last_list_groups_node: Option<i32>,
+    last_list_groups: Option<(Vec<String>, Vec<String>)>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -403,6 +407,8 @@ fn new_state(
         consumer_group_describe_not_coordinator: 0,
         last_describe_groups_node: None,
         describe_groups_not_coordinator: 0,
+        last_list_groups_node: None,
+        last_list_groups: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1090,6 +1096,14 @@ impl Mock {
         self.state.lock().describe_groups_not_coordinator
     }
 
+    pub fn last_list_groups_node(&self) -> Option<i32> {
+        self.state.lock().last_list_groups_node
+    }
+
+    pub fn last_list_groups(&self) -> Option<(Vec<String>, Vec<String>)> {
+        self.state.lock().last_list_groups.clone()
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1451,6 +1465,7 @@ fn versions() -> ApiVersionsResponse {
         (CONSUMER_GROUP_HEARTBEAT, 0, 0),
         (CONSUMER_GROUP_DESCRIBE, 0, 1),
         (DESCRIBE_GROUPS, 0, 6),
+        (LIST_GROUPS, 0, 5),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3575,6 +3590,29 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .collect();
                     encode_describe_groups_response(&mut body, &results).unwrap();
                 }
+            }
+            LIST_GROUPS => {
+                let (states, types) = decode_list_groups_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture list only; not a
+                // group store, not a coordinator hop, not a 41/6 path.
+                // Official listed errors do not include NOT_COORDINATOR
+                // (16), so the wrong node does not return 16.
+                st.last_list_groups_node = Some(node_id);
+                st.last_list_groups = Some((states, types));
+                encode_list_groups_response(
+                    &mut body,
+                    &ListGroupsResponse {
+                        error_code: 0,
+                        groups: vec![ListedGroup {
+                            group_id: "g".into(),
+                            protocol_type: "consumer".into(),
+                            group_state: "Stable".into(),
+                            group_type: "classic".into(),
+                        }],
+                    },
+                )
+                .unwrap();
             }
             _ => break,
         }
