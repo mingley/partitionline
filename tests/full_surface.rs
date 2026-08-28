@@ -3233,6 +3233,57 @@ async fn list_transactions_follows_coordinator() {
 }
 
 #[tokio::test]
+async fn consumer_group_describe_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .consumer_group_describe(&["cg-desc"], false)
+        .await
+        .unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].group_id, "cg-desc");
+    assert_eq!(first[0].group_state, "Stable");
+    assert_eq!(first[0].group_epoch, 1);
+    assert_eq!(first[0].assignor_name, "uniform");
+    assert_eq!(
+        mock.last_consumer_group_describe_node(),
+        Some(2),
+        "ConsumerGroupDescribe must land on the group coordinator, not bootstrap"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "ConsumerGroupDescribe must FindCoordinator key_type=0"
+    );
+
+    mock.move_coordinator();
+    let again = admin
+        .consumer_group_describe(&["cg-desc"], false)
+        .await
+        .unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        again[0].group_state.as_str(),
+        "Stable",
+        "retry on the new coordinator must still return fixture state, not the 16 empty body"
+    );
+    assert_eq!(
+        mock.consumer_group_describe_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_consumer_group_describe_node(),
+        Some(1),
+        "ConsumerGroupDescribe must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
