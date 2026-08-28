@@ -2926,17 +2926,32 @@ impl Admin {
 
     /// ListOffsets for these partitions (Java `Admin.listOffsets`).
     ///
-    /// Each item is a [`crate::TopicPartition`] and a timestamp:
-    /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
-    /// (`-1`), or milliseconds since the Unix epoch. Isolation is
-    /// read-uncommitted. One ListOffsets RPC per Metadata partition
-    /// leader (duplicate partitions keep separate timestamps).
-    /// `NOT_LEADER_OR_FOLLOWER` refreshes Metadata and retries.
-    /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
-    /// Empty input is a no-op.
+    /// Isolation is read-uncommitted. See
+    /// [`Self::list_offsets_with_isolation`] for Java
+    /// `ListOffsetsOptions.isolationLevel`.
     pub async fn list_offsets(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+        self.list_offsets_with_isolation(queries, crate::IsolationLevel::ReadUncommitted)
+            .await
+    }
+
+    /// ListOffsets with isolation (Java `listOffsets` +
+    /// `ListOffsetsOptions.isolationLevel`).
+    ///
+    /// Each item is a [`crate::TopicPartition`] and a timestamp:
+    /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
+    /// (`-1`), or milliseconds since the Unix epoch. One ListOffsets
+    /// RPC per Metadata partition leader (duplicate partitions keep
+    /// separate timestamps). `NOT_LEADER_OR_FOLLOWER` refreshes
+    /// Metadata and retries.
+    /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
+    /// Empty input is a no-op.
+    pub async fn list_offsets_with_isolation(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        isolation: crate::IsolationLevel,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
         let queries: Vec<(crate::TopicPartition, i64)> = queries
             .into_iter()
@@ -2953,7 +2968,7 @@ impl Admin {
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let isolation = crate::IsolationLevel::ReadUncommitted.as_i8();
+        let isolation = isolation.as_i8();
         let mut out: Vec<Option<crate::OffsetAndTimestamp>> = vec![None; queries.len()];
         let mut pending: Vec<usize> = (0..queries.len()).collect();
         loop {

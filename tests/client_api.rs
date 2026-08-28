@@ -2425,6 +2425,25 @@ async fn admin_list_offsets_earliest_and_latest() {
         "same-leader queries must share one ListOffsets RPC"
     );
     assert_eq!(mock.last_list_offsets_n(), Some(2));
+    assert_eq!(mock.last_list_offsets_isolation(), Some(0));
+    let committed = admin
+        .list_offsets_with_isolation(
+            [(("t", 0), LATEST_TIMESTAMP)],
+            IsolationLevel::ReadCommitted,
+        )
+        .await
+        .unwrap();
+    assert_eq!(committed.len(), 1);
+    assert_eq!(committed[0].1.offset, 1);
+    assert_eq!(mock.last_list_offsets_isolation(), Some(1));
+    let empty_iso = admin
+        .list_offsets_with_isolation(
+            Vec::<(TopicPartition, i64)>::new(),
+            IsolationLevel::ReadCommitted,
+        )
+        .await
+        .unwrap();
+    assert!(empty_iso.is_empty());
     let empty = admin
         .list_offsets(Vec::<(TopicPartition, i64)>::new())
         .await

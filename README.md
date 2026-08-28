@@ -61,6 +61,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
 `alter_consumer_group_offsets` take `TopicPartition`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
+`Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java

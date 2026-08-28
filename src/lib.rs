@@ -92,6 +92,8 @@
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader).
+//! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
+//! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers).

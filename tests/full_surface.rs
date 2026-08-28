@@ -1179,6 +1179,25 @@ async fn admin_list_offsets_batches_by_leader() {
         Some(1),
         "u partitions must land on the default leader, not t's leader"
     );
+    assert_eq!(
+        mock.last_list_offsets_isolation(),
+        Some(0),
+        "list_offsets defaults to read-uncommitted"
+    );
+
+    let committed = admin
+        .list_offsets_with_isolation(
+            [(("t", 0), LATEST_TIMESTAMP)],
+            IsolationLevel::ReadCommitted,
+        )
+        .await
+        .unwrap();
+    assert_eq!(committed.len(), 1);
+    assert_eq!(
+        mock.last_list_offsets_isolation(),
+        Some(1),
+        "list_offsets_with_isolation must send isolation=1"
+    );
 }
 
 #[tokio::test]

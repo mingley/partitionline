@@ -47,7 +47,8 @@ ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
 and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
 timestamp; one ListOffsets RPC per partition leader; returns
-`OffsetAndTimestamp`). `Admin::fence_producers` is Java
+`OffsetAndTimestamp`). `Admin::list_offsets_with_isolation` is Java
+`listOffsets` plus `ListOffsetsOptions.isolationLevel`. `Admin::fence_producers` is Java
 `Admin.fenceProducers` (InitProducerId on the transaction coordinator).
 `Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
 ABORT on the partition leader).

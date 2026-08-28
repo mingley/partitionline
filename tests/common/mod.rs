@@ -230,6 +230,7 @@ struct State {
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
     last_list_offsets_n: Option<usize>,
+    last_list_offsets_isolation: Option<i8>,
     list_offsets_calls: u32,
     list_offsets_not_leader: u32,
     last_delete_records_node: Option<i32>,
@@ -460,6 +461,7 @@ fn new_state(
         last_list_offsets: None,
         last_list_offsets_node: None,
         last_list_offsets_n: None,
+        last_list_offsets_isolation: None,
         list_offsets_calls: 0,
         list_offsets_not_leader: 0,
         last_delete_records_node: None,
@@ -1166,6 +1168,10 @@ impl Mock {
 
     pub fn last_list_offsets_n(&self) -> Option<usize> {
         self.state.lock().last_list_offsets_n
+    }
+
+    pub fn last_list_offsets_isolation(&self) -> Option<i8> {
+        self.state.lock().last_list_offsets_isolation
     }
 
     pub fn list_offsets_calls(&self) -> u32 {
@@ -3120,8 +3126,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             LIST_OFFSETS => {
                 let (iso, topics) =
                     decode_list_offsets_topics_request(&mut frame, header.api_version).unwrap();
-                let _ = iso;
                 let mut st = state.lock();
+                st.last_list_offsets_isolation = Some(iso);
                 st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
                 let mut n = 0usize;
                 let mut any_leader = false;
