@@ -14,7 +14,7 @@ async fn main() -> partitionline::Result<()> {
     consumer.assign_topic(topic, 0).await?;
     let wakeup = consumer.wakeup_handle();
     drop(tokio::spawn(async move {
-        let _ = tokio::signal::ctrl_c().await;
+        tokio::signal::ctrl_c().await.unwrap_or(());
         wakeup.wakeup();
     }));
     loop {
