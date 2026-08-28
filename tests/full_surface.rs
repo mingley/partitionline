@@ -483,7 +483,7 @@ async fn transactional_commit_visible_abort_hidden() {
         .await
         .unwrap();
     producer
-        .send_offsets_to_transaction("g", &[("t".into(), 0, 1)])
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
         .await
         .unwrap();
     producer.commit_transaction().await.unwrap();
@@ -578,10 +578,10 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     producer
         .send_offsets_to_transaction(
             "g",
-            &[
-                ("txn3".into(), 0, 1),
-                ("txn3".into(), 1, 1),
-                ("txn3".into(), 2, 1),
+            [
+                (TopicPartition::new("txn3", 0), 1),
+                (TopicPartition::new("txn3", 1), 1),
+                (TopicPartition::new("txn3", 2), 1),
             ],
         )
         .await
@@ -629,7 +629,7 @@ async fn transactional_producer_finds_txn_coordinator() {
     producer.flush().await.unwrap();
     assert_eq!(mock.last_add_partitions_node(), Some(2));
     producer
-        .send_offsets_to_transaction("g", &[("t".into(), 0, 1)])
+        .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
         .await
         .unwrap();
     assert_eq!(mock.last_add_offsets_node(), Some(2));
@@ -2610,7 +2610,10 @@ async fn alter_partition_reassignments_follows_controller() {
 
     let results = admin
         .alter_partition_reassignments(
-            &[PartitionReassignment::assign("re2", 0, vec![2, 1])],
+            &[PartitionReassignment::assign(
+                TopicPartition::new("re2", 0),
+                [2, 1],
+            )],
             10_000,
         )
         .await
@@ -2631,7 +2634,10 @@ async fn alter_partition_reassignments_follows_controller() {
     mock.set_controller(1);
     let again = admin
         .alter_partition_reassignments(
-            &[PartitionReassignment::assign("re1", 0, vec![1, 2])],
+            &[PartitionReassignment::assign(
+                TopicPartition::new("re1", 0),
+                [1, 2],
+            )],
             10_000,
         )
         .await
@@ -2668,7 +2674,10 @@ async fn list_partition_reassignments_follows_controller() {
 
     let assigned = admin
         .alter_partition_reassignments(
-            &[PartitionReassignment::assign("lr2", 0, vec![2, 1])],
+            &[PartitionReassignment::assign(
+                TopicPartition::new("lr2", 0),
+                [2, 1],
+            )],
             10_000,
         )
         .await

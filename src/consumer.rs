@@ -350,6 +350,24 @@ impl FetchedRecord {
     pub fn topic_partition(&self) -> TopicPartition {
         TopicPartition::new(self.topic.clone(), self.partition)
     }
+
+    /// Serialized key size in bytes, or `-1` if there is no key (Java `serializedKeySize`).
+    #[must_use]
+    pub fn serialized_key_size(&self) -> i32 {
+        serialized_bytes_size(self.key.as_ref())
+    }
+
+    /// Serialized value size in bytes, or `-1` if there is no value (Java `serializedValueSize`).
+    #[must_use]
+    pub fn serialized_value_size(&self) -> i32 {
+        serialized_bytes_size(self.value.as_ref())
+    }
+}
+
+fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
+    bytes
+        .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+        .unwrap_or(-1)
 }
 
 /// A topic name and partition index.
@@ -641,10 +659,16 @@ impl Consumer {
     }
 
     /// Replace the assignment with these `(partition, offset)` pairs.
-    pub async fn assign_many(&mut self, starts: &[(TopicPartition, i64)]) -> Result<()> {
+    pub async fn assign_many(
+        &mut self,
+        starts: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+    ) -> Result<()> {
         let triples: Vec<(String, i32, i64)> = starts
-            .iter()
-            .map(|(tp, offset)| (tp.topic.clone(), tp.partition, *offset))
+            .into_iter()
+            .map(|(tp, offset)| {
+                let tp = tp.into();
+                (tp.topic, tp.partition, offset)
+            })
             .collect();
         self.assign_all(&triples).await
     }
@@ -802,7 +826,7 @@ impl Consumer {
     }
 
     /// Set the next fetch offset without a ListOffsets call.
-    pub fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
+    pub(crate) fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
         if let Some(slot) = self
             .assigned
             .iter_mut()

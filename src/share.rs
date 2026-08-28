@@ -55,6 +55,24 @@ impl ShareRecord {
     pub fn topic_partition(&self) -> crate::TopicPartition {
         crate::TopicPartition::new(self.topic.clone(), self.partition)
     }
+
+    /// Serialized key size in bytes, or `-1` if there is no key (Java `serializedKeySize`).
+    #[must_use]
+    pub fn serialized_key_size(&self) -> i32 {
+        self.key
+            .as_ref()
+            .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+            .unwrap_or(-1)
+    }
+
+    /// Serialized value size in bytes, or `-1` if there is no value (Java `serializedValueSize`).
+    #[must_use]
+    pub fn serialized_value_size(&self) -> i32 {
+        self.value
+            .as_ref()
+            .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+            .unwrap_or(-1)
+    }
 }
 
 /// KIP-932 share group member (`ShareGroupHeartbeat` / ShareFetch / ShareAcknowledge).

@@ -56,7 +56,9 @@ topic list. `enforce_rebalance` rejoins on the next poll.
 `subscribe` / `unsubscribe` change the topic list without dropping the
 handle. `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
 is cluster Metadata. `fetch_timeout` / `poll_timeout` are Java
-`poll(Duration)`. [`Producer::send_offsets_with_metadata`](../src/producer.rs)
+`poll(Duration)`. [`Producer::send_offsets_to_transaction`](../src/producer.rs)
+takes [`TopicPartition`](../src/consumer.rs).
+[`Producer::send_offsets_with_metadata`](../src/producer.rs)
 commits transactional offsets with epoch and a metadata string.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
@@ -68,7 +70,8 @@ and the heartbeat thread leaves the group.
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
 `offsetsForTimes`. `FetchedRecord.leader_epoch` is the record-batch partition
-leader epoch. `assign_many` / `unassign` replace or drop a manual assignment.
+leader epoch. `FetchedRecord.serialized_key_size` / `serialized_value_size`
+match Java. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several

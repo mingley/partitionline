@@ -46,6 +46,8 @@
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
+//! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
+//! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`].
@@ -62,8 +64,8 @@
 //! that converts to one) plus the next fetch offset.
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
 //! [`Admin::delete_offsets`] take [`TopicPartition`].
-//! [`AclBinding::allow_topic`] / [`AclResourceType`] cover CreateAcls /
-//! DescribeAcls / DeleteAcls.
+//! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
+//! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] match Java.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
@@ -86,6 +88,7 @@
 //! the handle. [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
+//! [`Producer::send_offsets_to_transaction`] takes [`TopicPartition`].
 //! [`Admin::close`] drops the admin connection.
 //!
 //! # Configure
@@ -141,18 +144,18 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AclBinding, AclResourceType, ActiveProducer, Admin, AdminConfig, AlterConfig,
-    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
-    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
-    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
-    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
-    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
-    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
-    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
-    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
-    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    AclBinding, AclOperation, AclPermission, AclResourceType, ActiveProducer, Admin, AdminConfig,
+    AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
+    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
+    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
+    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
     DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,

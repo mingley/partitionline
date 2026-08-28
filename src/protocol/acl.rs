@@ -41,6 +41,64 @@ impl From<AclResourceType> for i8 {
     }
 }
 
+/// Kafka ACL operation (`AclOperation` on the wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum AclOperation {
+    /// Protocol `UNKNOWN`.
+    Unknown = 0,
+    /// Matches any operation on DescribeAcls / DeleteAcls.
+    Any = 1,
+    /// All operations.
+    All = 2,
+    /// Read.
+    Read = 3,
+    /// Write.
+    Write = 4,
+    /// Create.
+    Create = 5,
+    /// Delete.
+    Delete = 6,
+    /// Alter.
+    Alter = 7,
+    /// Describe.
+    Describe = 8,
+    /// Cluster action.
+    ClusterAction = 9,
+    /// Describe configs.
+    DescribeConfigs = 10,
+    /// Alter configs.
+    AlterConfigs = 11,
+    /// Idempotent write.
+    IdempotentWrite = 12,
+}
+
+impl From<AclOperation> for i8 {
+    fn from(op: AclOperation) -> Self {
+        op as i8
+    }
+}
+
+/// Kafka ACL permission type (`AclPermissionType` on the wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum AclPermission {
+    /// Protocol `UNKNOWN`.
+    Unknown = 0,
+    /// Matches any permission on DescribeAcls / DeleteAcls.
+    Any = 1,
+    /// Deny.
+    Deny = 2,
+    /// Allow.
+    Allow = 3,
+}
+
+impl From<AclPermission> for i8 {
+    fn from(perm: AclPermission) -> Self {
+        perm as i8
+    }
+}
+
 /// One ACL binding for CreateAcls / DescribeAcls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AclBinding {
@@ -52,24 +110,55 @@ pub struct AclBinding {
     pub principal: String,
     /// Host filter (`*` is any).
     pub host: String,
-    /// Operation (`ACL_OPERATION_ALL`, …).
+    /// Operation (`ACL_OPERATION_ALL`, [`AclOperation::All`], …).
     pub operation: i8,
-    /// Permission (`ACL_PERMISSION_ALLOW`, …).
+    /// Permission (`ACL_PERMISSION_ALLOW`, [`AclPermission::Allow`], …).
     pub permission: i8,
 }
 
 impl AclBinding {
-    /// Allow every operation on `topic` for `principal` from any host.
+    /// Allow every operation on `name` for `principal` from any host.
     #[must_use]
-    pub fn allow_topic(topic: impl Into<String>, principal: impl Into<String>) -> Self {
+    pub fn allow(
+        resource_type: impl Into<i8>,
+        name: impl Into<String>,
+        principal: impl Into<String>,
+    ) -> Self {
         Self {
-            resource_type: ACL_RESOURCE_TOPIC,
-            resource_name: topic.into(),
+            resource_type: resource_type.into(),
+            resource_name: name.into(),
             principal: principal.into(),
             host: "*".into(),
             operation: ACL_OPERATION_ALL,
             permission: ACL_PERMISSION_ALLOW,
         }
+    }
+
+    /// Allow every operation on `topic` for `principal` from any host.
+    #[must_use]
+    pub fn allow_topic(topic: impl Into<String>, principal: impl Into<String>) -> Self {
+        Self::allow(AclResourceType::Topic, topic, principal)
+    }
+
+    /// Host filter (`*` is any).
+    #[must_use]
+    pub fn host(mut self, host: impl Into<String>) -> Self {
+        self.host = host.into();
+        self
+    }
+
+    /// Operation (`AclOperation::All`, …).
+    #[must_use]
+    pub fn operation(mut self, operation: impl Into<i8>) -> Self {
+        self.operation = operation.into();
+        self
+    }
+
+    /// Permission (`AclPermission::Allow`, …).
+    #[must_use]
+    pub fn permission(mut self, permission: impl Into<i8>) -> Self {
+        self.permission = permission.into();
+        self
     }
 }
 
@@ -292,5 +381,7 @@ mod tests {
         assert_eq!(acl.host, "*");
         assert_eq!(acl.operation, ACL_OPERATION_ALL);
         assert_eq!(acl.permission, ACL_PERMISSION_ALLOW);
+        assert_eq!(acl.operation, i8::from(AclOperation::All));
+        assert_eq!(acl.permission, i8::from(AclPermission::Allow));
     }
 }

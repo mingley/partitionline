@@ -38,7 +38,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Transactions / EOS | yes (`transactional.id`, `init_transactions`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1); `NewPartitions` for CreatePartitions | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete, AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures, AlterUserScramCredentials, DescribeUserScramCredentials, AlterClientQuotas, DescribeClientQuotas, DescribeProducers, AllocateProducerIds, DescribeTransactions, ListTransactions, UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups, DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets, AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions, ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken | yes (`incremental_alter_configs` / `alter_configs` take `ConfigResource`; `AlterConfig::set` / `delete`) | yes | **done** |
-| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60); `Admin::close`; `delete_records` / `describe_producers` / `delete_offsets` take `TopicPartition`; `AclBinding::allow_topic` / `AclResourceType` | yes | **done** |
+| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60); `Admin::close`; `delete_records` / `describe_producers` / `delete_offsets` take `TopicPartition`; `PartitionReassignment::assign` takes `TopicPartition`; `AclBinding::allow_topic` / `AclResourceType` / `AclOperation` / `AclPermission` | yes | **done** |
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
 | Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`; rebalance listener too) | yes | **done** |
@@ -55,7 +55,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share) | yes | **done** |
-| TxnOffsetCommit metadata | yes (`send_offsets_with_metadata` / `send_offsets_for_group`) | yes | **done** |
+| TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

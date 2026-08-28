@@ -83,7 +83,7 @@ use crate::protocol::group::{
 };
 use crate::protocol::sasl;
 
-pub use crate::protocol::acl::{AclBinding, AclResourceType};
+pub use crate::protocol::acl::{AclBinding, AclOperation, AclPermission, AclResourceType};
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
@@ -331,20 +331,25 @@ pub struct PartitionReassignment {
 impl PartitionReassignment {
     /// Move `partition` onto `replicas`.
     #[must_use]
-    pub fn assign(topic: impl Into<String>, partition: i32, replicas: Vec<i32>) -> Self {
+    pub fn assign(
+        partition: impl Into<crate::TopicPartition>,
+        replicas: impl IntoIterator<Item = i32>,
+    ) -> Self {
+        let tp = partition.into();
         Self {
-            topic: topic.into(),
-            partition,
-            replicas: Some(replicas),
+            topic: tp.topic,
+            partition: tp.partition,
+            replicas: Some(replicas.into_iter().collect()),
         }
     }
 
     /// Cancel a pending reassignment for this partition.
     #[must_use]
-    pub fn cancel(topic: impl Into<String>, partition: i32) -> Self {
+    pub fn cancel(partition: impl Into<crate::TopicPartition>) -> Self {
+        let tp = partition.into();
         Self {
-            topic: topic.into(),
-            partition,
+            topic: tp.topic,
+            partition: tp.partition,
             replicas: None,
         }
     }

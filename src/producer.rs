@@ -881,29 +881,37 @@ impl Producer {
 
     /// Send these offsets to the transaction coordinator (`AddOffsetsToTxn`
     /// then `TxnOffsetCommit`).
+    ///
+    /// Each item is a [`crate::TopicPartition`] (or anything that converts
+    /// to one) and the next fetch offset. For epoch plus a metadata string,
+    /// use [`Self::send_offsets_with_metadata`].
     pub async fn send_offsets_to_transaction(
         &self,
         group_id: &str,
-        offsets: &[(String, i32, i64)],
+        offsets: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
     ) -> Result<()> {
         let items: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
-            .iter()
-            .map(|(t, p, o)| {
-                (
-                    crate::TopicPartition::new(t.clone(), *p),
-                    crate::OffsetAndMetadata::new(*o),
-                )
-            })
+            .into_iter()
+            .map(|(tp, o)| (tp.into(), crate::OffsetAndMetadata::new(o)))
             .collect();
-        self.send_offsets_with_metadata(group_id, &items).await
+        self.send_offsets_with_metadata(group_id, items).await
     }
 
     /// [`Self::send_offsets_to_transaction`] with leader epoch and metadata.
     pub async fn send_offsets_with_metadata(
         &self,
         group_id: &str,
-        offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+        offsets: impl IntoIterator<
+            Item = (
+                impl Into<crate::TopicPartition>,
+                impl Into<crate::OffsetAndMetadata>,
+            ),
+        >,
     ) -> Result<()> {
+        let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
+            .into_iter()
+            .map(|(tp, md)| (tp.into(), md.into()))
+            .collect();
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
             return Err(Error::protocol("transactional.id is not set"));
         };
@@ -927,7 +935,7 @@ impl Producer {
             return Err(Error::broker(err, "AddOffsetsToTxn"));
         }
         let mut topics: Vec<String> = Vec::new();
-        for (tp, _) in offsets {
+        for (tp, _) in &offsets {
             if !topics.iter().any(|t| t == &tp.topic) {
                 topics.push(tp.topic.clone());
             }
@@ -941,7 +949,7 @@ impl Producer {
         let version = self.inner.shared.txn_offset_version;
         let grouped = {
             let cluster = self.inner.shared.cluster.lock();
-            group_txn_offsets(offsets, |topic, part| cluster.leader_epoch(topic, part))
+            group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))
         };
         let body = group_coord_roundtrip(
             &self.inner.shared.cfg,
@@ -966,7 +974,12 @@ impl Producer {
     pub async fn send_offsets_for_group(
         &self,
         group: &crate::ConsumerGroupMetadata,
-        offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+        offsets: impl IntoIterator<
+            Item = (
+                impl Into<crate::TopicPartition>,
+                impl Into<crate::OffsetAndMetadata>,
+            ),
+        >,
     ) -> Result<()> {
         self.send_offsets_with_metadata(&group.group_id, offsets)
             .await

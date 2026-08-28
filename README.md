@@ -51,8 +51,11 @@ returns Metadata (leader, replicas, ISR) on both `Consumer` and
 `commit_offsets` takes `TopicPartition` (or anything that converts to one)
 plus the next fetch offset. `assignment` is Java `assignment` (`positions`
 is next fetch offset). `Admin::delete_records` / `describe_producers` /
-`delete_offsets` take `TopicPartition`. `AclBinding::allow_topic` and
-`AclResourceType` cover CreateAcls / DescribeAcls / DeleteAcls.
+`delete_offsets` take `TopicPartition`. `PartitionReassignment::assign`
+takes `TopicPartition`. `send_offsets_to_transaction` takes
+`TopicPartition`. `AclBinding::allow_topic`, `AclResourceType`,
+`AclOperation`, and `AclPermission` cover CreateAcls / DescribeAcls /
+DeleteAcls.
 
 ## Groups
 

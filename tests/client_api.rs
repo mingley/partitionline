@@ -68,6 +68,8 @@ async fn produce_header_survives_fetch() {
     assert_eq!(recs[0].value.as_deref(), Some(&b"with-header"[..]));
     assert_eq!(recs[0].timestamp, 1_700_000_000_000);
     assert_eq!(recs[0].leader_epoch, Some(0));
+    assert_eq!(recs[0].serialized_key_size(), -1);
+    assert_eq!(recs[0].serialized_value_size(), 11);
     assert_eq!(recs[0].headers.len(), 1);
     assert_eq!(recs[0].headers[0].key, "k");
     assert_eq!(recs[0].headers[0].value.as_deref(), Some(&b"v"[..]));
@@ -541,7 +543,7 @@ async fn partitions_for_and_end_offsets() {
     let listed = consumer.list_topics().await.unwrap();
     assert!(listed.iter().any(|p| p.topic == "t" && p.partition == 0));
     consumer
-        .assign_many(&[(TopicPartition::new("t", 0), 0)])
+        .assign_many([(TopicPartition::new("t", 0), 0)])
         .await
         .unwrap();
     assert_eq!(consumer.assignment().len(), 1);
@@ -1314,7 +1316,7 @@ async fn send_offsets_with_metadata_then_committed() {
     producer
         .send_offsets_for_group(
             &md,
-            &[(
+            [(
                 TopicPartition::new("t", 0),
                 OffsetAndMetadata::with_metadata(1, "eos").with_leader_epoch(0),
             )],
