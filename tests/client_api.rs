@@ -2384,3 +2384,38 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert!(empty.is_empty());
     admin.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_list_offsets_earliest_and_latest() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = admin
+        .list_offsets([(("t", 0), EARLIEST_TIMESTAMP), (("t", 0), LATEST_TIMESTAMP)])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2);
+    assert_eq!(listed[0].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[0].1.offset, 0);
+    assert_eq!(listed[0].1.leader_epoch, Some(0));
+    assert_eq!(listed[1].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[1].1.offset, 1);
+    assert_eq!(listed[1].1.leader_epoch, Some(0));
+    let empty = admin
+        .list_offsets(Vec::<(TopicPartition, i64)>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}

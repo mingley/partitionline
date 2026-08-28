@@ -75,9 +75,10 @@ use crate::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
-    INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY,
-    RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
+    OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER,
+    UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_commit_response, decode_offset_delete_response,
@@ -85,6 +86,7 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_request,
     OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
+use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
 use crate::protocol::sasl;
 
 pub use crate::protocol::acl::{AclBinding, AclOperation, AclPermission, AclResourceType};
@@ -2377,6 +2379,110 @@ impl Admin {
                 continue;
             }
             return Ok((low, err));
+        }
+    }
+
+    /// ListOffsets for these partitions (Java `Admin.listOffsets`).
+    ///
+    /// Each item is a [`crate::TopicPartition`] and a timestamp:
+    /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
+    /// (`-1`), or milliseconds since the Unix epoch. Isolation is
+    /// read-uncommitted. Lands on each Metadata partition leader;
+    /// `NOT_LEADER_OR_FOLLOWER` refreshes Metadata and retries.
+    /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
+    pub async fn list_offsets(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+        let mut out = Vec::new();
+        for (tp, timestamp) in queries {
+            let tp = tp.into();
+            let ot = self
+                .list_offset_one(&tp.topic, tp.partition, timestamp)
+                .await?;
+            out.push((tp, ot));
+        }
+        Ok(out)
+    }
+
+    async fn list_offset_one(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        timestamp: i64,
+    ) -> Result<crate::OffsetAndTimestamp> {
+        let version = self
+            .versions
+            .get(&LIST_OFFSETS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let isolation = crate::IsolationLevel::ReadUncommitted.as_i8();
+        loop {
+            if self.cluster.leader(topic, partition).is_err() {
+                let topics = [topic.to_string()];
+                self.refresh_metadata(Some(&topics)).await?;
+            }
+            let (node, _) = self.cluster.leader(topic, partition)?;
+            self.connect_node(node).await?;
+            let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing list_offsets conn"))?;
+                conn.roundtrip(
+                    LIST_OFFSETS,
+                    version,
+                    |buf| {
+                        encode_list_offsets_request(
+                            buf,
+                            version,
+                            isolation,
+                            topic,
+                            partition,
+                            current_leader_epoch,
+                            timestamp,
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            match decode_list_offsets_response(&mut body.clone(), version) {
+                Ok(got) => {
+                    return Ok(crate::OffsetAndTimestamp::new(got.offset, got.timestamp)
+                        .with_leader_epoch(got.leader_epoch));
+                }
+                Err(e)
+                    if matches!(
+                        &e,
+                        Error::Broker {
+                            code: error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH,
+                            ..
+                        }
+                    ) || e.is_retriable() =>
+                {
+                    self.cluster.invalidate_topic(topic);
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    let topics = [topic.to_string()];
+                    self.refresh_metadata(Some(&topics)).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            }
         }
     }
 
