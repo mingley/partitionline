@@ -37,7 +37,8 @@
 //!
 //! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`] /
 //! [`Consumer::seek_to`] / [`Consumer::seek_to_beginning`] /
-//! [`Consumer::seek_to_end`] move the
+//! [`Consumer::seek_to_end`] / [`Consumer::seek_to_beginning_of`] /
+//! [`Consumer::seek_to_end_of`] move the
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. [`Consumer::partitions_for`] /
@@ -71,7 +72,8 @@
 //! [`Admin::delete_offsets`] take [`TopicPartition`].
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
-//! [`Producer::init_transactions`] / [`Producer::flush_timeout`] match Java.
+//! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
+//! [`Producer::close_timeout`] match Java.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
 //!

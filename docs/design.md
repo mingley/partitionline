@@ -34,7 +34,9 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 [`ShareRecords`](../src/share.rs).
 `fetch` sends one request per partition leader and waits for all of them
 when there is more than one. `seek_to_beginning` / `seek_to_end` call
-ListOffsets for every assigned partition. `pause` / `resume` skip
+ListOffsets for every assigned partition; `seek_to_beginning_of` /
+`seek_to_end_of` take a partition list (Java `seekToBeginning` /
+`seekToEnd`). `pause` / `resume` skip
 assigned partitions without dropping them; pause survives group rebalance.
 `position` is the next fetch offset (`position_of` takes `TopicPartition`).
 `partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and

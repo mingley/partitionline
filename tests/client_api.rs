@@ -148,6 +148,16 @@ async fn seek_to_beginning_rereads_from_start() {
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"first"[..]));
+    consumer
+        .seek_to_end_of([TopicPartition::new("t", 0)])
+        .await
+        .unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert!(recs.is_empty(), "seek_to_end_of should skip existing");
+    consumer.seek_to_beginning_of([("t", 0)]).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"first"[..]));
 }
 
 #[test]
@@ -1624,6 +1634,35 @@ async fn seek_to_and_assigned_partitions() {
 }
 
 #[tokio::test]
+async fn group_seek_to_beginning_rereads() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"g"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "skb",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    group.seek_to_beginning().await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"g"[..]));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn init_transactions_requires_transactional_id() {
     let mock = common::Mock::start().await;
     let producer =
@@ -1644,5 +1683,5 @@ async fn init_transactions_requires_transactional_id() {
     txn.init_transactions().await.unwrap();
     txn.begin_transaction().await.unwrap();
     txn.abort_transaction().await.unwrap();
-    txn.close().await.unwrap();
+    txn.close_timeout(Duration::from_secs(5)).await.unwrap();
 }

@@ -1051,6 +1051,22 @@ impl Producer {
 
     /// Flush, then stop workers. Further sends return [`Error::Closed`].
     pub async fn close(self) -> Result<()> {
+        self.shutdown_workers().await;
+        self.inner.shared.interceptors.close();
+        Ok(())
+    }
+
+    /// Flush for up to `timeout`, then stop workers (Java `close(Duration)`).
+    ///
+    /// A flush timeout is returned after the producer is closed.
+    pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
+        let flush = self.flush_timeout(timeout).await;
+        self.shutdown_workers().await;
+        self.inner.shared.interceptors.close();
+        flush
+    }
+
+    async fn shutdown_workers(&self) {
         let workers: Vec<WorkerHandle> = self
             .inner
             .shared
@@ -1069,8 +1085,6 @@ impl Producer {
         for rx in rxs {
             drop(rx.await);
         }
-        self.inner.shared.interceptors.close();
-        Ok(())
     }
 
     /// Partition metadata for `topic` (Java `partitionsFor`).

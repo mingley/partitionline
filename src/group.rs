@@ -574,6 +574,32 @@ impl ConsumerGroup {
         self.consumer.seek_to(partition, offset)
     }
 
+    /// Seek every assigned partition to the log start (Java `seekToBeginning`).
+    pub async fn seek_to_beginning(&mut self) -> Result<()> {
+        self.consumer.seek_to_beginning().await
+    }
+
+    /// Seek these assigned partitions to the log start.
+    pub async fn seek_to_beginning_of(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        self.consumer.seek_to_beginning_of(partitions).await
+    }
+
+    /// Seek every assigned partition to the high watermark (Java `seekToEnd`).
+    pub async fn seek_to_end(&mut self) -> Result<()> {
+        self.consumer.seek_to_end().await
+    }
+
+    /// Seek these assigned partitions to the high watermark.
+    pub async fn seek_to_end_of(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        self.consumer.seek_to_end_of(partitions).await
+    }
+
     /// High watermark minus position (Java `currentLag`).
     pub async fn current_lag(
         &mut self,

@@ -1756,9 +1756,27 @@ impl Consumer {
         self.seek_assigned(crate::EARLIEST_TIMESTAMP).await
     }
 
+    /// Seek these assigned partitions to the log start (Java `seekToBeginning`).
+    pub async fn seek_to_beginning_of(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        self.seek_partitions(crate::EARLIEST_TIMESTAMP, partitions)
+            .await
+    }
+
     /// Seek every assigned partition to the high watermark (`ListOffsets` latest).
     pub async fn seek_to_end(&mut self) -> Result<()> {
         self.seek_assigned(crate::LATEST_TIMESTAMP).await
+    }
+
+    /// Seek these assigned partitions to the high watermark (Java `seekToEnd`).
+    pub async fn seek_to_end_of(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        self.seek_partitions(crate::LATEST_TIMESTAMP, partitions)
+            .await
     }
 
     async fn seek_assigned(&mut self, timestamp: i64) -> Result<()> {
@@ -1767,7 +1785,26 @@ impl Consumer {
             .iter()
             .map(|(t, p, _)| (t.clone(), *p))
             .collect();
-        for (topic, partition) in assigned {
+        self.seek_listed(timestamp, assigned).await
+    }
+
+    async fn seek_partitions(
+        &mut self,
+        timestamp: i64,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<()> {
+        let listed: Vec<(String, i32)> = partitions
+            .into_iter()
+            .map(|p| {
+                let tp = p.into();
+                (tp.topic, tp.partition)
+            })
+            .collect();
+        self.seek_listed(timestamp, listed).await
+    }
+
+    async fn seek_listed(&mut self, timestamp: i64, partitions: Vec<(String, i32)>) -> Result<()> {
+        for (topic, partition) in partitions {
             let offset = self
                 .list_offsets(topic.clone(), partition, timestamp)
                 .await?;
