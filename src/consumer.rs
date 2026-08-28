@@ -1,9 +1,8 @@
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
+//! Fetch client with manual partition assignment.
 
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
@@ -28,20 +27,68 @@ use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets
 use crate::protocol::records::Header;
 use crate::protocol::sasl;
 
+type RebalanceFn = dyn Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync;
+
+/// Called as `(revoked, assigned)` after a consumer-group assignment change.
+///
+/// Set with [`ConsumerConfig::on_rebalance`]. The first join reports an empty
+/// revoked set.
+#[derive(Clone, Default)]
+pub struct RebalanceListener(Option<Arc<RebalanceFn>>);
+
+impl RebalanceListener {
+    /// Wrap a callback.
+    pub fn from_fn(f: impl Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync + 'static) -> Self {
+        Self(Some(Arc::new(f)))
+    }
+
+    pub(crate) fn call(&self, revoked: &[(String, i32)], assigned: &[(String, i32)]) {
+        if let Some(f) = &self.0 {
+            f(revoked, assigned);
+        }
+    }
+}
+
+impl fmt::Debug for RebalanceListener {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(if self.0.is_some() {
+            "RebalanceListener"
+        } else {
+            "None"
+        })
+    }
+}
+
+/// Fetch and group-member settings.
+///
+/// Prefer the chainable builders. Raw fields remain writable.
 #[derive(Debug, Clone)]
 pub struct ConsumerConfig {
+    /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Per-request timeout (fetch, metadata, offsets, group RPCs that use this config).
     pub request_timeout: Duration,
+    /// TCP connect timeout.
     pub connect_timeout: Duration,
+    /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
+    /// SASL SCRAM-SHA-256 `(username, password)`.
     pub sasl_scram: Option<(String, String)>,
+    /// SASL SCRAM-SHA-512 `(username, password)`.
     pub sasl_scram_sha512: Option<(String, String)>,
+    /// Unsecured OAUTHBEARER principal.
     pub sasl_oauthbearer: Option<String>,
+    /// OIDC client-credentials, then OAUTHBEARER.
     pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+    /// rustls. `None` is plain TCP.
     pub tls: Option<crate::net::TlsConfig>,
+    /// `fetch.max.wait.ms`.
     pub max_wait_ms: i32,
+    /// `fetch.min.bytes`.
     pub min_bytes: i32,
+    /// `fetch.max.bytes` / `max.partition.fetch.bytes`. Default 16 MiB.
     pub max_bytes: i32,
     /// 0 = READ_UNCOMMITTED, 1 = READ_COMMITTED.
     pub isolation_level: i8,
@@ -55,6 +102,12 @@ pub struct ConsumerConfig {
     ///
     /// `None` (the default) returns every record from the Fetch round.
     pub max_poll_records: Option<usize>,
+    /// Kafka `session.timeout.ms` on classic JoinGroup. Default 10 seconds.
+    pub session_timeout_ms: i32,
+    /// How often the group member heartbeats. Default 150 ms (faster than Java's 3 s).
+    pub heartbeat_interval: Duration,
+    /// Optional `(revoked, assigned)` callback after a group assignment change.
+    pub rebalance: RebalanceListener,
 }
 
 impl Default for ConsumerConfig {
@@ -78,6 +131,9 @@ impl Default for ConsumerConfig {
             group_instance_id: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
             max_poll_records: None,
+            session_timeout_ms: 10_000,
+            heartbeat_interval: Duration::from_millis(150),
+            rebalance: RebalanceListener::default(),
         }
     }
 }
@@ -155,6 +211,31 @@ impl ConsumerConfig {
         self
     }
 
+    /// Kafka `session.timeout.ms` on classic JoinGroup.
+    #[must_use]
+    pub fn session_timeout(mut self, timeout: Duration) -> Self {
+        let ms = timeout.as_millis();
+        self.session_timeout_ms = i32::try_from(ms).unwrap_or(i32::MAX);
+        self
+    }
+
+    /// How often this member heartbeats while in a group.
+    #[must_use]
+    pub fn heartbeat_interval(mut self, interval: Duration) -> Self {
+        self.heartbeat_interval = interval;
+        self
+    }
+
+    /// Called as `(revoked, assigned)` after a group assignment change.
+    #[must_use]
+    pub fn on_rebalance(
+        mut self,
+        f: impl Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync + 'static,
+    ) -> Self {
+        self.rebalance = RebalanceListener::from_fn(f);
+        self
+    }
+
     /// SASL. Replaces any previously set mechanism.
     #[must_use]
     pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
@@ -183,27 +264,41 @@ impl ConsumerConfig {
     }
 }
 
+/// One record from Fetch.
 #[derive(Debug, Clone)]
 pub struct FetchedRecord {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Record offset.
     pub offset: i64,
+    /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Optional key.
     pub key: Option<Bytes>,
+    /// Optional value.
     pub value: Option<Bytes>,
+    /// Record headers.
     pub headers: Vec<Header>,
 }
 
 /// One partition from Metadata: leader, replicas, and ISR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionInfo {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Leader broker id, or `-1` if unknown.
     pub leader: i32,
+    /// Replica broker ids.
     pub replicas: Vec<i32>,
+    /// In-sync replica broker ids.
     pub isr: Vec<i32>,
 }
 
+/// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
     conn: BrokerConn,
@@ -287,6 +382,7 @@ impl Consumer {
         })
     }
 
+    /// Assign one partition at `offset`. Replaces a previous offset for the same pair.
     pub async fn assign(
         &mut self,
         topic: impl Into<String>,
@@ -337,6 +433,7 @@ impl Consumer {
         Ok(())
     }
 
+    /// Assigned `(topic, partition, next_offset)` triples.
     pub fn assignment(&self) -> &[(String, i32, i64)] {
         &self.assigned
     }
@@ -412,6 +509,7 @@ impl Consumer {
         Ok(tmd.partitions.iter().map(|p| p.partition_index).collect())
     }
 
+    /// Set the next fetch offset without a ListOffsets call.
     pub fn advance(&mut self, topic: &str, partition: i32, next_offset: i64) {
         if let Some(slot) = self
             .assigned
@@ -959,6 +1057,7 @@ impl Consumer {
         Ok(retry)
     }
 
+    /// Negotiated ApiVersions for this connection.
     pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
         &self.versions
     }

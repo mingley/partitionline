@@ -3,7 +3,7 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -430,7 +430,12 @@ impl ConsumerGroup {
             self.apply_pending_assignment().await?;
         }
         let assigned = self.consumer.assignment().to_vec();
-        let topics = group_offset_topics(&assigned);
+        self.commit_offsets(&assigned).await
+    }
+
+    /// Commit these `(topic, partition, offset)` triples (`OffsetCommit`).
+    pub async fn commit_offsets(&mut self, offsets: &[(String, i32, i64)]) -> Result<()> {
+        let topics = group_offset_topics(offsets);
         if topics.is_empty() {
             return Ok(());
         }
@@ -528,7 +533,7 @@ impl ConsumerGroup {
                         buf,
                         &JoinGroupRequest {
                             group_id: &self.group_id,
-                            session_timeout_ms: 10_000,
+                            session_timeout_ms: self.cfg.session_timeout_ms,
                             member_id: "",
                             group_instance_id: self.cfg.group_instance_id.as_deref(),
                             protocol_type: "consumer",
@@ -558,7 +563,7 @@ impl ConsumerGroup {
                     buf,
                     &JoinGroupRequest {
                         group_id: &self.group_id,
-                        session_timeout_ms: 10_000,
+                        session_timeout_ms: self.cfg.session_timeout_ms,
                         member_id: &self.member_id,
                         group_instance_id: self.cfg.group_instance_id.as_deref(),
                         protocol_type: "consumer",
@@ -761,6 +766,13 @@ impl ConsumerGroup {
             starts.push((topic.clone(), *part, start));
         }
         self.consumer.assign_all(&starts).await?;
+        let prev: HashSet<(String, i32)> = current.keys().cloned().collect();
+        let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
+        let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();
+        let added_tps: Vec<(String, i32)> = next.difference(&prev).cloned().collect();
+        if !revoked.is_empty() || !added_tps.is_empty() {
+            self.cfg.rebalance.call(&revoked, &added_tps);
+        }
         Ok(())
     }
 
@@ -774,7 +786,8 @@ impl ConsumerGroup {
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
-            let mut tick = tokio::time::interval(Duration::from_millis(150));
+            let mut tick =
+                tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
                 tokio::select! {
                     _ = stop.changed() => {
@@ -850,7 +863,8 @@ impl ConsumerGroup {
         let cfg = self.cfg.clone();
         drop(tokio::spawn(async move {
             let mut conn: Option<BrokerConn> = None;
-            let mut tick = tokio::time::interval(Duration::from_millis(150));
+            let mut tick =
+                tokio::time::interval(cfg.heartbeat_interval.max(Duration::from_millis(1)));
             loop {
                 tokio::select! {
                     _ = stop.changed() => {

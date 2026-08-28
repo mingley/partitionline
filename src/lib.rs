@@ -133,7 +133,7 @@ pub use admin::{
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
-pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo};
+pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
 pub use net::TlsConfig;

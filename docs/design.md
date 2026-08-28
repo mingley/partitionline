@@ -41,7 +41,9 @@ Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
 offset (`Earliest` by default). `committed` is OffsetFetch for the current
-assignment.
+assignment. `commit_offsets` commits caller-chosen offsets.
+`ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
+JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.
