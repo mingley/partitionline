@@ -93,6 +93,8 @@
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
+//! [`Admin::remove_members_from_consumer_group`] is Java
+//! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -248,9 +250,9 @@ pub use admin::{
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     FeatureUpdate, FeatureUpdateResult, FencedProducer, GetTelemetrySubscriptionsResponse,
-    ListedConfigResource, ListedGroup, NewPartitions, NewTopic, OffsetDeleteResult,
+    ListedConfigResource, ListedGroup, MemberToRemove, NewPartitions, NewTopic, OffsetDeleteResult,
     OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse,
-    ReassignmentResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ReassignmentResult, RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
     TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,

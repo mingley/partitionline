@@ -75,16 +75,17 @@ use crate::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
-    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
-    OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER,
-    UPDATE_FEATURES,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
+    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE,
+    UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
-    decode_find_coordinator_response, decode_offset_commit_response, decode_offset_delete_response,
-    decode_offset_fetch_response, encode_find_coordinator_request_typed,
+    decode_find_coordinator_response, decode_leave_group_response_version,
+    decode_offset_commit_response, decode_offset_delete_response, decode_offset_fetch_response,
+    encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_request,
-    OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
+    LeaveGroupMember, OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
@@ -633,6 +634,48 @@ pub struct FencedProducer {
     pub producer_id: i64,
     /// Producer epoch after InitProducerId.
     pub epoch: i16,
+}
+
+/// One static member for [`Admin::remove_members_from_consumer_group`].
+///
+/// Java `MemberToRemove`. Identified by Kafka `group.instance.id` (KIP-345).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemberToRemove {
+    /// Kafka `group.instance.id`.
+    pub group_instance_id: String,
+}
+
+impl MemberToRemove {
+    /// Remove the static member with this `group.instance.id`.
+    #[must_use]
+    pub fn new(group_instance_id: impl Into<String>) -> Self {
+        Self {
+            group_instance_id: group_instance_id.into(),
+        }
+    }
+}
+
+impl From<&str> for MemberToRemove {
+    fn from(id: &str) -> Self {
+        Self::new(id)
+    }
+}
+
+impl From<String> for MemberToRemove {
+    fn from(id: String) -> Self {
+        Self::new(id)
+    }
+}
+
+/// Per-member result of [`Admin::remove_members_from_consumer_group`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemovedMember {
+    /// Kafka member id from the LeaveGroup response (empty when unknown).
+    pub member_id: String,
+    /// Kafka `group.instance.id`, when present.
+    pub group_instance_id: Option<String>,
+    /// Per-member error code (`0` is success).
+    pub error_code: i16,
 }
 
 /// Kafka admin client: topics, configs, ACLs, groups, and cluster operations.
@@ -3223,6 +3266,99 @@ impl Admin {
                 continue;
             }
             return Ok(results);
+        }
+    }
+
+    /// Remove static members from a consumer group (Java
+    /// `removeMembersFromConsumerGroup`).
+    ///
+    /// LeaveGroup v3 on the group coordinator (`FindCoordinator`
+    /// `key_type=0`) with a members array. Each [`MemberToRemove`] is a
+    /// `group.instance.id` (KIP-345); member id on the wire is empty.
+    /// Empty `members` returns an empty list. Coordinator load / move
+    /// errors refresh and retry.
+    pub async fn remove_members_from_consumer_group(
+        &mut self,
+        group_id: &str,
+        members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
+    ) -> Result<Vec<RemovedMember>> {
+        let members: Vec<LeaveGroupMember> = members
+            .into_iter()
+            .map(|m| {
+                let m = m.into();
+                LeaveGroupMember {
+                    member_id: String::new(),
+                    group_instance_id: Some(m.group_instance_id),
+                }
+            })
+            .collect();
+        if members.is_empty() {
+            return Ok(Vec::new());
+        }
+        let version = self
+            .versions
+            .get(&LEAVE_GROUP)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 3))
+            .ok_or_else(|| Error::Unsupported("broker does not support LeaveGroup v3".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let group_id = group_id.to_string();
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &group_id);
+            if stale {
+                let node = self.discover_group_coord(&group_id).await?;
+                self.group_coord = Some((group_id.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self.conns.get_mut(&node).ok_or_else(|| {
+                    Error::protocol("missing remove_members_from_consumer_group conn")
+                })?;
+                conn.roundtrip(
+                    LEAVE_GROUP,
+                    version,
+                    |buf| encode_leave_group_request_members(buf, version, &group_id, &members),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (err, results) = decode_leave_group_response_version(&mut body.clone(), version)?;
+            if error::coordinator_retriable(err) {
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            if err != 0 {
+                return Err(Error::broker(err, "LeaveGroup"));
+            }
+            return Ok(results
+                .into_iter()
+                .map(|m| RemovedMember {
+                    member_id: m.member_id,
+                    group_instance_id: m.group_instance_id,
+                    error_code: m.error_code,
+                })
+                .collect());
         }
     }
 

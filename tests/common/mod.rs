@@ -128,12 +128,14 @@ use partitionline::protocol::fetch::{
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
-    decode_leave_group_request, decode_offset_commit_request, decode_offset_delete_request,
-    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
-    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response,
+    decode_leave_group_request, decode_leave_group_request_version, decode_offset_commit_request,
+    decode_offset_delete_request, decode_offset_fetch_request, decode_sync_group_request,
+    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
+    encode_leave_group_response, encode_leave_group_response_version,
     encode_offset_commit_response, encode_offset_delete_response, encode_offset_fetch_response,
-    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, OffsetDeleteResult,
-    OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
+    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember,
+    LeaveGroupMemberResult, OffsetDeleteResult, OffsetPartition, OffsetTopic,
+    COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::encode_init_producer_id_response;
@@ -1851,7 +1853,7 @@ fn versions() -> ApiVersionsResponse {
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
-        (LEAVE_GROUP, 0, 2),
+        (LEAVE_GROUP, 0, 3),
         (CONSUMER_GROUP_HEARTBEAT, 0, 0),
         (CONSUMER_GROUP_DESCRIBE, 0, 1),
         (DESCRIBE_GROUPS, 0, 6),
@@ -1923,11 +1925,11 @@ fn versions() -> ApiVersionsResponse {
     }
 }
 
-fn encode_not_coordinator(api_key: i16, body: &mut BytesMut) {
+fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
     const NC: i16 = 16;
     match api_key {
         HEARTBEAT => encode_heartbeat_response(body, NC).unwrap(),
-        LEAVE_GROUP => encode_leave_group_response(body, NC).unwrap(),
+        LEAVE_GROUP => encode_leave_group_response_version(body, api_version, NC, &[]).unwrap(),
         JOIN_GROUP => encode_join_group_response(body, NC, -1, "", "", "", &[]).unwrap(),
         SYNC_GROUP => encode_sync_group_response(body, NC, &[]).unwrap(),
         OFFSET_COMMIT => encode_offset_commit_response(
@@ -2053,7 +2055,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.offset_delete_not_coordinator.saturating_add(1);
                 }
             }
-            encode_not_coordinator(header.api_key, &mut body);
+            encode_not_coordinator(header.api_key, header.api_version, &mut body);
             if write_frame(&mut stream, &body).await.is_err() {
                 break;
             }
@@ -3900,17 +3902,45 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_heartbeat_response(&mut body, err).unwrap();
             }
             LEAVE_GROUP => {
-                let (gid, member_id) = decode_leave_group_request(&mut frame).unwrap();
-                let mut st = state.lock();
-                if let Some(g) = st.groups.get_mut(&gid) {
-                    g.members.remove(&member_id);
-                    g.joined.remove(&member_id);
-                    g.generation += 1;
-                    g.joined.clear();
-                    g.assignments.clear();
+                if header.api_version >= 3 {
+                    let (gid, members) =
+                        decode_leave_group_request_version(&mut frame, header.api_version).unwrap();
+                    let mut st = state.lock();
+                    let results: Vec<LeaveGroupMemberResult> = members
+                        .into_iter()
+                        .map(|m| {
+                            if let Some(g) = st.groups.get_mut(&gid) {
+                                if !m.member_id.is_empty() {
+                                    g.members.remove(&m.member_id);
+                                    g.joined.remove(&m.member_id);
+                                }
+                                g.generation += 1;
+                                g.joined.clear();
+                                g.assignments.clear();
+                            }
+                            LeaveGroupMemberResult {
+                                member_id: m.member_id,
+                                group_instance_id: m.group_instance_id,
+                                error_code: 0,
+                            }
+                        })
+                        .collect();
+                    st.assign_notify.notify_waiters();
+                    encode_leave_group_response_version(&mut body, header.api_version, 0, &results)
+                        .unwrap();
+                } else {
+                    let (gid, member_id) = decode_leave_group_request(&mut frame).unwrap();
+                    let mut st = state.lock();
+                    if let Some(g) = st.groups.get_mut(&gid) {
+                        g.members.remove(&member_id);
+                        g.joined.remove(&member_id);
+                        g.generation += 1;
+                        g.joined.clear();
+                        g.assignments.clear();
+                    }
+                    st.assign_notify.notify_waiters();
+                    encode_leave_group_response(&mut body, 0).unwrap();
                 }
-                st.assign_notify.notify_waiters();
-                encode_leave_group_response(&mut body, 0).unwrap();
             }
             OFFSET_COMMIT => {
                 let (_g, _m, topics) = decode_offset_commit_request(&mut frame).unwrap();

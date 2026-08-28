@@ -13,9 +13,9 @@ mod common;
 use partitionline::{
     partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
     ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
-    NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer,
-    ProducerConfig, ProducerInterceptor, RecordMetadata, Sasl, ShareGroup, TopicPartition,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
+    Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, Sasl, ShareGroup,
+    TopicPartition, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2442,4 +2442,35 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     let empty = admin.fence_producers(Vec::<String>::new()).await.unwrap();
     assert!(empty.is_empty());
     admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_remove_members_from_consumer_group() {
+    let mock = common::Mock::start().await;
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("worker-rm"),
+        "g-rm",
+        "t",
+    )
+    .await
+    .unwrap();
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let removed = admin
+        .remove_members_from_consumer_group("g-rm", [MemberToRemove::new("worker-rm")])
+        .await
+        .unwrap();
+    assert_eq!(removed.len(), 1);
+    assert_eq!(removed[0].group_instance_id.as_deref(), Some("worker-rm"));
+    assert_eq!(removed[0].error_code, 0);
+    let empty = admin
+        .remove_members_from_consumer_group("g-rm", Vec::<MemberToRemove>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+    group.close().await.unwrap();
 }

@@ -4,7 +4,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// FindCoordinator `key_type` for a consumer group.
 pub const COORDINATOR_GROUP: i8 = 0;
@@ -274,7 +274,7 @@ pub fn decode_heartbeat_response<B: Buf>(buf: &mut B) -> Result<i16> {
     buf::get_i16(buf)
 }
 
-/// Encode LeaveGroup.
+/// Encode LeaveGroup v0 (group id + one member id).
 pub fn encode_leave_group_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -285,25 +285,151 @@ pub fn encode_leave_group_request(
     Ok(())
 }
 
-/// Decode LeaveGroup: `(group_id, member_id)`.
-pub fn decode_leave_group_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
-    let g = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let m = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    Ok((g, m))
+/// One member in LeaveGroup v3 (KIP-345).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaveGroupMember {
+    /// Kafka member id, or empty when removing by [`Self::group_instance_id`].
+    pub member_id: String,
+    /// Kafka `group.instance.id`, when present.
+    pub group_instance_id: Option<String>,
 }
 
-/// Encode LeaveGroup: throttle `0` plus error code.
+/// Per-member LeaveGroup v3 result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaveGroupMemberResult {
+    /// Kafka member id.
+    pub member_id: String,
+    /// Kafka `group.instance.id`, when present.
+    pub group_instance_id: Option<String>,
+    /// Per-member error code (`0` is success).
+    pub error_code: i16,
+}
+
+/// Encode LeaveGroup v3 members array (classic, not flexible v4).
+pub fn encode_leave_group_request_members(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    members: &[LeaveGroupMember],
+) -> crate::error::Result<()> {
+    if version < 3 {
+        return Err(Error::protocol("LeaveGroup members require version 3+"));
+    }
+    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    buf::put_array_len(buf, false, Some(members.len()))?;
+    for m in members {
+        buf::put_classic_nullable_string(buf, Some(&m.member_id))?;
+        buf::put_classic_nullable_string(buf, m.group_instance_id.as_deref())?;
+    }
+    Ok(())
+}
+
+/// Decode LeaveGroup: `(group_id, member_id)` (v0 body).
+pub fn decode_leave_group_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
+    let (g, members) = decode_leave_group_request_version(buf, 0)?;
+    Ok((
+        g,
+        members
+            .into_iter()
+            .next()
+            .map(|m| m.member_id)
+            .unwrap_or_default(),
+    ))
+}
+
+/// Decode LeaveGroup v0–v3: `(group_id, members)`.
+pub fn decode_leave_group_request_version<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, Vec<LeaveGroupMember>)> {
+    let group_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    if version >= 3 {
+        let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut members = Vec::with_capacity(n);
+        for _ in 0..n {
+            let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let group_instance_id = buf::get_classic_nullable_string(buf)?;
+            members.push(LeaveGroupMember {
+                member_id,
+                group_instance_id,
+            });
+        }
+        return Ok((group_id, members));
+    }
+    let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let group_instance_id = if version >= 2 {
+        buf::get_classic_nullable_string(buf)?
+    } else {
+        None
+    };
+    Ok((
+        group_id,
+        vec![LeaveGroupMember {
+            member_id,
+            group_instance_id,
+        }],
+    ))
+}
+
+/// Encode LeaveGroup v0: error code only.
 pub fn encode_leave_group_response(
     buf: &mut BytesMut,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    encode_leave_group_response_version(buf, 0, error_code, &[])
+}
+
+/// Encode LeaveGroup v0–v3. Throttle is `0` on v1+. Members are v3+.
+pub fn encode_leave_group_response_version(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    members: &[LeaveGroupMemberResult],
+) -> crate::error::Result<()> {
+    if version >= 1 {
+        buf.put_i32(0);
+    }
     buf.put_i16(error_code);
+    if version >= 3 {
+        buf::put_array_len(buf, false, Some(members.len()))?;
+        for m in members {
+            buf::put_classic_nullable_string(buf, Some(&m.member_id))?;
+            buf::put_classic_nullable_string(buf, m.group_instance_id.as_deref())?;
+            buf.put_i16(m.error_code);
+        }
+    }
     Ok(())
 }
 
-/// Decode LeaveGroup: error code.
+/// Decode LeaveGroup v0: error code.
 pub fn decode_leave_group_response<B: Buf>(buf: &mut B) -> Result<i16> {
-    buf::get_i16(buf)
+    Ok(decode_leave_group_response_version(buf, 0)?.0)
+}
+
+/// Decode LeaveGroup v0–v3: `(error_code, members)`. Members are empty below v3.
+pub fn decode_leave_group_response_version<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i16, Vec<LeaveGroupMemberResult>)> {
+    if version >= 1 {
+        let _throttle = buf::get_i32(buf)?;
+    }
+    let error_code = buf::get_i16(buf)?;
+    let mut members = Vec::new();
+    if version >= 3 {
+        let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+        for _ in 0..n {
+            let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let group_instance_id = buf::get_classic_nullable_string(buf)?;
+            let err = buf::get_i16(buf)?;
+            members.push(LeaveGroupMemberResult {
+                member_id,
+                group_instance_id,
+                error_code: err,
+            });
+        }
+    }
+    Ok((error_code, members))
 }
 
 /// One partition in OffsetCommit v7 / OffsetFetch v5.
@@ -1047,6 +1173,42 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "OffsetDelete v0 NOT_COORDINATOR must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn leave_group_v3_roundtrip_is_leftover_empty() {
+        let members = vec![LeaveGroupMember {
+            member_id: String::new(),
+            group_instance_id: Some("worker-1".into()),
+        }];
+        let mut buf = BytesMut::new();
+        encode_leave_group_request_members(&mut buf, 3, "g-rm", &members).unwrap();
+        let mut cur = &buf[..];
+        let (gid, got) = decode_leave_group_request_version(&mut cur, 3).unwrap();
+        assert_eq!(gid, "g-rm");
+        assert_eq!(got, members);
+        assert!(
+            cur.is_empty(),
+            "LeaveGroup v3 request leftover {} bytes",
+            cur.len()
+        );
+
+        let results = vec![LeaveGroupMemberResult {
+            member_id: String::new(),
+            group_instance_id: Some("worker-1".into()),
+            error_code: 0,
+        }];
+        buf.clear();
+        encode_leave_group_response_version(&mut buf, 3, 0, &results).unwrap();
+        let mut cur = &buf[..];
+        let (err, decoded) = decode_leave_group_response_version(&mut cur, 3).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(decoded, results);
+        assert!(
+            cur.is_empty(),
+            "LeaveGroup v3 response leftover {} bytes",
+            cur.len()
         );
     }
 }

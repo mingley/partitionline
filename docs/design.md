@@ -47,7 +47,9 @@ ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
 and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
 timestamp; returns `OffsetAndTimestamp`). `Admin::fence_producers` is Java
-`Admin.fenceProducers` (InitProducerId on the transaction coordinator). `assignment` is Java `assignment`
+`Admin.fenceProducers` (InitProducerId on the transaction coordinator).
+`Admin::remove_members_from_consumer_group` is Java
+`removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`). `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
