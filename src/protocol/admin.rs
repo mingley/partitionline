@@ -2788,6 +2788,208 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
     Ok(groups)
 }
 
+/// One member in a classic DescribeGroups (api 15) v6 group.
+///
+/// `group_instance_id` is v4+ (nullable). Metadata and assignment are
+/// protocol bytes, not a parsed member store.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedGroupMember {
+    pub member_id: String,
+    pub group_instance_id: Option<String>,
+    pub client_id: String,
+    pub client_host: String,
+    pub member_metadata: Vec<u8>,
+    pub member_assignment: Vec<u8>,
+}
+
+impl DescribedGroupMember {
+    pub fn new(
+        member_id: impl Into<String>,
+        client_id: impl Into<String>,
+        client_host: impl Into<String>,
+    ) -> Self {
+        Self {
+            member_id: member_id.into(),
+            group_instance_id: None,
+            client_id: client_id.into(),
+            client_host: client_host.into(),
+            member_metadata: Vec::new(),
+            member_assignment: Vec::new(),
+        }
+    }
+}
+
+/// One described group in DescribeGroups (api 15) v6.
+///
+/// ErrorCode sits here, not at the top of the response body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedGroup {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub group_id: String,
+    pub group_state: String,
+    pub protocol_type: String,
+    pub protocol_data: String,
+    pub members: Vec<DescribedGroupMember>,
+    pub authorized_operations: i32,
+}
+
+impl DescribedGroup {
+    pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            group_id: group_id.into(),
+            group_state: String::new(),
+            protocol_type: String::new(),
+            protocol_data: String::new(),
+            members: Vec::new(),
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
+}
+
+/// DescribeGroups v6 (classic through v4; flexible from v5; KIP-1043).
+///
+/// Official Apache JSON (`apiKey: 15`, request `listeners: ["broker"]`,
+/// `validVersions: "0-6"`, `flexibleVersions: "5+"`) and
+/// kafka-protocol 0.18.0 (`DescribeGroupsRequest` /
+/// `DescribeGroupsResponse`, `VERSIONS` min=0 max=6). This crate
+/// targets v6, the version a client encodes (`VERSIONS.max`). Request
+/// encode used `features = ["client"]`; response encode used `broker`.
+/// Request: compact `Groups`, `IncludeAuthorizedOperations` BOOLEAN
+/// (v3+), tagged. Response: `ThrottleTimeMs` INT32 (v1+), compact
+/// `Groups` of `{ErrorCode INT16, compact nullable ErrorMessage (v6+),
+/// GroupId, GroupState, ProtocolType, ProtocolData, compact Members of
+/// {MemberId, compact nullable GroupInstanceId (v4+), ClientId,
+/// ClientHost, compact MemberMetadata BYTES, compact MemberAssignment
+/// BYTES, tagged}, AuthorizedOperations INT32 (v3+), tagged}`, tagged.
+/// **ErrorCode is per-group**, the first field of each DescribedGroup
+/// — not a top-level code after throttle. Measured independently on
+/// leftover-empty fixture group `"g"`: the first-group ErrorCode is
+/// the INT16 at **bytes 5–6**, after throttle and the compact groups
+/// length — not bytes 4–5 (DescribeClientQuotas) or 5–6 assumed from
+/// ConsumerGroupDescribe or 12–13 (DescribeProducers first
+/// partition). Official listed per-group errors include
+/// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
+/// (15), `NOT_COORDINATOR` (16), `AUTHORIZATION_FAILED` (29);
+/// version 6 also returns `GROUP_ID_NOT_FOUND`. This is a
+/// group-coordinator hop, not a controller hop and not a
+/// partition-leader hop.
+pub fn encode_describe_groups_request(
+    buf: &mut BytesMut,
+    group_ids: &[String],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    for id in group_ids {
+        buf::put_compact_string(buf, Some(id))?;
+    }
+    buf.put_u8(u8::from(include_authorized_operations));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut group_ids = Vec::with_capacity(n);
+    for _ in 0..n {
+        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let include_authorized_operations = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((group_ids, include_authorized_operations))
+}
+
+fn encode_described_group_member(
+    buf: &mut BytesMut,
+    member: &DescribedGroupMember,
+) -> crate::error::Result<()> {
+    buf::put_compact_string(buf, Some(&member.member_id))?;
+    buf::put_compact_string(buf, member.group_instance_id.as_deref())?;
+    buf::put_compact_string(buf, Some(&member.client_id))?;
+    buf::put_compact_string(buf, Some(&member.client_host))?;
+    buf::put_compact_bytes(buf, Some(&member.member_metadata))?;
+    buf::put_compact_bytes(buf, Some(&member.member_assignment))?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn decode_described_group_member<B: Buf>(buf: &mut B) -> Result<DescribedGroupMember> {
+    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let group_instance_id = buf::get_compact_string(buf)?;
+    let client_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let client_host = buf::get_compact_string(buf)?.unwrap_or_default();
+    let member_metadata = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    let member_assignment = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribedGroupMember {
+        member_id,
+        group_instance_id,
+        client_id,
+        client_host,
+        member_metadata,
+        member_assignment,
+    })
+}
+
+pub fn encode_describe_groups_response(
+    buf: &mut BytesMut,
+    groups: &[DescribedGroup],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        buf.put_i16(g.error_code);
+        buf::put_compact_string(buf, g.error_message.as_deref())?;
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_compact_string(buf, Some(&g.group_state))?;
+        buf::put_compact_string(buf, Some(&g.protocol_type))?;
+        buf::put_compact_string(buf, Some(&g.protocol_data))?;
+        buf::put_array_len(buf, true, Some(g.members.len()))?;
+        for m in &g.members {
+            encode_described_group_member(buf, m)?;
+        }
+        buf.put_i32(g.authorized_operations);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DescribedGroup>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let protocol_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        let protocol_data = buf::get_compact_string(buf)?.unwrap_or_default();
+        let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut members = Vec::with_capacity(mn);
+        for _ in 0..mn {
+            members.push(decode_described_group_member(buf)?);
+        }
+        let authorized_operations = buf::get_i32(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedGroup {
+            error_code,
+            error_message,
+            group_id,
+            group_state,
+            protocol_type,
+            protocol_data,
+            members,
+            authorized_operations,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(groups)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4459,6 +4661,109 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ConsumerGroupDescribe v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_groups_v6_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 15
+        // validVersions 0-6, flexibleVersions 5+, listeners broker only.
+        // This crate targets v6. Not copied from DescribeClientQuotas
+        // (top-level ErrorCode at bytes 4-5), ConsumerGroupDescribe
+        // (first-group ErrorCode at bytes 5-6), or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x01, 0x01, 0x01,
+            0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_request(&mut buf, &ids, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
+        buf.clear();
+        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn describe_groups_v6_roundtrip_is_leftover_empty() {
+        let ids = vec!["g".to_string(), "g2".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_request(&mut buf, &ids, true).unwrap();
+        let mut cur = &buf[..];
+        let (got, include) = decode_describe_groups_request(&mut cur).unwrap();
+        assert_eq!(got, ids);
+        assert!(include);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v6 request must be leftover-empty"
+        );
+
+        let mut member = DescribedGroupMember::new("m1", "c", "h");
+        member.group_instance_id = Some("i1".into());
+        member.member_metadata = vec![0x01];
+        member.member_assignment = vec![0x02];
+        let resp = vec![DescribedGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "g".into(),
+            group_state: "Stable".into(),
+            protocol_type: "consumer".into(),
+            protocol_data: "range".into(),
+            members: vec![member],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        buf.clear();
+        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v6 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_groups_first_group_error_code_is_at_bytes_5_6() {
+        // Official v6 body: throttle INT32, compact Groups of
+        // {ErrorCode, ...}. Measured independently from Apache
+        // DescribeGroupsResponse.json and a kafka-protocol 0.18.0
+        // broker encode (`features = ["broker"]`) on leftover-empty
+        // fixture group "g". Do not assume bytes 4-5 from
+        // DescribeClientQuotas, bytes 5-6 from ConsumerGroupDescribe,
+        // or bytes 12-13 from DescribeProducers.
+        let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v6 first-group ErrorCode must be the INT16 at bytes 5-6"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5b = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5b]),
+            crate::error::NOT_COORDINATOR,
+            "v6 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::NOT_COORDINATOR,
+            "v6 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v6 ErrorCode body must be leftover-empty"
         );
     }
 }
