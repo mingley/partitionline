@@ -20,7 +20,7 @@
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
-//! plus produce-ack latency min/mean/max.
+//! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples).
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
 //!
 //! # Fetch
@@ -160,7 +160,7 @@ pub mod error;
 pub mod group;
 /// Produce and fetch interceptors.
 pub mod interceptor;
-/// Client counters and latency min/mean/max: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
+/// Client counters and latency min/mean/max plus p50/p99: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;

@@ -926,7 +926,7 @@ impl Producer {
         Ok(())
     }
 
-    /// Produce counters and ack latency since connect.
+    /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
     #[must_use]
     pub fn metrics(&self) -> crate::ProducerMetrics {
         crate::ProducerMetrics {

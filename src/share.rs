@@ -287,7 +287,8 @@ impl ShareGroup {
         self.consumer.list_topics().await
     }
 
-    /// ShareFetch / ShareAcknowledge counters and poll latency since join.
+    /// ShareFetch / ShareAcknowledge counters and poll latency since join
+    /// (min/mean/max and p50/p99).
     #[must_use]
     pub fn metrics(&self) -> crate::ShareMetrics {
         crate::ShareMetrics {

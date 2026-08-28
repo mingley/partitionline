@@ -75,7 +75,7 @@ several topics. Set `group.instance.id` with
 committed offset (`Earliest` by default, unlike Java's `latest`).
 `auto_commit(true)` commits after poll (off by default).
 `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots
-plus latency min/mean/max (produce-ack / fetch round).
+plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round).
 `client_instance_id` is Java `clientInstanceId` (KIP-714) on producer, consumer, group, share, and admin.
 `max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes);
 the heartbeat thread leaves the group if it is exceeded.

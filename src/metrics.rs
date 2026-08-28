@@ -1,12 +1,16 @@
-//! Client counters and latency min / mean / max. Snapshots, not histograms.
+//! Client counters and latency stats. Snapshots, not HDR histograms.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
+/// Sliding window for [`LatencyStats::p50_nanos`] / [`LatencyStats::p99_nanos`].
+const LATENCY_WINDOW: usize = 1024;
+
 /// Produce-ack or fetch-round latency since connect (nanoseconds).
 ///
-/// `min_nanos` / `max_nanos` are `0` when [`Self::count`] is `0`. This is not
-/// a percentile histogram.
+/// `min_nanos` / `max_nanos` / `p50_nanos` / `p99_nanos` are `0` when
+/// [`Self::count`] is `0`. Percentiles are the last 1024 samples (not a
+/// lifetime HDR histogram, not per-topic).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LatencyStats {
     /// Samples recorded.
@@ -17,6 +21,10 @@ pub struct LatencyStats {
     pub min_nanos: u64,
     /// Longest sample in nanoseconds.
     pub max_nanos: u64,
+    /// Approximate p50 of the last 1024 samples.
+    pub p50_nanos: u64,
+    /// Approximate p99 of the last 1024 samples.
+    pub p99_nanos: u64,
 }
 
 impl LatencyStats {
@@ -27,20 +35,47 @@ impl LatencyStats {
     }
 }
 
+/// Nearest-rank percentile: `ceil(p/100 * n) - 1`.
+fn percentile_index(n: usize, p: u32) -> usize {
+    if n == 0 {
+        return 0;
+    }
+    let rank = (n * p as usize).div_ceil(100).max(1);
+    rank.min(n) - 1
+}
+
+fn percentile(sorted: &[u64], p: u32) -> u64 {
+    if sorted.is_empty() {
+        return 0;
+    }
+    sorted
+        .get(percentile_index(sorted.len(), p))
+        .copied()
+        .unwrap_or(0)
+}
+
 pub(crate) struct LatencyTracker {
     count: AtomicU64,
     sum_nanos: AtomicU64,
     min_nanos: AtomicU64,
     max_nanos: AtomicU64,
+    idx: AtomicU64,
+    samples: Box<[AtomicU64]>,
 }
 
 impl LatencyTracker {
     pub(crate) fn new() -> Self {
+        let samples = (0..LATENCY_WINDOW)
+            .map(|_| AtomicU64::new(0))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         Self {
             count: AtomicU64::new(0),
             sum_nanos: AtomicU64::new(0),
             min_nanos: AtomicU64::new(u64::MAX),
             max_nanos: AtomicU64::new(0),
+            idx: AtomicU64::new(0),
+            samples,
         }
     }
 
@@ -48,6 +83,12 @@ impl LatencyTracker {
         let ns = u64::try_from(d.as_nanos()).unwrap_or(u64::MAX);
         let _ = self.count.fetch_add(1, Ordering::Relaxed);
         let _ = self.sum_nanos.fetch_add(ns, Ordering::Relaxed);
+        let slot =
+            usize::try_from(self.idx.fetch_add(1, Ordering::Relaxed) % LATENCY_WINDOW as u64)
+                .unwrap_or(0);
+        if let Some(slot) = self.samples.get(slot) {
+            slot.store(ns, Ordering::Relaxed);
+        }
         let mut cur = self.min_nanos.load(Ordering::Relaxed);
         while ns < cur {
             match self.min_nanos.compare_exchange_weak(
@@ -74,14 +115,44 @@ impl LatencyTracker {
         }
     }
 
+    fn window(&self) -> Vec<u64> {
+        let count = self.count.load(Ordering::Relaxed);
+        let n = usize::try_from(count.min(LATENCY_WINDOW as u64)).unwrap_or(LATENCY_WINDOW);
+        if n == 0 {
+            return Vec::new();
+        }
+        let mut v = Vec::with_capacity(n);
+        if count <= LATENCY_WINDOW as u64 {
+            for sample in self.samples.iter().take(n) {
+                v.push(sample.load(Ordering::Relaxed));
+            }
+        } else {
+            let start = usize::try_from(self.idx.load(Ordering::Relaxed) % LATENCY_WINDOW as u64)
+                .unwrap_or(0);
+            for k in 0..LATENCY_WINDOW {
+                let ns = self
+                    .samples
+                    .get((start + k) % LATENCY_WINDOW)
+                    .map(|s| s.load(Ordering::Relaxed))
+                    .unwrap_or(0);
+                v.push(ns);
+            }
+        }
+        v
+    }
+
     pub(crate) fn snapshot(&self) -> LatencyStats {
         let count = self.count.load(Ordering::Relaxed);
         let min = self.min_nanos.load(Ordering::Relaxed);
+        let mut window = self.window();
+        window.sort_unstable();
         LatencyStats {
             count,
             sum_nanos: self.sum_nanos.load(Ordering::Relaxed),
             min_nanos: if count == 0 { 0 } else { min },
             max_nanos: self.max_nanos.load(Ordering::Relaxed),
+            p50_nanos: percentile(&window, 50),
+            p99_nanos: percentile(&window, 99),
         }
     }
 }
@@ -142,6 +213,8 @@ mod tests {
     fn metrics_default_zero() {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ProducerMetrics::default().ack_latency.count, 0);
+        assert_eq!(ProducerMetrics::default().ack_latency.p50_nanos, 0);
+        assert_eq!(ProducerMetrics::default().ack_latency.p99_nanos, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ConsumerMetrics::default().fetch_latency.count, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
@@ -164,5 +237,29 @@ mod tests {
         assert_eq!(s.max_nanos, 30);
         assert_eq!(s.sum_nanos, 60);
         assert_eq!(s.mean_nanos(), Some(20));
+        assert_eq!(s.p50_nanos, 20);
+        assert_eq!(s.p99_nanos, 30);
+        assert!(s.p50_nanos <= s.p99_nanos);
+    }
+
+    #[test]
+    fn latency_tracker_p50_p99_of_one_to_hundred() {
+        let t = LatencyTracker::new();
+        for ns in 1..=100 {
+            t.record(Duration::from_nanos(ns));
+        }
+        let s = t.snapshot();
+        assert_eq!(s.p50_nanos, 50);
+        assert_eq!(s.p99_nanos, 99);
+        assert_eq!(s.min_nanos, 1);
+        assert_eq!(s.max_nanos, 100);
+    }
+
+    #[test]
+    fn percentile_index_ceil_rank() {
+        assert_eq!(percentile_index(1, 50), 0);
+        assert_eq!(percentile_index(3, 99), 2);
+        assert_eq!(percentile_index(100, 50), 49);
+        assert_eq!(percentile_index(100, 99), 98);
     }
 }

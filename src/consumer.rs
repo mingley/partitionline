@@ -1349,7 +1349,7 @@ impl Consumer {
         out
     }
 
-    /// Fetch counters and round latency since connect.
+    /// Fetch counters and round latency since connect (min/mean/max and p50/p99).
     #[must_use]
     pub fn metrics(&self) -> crate::ConsumerMetrics {
         crate::ConsumerMetrics {

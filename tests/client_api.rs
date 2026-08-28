@@ -930,6 +930,8 @@ async fn producer_and_consumer_metrics() {
     assert_eq!(pm.ack_latency.count, 2);
     assert!(pm.ack_latency.max_nanos >= pm.ack_latency.min_nanos);
     assert!(pm.ack_latency.mean_nanos().is_some());
+    assert!(pm.ack_latency.p50_nanos <= pm.ack_latency.p99_nanos);
+    assert!(pm.ack_latency.p99_nanos <= pm.ack_latency.max_nanos);
     producer.close().await.unwrap();
 
     let mut consumer =
