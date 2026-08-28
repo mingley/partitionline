@@ -94,8 +94,13 @@ pub struct ConsumerConfig {
     pub max_wait_ms: i32,
     /// `fetch.min.bytes`.
     pub min_bytes: i32,
-    /// `fetch.max.bytes` / `max.partition.fetch.bytes`. Default 16 MiB.
+    /// Kafka `fetch.max.bytes`. Default 16 MiB. [`Self::max_bytes()`] sets
+    /// this and [`Self::max_partition_fetch_bytes`] together.
     pub max_bytes: i32,
+    /// Kafka `max.partition.fetch.bytes`. Default 16 MiB (Java defaults to
+    /// 1 MiB). Independent of [`Self::max_bytes`] unless set via
+    /// [`Self::max_bytes()`].
+    pub max_partition_fetch_bytes: i32,
     /// Kafka `isolation.level`.
     pub isolation_level: crate::IsolationLevel,
     /// Client rack for fetch-from-follower (KIP-392). Empty means leader only.
@@ -174,6 +179,7 @@ impl Default for ConsumerConfig {
             max_wait_ms: 500,
             min_bytes: 1,
             max_bytes: 16_777_216,
+            max_partition_fetch_bytes: 16_777_216,
             isolation_level: crate::IsolationLevel::ReadUncommitted,
             rack: None,
             group_instance_id: None,
@@ -227,11 +233,29 @@ impl ConsumerConfig {
         self
     }
 
-    /// Cap for the Fetch request and each partition (`fetch.max.bytes` /
-    /// `max.partition.fetch.bytes`). Default 16 MiB.
+    /// Kafka `fetch.max.bytes` and `max.partition.fetch.bytes` (same value).
+    ///
+    /// Default 16 MiB for both. Java defaults are 50 MiB / 1 MiB. For
+    /// independent caps, use [`Self::fetch_max_bytes`] and
+    /// [`Self::max_partition_fetch_bytes`].
     #[must_use]
     pub fn max_bytes(mut self, n: i32) -> Self {
         self.max_bytes = n;
+        self.max_partition_fetch_bytes = n;
+        self
+    }
+
+    /// Kafka `fetch.max.bytes` only (request-level Fetch cap).
+    #[must_use]
+    pub fn fetch_max_bytes(mut self, n: i32) -> Self {
+        self.max_bytes = n;
+        self
+    }
+
+    /// Kafka `max.partition.fetch.bytes` only (per-partition Fetch cap).
+    #[must_use]
+    pub fn max_partition_fetch_bytes(mut self, n: i32) -> Self {
+        self.max_partition_fetch_bytes = n;
         self
     }
 
@@ -1720,7 +1744,7 @@ impl Consumer {
                                 partition: *part,
                                 current_leader_epoch: self.cluster.leader_epoch(topic, *part),
                                 fetch_offset: *offset,
-                                partition_max_bytes: self.cfg.max_bytes,
+                                partition_max_bytes: self.cfg.max_partition_fetch_bytes,
                             });
                     }
                     None => {

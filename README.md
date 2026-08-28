@@ -48,7 +48,10 @@ let recs = consumer.fetch().await?;
 `seek_to_beginning` / `seek_to_end` / `seek_to_beginning_of` /
 `seek_to_end_of` move the next fetch offset. `pause` /
 `resume` skip partitions without dropping the assignment. `fetch` talks to every
-partition leader at once when there is more than one. `partitions_for`
+partition leader at once when there is more than one.
+`ConsumerConfig::max_bytes` sets both `fetch.max.bytes` and
+`max.partition.fetch.bytes`; `fetch_max_bytes` / `max_partition_fetch_bytes`
+set them independently. `partitions_for`
 returns Metadata (leader, replicas, ISR, offline replicas, leader epoch) on both `Consumer` and
 `Producer`. `beginning_offsets` / `end_offsets` take `TopicPartition`.
 `list_offset` is ListOffsets for one partition.

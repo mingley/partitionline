@@ -95,12 +95,12 @@ pub fn encode_fetch_request(
     Ok(())
 }
 
-/// Decode Fetch v11: `(isolation_level, topics, rack_id)`.
-pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>, String)> {
+/// Decode Fetch v11: `(isolation_level, max_bytes, topics, rack_id)`.
+pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, i32, Vec<FetchTopic>, String)> {
     let _replica = buf::get_i32(buf)?;
     let _max_wait = buf::get_i32(buf)?;
     let _min_bytes = buf::get_i32(buf)?;
-    let _max_bytes = buf::get_i32(buf)?;
+    let max_bytes = buf::get_i32(buf)?;
     let isolation = buf::get_i8(buf)?;
     let _session_id = buf::get_i32(buf)?;
     let _session_epoch = buf::get_i32(buf)?;
@@ -134,7 +134,7 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, Vec<FetchTopic>,
         }
     }
     let rack = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    Ok((isolation, topics, rack))
+    Ok((isolation, max_bytes, topics, rack))
 }
 
 /// Encode a Fetch v11 response (throttle `0`, session `0`).
@@ -241,10 +241,12 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, None).unwrap();
-        let (iso, decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
+        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
         assert_eq!(iso, 0);
+        assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
+        assert_eq!(decoded[0].partitions[0].partition_max_bytes, 1024);
         assert!(rack.is_empty());
     }
 
@@ -282,7 +284,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, Some("az1")).unwrap();
-        let (_iso, _decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
+        let (_iso, _max_bytes, _decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
         assert_eq!(rack, "az1");
     }
 

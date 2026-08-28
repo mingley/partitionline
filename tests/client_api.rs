@@ -243,6 +243,12 @@ fn config_builders_set_typed_knobs() {
         .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
     assert_eq!(c.max_bytes, 1024);
+    assert_eq!(c.max_partition_fetch_bytes, 1024);
+    let split = ConsumerConfig::bootstrap(["127.0.0.1:9092"])
+        .fetch_max_bytes(4096)
+        .max_partition_fetch_bytes(512);
+    assert_eq!(split.max_bytes, 4096);
+    assert_eq!(split.max_partition_fetch_bytes, 512);
     assert_eq!(c.rack.as_deref(), Some("az1"));
     assert_eq!(c.group_instance_id.as_deref(), Some("worker-1"));
     assert_eq!(c.auto_offset_reset, AutoOffsetReset::Latest);

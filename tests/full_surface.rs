@@ -1016,6 +1016,35 @@ async fn list_offsets_seek_and_read_committed_isolation() {
 }
 
 #[tokio::test]
+async fn fetch_sends_split_max_bytes() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .fetch_max_bytes(4096)
+            .max_partition_fetch_bytes(2048),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(mock.last_fetch_max_bytes(), 4096);
+    assert_eq!(mock.last_fetch_partition_max_bytes(), 2048);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_sends_current_leader_epoch() {
     let mock = common::Mock::start().await;
     let bumped = mock.bump_leader_epoch("t", 0);

@@ -51,6 +51,9 @@ timestamp; returns `OffsetAndTimestamp`). `Admin::fence_producers` is Java
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
+`fetch.max.bytes` (`ConsumerConfig::max_bytes` / `fetch_max_bytes`) and
+`max.partition.fetch.bytes` (`max_partition_fetch_bytes`) are independent;
+`max_bytes()` sets both (default 16 MiB each; Java is 50 MiB / 1 MiB).
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 `join_topics` (range), `join_sticky_topics`, `join_cooperative_sticky_topics`,

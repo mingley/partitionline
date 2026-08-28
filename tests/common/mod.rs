@@ -326,6 +326,8 @@ struct State {
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
     last_fetch_rack: String,
+    last_fetch_max_bytes: i32,
+    last_fetch_partition_max_bytes: i32,
     last_group_instance_id: Option<String>,
     last_group_rack: Option<String>,
     in_txn: bool,
@@ -540,6 +542,8 @@ fn new_state(
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
         last_fetch_rack: String::new(),
+        last_fetch_max_bytes: 0,
+        last_fetch_partition_max_bytes: 0,
         last_group_instance_id: None,
         last_group_rack: None,
         in_txn: false,
@@ -1015,6 +1019,14 @@ impl Mock {
 
     pub fn last_fetch_rack(&self) -> String {
         self.state.lock().last_fetch_rack.clone()
+    }
+
+    pub fn last_fetch_max_bytes(&self) -> i32 {
+        self.state.lock().last_fetch_max_bytes
+    }
+
+    pub fn last_fetch_partition_max_bytes(&self) -> i32 {
+        self.state.lock().last_fetch_partition_max_bytes
     }
 
     pub fn last_group_instance_id(&self) -> Option<String> {
@@ -3223,10 +3235,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
-                let (iso, req, rack) = decode_fetch_request(&mut frame).unwrap();
+                let (iso, max_bytes, req, rack) = decode_fetch_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.last_fetch_isolation = iso;
                 st.last_fetch_rack = rack.clone();
+                st.last_fetch_max_bytes = max_bytes;
+                st.last_fetch_partition_max_bytes = req
+                    .first()
+                    .and_then(|t| t.partitions.first())
+                    .map(|p| p.partition_max_bytes)
+                    .unwrap_or(0);
                 let mut topics = Vec::new();
                 for t in req {
                     let mut parts = Vec::new();
