@@ -3,8 +3,9 @@
 Produce is acked records/second (Lab A vs librdkafka 2.15.0 C). Fetch is
 consumed records/second from a topic this crate already filled. The signed
 produce tables below are Lab A. The fetch writeup is **this-VM 2026-08-28,
-unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). End-to-end latency was
-**not measured**. Suite HOLD: [STATUS.md](STATUS.md).
+unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). Produce-ack and fetch-request
+latency is **this-VM 2026-08-28, unsigned** (same rust-rdkafka 0.39.0, not
+C 2.15.0, not Lab A). Suite HOLD: [STATUS.md](STATUS.md).
 
 ## Methodology
 
@@ -350,7 +351,8 @@ partitionline was higher on every run (about 1.6× the C median).
 ## Fetch
 
 Fetch is consumed records/second from a topic this crate already filled.
-End-to-end latency was **not measured**. Do not start it.
+Produce-ack / fetch-request latency is a separate writeup later in this
+file. Do not copy those microseconds into this throughput table.
 
 A mock-broker e2e is not a fetch vs-C win. This writeup is the run executed
 on the recording agent, labeled as that run. It is **unsigned** until
@@ -460,3 +462,120 @@ Load HW was **8,000,000** before each pair. Both consumers read the same log.
 | 2 | 4,371,067 | 8,000,000 | 3,119,810 | 8,000,000 |
 | 3 | 4,781,168 | 8,000,000 | 3,180,308 | 8,000,000 |
 | **median** | **4,381,010** | 8,000,000 | **3,119,810** | 8,000,000 |
+
+## Latency
+
+This is **not** the produce or fetch throughput tables above. It is
+sequential produce-ack and already-on-log fetch-request latency, p50/p99
+in microseconds. A mock-broker e2e is not a latency win. This writeup is
+the run executed on the recording agent, labeled as that run. It is
+**unsigned** until Kernel Integrity signs. Suite HOLD stands. See
+[STATUS.md](STATUS.md).
+
+`rdkafka_performance` C 2.15.0 was **not** present on this VM and was
+**not** run. Do not copy Lab A C numbers into this table. Do not treat
+the historical 4.38M vs 3.12M Lab A fetch-vs-C row as this writeup.
+
+### 2026-08-28 this-VM (unsigned)
+
+Sequential `Producer::send` (enqueue to Produce ack) vs rust-rdkafka
+**0.39.0** `FutureProducer::send`. Linger **0**, `acks=1`, 100 B payload,
+1 partition, RF=1, one in-flight. Warmup 1,000 then 10,000 timed sends.
+After each partitionline produce, `Consumer::fetch` from offset 0 until
+at least 10,000 records, timing every non-empty fetch (`max_bytes=4096`,
+`min_bytes=1`, `max_wait_ms=100`). rust-rdkafka fetch latency was **not**
+measured: `BaseConsumer::poll` returns one record from an internal queue
+and is not a Fetch RPC. This crate stays pure Rust (no rdkafka dep, no
+C/FFI).
+
+Percentile is nearest-rank on the sorted sample vector: index
+`ceil(n * p / 100) - 1` (same as `examples/bench_latency.rs`).
+
+| | |
+|---|---|
+| Date | 2026-08-28 |
+| Host | Linux 6.12.94+ x86_64, 4 vCPU Intel Xeon, 15 GiB RAM |
+| Broker | Apache Kafka **3.9.1** KRaft (`kafka_2.13-3.9.1`, not Docker) on `127.0.0.1:9092` |
+| This crate | `cargo +1.85 run --release --example bench_latency` (`lto = thin`, rustc 1.85.1) |
+| Other client | rust-rdkafka **0.39.0** (`rdkafka-sys` 4.10.0+2.12.1, `cmake-build` + `tokio`, bundled librdkafka **2.12.1**) standalone `FutureProducer` |
+| Integrity | **unsigned** |
+
+Lock these on **both** producers:
+
+| Knob | Value |
+|---|---|
+| Timed messages | 10,000 |
+| Warmup | 1,000 (not in the percentile set) |
+| Payload | 100 bytes |
+| `acks` | 1 |
+| `linger.ms` | 0 |
+| `batch.num.messages` / `batch_records` | 1 |
+| In-flight / connections | 1 |
+| Topic | `pllat`, 1 partition, replication 1 |
+| Fresh topic | yes, delete+create before each client run |
+
+Completeness: every timed `send` returned a Produce ack (10,000 samples).
+High watermark after each client run was **11,000** (1,000 warmup + 10,000
+timed). Fetch consumed **10,008** on every partitionline run (last fetch
+returned 8 extra records past the 10,000 stop).
+
+| Run | partitionline p50 µs | partitionline p99 µs | rdkafka 0.39.0 p50 µs | rdkafka 0.39.0 p99 µs | HW |
+|---|---|---|---|---|---|
+| 1 | 77 | 216 | 53 | 86 | 11,000 |
+| 2 | 56 | 85 | 60 | 90 | 11,000 |
+| 3 | 62 | 95 | 58 | 95 | 11,000 |
+| **median** | **62** | **95** | **58** | **90** | 11,000 |
+
+Median is the middle run of each column, not a mean. partitionline
+produce-ack was **not** lower than rust-rdkafka 0.39.0 on this VM (p50
+median 62 vs 58; p99 median 95 vs 90). That is not a same-hardware win.
+It is **not** signed. It is **not** a vs-C 2.15.0 claim. It is **not** a
+Suite HOLD lift. Do not say “faster than librdkafka”.
+
+Exact JSON from the three pairs (do not invent other digits):
+
+```
+{"kind":"produce_ack","samples":10000,"p50_us":77,"p99_us":216,"min_us":44,"max_us":2651,"mean_us":86,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
+{"kind":"fetch_rpc","samples":417,"p50_us":245,"p99_us":1979,"min_us":120,"max_us":3443,"mean_us":323,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
+{"kind":"produce_ack","samples":10000,"p50_us":53,"p99_us":86,"min_us":46,"max_us":8473,"mean_us":57,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
+{"kind":"produce_ack","samples":10000,"p50_us":56,"p99_us":85,"min_us":46,"max_us":2490,"mean_us":58,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
+{"kind":"fetch_rpc","samples":417,"p50_us":121,"p99_us":751,"min_us":84,"max_us":4208,"mean_us":159,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
+{"kind":"produce_ack","samples":10000,"p50_us":60,"p99_us":90,"min_us":47,"max_us":5757,"mean_us":62,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
+{"kind":"produce_ack","samples":10000,"p50_us":62,"p99_us":95,"min_us":50,"max_us":1767,"mean_us":63,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"partitionline"}
+{"kind":"fetch_rpc","samples":417,"p50_us":108,"p99_us":422,"min_us":62,"max_us":4326,"mean_us":132,"consumed":10008,"max_wait_ms":100,"max_bytes":4096,"min_bytes":1,"client":"partitionline"}
+{"kind":"produce_ack","samples":10000,"p50_us":58,"p99_us":95,"min_us":48,"max_us":3663,"mean_us":60,"payload_bytes":100,"acks":1,"linger_ms":0,"client":"rdkafka-0.39.0"}
+```
+
+Fetch-request (partitionline only; not vs rdkafka):
+
+| Run | samples | p50 µs | p99 µs | consumed |
+|---|---|---|---|---|
+| 1 | 417 | 245 | 1,979 | 10,008 |
+| 2 | 417 | 121 | 751 | 10,008 |
+| 3 | 417 | 108 | 422 | 10,008 |
+| **median** | 417 | **121** | **751** | 10,008 |
+
+No new admin API. ElectLeaders / DescribeLogDirs v5 / DescribeQuorum /
+raft voters stay closed.
+
+#### Reproduce
+
+partitionline:
+
+```
+COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
+  MAX_WAIT_MS=100 MAX_BYTES=4096 MIN_BYTES=1 MODE=both KAFKA_TOPIC=pllat \
+  cargo +1.85 run --release --example bench_latency
+```
+
+rust-rdkafka 0.39.0 (standalone crate, **not** a dependency of this
+package; `default-features = false`, `features = ["cmake-build", "tokio"]`):
+
+```
+COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
+  KAFKA_TOPIC=pllat KAFKA_BOOTSTRAP=127.0.0.1:9092 \
+  ./rdkafka-latency-bench
+```
+
+`rdkafka_performance` C 2.15.0 was **not** present on this VM and was
+**not** run. Do not copy Lab A C numbers into this table.

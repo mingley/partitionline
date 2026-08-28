@@ -23,8 +23,8 @@ Kerberos (both blocked on C libraries in default features), Schema Registry.
 Full list: [docs/gaps.md](docs/gaps.md).
 
 Locked produce vs librdkafka 2.15.0 C is Lab A (broker high watermark
-equals records sent). Latency was not measured. Numbers:
-[docs/benchmark.md](docs/benchmark.md). Suite HOLD:
+equals records sent). Latency writeup is this-VM 2026-08-28, **unsigned**.
+Numbers: [docs/benchmark.md](docs/benchmark.md). Suite HOLD:
 [docs/STATUS.md](docs/STATUS.md).
 
 | Locked 8e6 × 100B produce (Lab A) | partitionline median | C 2.15.0 median |
@@ -47,6 +47,18 @@ equals sent, HW 8e6). Comparison is rust-rdkafka **0.39.0**
 |---|---|---|
 | consume, same log | 5.28M rec/s | 0.90M rec/s |
 
+Latency writeup **2026-08-28 this-VM** (Apache Kafka 3.9.1 KRaft).
+Sequential produce-ack, linger 0, 10k × 100 B, 1 partition, HW 11,000
+(1k warmup + 10k timed). Comparison is rust-rdkafka **0.39.0**
+`FutureProducer` (bundled librdkafka 2.12.1), not Lab A and not C 2.15.0.
+**Unsigned** until Kernel Integrity signs. Not a Suite HOLD lift. Not a
+"faster than librdkafka" claim: this-VM p50/p99 medians are not a win.
+
+| Produce-ack 10k × 100B linger=0 (this-VM, unsigned) | partitionline median | rdkafka 0.39.0 median |
+|---|---|---|
+| p50 | 62 µs | 58 µs |
+| p99 | 95 µs | 90 µs |
+
 ## Demo
 
 Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
@@ -63,8 +75,17 @@ COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plb
   cargo run --release --example bench_produce
 ```
 
-Produce C bar (Lab A) and fetch writeup (this-VM, unsigned):
-[docs/benchmark.md](docs/benchmark.md).
+Produce C bar (Lab A), fetch writeup (this-VM, unsigned), and latency
+writeup (this-VM, unsigned): [docs/benchmark.md](docs/benchmark.md).
+
+Sequential produce-ack / fetch-request latency (linger 0, 10k×100B). Do
+not publish p50/p99 unless they match a run you executed:
+
+```
+COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
+  MODE=both KAFKA_TOPIC=pllat \
+  cargo run --release --example bench_latency
+```
 
 ## Example
 

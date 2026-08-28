@@ -51,8 +51,11 @@ OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
 (admin `localhost:9098`). Fetch writeup vs rust-rdkafka **0.39.0** **was
 recorded** on this-VM 2026-08-28 against Apache Kafka 3.9.1 KRaft
 (`examples/bench_fetch.rs` vs a standalone `rdkafka` 0.39.0 `BaseConsumer`,
-not in this crate). That writeup is **unsigned** until Kernel Integrity
-signs. See `docs/benchmark.md` and `docs/STATUS.md`. Mock produce over
+not in this crate). Produce-ack latency vs rust-rdkafka **0.39.0**
+`FutureProducer` **was recorded** on this-VM 2026-08-28
+(`examples/bench_latency.rs` vs a standalone crate, not in this package).
+Both writeups are **unsigned** until Kernel Integrity signs. See
+`docs/benchmark.md` and `docs/STATUS.md`. Mock produce over
 OAUTH is `sasl_oauthbearer_then_produce` in `tests/full_surface.rs`. Mock
 admin is `admin_create_then_produce_fetch`.
 
@@ -66,10 +69,13 @@ admin is `admin_create_then_produce_fetch`.
 
 ## Next implementation order
 
-1. Schema Registry stays out of crate scope. Latency vs C/Java is not claimed.
+1. Schema Registry stays out of crate scope. Latency vs C 2.15.0 / Java is
+   not claimed. This-VM produce-ack vs rust-rdkafka 0.39.0 is recorded and
+   **unsigned** (see `docs/benchmark.md`).
 
 ## What “done” on this list does *not* mean
 
 It does not mean a drop-in `rd_kafka_*` C API or rust-rdkafka types. Fetch
 throughput vs rust-rdkafka 0.39.0 is recorded in `docs/benchmark.md` and is
-**unsigned**. That is not an e2e latency claim and not a Suite HOLD lift.
+**unsigned**. Produce-ack latency vs the same rust-rdkafka 0.39.0 on this-VM
+is also recorded there and is **unsigned**. Neither is a Suite HOLD lift.
