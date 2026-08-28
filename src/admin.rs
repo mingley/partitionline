@@ -18,7 +18,7 @@ use crate::protocol::admin::{
     decode_alter_configs_response, decode_alter_partition_reassignments_response,
     decode_alter_user_scram_credentials_response, decode_consumer_group_describe_response,
     decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_records_response, decode_delete_topics_response,
+    decode_delete_groups_response, decode_delete_records_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response, decode_describe_groups_response,
     decode_describe_producers_response, decode_describe_transactions_response,
@@ -29,17 +29,17 @@ use crate::protocol::admin::{
     encode_alter_client_quotas_request, encode_alter_configs_request,
     encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
     encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_groups_request,
-    encode_describe_producers_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_incremental_alter_configs_request,
-    encode_list_groups_request, encode_list_partition_reassignments_request,
-    encode_list_transactions_request, encode_unregister_broker_request,
-    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_groups_request, encode_describe_producers_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_incremental_alter_configs_request, encode_list_groups_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
+    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -49,8 +49,8 @@ use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
-    DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS,
+    DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS,
     DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, UNREGISTER_BROKER,
     UPDATE_FEATURES,
@@ -67,11 +67,11 @@ pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, ClientQuotaAlteration, ClientQuotaAlterationResult,
     ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
     ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, DescribeProducersPartition,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedGroupMember, ListedGroup, ScramCredentialInfo, TransactionListing, TransactionState,
-    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
-    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
+    DescribeProducersPartition, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
+    DescribedGroup, DescribedGroupMember, ListedGroup, ScramCredentialInfo, TransactionListing,
+    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -359,6 +359,7 @@ pub struct Admin {
     consumer_group_describe_version: i16,
     describe_groups_version: i16,
     list_groups_version: i16,
+    delete_groups_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -553,6 +554,10 @@ impl Admin {
             .get(&LIST_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
             .ok_or_else(|| Error::Unsupported("broker does not support ListGroups".into()))?;
+        let delete_groups_version = versions
+            .get(&DELETE_GROUPS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
+            .ok_or_else(|| Error::Unsupported("broker does not support DeleteGroups".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -586,6 +591,7 @@ impl Admin {
             consumer_group_describe_version,
             describe_groups_version,
             list_groups_version,
+            delete_groups_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2223,6 +2229,83 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "ListGroups"));
         }
         Ok(resp.groups)
+    }
+
+    /// Delete consumer groups (DeleteGroups api 42).
+    ///
+    /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// Official Apache JSON listeners are `broker` only. Official
+    /// listed per-group errors include `NOT_COORDINATOR` (16). This is
+    /// not a controller hop and not a partition-leader hop: there is no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
+    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. `COORDINATOR_LOAD_IN_PROGRESS`
+    /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
+    /// coordinator and retry. ErrorCode is per-group after GroupId
+    /// (bytes 7–8 on leftover-empty fixture group `"g"`), not top-level
+    /// after throttle.
+    pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
+        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let Some(coord_key) = ids.first().cloned() else {
+            return Ok(Vec::new());
+        };
+        let version = self.delete_groups_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &coord_key);
+            if stale {
+                let node = self.discover_group_coord(&coord_key).await?;
+                self.group_coord = Some((coord_key.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing delete_groups conn"))?;
+                conn.roundtrip(
+                    DELETE_GROUPS,
+                    version,
+                    |buf| encode_delete_groups_request(buf, &ids),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_delete_groups_response(&mut body.clone())?;
+            if results
+                .iter()
+                .any(|r| error::coordinator_retriable(r.error_code))
+            {
+                // 14/15/16: FindCoordinator, then the new group coordinator.
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            return Ok(results);
+        }
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

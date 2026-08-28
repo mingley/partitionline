@@ -3112,6 +3112,104 @@ pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResp
     Ok(ListGroupsResponse { error_code, groups })
 }
 
+/// One deletion result in DeleteGroups (api 42) v2.
+///
+/// ErrorCode sits here after GroupId, not at the top of the response body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletableGroupResult {
+    pub group_id: String,
+    pub error_code: i16,
+}
+
+impl DeletableGroupResult {
+    pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            group_id: group_id.into(),
+            error_code,
+        }
+    }
+}
+
+/// DeleteGroups v2 body (classic through v1; flexible from v2).
+///
+/// Official Apache JSON (`apiKey: 42`, request `listeners: ["broker"]`,
+/// `validVersions: "0-2"`, `flexibleVersions: "2+"`; Kafka 4.1.0, the
+/// release kafka-protocol 0.18.0 was generated against) and
+/// kafka-protocol 0.18.0 (`DeleteGroupsRequest` /
+/// `DeleteGroupsResponse`, `VERSIONS` min=0 max=2). This crate
+/// targets v2, the version a client encodes (`VERSIONS.max`). Request
+/// encode used `features = ["client"]`; response encode used `broker`.
+/// Official listed errors (`DeleteGroupsResponse.java`):
+/// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
+/// (15), `NOT_COORDINATOR` (16), `INVALID_GROUP_ID` (24),
+/// `GROUP_AUTHORIZATION_FAILED` (30), `NON_EMPTY_GROUP` (68),
+/// `GROUP_ID_NOT_FOUND` (69). Request: compact `GroupsNames`, tagged.
+/// Response: `ThrottleTimeMs` INT32, compact `Results` of `{compact
+/// GroupId, ErrorCode INT16, tagged}`, tagged. **ErrorCode is
+/// per-group**, the second field of each DeletableGroupResult after
+/// GroupId — not a top-level code after throttle. Measured
+/// independently on leftover-empty fixture group `"g"`: the first-group
+/// ErrorCode is the INT16 at **bytes 7–8**, after throttle, the compact
+/// results length, and compact GroupId `"g"` — not bytes 4–5
+/// (ListGroups / DescribeClientQuotas top-level) or 5–6 (DescribeGroups
+/// / ConsumerGroupDescribe first-group first field) or 12–13
+/// (DescribeProducers first partition). Because `NOT_COORDINATOR` (16)
+/// is listed, this is a group-coordinator hop, not a controller hop
+/// and not a partition-leader hop.
+pub fn encode_delete_groups_request(
+    buf: &mut BytesMut,
+    group_ids: &[String],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    for id in group_ids {
+        buf::put_compact_string(buf, Some(id))?;
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_delete_groups_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut group_ids = Vec::with_capacity(n);
+    for _ in 0..n {
+        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(group_ids)
+}
+
+pub fn encode_delete_groups_response(
+    buf: &mut BytesMut,
+    results: &[DeletableGroupResult],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(results.len()))?;
+    for r in results {
+        buf::put_compact_string(buf, Some(&r.group_id))?;
+        buf.put_i16(r.error_code);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_delete_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DeletableGroupResult>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let error_code = buf::get_i16(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        results.push(DeletableGroupResult {
+            group_id,
+            error_code,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4996,6 +5094,106 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ListGroups v5 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_groups_v2_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 42
+        // validVersions 0-2, flexibleVersions 2+, listeners broker only.
+        // This crate targets v2. Not copied from ListGroups (top-level
+        // ErrorCode at bytes 4-5), DescribeGroups / ConsumerGroupDescribe
+        // (first-group ErrorCode at bytes 5-6), or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x67, 0x00, 0x10, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let mut buf = BytesMut::new();
+        encode_delete_groups_request(&mut buf, &ids).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![DeletableGroupResult::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        buf.clear();
+        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn delete_groups_v2_roundtrip_is_leftover_empty() {
+        let ids = vec!["g".to_string(), "g2".to_string()];
+        let mut buf = BytesMut::new();
+        encode_delete_groups_request(&mut buf, &ids).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_groups_request(&mut cur).unwrap(), ids);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteGroups v2 request must be leftover-empty"
+        );
+
+        let resp = vec![
+            DeletableGroupResult::new("g", 0),
+            DeletableGroupResult::new("g2", crate::error::NOT_COORDINATOR),
+        ];
+        buf.clear();
+        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteGroups v2 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_groups_first_group_error_code_is_at_bytes_7_8() {
+        // Official v2 body: throttle INT32, compact Results of
+        // {GroupId, ErrorCode, tagged}. Measured independently from
+        // Apache DeleteGroupsResponse.json and a kafka-protocol 0.18.0
+        // broker encode (`features = ["broker"]`) on leftover-empty
+        // fixture group "g". Do not assume bytes 4-5 from ListGroups /
+        // DescribeClientQuotas, bytes 5-6 from DescribeGroups /
+        // ConsumerGroupDescribe first-group, or bytes 12-13 from
+        // DescribeProducers first partition.
+        let resp = vec![DeletableGroupResult::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::NOT_COORDINATOR,
+            "v2 first-group ErrorCode must be the INT16 at bytes 7-8"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v2 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v2 ErrorCode is not a first-group first field at bytes 5-6"
+        );
+        assert!(
+            buf.len() < 14,
+            "leftover-empty fixture is shorter than DescribeProducers bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_groups_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteGroups v2 ErrorCode body must be leftover-empty"
         );
     }
 }

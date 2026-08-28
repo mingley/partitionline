@@ -3362,6 +3362,48 @@ async fn list_groups_follows_broker() {
 }
 
 #[tokio::test]
+async fn delete_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.delete_groups(&["g-del"]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].group_id, "g-del");
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        Some(2),
+        "DeleteGroups must land on the group coordinator, not bootstrap"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "DeleteGroups must FindCoordinator key_type=0"
+    );
+
+    mock.move_coordinator();
+    let again = admin.delete_groups(&["g-del"]).await.unwrap();
+    assert_eq!(again.len(), 1);
+    assert_eq!(again[0].error_code, 0);
+    assert_eq!(
+        again[0].group_id.as_str(),
+        "g-del",
+        "retry on the new coordinator must still return fixture group, not the 16 empty body"
+    );
+    assert_eq!(
+        mock.delete_groups_not_coordinator(),
+        1,
+        "stale coordinator must return NOT_COORDINATOR (16) once"
+    );
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        Some(1),
+        "DeleteGroups must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
 async fn offset_delete_removes_committed_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

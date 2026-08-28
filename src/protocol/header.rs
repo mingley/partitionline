@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, BytesMut};
 use super::api_keys::{
     ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT,
-    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
+    DELETE_GROUPS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
     SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
@@ -55,6 +55,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // ListGroups is classic through v2; flexible from v3
         // (Apache JSON flexibleVersions: "3+", kafka-protocol 0.18.0).
         LIST_GROUPS if api_version >= 3 => 2,
+        // DeleteGroups is classic through v1; flexible from v2
+        // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
+        DELETE_GROUPS if api_version >= 2 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_HEARTBEAT
@@ -85,6 +88,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
         DESCRIBE_GROUPS if api_version >= 5 => 1,
         LIST_GROUPS if api_version >= 3 => 1,
+        DELETE_GROUPS if api_version >= 2 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_HEARTBEAT
@@ -228,6 +232,19 @@ mod tests {
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v0.
         assert_eq!(request_header_version(DESCRIBE_PRODUCERS, 0), 2);
         assert_eq!(response_header_version(DESCRIBE_PRODUCERS, 0), 1);
+    }
+
+    #[test]
+    fn delete_groups_v2_is_flexible_v1_is_not() {
+        // Official JSON: validVersions 0-2, flexibleVersions 2+.
+        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v2; 1 / 0
+        // at v0–1. This crate speaks v2 (VERSIONS.max).
+        assert_eq!(request_header_version(DELETE_GROUPS, 0), 1);
+        assert_eq!(response_header_version(DELETE_GROUPS, 0), 0);
+        assert_eq!(request_header_version(DELETE_GROUPS, 1), 1);
+        assert_eq!(response_header_version(DELETE_GROUPS, 1), 0);
+        assert_eq!(request_header_version(DELETE_GROUPS, 2), 2);
+        assert_eq!(response_header_version(DELETE_GROUPS, 2), 1);
     }
 
     #[test]
