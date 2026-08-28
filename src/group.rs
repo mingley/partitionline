@@ -1,6 +1,7 @@
 //! Consumer-group join / sync / heartbeat / commit.
 
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -273,6 +274,33 @@ fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<
         .collect()
 }
 
+/// This member's identity in a consumer group (Java `ConsumerGroupMetadata`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerGroupMetadata {
+    /// Kafka `group.id`.
+    pub group_id: String,
+    /// Classic generation, or KIP-848 member epoch.
+    pub generation_id: i32,
+    /// Coordinator-assigned member id.
+    pub member_id: String,
+    /// Kafka `group.instance.id`, if static membership is set.
+    pub group_instance_id: Option<String>,
+}
+
+impl fmt::Display for ConsumerGroupMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(group_id={}, member_id={}, generation_id={}",
+            self.group_id, self.member_id, self.generation_id
+        )?;
+        if let Some(id) = &self.group_instance_id {
+            write!(f, ", group_instance_id={id}")?;
+        }
+        write!(f, ")")
+    }
+}
+
 /// Classic or KIP-848 consumer group member.
 pub struct ConsumerGroup {
     consumer: Consumer,
@@ -470,9 +498,32 @@ impl ConsumerGroup {
             .collect()
     }
 
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        &self.group_id
+    }
+
     /// Kafka member id assigned by the coordinator.
     pub fn member_id(&self) -> &str {
         &self.member_id
+    }
+
+    /// Classic generation, or KIP-848 member epoch.
+    #[must_use]
+    pub fn generation_id(&self) -> i32 {
+        self.generation_id
+    }
+
+    /// Snapshot of group id, member id, generation, and instance id.
+    #[must_use]
+    pub fn group_metadata(&self) -> ConsumerGroupMetadata {
+        ConsumerGroupMetadata {
+            group_id: self.group_id.clone(),
+            generation_id: self.generation_id,
+            member_id: self.member_id.clone(),
+            group_instance_id: self.cfg.group_instance_id.clone(),
+        }
     }
 
     /// Stop fetching these assigned partitions until [`resume`](Self::resume).
@@ -611,6 +662,11 @@ impl ConsumerGroup {
         self.consumer.partitions_for(topic).await
     }
 
+    /// Cluster Metadata for every topic (Java `listTopics`).
+    pub async fn list_topics(&mut self) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.list_topics().await
+    }
+
     /// Log-start offset for each partition.
     pub async fn beginning_offsets(
         &mut self,
@@ -734,12 +790,100 @@ impl ConsumerGroup {
         Ok(())
     }
 
-    /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).
-    pub async fn leave(mut self) -> Result<()> {
+    /// Leave the group and drop the subscription (Java `unsubscribe`).
+    ///
+    /// Heartbeats stop and the assignment is cleared. [`Self::subscribe`] joins
+    /// again with a new topic list. [`Self::leave`] after this is a no-op.
+    pub async fn unsubscribe(&mut self) -> Result<()> {
+        if self.member_id.is_empty() {
+            self.topics.clear();
+            self.consumer.clear_assignment();
+            return Ok(());
+        }
         if self.cfg.enable_auto_commit {
             self.commit().await?;
         }
         self.hb_stop.send(true).unwrap_or(());
+        let revoked = self.assignment();
+        self.leave_coordinator().await?;
+        if !revoked.is_empty() {
+            self.cfg.rebalance.call(&revoked, &[]);
+        }
+        self.consumer.clear_assignment();
+        self.topics.clear();
+        self.member_id.clear();
+        self.generation_id = 0;
+        self.hb_generation.store(0, Ordering::SeqCst);
+        self.hb_err.store(0, Ordering::SeqCst);
+        *self.hb_assignment.lock() = None;
+        *self.hb_ack.lock() = None;
+        self.prev_assignment.clear();
+        Ok(())
+    }
+
+    /// Replace the subscription and (re)join (Java `subscribe`).
+    ///
+    /// If this member is already in the group, the coordinator is not left;
+    /// a rejoin uses the new topic list. After [`Self::unsubscribe`], this
+    /// starts a new heartbeat loop.
+    pub async fn subscribe(
+        &mut self,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<()> {
+        let topics = collect_topics(topics)?;
+        if topics == self.topics && !self.member_id.is_empty() {
+            return Ok(());
+        }
+        let rejoining = !self.member_id.is_empty();
+        if rejoining {
+            let revoked = self.assignment();
+            self.consumer.clear_assignment();
+            if !revoked.is_empty() {
+                self.cfg.rebalance.call(&revoked, &[]);
+            }
+            self.prev_assignment.clear();
+        }
+        self.topics = topics;
+        self.left_max_poll.store(false, Ordering::SeqCst);
+        if rejoining {
+            if self.kip848 {
+                self.heartbeat_join().await?;
+            } else {
+                self.rejoin().await?;
+            }
+            return Ok(());
+        }
+        let (hb_stop, hb_rx) = watch::channel(false);
+        self.hb_stop = hb_stop;
+        if self.kip848 {
+            self.heartbeat_join().await?;
+            self.spawn_heartbeat_consumer(hb_rx);
+        } else {
+            self.rejoin().await?;
+            self.spawn_heartbeat(hb_rx);
+        }
+        Ok(())
+    }
+
+    /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).
+    pub async fn leave(mut self) -> Result<()> {
+        if self.member_id.is_empty() {
+            self.hb_stop.send(true).unwrap_or(());
+            return Ok(());
+        }
+        if self.cfg.enable_auto_commit {
+            self.commit().await?;
+        }
+        self.hb_stop.send(true).unwrap_or(());
+        self.leave_coordinator().await
+    }
+
+    /// Leave the group. Same as [`Self::leave`].
+    pub async fn close(self) -> Result<()> {
+        self.leave().await
+    }
+
+    async fn leave_coordinator(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
         if self.kip848 {
             let req = ConsumerGroupHeartbeatRequest {
@@ -787,11 +931,6 @@ impl ConsumerGroup {
             return Err(Error::broker(err, "LeaveGroup"));
         }
         Ok(())
-    }
-
-    /// Leave the group. Same as [`Self::leave`].
-    pub async fn close(self) -> Result<()> {
-        self.leave().await
     }
 
     async fn rejoin(&mut self) -> Result<()> {

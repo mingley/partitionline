@@ -44,6 +44,8 @@
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
 //! [`Consumer::current_lag`] is Java `currentLag`.
+//! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
+//! / [`Consumer::unassign`] replace or drop a manual assignment.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records.
 //!
@@ -58,7 +60,9 @@
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::enforce_rebalance`]
-//! rejoins on the next poll.
+//! rejoins on the next poll. [`ConsumerGroup::subscribe`] /
+//! [`ConsumerGroup::unsubscribe`] change the topic list without dropping
+//! the handle. [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //!
 //! # Configure
 //!
@@ -152,7 +156,7 @@ pub use consumer::{
     RebalanceListener, TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
-pub use group::ConsumerGroup;
+pub use group::{ConsumerGroup, ConsumerGroupMetadata};
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{ConsumerMetrics, ProducerMetrics, ShareMetrics};
 pub use net::TlsConfig;

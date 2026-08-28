@@ -51,6 +51,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
+| `subscribe` / `unsubscribe` | yes (`ConsumerGroup::subscribe` / `unsubscribe`; `Consumer::assign_many` / `unassign`) | yes | **done** |
+| `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

@@ -152,6 +152,11 @@ impl ShareGroup {
         self.assigned.clone()
     }
 
+    /// Cluster Metadata for every topic (Java `listTopics`).
+    pub async fn list_topics(&mut self) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.list_topics().await
+    }
+
     /// ShareFetch / ShareAcknowledge counters since join.
     #[must_use]
     pub fn metrics(&self) -> crate::ShareMetrics {

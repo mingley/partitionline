@@ -591,6 +591,20 @@ impl Consumer {
         Ok(())
     }
 
+    /// Replace the assignment with these `(partition, offset)` pairs.
+    pub async fn assign_many(&mut self, starts: &[(TopicPartition, i64)]) -> Result<()> {
+        let triples: Vec<(String, i32, i64)> = starts
+            .iter()
+            .map(|(tp, offset)| (tp.topic.clone(), tp.partition, *offset))
+            .collect();
+        self.assign_all(&triples).await
+    }
+
+    /// Drop every assigned partition (Java `unsubscribe` for a manual consumer).
+    pub fn unassign(&mut self) {
+        self.clear_assignment();
+    }
+
     /// Assign every partition of `topic` at `offset` (from metadata).
     pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
         let topic = topic.into();
@@ -1509,29 +1523,47 @@ impl Consumer {
         let topic = topic.into();
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
-        let tmd = self
-            .metadata
-            .as_ref()
-            .and_then(|md| {
-                md.topics
-                    .iter()
-                    .find(|t| t.name.as_deref() == Some(topic.as_str()))
-            })
-            .ok_or_else(|| Error::UnknownTopic(topic.clone()))?;
-        if tmd.error_code != 0 {
-            return Err(Error::broker(tmd.error_code, topic));
+        let infos = self.partition_infos(Some(topic.as_str()))?;
+        if infos.is_empty() {
+            return Err(Error::UnknownTopic(topic));
         }
-        Ok(tmd
-            .partitions
-            .iter()
-            .map(|p| PartitionInfo {
-                topic: topic.clone(),
-                partition: p.partition_index,
-                leader: p.leader_id,
-                replicas: p.replica_nodes.clone(),
-                isr: p.isr_nodes.clone(),
-            })
-            .collect())
+        Ok(infos)
+    }
+
+    /// Cluster Metadata for every topic (Java `listTopics`).
+    pub async fn list_topics(&mut self) -> Result<Vec<PartitionInfo>> {
+        self.refresh_metadata(None).await?;
+        self.partition_infos(None)
+    }
+
+    fn partition_infos(&self, only: Option<&str>) -> Result<Vec<PartitionInfo>> {
+        let Some(md) = &self.metadata else {
+            return Ok(Vec::new());
+        };
+        let mut out = Vec::new();
+        for tmd in &md.topics {
+            let Some(name) = tmd.name.as_ref() else {
+                continue;
+            };
+            if let Some(only) = only {
+                if name != only {
+                    continue;
+                }
+            }
+            if tmd.error_code != 0 {
+                return Err(Error::broker(tmd.error_code, name.clone()));
+            }
+            for p in &tmd.partitions {
+                out.push(PartitionInfo {
+                    topic: name.clone(),
+                    partition: p.partition_index,
+                    leader: p.leader_id,
+                    replicas: p.replica_nodes.clone(),
+                    isr: p.isr_nodes.clone(),
+                });
+            }
+        }
+        Ok(out)
     }
 
     /// Log-start offset for each partition (`ListOffsets` earliest).

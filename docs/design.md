@@ -49,6 +49,9 @@ assignment. `commit_offsets` commits caller-chosen offsets.
 (leader epoch and a metadata string). `committed` returns the same type.
 `current_lag` is high watermark minus position. `subscription` is the
 topic list. `enforce_rebalance` rejoins on the next poll.
+`subscribe` / `unsubscribe` change the topic list without dropping the
+handle. `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
+is cluster Metadata.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
@@ -58,7 +61,8 @@ and the heartbeat thread leaves the group.
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
-`offsetsForTimes`. `Consumer::close` drops fetch connections.
+`offsetsForTimes`. `assign_many` / `unassign` replace or drop a manual assignment.
+`Consumer::close` drops fetch connections.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

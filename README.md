@@ -68,6 +68,9 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.
+`subscribe` / `unsubscribe` change topics without dropping the handle.
+`group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
+Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
 
 ```rust,no_run

@@ -527,6 +527,15 @@ async fn partitions_for_and_end_offsets() {
         .await
         .unwrap();
     assert_eq!(begin, vec![("t".into(), 0, 0)]);
+    let listed = consumer.list_topics().await.unwrap();
+    assert!(listed.iter().any(|p| p.topic == "t" && p.partition == 0));
+    consumer
+        .assign_many(&[(TopicPartition::new("t", 0), 0)])
+        .await
+        .unwrap();
+    assert_eq!(consumer.assignment().len(), 1);
+    consumer.unassign();
+    assert!(consumer.assignment().is_empty());
 }
 
 #[tokio::test]
@@ -1134,5 +1143,78 @@ async fn enforce_rebalance_rejoins_on_next_poll() {
         after > before,
         "enforce_rebalance must JoinGroup again (before {before}, after {after})"
     );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn group_metadata_and_unsubscribe_resubscribe() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sub",
+        "t",
+    )
+    .await
+    .unwrap();
+    let md = group.group_metadata();
+    assert_eq!(md.group_id, "sub");
+    assert_eq!(group.group_id(), "sub");
+    assert!(!md.member_id.is_empty());
+    assert!(md.generation_id >= 1);
+    assert!(md.group_instance_id.is_none());
+    assert!(!group.assignment().is_empty());
+    group.unsubscribe().await.unwrap();
+    assert!(group.assignment().is_empty());
+    assert!(group.subscription().is_empty());
+    group.subscribe(["t"]).await.unwrap();
+    assert_eq!(group.subscription(), &["t".to_string()]);
+    assert!(!group.assignment().is_empty());
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn subscribe_switches_topics_without_leave() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "switch",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert!(group.assignment().iter().all(|(t, _)| t == "t"));
+    group.subscribe(["u"]).await.unwrap();
+    assert_eq!(group.subscription(), &["u".to_string()]);
+    assert!(
+        group.assignment().iter().all(|(t, _)| t == "u"),
+        "subscribe must assign the new topic, got {:?}",
+        group.assignment()
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_unsubscribe_then_subscribe() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join_consumer(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ksub",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert!(!group.assignment().is_empty());
+    group.unsubscribe().await.unwrap();
+    assert!(group.assignment().is_empty());
+    group.subscribe(["t"]).await.unwrap();
+    assert!(!group.assignment().is_empty());
     group.leave().await.unwrap();
 }
