@@ -23,20 +23,21 @@ use crate::protocol::admin::{
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response, decode_describe_groups_response,
     decode_describe_producers_response, decode_describe_share_group_offsets_response,
-    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
-    decode_incremental_alter_configs_response, decode_list_groups_response,
-    decode_list_partition_reassignments_response, decode_list_transactions_response,
-    decode_share_group_describe_response, decode_unregister_broker_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_share_group_offsets_request,
-    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
-    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
-    encode_delete_records_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_groups_request, encode_describe_producers_request,
-    encode_describe_share_group_offsets_request, encode_describe_transactions_request,
+    decode_describe_topic_partitions_response, decode_describe_transactions_response,
+    decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
+    decode_list_groups_response, decode_list_partition_reassignments_response,
+    decode_list_transactions_response, decode_share_group_describe_response,
+    decode_unregister_broker_response, decode_update_features_response,
+    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
+    encode_consumer_group_describe_request, encode_create_partitions_request,
+    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    encode_delete_share_group_offsets_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_groups_request,
+    encode_describe_producers_request, encode_describe_share_group_offsets_request,
+    encode_describe_topic_partitions_request, encode_describe_transactions_request,
     encode_describe_user_scram_credentials_request, encode_incremental_alter_configs_request,
     encode_list_groups_request, encode_list_partition_reassignments_request,
     encode_list_transactions_request, encode_share_group_describe_request,
@@ -55,10 +56,10 @@ use crate::protocol::api_keys::{
     API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS,
     DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
-    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, SHARE_GROUP_DESCRIBE,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR,
+    INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
+    METADATA, OFFSET_DELETE, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -76,11 +77,13 @@ pub use crate::protocol::admin::{
     ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
     DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
     DeletedShareGroupOffsetsTopic, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
-    DescribeShareGroupOffsetsTopic, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, ListedGroup,
-    ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions,
-    TransactionListing, TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
+    DescribedTopicPartitions, ListedGroup, ScramCredentialInfo, ShareGroupAssignment,
+    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
+    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
@@ -374,6 +377,7 @@ pub struct Admin {
     describe_share_group_offsets_version: i16,
     alter_share_group_offsets_version: i16,
     delete_share_group_offsets_version: i16,
+    describe_topic_partitions_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -596,6 +600,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support DeleteShareGroupOffsets".into())
             })?;
+        let describe_topic_partitions_version = versions
+            .get(&DESCRIBE_TOPIC_PARTITIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeTopicPartitions".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -634,6 +644,7 @@ impl Admin {
             describe_share_group_offsets_version,
             alter_share_group_offsets_version,
             delete_share_group_offsets_version,
+            describe_topic_partitions_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2686,6 +2697,50 @@ impl Admin {
             }
             return Ok(result);
         }
+    }
+
+    /// Describe topic partitions (DescribeTopicPartitions api 75,
+    /// KIP-966).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Apache JSON listeners are `broker` only. Official JSON lists no
+    /// `errorCodes`. Official Java
+    /// `DescribeTopicPartitionsRequestHandler` answers from the broker
+    /// `MetadataCache`. `NOT_COORDINATOR` (16) is not listed. This is
+    /// not a group-coordinator hop, not a controller hop, and not a
+    /// partition-leader hop: there is no FindCoordinator, no Metadata
+    /// `controller_id` lookup, no `NOT_CONTROLLER` (41) retry, and no
+    /// `NOT_LEADER_OR_FOLLOWER` (6) hop. ErrorCode is first-topic after
+    /// throttle and the compact topics length (bytes 5–6 on leftover-
+    /// empty fixture topic `"t"`), not top-level after throttle.
+    /// First-partition ErrorCode is at bytes 27–28 when leftover-empty
+    /// partition `0` is present and is not the first ErrorCode.
+    pub async fn describe_topic_partitions(
+        &mut self,
+        topics: &[&str],
+        response_partition_limit: i32,
+        cursor: Option<&TopicPartitionCursor>,
+    ) -> Result<DescribeTopicPartitionsResponse> {
+        let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
+        let version = self.describe_topic_partitions_version;
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .conn
+            .roundtrip(
+                DESCRIBE_TOPIC_PARTITIONS,
+                version,
+                |buf| {
+                    encode_describe_topic_partitions_request(
+                        buf,
+                        &names,
+                        response_partition_limit,
+                        cursor,
+                    )
+                },
+                timeout,
+            )
+            .await?;
+        decode_describe_topic_partitions_response(&mut body.clone())
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

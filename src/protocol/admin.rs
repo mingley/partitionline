@@ -4168,6 +4168,325 @@ pub fn decode_delete_share_group_offsets_response<B: Buf>(
     })
 }
 
+/// Cursor for DescribeTopicPartitions (api 75) pagination.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopicPartitionCursor {
+    pub topic_name: String,
+    pub partition_index: i32,
+}
+
+impl TopicPartitionCursor {
+    pub fn new(topic_name: impl Into<String>, partition_index: i32) -> Self {
+        Self {
+            topic_name: topic_name.into(),
+            partition_index,
+        }
+    }
+}
+
+/// One partition in a DescribeTopicPartitions (api 75) v0 response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedTopicPartition {
+    pub error_code: i16,
+    pub partition_index: i32,
+    pub leader_id: i32,
+    pub leader_epoch: i32,
+    pub replica_nodes: Vec<i32>,
+    pub isr_nodes: Vec<i32>,
+    pub eligible_leader_replicas: Option<Vec<i32>>,
+    pub last_known_elr: Option<Vec<i32>>,
+    pub offline_replicas: Vec<i32>,
+}
+
+impl DescribedTopicPartition {
+    pub fn new(error_code: i16) -> Self {
+        Self {
+            error_code,
+            partition_index: 0,
+            leader_id: 0,
+            leader_epoch: -1,
+            replica_nodes: Vec::new(),
+            isr_nodes: Vec::new(),
+            eligible_leader_replicas: None,
+            last_known_elr: None,
+            offline_replicas: Vec::new(),
+        }
+    }
+}
+
+/// One topic in a DescribeTopicPartitions (api 75) v0 response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedTopicPartitions {
+    pub error_code: i16,
+    pub name: Option<String>,
+    pub topic_id: [u8; 16],
+    pub is_internal: bool,
+    pub partitions: Vec<DescribedTopicPartition>,
+    pub topic_authorized_operations: i32,
+}
+
+impl DescribedTopicPartitions {
+    pub fn new(name: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            name: Some(name.into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: Vec::new(),
+            topic_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
+}
+
+/// DescribeTopicPartitions (api 75) v0 response body.
+///
+/// **There is no top-level ErrorCode.** The first ErrorCode is the
+/// first-topic INT16. A first-partition ErrorCode exists only when a
+/// partition is present and is later in the body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeTopicPartitionsResponse {
+    pub topics: Vec<DescribedTopicPartitions>,
+    pub next_cursor: Option<TopicPartitionCursor>,
+}
+
+impl DescribeTopicPartitionsResponse {
+    pub fn new(topics: Vec<DescribedTopicPartitions>) -> Self {
+        Self {
+            topics,
+            next_cursor: None,
+        }
+    }
+}
+
+fn put_compact_i32s(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(items.len()))?;
+    for v in items {
+        buf.put_i32(*v);
+    }
+    Ok(())
+}
+
+fn get_compact_i32s<B: Buf>(buf: &mut B) -> Result<Vec<i32>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        out.push(buf::get_i32(buf)?);
+    }
+    Ok(out)
+}
+
+fn put_compact_nullable_i32s(
+    buf: &mut BytesMut,
+    items: Option<&[i32]>,
+) -> crate::error::Result<()> {
+    match items {
+        None => buf::put_array_len(buf, true, None),
+        Some(items) => put_compact_i32s(buf, items),
+    }
+}
+
+fn get_compact_nullable_i32s<B: Buf>(buf: &mut B) -> Result<Option<Vec<i32>>> {
+    let Some(n) = buf::get_array_len(buf, true)? else {
+        return Ok(None);
+    };
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        out.push(buf::get_i32(buf)?);
+    }
+    Ok(Some(out))
+}
+
+fn put_nullable_cursor(
+    buf: &mut BytesMut,
+    cursor: Option<&TopicPartitionCursor>,
+) -> crate::error::Result<()> {
+    match cursor {
+        None => buf.put_i8(-1),
+        Some(c) => {
+            buf.put_i8(1);
+            buf::put_compact_string(buf, Some(&c.topic_name))?;
+            buf.put_i32(c.partition_index);
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    Ok(())
+}
+
+fn get_nullable_cursor<B: Buf>(buf: &mut B) -> Result<Option<TopicPartitionCursor>> {
+    let marker = buf::get_i8(buf)?;
+    if marker < 0 {
+        return Ok(None);
+    }
+    let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+    let partition_index = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(Some(TopicPartitionCursor {
+        topic_name,
+        partition_index,
+    }))
+}
+
+/// DescribeTopicPartitions v0 (flexible from v0; KIP-966).
+///
+/// Official Apache JSON (`apiKey: 75`, request `listeners: ["broker"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Official JSON lists
+/// **no** `errorCodes`. Official Java
+/// `DescribeTopicPartitionsRequestHandler` answers from the broker
+/// `MetadataCache` (topic describe / `TOPIC_AUTHORIZATION_FAILED` /
+/// `INVALID_REQUEST`); it does not look up a coordinator. Official
+/// Java `DescribeTopicPartitionsRequest.getErrorResponse` writes the
+/// exception code onto each topic. `NOT_COORDINATOR` (16) is **not**
+/// listed. kafka-protocol 0.18.0 (`DescribeTopicPartitionsRequest` /
+/// `DescribeTopicPartitionsResponse`, `VERSIONS` min=0 max=0). This
+/// crate targets v0, the version a client encodes (`VERSIONS.max`).
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: compact `Topics` of `{Name, tagged}`,
+/// `ResponsePartitionLimit` INT32 (default 2000), nullable `Cursor`
+/// `{TopicName, PartitionIndex INT32, tagged}` (`0xff` null / `0x01`
+/// present), tagged. Response: `ThrottleTimeMs` INT32, compact
+/// `Topics` of `{ErrorCode INT16, compact nullable Name, TopicId UUID,
+/// IsInternal BOOLEAN, compact Partitions of {ErrorCode INT16,
+/// PartitionIndex INT32, LeaderId INT32, LeaderEpoch INT32, compact
+/// ReplicaNodes, compact IsrNodes, compact nullable
+/// EligibleLeaderReplicas, compact nullable LastKnownElr, compact
+/// OfflineReplicas, tagged}, TopicAuthorizedOperations INT32,
+/// tagged}`, nullable `NextCursor`, tagged.
+/// **ErrorCode is first-topic**, the first field of the first topic
+/// after throttle and the compact topics length — not a top-level
+/// code after throttle. Measured independently from kafka-protocol
+/// 0.18.0 (`broker` encodes the response) on leftover-empty fixture
+/// topic `"t"` (empty Partitions): the first-topic ErrorCode is the
+/// INT16 at **bytes 5–6** — not bytes 4–5 (DeleteShareGroupOffsets /
+/// AlterShareGroupOffsets / ListGroups top-level), 7–8 (DeleteGroups
+/// after GroupId), 8–9 (DescribeShareGroupOffsets first-group after
+/// GroupId and Topics), or 12–13 (DescribeProducers first partition).
+/// This offset happens to match ShareGroupDescribe / DescribeGroups
+/// first-group first field (also bytes 5–6); it was measured on this
+/// API's official first-topic field, not copied. First-partition
+/// ErrorCode, when leftover-empty partition `0` is present, is at
+/// **bytes 27–28** and is not the first ErrorCode. Because 16 is not
+/// listed, this is broker-only: no FindCoordinator, no controller
+/// hop, no partition-leader hop.
+pub fn encode_describe_topic_partitions_request(
+    buf: &mut BytesMut,
+    topics: &[String],
+    response_partition_limit: i32,
+    cursor: Option<&TopicPartitionCursor>,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(topics.len()))?;
+    for name in topics {
+        buf::put_compact_string(buf, Some(name))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf.put_i32(response_partition_limit);
+    put_nullable_cursor(buf, cursor)?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_topic_partitions_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(Vec<String>, i32, Option<TopicPartitionCursor>)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        topics.push(name);
+    }
+    let response_partition_limit = buf::get_i32(buf)?;
+    let cursor = get_nullable_cursor(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((topics, response_partition_limit, cursor))
+}
+
+pub fn encode_describe_topic_partitions_response(
+    buf: &mut BytesMut,
+    resp: &DescribeTopicPartitionsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(resp.topics.len()))?;
+    for t in &resp.topics {
+        buf.put_i16(t.error_code);
+        buf::put_compact_string(buf, t.name.as_deref())?;
+        buf.extend_from_slice(&t.topic_id);
+        buf.put_u8(u8::from(t.is_internal));
+        buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i16(p.error_code);
+            buf.put_i32(p.partition_index);
+            buf.put_i32(p.leader_id);
+            buf.put_i32(p.leader_epoch);
+            put_compact_i32s(buf, &p.replica_nodes)?;
+            put_compact_i32s(buf, &p.isr_nodes)?;
+            put_compact_nullable_i32s(buf, p.eligible_leader_replicas.as_deref())?;
+            put_compact_nullable_i32s(buf, p.last_known_elr.as_deref())?;
+            put_compact_i32s(buf, &p.offline_replicas)?;
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf.put_i32(t.topic_authorized_operations);
+        buf::put_empty_tagged_fields(buf);
+    }
+    put_nullable_cursor(buf, resp.next_cursor.as_ref())?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_topic_partitions_response<B: Buf>(
+    buf: &mut B,
+) -> Result<DescribeTopicPartitionsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let name = buf::get_compact_string(buf)?;
+        let topic_id = buf::get_uuid(buf)?;
+        let is_internal = buf::get_bool(buf)?;
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let error_code = buf::get_i16(buf)?;
+            let partition_index = buf::get_i32(buf)?;
+            let leader_id = buf::get_i32(buf)?;
+            let leader_epoch = buf::get_i32(buf)?;
+            let replica_nodes = get_compact_i32s(buf)?;
+            let isr_nodes = get_compact_i32s(buf)?;
+            let eligible_leader_replicas = get_compact_nullable_i32s(buf)?;
+            let last_known_elr = get_compact_nullable_i32s(buf)?;
+            let offline_replicas = get_compact_i32s(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            partitions.push(DescribedTopicPartition {
+                error_code,
+                partition_index,
+                leader_id,
+                leader_epoch,
+                replica_nodes,
+                isr_nodes,
+                eligible_leader_replicas,
+                last_known_elr,
+                offline_replicas,
+            });
+        }
+        let topic_authorized_operations = buf::get_i32(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        topics.push(DescribedTopicPartitions {
+            error_code,
+            name,
+            topic_id,
+            is_internal,
+            partitions,
+            topic_authorized_operations,
+        });
+    }
+    let next_cursor = get_nullable_cursor(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeTopicPartitionsResponse {
+        topics,
+        next_cursor,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -6743,6 +7062,190 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteShareGroupOffsets v0 first-topic body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 75
+        // validVersions 0, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0 (VERSIONS.max). Not copied from
+        // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups
+        // (top-level ErrorCode at bytes 4-5), ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe (first-group ErrorCode
+        // at bytes 5-6), DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), or DescribeProducers (first-partition
+        // ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x07, 0xd0, 0xff, 0x00];
+        const RESP_29: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x1d, 0x02, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_request(&mut buf, &["t".into()], 2000, None).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = DescribeTopicPartitionsResponse::new(vec![DescribedTopicPartitions::new(
+            "t",
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        )]);
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_29);
+    }
+
+    #[test]
+    fn describe_topic_partitions_v0_roundtrip_is_leftover_empty() {
+        let topics = vec!["t".into(), "t2".into()];
+        let cursor = TopicPartitionCursor::new("t", 3);
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_request(&mut buf, &topics, 2000, Some(&cursor)).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_request(&mut cur).unwrap(),
+            (topics, 2000, Some(cursor.clone()))
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions v0 request must be leftover-empty"
+        );
+
+        let resp = DescribeTopicPartitionsResponse {
+            topics: vec![DescribedTopicPartitions {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: vec![DescribedTopicPartition {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 0,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    eligible_leader_replicas: None,
+                    last_known_elr: None,
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            next_cursor: Some(cursor),
+        };
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_first_topic_error_code_is_at_bytes_5_6() {
+        // Official v0 body: throttle INT32, compact Topics, then each
+        // topic starts with ErrorCode INT16. There is no top-level
+        // ErrorCode. Measured independently from Apache
+        // DescribeTopicPartitionsResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture topic "t" (empty Partitions). Do not assume
+        // bytes 4-5 from DeleteShareGroupOffsets / AlterShareGroupOffsets
+        // / ListGroups, bytes 5-6 from ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, or bytes 12-13 from
+        // DescribeProducers. The first ErrorCode is this first-topic
+        // INT16. First-partition ErrorCode (bytes 27-28 when leftover-
+        // empty partition 0 is present) is not the first ErrorCode.
+        let resp = DescribeTopicPartitionsResponse::new(vec![DescribedTopicPartitions::new(
+            "t",
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        )]);
+        let mut buf = BytesMut::new();
+        encode_describe_topic_partitions_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 first-topic ErrorCode must be the INT16 at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions v0 ErrorCode body must be leftover-empty"
+        );
+
+        let with_part = DescribeTopicPartitionsResponse::new(vec![DescribedTopicPartitions {
+            error_code: crate::error::TOPIC_AUTHORIZATION_FAILED,
+            name: Some("t".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: vec![DescribedTopicPartition::new(
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            )],
+            topic_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }]);
+        buf.clear();
+        encode_describe_topic_partitions_response(&mut buf, &with_part).unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            "v0 first ErrorCode stays the first-topic INT16 at bytes 5-6"
+        );
+        let b27 = buf.get(27).copied().unwrap();
+        let b28 = buf.get(28).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b27, b28]),
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            "v0 first-partition ErrorCode is the INT16 at bytes 27-28 and is not the first ErrorCode"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_topic_partitions_response(&mut cur).unwrap(),
+            with_part
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTopicPartitions v0 first-partition body must be leftover-empty"
         );
     }
 }

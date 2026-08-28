@@ -6,7 +6,8 @@ pub mod acl;
 /// AllocateProducerIds, DescribeTransactions, ListTransactions,
 /// UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
 /// DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
-/// AlterShareGroupOffsets, DeleteShareGroupOffsets codecs.
+/// AlterShareGroupOffsets, DeleteShareGroupOffsets,
+/// DescribeTopicPartitions codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

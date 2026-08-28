@@ -10,7 +10,7 @@ use super::api_keys::{
     ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_DESCRIBE,
     CONSUMER_GROUP_HEARTBEAT, DELETE_GROUPS, DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, LIST_GROUPS,
+    DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
     SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
@@ -67,7 +67,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | SHARE_ACKNOWLEDGE
         | DESCRIBE_SHARE_GROUP_OFFSETS
         | ALTER_SHARE_GROUP_OFFSETS
-        | DELETE_SHARE_GROUP_OFFSETS => 2,
+        | DELETE_SHARE_GROUP_OFFSETS
+        | DESCRIBE_TOPIC_PARTITIONS => 2,
         _ => 1,
     }
 }
@@ -102,7 +103,8 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | SHARE_ACKNOWLEDGE
         | DESCRIBE_SHARE_GROUP_OFFSETS
         | ALTER_SHARE_GROUP_OFFSETS
-        | DELETE_SHARE_GROUP_OFFSETS => 1,
+        | DELETE_SHARE_GROUP_OFFSETS
+        | DESCRIBE_TOPIC_PARTITIONS => 1,
         _ => 0,
     }
 }
@@ -332,6 +334,15 @@ mod tests {
         // at v0. This crate speaks v0 (VERSIONS.max).
         assert_eq!(request_header_version(DELETE_SHARE_GROUP_OFFSETS, 0), 2);
         assert_eq!(response_header_version(DELETE_SHARE_GROUP_OFFSETS, 0), 1);
+    }
+
+    #[test]
+    fn describe_topic_partitions_v0_is_flexible() {
+        // Official JSON: validVersions 0, flexibleVersions 0+.
+        // kafka-protocol 0.18.0 VERSIONS min=max=0; HeaderVersion is 2 / 1
+        // at v0. This crate speaks v0 (VERSIONS.max).
+        assert_eq!(request_header_version(DESCRIBE_TOPIC_PARTITIONS, 0), 2);
+        assert_eq!(response_header_version(DESCRIBE_TOPIC_PARTITIONS, 0), 1);
     }
 
     #[test]
