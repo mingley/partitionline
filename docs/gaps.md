@@ -17,7 +17,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 
 | Capability | partitionline | librdkafka | Status |
 |---|---|---|---|
-| Produce (acks, linger, batches, offsets, `delivery.timeout.ms`) | yes (to Metadata leader; retriable errors refresh and retry; `ProducerConfig::delivery_timeout` caps queue-to-ack) | yes | **done** |
+| Produce (acks, linger, batches, offsets, `delivery.timeout.ms`, `max.block.ms`) | yes (to Metadata leader; retriable errors refresh and retry; `delivery_timeout` caps queue-to-ack; `max_block` caps `send` metadata wait) | yes | **done** |
 | Fetch with manual assignment | yes (to Metadata leader; retriable errors refresh and retry; Fetch sends Metadata `leader_epoch`; `ConsumerRecords` including `nextOffsets`) | yes | **done** |
 | OffsetForLeaderEpoch / fetch fencing | yes (api 23; `FENCED_LEADER_EPOCH` / `UNKNOWN_LEADER_EPOCH` recover then fetch) | yes | **done** |
 | ListOffsets, seek, `isolation.level` | yes (earliest/latest/timestamp; `offsets_for_times` with `OffsetAndTimestamp.leader_epoch`; Fetch isolation 0 or 1; `FetchedRecord.leader_epoch`) | yes | **done** |

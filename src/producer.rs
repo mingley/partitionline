@@ -55,6 +55,10 @@ pub struct ProducerConfig {
     /// Kafka `delivery.timeout.ms`. Time from queue until ack or timeout,
     /// including retries. Default 30s (this crate; Java defaults to 120s).
     pub delivery_timeout: Duration,
+    /// Kafka `max.block.ms`. How long [`crate::Producer::send`] waits for
+    /// metadata and a leader connection. Default 30s (this crate; Java
+    /// defaults to 60s). [`crate::Producer::try_send`] does not wait.
+    pub max_block: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
@@ -98,6 +102,7 @@ impl Default for ProducerConfig {
             batch_bytes: 1_000_000,
             request_timeout: Duration::from_secs(30),
             delivery_timeout: Duration::from_secs(30),
+            max_block: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
             allow_auto_topic_creation: false,
             compression: Compression::None,
@@ -244,6 +249,16 @@ impl ProducerConfig {
     #[must_use]
     pub fn delivery_timeout(mut self, timeout: Duration) -> Self {
         self.delivery_timeout = timeout;
+        self
+    }
+
+    /// Kafka `max.block.ms`. How long [`crate::Producer::send`] waits for metadata.
+    ///
+    /// Default 30s. Java `max.block.ms` defaults to 60s. [`crate::Producer::try_send`]
+    /// returns [`crate::Error::QueueFull`] instead of waiting.
+    #[must_use]
+    pub fn max_block(mut self, timeout: Duration) -> Self {
+        self.max_block = timeout;
         self
     }
 
@@ -670,7 +685,7 @@ impl Producer {
     }
 
     async fn ensure_ready(&self, rec: &mut ProduceRecord) -> Result<()> {
-        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        let deadline = Instant::now() + self.inner.shared.cfg.max_block;
         loop {
             if let Some(e) = peek_meta_err(&self.inner.shared) {
                 return Err(e);
@@ -803,7 +818,8 @@ impl Producer {
     /// Enqueue without a per-record future. Delivery is observed on [`Self::flush`].
     ///
     /// Returns [`Error::QueueFull`] until metadata and a connection to the
-    /// partition leader are ready. Call again; [`Self::send`] waits instead.
+    /// partition leader are ready. Call again; [`Self::send`] waits up to
+    /// [`ProducerConfig::max_block`].
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
