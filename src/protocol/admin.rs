@@ -2473,6 +2473,321 @@ pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDe
     })
 }
 
+/// Omitted authorized-operations bitfield (`INT32` min). Official default.
+pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
+
+/// One assigned topic in ConsumerGroupDescribe (api 69) Assignment.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerGroupTopicPartitions {
+    pub topic_id: [u8; 16],
+    pub topic_name: String,
+    pub partitions: Vec<i32>,
+}
+
+impl ConsumerGroupTopicPartitions {
+    pub fn new(topic_id: [u8; 16], topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic_id,
+            topic_name: topic_name.into(),
+            partitions,
+        }
+    }
+}
+
+/// Current or target assignment for one described member.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ConsumerGroupAssignment {
+    pub topic_partitions: Vec<ConsumerGroupTopicPartitions>,
+}
+
+impl ConsumerGroupAssignment {
+    pub fn new(topic_partitions: Vec<ConsumerGroupTopicPartitions>) -> Self {
+        Self { topic_partitions }
+    }
+}
+
+/// One member in a ConsumerGroupDescribe v1 group.
+///
+/// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerGroupMember {
+    pub member_id: String,
+    pub instance_id: Option<String>,
+    pub rack_id: Option<String>,
+    pub member_epoch: i32,
+    pub client_id: String,
+    pub client_host: String,
+    pub subscribed_topic_names: Vec<String>,
+    pub subscribed_topic_regex: Option<String>,
+    pub assignment: ConsumerGroupAssignment,
+    pub target_assignment: ConsumerGroupAssignment,
+    pub member_type: i8,
+}
+
+impl ConsumerGroupMember {
+    pub fn new(
+        member_id: impl Into<String>,
+        member_epoch: i32,
+        client_id: impl Into<String>,
+        client_host: impl Into<String>,
+    ) -> Self {
+        Self {
+            member_id: member_id.into(),
+            instance_id: None,
+            rack_id: None,
+            member_epoch,
+            client_id: client_id.into(),
+            client_host: client_host.into(),
+            subscribed_topic_names: Vec::new(),
+            subscribed_topic_regex: None,
+            assignment: ConsumerGroupAssignment::default(),
+            target_assignment: ConsumerGroupAssignment::default(),
+            member_type: -1,
+        }
+    }
+}
+
+/// One described group in ConsumerGroupDescribe (api 69) v1.
+///
+/// ErrorCode sits here, not at the top of the response body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedConsumerGroup {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub group_id: String,
+    pub group_state: String,
+    pub group_epoch: i32,
+    pub assignment_epoch: i32,
+    pub assignor_name: String,
+    pub members: Vec<ConsumerGroupMember>,
+    pub authorized_operations: i32,
+}
+
+impl DescribedConsumerGroup {
+    pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            group_id: group_id.into(),
+            group_state: String::new(),
+            group_epoch: 0,
+            assignment_epoch: 0,
+            assignor_name: String::new(),
+            members: Vec::new(),
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
+}
+
+/// ConsumerGroupDescribe v1 (flexible from v0; KIP-848 / KIP-1099).
+///
+/// Official Apache JSON (`apiKey: 69`, `validVersions: "0-1"`,
+/// `flexibleVersions: "0+"`, request listeners `broker`) and
+/// kafka-protocol 0.18.0 (`ConsumerGroupDescribeRequest` /
+/// `ConsumerGroupDescribeResponse`, `VERSIONS` min=0 max=1). This crate
+/// targets v1, the version a client encodes (`VERSIONS.max`). v0 is the
+/// same layout minus `MemberType`. Request encode used
+/// `features = ["client"]`; response encode used `broker`.
+/// Request: compact `GroupIds`, `IncludeAuthorizedOperations` BOOLEAN,
+/// tagged. Response: `ThrottleTimeMs` INT32, compact `Groups` of
+/// `{ErrorCode INT16, compact nullable ErrorMessage, GroupId, GroupState,
+/// GroupEpoch INT32, AssignmentEpoch INT32, AssignorName, compact
+/// Members of {MemberId, compact nullable InstanceId, compact nullable
+/// RackId, MemberEpoch INT32, ClientId, ClientHost, compact
+/// SubscribedTopicNames, compact nullable SubscribedTopicRegex,
+/// Assignment, TargetAssignment, MemberType INT8 (v1+), tagged},
+/// AuthorizedOperations INT32, tagged}`, tagged. Assignment is compact
+/// TopicPartitions of `{TopicId UUID, TopicName, compact Partitions
+/// INT32[], tagged}`. **ErrorCode is per-group**, the first field of
+/// each DescribedGroup — not a top-level code after throttle. Measured
+/// independently on leftover-empty fixture group `"g"`: the first-group
+/// ErrorCode is the INT16 at **bytes 5–6**, after throttle and the
+/// compact groups length — not bytes 4–5 (DescribeClientQuotas) or
+/// 12–13 (DescribeProducers first partition). Official response
+/// supported errors include `NOT_COORDINATOR`. This is a
+/// group-coordinator hop, not a controller hop and not a
+/// partition-leader hop.
+pub fn encode_consumer_group_describe_request(
+    buf: &mut BytesMut,
+    group_ids: &[String],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    for id in group_ids {
+        buf::put_compact_string(buf, Some(id))?;
+    }
+    buf.put_u8(u8::from(include_authorized_operations));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_consumer_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut group_ids = Vec::with_capacity(n);
+    for _ in 0..n {
+        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let include_authorized_operations = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((group_ids, include_authorized_operations))
+}
+
+fn encode_consumer_group_assignment(
+    buf: &mut BytesMut,
+    assignment: &ConsumerGroupAssignment,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(assignment.topic_partitions.len()))?;
+    for tp in &assignment.topic_partitions {
+        buf.extend_from_slice(&tp.topic_id);
+        buf::put_compact_string(buf, Some(&tp.topic_name))?;
+        buf::put_array_len(buf, true, Some(tp.partitions.len()))?;
+        for p in &tp.partitions {
+            buf.put_i32(*p);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn decode_consumer_group_assignment<B: Buf>(buf: &mut B) -> Result<ConsumerGroupAssignment> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topic_partitions = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_id = buf::get_uuid(buf)?;
+        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(buf::get_i32(buf)?);
+        }
+        buf::skip_tagged_fields(buf)?;
+        topic_partitions.push(ConsumerGroupTopicPartitions {
+            topic_id,
+            topic_name,
+            partitions,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ConsumerGroupAssignment { topic_partitions })
+}
+
+fn encode_consumer_group_member(
+    buf: &mut BytesMut,
+    member: &ConsumerGroupMember,
+) -> crate::error::Result<()> {
+    buf::put_compact_string(buf, Some(&member.member_id))?;
+    buf::put_compact_string(buf, member.instance_id.as_deref())?;
+    buf::put_compact_string(buf, member.rack_id.as_deref())?;
+    buf.put_i32(member.member_epoch);
+    buf::put_compact_string(buf, Some(&member.client_id))?;
+    buf::put_compact_string(buf, Some(&member.client_host))?;
+    buf::put_array_len(buf, true, Some(member.subscribed_topic_names.len()))?;
+    for name in &member.subscribed_topic_names {
+        buf::put_compact_string(buf, Some(name))?;
+    }
+    buf::put_compact_string(buf, member.subscribed_topic_regex.as_deref())?;
+    encode_consumer_group_assignment(buf, &member.assignment)?;
+    encode_consumer_group_assignment(buf, &member.target_assignment)?;
+    buf.put_i8(member.member_type);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn decode_consumer_group_member<B: Buf>(buf: &mut B) -> Result<ConsumerGroupMember> {
+    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let instance_id = buf::get_compact_string(buf)?;
+    let rack_id = buf::get_compact_string(buf)?;
+    let member_epoch = buf::get_i32(buf)?;
+    let client_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let client_host = buf::get_compact_string(buf)?.unwrap_or_default();
+    let sn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut subscribed_topic_names = Vec::with_capacity(sn);
+    for _ in 0..sn {
+        subscribed_topic_names.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let subscribed_topic_regex = buf::get_compact_string(buf)?;
+    let assignment = decode_consumer_group_assignment(buf)?;
+    let target_assignment = decode_consumer_group_assignment(buf)?;
+    let member_type = buf::get_i8(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(ConsumerGroupMember {
+        member_id,
+        instance_id,
+        rack_id,
+        member_epoch,
+        client_id,
+        client_host,
+        subscribed_topic_names,
+        subscribed_topic_regex,
+        assignment,
+        target_assignment,
+        member_type,
+    })
+}
+
+pub fn encode_consumer_group_describe_response(
+    buf: &mut BytesMut,
+    groups: &[DescribedConsumerGroup],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        buf.put_i16(g.error_code);
+        buf::put_compact_string(buf, g.error_message.as_deref())?;
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_compact_string(buf, Some(&g.group_state))?;
+        buf.put_i32(g.group_epoch);
+        buf.put_i32(g.assignment_epoch);
+        buf::put_compact_string(buf, Some(&g.assignor_name))?;
+        buf::put_array_len(buf, true, Some(g.members.len()))?;
+        for m in &g.members {
+            encode_consumer_group_member(buf, m)?;
+        }
+        buf.put_i32(g.authorized_operations);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_consumer_group_describe_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<DescribedConsumerGroup>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_epoch = buf::get_i32(buf)?;
+        let assignment_epoch = buf::get_i32(buf)?;
+        let assignor_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut members = Vec::with_capacity(mn);
+        for _ in 0..mn {
+            members.push(decode_consumer_group_member(buf)?);
+        }
+        let authorized_operations = buf::get_i32(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedConsumerGroup {
+            error_code,
+            error_message,
+            group_id,
+            group_state,
+            group_epoch,
+            assignment_epoch,
+            assignor_name,
+            members,
+            authorized_operations,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(groups)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4025,6 +4340,125 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeProducers v0 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn consumer_group_describe_v1_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 69
+        // validVersions 0-1, flexibleVersions 0+, listeners broker only.
+        // This crate targets v1. Not copied from DescribeClientQuotas
+        // (top-level ErrorCode at bytes 4-5) or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let mut buf = BytesMut::new();
+        encode_consumer_group_describe_request(&mut buf, &ids, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![DescribedConsumerGroup::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        buf.clear();
+        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn consumer_group_describe_v1_roundtrip_is_leftover_empty() {
+        let ids = vec!["g".to_string(), "g2".to_string()];
+        let mut buf = BytesMut::new();
+        encode_consumer_group_describe_request(&mut buf, &ids, true).unwrap();
+        let mut cur = &buf[..];
+        let (got, include) = decode_consumer_group_describe_request(&mut cur).unwrap();
+        assert_eq!(got, ids);
+        assert!(include);
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupDescribe v1 request must be leftover-empty"
+        );
+
+        let mut member = ConsumerGroupMember::new("m1", 1, "c", "h");
+        member.subscribed_topic_names = vec!["t".into()];
+        member.assignment = ConsumerGroupAssignment::new(vec![ConsumerGroupTopicPartitions::new(
+            [0; 16],
+            "t",
+            vec![0],
+        )]);
+        member.target_assignment = member.assignment.clone();
+        member.member_type = 1;
+        let resp = vec![DescribedConsumerGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "g".into(),
+            group_state: "Stable".into(),
+            group_epoch: 1,
+            assignment_epoch: 1,
+            assignor_name: "uniform".into(),
+            members: vec![member],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        buf.clear();
+        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_describe_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupDescribe v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn consumer_group_describe_first_group_error_code_is_at_bytes_5_6() {
+        // Official v1 body: throttle INT32, compact Groups of
+        // {ErrorCode, ...}. Measured independently from Apache
+        // ConsumerGroupDescribeResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture group "g". Do not assume bytes 4-5 from
+        // DescribeClientQuotas or bytes 12-13 from DescribeProducers.
+        let resp = vec![DescribedConsumerGroup::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v1 first-group ErrorCode must be the INT16 at bytes 5-6"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5b = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5b]),
+            crate::error::NOT_COORDINATOR,
+            "v1 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::NOT_COORDINATOR,
+            "v1 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_describe_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupDescribe v1 ErrorCode body must be leftover-empty"
         );
     }
 }

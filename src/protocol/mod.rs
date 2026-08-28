@@ -4,7 +4,7 @@ pub mod acl;
 /// AlterUserScramCredentials, DescribeUserScramCredentials,
 /// AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
 /// AllocateProducerIds, DescribeTransactions, ListTransactions,
-/// UnregisterBroker codecs.
+/// UnregisterBroker, ConsumerGroupDescribe codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;
