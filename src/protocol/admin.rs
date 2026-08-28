@@ -4647,6 +4647,10 @@ pub struct GetTelemetrySubscriptionsResponse {
 }
 
 impl GetTelemetrySubscriptionsResponse {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "constructor mirrors official GetTelemetrySubscriptionsResponse fields"
+    )]
     pub fn new(
         error_code: i16,
         client_instance_id: [u8; 16],
