@@ -73,7 +73,10 @@ pub fn encode_fetch_request(
         }
     }
     buf::put_array_len(buf, false, Some(0))?; // forgotten
-    buf::put_classic_nullable_string(buf, rack_id.filter(|s| !s.is_empty()))?;
+
+    // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
+    // 0.18.0). Kafka 3.9.1 rejects a null rackId.
+    buf::put_classic_nullable_string(buf, Some(rack_id.unwrap_or("")))?;
     Ok(())
 }
 
@@ -225,6 +228,27 @@ mod tests {
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
         assert!(rack.is_empty());
+    }
+
+    #[test]
+    fn fetch_request_rack_id_is_empty_string_not_null() {
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: -1,
+                fetch_offset: 0,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, None).unwrap();
+        let tail = buf.get(buf.len().saturating_sub(2)..).unwrap();
+        assert_eq!(
+            tail,
+            [0, 0],
+            "v11 RackId must be empty STRING, not null i16=-1"
+        );
     }
 
     #[test]

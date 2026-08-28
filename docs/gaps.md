@@ -48,10 +48,13 @@ TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL
 listener (`localhost:9093`). SCRAM-SHA-256 and SCRAM-SHA-512 produce vs C
 **were measured** on SASL_PLAINTEXT `localhost:9095` (admin `localhost:9096`).
 OAUTHBEARER produce vs C **was measured** on SASL_PLAINTEXT `localhost:9097`
-(admin `localhost:9098`). Fetch vs C **was measured** on PLAINTEXT `localhost:9092`
-(`examples/bench_fetch.rs` vs `rdkafka_performance -C -p 0..5`). See
-`docs/benchmark.md`. Mock produce over OAUTH is `sasl_oauthbearer_then_produce`
-in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
+(admin `localhost:9098`). Fetch writeup vs rust-rdkafka **0.39.0** **was
+recorded** on this-VM 2026-08-28 against Apache Kafka 3.9.1 KRaft
+(`examples/bench_fetch.rs` vs a standalone `rdkafka` 0.39.0 `BaseConsumer`,
+not in this crate). That writeup is **unsigned** until Kernel Integrity
+signs. See `docs/benchmark.md` and `docs/STATUS.md`. Mock produce over
+OAUTH is `sasl_oauthbearer_then_produce` in `tests/full_surface.rs`. Mock
+admin is `admin_create_then_produce_fetch`.
 
 ## Notes on the C-blocked rows
 
@@ -67,5 +70,6 @@ in `tests/full_surface.rs`. Mock admin is `admin_create_then_produce_fetch`.
 
 ## What “done” on this list does *not* mean
 
-It does not mean a drop-in `rd_kafka_*` C API or rust-rdkafka types. Fetch vs C
-is measured in `docs/benchmark.md`; that is not an e2e latency claim.
+It does not mean a drop-in `rd_kafka_*` C API or rust-rdkafka types. Fetch
+throughput vs rust-rdkafka 0.39.0 is recorded in `docs/benchmark.md` and is
+**unsigned**. That is not an e2e latency claim and not a Suite HOLD lift.

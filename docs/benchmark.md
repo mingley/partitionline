@@ -1,7 +1,10 @@
 # Benchmark vs librdkafka C
 
-Produce is acked records/second. Fetch is consumed records/second from a topic
-this crate already filled. End-to-end latency was **not measured**.
+Produce is acked records/second (Lab A vs librdkafka 2.15.0 C). Fetch is
+consumed records/second from a topic this crate already filled. The signed
+produce tables below are Lab A. The fetch writeup is **this-VM 2026-08-28,
+unsigned** (rust-rdkafka 0.39.0, not C 2.15.0). End-to-end latency was
+**not measured**. Suite HOLD: [STATUS.md](STATUS.md).
 
 ## Methodology
 
@@ -346,10 +349,34 @@ partitionline was higher on every run (about 1.6× the C median).
 
 ## Fetch
 
-Same broker and topic shape as produce (`plbench`, 6 partitions). Load
-8,000,000 × 100 B with this crate (linger 5 ms, `acks=1`). Both consumers
+Fetch is consumed records/second from a topic this crate already filled.
+End-to-end latency was **not measured**. Do not start it.
+
+A mock-broker e2e is not a fetch vs-C win. This writeup is the run executed
+on the recording agent, labeled as that run. It is **unsigned** until
+Kernel Integrity signs. Suite HOLD stands. See [STATUS.md](STATUS.md).
+
+### 2026-08-28 this-VM (unsigned)
+
+Same locked knobs as the produce table (8,000,000 × 100 B, `plbench`, 6
+partitions). Load with this crate (linger 5 ms, `acks=1`). Both consumers
 read from offset 0. Completeness: records consumed **equal** records sent
-(8,000,000). Latency was not measured.
+(8,000,000). High watermark summed to **8,000,000** before and after the
+pairs.
+
+This is **not** Lab A. This is **not** `rdkafka_performance` C 2.15.0.
+Comparison is rust-rdkafka **0.39.0** (`rdkafka-sys` 4.10.0+2.12.1,
+`cmake-build`, bundled librdkafka **2.12.1**) as a standalone binary
+outside this crate. This crate stays pure Rust (no rdkafka dep, no C/FFI).
+
+| | |
+|---|---|
+| Date | 2026-08-28 |
+| Host | Linux 6.12.94+ x86_64, 4 vCPU Intel Xeon, 15 GiB RAM |
+| Broker | Apache Kafka **3.9.1** KRaft (`kafka_2.13-3.9.1`, not Docker) on `127.0.0.1:9092` |
+| This crate | `cargo +1.85 run --release --example bench_fetch` (`lto = thin`, rustc 1.85.1) |
+| Other client | rust-rdkafka **0.39.0** `BaseConsumer::assign` + `poll` (one record per poll) |
+| Integrity | **unsigned** |
 
 Lock these on **both** consumers:
 
@@ -359,32 +386,71 @@ Lock these on **both** consumers:
 | `fetch.wait.max.ms` / `max_wait_ms` | 100 |
 | `fetch.min.bytes` / `min_bytes` | 1 |
 | `fetch.message.max.bytes` / `max_bytes` | 16,777,216 |
-| Start | offset 0 / `-o beginning` |
-| Partitions | all 6 (`assign_topic` / `-p 0` … `-p 5`) |
+| Start | offset 0 / `Offset::Beginning` |
+| Partitions | all 6 (`assign_topic` / assign 0..5) |
 
-C `rdkafka_performance -C` starts no partitions unless `-p` is passed once
-per partition.
+Load JSON (this-VM, not a produce claim):
 
-### Reproduce
+```
+{"acked":8000000,"elapsed_s":2.378476,"acked_rec_s":3363498.136,"payload_bytes":100,"acks":1,"linger_ms":5,"compression":"none","idempotent":false,"tls":false,"scram":false,"scram512":false,"oauthbearer":false}
+```
+
+| Run | partitionline rec/s | partitionline consumed | rdkafka 0.39.0 rec/s | rdkafka consumed |
+|---|---|---|---|---|
+| 1 | 5,195,618 | 8,000,000 | 884,539 | 8,000,000 |
+| 2 | 5,282,935 | 8,000,000 | 897,080 | 8,000,000 |
+| 3 | 5,402,792 | 8,000,000 | 900,952 | 8,000,000 |
+| **median** | **5,282,935** | 8,000,000 | **897,080** | 8,000,000 |
+
+Exact JSON from the three pairs (do not invent other digits):
+
+```
+{"consumed":8000000,"elapsed_s":1.539759,"consumed_rec_s":5195617.624,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":9.044263,"consumed_rec_s":884538.645,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+{"consumed":8000000,"elapsed_s":1.514310,"consumed_rec_s":5282934.557,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":8.917826,"consumed_rec_s":897079.652,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+{"consumed":8000000,"elapsed_s":1.480716,"consumed_rec_s":5402792.049,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+{"client":"rdkafka-0.39.0","consumed":8000000,"elapsed_s":8.879495,"consumed_rec_s":900952.157,"partitions":6,"max_wait_ms":100,"max_bytes":16777216}
+```
+
+Table integers are the JSON `consumed_rec_s` values rounded to nearest
+record/s. Median is the middle run, not a mean. partitionline was higher
+on every pair of **this** run. That is a same-hardware measurement vs
+rust-rdkafka 0.39.0 `BaseConsumer::poll` on this VM. It is **not** signed.
+It is **not** a vs-C 2.15.0 claim. It is **not** a Suite HOLD lift.
+
+Fetch v11 `RackId` is a non-nullable STRING (Apache JSON / kafka-protocol
+0.18.0). This tree encodes an empty string when no rack is set. Kafka
+3.9.1 rejects a null `rackId`. No new admin API. ElectLeaders /
+DescribeLogDirs v5 / DescribeQuorum / raft voters stay closed.
+
+#### Reproduce
 
 partitionline:
 
 ```
 COUNT=8000000 MAX_WAIT_MS=100 MAX_BYTES=16777216 MIN_BYTES=1 KAFKA_TOPIC=plbench \
-  cargo run --release --example bench_fetch
+  cargo +1.85 run --release --example bench_fetch
 ```
 
-librdkafka C:
+rust-rdkafka 0.39.0 (standalone crate, **not** a dependency of this
+package; `default-features = false`, `features = ["cmake-build"]`):
 
 ```
-rdkafka_performance -C -t plbench -c 8000000 -b 127.0.0.1:9092 -q \
-  -p 0 -p 1 -p 2 -p 3 -p 4 -p 5 -o beginning -B 65536 \
-  -X fetch.wait.max.ms=100 -X fetch.min.bytes=1 \
-  -X fetch.message.max.bytes=16777216 \
-  -X queued.min.messages=1000000
+COUNT=8000000 MAX_WAIT_MS=100 MAX_BYTES=16777216 MIN_BYTES=1 PARTITIONS=6 \
+  KAFKA_TOPIC=plbench KAFKA_BOOTSTRAP=127.0.0.1:9092 \
+  ./rdkafka-fetch-bench
 ```
 
-### 2026-08-24, three locked fetch pairs
+`rdkafka_performance` C 2.15.0 was **not** present on this VM and was
+**not** run. Do not copy Lab A C numbers into this table.
+
+### Historical Lab A fetch (not this agent, unsigned here)
+
+The 2026-08-24 Apple M4 Pro table vs librdkafka 2.15.0
+`rdkafka_performance -C` was **not** reproduced on this agent. It is not
+this writeup. Integrity has not signed it as a fetch vs-C win. Left here
+only as history. Do not treat it as this-VM.
 
 Load HW was **8,000,000** before each pair. Both consumers read the same log.
 
@@ -394,6 +460,3 @@ Load HW was **8,000,000** before each pair. Both consumers read the same log.
 | 2 | 4,371,067 | 8,000,000 | 3,119,810 | 8,000,000 |
 | 3 | 4,781,168 | 8,000,000 | 3,180,308 | 8,000,000 |
 | **median** | **4,381,010** | 8,000,000 | **3,119,810** | 8,000,000 |
-
-partitionline was higher on every run (about 1.4× the C median). JSON copies:
-session scratch `bench-fetch-pl.json` / `bench-fetch-c.json`.
