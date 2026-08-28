@@ -149,6 +149,9 @@ Fetch (preferred-replica redirects do not wait).
 `reconnect.backoff.ms` / `reconnect.backoff.max.ms` (exponential wait after a
 failed broker TCP connect; default 50ms / 1s, same as Java). The same pair is
 on `ConsumerConfig` and `AdminConfig`.
+`AdminConfig::retry_backoff` / `retry_backoff_max` are Kafka
+`retry.backoff.ms` / `retry.backoff.max.ms` on admin RPCs (`NOT_CONTROLLER`,
+coordinator moves, retriable IO; default 100ms / 1s).
 `ProducerConfig::transaction_timeout` is Kafka `transaction.timeout.ms` on
 InitProducerId (default 60s, same as Java).
 `ProducerConfig::metadata_max_age` / `ConsumerConfig::metadata_max_age` are

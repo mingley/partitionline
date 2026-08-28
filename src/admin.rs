@@ -141,6 +141,15 @@ pub struct AdminConfig {
     /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
     /// exponential growth. Default 1s (Java).
     pub reconnect_backoff_max: Duration,
+    /// Kafka `retry.backoff.ms`. Wait after a retriable admin error
+    /// (`NOT_CONTROLLER`, coordinator moves, IO) before the next attempt.
+    /// Default 100ms (Java / librdkafka). Zero retries immediately.
+    /// Grows as `base * 2^n` up to [`Self::retry_backoff_max`]. Distinct
+    /// from [`Self::reconnect_backoff`] (TCP/handshake failures).
+    pub retry_backoff: Duration,
+    /// Kafka `retry.backoff.max.ms`. Cap on [`Self::retry_backoff`]
+    /// exponential growth. Default 1s.
+    pub retry_backoff_max: Duration,
     /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
     /// SASL SCRAM-SHA-256 `(username, password)`.
@@ -164,6 +173,8 @@ impl Default for AdminConfig {
             connect_timeout: Duration::from_secs(10),
             reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
             reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
+            retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
+            retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             sasl_plain: None,
             sasl_scram: None,
             sasl_scram_sha512: None,
@@ -241,6 +252,26 @@ impl AdminConfig {
     #[must_use]
     pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
         self.reconnect_backoff_max = backoff;
+        self
+    }
+
+    /// Kafka `retry.backoff.ms`. Wait after a retriable admin error.
+    ///
+    /// Default 100ms. Zero retries immediately. Combined with
+    /// [`Self::retry_backoff_max`] this is exponential (`base * 2^n`),
+    /// no jitter. Failed TCP/handshake still uses [`Self::reconnect_backoff`].
+    #[must_use]
+    pub fn retry_backoff(mut self, backoff: Duration) -> Self {
+        self.retry_backoff = backoff;
+        self
+    }
+
+    /// Kafka `retry.backoff.max.ms`. Cap on exponential admin retry waits.
+    ///
+    /// Default 1s. Raised to [`Self::retry_backoff`] when set lower.
+    #[must_use]
+    pub fn retry_backoff_max(mut self, backoff: Duration) -> Self {
+        self.retry_backoff_max = backoff;
         self
     }
 }
@@ -1048,6 +1079,7 @@ impl Admin {
         let version = self.create_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1072,9 +1104,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1087,9 +1117,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1110,6 +1138,7 @@ impl Admin {
         let version = self.delete_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1134,9 +1163,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1149,9 +1176,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1205,6 +1230,7 @@ impl Admin {
         let version = self.partitions_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1229,9 +1255,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1244,9 +1268,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1267,6 +1289,7 @@ impl Admin {
         let version = self.alter_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         let resource_type = resource.resource_type;
         let name = resource.name.clone();
         let configs = configs.to_vec();
@@ -1302,9 +1325,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1314,9 +1335,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1332,6 +1351,7 @@ impl Admin {
         let version = self.create_acls_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         let acls = acls.to_vec();
         loop {
             if self.cluster.controller().is_err() {
@@ -1357,9 +1377,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1369,9 +1387,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1392,6 +1408,7 @@ impl Admin {
         let version = self.reassign_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1416,9 +1433,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1434,9 +1449,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1464,6 +1477,7 @@ impl Admin {
         let version = self.list_reassign_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1494,9 +1508,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1506,9 +1518,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1539,6 +1549,7 @@ impl Admin {
         let version = self.update_features_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1563,9 +1574,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1580,9 +1589,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1631,6 +1638,7 @@ impl Admin {
         let version = self.alter_user_scram_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1655,9 +1663,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1670,9 +1676,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1702,6 +1706,7 @@ impl Admin {
         let version = self.describe_user_scram_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1725,9 +1730,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1737,9 +1740,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1763,6 +1764,7 @@ impl Admin {
         let version = self.unregister_broker_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1787,9 +1789,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1799,9 +1799,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1856,6 +1854,7 @@ impl Admin {
         let version = self.alter_client_quotas_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1880,9 +1879,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1895,9 +1892,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1918,6 +1913,7 @@ impl Admin {
         let version = self.allocate_producer_ids_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1942,9 +1938,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -1954,9 +1948,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -1987,6 +1979,7 @@ impl Admin {
         let version = self.describe_transactions_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != &coord_key);
             if stale {
@@ -2017,9 +2010,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.txn_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2032,9 +2023,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new txn coordinator.
                 self.txn_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -2061,6 +2050,7 @@ impl Admin {
         let version = self.list_transactions_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != COORD_KEY);
             if stale {
@@ -2091,9 +2081,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.txn_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2103,9 +2091,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new txn coordinator.
                 self.txn_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             if resp.error_code != 0 {
@@ -2190,6 +2176,25 @@ impl Admin {
             .await?;
         let md = decode_metadata_response(&mut body.clone(), version)?;
         self.cluster.apply(&md);
+        Ok(())
+    }
+
+    /// Wait [`AdminConfig::retry_backoff`] (exponential) or [`Error::Timeout`].
+    async fn wait_retry(&self, attempt: &mut u32, deadline: Instant) -> Result<()> {
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
+        crate::config::sleep_retry_backoff(
+            self.cfg.retry_backoff,
+            self.cfg.retry_backoff_max,
+            *attempt,
+            deadline,
+        )
+        .await;
+        *attempt = attempt.saturating_add(1);
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
         Ok(())
     }
 
@@ -2283,6 +2288,7 @@ impl Admin {
         let version = self.delete_records_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.leader(&topic, partition).is_err() {
                 let topics = [topic.clone()];
@@ -2307,9 +2313,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2323,9 +2327,7 @@ impl Admin {
                 // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
                 self.cluster.invalidate_topic(&topic);
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
@@ -2357,6 +2359,7 @@ impl Admin {
         let version = self.describe_producers_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             if self.cluster.leader(&topic, partition).is_err() {
                 let topics = [topic.clone()];
@@ -2381,9 +2384,7 @@ impl Admin {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2403,9 +2404,7 @@ impl Admin {
                 // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
                 self.cluster.invalidate_topic(&topic);
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
@@ -2473,6 +2472,7 @@ impl Admin {
         let version = self.offset_delete_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         let group_id = group_id.to_string();
         loop {
             let stale = self
@@ -2507,9 +2507,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2519,9 +2517,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             if top != 0 {
@@ -2554,6 +2550,7 @@ impl Admin {
         let version = self.consumer_group_describe_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -2593,9 +2590,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2608,9 +2603,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -2640,6 +2633,7 @@ impl Admin {
         let version = self.describe_groups_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -2673,9 +2667,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2688,9 +2680,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -2754,6 +2744,7 @@ impl Admin {
         let version = self.delete_groups_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -2787,9 +2778,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2802,9 +2791,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -2838,6 +2825,7 @@ impl Admin {
         let version = self.share_group_describe_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -2877,9 +2865,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2892,9 +2878,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -2929,6 +2913,7 @@ impl Admin {
         let version = self.describe_share_group_offsets_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -2962,9 +2947,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -2977,9 +2960,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(results);
@@ -3013,6 +2994,7 @@ impl Admin {
         let version = self.alter_share_group_offsets_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -3046,9 +3028,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -3058,9 +3038,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(result);
@@ -3095,6 +3073,7 @@ impl Admin {
         let version = self.delete_share_group_offsets_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let stale = self
                 .group_coord
@@ -3128,9 +3107,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.group_coord = None;
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -3140,9 +3117,7 @@ impl Admin {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Ok(result);
@@ -3359,6 +3334,7 @@ impl Admin {
         let version = self.assign_replicas_to_dirs_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);
         loop {
             if self.cluster.controller().is_err() {
@@ -3384,9 +3360,7 @@ impl Admin {
                 Err(e) if e.is_retriable() => {
                     let _ = self.conns.remove(&node);
                     self.cluster.invalidate_controller();
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -3396,9 +3370,7 @@ impl Admin {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
@@ -3660,6 +3632,7 @@ impl Admin {
         let version = self.find_coord_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let body = self
                 .conn
@@ -3673,9 +3646,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -3688,9 +3659,7 @@ impl Admin {
                 return Ok(node);
             }
             if error::coordinator_retriable(err) {
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Err(Error::broker(err, "FindCoordinator"));
@@ -3704,6 +3673,7 @@ impl Admin {
         let version = self.find_coord_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
         loop {
             let body = self
                 .conn
@@ -3723,9 +3693,7 @@ impl Admin {
             let body = match body {
                 Ok(b) => b,
                 Err(e) if e.is_retriable() => {
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
-                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
                     continue;
                 }
                 Err(e) => return Err(e),
@@ -3738,9 +3706,7 @@ impl Admin {
                 return Ok(node);
             }
             if error::coordinator_retriable(err) {
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
+                self.wait_retry(&mut attempt, deadline).await?;
                 continue;
             }
             return Err(Error::broker(err, "FindCoordinator"));

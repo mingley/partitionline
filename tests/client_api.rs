@@ -247,9 +247,13 @@ fn config_builders_set_typed_knobs() {
     let a = AdminConfig::bootstrap(["127.0.0.1:9092"])
         .reconnect_backoff(Duration::from_millis(30))
         .reconnect_backoff_max(Duration::from_millis(300))
+        .retry_backoff(Duration::from_millis(45))
+        .retry_backoff_max(Duration::from_millis(180))
         .connect_timeout(Duration::from_secs(2));
     assert_eq!(a.reconnect_backoff, Duration::from_millis(30));
     assert_eq!(a.reconnect_backoff_max, Duration::from_millis(300));
+    assert_eq!(a.retry_backoff, Duration::from_millis(45));
+    assert_eq!(a.retry_backoff_max, Duration::from_millis(180));
     assert_eq!(a.connect_timeout, Duration::from_secs(2));
 }
 

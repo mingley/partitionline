@@ -522,6 +522,33 @@ async fn admin_reconnect_honors_backoff() {
 }
 
 #[tokio::test]
+async fn admin_retry_honors_backoff() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut acfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    acfg.retry_backoff = Duration::from_millis(50);
+    acfg.retry_backoff_max = Duration::from_millis(50);
+    let mut admin = Admin::new(acfg).await.unwrap();
+    admin
+        .create_topics(&[NewTopic::new("retry-a", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    mock.set_controller(1);
+    let start = Instant::now();
+    let created = admin
+        .create_topics(&[NewTopic::new("retry-b", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(mock.create_topics_not_controller(), 1);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "NOT_CONTROLLER must wait retry.backoff.ms, elapsed {:?}",
+        start.elapsed()
+    );
+}
+
+#[tokio::test]
 async fn produce_refreshes_metadata_after_max_age() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
