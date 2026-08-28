@@ -53,7 +53,8 @@ and the heartbeat thread leaves the group.
 `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
-records.
+records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
+`offsetsForTimes`. `Consumer::close` drops fetch connections.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

@@ -13,8 +13,8 @@ mod common;
 use partitionline::{
     partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
     ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
-    NewTopic, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
-    RecordMetadata, Sasl, ShareGroup,
+    NewTopic, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig,
+    ProducerInterceptor, RecordMetadata, Sasl, ShareGroup, TopicPartition,
 };
 use std::time::Duration;
 
@@ -972,4 +972,51 @@ async fn interceptors_rewrite_produce_and_count_fetch() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"tagged"[..]));
     assert_eq!(fetched.load(std::sync::atomic::Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn offsets_for_times_finds_record_and_misses() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"old"[..]).timestamp(1_000))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"new"[..]).timestamp(2_000))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let tp = TopicPartition::new("t", 0);
+    let hit = consumer
+        .offsets_for_times(&[(tp.clone(), 1_500)])
+        .await
+        .unwrap();
+    assert_eq!(hit.len(), 1);
+    let found = hit[0].1.expect("should find the 2000ms record");
+    assert_eq!(found.offset, 1);
+    assert_eq!(found.timestamp, 2_000);
+    let miss = consumer.offsets_for_times(&[(tp, 9_999)]).await.unwrap();
+    assert!(miss[0].1.is_none());
+    consumer.close().await.unwrap();
+}
+
+#[test]
+fn topic_partition_from_tuple() {
+    let tp: TopicPartition = ("orders", 3).into();
+    assert_eq!(tp, TopicPartition::new("orders", 3));
+    let pair: (String, i32) = tp.into();
+    assert_eq!(pair, ("orders".into(), 3));
+    let _ = OffsetAndTimestamp {
+        offset: 1,
+        timestamp: 2,
+    };
 }

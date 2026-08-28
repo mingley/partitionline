@@ -331,6 +331,55 @@ pub struct FetchedRecord {
     pub headers: Vec<Header>,
 }
 
+/// A topic name and partition index.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TopicPartition {
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+}
+
+impl TopicPartition {
+    /// `topic` plus `partition`.
+    pub fn new(topic: impl Into<String>, partition: i32) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+        }
+    }
+}
+
+impl From<(String, i32)> for TopicPartition {
+    fn from((topic, partition): (String, i32)) -> Self {
+        Self { topic, partition }
+    }
+}
+
+impl From<(&str, i32)> for TopicPartition {
+    fn from((topic, partition): (&str, i32)) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+        }
+    }
+}
+
+impl From<TopicPartition> for (String, i32) {
+    fn from(tp: TopicPartition) -> Self {
+        (tp.topic, tp.partition)
+    }
+}
+
+/// Offset plus the matching record timestamp from ListOffsets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OffsetAndTimestamp {
+    /// Log offset, or `-1` when the broker has no match.
+    pub offset: i64,
+    /// Record timestamp in milliseconds since the Unix epoch, or `-1`.
+    pub timestamp: i64,
+}
+
 /// One partition from Metadata: leader, replicas, and ISR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionInfo {
@@ -917,6 +966,12 @@ impl Consumer {
         }
     }
 
+    /// Drop fetch connections. The consumer is then gone (same as `Producer::close`).
+    pub async fn close(mut self) -> Result<()> {
+        self.conns.clear();
+        Ok(())
+    }
+
     pub(crate) fn take_wakeup(&self) -> bool {
         let was = self.wakeup.swap(false, Ordering::SeqCst);
         if was {
@@ -1246,13 +1301,22 @@ impl Consumer {
         timestamp: i64,
     ) -> Result<i64> {
         let topic = topic.into();
+        Ok(self.list_offset_at(&topic, partition, timestamp).await?.0)
+    }
+
+    async fn list_offset_at(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        timestamp: i64,
+    ) -> Result<(i64, i64)> {
         let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
-            if self.cluster.leader(&topic, partition).is_err() {
-                let topics = [topic.clone()];
+            if self.cluster.leader(topic, partition).is_err() {
+                let topics = [topic.to_string()];
                 self.refresh_metadata(Some(&topics)).await?;
             }
-            let (node, _) = self.cluster.leader(&topic, partition)?;
+            let (node, _) = self.cluster.leader(topic, partition)?;
             self.connect_node(node).await?;
             let version = self
                 .versions
@@ -1261,7 +1325,7 @@ impl Consumer {
                 .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
             let isolation = self.cfg.isolation_level;
             let timeout = self.cfg.request_timeout;
-            let current_leader_epoch = self.cluster.leader_epoch(&topic, partition);
+            let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
             let body = {
                 let conn = self
                     .conns
@@ -1275,7 +1339,7 @@ impl Consumer {
                             buf,
                             version,
                             isolation,
-                            &topic,
+                            topic,
                             partition,
                             current_leader_epoch,
                             timestamp,
@@ -1297,7 +1361,7 @@ impl Consumer {
                 Err(e) => return Err(e),
             };
             match decode_list_offsets_response(&mut body.clone(), version) {
-                Ok((_err, _ts, offset)) => return Ok(offset),
+                Ok((_err, ts, offset)) => return Ok((offset, ts)),
                 Err(e)
                     if matches!(
                         &e,
@@ -1307,7 +1371,7 @@ impl Consumer {
                         }
                     ) =>
                 {
-                    self.recover_leader_epoch(&topic, partition).await?;
+                    self.recover_leader_epoch(topic, partition).await?;
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
@@ -1315,12 +1379,12 @@ impl Consumer {
                 }
                 Err(e) if e.is_retriable() => {
                     // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                    self.cluster.invalidate_topic(&topic);
+                    self.cluster.invalidate_topic(topic);
                     let _ = self.conns.remove(&node);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
-                    let topics = [topic.clone()];
+                    let topics = [topic.to_string()];
                     self.refresh_metadata(Some(&topics)).await?;
                     continue;
                 }
@@ -1405,8 +1469,7 @@ impl Consumer {
         &mut self,
         partitions: &[(String, i32)],
     ) -> Result<Vec<(String, i32, i64)>> {
-        self.offsets_for_times(partitions, crate::EARLIEST_TIMESTAMP)
-            .await
+        self.offsets_at(partitions, crate::EARLIEST_TIMESTAMP).await
     }
 
     /// High-watermark offset for each partition (`ListOffsets` latest).
@@ -1414,11 +1477,35 @@ impl Consumer {
         &mut self,
         partitions: &[(String, i32)],
     ) -> Result<Vec<(String, i32, i64)>> {
-        self.offsets_for_times(partitions, crate::LATEST_TIMESTAMP)
-            .await
+        self.offsets_at(partitions, crate::LATEST_TIMESTAMP).await
     }
 
-    async fn offsets_for_times(
+    /// First offset at or after each timestamp (Java `offsetsForTimes`).
+    ///
+    /// Partitions with no matching record return `None`.
+    pub async fn offsets_for_times(
+        &mut self,
+        queries: &[(TopicPartition, i64)],
+    ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
+        let mut out = Vec::with_capacity(queries.len());
+        for (tp, timestamp) in queries {
+            let (offset, ts) = self
+                .list_offset_at(&tp.topic, tp.partition, *timestamp)
+                .await?;
+            let found = if offset < 0 {
+                None
+            } else {
+                Some(OffsetAndTimestamp {
+                    offset,
+                    timestamp: ts,
+                })
+            };
+            out.push((tp.clone(), found));
+        }
+        Ok(out)
+    }
+
+    async fn offsets_at(
         &mut self,
         partitions: &[(String, i32)],
         timestamp: i64,

@@ -64,6 +64,8 @@ committed offset (`Earliest` by default, unlike Java's `latest`).
 the heartbeat thread leaves the group if it is exceeded.
 `Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch
 interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
+`TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`.
+`Consumer::close` drops fetch connections; group `close` is `leave`.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

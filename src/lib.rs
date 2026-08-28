@@ -42,6 +42,7 @@
 //! every partition leader in parallel. [`Consumer::partitions_for`] returns
 //! Metadata (leader, replicas, ISR). [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
+//! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records.
 //!
@@ -143,7 +144,8 @@ pub use admin::{
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
-    Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener, WakeupHandle,
+    Consumer, ConsumerConfig, FetchedRecord, OffsetAndTimestamp, PartitionInfo, RebalanceListener,
+    TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;

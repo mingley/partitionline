@@ -55,6 +55,8 @@ impl Error {
         }
     }
 
+    /// Kafka transient errors (`NOT_LEADER`, coordinator move, timeout) plus I/O.
+    #[must_use]
     pub fn is_retriable(&self) -> bool {
         match self {
             Self::Broker { code, .. } => matches!(
@@ -196,6 +198,8 @@ pub fn coordinator_retriable(code: i16) -> bool {
     )
 }
 
+/// Kafka error code name, when this crate knows it.
+#[must_use]
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
         NONE => "NONE",

@@ -2937,18 +2937,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     };
                     let log_start = *st.log_start.get(&key).unwrap_or(&0);
                     let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                    let offset = if error_code != 0 {
-                        -1
+                    let (resp_ts, offset) = if error_code != 0 {
+                        (-1, -1)
                     } else if timestamp == EARLIEST_TIMESTAMP {
-                        log_start
+                        (timestamp, log_start)
                     } else if timestamp == LATEST_TIMESTAMP {
-                        hw
+                        (timestamp, hw)
                     } else {
                         st.log
                             .get(&key)
                             .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
-                            .map(|r| r.offset)
-                            .unwrap_or(-1)
+                            .map(|r| (r.timestamp, r.offset))
+                            .unwrap_or((-1, -1))
                     };
                     encode_list_offsets_response(
                         &mut body,
@@ -2956,7 +2956,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         &topic,
                         partition,
                         error_code,
-                        timestamp,
+                        resp_ts,
                         offset,
                     )
                     .unwrap();

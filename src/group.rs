@@ -562,6 +562,38 @@ impl ConsumerGroup {
         self.consumer.wakeup_handle()
     }
 
+    /// Metadata for `topic` (leader, replicas, ISR).
+    pub async fn partitions_for(
+        &mut self,
+        topic: impl Into<String>,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        self.consumer.partitions_for(topic).await
+    }
+
+    /// Log-start offset for each partition.
+    pub async fn beginning_offsets(
+        &mut self,
+        partitions: &[(String, i32)],
+    ) -> Result<Vec<(String, i32, i64)>> {
+        self.consumer.beginning_offsets(partitions).await
+    }
+
+    /// High-watermark offset for each partition.
+    pub async fn end_offsets(
+        &mut self,
+        partitions: &[(String, i32)],
+    ) -> Result<Vec<(String, i32, i64)>> {
+        self.consumer.end_offsets(partitions).await
+    }
+
+    /// First offset at or after each timestamp (Java `offsetsForTimes`).
+    pub async fn offsets_for_times(
+        &mut self,
+        queries: &[(crate::TopicPartition, i64)],
+    ) -> Result<Vec<(crate::TopicPartition, Option<crate::OffsetAndTimestamp>)>> {
+        self.consumer.offsets_for_times(queries).await
+    }
+
     /// Commit the next fetch offsets for the current assignment.
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {
@@ -683,6 +715,11 @@ impl ConsumerGroup {
             return Err(Error::broker(err, "LeaveGroup"));
         }
         Ok(())
+    }
+
+    /// Leave the group. Same as [`Self::leave`].
+    pub async fn close(self) -> Result<()> {
+        self.leave().await
     }
 
     async fn rejoin(&mut self) -> Result<()> {

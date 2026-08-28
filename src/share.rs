@@ -596,6 +596,11 @@ impl ShareGroup {
         Ok(())
     }
 
+    /// Leave the share group. Same as [`Self::leave`].
+    pub async fn close(self) -> Result<()> {
+        self.leave().await
+    }
+
     fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();
