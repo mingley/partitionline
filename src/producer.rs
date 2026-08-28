@@ -231,6 +231,20 @@ impl ProducerConfig {
         self.request_timeout = timeout;
         self
     }
+
+    /// TCP connect timeout.
+    #[must_use]
+    pub fn connect_timeout(mut self, timeout: Duration) -> Self {
+        self.connect_timeout = timeout;
+        self
+    }
+
+    /// Kafka `allow.auto.create.topics` on Metadata.
+    #[must_use]
+    pub fn allow_auto_create_topics(mut self, allow: bool) -> Self {
+        self.allow_auto_topic_creation = allow;
+        self
+    }
 }
 
 /// One record to produce.

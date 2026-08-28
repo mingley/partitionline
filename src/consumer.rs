@@ -29,7 +29,7 @@ use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets
 use crate::protocol::records::Header;
 use crate::protocol::sasl;
 
-type RebalanceFn = dyn Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync;
+type RebalanceFn = dyn Fn(&[TopicPartition], &[TopicPartition]) + Send + Sync;
 
 /// Called as `(revoked, assigned)` after a consumer-group assignment change.
 ///
@@ -40,11 +40,13 @@ pub struct RebalanceListener(Option<Arc<RebalanceFn>>);
 
 impl RebalanceListener {
     /// Wrap a callback.
-    pub fn from_fn(f: impl Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync + 'static) -> Self {
+    pub fn from_fn(
+        f: impl Fn(&[TopicPartition], &[TopicPartition]) + Send + Sync + 'static,
+    ) -> Self {
         Self(Some(Arc::new(f)))
     }
 
-    pub(crate) fn call(&self, revoked: &[(String, i32)], assigned: &[(String, i32)]) {
+    pub(crate) fn call(&self, revoked: &[TopicPartition], assigned: &[TopicPartition]) {
         if let Some(f) = &self.0 {
             f(revoked, assigned);
         }
@@ -250,7 +252,7 @@ impl ConsumerConfig {
     #[must_use]
     pub fn on_rebalance(
         mut self,
-        f: impl Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync + 'static,
+        f: impl Fn(&[TopicPartition], &[TopicPartition]) + Send + Sync + 'static,
     ) -> Self {
         self.rebalance = RebalanceListener::from_fn(f);
         self
@@ -310,6 +312,13 @@ impl ConsumerConfig {
         self.request_timeout = timeout;
         self
     }
+
+    /// TCP connect timeout.
+    #[must_use]
+    pub fn connect_timeout(mut self, timeout: Duration) -> Self {
+        self.connect_timeout = timeout;
+        self
+    }
 }
 
 /// One record from Fetch.
@@ -355,6 +364,10 @@ impl TopicPartition {
             topic: topic.into(),
             partition,
         }
+    }
+
+    pub(crate) fn list_from(pairs: &[(String, i32)]) -> Vec<Self> {
+        pairs.iter().map(Self::from).collect()
     }
 }
 

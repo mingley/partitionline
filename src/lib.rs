@@ -68,7 +68,8 @@
 //! [`ShareGroup::subscribe`] / [`ShareGroup::unsubscribe`]).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::enforce_rebalance`]
-//! rejoins on the next poll. [`ConsumerGroup::subscribe`] /
+//! rejoins on the next poll. [`ConsumerConfig::on_rebalance`] receives
+//! [`TopicPartition`] slices. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::unsubscribe`] change the topic list without dropping
 //! the handle. [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]

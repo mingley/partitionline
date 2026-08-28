@@ -203,6 +203,13 @@ impl AdminConfig {
         self.request_timeout = timeout;
         self
     }
+
+    /// TCP connect timeout.
+    #[must_use]
+    pub fn connect_timeout(mut self, timeout: Duration) -> Self {
+        self.connect_timeout = timeout;
+        self
+    }
 }
 
 /// Topic to create (`CreateTopics`).

@@ -113,6 +113,8 @@ let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 let _iso = IsolationLevel::ReadCommitted;
 ```
 
+`ProducerConfig::allow_auto_create_topics` is Kafka `allow.auto.create.topics`.
+`connect_timeout` is on the producer, consumer, and admin builders.
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and
 the Kafka 3.x / 4.x admin APIs are in the crate rustdoc. Produce partitioning
@@ -131,7 +133,7 @@ cargo run --release --example roundtrip
 ```
 
 Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`,
-`examples/offsets.rs`, `examples/share.rs`.
+`examples/offsets.rs`, `examples/share.rs`, `examples/wakeup.rs`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

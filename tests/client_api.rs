@@ -135,10 +135,14 @@ fn config_builders_set_typed_knobs() {
         .acks(Acks::All)
         .compression(Compression::Lz4)
         .idempotent(true)
+        .allow_auto_create_topics(true)
+        .connect_timeout(Duration::from_secs(3))
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
     assert!(p.enable_idempotence);
+    assert!(p.allow_auto_topic_creation);
+    assert_eq!(p.connect_timeout, Duration::from_secs(3));
     assert_eq!(p.sasl_scram, Some(("alice".into(), "secret".into())));
     assert!(p.sasl_plain.is_none());
 
@@ -153,7 +157,8 @@ fn config_builders_set_typed_knobs() {
         .heartbeat_interval(Duration::from_millis(200))
         .auto_commit(true)
         .auto_commit_interval(Duration::ZERO)
-        .max_poll_interval(Duration::from_secs(60));
+        .max_poll_interval(Duration::from_secs(60))
+        .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, 1);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
@@ -165,6 +170,7 @@ fn config_builders_set_typed_knobs() {
     assert!(c.enable_auto_commit);
     assert_eq!(c.auto_commit_interval, Duration::ZERO);
     assert_eq!(c.max_poll_interval, Duration::from_secs(60));
+    assert_eq!(c.connect_timeout, Duration::from_secs(4));
 }
 
 #[test]
@@ -723,8 +729,12 @@ async fn rebalance_listener_sees_first_assignment() {
         .max_wait_ms(10)
         .on_rebalance({
             let added = std::sync::Arc::clone(&added);
-            move |_revoked, assigned| {
+            move |revoked, assigned| {
                 added.store(assigned.len(), std::sync::atomic::Ordering::SeqCst);
+                assert!(revoked.is_empty());
+                let first = assigned.first().expect("first assignment");
+                assert_eq!(first.topic, "t");
+                assert_eq!(first.partition, 0);
             }
         });
     let group = ConsumerGroup::join(cfg, "rl", "t").await.unwrap();

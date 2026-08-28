@@ -841,7 +841,9 @@ impl ConsumerGroup {
         let revoked = self.assignment();
         self.leave_coordinator().await?;
         if !revoked.is_empty() {
-            self.cfg.rebalance.call(&revoked, &[]);
+            self.cfg
+                .rebalance
+                .call(&TopicPartition::list_from(&revoked), &[]);
         }
         self.consumer.clear_assignment();
         self.topics.clear();
@@ -873,7 +875,9 @@ impl ConsumerGroup {
             let revoked = self.assignment();
             self.consumer.clear_assignment();
             if !revoked.is_empty() {
-                self.cfg.rebalance.call(&revoked, &[]);
+                self.cfg
+                    .rebalance
+                    .call(&TopicPartition::list_from(&revoked), &[]);
             }
             self.prev_assignment.clear();
         }
@@ -1248,7 +1252,10 @@ impl ConsumerGroup {
         let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();
         let added_tps: Vec<(String, i32)> = next.difference(&prev).cloned().collect();
         if !revoked.is_empty() || !added_tps.is_empty() {
-            self.cfg.rebalance.call(&revoked, &added_tps);
+            self.cfg.rebalance.call(
+                &TopicPartition::list_from(&revoked),
+                &TopicPartition::list_from(&added_tps),
+            );
         }
         Ok(revoked)
     }
