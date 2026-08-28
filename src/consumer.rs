@@ -137,6 +137,15 @@ pub struct ConsumerConfig {
     /// Kafka `metadata.max.age.ms`. Refresh cached Metadata after this age.
     /// Default 5 minutes (Java). Zero refreshes on every lookup.
     pub metadata_max_age: Duration,
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed TCP/TLS/SASL
+    /// connect to a broker before the next attempt. Default 50ms (Java).
+    /// Zero retries immediately. Grows as `base * 2^n` up to
+    /// [`Self::reconnect_backoff_max`]. Distinct from [`Self::retry_backoff`]
+    /// (Fetch RPC retries).
+    pub reconnect_backoff: Duration,
+    /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
+    /// exponential growth. Default 1s (Java).
+    pub reconnect_backoff_max: Duration,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
@@ -171,6 +180,8 @@ impl Default for ConsumerConfig {
             retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
             retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             metadata_max_age: Duration::from_secs(300),
+            reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
+            reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
             interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
@@ -321,6 +332,27 @@ impl ConsumerConfig {
     #[must_use]
     pub fn metadata_max_age(mut self, max_age: Duration) -> Self {
         self.metadata_max_age = max_age;
+        self
+    }
+
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed broker connect.
+    ///
+    /// Default 50ms (Java). Zero retries immediately. Combined with
+    /// [`Self::reconnect_backoff_max`] this is exponential (`base * 2^n`),
+    /// no jitter. Preferred-replica redirects and Fetch RPC retries still
+    /// use [`Self::retry_backoff`].
+    #[must_use]
+    pub fn reconnect_backoff(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff = backoff;
+        self
+    }
+
+    /// Kafka `reconnect.backoff.max.ms`. Cap on exponential reconnect waits.
+    ///
+    /// Default 1s (Java). Raised to [`Self::reconnect_backoff`] when set lower.
+    #[must_use]
+    pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff_max = backoff;
         self
     }
 
@@ -747,6 +779,7 @@ pub struct Consumer {
     telemetry_version: Option<i16>,
     client_instance_id: Option<[u8; 16]>,
     m_fetch_latency: crate::metrics::LatencyTracker,
+    reconnect_fails: HashMap<i32, u32>,
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -843,6 +876,7 @@ impl Consumer {
             telemetry_version,
             client_instance_id: None,
             m_fetch_latency: crate::metrics::LatencyTracker::new(),
+            reconnect_fails: HashMap::new(),
         })
     }
 
@@ -1184,8 +1218,41 @@ impl Consumer {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        loop {
+            if self.woken() {
+                return Err(Error::Wakeup);
+            }
+            let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+            self.sleep_reconnect_backoff(fails, deadline).await?;
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            match self.open_node_conn(&addr).await {
+                Ok(conn) => {
+                    let _ = self.reconnect_fails.remove(&node);
+                    let _prev = self.conns.insert(node, conn);
+                    return Ok(());
+                }
+                Err(e) if e.is_retriable() => {
+                    let _fails =
+                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                }
+                Err(e) => {
+                    let _fails =
+                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    async fn open_node_conn(&self, addr: &str) -> Result<crate::net::BrokerConn> {
         let mut conn = BrokerConn::connect_tls(
-            &addr,
+            addr,
             &self.cfg.client_id,
             self.cfg.connect_timeout,
             self.cfg.tls.as_ref(),
@@ -1209,8 +1276,36 @@ impl Consumer {
             self.cfg.request_timeout,
         )
         .await?;
-        let _prev = self.conns.insert(node, conn);
-        Ok(())
+        Ok(conn)
+    }
+
+    /// Wait [`ConsumerConfig::reconnect_backoff`] unless a wakeup arrives.
+    async fn sleep_reconnect_backoff(&self, fails: u32, deadline: Instant) -> Result<()> {
+        if self.woken() {
+            return Err(Error::Wakeup);
+        }
+        let delay = crate::config::reconnect_backoff_delay(
+            self.cfg.reconnect_backoff,
+            self.cfg.reconnect_backoff_max,
+            fails,
+        );
+        if delay.is_zero() {
+            return Ok(());
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            return Ok(());
+        }
+        let rest = delay.min(deadline.saturating_duration_since(now));
+        let mut rx = self.wakeup_tx.subscribe();
+        tokio::select! {
+            biased;
+            result = rx.wait_for(|on| *on) => {
+                drop(result);
+                Err(Error::Wakeup)
+            }
+            _ = tokio::time::sleep(rest) => Ok(())
+        }
     }
 
     async fn recover_leader_epoch(&mut self, topic: &str, partition: i32) -> Result<()> {

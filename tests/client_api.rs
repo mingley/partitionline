@@ -189,6 +189,8 @@ fn config_builders_set_typed_knobs() {
         .retry_backoff_max(Duration::from_millis(400))
         .transaction_timeout(Duration::from_secs(45))
         .metadata_max_age(Duration::from_secs(12))
+        .reconnect_backoff(Duration::from_millis(40))
+        .reconnect_backoff_max(Duration::from_millis(200))
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
@@ -201,6 +203,8 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.retry_backoff_max, Duration::from_millis(400));
     assert_eq!(p.transaction_timeout, Duration::from_secs(45));
     assert_eq!(p.metadata_max_age, Duration::from_secs(12));
+    assert_eq!(p.reconnect_backoff, Duration::from_millis(40));
+    assert_eq!(p.reconnect_backoff_max, Duration::from_millis(200));
     assert_eq!(p.sasl_scram, Some(("alice".into(), "secret".into())));
     assert!(p.sasl_plain.is_none());
 
@@ -219,6 +223,8 @@ fn config_builders_set_typed_knobs() {
         .retry_backoff(Duration::from_millis(25))
         .retry_backoff_max(Duration::from_millis(250))
         .metadata_max_age(Duration::from_secs(9))
+        .reconnect_backoff(Duration::from_millis(15))
+        .reconnect_backoff_max(Duration::from_millis(120))
         .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
     assert_eq!(c.max_bytes, 1024);
@@ -234,7 +240,17 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(c.retry_backoff, Duration::from_millis(25));
     assert_eq!(c.retry_backoff_max, Duration::from_millis(250));
     assert_eq!(c.metadata_max_age, Duration::from_secs(9));
+    assert_eq!(c.reconnect_backoff, Duration::from_millis(15));
+    assert_eq!(c.reconnect_backoff_max, Duration::from_millis(120));
     assert_eq!(c.connect_timeout, Duration::from_secs(4));
+
+    let a = AdminConfig::bootstrap(["127.0.0.1:9092"])
+        .reconnect_backoff(Duration::from_millis(30))
+        .reconnect_backoff_max(Duration::from_millis(300))
+        .connect_timeout(Duration::from_secs(2));
+    assert_eq!(a.reconnect_backoff, Duration::from_millis(30));
+    assert_eq!(a.reconnect_backoff_max, Duration::from_millis(300));
+    assert_eq!(a.connect_timeout, Duration::from_secs(2));
 }
 
 #[test]

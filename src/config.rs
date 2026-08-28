@@ -4,6 +4,7 @@
 //! [`ProducerConfig`](crate::ProducerConfig) still works; the builders here are
 //! the shorter path.
 
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::net::TlsConfig;
@@ -13,6 +14,10 @@ use crate::protocol::oidc::OidcConfig;
 pub(crate) const DEFAULT_RETRY_BACKOFF: Duration = Duration::from_millis(100);
 /// Kafka `retry.backoff.max.ms` default (Java and librdkafka: 1000).
 pub(crate) const DEFAULT_RETRY_BACKOFF_MAX: Duration = Duration::from_millis(1000);
+/// Kafka `reconnect.backoff.ms` default (Java: 50).
+pub(crate) const DEFAULT_RECONNECT_BACKOFF: Duration = Duration::from_millis(50);
+/// Kafka `reconnect.backoff.max.ms` default (Java: 1000).
+pub(crate) const DEFAULT_RECONNECT_BACKOFF_MAX: Duration = Duration::from_millis(1000);
 
 /// Exponential delay for retry attempt `n` (0-based): `base * 2^n`, capped at `max`.
 ///
@@ -43,6 +48,33 @@ pub(crate) async fn sleep_retry_backoff(
         return;
     }
     tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
+}
+
+/// Wait after `fails` unsuccessful TCP/handshake attempts for one broker.
+///
+/// `fails == 0` is the first connect (no wait). After that this is
+/// [`retry_backoff_delay`] with `attempt = fails - 1` (50ms, 100ms, …).
+pub(crate) fn reconnect_backoff_delay(base: Duration, max: Duration, fails: u32) -> Duration {
+    match fails {
+        0 => Duration::ZERO,
+        n => retry_backoff_delay(base, max, n - 1),
+    }
+}
+
+/// Sleep [`reconnect_backoff_delay`].
+pub(crate) async fn sleep_reconnect_backoff(base: Duration, max: Duration, fails: u32) {
+    let delay = reconnect_backoff_delay(base, max, fails);
+    if delay.is_zero() {
+        return;
+    }
+    tokio::time::sleep(delay).await;
+}
+
+/// Count one failed connect for `node`. Returns the new count.
+pub(crate) fn bump_reconnect_fails(map: &mut HashMap<i32, u32>, node: i32) -> u32 {
+    let slot = map.entry(node).or_insert(0);
+    *slot = slot.saturating_add(1);
+    *slot
 }
 
 /// Broker acknowledgements the producer waits for.
@@ -242,6 +274,7 @@ pub(crate) fn apply_tls(slot: &mut Option<TlsConfig>, tls: TlsConfig) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn acks_roundtrip() {
@@ -296,6 +329,31 @@ mod tests {
             base,
             "max below base still waits at least base"
         );
+    }
+
+    #[test]
+    fn reconnect_backoff_delay_skips_first_then_doubles() {
+        let base = Duration::from_millis(50);
+        let max = Duration::from_millis(1000);
+        assert_eq!(reconnect_backoff_delay(base, max, 0), Duration::ZERO);
+        assert_eq!(reconnect_backoff_delay(base, max, 1), base);
+        assert_eq!(
+            reconnect_backoff_delay(base, max, 2),
+            Duration::from_millis(100)
+        );
+        assert_eq!(
+            reconnect_backoff_delay(base, max, 3),
+            Duration::from_millis(200)
+        );
+        assert_eq!(reconnect_backoff_delay(base, max, 20), max);
+        assert_eq!(
+            reconnect_backoff_delay(Duration::ZERO, max, 4),
+            Duration::ZERO
+        );
+        let mut fails = HashMap::new();
+        assert_eq!(bump_reconnect_fails(&mut fails, 1), 1);
+        assert_eq!(bump_reconnect_fails(&mut fails, 1), 2);
+        assert_eq!(fails.get(&1).copied(), Some(2));
     }
 
     #[test]

@@ -74,6 +74,15 @@ pub struct ProducerConfig {
     pub metadata_max_age: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed TCP/TLS/SASL
+    /// connect to a broker before the next attempt. Default 50ms (Java).
+    /// Zero retries immediately. Grows as `base * 2^n` up to
+    /// [`Self::reconnect_backoff_max`]. Distinct from [`Self::retry_backoff`]
+    /// (Produce RPC retries).
+    pub reconnect_backoff: Duration,
+    /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
+    /// exponential growth. Default 1s (Java).
+    pub reconnect_backoff_max: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
     pub allow_auto_topic_creation: bool,
     /// Record batch compression.
@@ -126,6 +135,8 @@ impl Default for ProducerConfig {
             retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             metadata_max_age: Duration::from_secs(300),
             connect_timeout: Duration::from_secs(10),
+            reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
+            reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
             allow_auto_topic_creation: false,
             compression: Compression::None,
             sasl_plain: None,
@@ -327,6 +338,26 @@ impl ProducerConfig {
         self
     }
 
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed broker connect.
+    ///
+    /// Default 50ms (Java). Zero retries immediately. Combined with
+    /// [`Self::reconnect_backoff_max`] this is exponential (`base * 2^n`),
+    /// no jitter. Bootstrap `connect_tls_any` does not wait between hosts.
+    #[must_use]
+    pub fn reconnect_backoff(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff = backoff;
+        self
+    }
+
+    /// Kafka `reconnect.backoff.max.ms`. Cap on exponential reconnect waits.
+    ///
+    /// Default 1s (Java). Raised to [`Self::reconnect_backoff`] when set lower.
+    #[must_use]
+    pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff_max = backoff;
+        self
+    }
+
     /// Kafka `allow.auto.create.topics` on Metadata.
     #[must_use]
     pub fn allow_auto_create_topics(mut self, allow: bool) -> Self {
@@ -478,6 +509,7 @@ struct Shared {
     retry_tx: mpsc::Sender<Pending>,
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
+    reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
@@ -645,6 +677,7 @@ impl Producer {
             retry_tx,
             last_meta_err: parking_lot::Mutex::new(None),
             nodes: parking_lot::Mutex::new(HashMap::new()),
+            reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
@@ -1570,15 +1603,39 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
         }
         match spawn_node_workers(&shared, node, &addr, cap).await {
             Ok(workers) => {
+                let _ = shared.reconnect_fails.lock().remove(&node);
                 let _prev = shared.nodes.lock().insert(node, workers);
                 *shared.last_meta_err.lock() = None;
+                shared.cache_nudge.notify_waiters();
             }
             Err(e) => {
                 let _ = shared.nodes.lock().remove(&node);
-                *shared.last_meta_err.lock() = Some(clone_err(&e));
+                let fails =
+                    crate::config::bump_reconnect_fails(&mut shared.reconnect_fails.lock(), node);
+                if e.is_retriable() {
+                    let delay = crate::config::reconnect_backoff_delay(
+                        shared.cfg.reconnect_backoff,
+                        shared.cfg.reconnect_backoff_max,
+                        fails,
+                    );
+                    if delay.is_zero() {
+                        try_nudge_node(&shared.connect_tx, node);
+                        shared.cache_nudge.notify_waiters();
+                    } else {
+                        let weak = weak.clone();
+                        drop(tokio::spawn(async move {
+                            tokio::time::sleep(delay).await;
+                            if let Some(shared) = weak.upgrade() {
+                                try_nudge_node(&shared.connect_tx, node);
+                            }
+                        }));
+                    }
+                } else {
+                    *shared.last_meta_err.lock() = Some(clone_err(&e));
+                    shared.cache_nudge.notify_waiters();
+                }
             }
         }
-        shared.cache_nudge.notify_waiters();
     }
 }
 

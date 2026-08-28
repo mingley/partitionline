@@ -145,6 +145,10 @@ Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
 `retry.backoff.ms` / `retry.backoff.max.ms` (exponential wait after a retriable
 Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable
 Fetch (preferred-replica redirects do not wait).
+`ProducerConfig::reconnect_backoff` / `reconnect_backoff_max` are Kafka
+`reconnect.backoff.ms` / `reconnect.backoff.max.ms` (exponential wait after a
+failed broker TCP connect; default 50ms / 1s, same as Java). The same pair is
+on `ConsumerConfig` and `AdminConfig`.
 `ProducerConfig::transaction_timeout` is Kafka `transaction.timeout.ms` on
 InitProducerId (default 60s, same as Java).
 `ProducerConfig::metadata_max_age` / `ConsumerConfig::metadata_max_age` are

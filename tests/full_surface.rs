@@ -447,6 +447,81 @@ async fn produce_retry_honors_backoff() {
 }
 
 #[tokio::test]
+async fn produce_reconnect_honors_backoff() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.connections = 1;
+    pcfg.reconnect_backoff = Duration::from_millis(50);
+    pcfg.reconnect_backoff_max = Duration::from_millis(50);
+    let producer = Producer::new(pcfg).await.unwrap();
+    mock.refuse_connections(1);
+    let start = Instant::now();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"reconnect-backoff"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "failed broker connect must wait reconnect.backoff.ms, elapsed {:?}",
+        start.elapsed()
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_reconnect_honors_backoff() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"fetch-reconnect"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.retry_backoff = Duration::ZERO;
+    ccfg.reconnect_backoff = Duration::from_millis(50);
+    ccfg.reconnect_backoff_max = Duration::from_millis(50);
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    mock.refuse_connections(1);
+    let start = Instant::now();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "failed broker connect must wait reconnect.backoff.ms, elapsed {:?}",
+        start.elapsed()
+    );
+}
+
+#[tokio::test]
+async fn admin_reconnect_honors_backoff() {
+    let mock = common::Mock::start().await;
+    let mut acfg = AdminConfig::bootstrap([mock.addr.clone()]);
+    acfg.reconnect_backoff = Duration::from_millis(50);
+    acfg.reconnect_backoff_max = Duration::from_millis(50);
+    let mut admin = Admin::new(acfg).await.unwrap();
+    mock.refuse_connections(1);
+    let start = Instant::now();
+    let results = admin
+        .create_topics(&[NewTopic::new("reconnect-t", 1, 1)], 5_000, false)
+        .await
+        .unwrap();
+    assert_eq!(results[0].error_code, 0);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "failed broker connect must wait reconnect.backoff.ms, elapsed {:?}",
+        start.elapsed()
+    );
+}
+
+#[tokio::test]
 async fn produce_refreshes_metadata_after_max_age() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

@@ -133,6 +133,14 @@ pub struct AdminConfig {
     pub request_timeout: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed TCP/TLS/SASL
+    /// connect to a broker before the next attempt. Default 50ms (Java).
+    /// Zero retries immediately. Grows as `base * 2^n` up to
+    /// [`Self::reconnect_backoff_max`].
+    pub reconnect_backoff: Duration,
+    /// Kafka `reconnect.backoff.max.ms`. Cap on [`Self::reconnect_backoff`]
+    /// exponential growth. Default 1s (Java).
+    pub reconnect_backoff_max: Duration,
     /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
     /// SASL SCRAM-SHA-256 `(username, password)`.
@@ -154,6 +162,8 @@ impl Default for AdminConfig {
             client_id: "partitionline".into(),
             request_timeout: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
+            reconnect_backoff: crate::config::DEFAULT_RECONNECT_BACKOFF,
+            reconnect_backoff_max: crate::config::DEFAULT_RECONNECT_BACKOFF_MAX,
             sasl_plain: None,
             sasl_scram: None,
             sasl_scram_sha512: None,
@@ -211,6 +221,26 @@ impl AdminConfig {
     #[must_use]
     pub fn connect_timeout(mut self, timeout: Duration) -> Self {
         self.connect_timeout = timeout;
+        self
+    }
+
+    /// Kafka `reconnect.backoff.ms`. Wait after a failed broker connect.
+    ///
+    /// Default 50ms (Java). Zero retries immediately. Combined with
+    /// [`Self::reconnect_backoff_max`] this is exponential (`base * 2^n`),
+    /// no jitter.
+    #[must_use]
+    pub fn reconnect_backoff(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff = backoff;
+        self
+    }
+
+    /// Kafka `reconnect.backoff.max.ms`. Cap on exponential reconnect waits.
+    ///
+    /// Default 1s (Java). Raised to [`Self::reconnect_backoff`] when set lower.
+    #[must_use]
+    pub fn reconnect_backoff_max(mut self, backoff: Duration) -> Self {
+        self.reconnect_backoff_max = backoff;
         self
     }
 }
@@ -593,6 +623,7 @@ pub struct Admin {
     describe_delegation_token_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
+    reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
     txn_coord: Option<(String, i32)>,
 }
@@ -950,6 +981,7 @@ impl Admin {
             describe_delegation_token_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
+            reconnect_fails: HashMap::new(),
             group_coord: None,
             txn_coord: None,
         })
@@ -2171,8 +2203,43 @@ impl Admin {
             .get(&node)
             .cloned()
             .ok_or_else(|| Error::protocol(format!("unknown broker {node}")))?;
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        loop {
+            let fails = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+            crate::config::sleep_reconnect_backoff(
+                self.cfg.reconnect_backoff,
+                self.cfg.reconnect_backoff_max,
+                fails,
+            )
+            .await;
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            match self.open_node_conn(&addr).await {
+                Ok(conn) => {
+                    let _ = self.reconnect_fails.remove(&node);
+                    let _prev = self.conns.insert(node, conn);
+                    return Ok(());
+                }
+                Err(e) if e.is_retriable() => {
+                    let _fails =
+                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                }
+                Err(e) => {
+                    let _fails =
+                        crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    async fn open_node_conn(&self, addr: &str) -> Result<BrokerConn> {
         let mut conn = BrokerConn::connect_tls(
-            &addr,
+            addr,
             &self.cfg.client_id,
             self.cfg.connect_timeout,
             self.cfg.tls.as_ref(),
@@ -2196,8 +2263,7 @@ impl Admin {
             self.cfg.request_timeout,
         )
         .await?;
-        let _prev = self.conns.insert(node, conn);
-        Ok(())
+        Ok(conn)
     }
 
     /// Delete records before `offset` (`DeleteRecords`).

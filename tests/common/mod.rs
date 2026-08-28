@@ -362,6 +362,7 @@ struct State {
     last_txn_offset_commit_partitions: usize,
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
+    refuse_conns: u32,
     coord_node: i32,
     txn_coord_node: i32,
     find_coordinator_key_types: Vec<i8>,
@@ -573,6 +574,7 @@ fn new_state(
         last_txn_offset_commit_partitions: 0,
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
+        refuse_conns: 0,
         coord_node: 1,
         txn_coord_node: 1,
         find_coordinator_key_types: Vec::new(),
@@ -736,11 +738,24 @@ fn spawn_plain(listener: TcpListener, node_id: i32, state: Arc<Mutex<State>>) {
             let Ok((stream, _)) = listener.accept().await else {
                 break;
             };
+            if take_refuse(&state) {
+                continue;
+            }
             stream.set_nodelay(true).ok();
             let st = state.clone();
             tokio::spawn(handle_conn(stream, node_id, st));
         }
     });
+}
+
+fn take_refuse(state: &Mutex<State>) -> bool {
+    let mut st = state.lock();
+    if st.refuse_conns > 0 {
+        st.refuse_conns -= 1;
+        true
+    } else {
+        false
+    }
 }
 
 fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
@@ -891,6 +906,9 @@ impl Mock {
                 let Ok((tcp, _)) = listener.accept().await else {
                     break;
                 };
+                if take_refuse(&st) {
+                    continue;
+                }
                 tcp.set_nodelay(true).ok();
                 let st = st.clone();
                 let acceptor = acceptor.clone();
@@ -1537,6 +1555,11 @@ impl Mock {
         let st = self.state.lock();
         let n = *st.drop_gen.borrow();
         let _ = st.drop_gen.send(n.saturating_add(1));
+    }
+
+    /// Accept then immediately drop the next `n` TCP connections (no Kafka handshake).
+    pub fn refuse_connections(&self, n: u32) {
+        self.state.lock().refuse_conns = n;
     }
 
     pub fn move_coordinator(&self) {
