@@ -999,6 +999,18 @@ impl ConsumerGroup {
         self.leave().await
     }
 
+    /// Leave the group, waiting up to `timeout` (Java `close(Duration)`).
+    ///
+    /// [`Self::leave`] / [`Self::close`] wait up to 30 seconds for the
+    /// coordinator. A shorter `timeout` returns [`Error::Timeout`] if leave
+    /// does not finish in time.
+    pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
+        match tokio::time::timeout(timeout, self.leave()).await {
+            Ok(out) => out,
+            Err(_) => Err(Error::Timeout),
+        }
+    }
+
     async fn leave_coordinator(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
         if self.kip848 {

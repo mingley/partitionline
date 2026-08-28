@@ -78,7 +78,8 @@
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
-//! [`Producer::close_timeout`] match Java.
+//! [`Producer::close_timeout`] match Java. [`ConsumerGroup::close_timeout`] /
+//! [`ShareGroup::close_timeout`] cap `leave` (Java `close(Duration)`).
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
 //!

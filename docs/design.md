@@ -87,6 +87,8 @@ records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java
 leader epoch. `FetchedRecord.serialized_key_size` / `serialized_value_size`
 match Java. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections.
+`ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
+(Java `close(Duration)`).
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

@@ -840,6 +840,18 @@ impl ShareGroup {
         self.leave().await
     }
 
+    /// Leave the share group, waiting up to `timeout` (Java `close(Duration)`).
+    ///
+    /// [`Self::leave`] / [`Self::close`] wait up to 30 seconds for the
+    /// coordinator. A shorter `timeout` returns [`Error::Timeout`] if leave
+    /// does not finish in time.
+    pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
+        match tokio::time::timeout(timeout, self.leave()).await {
+            Ok(out) => out,
+            Err(_) => Err(Error::Timeout),
+        }
+    }
+
     fn spawn_heartbeat(&self, mut stop: watch::Receiver<bool>) {
         let group_id = self.group_id.clone();
         let member_id = self.member_id.clone();

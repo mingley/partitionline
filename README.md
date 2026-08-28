@@ -95,11 +95,13 @@ rejoins on the next poll. `subscription` is the topic list.
 Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
+`ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
+(Java `close(Duration)`).
 `Admin::close` drops the admin connection. Interceptors have `close`;
 consumer interceptors also see `on_commit`.
 `Producer::init_transactions` is a no-op after connect when
 `transactional.id` is set. `flush_timeout` caps `flush`.
-`close_timeout` is Java `close(Duration)`.
+`close_timeout` is Java `close(Duration)` (producer flush, group/share leave).
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

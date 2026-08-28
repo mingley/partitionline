@@ -56,6 +56,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
+| `close(Duration)` | yes (`Producer::close_timeout`; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |

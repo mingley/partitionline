@@ -1733,3 +1733,25 @@ async fn client_instance_id_is_kip714() {
     assert_eq!(consumer.client_instance_id().await.unwrap(), [0x11; 16]);
     consumer.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn group_and_share_close_timeout_leaves() {
+    let mock = common::Mock::start().await;
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "close-to",
+        "t",
+    )
+    .await
+    .unwrap();
+    group.close_timeout(Duration::from_secs(5)).await.unwrap();
+
+    let share = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-close-to",
+        "t",
+    )
+    .await
+    .unwrap();
+    share.close_timeout(Duration::from_secs(5)).await.unwrap();
+}
