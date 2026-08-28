@@ -18,7 +18,8 @@ use crate::protocol::api::{
     encode_metadata_request, ApiVersion, MetadataResponse,
 };
 use crate::protocol::api_keys::{
-    pick_version, API_VERSIONS, FETCH, LIST_OFFSETS, METADATA, OFFSET_FOR_LEADER_EPOCH,
+    pick_version, API_VERSIONS, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
+    OFFSET_FOR_LEADER_EPOCH,
 };
 use crate::protocol::epoch::{
     decode_offset_for_leader_epoch_response, encode_offset_for_leader_epoch_request,
@@ -700,6 +701,8 @@ pub struct Consumer {
     m_errors: AtomicU64,
     wakeup: Arc<AtomicBool>,
     wakeup_tx: watch::Sender<bool>,
+    telemetry_version: Option<i16>,
+    client_instance_id: Option<[u8; 16]>,
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -771,6 +774,9 @@ impl Consumer {
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
+        let telemetry_version = versions
+            .get(&GET_TELEMETRY_SUBSCRIPTIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         Ok(Self {
             cfg,
             conn,
@@ -790,6 +796,8 @@ impl Consumer {
             m_errors: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
             wakeup_tx: watch::channel(false).0,
+            telemetry_version,
+            client_instance_id: None,
         })
     }
 
@@ -1303,6 +1311,28 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
         }
+    }
+
+    /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
+    ///
+    /// The first call sends a zero UUID; the broker assigns one. Later calls
+    /// return the cached id without another round-trip.
+    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+        if let Some(id) = self.client_instance_id {
+            return Ok(id);
+        }
+        let version = self.telemetry_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
+        })?;
+        let id = crate::admin::fetch_client_instance_id(
+            &mut self.conn,
+            version,
+            self.cfg.request_timeout,
+            [0; 16],
+        )
+        .await?;
+        self.client_instance_id = Some(id);
+        Ok(id)
     }
 
     /// Interrupt [`Self::fetch`] (and group `poll` that calls it).

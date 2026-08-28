@@ -20,6 +20,7 @@
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts.
+//! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
 //!
 //! # Fetch
 //!
@@ -46,6 +47,7 @@
 //! [`PartitionInfo::offline_replicas`], [`PartitionInfo::leader_epoch`]).
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
+//! [`Consumer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`
 //! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.

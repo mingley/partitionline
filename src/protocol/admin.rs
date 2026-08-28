@@ -803,6 +803,7 @@ pub fn decode_delete_records_response<B: Buf>(
     Ok((partition, low_watermark, error_code))
 }
 
+/// DescribeCluster response: cluster id, controller, and brokers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterDescription {
     /// Top-level error code (`0` is success).
@@ -4714,13 +4715,21 @@ pub fn decode_list_config_resources_response<B: Buf>(
 /// RequestedMetrics are compact strings with no ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetTelemetrySubscriptionsResponse {
+    /// Top-level error code (`0` is success).
     pub error_code: i16,
+    /// KIP-714 client instance UUID (Java `clientInstanceId`).
     pub client_instance_id: [u8; 16],
+    /// Subscription generation.
     pub subscription_id: i32,
+    /// Compression codecs the broker accepts for PushTelemetry.
     pub accepted_compression_types: Vec<i8>,
+    /// How often to PushTelemetry, in milliseconds.
     pub push_interval_ms: i32,
+    /// Max PushTelemetry payload size.
     pub telemetry_max_bytes: i32,
+    /// When true, metric values are deltas since the last push.
     pub delta_temporality: bool,
+    /// Metric names the broker wants.
     pub requested_metrics: Vec<String>,
 }
 

@@ -46,6 +46,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters, including share bytes/errors) | yes | **done** |
+| `clientInstanceId` | yes (`Producer` / `Consumer` / `ConsumerGroup` / `ShareGroup` / `Admin`; KIP-714 GetTelemetrySubscriptions, cached after first call) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |

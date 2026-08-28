@@ -79,6 +79,7 @@ JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
 `max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`)
 and the heartbeat thread leaves the group.
 `Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
+`client_instance_id` is Java `clientInstanceId` (KIP-714).
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java

@@ -1707,3 +1707,29 @@ async fn init_transactions_requires_transactional_id() {
     txn.abort_transaction().await.unwrap();
     txn.close_timeout(Duration::from_secs(5)).await.unwrap();
 }
+
+#[tokio::test]
+async fn client_instance_id_is_kip714() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let id = admin.client_instance_id().await.unwrap();
+    assert_eq!(id, [0x11; 16]);
+    assert_eq!(admin.client_instance_id().await.unwrap(), id);
+    admin.close().await.unwrap();
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    assert_eq!(producer.client_instance_id().await.unwrap(), [0x11; 16]);
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    assert_eq!(consumer.client_instance_id().await.unwrap(), [0x11; 16]);
+    consumer.close().await.unwrap();
+}

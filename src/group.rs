@@ -707,6 +707,11 @@ impl ConsumerGroup {
         self.consumer.metrics()
     }
 
+    /// Java `clientInstanceId` (KIP-714). Delegates to [`crate::Consumer::client_instance_id`].
+    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+        self.consumer.client_instance_id().await
+    }
+
     /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
     pub fn wakeup(&self) {
         self.consumer.wakeup();

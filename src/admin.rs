@@ -581,6 +581,8 @@ pub struct Admin {
     describe_topic_partitions_version: i16,
     list_config_resources_version: i16,
     get_telemetry_subscriptions_version: i16,
+    /// Cached KIP-714 client instance UUID (`None` until first fetch).
+    cached_client_instance_id: Option<[u8; 16]>,
     push_telemetry_version: i16,
     assign_replicas_to_dirs_version: i16,
     alter_replica_log_dirs_version: i16,
@@ -593,6 +595,27 @@ pub struct Admin {
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
     txn_coord: Option<(String, i32)>,
+}
+
+pub(crate) async fn fetch_client_instance_id(
+    conn: &mut BrokerConn,
+    version: i16,
+    timeout: Duration,
+    known: [u8; 16],
+) -> Result<[u8; 16]> {
+    let body = conn
+        .roundtrip(
+            GET_TELEMETRY_SUBSCRIPTIONS,
+            version,
+            |buf| encode_get_telemetry_subscriptions_request(buf, &known),
+            timeout,
+        )
+        .await?;
+    let resp = decode_get_telemetry_subscriptions_response(&mut body.clone())?;
+    if resp.error_code != 0 {
+        return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
+    }
+    Ok(resp.client_instance_id)
 }
 
 impl Admin {
@@ -916,6 +939,7 @@ impl Admin {
             describe_topic_partitions_version,
             list_config_resources_version,
             get_telemetry_subscriptions_version,
+            cached_client_instance_id: None,
             push_telemetry_version,
             assign_replicas_to_dirs_version,
             alter_replica_log_dirs_version,
@@ -940,6 +964,25 @@ impl Admin {
     /// Drop the admin connection.
     pub async fn close(self) -> Result<()> {
         Ok(())
+    }
+
+    /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
+    ///
+    /// The first call sends a zero UUID; the broker assigns one. Later calls
+    /// return the cached id without another round-trip.
+    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+        if let Some(id) = self.cached_client_instance_id {
+            return Ok(id);
+        }
+        let id = fetch_client_instance_id(
+            &mut self.conn,
+            self.get_telemetry_subscriptions_version,
+            self.cfg.request_timeout,
+            [0; 16],
+        )
+        .await?;
+        self.cached_client_instance_id = Some(id);
+        Ok(id)
     }
 
     /// Create topics (`CreateTopics`).
