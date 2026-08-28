@@ -51,7 +51,9 @@ assignment. `commit_offsets` commits caller-chosen offsets.
 topic list. `enforce_rebalance` rejoins on the next poll.
 `subscribe` / `unsubscribe` change the topic list without dropping the
 handle. `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
-is cluster Metadata.
+is cluster Metadata. `fetch_timeout` / `poll_timeout` are Java
+`poll(Duration)`. [`Producer::send_offsets_with_metadata`](../src/producer.rs)
+commits transactional offsets with epoch and a metadata string.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.

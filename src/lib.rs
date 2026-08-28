@@ -46,6 +46,8 @@
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
+//! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] are Java
+//! `poll(Duration)`.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records.
 //!
@@ -63,6 +65,8 @@
 //! rejoins on the next poll. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::unsubscribe`] change the topic list without dropping
 //! the handle. [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
+//! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
+//! commit transactional offsets with epoch and metadata.
 //!
 //! # Configure
 //!

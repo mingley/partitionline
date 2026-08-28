@@ -1021,6 +1021,17 @@ impl Consumer {
         }
     }
 
+    /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
+    ///
+    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
+    pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<Vec<FetchedRecord>> {
+        let prev = self.cfg.max_wait_ms;
+        self.cfg.max_wait_ms = duration_millis_i32(timeout);
+        let out = self.fetch().await;
+        self.cfg.max_wait_ms = prev;
+        out
+    }
+
     /// Fetch counters since connect.
     #[must_use]
     pub fn metrics(&self) -> crate::ConsumerMetrics {
@@ -1708,4 +1719,8 @@ fn fetched_bytes(rec: &FetchedRecord) -> u64 {
     let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
     let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
+}
+
+fn duration_millis_i32(d: Duration) -> i32 {
+    i32::try_from(d.as_millis()).unwrap_or(i32::MAX).max(0)
 }

@@ -1218,3 +1218,102 @@ async fn kip848_unsubscribe_then_subscribe() {
     assert!(!group.assignment().is_empty());
     group.leave().await.unwrap();
 }
+
+#[tokio::test]
+async fn fetch_timeout_returns_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer
+        .fetch_timeout(Duration::from_millis(100))
+        .await
+        .unwrap();
+    assert_eq!(recs.len(), 1);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn poll_timeout_returns_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "pto",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group
+        .poll_timeout(Duration::from_millis(100))
+        .await
+        .unwrap();
+    assert_eq!(recs.len(), 1);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn send_offsets_with_metadata_then_committed() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-meta".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    let md = partitionline::ConsumerGroupMetadata {
+        group_id: "txn-g".into(),
+        generation_id: 1,
+        member_id: "m".into(),
+        group_instance_id: None,
+    };
+    producer
+        .send_offsets_for_group(
+            &md,
+            &[(
+                TopicPartition::new("t", 0),
+                OffsetAndMetadata::with_metadata(1, "eos").with_leader_epoch(0),
+            )],
+        )
+        .await
+        .unwrap();
+    producer.commit_transaction().await.unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "txn-g",
+        "t",
+    )
+    .await
+    .unwrap();
+    let committed = group.committed().await.unwrap();
+    assert_eq!(committed.len(), 1);
+    assert_eq!(committed[0].1.offset, 1);
+    assert_eq!(committed[0].1.metadata, "eos");
+    group.leave().await.unwrap();
+}

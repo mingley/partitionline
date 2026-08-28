@@ -71,6 +71,7 @@ rejoins on the next poll. `subscription` is the topic list.
 `subscribe` / `unsubscribe` change topics without dropping the handle.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
 Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
+`fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
 
 ```rust,no_run

@@ -619,6 +619,15 @@ impl ConsumerGroup {
     /// [`ConsumerConfig::max_poll_interval`]. The heartbeat thread also leaves
     /// the group when that happens.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
+        self.poll_fetch(None).await
+    }
+
+    /// Poll with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
+    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<Vec<FetchedRecord>> {
+        self.poll_fetch(Some(timeout)).await
+    }
+
+    async fn poll_fetch(&mut self, wait: Option<Duration>) -> Result<Vec<FetchedRecord>> {
         if self.left_max_poll.load(Ordering::SeqCst) {
             return Err(Error::MaxPollInterval);
         }
@@ -632,7 +641,10 @@ impl ConsumerGroup {
         } else if force || self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
-        let recs = self.consumer.fetch().await?;
+        let recs = match wait {
+            Some(t) => self.consumer.fetch_timeout(t).await?,
+            None => self.consumer.fetch().await?,
+        };
         self.maybe_auto_commit().await?;
         Ok(recs)
     }

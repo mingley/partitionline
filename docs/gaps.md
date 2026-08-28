@@ -53,6 +53,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup::subscribe` / `unsubscribe`; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
+| `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout`) | yes | **done** |
+| TxnOffsetCommit metadata | yes (`send_offsets_with_metadata` / `send_offsets_for_group`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

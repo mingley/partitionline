@@ -3048,7 +3048,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 CommittedOffset {
                                     offset: p.offset,
                                     leader_epoch: p.leader_epoch,
-                                    metadata: String::new(),
+                                    metadata: p.metadata.clone(),
                                 },
                             );
                         }

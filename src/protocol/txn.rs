@@ -169,6 +169,7 @@ pub struct TxnOffsetPartition {
     pub partition: i32,
     pub offset: i64,
     pub leader_epoch: i32,
+    pub metadata: String,
 }
 
 /// Topic + partitions for TxnOffsetCommit v0–2.
@@ -202,7 +203,12 @@ pub fn encode_txn_offset_commit_request(
             if version >= 2 {
                 buf.put_i32(p.leader_epoch);
             }
-            buf::put_classic_nullable_string(buf, None)?;
+            let meta = if p.metadata.is_empty() {
+                None
+            } else {
+                Some(p.metadata.as_str())
+            };
+            buf::put_classic_nullable_string(buf, meta)?;
         }
     }
     Ok(())
@@ -226,11 +232,12 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
             let leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
-            let _meta = buf::get_classic_nullable_string(buf)?;
+            let metadata = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
             partitions.push(TxnOffsetPartition {
                 partition,
                 offset,
                 leader_epoch,
+                metadata,
             });
         }
         topics.push(TxnOffsetTopic { topic, partitions });
@@ -297,6 +304,7 @@ mod tests {
                 partition: 0,
                 offset: 7,
                 leader_epoch: 9,
+                metadata: String::new(),
             }],
         }];
         let mut buf = BytesMut::new();
@@ -330,11 +338,13 @@ mod tests {
                     partition: 0,
                     offset: 3,
                     leader_epoch: 4,
+                    metadata: "eos".into(),
                 },
                 TxnOffsetPartition {
                     partition: 2,
                     offset: 9,
                     leader_epoch: 4,
+                    metadata: String::new(),
                 },
             ],
         }];

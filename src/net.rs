@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
+//! TCP and TLS broker connections.
 
 use std::future::poll_fn;
 use std::io;
@@ -23,6 +20,7 @@ use tokio_rustls::TlsConnector;
 use crate::error::{Error, Result};
 use crate::protocol::header::{decode_response_header, encode_request_header_fields};
 
+/// Max Kafka response frame (100 MiB). Larger is treated as a protocol error.
 pub const MAX_FRAME: i32 = 100 * 1024 * 1024;
 
 /// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
@@ -243,6 +241,7 @@ impl AsyncWrite for ConnIo {
     }
 }
 
+/// One TCP or TLS connection to a Kafka broker.
 pub struct BrokerConn {
     stream: ConnIo,
     read_buf: BytesMut,
@@ -253,10 +252,12 @@ pub struct BrokerConn {
 }
 
 impl BrokerConn {
+    /// Connect without TLS.
     pub async fn connect(addr: &str, client_id: &str, connect_timeout: Duration) -> Result<Self> {
         Self::connect_tls(addr, client_id, connect_timeout, None).await
     }
 
+    /// Try each bootstrap address until one connects.
     pub async fn connect_tls_any(
         addrs: &[String],
         client_id: &str,
@@ -276,6 +277,7 @@ impl BrokerConn {
         Err(last)
     }
 
+    /// Connect, optionally with rustls.
     pub async fn connect_tls(
         addr: &str,
         client_id: &str,
@@ -301,16 +303,20 @@ impl BrokerConn {
         })
     }
 
+    /// Kafka `client.id` on this connection.
+    #[must_use]
     pub fn client_id(&self) -> &str {
         &self.client_id
     }
 
+    /// Next request correlation id.
     pub fn next_correlation(&mut self) -> i32 {
         let c = self.next_correlation;
         self.next_correlation = self.next_correlation.wrapping_add(1);
         c
     }
 
+    /// Write `bytes` or fail with [`Error::Timeout`].
     pub async fn write_all_timeout(
         &mut self,
         bytes: &[u8],
@@ -325,6 +331,7 @@ impl BrokerConn {
         Ok(())
     }
 
+    /// Read one response frame and check the correlation id.
     pub async fn read_response(
         &mut self,
         api_key: i16,
@@ -346,10 +353,13 @@ impl BrokerConn {
         Ok(cur)
     }
 
+    /// Broker `host:port` used to open this connection.
+    #[must_use]
     pub fn addr(&self) -> &str {
         &self.addr
     }
 
+    /// Encode and write one request. Returns the correlation id.
     pub async fn send(
         &mut self,
         api_key: i16,
@@ -379,6 +389,7 @@ impl BrokerConn {
         Ok(correlation)
     }
 
+    /// Write a request and read its response.
     pub async fn roundtrip(
         &mut self,
         api_key: i16,

@@ -861,6 +861,24 @@ impl Producer {
         group_id: &str,
         offsets: &[(String, i32, i64)],
     ) -> Result<()> {
+        let items: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
+            .iter()
+            .map(|(t, p, o)| {
+                (
+                    crate::TopicPartition::new(t.clone(), *p),
+                    crate::OffsetAndMetadata::new(*o),
+                )
+            })
+            .collect();
+        self.send_offsets_with_metadata(group_id, &items).await
+    }
+
+    /// [`Self::send_offsets_to_transaction`] with leader epoch and metadata.
+    pub async fn send_offsets_with_metadata(
+        &self,
+        group_id: &str,
+        offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+    ) -> Result<()> {
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
             return Err(Error::protocol("transactional.id is not set"));
         };
@@ -884,9 +902,9 @@ impl Producer {
             return Err(Error::broker(err, "AddOffsetsToTxn"));
         }
         let mut topics: Vec<String> = Vec::new();
-        for (topic, _, _) in offsets {
-            if !topics.iter().any(|t| t == topic) {
-                topics.push(topic.clone());
+        for (tp, _) in offsets {
+            if !topics.iter().any(|t| t == &tp.topic) {
+                topics.push(tp.topic.clone());
             }
         }
         for topic in &topics {
@@ -917,6 +935,16 @@ impl Producer {
             return Err(Error::broker(err, "TxnOffsetCommit"));
         }
         Ok(())
+    }
+
+    /// [`Self::send_offsets_with_metadata`] using a group's identity.
+    pub async fn send_offsets_for_group(
+        &self,
+        group: &crate::ConsumerGroupMetadata,
+        offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
+    ) -> Result<()> {
+        self.send_offsets_with_metadata(&group.group_id, offsets)
+            .await
     }
 
     async fn end_txn(&self, committed: bool) -> Result<()> {
@@ -1848,20 +1876,24 @@ fn group_txn_partitions(parts: &[(Arc<str>, i32)]) -> Vec<TxnPartitionsTopic> {
 }
 
 fn group_txn_offsets(
-    offsets: &[(String, i32, i64)],
+    offsets: &[(crate::TopicPartition, crate::OffsetAndMetadata)],
     epoch_of: impl Fn(&str, i32) -> i32,
 ) -> Vec<TxnOffsetTopic> {
     let mut topics: Vec<TxnOffsetTopic> = Vec::new();
-    for (topic, part, off) in offsets {
+    for (tp, md) in offsets {
+        let leader_epoch = md
+            .leader_epoch
+            .unwrap_or_else(|| epoch_of(&tp.topic, tp.partition));
         let partition = TxnOffsetPartition {
-            partition: *part,
-            offset: *off,
-            leader_epoch: epoch_of(topic, *part),
+            partition: tp.partition,
+            offset: md.offset,
+            leader_epoch,
+            metadata: md.metadata.clone(),
         };
-        match topics.iter_mut().find(|t| t.topic == *topic) {
+        match topics.iter_mut().find(|t| t.topic == tp.topic) {
             Some(slot) => slot.partitions.push(partition),
             None => topics.push(TxnOffsetTopic {
-                topic: topic.clone(),
+                topic: tp.topic.clone(),
                 partitions: vec![partition],
             }),
         }
