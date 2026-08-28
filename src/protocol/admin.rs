@@ -10131,7 +10131,7 @@ mod tests {
             37,
             "v3 leftover-empty empty-token body is top-level INT16 + empty principals + timestamps + empty token/hmac + throttle + tagged"
         );
-        let b0 = buf.get(0).copied().unwrap();
+        let b0 = buf.first().copied().unwrap();
         let b1 = buf.get(1).copied().unwrap();
         assert_eq!(
             i16::from_be_bytes([b0, b1]),
@@ -10219,7 +10219,7 @@ mod tests {
             51,
             "v3 one-token body is top-level INT16 + User/u principals + timestamps + tid + hmac + throttle + tagged"
         );
-        let b0 = buf.get(0).copied().unwrap();
+        let b0 = buf.first().copied().unwrap();
         let b1 = buf.get(1).copied().unwrap();
         assert_eq!(
             i16::from_be_bytes([b0, b1]),
