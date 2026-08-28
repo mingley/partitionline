@@ -529,12 +529,12 @@ impl ConsumerGroup {
     /// Stop fetching these assigned partitions until [`resume`](Self::resume).
     ///
     /// Pause is stored on the consumer, so it survives rebalance.
-    pub fn pause(&mut self, partitions: &[(String, i32)]) {
+    pub fn pause(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
         self.consumer.pause(partitions);
     }
 
     /// Undo [`pause`](Self::pause) for these partitions.
-    pub fn resume(&mut self, partitions: &[(String, i32)]) {
+    pub fn resume(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
         self.consumer.resume(partitions);
     }
 
@@ -775,6 +775,7 @@ impl ConsumerGroup {
         if err != 0 {
             return Err(Error::broker(err, "OffsetCommit"));
         }
+        self.cfg.interceptors.on_commit(offsets);
         Ok(())
     }
 
@@ -881,13 +882,16 @@ impl ConsumerGroup {
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
+            self.consumer.close_interceptors();
             return Ok(());
         }
         if self.cfg.enable_auto_commit {
             self.commit().await?;
         }
         self.hb_stop.send(true).unwrap_or(());
-        self.leave_coordinator().await
+        let out = self.leave_coordinator().await;
+        self.consumer.close_interceptors();
+        out
     }
 
     /// Leave the group. Same as [`Self::leave`].

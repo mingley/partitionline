@@ -356,12 +356,36 @@ impl From<(String, i32)> for TopicPartition {
     }
 }
 
+impl From<&(String, i32)> for TopicPartition {
+    fn from((topic, partition): &(String, i32)) -> Self {
+        Self {
+            topic: topic.clone(),
+            partition: *partition,
+        }
+    }
+}
+
 impl From<(&str, i32)> for TopicPartition {
     fn from((topic, partition): (&str, i32)) -> Self {
         Self {
             topic: topic.into(),
             partition,
         }
+    }
+}
+
+impl From<&(&str, i32)> for TopicPartition {
+    fn from((topic, partition): &(&str, i32)) -> Self {
+        Self {
+            topic: (*topic).into(),
+            partition: *partition,
+        }
+    }
+}
+
+impl From<&TopicPartition> for TopicPartition {
+    fn from(tp: &TopicPartition) -> Self {
+        tp.clone()
     }
 }
 
@@ -662,14 +686,18 @@ impl Consumer {
     /// Pause is stored on the consumer, so it survives group rebalance. Fetch
     /// skips a partition only while it is both assigned and paused. Records
     /// already buffered for a paused partition are held until resume.
-    pub fn pause(&mut self, partitions: &[(String, i32)]) {
-        self.paused.extend(partitions.iter().cloned());
+    pub fn pause(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
+        for p in partitions {
+            let tp = p.into();
+            let _inserted = self.paused.insert((tp.topic, tp.partition));
+        }
     }
 
     /// Undo [`pause`](Self::pause) for these partitions.
-    pub fn resume(&mut self, partitions: &[(String, i32)]) {
-        for tp in partitions {
-            let _removed = self.paused.remove(tp);
+    pub fn resume(&mut self, partitions: impl IntoIterator<Item = impl Into<TopicPartition>>) {
+        for p in partitions {
+            let tp = p.into();
+            let _removed = self.paused.remove(&(tp.topic, tp.partition));
         }
     }
 
@@ -1063,8 +1091,13 @@ impl Consumer {
 
     /// Drop fetch connections. The consumer is then gone (same as `Producer::close`).
     pub async fn close(mut self) -> Result<()> {
+        self.cfg.interceptors.close();
         self.conns.clear();
         Ok(())
+    }
+
+    pub(crate) fn close_interceptors(&self) {
+        self.cfg.interceptors.close();
     }
 
     pub(crate) fn take_wakeup(&self) -> bool {
@@ -1548,33 +1581,10 @@ impl Consumer {
     }
 
     fn partition_infos(&self, only: Option<&str>) -> Result<Vec<PartitionInfo>> {
-        let Some(md) = &self.metadata else {
-            return Ok(Vec::new());
-        };
-        let mut out = Vec::new();
-        for tmd in &md.topics {
-            let Some(name) = tmd.name.as_ref() else {
-                continue;
-            };
-            if let Some(only) = only {
-                if name != only {
-                    continue;
-                }
-            }
-            if tmd.error_code != 0 {
-                return Err(Error::broker(tmd.error_code, name.clone()));
-            }
-            for p in &tmd.partitions {
-                out.push(PartitionInfo {
-                    topic: name.clone(),
-                    partition: p.partition_index,
-                    leader: p.leader_id,
-                    replicas: p.replica_nodes.clone(),
-                    isr: p.isr_nodes.clone(),
-                });
-            }
+        match &self.metadata {
+            Some(md) => partition_infos_from(md, only),
+            None => Ok(Vec::new()),
         }
-        Ok(out)
     }
 
     /// Log-start offset for each partition (`ListOffsets` earliest).
@@ -1721,6 +1731,36 @@ fn fetched_bytes(rec: &FetchedRecord) -> u64 {
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
-fn duration_millis_i32(d: Duration) -> i32 {
+pub(crate) fn duration_millis_i32(d: Duration) -> i32 {
     i32::try_from(d.as_millis()).unwrap_or(i32::MAX).max(0)
+}
+
+pub(crate) fn partition_infos_from(
+    md: &MetadataResponse,
+    only: Option<&str>,
+) -> Result<Vec<PartitionInfo>> {
+    let mut out = Vec::new();
+    for tmd in &md.topics {
+        let Some(name) = tmd.name.as_ref() else {
+            continue;
+        };
+        if let Some(only) = only {
+            if name != only {
+                continue;
+            }
+        }
+        if tmd.error_code != 0 {
+            return Err(Error::broker(tmd.error_code, name.clone()));
+        }
+        for p in &tmd.partitions {
+            out.push(PartitionInfo {
+                topic: name.clone(),
+                partition: p.partition_index,
+                leader: p.leader_id,
+                replicas: p.replica_nodes.clone(),
+                isr: p.isr_nodes.clone(),
+            });
+        }
+    }
+    Ok(out)
 }

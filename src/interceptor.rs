@@ -3,7 +3,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::consumer::FetchedRecord;
+use crate::consumer::{FetchedRecord, OffsetAndMetadata, TopicPartition};
 use crate::error::Error;
 use crate::producer::{ProduceRecord, RecordMetadata};
 
@@ -19,14 +19,26 @@ pub trait ProducerInterceptor: Send + Sync + 'static {
 
     /// The record failed (broker error, timeout, closed).
     fn on_error(&self, _err: &Error) {}
+
+    /// The producer is closing. The default is a no-op. Safe to call more than once.
+    fn close(&self) {}
 }
 
 /// Mutate fetch results before they are returned to the caller.
 pub trait ConsumerInterceptor: Send + Sync + 'static {
     /// Return the records the caller should see. The default is pass-through.
+    ///
+    /// Filtering records here does not rewind fetch positions (Java
+    /// `ConsumerInterceptor.onConsume`).
     fn on_consume(&self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
         recs
     }
+
+    /// Offsets were committed (`OffsetCommit` succeeded).
+    fn on_commit(&self, _offsets: &[(TopicPartition, OffsetAndMetadata)]) {}
+
+    /// The consumer is closing. The default is a no-op. Safe to call more than once.
+    fn close(&self) {}
 }
 
 /// Chain of [`ProducerInterceptor`]s. Empty is a no-op.
@@ -60,6 +72,12 @@ impl ProducerInterceptors {
             i.on_error(err);
         }
     }
+
+    pub(crate) fn close(&self) {
+        for i in &self.inner {
+            i.close();
+        }
+    }
 }
 
 impl fmt::Debug for ProducerInterceptors {
@@ -88,6 +106,18 @@ impl ConsumerInterceptors {
             recs = i.on_consume(recs);
         }
         recs
+    }
+
+    pub(crate) fn on_commit(&self, offsets: &[(TopicPartition, OffsetAndMetadata)]) {
+        for i in &self.inner {
+            i.on_commit(offsets);
+        }
+    }
+
+    pub(crate) fn close(&self) {
+        for i in &self.inner {
+            i.close();
+        }
     }
 }
 

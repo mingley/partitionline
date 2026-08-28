@@ -831,7 +831,6 @@ impl Producer {
     }
 
     /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
-    /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(Error::protocol("transactional.id is not set"));
@@ -1018,7 +1017,40 @@ impl Producer {
         for rx in rxs {
             drop(rx.await);
         }
+        self.inner.shared.interceptors.close();
         Ok(())
+    }
+
+    /// Partition metadata for `topic` (Java `partitionsFor`).
+    pub async fn partitions_for(
+        &self,
+        topic: impl Into<String>,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        let topic = topic.into();
+        let mut conn = self.inner.shared.meta.lock().await;
+        let version = self.inner.shared.metadata_version;
+        let allow = self.inner.shared.cfg.allow_auto_topic_creation;
+        let timeout = self.inner.shared.cfg.request_timeout;
+        let topics = [topic.clone()];
+        let body = conn
+            .roundtrip(
+                METADATA,
+                version,
+                |buf| encode_metadata_request(buf, version, Some(&topics), allow),
+                timeout,
+            )
+            .await?;
+        drop(conn);
+        let resp = decode_metadata_response(&mut body.clone(), version)?;
+        {
+            let mut cluster = self.inner.shared.cluster.lock();
+            cluster.apply(&resp);
+        }
+        let infos = crate::consumer::partition_infos_from(&resp, Some(topic.as_str()))?;
+        if infos.is_empty() {
+            return Err(Error::UnknownTopic(topic));
+        }
+        Ok(infos)
     }
 }
 

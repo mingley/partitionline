@@ -38,22 +38,23 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete, AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures, AlterUserScramCredentials, DescribeUserScramCredentials, AlterClientQuotas, DescribeClientQuotas, DescribeProducers, AllocateProducerIds, DescribeTransactions, ListTransactions, UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups, DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets, AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions, ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken | yes | yes | **done** |
-| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60) | yes | **done** |
+| Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60); `Admin::close` | yes | **done** |
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
 | Pause / resume, position, `max.poll.records` | yes | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
+| `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
-| Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`) | yes | **done** |
+| Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
-| `subscribe` / `unsubscribe` | yes (`ConsumerGroup::subscribe` / `unsubscribe`; `Consumer::assign_many` / `unassign`) | yes | **done** |
+| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes | yes | **done** |
-| `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout`) | yes | **done** |
+| `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_with_metadata` / `send_offsets_for_group`) | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |

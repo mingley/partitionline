@@ -46,12 +46,13 @@ let recs = consumer.fetch().await?;
 `seek_to_end` move the next fetch offset. `pause` / `resume` skip
 partitions without dropping the assignment. `fetch` talks to every
 partition leader at once when there is more than one. `partitions_for`
-returns Metadata (leader, replicas, ISR).
+returns Metadata (leader, replicas, ISR) on both `Consumer` and
+`Producer`.
 
 ## Groups
 
 Classic range, sticky, cooperative-sticky (KIP-429), KIP-848 (`join_consumer`), and KIP-932 share groups
-(`ShareGroup::join` / `join_topics`).
+(`ShareGroup::join` / `join_topics` / `subscribe` / `unsubscribe`).
 `join_topics` / `join_sticky_topics` / `join_cooperative_sticky_topics` /
 `join_consumer_topics` subscribe to
 several topics. Set `group.instance.id` with
@@ -73,6 +74,8 @@ rejoins on the next poll. `subscription` is the topic list.
 Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
+`Admin::close` drops the admin connection. Interceptors have `close`;
+consumer interceptors also see `on_commit`.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
@@ -126,7 +129,7 @@ cargo run --release --example roundtrip
 ```
 
 Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`,
-`examples/offsets.rs`.
+`examples/offsets.rs`, `examples/share.rs`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

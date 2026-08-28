@@ -136,6 +136,12 @@ impl ShareGroup {
         &self.member_id
     }
 
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        &self.group_id
+    }
+
     /// Subscribed topic names, in join order.
     pub fn topics(&self) -> &[String] {
         &self.topics
@@ -328,7 +334,7 @@ impl ShareGroup {
         let assigned = self.assigned.clone();
         let by_leader = self.leaders_of(&assigned).await?;
         let timeout = Duration::from_secs(30);
-        let max_wait = 10i32;
+        let max_wait = self.cfg.max_wait_ms;
         let mut out = Vec::new();
         for (node, tps) in by_leader {
             let epoch = self.session_epoch(node);
@@ -429,6 +435,76 @@ impl ShareGroup {
             }
         }
         Ok(out)
+    }
+
+    /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
+    ///
+    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
+    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<Vec<ShareRecord>> {
+        let prev = self.cfg.max_wait_ms;
+        self.cfg.max_wait_ms = crate::consumer::duration_millis_i32(timeout);
+        let out = self.poll().await;
+        self.cfg.max_wait_ms = prev;
+        out
+    }
+
+    /// Leave the share group and drop the subscription (Java `unsubscribe`).
+    ///
+    /// Heartbeats stop and the assignment is cleared. [`Self::subscribe`] joins
+    /// again with a new topic list. [`Self::leave`] after this is a no-op.
+    pub async fn unsubscribe(&mut self) -> Result<()> {
+        if self.member_id.is_empty() {
+            self.topics.clear();
+            self.assigned.clear();
+            self.topic_ids.clear();
+            self.share_epochs.clear();
+            return Ok(());
+        }
+        self.hb_stop.send(true).unwrap_or(());
+        self.close_share_session().await?;
+        self.leave_coordinator().await?;
+        self.assigned.clear();
+        self.topics.clear();
+        self.topic_ids.clear();
+        self.share_epochs.clear();
+        self.member_id.clear();
+        self.member_epoch = 0;
+        self.hb_epoch.store(0, Ordering::SeqCst);
+        self.hb_err.store(0, Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// Replace the subscription and (re)join (Java `subscribe`).
+    ///
+    /// If this member is already in the group, the coordinator is not left;
+    /// a join heartbeat uses the new topic list. After [`Self::unsubscribe`],
+    /// this starts a new heartbeat loop.
+    pub async fn subscribe(
+        &mut self,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<()> {
+        let topics = collect_topics(topics)?;
+        if topics == self.topics && !self.member_id.is_empty() {
+            return Ok(());
+        }
+        let rejoining = !self.member_id.is_empty();
+        if rejoining {
+            self.close_share_session().await?;
+            self.assigned.clear();
+            self.topic_ids.clear();
+            self.share_epochs.clear();
+        }
+        self.topics = topics;
+        if rejoining {
+            self.heartbeat_join().await?;
+            return Ok(());
+        }
+        self.member_id = new_member_id()?;
+        let (hb_stop, hb_rx) = watch::channel(false);
+        self.hb_stop = hb_stop;
+        self.heartbeat_join().await?;
+        self.spawn_heartbeat(hb_rx);
+        Ok(())
     }
 
     fn name_for_topic_id(&self, id: [u8; 16]) -> String {
@@ -580,9 +656,20 @@ impl ShareGroup {
 
     /// Leave the share group (member epoch `-1`).
     pub async fn leave(mut self) -> Result<()> {
+        if self.member_id.is_empty() {
+            self.hb_stop.send(true).unwrap_or(());
+            self.consumer.close_interceptors();
+            return Ok(());
+        }
         self.hb_stop.send(true).unwrap_or(());
-        let timeout = Duration::from_secs(30);
         self.close_share_session().await?;
+        let out = self.leave_coordinator().await;
+        self.consumer.close_interceptors();
+        out
+    }
+
+    async fn leave_coordinator(&mut self) -> Result<()> {
+        let timeout = Duration::from_secs(30);
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),

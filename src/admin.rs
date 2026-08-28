@@ -119,17 +119,28 @@ pub use crate::protocol::admin::{
 };
 pub use crate::protocol::group::OffsetDeleteResult;
 
+/// Bootstrap, identity, SASL, and TLS for [`Admin`].
 #[derive(Debug, Clone)]
 pub struct AdminConfig {
+    /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Per-request timeout.
     pub request_timeout: Duration,
+    /// TCP connect timeout.
     pub connect_timeout: Duration,
+    /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
+    /// SASL SCRAM-SHA-256 `(username, password)`.
     pub sasl_scram: Option<(String, String)>,
+    /// SASL SCRAM-SHA-512 `(username, password)`.
     pub sasl_scram_sha512: Option<(String, String)>,
+    /// Unsecured OAUTHBEARER token.
     pub sasl_oauthbearer: Option<String>,
+    /// OIDC client-credentials token endpoint.
     pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+    /// rustls. No OpenSSL.
     pub tls: Option<TlsConfig>,
 }
 
@@ -194,15 +205,21 @@ impl AdminConfig {
     }
 }
 
+/// Topic to create (`CreateTopics`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewTopic {
+    /// Topic name.
     pub name: String,
+    /// Partition count.
     pub num_partitions: i32,
+    /// Replication factor.
     pub replication_factor: i16,
+    /// Optional topic configs `(name, value)`.
     pub configs: Vec<(String, Option<String>)>,
 }
 
 impl NewTopic {
+    /// `name` with partition count and replication factor.
     pub fn new(name: impl Into<String>, num_partitions: i32, replication_factor: i16) -> Self {
         Self {
             name: name.into(),
@@ -212,16 +229,22 @@ impl NewTopic {
         }
     }
 
+    /// Topic config `(name, value)`.
+    #[must_use]
     pub fn config(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.configs.push((name.into(), Some(value.into())));
         self
     }
 }
 
+/// Resource for DescribeConfigs / IncrementalAlterConfigs / AlterConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigResource {
+    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, `CONFIG_RESOURCE_BROKER`, …).
     pub resource_type: i8,
+    /// Resource name (topic name, or broker id as a string).
     pub name: String,
+    /// Config keys to fetch; `None` means all.
     pub keys: Option<Vec<String>>,
 }
 
@@ -403,6 +426,7 @@ pub struct ProducerIdBlock {
     pub producer_id_len: i32,
 }
 
+/// Kafka admin client: topics, configs, ACLs, groups, and cluster operations.
 pub struct Admin {
     cfg: AdminConfig,
     conn: BrokerConn,
@@ -459,10 +483,12 @@ pub struct Admin {
 }
 
 impl Admin {
+    /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(AdminConfig::bootstrap([bootstrap.into()])).await
     }
 
+    /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -792,10 +818,18 @@ impl Admin {
         })
     }
 
+    /// Negotiated ApiVersions for this connection.
+    #[must_use]
     pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
         &self.versions
     }
 
+    /// Drop the admin connection.
+    pub async fn close(self) -> Result<()> {
+        Ok(())
+    }
+
+    /// Create topics (`CreateTopics`).
     pub async fn create_topics(
         &mut self,
         topics: &[NewTopic],

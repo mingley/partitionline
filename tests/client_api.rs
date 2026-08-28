@@ -444,7 +444,7 @@ async fn pause_skips_one_partition_until_resume() {
             .unwrap();
     consumer.assign("parts", 0, 0).await.unwrap();
     consumer.assign("parts", 1, 0).await.unwrap();
-    consumer.pause(&[("parts".into(), 1)]);
+    consumer.pause([TopicPartition::new("parts", 1)]);
     assert_eq!(consumer.paused(), vec![("parts".into(), 1)]);
     assert_eq!(consumer.position("parts", 0).unwrap(), 0);
 
@@ -455,7 +455,7 @@ async fn pause_skips_one_partition_until_resume() {
     assert_eq!(consumer.position("parts", 0).unwrap(), 1);
     assert_eq!(consumer.position("parts", 1).unwrap(), 0);
 
-    consumer.resume(&[("parts".into(), 1)]);
+    consumer.resume([("parts", 1)]);
     assert!(consumer.paused().is_empty());
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 1);
@@ -1315,5 +1315,180 @@ async fn send_offsets_with_metadata_then_committed() {
     assert_eq!(committed.len(), 1);
     assert_eq!(committed[0].1.offset, 1);
     assert_eq!(committed[0].1.metadata, "eos");
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn producer_partitions_for_returns_leader() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    let infos = producer.partitions_for("t").await.unwrap();
+    assert_eq!(infos.len(), 1);
+    assert_eq!(infos[0].topic, "t");
+    assert_eq!(infos[0].partition, 0);
+    assert!(infos[0].leader >= 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_close_drops_handle() {
+    let mock = common::Mock::start().await;
+    let admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin.close().await.unwrap();
+}
+
+struct CloseProd(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
+impl ProducerInterceptor for CloseProd {
+    fn close(&self) {
+        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+struct CommitClose {
+    commits: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl ConsumerInterceptor for CommitClose {
+    fn on_commit(&self, offsets: &[(TopicPartition, OffsetAndMetadata)]) {
+        let n = u64::try_from(offsets.len()).unwrap_or(u64::MAX);
+        let _ = self
+            .commits
+            .fetch_add(n, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn close(&self) {
+        self.closed.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+#[tokio::test]
+async fn interceptor_close_and_on_commit() {
+    let mock = common::Mock::start().await;
+    let prod_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .interceptor(CloseProd(std::sync::Arc::clone(&prod_closed))),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    assert!(prod_closed.load(std::sync::atomic::Ordering::SeqCst));
+
+    let commits = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let cons_closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .interceptor(CommitClose {
+                commits: std::sync::Arc::clone(&commits),
+                closed: std::sync::Arc::clone(&cons_closed),
+            }),
+        "int-c",
+        "t",
+    )
+    .await
+    .unwrap();
+    drop(group.poll().await);
+    group.commit().await.unwrap();
+    assert!(commits.load(std::sync::atomic::Ordering::SeqCst) >= 1);
+    group.leave().await.unwrap();
+    assert!(cons_closed.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[tokio::test]
+async fn share_unsubscribe_then_subscribe() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-sub",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.group_id(), "sg-sub");
+    assert_eq!(group.subscription(), &["t".to_string()]);
+    assert!(!group.assignment().is_empty());
+    group.unsubscribe().await.unwrap();
+    assert!(group.assignment().is_empty());
+    assert!(group.subscription().is_empty());
+    group.subscribe(["t"]).await.unwrap();
+    assert_eq!(group.subscription(), &["t".to_string()]);
+    assert!(!group.assignment().is_empty());
+    let recs = group
+        .poll_timeout(Duration::from_millis(100))
+        .await
+        .unwrap();
+    assert_eq!(recs.len(), 1);
+    group.accept(&recs).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_subscribe_switches_topics() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    admin.close().await.unwrap();
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("u").value(&b"u"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-sw",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert!(group.assignment().iter().all(|(t, _)| t == "t"));
+    group.subscribe(["u"]).await.unwrap();
+    assert_eq!(group.subscription(), &["u".to_string()]);
+    assert!(
+        group.assignment().iter().all(|(t, _)| t == "u"),
+        "subscribe must assign the new topic, got {:?}",
+        group.assignment()
+    );
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].topic, "u");
+    group.accept(&recs).await.unwrap();
     group.leave().await.unwrap();
 }

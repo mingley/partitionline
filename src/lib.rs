@@ -39,17 +39,18 @@
 //! [`Consumer::seek_to_beginning`], and [`Consumer::seek_to_end`] move the
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
-//! every partition leader in parallel. [`Consumer::partitions_for`] returns
-//! Metadata (leader, replicas, ISR). [`Consumer::wakeup`] interrupts fetch
+//! every partition leader in parallel. [`Consumer::partitions_for`] /
+//! [`Producer::partitions_for`] return Metadata (leader, replicas, ISR).
+//! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
-//! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] are Java
-//! `poll(Duration)`.
+//! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] /
+//! [`ShareGroup::poll_timeout`] are Java `poll(Duration)`.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
-//! or rewrite records.
+//! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
 //!
 //! # Groups
 //!
@@ -59,7 +60,8 @@
 //! `_topics` variant for several topics.
 //! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
-//! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
+//! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
+//! [`ShareGroup::subscribe`] / [`ShareGroup::unsubscribe`]).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::enforce_rebalance`]
 //! rejoins on the next poll. [`ConsumerGroup::subscribe`] /
@@ -67,6 +69,7 @@
 //! the handle. [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
+//! [`Admin::close`] drops the admin connection.
 //!
 //! # Configure
 //!
