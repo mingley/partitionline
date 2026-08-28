@@ -1720,7 +1720,7 @@ async fn join_sticky_matching_subscribes() {
         )
         .await
         .unwrap();
-    let mut group = ConsumerGroup::join_sticky_matching(
+    let group = ConsumerGroup::join_sticky_matching(
         ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
         "sticky-pat",
         |n: &str| n.starts_with("sticky-"),
@@ -1745,7 +1745,7 @@ async fn join_cooperative_sticky_matching_subscribes() {
         )
         .await
         .unwrap();
-    let mut group = ConsumerGroup::join_cooperative_sticky_matching(
+    let group = ConsumerGroup::join_cooperative_sticky_matching(
         ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
         "coop-pat",
         |n: &str| n.starts_with("coop-"),
@@ -1766,7 +1766,7 @@ async fn join_consumer_matching_subscribes() {
         .create_topics(&[NewTopic::new("kmatch-a", 1, 1)], 10_000, false)
         .await
         .unwrap();
-    let mut group = ConsumerGroup::join_consumer_matching(
+    let group = ConsumerGroup::join_consumer_matching(
         ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
         "kpat",
         |n: &str| n.starts_with("kmatch-"),
