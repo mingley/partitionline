@@ -757,10 +757,7 @@ mod tests {
         .unwrap();
         let (topics, tps) = decode_subscription_owned(&owned).unwrap();
         assert_eq!(topics, vec!["t".to_string(), "u".to_string()]);
-        assert_eq!(
-            tps,
-            vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]
-        );
+        assert_eq!(tps, vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]);
         assert_eq!(decode_subscription(&owned).unwrap(), topics);
         let asg = encode_assignment("t", &[0, 1]).unwrap();
         let decoded = decode_assignment(&asg).unwrap();

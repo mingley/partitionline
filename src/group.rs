@@ -28,8 +28,8 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
     encode_subscription, encode_subscription_owned, encode_sync_group_request,
-    encode_tp_assignment, FetchedOffsetTopic,
-    JoinGroupRequest, OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
+    encode_tp_assignment, FetchedOffsetTopic, JoinGroupRequest, OffsetFetchTopic, OffsetPartition,
+    OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
