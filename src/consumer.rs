@@ -688,18 +688,32 @@ impl Consumer {
         Ok(())
     }
 
-    /// Assigned `(topic, partition, next_offset)` triples.
-    pub fn assignment(&self) -> &[(String, i32, i64)] {
-        &self.assigned
-    }
-
-    /// Assigned partitions without offsets (Java `assignment`).
+    /// Assigned partitions (Java `assignment`). Offsets are [`Self::positions`].
     #[must_use]
-    pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
+    pub fn assignment(&self) -> Vec<TopicPartition> {
         self.assigned
             .iter()
             .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
             .collect()
+    }
+
+    /// Same as [`Self::assignment`].
+    #[must_use]
+    pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
+        self.assignment()
+    }
+
+    /// Assigned partitions with their next fetch offsets.
+    #[must_use]
+    pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
+        self.assigned
+            .iter()
+            .map(|(t, p, o)| (TopicPartition::new(t.clone(), *p), *o))
+            .collect()
+    }
+
+    pub(crate) fn assigned_offsets(&self) -> &[(String, i32, i64)] {
+        &self.assigned
     }
 
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {

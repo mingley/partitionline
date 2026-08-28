@@ -53,13 +53,17 @@
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
 //! [`Consumer::beginning_offsets`] / [`Consumer::end_offsets`] take
-//! [`TopicPartition`]. [`Consumer::assigned_partitions`] is Java `assignment`.
+//! [`TopicPartition`]. [`Consumer::assignment`] is Java `assignment`
+//! ([`Consumer::assigned_partitions`] is the same list; [`Consumer::positions`]
+//! pairs each partition with its next fetch offset).
 //! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] /
 //! [`ShareGroup::poll_timeout`] are Java `poll(Duration)`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
-//! [`Admin::delete_records`] / [`Admin::describe_producers`] take
-//! [`TopicPartition`].
+//! [`Admin::delete_records`] / [`Admin::describe_producers`] /
+//! [`Admin::delete_offsets`] take [`TopicPartition`].
+//! [`AclBinding::allow_topic`] / [`AclResourceType`] cover CreateAcls /
+//! DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] match Java.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
@@ -137,17 +141,18 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
-    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
-    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
-    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
-    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
-    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
-    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
-    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    AclBinding, AclResourceType, ActiveProducer, Admin, AdminConfig, AlterConfig,
+    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
+    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
+    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
+    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
+    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
+    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConsumerGroupAssignment,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
     DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,

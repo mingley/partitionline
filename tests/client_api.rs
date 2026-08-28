@@ -289,8 +289,12 @@ async fn classic_group_mixed_subscriptions_stay_on_own_topics() {
     tokio::time::sleep(Duration::from_millis(350)).await;
     drop(orders.poll().await);
     let payments = payments_join.await.unwrap().unwrap();
-    let order_topics: Vec<String> = orders.assignment().into_iter().map(|(t, _)| t).collect();
-    let pay_topics: Vec<String> = payments.assignment().into_iter().map(|(t, _)| t).collect();
+    let order_topics: Vec<String> = orders.assignment().into_iter().map(|tp| tp.topic).collect();
+    let pay_topics: Vec<String> = payments
+        .assignment()
+        .into_iter()
+        .map(|tp| tp.topic)
+        .collect();
     assert_eq!(order_topics, vec!["orders".to_string()]);
     assert_eq!(pay_topics, vec!["payments".to_string()]);
 }
@@ -881,8 +885,10 @@ async fn two_members_cooperative_sticky_partition_all() {
         }
         tokio::time::sleep(Duration::from_millis(40)).await;
     }
-    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
-    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    let a_parts: std::collections::HashSet<i32> =
+        a.assignment().iter().map(|tp| tp.partition).collect();
+    let b_parts: std::collections::HashSet<i32> =
+        b.assignment().iter().map(|tp| tp.partition).collect();
     assert!(
         split && a_parts.is_disjoint(&b_parts) && a_parts.len() + b_parts.len() == 4,
         "cooperative-sticky should settle on a 2/2 split, got a={a_parts:?} b={b_parts:?}"
@@ -1204,11 +1210,11 @@ async fn subscribe_switches_topics_without_leave() {
     )
     .await
     .unwrap();
-    assert!(group.assignment().iter().all(|(t, _)| t == "t"));
+    assert!(group.assignment().iter().all(|tp| tp.topic == "t"));
     group.subscribe(["u"]).await.unwrap();
     assert_eq!(group.subscription(), &["u".to_string()]);
     assert!(
-        group.assignment().iter().all(|(t, _)| t == "u"),
+        group.assignment().iter().all(|tp| tp.topic == "u"),
         "subscribe must assign the new topic, got {:?}",
         group.assignment()
     );
@@ -1492,11 +1498,11 @@ async fn share_subscribe_switches_topics() {
     )
     .await
     .unwrap();
-    assert!(group.assignment().iter().all(|(t, _)| t == "t"));
+    assert!(group.assignment().iter().all(|tp| tp.topic == "t"));
     group.subscribe(["u"]).await.unwrap();
     assert_eq!(group.subscription(), &["u".to_string()]);
     assert!(
-        group.assignment().iter().all(|(t, _)| t == "u"),
+        group.assignment().iter().all(|tp| tp.topic == "u"),
         "subscribe must assign the new topic, got {:?}",
         group.assignment()
     );
@@ -1533,10 +1539,9 @@ async fn seek_to_and_assigned_partitions() {
             .await
             .unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
-    assert_eq!(
-        consumer.assigned_partitions(),
-        vec![TopicPartition::new("t", 0)]
-    );
+    assert_eq!(consumer.assignment(), vec![TopicPartition::new("t", 0)]);
+    assert_eq!(consumer.assigned_partitions(), consumer.assignment());
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 0)]);
     consumer.seek_to(TopicPartition::new("t", 0), 1).unwrap();
     assert_eq!(consumer.position_of(("t", 0)).unwrap(), 1);
     let recs = consumer.fetch().await.unwrap();

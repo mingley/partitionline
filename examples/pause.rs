@@ -10,7 +10,7 @@ async fn main() -> partitionline::Result<()> {
     let topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "partitionline".into());
     let mut consumer = Consumer::connect(bootstrap).await?;
     consumer.assign_topic(topic, 0).await?;
-    let assigned = consumer.assigned_partitions();
+    let assigned = consumer.assignment();
     println!("assigned {assigned:?}");
     if let Some(tp) = assigned.first().cloned() {
         consumer.pause([tp.clone()]);

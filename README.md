@@ -49,8 +49,10 @@ partition leader at once when there is more than one. `partitions_for`
 returns Metadata (leader, replicas, ISR) on both `Consumer` and
 `Producer`. `beginning_offsets` / `end_offsets` take `TopicPartition`.
 `commit_offsets` takes `TopicPartition` (or anything that converts to one)
-plus the next fetch offset. `Admin::delete_records` / `describe_producers` take
-`TopicPartition`.
+plus the next fetch offset. `assignment` is Java `assignment` (`positions`
+is next fetch offset). `Admin::delete_records` / `describe_producers` /
+`delete_offsets` take `TopicPartition`. `AclBinding::allow_topic` and
+`AclResourceType` cover CreateAcls / DescribeAcls / DeleteAcls.
 
 ## Groups
 

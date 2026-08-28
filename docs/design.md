@@ -31,8 +31,9 @@ ListOffsets for every assigned partition. `pause` / `resume` skip
 assigned partitions without dropping them; pause survives group rebalance.
 `position` is the next fetch offset (`position_of` takes `TopicPartition`).
 `partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
-ListOffsets and take `TopicPartition`. `assigned_partitions` is Java
-`assignment`. `max.poll.records` caps
+ListOffsets and take `TopicPartition`. `assignment` is Java `assignment`
+(`assigned_partitions` is the same list; `positions` is next fetch offset).
+`max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.

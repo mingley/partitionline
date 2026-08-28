@@ -167,18 +167,19 @@ impl ShareGroup {
         self.topics()
     }
 
-    /// Assigned `(topic, partition)` pairs.
-    pub fn assignment(&self) -> Vec<(String, i32)> {
-        self.assigned.clone()
-    }
-
     /// Assigned partitions (Java `assignment`).
     #[must_use]
-    pub fn assigned_partitions(&self) -> Vec<crate::TopicPartition> {
+    pub fn assignment(&self) -> Vec<crate::TopicPartition> {
         self.assigned
             .iter()
             .map(|(t, p)| crate::TopicPartition::new(t.clone(), *p))
             .collect()
+    }
+
+    /// Same as [`Self::assignment`].
+    #[must_use]
+    pub fn assigned_partitions(&self) -> Vec<crate::TopicPartition> {
+        self.assignment()
     }
 
     /// Cluster Metadata for every topic (Java `listTopics`).

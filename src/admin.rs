@@ -83,7 +83,7 @@ use crate::protocol::group::{
 };
 use crate::protocol::sasl;
 
-pub use crate::protocol::acl::AclBinding;
+pub use crate::protocol::acl::{AclBinding, AclResourceType};
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
@@ -2014,7 +2014,11 @@ impl Admin {
     }
 
     /// Describe ACL bindings (`DescribeAcls`) matching `resource_type`.
-    pub async fn describe_acls(&mut self, resource_type: i8) -> Result<Vec<AclBinding>> {
+    ///
+    /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`
+    /// (`ACL_RESOURCE_TOPIC`, …).
+    pub async fn describe_acls(&mut self, resource_type: impl Into<i8>) -> Result<Vec<AclBinding>> {
+        let resource_type = resource_type.into();
         let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -2291,7 +2295,10 @@ impl Admin {
     }
 
     /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.
-    pub async fn delete_acls(&mut self, resource_type: i8) -> Result<i16> {
+    ///
+    /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`.
+    pub async fn delete_acls(&mut self, resource_type: impl Into<i8>) -> Result<i16> {
+        let resource_type = resource_type.into();
         let version = self.delete_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -2311,12 +2318,22 @@ impl Admin {
     /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
     /// `COORDINATOR_LOAD_IN_PROGRESS` / `COORDINATOR_NOT_AVAILABLE` /
     /// `NOT_COORDINATOR` refresh the coordinator and retry.
+    ///
+    /// Each item is a [`crate::TopicPartition`] (or anything that converts
+    /// to one).
     pub async fn delete_offsets(
         &mut self,
         group_id: &str,
-        partitions: &[(String, i32)],
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
     ) -> Result<Vec<OffsetDeleteResult>> {
-        let topics = offset_delete_topics(partitions);
+        let partitions: Vec<(String, i32)> = partitions
+            .into_iter()
+            .map(|p| {
+                let tp = p.into();
+                (tp.topic, tp.partition)
+            })
+            .collect();
+        let topics = offset_delete_topics(&partitions);
         let version = self.offset_delete_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;

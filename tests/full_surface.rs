@@ -12,20 +12,19 @@ mod common;
 
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AclBinding, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
-    AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic,
-    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity,
-    ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
+    error, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
+    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic,
+    AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource,
+    Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
     DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error,
     ExpireDelegationTokenRequest, FeatureUpdate, NewPartitions, NewTopic, OidcConfig,
     OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
     RenewDelegationTokenRequest, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
-    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -87,7 +86,7 @@ async fn fetch_uses_base_offset_plus_record_delta() {
             .collect::<Vec<_>>(),
         [b"a" as &[u8], b"b", b"c"]
     );
-    assert_eq!(consumer.assignment(), &[("t".into(), 0, 3)]);
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 3)]);
 
     consumer.seek("t", 0, 1).unwrap();
     let recs = consumer.fetch().await.unwrap();
@@ -95,7 +94,7 @@ async fn fetch_uses_base_offset_plus_record_delta() {
         recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
         vec![1, 2]
     );
-    assert_eq!(consumer.assignment(), &[("t".into(), 0, 3)]);
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 3)]);
 }
 
 #[expect(
@@ -835,7 +834,10 @@ async fn fetch_offset_out_of_range_jumps_to_log_start() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert!(recs.is_empty());
-    assert_eq!(consumer.assignment(), &[("t".into(), 0, 10)]);
+    assert_eq!(
+        consumer.positions(),
+        vec![(TopicPartition::new("t", 0), 10)]
+    );
 }
 
 #[tokio::test]
@@ -1129,8 +1131,10 @@ async fn two_members_range_partition_all() {
     tokio::time::sleep(Duration::from_millis(350)).await;
     drop(a.poll().await);
     let mut b = b_join.await.unwrap().unwrap();
-    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
-    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    let a_parts: std::collections::HashSet<i32> =
+        a.assignment().iter().map(|tp| tp.partition).collect();
+    let b_parts: std::collections::HashSet<i32> =
+        b.assignment().iter().map(|tp| tp.partition).collect();
     assert!(a_parts.is_disjoint(&b_parts), "range must not overlap");
     let union: std::collections::HashSet<i32> = a_parts.union(&b_parts).copied().collect();
     assert_eq!(union.len(), 4, "union of assignments is all partitions");
@@ -1177,8 +1181,10 @@ async fn two_members_sticky_partition_all() {
     tokio::time::sleep(Duration::from_millis(350)).await;
     drop(a.poll().await);
     let b = b_join.await.unwrap().unwrap();
-    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
-    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    let a_parts: std::collections::HashSet<i32> =
+        a.assignment().iter().map(|tp| tp.partition).collect();
+    let b_parts: std::collections::HashSet<i32> =
+        b.assignment().iter().map(|tp| tp.partition).collect();
     assert!(a_parts.is_disjoint(&b_parts));
     assert_eq!(a_parts.len(), 2);
     assert_eq!(b_parts.len(), 2);
@@ -1417,8 +1423,10 @@ async fn two_members_kip848_partition_all() {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 
-    let a_parts: std::collections::HashSet<i32> = a.assignment().iter().map(|(_, p)| *p).collect();
-    let b_parts: std::collections::HashSet<i32> = b.assignment().iter().map(|(_, p)| *p).collect();
+    let a_parts: std::collections::HashSet<i32> =
+        a.assignment().iter().map(|tp| tp.partition).collect();
+    let b_parts: std::collections::HashSet<i32> =
+        b.assignment().iter().map(|tp| tp.partition).collect();
     assert!(
         a_parts.is_disjoint(&b_parts),
         "KIP-848 assignment must not overlap"
@@ -2226,23 +2234,16 @@ async fn admin_partitions_alter_configs_and_acls() {
         Some("1000")
     );
     let created = admin
-        .create_acls(&[AclBinding {
-            resource_type: ACL_RESOURCE_TOPIC,
-            resource_name: "acl-t".into(),
-            principal: "User:alice".into(),
-            host: "*".into(),
-            operation: ACL_OPERATION_ALL,
-            permission: ACL_PERMISSION_ALLOW,
-        }])
+        .create_acls(&[AclBinding::allow_topic("acl-t", "User:alice")])
         .await
         .unwrap();
     assert_eq!(created, vec![0]);
-    let listed = admin.describe_acls(ACL_RESOURCE_TOPIC).await.unwrap();
+    let listed = admin.describe_acls(AclResourceType::Topic).await.unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].principal, "User:alice");
-    assert_eq!(admin.delete_acls(ACL_RESOURCE_TOPIC).await.unwrap(), 0);
+    assert_eq!(admin.delete_acls(AclResourceType::Topic).await.unwrap(), 0);
     assert!(admin
-        .describe_acls(ACL_RESOURCE_TOPIC)
+        .describe_acls(AclResourceType::Topic)
         .await
         .unwrap()
         .is_empty());
@@ -2563,14 +2564,7 @@ async fn create_acls_follows_controller() {
     mock.set_controller(2);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let created = admin
-        .create_acls(&[AclBinding {
-            resource_type: ACL_RESOURCE_TOPIC,
-            resource_name: "acl2".into(),
-            principal: "User:alice".into(),
-            host: "*".into(),
-            operation: ACL_OPERATION_ALL,
-            permission: ACL_PERMISSION_ALLOW,
-        }])
+        .create_acls(&[AclBinding::allow_topic("acl2", "User:alice")])
         .await
         .unwrap();
     assert_eq!(created, vec![0]);
@@ -2582,14 +2576,7 @@ async fn create_acls_follows_controller() {
 
     mock.set_controller(1);
     let again = admin
-        .create_acls(&[AclBinding {
-            resource_type: ACL_RESOURCE_TOPIC,
-            resource_name: "acl1".into(),
-            principal: "User:bob".into(),
-            host: "*".into(),
-            operation: ACL_OPERATION_ALL,
-            permission: ACL_PERMISSION_ALLOW,
-        }])
+        .create_acls(&[AclBinding::allow_topic("acl1", "User:bob")])
         .await
         .unwrap();
     assert_eq!(again, vec![0]);
@@ -4159,7 +4146,7 @@ async fn offset_delete_removes_committed_offset() {
 
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let deleted = admin
-        .delete_offsets("od-del", &[("t".into(), 0)])
+        .delete_offsets("od-del", [TopicPartition::new("t", 0)])
         .await
         .unwrap();
     assert_eq!(deleted.len(), 1);

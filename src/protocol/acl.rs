@@ -15,10 +15,36 @@ pub const ACL_OPERATION_ALL: i8 = 2;
 /// ACL permission: allow.
 pub const ACL_PERMISSION_ALLOW: i8 = 3;
 
+/// Kafka ACL resource type (`ResourceType` on the wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum AclResourceType {
+    /// Protocol `UNKNOWN`.
+    Unknown = 0,
+    /// Matches any resource type on DescribeAcls / DeleteAcls.
+    Any = 1,
+    /// Topic.
+    Topic = 2,
+    /// Consumer group.
+    Group = 3,
+    /// Cluster.
+    Cluster = 4,
+    /// Transactional id.
+    TransactionalId = 5,
+    /// Delegation token.
+    DelegationToken = 6,
+}
+
+impl From<AclResourceType> for i8 {
+    fn from(ty: AclResourceType) -> Self {
+        ty as i8
+    }
+}
+
 /// One ACL binding for CreateAcls / DescribeAcls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AclBinding {
-    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, …).
+    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, [`AclResourceType::Topic`], …).
     pub resource_type: i8,
     /// Resource name (topic name, …).
     pub resource_name: String,
@@ -30,6 +56,21 @@ pub struct AclBinding {
     pub operation: i8,
     /// Permission (`ACL_PERMISSION_ALLOW`, …).
     pub permission: i8,
+}
+
+impl AclBinding {
+    /// Allow every operation on `topic` for `principal` from any host.
+    #[must_use]
+    pub fn allow_topic(topic: impl Into<String>, principal: impl Into<String>) -> Self {
+        Self {
+            resource_type: ACL_RESOURCE_TOPIC,
+            resource_name: topic.into(),
+            principal: principal.into(),
+            host: "*".into(),
+            operation: ACL_OPERATION_ALL,
+            permission: ACL_PERMISSION_ALLOW,
+        }
+    }
 }
 
 pub fn encode_create_acls_request(buf: &mut BytesMut, acls: &[AclBinding]) -> Result<()> {
@@ -226,14 +267,7 @@ mod tests {
 
     #[test]
     fn create_describe_acls_roundtrip() {
-        let acl = AclBinding {
-            resource_type: ACL_RESOURCE_TOPIC,
-            resource_name: "t".into(),
-            principal: "User:alice".into(),
-            host: "*".into(),
-            operation: ACL_OPERATION_ALL,
-            permission: ACL_PERMISSION_ALLOW,
-        };
+        let acl = AclBinding::allow_topic("t", "User:alice");
         let mut buf = BytesMut::new();
         encode_create_acls_request(&mut buf, std::slice::from_ref(&acl)).unwrap();
         assert_eq!(
@@ -246,5 +280,17 @@ mod tests {
             decode_describe_acls_response(&mut &resp[..]).unwrap(),
             vec![acl]
         );
+    }
+
+    #[test]
+    fn allow_topic_is_all_allow_on_topic() {
+        let acl = AclBinding::allow_topic("events", "User:alice");
+        assert_eq!(acl.resource_type, i8::from(AclResourceType::Topic));
+        assert_eq!(acl.resource_type, ACL_RESOURCE_TOPIC);
+        assert_eq!(acl.resource_name, "events");
+        assert_eq!(acl.principal, "User:alice");
+        assert_eq!(acl.host, "*");
+        assert_eq!(acl.operation, ACL_OPERATION_ALL);
+        assert_eq!(acl.permission, ACL_PERMISSION_ALLOW);
     }
 }

@@ -489,19 +489,22 @@ impl ConsumerGroup {
         self.topics()
     }
 
-    /// Assigned `(topic, partition)` pairs (offsets live on the consumer).
-    pub fn assignment(&self) -> Vec<(String, i32)> {
-        self.consumer
-            .assignment()
-            .iter()
-            .map(|(t, p, _)| (t.clone(), *p))
-            .collect()
+    /// Assigned partitions (Java `assignment`). Offsets are [`Self::positions`].
+    #[must_use]
+    pub fn assignment(&self) -> Vec<TopicPartition> {
+        self.consumer.assignment()
     }
 
-    /// Assigned partitions (Java `assignment`).
+    /// Same as [`Self::assignment`].
     #[must_use]
     pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
-        self.consumer.assigned_partitions()
+        self.assignment()
+    }
+
+    /// Assigned partitions with their next fetch offsets.
+    #[must_use]
+    pub fn positions(&self) -> Vec<(TopicPartition, i64)> {
+        self.consumer.positions()
     }
 
     /// Kafka `group.id`.
@@ -581,11 +584,7 @@ impl ConsumerGroup {
     ///
     /// Partitions with no committed offset return offset `-1`.
     pub async fn committed(&mut self) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
-        let assigned: Vec<TopicPartition> = self
-            .assignment()
-            .into_iter()
-            .map(TopicPartition::from)
-            .collect();
+        let assigned = self.assignment();
         self.committed_for(assigned).await
     }
 
@@ -737,7 +736,7 @@ impl ConsumerGroup {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         }
-        let assigned = self.consumer.assignment().to_vec();
+        let assigned = self.consumer.assigned_offsets().to_vec();
         self.commit_offsets(
             assigned
                 .into_iter()
@@ -853,9 +852,7 @@ impl ConsumerGroup {
         let revoked = self.assignment();
         self.leave_coordinator().await?;
         if !revoked.is_empty() {
-            self.cfg
-                .rebalance
-                .call(&TopicPartition::list_from(&revoked), &[]);
+            self.cfg.rebalance.call(&revoked, &[]);
         }
         self.consumer.clear_assignment();
         self.topics.clear();
@@ -887,9 +884,7 @@ impl ConsumerGroup {
             let revoked = self.assignment();
             self.consumer.clear_assignment();
             if !revoked.is_empty() {
-                self.cfg
-                    .rebalance
-                    .call(&TopicPartition::list_from(&revoked), &[]);
+                self.cfg.rebalance.call(&revoked, &[]);
             }
             self.prev_assignment.clear();
         }
@@ -1000,7 +995,8 @@ impl ConsumerGroup {
         if self.protocol == "range" {
             encode_subscription(&self.topics)
         } else {
-            encode_subscription_owned(&self.topics, &self.assignment())
+            let owned: Vec<(String, i32)> = self.assignment().into_iter().map(Into::into).collect();
+            encode_subscription_owned(&self.topics, &owned)
         }
     }
 
@@ -1201,7 +1197,7 @@ impl ConsumerGroup {
     async fn assign_committed(&mut self, wanted: &[(String, i32)]) -> Result<Vec<(String, i32)>> {
         let current: HashMap<(String, i32), i64> = self
             .consumer
-            .assignment()
+            .assigned_offsets()
             .iter()
             .map(|(t, p, o)| ((t.clone(), *p), *o))
             .collect();
