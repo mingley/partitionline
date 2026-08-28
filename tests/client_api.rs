@@ -1091,6 +1091,10 @@ async fn try_send_rejects_when_record_exceeds_max_request_size() {
     .await
     .unwrap();
     producer
+        .send(ProduceRecord::to("t").value(&b""[..]))
+        .await
+        .unwrap();
+    producer
         .try_send(ProduceRecord::to("t").value(&b"abc"[..]))
         .unwrap();
     producer.flush().await.unwrap();
