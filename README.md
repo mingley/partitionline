@@ -47,16 +47,18 @@ let recs = consumer.fetch().await?;
 
 ## Groups
 
-Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups:
+Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups.
+`join_topics` / `join_sticky_topics` / `join_consumer_topics` subscribe to
+several topics:
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
 use partitionline::{ConsumerConfig, ConsumerGroup};
 
-let mut group = ConsumerGroup::join(
+let mut group = ConsumerGroup::join_topics(
     ConsumerConfig::bootstrap(["127.0.0.1:9092"]),
     "workers",
-    "events",
+    ["orders", "payments"],
 )
 .await?;
 let recs = group.poll().await?;

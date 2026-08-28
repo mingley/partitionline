@@ -601,16 +601,35 @@ pub fn decode_subscription(mut bytes: &[u8]) -> Result<Vec<String>> {
 }
 
 pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
+    encode_owned_assignment(&[(topic.to_string(), partitions.to_vec())])
+}
+
+/// ConsumerProtocol assignment v0 for one member, several topics.
+pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
     buf.put_i16(0);
-    buf::put_array_len(&mut buf, false, Some(1))?;
-    buf::put_classic_nullable_string(&mut buf, Some(topic))?;
-    buf::put_array_len(&mut buf, false, Some(partitions.len()))?;
-    for p in partitions {
-        buf.put_i32(*p);
+    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
+    for (topic, partitions) in topics {
+        buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+        buf::put_array_len(&mut buf, false, Some(partitions.len()))?;
+        for p in partitions {
+            buf.put_i32(*p);
+        }
     }
     buf.put_i32(-1);
     Ok(buf.to_vec())
+}
+
+/// Group `(topic, partition)` pairs by topic, preserving first-seen order.
+pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
+    let mut topics: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in parts {
+        match topics.iter_mut().find(|(t, _)| t == topic) {
+            Some((_, ps)) => ps.push(*part),
+            None => topics.push((topic.clone(), vec![*part])),
+        }
+    }
+    encode_owned_assignment(&topics)
 }
 
 pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
@@ -669,6 +688,12 @@ mod tests {
         let decoded = decode_assignment(&asg).unwrap();
         assert_eq!(decoded[0].0, "t");
         assert_eq!(decoded[0].1, vec![0, 1]);
+        let multi =
+            encode_tp_assignment(&[("a".into(), 0), ("b".into(), 1), ("a".into(), 2)]).unwrap();
+        let decoded = decode_assignment(&multi).unwrap();
+        assert_eq!(decoded.len(), 2);
+        assert_eq!(decoded[0], ("a".into(), vec![0, 2]));
+        assert_eq!(decoded[1], ("b".into(), vec![1]));
     }
 
     #[test]

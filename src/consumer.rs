@@ -414,9 +414,32 @@ impl Consumer {
         self.refresh_topic_metadata(topic).await
     }
 
+    pub(crate) async fn refresh_topics(&mut self, topics: &[String]) -> Result<()> {
+        if topics.is_empty() {
+            return Ok(());
+        }
+        self.refresh_metadata(Some(topics)).await
+    }
+
     pub(crate) async fn refresh_topic_metadata(&mut self, topic: &str) -> Result<()> {
         let topics = [topic.to_string()];
         self.refresh_metadata(Some(&topics)).await
+    }
+
+    pub(crate) fn topic_id_names(&self) -> HashMap<[u8; 16], String> {
+        let mut out = HashMap::new();
+        let Some(md) = &self.metadata else {
+            return out;
+        };
+        for t in &md.topics {
+            if t.topic_id == [0u8; 16] {
+                continue;
+            }
+            if let Some(name) = &t.name {
+                let _ = out.insert(t.topic_id, name.clone());
+            }
+        }
+        out
     }
 
     pub(crate) fn leader_of(&self, topic: &str, partition: i32) -> Result<(i32, String)> {

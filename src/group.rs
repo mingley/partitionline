@@ -26,11 +26,11 @@ use crate::protocol::cgheartbeat::{
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response, decode_offset_commit_response,
-    decode_offset_fetch_response, decode_sync_group_response, encode_assignment,
+    decode_offset_fetch_response, decode_subscription, decode_sync_group_response,
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_sync_group_request, FetchedOffsetTopic, OffsetFetchTopic,
-    OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
+    encode_subscription, encode_sync_group_request, encode_tp_assignment, FetchedOffsetTopic,
+    OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -111,6 +111,93 @@ pub fn assign_sticky(
     out
 }
 
+/// Range-assign each topic independently across every member, then concatenate.
+pub fn assign_range_topics(
+    members: &[String],
+    topics: &[(String, Vec<i32>)],
+) -> HashMap<String, Vec<(String, i32)>> {
+    assign_range_subscribed(&all_subscribed(members, topics), topics)
+}
+
+/// Sticky-assign each topic independently across every member, then concatenate.
+pub fn assign_sticky_topics(
+    members: &[String],
+    topics: &[(String, Vec<i32>)],
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<String, Vec<(String, i32)>> {
+    assign_sticky_subscribed(&all_subscribed(members, topics), topics, prev)
+}
+
+fn all_subscribed(members: &[String], topics: &[(String, Vec<i32>)]) -> Vec<(String, Vec<String>)> {
+    let names: Vec<String> = topics.iter().map(|(t, _)| t.clone()).collect();
+    members.iter().map(|m| (m.clone(), names.clone())).collect()
+}
+
+/// Range-assign each topic among the members subscribed to it (Java RangeAssignor).
+pub fn assign_range_subscribed(
+    member_subs: &[(String, Vec<String>)],
+    topics: &[(String, Vec<i32>)],
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for (m, _) in member_subs {
+        let _ = out.insert(m.clone(), Vec::new());
+    }
+    for (topic, parts) in topics {
+        let members = members_for_topic(member_subs, topic);
+        for (member, ps) in assign_range(&members, parts) {
+            if let Some(slot) = out.get_mut(&member) {
+                for p in ps {
+                    slot.push((topic.clone(), p));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Sticky-assign each topic among the members subscribed to it.
+pub fn assign_sticky_subscribed(
+    member_subs: &[(String, Vec<String>)],
+    topics: &[(String, Vec<i32>)],
+    prev: &HashMap<String, Vec<(String, i32)>>,
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for (m, _) in member_subs {
+        let _ = out.insert(m.clone(), Vec::new());
+    }
+    for (topic, parts) in topics {
+        let members = members_for_topic(member_subs, topic);
+        let prev_for_topic: HashMap<String, Vec<i32>> = prev
+            .iter()
+            .map(|(m, tps)| {
+                (
+                    m.clone(),
+                    tps.iter()
+                        .filter(|(t, _)| t == topic)
+                        .map(|(_, p)| *p)
+                        .collect(),
+                )
+            })
+            .collect();
+        for (member, ps) in assign_sticky(&members, parts, &prev_for_topic) {
+            if let Some(slot) = out.get_mut(&member) {
+                for p in ps {
+                    slot.push((topic.clone(), p));
+                }
+            }
+        }
+    }
+    out
+}
+
+fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<String> {
+    member_subs
+        .iter()
+        .filter(|(_, subs)| subs.iter().any(|t| t == topic))
+        .map(|(id, _)| id.clone())
+        .collect()
+}
+
 pub struct ConsumerGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -118,10 +205,10 @@ pub struct ConsumerGroup {
     group_id: String,
     member_id: String,
     generation_id: i32,
-    topic: String,
+    topics: Vec<String>,
     protocol: String,
     kip848: bool,
-    prev_assignment: HashMap<String, Vec<i32>>,
+    prev_assignment: HashMap<String, Vec<(String, i32)>>,
     hb_err: Arc<AtomicI16>,
     hb_generation: Arc<AtomicI32>,
     /// Assignment from a later ConsumerGroupHeartbeat; applied on `poll` / `commit`.
@@ -132,32 +219,50 @@ pub struct ConsumerGroup {
 }
 
 impl ConsumerGroup {
-    /// Join with the Java range assignor.
+    /// Join with the Java range assignor. One topic.
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         topic: impl Into<String>,
     ) -> Result<Self> {
-        Self::join_with_protocol(cfg, group_id, topic, "range").await
+        Self::join_topics(cfg, group_id, std::iter::once(topic)).await
     }
 
-    /// Join with the sticky assignor.
+    /// Join with the Java range assignor. Several topics, assigned independently.
+    pub async fn join_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
+        Self::join_with_protocol(cfg, group_id, topics, "range").await
+    }
+
+    /// Join with the sticky assignor. One topic.
     pub async fn join_sticky(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         topic: impl Into<String>,
     ) -> Result<Self> {
-        Self::join_with_protocol(cfg, group_id, topic, "sticky").await
+        Self::join_sticky_topics(cfg, group_id, std::iter::once(topic)).await
+    }
+
+    /// Join with the sticky assignor. Several topics, assigned independently.
+    pub async fn join_sticky_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
+        Self::join_with_protocol(cfg, group_id, topics, "sticky").await
     }
 
     async fn join_with_protocol(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
-        topic: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
         protocol: &str,
     ) -> Result<Self> {
         let group_id = group_id.into();
-        let topic = topic.into();
+        let topics = collect_topics(topics)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
 
@@ -173,7 +278,7 @@ impl ConsumerGroup {
             group_id,
             member_id: String::new(),
             generation_id: 0,
-            topic,
+            topics,
             protocol: protocol.to_string(),
             kip848: false,
             prev_assignment: HashMap::new(),
@@ -188,14 +293,23 @@ impl ConsumerGroup {
         Ok(g)
     }
 
-    /// KIP-848 `group.protocol=consumer`. Join via ConsumerGroupHeartbeat (epoch 0).
+    /// KIP-848 `group.protocol=consumer`. One topic.
     pub async fn join_consumer(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
         topic: impl Into<String>,
     ) -> Result<Self> {
+        Self::join_consumer_topics(cfg, group_id, std::iter::once(topic)).await
+    }
+
+    /// KIP-848 `group.protocol=consumer`. Several topics.
+    pub async fn join_consumer_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
         let group_id = group_id.into();
-        let topic = topic.into();
+        let topics = collect_topics(topics)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -210,7 +324,7 @@ impl ConsumerGroup {
             group_id,
             member_id: String::new(),
             generation_id: 0,
-            topic,
+            topics,
             protocol: "consumer".into(),
             kip848: true,
             prev_assignment: HashMap::new(),
@@ -223,6 +337,11 @@ impl ConsumerGroup {
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
         Ok(g)
+    }
+
+    /// Subscribed topic names, in join order.
+    pub fn topics(&self) -> &[String] {
+        &self.topics
     }
 
     pub fn assignment(&self) -> Vec<(String, i32)> {
@@ -335,7 +454,7 @@ impl ConsumerGroup {
 
     async fn rejoin(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
-        let metadata = encode_subscription(std::slice::from_ref(&self.topic))?;
+        let metadata = encode_subscription(&self.topics)?;
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
                 &mut self.coord,
@@ -394,17 +513,34 @@ impl ConsumerGroup {
         self.generation_id = generation;
         let _ = protocol;
 
-        let parts = self.consumer.partition_ids(&self.topic).await?;
-        let member_ids: Vec<String> = members.iter().map(|m| m.member_id.clone()).collect();
+        let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
+        let mut topic_set = self.topics.clone();
+        for m in &members {
+            let subs = match decode_subscription(&m.metadata) {
+                Ok(t) if !t.is_empty() => t,
+                _ => self.topics.clone(),
+            };
+            for t in &subs {
+                if !topic_set.iter().any(|x| x == t) {
+                    topic_set.push(t.clone());
+                }
+            }
+            member_subs.push((m.member_id.clone(), subs));
+        }
+        self.consumer.refresh_topics(&topic_set).await?;
+        let mut by_topic = Vec::with_capacity(topic_set.len());
+        for topic in &topic_set {
+            by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
+        }
         let assignments = if leader == self.member_id {
             let map = if self.protocol == "sticky" {
-                assign_sticky(&member_ids, &parts, &self.prev_assignment)
+                assign_sticky_subscribed(&member_subs, &by_topic, &self.prev_assignment)
             } else {
-                assign_range(&member_ids, &parts)
+                assign_range_subscribed(&member_subs, &by_topic)
             };
             self.prev_assignment = map.clone();
             map.into_iter()
-                .map(|(id, ps)| Ok((id, encode_assignment(&self.topic, &ps)?)))
+                .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
                 .collect::<Result<Vec<_>>>()?
         } else {
             Vec::new()
@@ -446,11 +582,12 @@ impl ConsumerGroup {
 
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = Duration::from_secs(30);
+        self.consumer.refresh_topics(&self.topics).await?;
         let req = ConsumerGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
             member_epoch: 0,
-            subscribed_topic_names: Some(vec![self.topic.clone()]),
+            subscribed_topic_names: Some(self.topics.clone()),
             topic_partitions: None,
         };
         let body = coord_roundtrip(
@@ -473,7 +610,7 @@ impl ConsumerGroup {
         }
         self.generation_id = resp.member_epoch;
         let assignment = resp.assignment.unwrap_or_default();
-        let wanted = wanted_from_kip848(&self.topic, &assignment);
+        let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
         self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.hb_generation
@@ -487,7 +624,8 @@ impl ConsumerGroup {
         let Some(assignment) = pending else {
             return Ok(());
         };
-        let wanted = wanted_from_kip848(&self.topic, &assignment);
+        self.consumer.refresh_topics(&self.topics).await?;
+        let wanted = wanted_from_kip848(&self.topics, &self.consumer.topic_id_names(), &assignment);
         self.assign_committed(&wanted).await?;
         *self.hb_ack.lock() = Some(assignment);
         self.generation_id = self.hb_generation.load(Ordering::SeqCst);
@@ -677,14 +815,45 @@ impl ConsumerGroup {
     }
 }
 
-fn wanted_from_kip848(topic: &str, assignment: &[TopicPartitions]) -> Vec<(String, i32)> {
+fn wanted_from_kip848(
+    subscribed: &[String],
+    id_to_name: &HashMap<[u8; 16], String>,
+    assignment: &[TopicPartitions],
+) -> Vec<(String, i32)> {
     let mut out = Vec::new();
     for tp in assignment {
+        let name = id_to_name.get(&tp.topic_id).cloned().or_else(|| {
+            if subscribed.len() == 1 || tp.topic_id == [0u8; 16] {
+                subscribed.first().cloned()
+            } else {
+                None
+            }
+        });
+        let Some(name) = name else {
+            continue;
+        };
         for p in &tp.partitions {
-            out.push((topic.to_string(), *p));
+            out.push((name.clone(), *p));
         }
     }
     out
+}
+
+fn collect_topics(topics: impl IntoIterator<Item = impl Into<String>>) -> Result<Vec<String>> {
+    let mut out = Vec::new();
+    for topic in topics {
+        let topic = topic.into();
+        if topic.is_empty() {
+            return Err(Error::protocol("empty topic name"));
+        }
+        if !out.iter().any(|t| t == &topic) {
+            out.push(topic);
+        }
+    }
+    if out.is_empty() {
+        return Err(Error::protocol("no topics"));
+    }
+    Ok(out)
 }
 
 fn group_offset_topics(assigned: &[(String, i32, i64)]) -> Vec<OffsetTopic> {
@@ -914,6 +1083,7 @@ fn coordinator_error(api_key: i16, body: &[u8]) -> Option<i16> {
 mod tests {
     use super::*;
     use crate::protocol::group::FetchedOffset;
+    use std::collections::HashMap;
 
     #[test]
     fn range_splits_all_partitions_without_overlap() {
@@ -1051,9 +1221,64 @@ mod tests {
             partitions: vec![1, 3],
         }];
         assert_eq!(
-            wanted_from_kip848("orders", &assignment),
+            wanted_from_kip848(&["orders".into()], &HashMap::new(), &assignment),
             vec![("orders".into(), 1), ("orders".into(), 3)]
         );
+        let mut ids = HashMap::new();
+        let _ = ids.insert([1u8; 16], "payments".into());
+        let multi = vec![
+            TopicPartitions {
+                topic_id: [1u8; 16],
+                partitions: vec![0],
+            },
+            TopicPartitions {
+                topic_id: [2u8; 16],
+                partitions: vec![1],
+            },
+        ];
+        assert_eq!(
+            wanted_from_kip848(&["orders".into(), "payments".into()], &ids, &multi),
+            vec![("payments".into(), 0)]
+        );
+    }
+
+    #[test]
+    fn range_topics_assigns_each_topic_independently() {
+        let members = vec!["a".into(), "b".into()];
+        let topics = vec![("orders".into(), vec![0, 1]), ("payments".into(), vec![0])];
+        let map = assign_range_topics(&members, &topics);
+        let a = map.get("a").cloned().unwrap_or_default();
+        let b = map.get("b").cloned().unwrap_or_default();
+        let mut all = a;
+        all.extend(b);
+        all.sort();
+        assert_eq!(
+            all,
+            vec![
+                ("orders".into(), 0),
+                ("orders".into(), 1),
+                ("payments".into(), 0),
+            ]
+        );
+    }
+
+    #[test]
+    fn range_subscribed_keeps_members_on_their_topics() {
+        let subs = vec![
+            ("a".into(), vec!["orders".into()]),
+            ("b".into(), vec!["payments".into()]),
+        ];
+        let topics = vec![
+            ("orders".into(), vec![0, 1]),
+            ("payments".into(), vec![0, 1]),
+        ];
+        let map = assign_range_subscribed(&subs, &topics);
+        let mut a = map.get("a").cloned().unwrap_or_default();
+        let mut b = map.get("b").cloned().unwrap_or_default();
+        a.sort();
+        b.sort();
+        assert_eq!(a, vec![("orders".into(), 0), ("orders".into(), 1)]);
+        assert_eq!(b, vec![("payments".into(), 0), ("payments".into(), 1)]);
     }
 
     #[test]

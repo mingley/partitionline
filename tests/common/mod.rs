@@ -22,7 +22,7 @@
 use bytes::{BufMut, BytesMut};
 use parking_lot::Mutex;
 use partitionline::error;
-use partitionline::group::assign_range;
+use partitionline::group::assign_range_subscribed;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
@@ -372,9 +372,9 @@ struct Kip848Reg {
 }
 
 struct Kip848Member {
-    topic: String,
+    topics: Vec<String>,
     epoch: i32,
-    partitions: Vec<i32>,
+    partitions: Vec<(String, i32)>,
     pending: bool,
 }
 
@@ -574,32 +574,80 @@ fn new_state(
     }
 }
 
+fn mock_topic_id(name: &str) -> [u8; 16] {
+    let mut id = [0u8; 16];
+    let bytes = name.as_bytes();
+    let n = bytes.len().min(16);
+    if let Some(dst) = id.get_mut(..n) {
+        if let Some(src) = bytes.get(..n) {
+            dst.copy_from_slice(src);
+        }
+    }
+    id
+}
+
+fn kip848_topic_partitions(parts: &[(String, i32)]) -> Vec<TopicPartitions> {
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in parts {
+        match by_topic.iter_mut().find(|(t, _)| t == topic) {
+            Some((_, ps)) => ps.push(*part),
+            None => by_topic.push((topic.clone(), vec![*part])),
+        }
+    }
+    by_topic
+        .into_iter()
+        .map(|(topic, partitions)| TopicPartitions {
+            topic_id: mock_topic_id(&topic),
+            partitions,
+        })
+        .collect()
+}
+
 fn kip848_recompute(st: &mut State, group_id: &str) {
     let Some(g) = st.kip848_groups.get(group_id) else {
         return;
     };
-    let members: Vec<String> = g.members.keys().cloned().collect();
-    if members.is_empty() {
+    if g.members.is_empty() {
         return;
     }
-    let topic = g
+    let mut topic_names = Vec::new();
+    for m in g.members.values() {
+        for t in &m.topics {
+            if !topic_names.iter().any(|x| x == t) {
+                topic_names.push(t.clone());
+            }
+        }
+    }
+    if topic_names.is_empty() {
+        topic_names.push("t".into());
+    }
+    let member_subs: Vec<(String, Vec<String>)> = g
         .members
-        .values()
-        .next()
-        .map(|m| m.topic.clone())
-        .unwrap_or_else(|| "t".into());
-    let npart = st
-        .created_topics
-        .get(&topic)
-        .map(|s| s.num_partitions)
-        .unwrap_or(1);
-    let parts: Vec<i32> = (0..npart).collect();
-    let map = assign_range(&members, &parts);
+        .iter()
+        .map(|(id, m)| {
+            let topics = if m.topics.is_empty() {
+                topic_names.clone()
+            } else {
+                m.topics.clone()
+            };
+            (id.clone(), topics)
+        })
+        .collect();
+    let mut topic_parts = Vec::with_capacity(topic_names.len());
+    for topic in &topic_names {
+        let npart = st
+            .created_topics
+            .get(topic)
+            .map(|s| s.num_partitions)
+            .unwrap_or(1);
+        topic_parts.push((topic.clone(), (0..npart).collect()));
+    }
+    let assigned = assign_range_subscribed(&member_subs, &topic_parts);
     let Some(g) = st.kip848_groups.get_mut(group_id) else {
         return;
     };
     for (id, m) in &mut g.members {
-        let new_parts = map.get(id).cloned().unwrap_or_default();
+        let new_parts = assigned.get(id).cloned().unwrap_or_default();
         if new_parts != m.partitions {
             m.partitions = new_parts;
             m.epoch = m.epoch.saturating_add(1).max(1);
@@ -637,7 +685,7 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
             .map(|(name, spec)| TopicMetadata {
                 error_code: 0,
                 name: Some(name.clone()),
-                topic_id: [0u8; 16],
+                topic_id: mock_topic_id(name),
                 is_internal: false,
                 partitions: (0..spec.num_partitions)
                     .map(|i| {
@@ -3546,17 +3594,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     std::cmp::Ordering::Equal => {
                         st.member_seq += 1;
                         let id = format!("k-{}", st.member_seq);
-                        let topic_name = req
+                        let topic_names = req
                             .subscribed_topic_names
-                            .as_ref()
-                            .and_then(|n| n.first())
-                            .cloned()
-                            .unwrap_or_else(|| "t".into());
+                            .clone()
+                            .filter(|n| !n.is_empty())
+                            .unwrap_or_else(|| vec!["t".into()]);
                         let g = st.kip848_groups.entry(req.group_id.clone()).or_default();
                         let _ = g.members.insert(
                             id.clone(),
                             Kip848Member {
-                                topic: topic_name,
+                                topics: topic_names,
                                 epoch: 0,
                                 partitions: Vec::new(),
                                 pending: false,
@@ -3571,15 +3618,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 m.pending = false;
                                 (m.epoch, m.partitions.clone())
                             })
-                            .unwrap_or((1, vec![0]));
-                        (
-                            id,
-                            epoch,
-                            Some(vec![TopicPartitions {
-                                topic_id: [0u8; 16],
-                                partitions,
-                            }]),
-                        )
+                            .unwrap_or((1, Vec::new()));
+                        (id, epoch, Some(kip848_topic_partitions(&partitions)))
                     }
                     std::cmp::Ordering::Greater => {
                         let found = st
@@ -3592,10 +3632,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 (
                                     req.member_id,
                                     m.epoch,
-                                    Some(vec![TopicPartitions {
-                                        topic_id: [0u8; 16],
-                                        partitions: m.partitions.clone(),
-                                    }]),
+                                    Some(kip848_topic_partitions(&m.partitions)),
                                 )
                             }
                             Some(m) => (req.member_id, m.epoch, None),

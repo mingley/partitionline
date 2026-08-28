@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::{
-    Acks, Compression, Consumer, ConsumerConfig, Error, IsolationLevel, ProduceRecord, Producer,
-    ProducerConfig, Sasl,
+    Acks, Admin, AdminConfig, Compression, Consumer, ConsumerConfig, ConsumerGroup, Error,
+    IsolationLevel, NewTopic, ProduceRecord, Producer, ProducerConfig, Sasl,
 };
 use std::time::Duration;
 
@@ -161,4 +161,111 @@ fn broker_error_display_and_code() {
         empty.to_string(),
         "broker error 3 (UNKNOWN_TOPIC_OR_PARTITION)"
     );
+}
+
+async fn create_two_topics(addr: &str, a: &str, b: &str) -> partitionline::Result<()> {
+    let mut admin = Admin::new(AdminConfig::bootstrap([addr])).await?;
+    let results = admin
+        .create_topics(
+            &[NewTopic::new(a, 1, 1), NewTopic::new(b, 1, 1)],
+            10_000,
+            false,
+        )
+        .await?;
+    assert!(
+        results.iter().all(|r| r.error_code == 0),
+        "create_topics: {results:?}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn classic_group_join_topics_fetches_both() {
+    let mock = common::Mock::start().await;
+    create_two_topics(&mock.addr, "orders", "payments")
+        .await
+        .unwrap();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("orders").value(&b"o"[..]),
+            ProduceRecord::to("payments").value(&b"p"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join_topics(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "multi",
+        ["orders", "payments"],
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        group.topics(),
+        &["orders".to_string(), "payments".to_string()]
+    );
+    let recs = group.poll().await.unwrap();
+    let mut names: Vec<&str> = recs.iter().map(|r| r.topic.as_str()).collect();
+    names.sort_unstable();
+    assert_eq!(names, vec!["orders", "payments"]);
+}
+
+#[tokio::test]
+async fn kip848_join_consumer_topics_fetches_both() {
+    let mock = common::Mock::start().await;
+    create_two_topics(&mock.addr, "alpha", "beta")
+        .await
+        .unwrap();
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("alpha").value(&b"a"[..]),
+            ProduceRecord::to("beta").value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join_consumer_topics(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "kmulti",
+        ["alpha", "beta"],
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    let mut names: Vec<&str> = recs.iter().map(|r| r.topic.as_str()).collect();
+    names.sort_unstable();
+    assert_eq!(names, vec!["alpha", "beta"]);
+}
+
+#[tokio::test]
+async fn classic_group_mixed_subscriptions_stay_on_own_topics() {
+    let mock = common::Mock::start().await;
+    create_two_topics(&mock.addr, "orders", "payments")
+        .await
+        .unwrap();
+    let cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10);
+    let mut orders = ConsumerGroup::join(cfg.clone(), "mix", "orders")
+        .await
+        .unwrap();
+    let payments_join = tokio::spawn({
+        let cfg = cfg.clone();
+        async move { ConsumerGroup::join(cfg, "mix", "payments").await }
+    });
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    drop(orders.poll().await);
+    let payments = payments_join.await.unwrap().unwrap();
+    let order_topics: Vec<String> = orders.assignment().into_iter().map(|(t, _)| t).collect();
+    let pay_topics: Vec<String> = payments.assignment().into_iter().map(|(t, _)| t).collect();
+    assert_eq!(order_topics, vec!["orders".to_string()]);
+    assert_eq!(pay_topics, vec!["payments".to_string()]);
 }

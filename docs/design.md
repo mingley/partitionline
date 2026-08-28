@@ -25,6 +25,8 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 partition.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
+`join_topics` (range), `join_sticky_topics`, and `join_consumer_topics`
+subscribe to several topics. Range and sticky assign each topic independently.
 
 ## Wire format notes (for people changing encode/decode)
 
