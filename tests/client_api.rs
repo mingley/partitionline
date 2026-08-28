@@ -2478,6 +2478,55 @@ async fn admin_remove_members_from_consumer_group() {
         .await
         .unwrap();
     assert!(empty.is_empty());
+    let removed_all = admin
+        .remove_all_members_from_consumer_group("g-rm")
+        .await
+        .unwrap();
+    assert!(
+        removed_all.is_empty(),
+        "member already removed; DescribeGroups has no members"
+    );
+    admin.close().await.unwrap();
+    group.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_remove_all_members_from_consumer_group() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let unknown = admin
+        .remove_all_members_from_consumer_group("g-rm-all")
+        .await
+        .unwrap();
+    assert!(unknown.is_empty(), "unknown group: no LeaveGroup");
+    assert!(mock.last_leave_group_members().is_none());
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
+
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("i-all"),
+        "g-rm-all",
+        "t",
+    )
+    .await
+    .unwrap();
+    let removed = admin
+        .remove_all_members_from_consumer_group("g-rm-all")
+        .await
+        .unwrap();
+    assert_eq!(removed.len(), 1);
+    assert_eq!(removed[0].error_code, 0);
+    assert_eq!(removed[0].group_instance_id.as_deref(), Some("i-all"));
+    assert!(!removed[0].member_id.is_empty());
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
+    assert_eq!(mock.last_leave_group_node(), Some(1));
+    let members = mock.last_leave_group_members().expect("LeaveGroup members");
+    assert_eq!(members.len(), 1);
+    assert_eq!(members[0].group_instance_id.as_deref(), Some("i-all"));
+    assert!(!members[0].member_id.is_empty());
     admin.close().await.unwrap();
     group.close().await.unwrap();
 }

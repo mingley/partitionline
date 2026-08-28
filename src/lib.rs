@@ -97,6 +97,8 @@
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers).
 //! [`Admin::remove_members_from_consumer_group`] is Java
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
+//! [`Admin::remove_all_members_from_consumer_group`] is Java
+//! `RemoveMembersFromConsumerGroupOptions.removeAll`.
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3 tagged fields).
 //! [`Admin::list_topics`] / [`Admin::describe_topics`] are Java

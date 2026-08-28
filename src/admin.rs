@@ -3756,7 +3756,8 @@ impl Admin {
     /// `key_type=0`) with a members array. Each [`MemberToRemove`] is a
     /// `group.instance.id` (KIP-345); member id on the wire is empty.
     /// Empty `members` returns an empty list. Coordinator load / move
-    /// errors refresh and retry.
+    /// errors refresh and retry. To remove every member, use
+    /// [`Self::remove_all_members_from_consumer_group`].
     pub async fn remove_members_from_consumer_group(
         &mut self,
         group_id: &str,
@@ -3775,6 +3776,46 @@ impl Admin {
         if members.is_empty() {
             return Ok(Vec::new());
         }
+        self.leave_group_members(group_id, members).await
+    }
+
+    /// Remove every member of a consumer group (Java
+    /// `RemoveMembersFromConsumerGroupOptions.removeAll`).
+    ///
+    /// DescribeGroups, then LeaveGroup v3 with those members (member id
+    /// plus `group.instance.id` when present). A group with no members
+    /// is a no-op (no LeaveGroup). This is not
+    /// [`Self::remove_members_from_consumer_group`] with an empty list.
+    pub async fn remove_all_members_from_consumer_group(
+        &mut self,
+        group_id: &str,
+    ) -> Result<Vec<RemovedMember>> {
+        let described = self.describe_groups(&[group_id], false).await?;
+        let Some(g) = described.first() else {
+            return Ok(Vec::new());
+        };
+        if g.error_code != 0 {
+            return Err(Error::broker(g.error_code, "DescribeGroups"));
+        }
+        let members: Vec<LeaveGroupMember> = g
+            .members
+            .iter()
+            .map(|m| LeaveGroupMember {
+                member_id: m.member_id.clone(),
+                group_instance_id: m.group_instance_id.clone(),
+            })
+            .collect();
+        if members.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.leave_group_members(group_id, members).await
+    }
+
+    async fn leave_group_members(
+        &mut self,
+        group_id: &str,
+        members: Vec<LeaveGroupMember>,
+    ) -> Result<Vec<RemovedMember>> {
         let version = self
             .versions
             .get(&LEAVE_GROUP)

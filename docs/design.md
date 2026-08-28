@@ -53,6 +53,8 @@ timestamp; one ListOffsets RPC per partition leader; returns
 ABORT on the partition leader).
 `Admin::remove_members_from_consumer_group` is Java
 `removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`).
+`Admin::remove_all_members_from_consumer_group` is Java
+`RemoveMembersFromConsumerGroupOptions.removeAll` (DescribeGroups then LeaveGroup).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
 tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /

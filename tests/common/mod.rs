@@ -82,7 +82,7 @@ use partitionline::protocol::admin::{
     DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
     ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
@@ -135,7 +135,7 @@ use partitionline::protocol::group::{
     encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
     encode_leave_group_response, encode_leave_group_response_version,
     encode_offset_commit_response, encode_offset_delete_response, encode_offset_fetch_response,
-    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember,
+    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, LeaveGroupMember,
     LeaveGroupMemberResult, OffsetDeleteResult, OffsetPartition, OffsetTopic,
     COORDINATOR_TRANSACTION,
 };
@@ -297,6 +297,8 @@ struct State {
     consumer_group_describe_not_coordinator: u32,
     last_describe_groups_node: Option<i32>,
     describe_groups_not_coordinator: u32,
+    last_leave_group_node: Option<i32>,
+    last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_delete_groups_node: Option<i32>,
@@ -410,6 +412,7 @@ struct Kip848Member {
 
 struct GroupReg {
     members: BTreeMap<String, Vec<u8>>,
+    instances: HashMap<String, String>,
     generation: i32,
     joined: HashSet<String>,
     assignments: HashMap<String, Vec<u8>>,
@@ -519,6 +522,8 @@ fn new_state(
         consumer_group_describe_not_coordinator: 0,
         last_describe_groups_node: None,
         describe_groups_not_coordinator: 0,
+        last_leave_group_node: None,
+        last_leave_group_members: None,
         last_list_groups_node: None,
         last_list_groups: None,
         last_delete_groups_node: None,
@@ -1429,6 +1434,14 @@ impl Mock {
 
     pub fn describe_groups_not_coordinator(&self) -> u32 {
         self.state.lock().describe_groups_not_coordinator
+    }
+
+    pub fn last_leave_group_node(&self) -> Option<i32> {
+        self.state.lock().last_leave_group_node
+    }
+
+    pub fn last_leave_group_members(&self) -> Option<Vec<LeaveGroupMember>> {
+        self.state.lock().last_leave_group_members.clone()
     }
 
     pub fn last_list_groups_node(&self) -> Option<i32> {
@@ -3933,7 +3946,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_join_group_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.join_group_calls = st.join_group_calls.saturating_add(1);
-                st.last_group_instance_id = instance;
+                st.last_group_instance_id = instance.clone();
                 if member_id.is_empty() {
                     st.member_seq += 1;
                     let assigned = format!("m-{}", st.member_seq);
@@ -3943,6 +3956,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let notify = st.assign_notify.clone();
                     let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
                         members: BTreeMap::new(),
+                        instances: HashMap::new(),
                         generation: 0,
                         joined: HashSet::new(),
                         assignments: HashMap::new(),
@@ -3957,6 +3971,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     g.members.insert(member_id.clone(), metadata.clone());
                     g.joined.insert(member_id.clone());
+                    if let Some(instance) = instance {
+                        let _ = g.instances.insert(member_id.clone(), instance);
+                    }
                     let leader = g.members.keys().next().cloned().unwrap_or_default();
                     let members: Vec<JoinMember> = g
                         .members
@@ -4028,6 +4045,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let (gid, members) =
                         decode_leave_group_request_version(&mut frame, header.api_version).unwrap();
                     let mut st = state.lock();
+                    st.last_leave_group_node = Some(node_id);
+                    st.last_leave_group_members = Some(members.clone());
                     let results: Vec<LeaveGroupMemberResult> = members
                         .into_iter()
                         .map(|m| {
@@ -4035,6 +4054,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 if !m.member_id.is_empty() {
                                     g.members.remove(&m.member_id);
                                     g.joined.remove(&m.member_id);
+                                    let _ = g.instances.remove(&m.member_id);
+                                } else if let Some(ref iid) = m.group_instance_id {
+                                    let ids: Vec<String> = g
+                                        .instances
+                                        .iter()
+                                        .filter(|(_, v)| *v == iid)
+                                        .map(|(k, _)| k.clone())
+                                        .collect();
+                                    for id in ids {
+                                        g.members.remove(&id);
+                                        g.joined.remove(&id);
+                                        let _ = g.instances.remove(&id);
+                                    }
                                 }
                                 g.generation += 1;
                                 g.joined.clear();
@@ -4056,6 +4088,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     if let Some(g) = st.groups.get_mut(&gid) {
                         g.members.remove(&member_id);
                         g.joined.remove(&member_id);
+                        let _ = g.instances.remove(&member_id);
                         g.generation += 1;
                         g.joined.clear();
                         g.assignments.clear();
@@ -4195,9 +4228,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let results: Vec<DescribedGroup> = ids
                         .into_iter()
                         .map(|group_id| {
-                            let mut g = DescribedGroup::new(group_id, 0);
+                            let mut g = DescribedGroup::new(group_id.clone(), 0);
                             g.group_state = "Stable".into();
                             g.protocol_type = "consumer".into();
+                            if let Some(reg) = st.groups.get(&group_id) {
+                                g.members = reg
+                                    .members
+                                    .keys()
+                                    .map(|id| {
+                                        let mut m = DescribedGroupMember::new(id, "", "");
+                                        m.group_instance_id = reg.instances.get(id).cloned();
+                                        m
+                                    })
+                                    .collect();
+                            }
                             g
                         })
                         .collect();

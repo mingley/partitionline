@@ -3740,6 +3740,46 @@ async fn describe_groups_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn admin_remove_all_members_from_consumer_group() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("i-all"),
+        "g-rm-all",
+        "t",
+    )
+    .await
+    .unwrap();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let removed = admin
+        .remove_all_members_from_consumer_group("g-rm-all")
+        .await
+        .unwrap();
+    assert_eq!(removed.len(), 1);
+    assert_eq!(removed[0].error_code, 0);
+    assert_eq!(removed[0].group_instance_id.as_deref(), Some("i-all"));
+    assert!(!removed[0].member_id.is_empty());
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        Some(2),
+        "removeAll DescribeGroups must land on the group coordinator"
+    );
+    assert_eq!(
+        mock.last_leave_group_node(),
+        Some(2),
+        "removeAll LeaveGroup must land on the group coordinator"
+    );
+    let members = mock.last_leave_group_members().expect("LeaveGroup members");
+    assert_eq!(members.len(), 1);
+    assert_eq!(members[0].group_instance_id.as_deref(), Some("i-all"));
+    assert!(!members[0].member_id.is_empty());
+    admin.close().await.unwrap();
+    group.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_groups_follows_broker() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();
