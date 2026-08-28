@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -114,6 +115,8 @@ pub struct ConsumerConfig {
     ///
     /// A zero interval commits after every [`crate::ConsumerGroup::poll`].
     pub auto_commit_interval: Duration,
+    /// Kafka `max.poll.interval.ms`. Zero means no limit. Default 5 minutes.
+    pub max_poll_interval: Duration,
 }
 
 impl Default for ConsumerConfig {
@@ -142,6 +145,7 @@ impl Default for ConsumerConfig {
             rebalance: RebalanceListener::default(),
             enable_auto_commit: false,
             auto_commit_interval: Duration::from_secs(5),
+            max_poll_interval: Duration::from_secs(300),
         }
     }
 }
@@ -258,6 +262,13 @@ impl ConsumerConfig {
         self
     }
 
+    /// Kafka `max.poll.interval.ms`. Zero means no limit.
+    #[must_use]
+    pub fn max_poll_interval(mut self, interval: Duration) -> Self {
+        self.max_poll_interval = interval;
+        self
+    }
+
     /// SASL. Replaces any previously set mechanism.
     #[must_use]
     pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
@@ -334,6 +345,10 @@ pub struct Consumer {
     preferred: HashMap<(String, i32), i32>,
     paused: HashSet<(String, i32)>,
     pending: VecDeque<FetchedRecord>,
+    m_fetch_rounds: AtomicU64,
+    m_records: AtomicU64,
+    m_bytes: AtomicU64,
+    m_errors: AtomicU64,
 }
 
 impl Consumer {
@@ -401,6 +416,10 @@ impl Consumer {
             preferred: HashMap::new(),
             paused: HashSet::new(),
             pending: VecDeque::new(),
+            m_fetch_rounds: AtomicU64::new(0),
+            m_records: AtomicU64::new(0),
+            m_bytes: AtomicU64::new(0),
+            m_errors: AtomicU64::new(0),
         })
     }
 
@@ -809,6 +828,34 @@ impl Consumer {
     /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
     /// the Fetch stay buffered and are returned on the next call.
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
+        let result = self.fetch_assigned().await;
+        match &result {
+            Ok(recs) => {
+                let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
+                let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
+                let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
+                let bytes: u64 = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
+                let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+            }
+            Err(_) => {
+                let _ = self.m_errors.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        result
+    }
+
+    /// Fetch counters since connect.
+    #[must_use]
+    pub fn metrics(&self) -> crate::ConsumerMetrics {
+        crate::ConsumerMetrics {
+            fetch_rounds: self.m_fetch_rounds.load(Ordering::Relaxed),
+            records_fetched: self.m_records.load(Ordering::Relaxed),
+            bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
+            fetch_errors: self.m_errors.load(Ordering::Relaxed),
+        }
+    }
+
+    async fn fetch_assigned(&mut self) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
             return Ok(ready);
         }
@@ -1348,4 +1395,10 @@ fn fetch_topics(by_topic: HashMap<String, Vec<FetchPartition>>) -> Vec<FetchTopi
         .into_iter()
         .map(|(topic, partitions)| FetchTopic { topic, partitions })
         .collect()
+}
+
+fn fetched_bytes(rec: &FetchedRecord) -> u64 {
+    let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
+    let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
+    u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }

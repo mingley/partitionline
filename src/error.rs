@@ -8,15 +8,26 @@ use std::io;
 
 #[derive(Debug)]
 pub enum Error {
+    /// I/O or TLS failure.
     Io(io::Error),
+    /// Client-side protocol or usage error.
     Protocol(String),
+    /// Broker `error_code` plus a short context string.
     Broker { code: i16, message: String },
+    /// Metadata did not list this topic.
     UnknownTopic(String),
+    /// Metadata has no leader for this partition.
     NoLeader { topic: String, partition: i32 },
+    /// Broker does not support a required API version.
     Unsupported(String),
+    /// The producer (or connection) is shut down.
     Closed,
+    /// A request exceeded [`crate::ProducerConfig::request_timeout`] or similar.
     Timeout,
+    /// `try_send` could not queue (metadata or connection not ready).
     QueueFull,
+    /// [`crate::ConsumerGroup::poll`] was not called within `max.poll.interval.ms`.
+    MaxPollInterval,
 }
 
 impl Error {
@@ -86,6 +97,7 @@ impl fmt::Display for Error {
             Self::Closed => write!(f, "producer closed"),
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
+            Self::MaxPollInterval => write!(f, "max.poll.interval.ms exceeded"),
         }
     }
 }
@@ -123,6 +135,7 @@ impl Clone for Error {
             Self::Closed => Self::Closed,
             Self::Timeout => Self::Timeout,
             Self::QueueFull => Self::QueueFull,
+            Self::MaxPollInterval => Self::MaxPollInterval,
         }
     }
 }

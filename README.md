@@ -58,6 +58,8 @@ several topics. Set `group.instance.id` with
 `ConsumerConfig::auto_offset_reset` is used when the group has no
 committed offset (`Earliest` by default, unlike Java's `latest`).
 `auto_commit(true)` commits after poll (off by default).
+`Producer::metrics` / `Consumer::metrics` are counter snapshots.
+`max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes).
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

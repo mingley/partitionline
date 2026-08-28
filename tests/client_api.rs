@@ -151,7 +151,8 @@ fn config_builders_set_typed_knobs() {
         .session_timeout(Duration::from_secs(20))
         .heartbeat_interval(Duration::from_millis(200))
         .auto_commit(true)
-        .auto_commit_interval(Duration::ZERO);
+        .auto_commit_interval(Duration::ZERO)
+        .max_poll_interval(Duration::from_secs(60));
     assert_eq!(c.isolation_level, 1);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
@@ -162,6 +163,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(c.heartbeat_interval, Duration::from_millis(200));
     assert!(c.enable_auto_commit);
     assert_eq!(c.auto_commit_interval, Duration::ZERO);
+    assert_eq!(c.max_poll_interval, Duration::from_secs(60));
 }
 
 #[test]
@@ -750,4 +752,60 @@ async fn commit_offsets_skips_without_poll() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"new"[..]));
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn producer_and_consumer_metrics() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"ab"[..]),
+            ProduceRecord::to("t").value(&b"cd"[..]),
+        ])
+        .await
+        .unwrap();
+    let pm = producer.metrics();
+    assert_eq!(pm.records_queued, 2);
+    assert_eq!(pm.records_acked, 2);
+    assert_eq!(pm.produce_errors, 0);
+    assert_eq!(pm.bytes_queued, 4);
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    let cm = consumer.metrics();
+    assert_eq!(cm.fetch_rounds, 1);
+    assert_eq!(cm.records_fetched, 2);
+    assert_eq!(cm.bytes_fetched, 4);
+    assert_eq!(cm.fetch_errors, 0);
+}
+
+#[tokio::test]
+async fn max_poll_interval_errors_on_second_poll() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .max_poll_interval(Duration::from_millis(1)),
+        "mpi",
+        "t",
+    )
+    .await
+    .unwrap();
+    group.poll().await.unwrap();
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    let err = group.poll().await.unwrap_err();
+    assert!(
+        matches!(err, Error::MaxPollInterval),
+        "expected MaxPollInterval, got {err}"
+    );
 }

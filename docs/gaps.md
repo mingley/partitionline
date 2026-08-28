@@ -44,6 +44,8 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Pause / resume, position, `max.poll.records` | yes | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
+| Client metrics | yes (`Producer::metrics` / `Consumer::metrics` counters) | yes | **done** |
+| `max.poll.interval.ms` | yes | yes | **done** |
 | Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 

@@ -4,7 +4,7 @@
 )]
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -366,6 +366,10 @@ struct Shared {
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
     txn_added: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
     fast: parking_lot::Mutex<Option<FastRoute>>,
+    m_queued: AtomicU64,
+    m_acked: AtomicU64,
+    m_errors: AtomicU64,
+    m_bytes: AtomicU64,
 }
 
 #[derive(Clone)]
@@ -375,6 +379,27 @@ pub struct Producer {
 
 struct Inner {
     shared: Arc<Shared>,
+}
+
+impl Shared {
+    fn note_queued_n(&self, n: u64, bytes: u64) {
+        let _ = self.m_queued.fetch_add(n, Ordering::Relaxed);
+        let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+    }
+
+    fn note_acked(&self, n: u64) {
+        let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
+    }
+
+    fn note_errors(&self, n: u64) {
+        let _ = self.m_errors.fetch_add(n, Ordering::Relaxed);
+    }
+}
+
+fn rec_bytes(rec: &ProduceRecord) -> u64 {
+    let k = rec.key.as_ref().map(bytes::Bytes::len).unwrap_or(0);
+    let v = rec.value.as_ref().map(bytes::Bytes::len).unwrap_or(0);
+    u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
 impl Producer {
@@ -499,6 +524,10 @@ impl Producer {
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
             txn_added: parking_lot::Mutex::new(HashSet::new()),
             fast: parking_lot::Mutex::new(None),
+            m_queued: AtomicU64::new(0),
+            m_acked: AtomicU64::new(0),
+            m_errors: AtomicU64::new(0),
+            m_bytes: AtomicU64::new(0),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -643,6 +672,7 @@ impl Producer {
             self.ensure_ready(&mut rec).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+            let bytes = rec_bytes(&rec);
             w.data
                 .send(Pending {
                     rec,
@@ -652,6 +682,7 @@ impl Producer {
                 })
                 .await
                 .map_err(|_| Error::Closed)?;
+            self.inner.shared.note_queued_n(1, bytes);
             rxs.push(rx);
         }
         let mut out = Vec::with_capacity(rxs.len());
@@ -736,6 +767,7 @@ impl Producer {
             w
         };
         let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        let bytes = rec_bytes(&rec);
         w.data
             .try_send(Pending {
                 rec,
@@ -746,7 +778,20 @@ impl Producer {
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Closed,
-            })
+            })?;
+        self.inner.shared.note_queued_n(1, bytes);
+        Ok(())
+    }
+
+    /// Produce counters since connect.
+    #[must_use]
+    pub fn metrics(&self) -> crate::ProducerMetrics {
+        crate::ProducerMetrics {
+            records_queued: self.inner.shared.m_queued.load(Ordering::Relaxed),
+            records_acked: self.inner.shared.m_acked.load(Ordering::Relaxed),
+            produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
+            bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
+        }
     }
 
     async fn flush_workers(&self) -> Result<()> {
@@ -1295,12 +1340,12 @@ async fn retry_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<Pendin
 
 async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
     if Instant::now() >= p.deadline {
-        fail_pendings(vec![p], Error::Timeout);
+        fail_pendings(shared, vec![p], Error::Timeout);
         return;
     }
     invalidate_cached_topic(shared, p.rec.topic.as_ref());
     if let Err(e) = partitions_for(shared, &p.rec.topic).await {
-        fail_pendings(vec![p], e);
+        fail_pendings(shared, vec![p], e);
         return;
     }
     if p.rec.partition.is_none() {
@@ -1309,13 +1354,14 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         }
     }
     let Some(part) = p.rec.partition else {
-        fail_pendings(vec![p], Error::protocol("retry without partition"));
+        fail_pendings(shared, vec![p], Error::protocol("retry without partition"));
         return;
     };
     let leader = shared.cluster.lock().leader(p.rec.topic.as_ref(), part);
     let Ok((node, _)) = leader else {
         let topic = p.rec.topic.to_string();
         fail_pendings(
+            shared,
             vec![p],
             Error::NoLeader {
                 topic,
@@ -1328,7 +1374,7 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
     let deadline = p.deadline;
     loop {
         if Instant::now() >= deadline {
-            fail_pendings(vec![p], Error::Timeout);
+            fail_pendings(shared, vec![p], Error::Timeout);
             return;
         }
         let handle = {
@@ -1354,7 +1400,7 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         tokio::select! {
             _ = notified => {}
             _ = tokio::time::sleep(rest) => {
-                fail_pendings(vec![p], Error::Timeout);
+                fail_pendings(shared, vec![p], Error::Timeout);
                 return;
             }
         }
@@ -1432,7 +1478,11 @@ impl Worker {
             }
             if self.can_fire(linger_start) {
                 if let Err(e) = self.fire().await {
-                    fail_pendings(std::mem::take(&mut self.pending), clone_err(&e));
+                    fail_pendings(
+                        &self.shared,
+                        std::mem::take(&mut self.pending),
+                        clone_err(&e),
+                    );
                     self.note_fail(e);
                 }
                 linger_start = if self.pending.is_empty() {
@@ -1447,7 +1497,7 @@ impl Worker {
                 || (self.pending.is_empty() && !self.in_flight.is_empty())
             {
                 if let Err(e) = self.wait_one().await {
-                    fail_inflight(&mut self.in_flight, clone_err(&e));
+                    fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
                     self.note_fail(e);
                 }
                 continue;
@@ -1515,7 +1565,7 @@ impl Worker {
         let batch: Vec<Pending> = self.pending.drain(..n).collect();
         if let Some(p) = batch.iter().find(|p| p.rec.partition.is_none()) {
             let e = Error::protocol(format!("produce without partition topic={}", p.rec.topic));
-            fail_pendings(batch, clone_err(&e));
+            fail_pendings(&self.shared, batch, clone_err(&e));
             return Err(e);
         }
         let now = now_ms();
@@ -1570,12 +1620,12 @@ impl Worker {
                 self.requeue(groups);
                 return Ok(());
             }
-            fail_groups(groups, clone_err(&e));
+            fail_groups(&self.shared, groups, clone_err(&e));
             return Err(e);
         }
 
         if acks == 0 {
-            complete_acks0(groups);
+            complete_acks0(&self.shared, groups);
             return Ok(());
         }
         self.in_flight.push_back(InFlight {
@@ -1607,7 +1657,7 @@ impl Worker {
                     self.requeue(inf.groups);
                     return Ok(());
                 }
-                fail_groups(inf.groups, clone_err(&e));
+                fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
@@ -1615,7 +1665,7 @@ impl Worker {
         let responses = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
-                fail_groups(inf.groups, clone_err(&e));
+                fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
@@ -1627,7 +1677,7 @@ impl Worker {
             match found {
                 None => {
                     let e = Error::protocol("missing produce response");
-                    fail_pendings(pendings, clone_err(&e));
+                    fail_pendings(&self.shared, pendings, clone_err(&e));
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
@@ -1639,13 +1689,15 @@ impl Worker {
                         drop(self.shared.meta_tx.try_send(topic.clone()));
                         self.requeue_pendings(pendings);
                     } else {
-                        fail_pendings(pendings, clone_err(&e));
+                        fail_pendings(&self.shared, pendings, clone_err(&e));
                         if first_err.is_none() {
                             first_err = Some(e);
                         }
                     }
                 }
                 Some(r) => {
+                    let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+                    self.shared.note_acked(n);
                     for (i, p) in pendings.into_iter().enumerate() {
                         if let Some(tx) = p.tx {
                             drop(tx.send(Ok(RecordMetadata {
@@ -1729,12 +1781,12 @@ impl Worker {
                 Ok(()) => {}
                 Err(mpsc::error::TrySendError::Full(p)) => {
                     let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-                    fail_pendings(vec![p], Error::QueueFull);
+                    fail_pendings(&self.shared, vec![p], Error::QueueFull);
                     self.note_fail(Error::QueueFull);
                 }
                 Err(mpsc::error::TrySendError::Closed(p)) => {
                     let _ = self.shared.retries_out.fetch_sub(1, Ordering::SeqCst);
-                    fail_pendings(vec![p], Error::Closed);
+                    fail_pendings(&self.shared, vec![p], Error::Closed);
                     self.note_fail(Error::Closed);
                 }
             }
@@ -1746,16 +1798,20 @@ impl Worker {
             if !self.pending.is_empty() {
                 while self.in_flight.len() >= self.shared.cfg.max_in_flight {
                     if let Err(e) = self.wait_one().await {
-                        fail_inflight(&mut self.in_flight, clone_err(&e));
+                        fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
                         self.note_fail(e);
                     }
                 }
                 if let Err(e) = self.fire().await {
-                    fail_pendings(std::mem::take(&mut self.pending), clone_err(&e));
+                    fail_pendings(
+                        &self.shared,
+                        std::mem::take(&mut self.pending),
+                        clone_err(&e),
+                    );
                     self.note_fail(e);
                 }
             } else if let Err(e) = self.wait_one().await {
-                fail_inflight(&mut self.in_flight, clone_err(&e));
+                fail_inflight(&self.shared, &mut self.in_flight, clone_err(&e));
                 self.note_fail(e);
             }
         }
@@ -2033,9 +2089,11 @@ fn encode_pendings(
     )
 }
 
-fn complete_acks0(groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
+    let mut n = 0u64;
     for (topic, part, pendings) in groups {
         for p in pendings {
+            n = n.saturating_add(1);
             if let Some(tx) = p.tx {
                 drop(tx.send(Ok(RecordMetadata {
                     topic: topic.to_string(),
@@ -2045,21 +2103,24 @@ fn complete_acks0(groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
             }
         }
     }
+    shared.note_acked(n);
 }
 
-fn fail_inflight(in_flight: &mut VecDeque<InFlight>, err: Error) {
+fn fail_inflight(shared: &Shared, in_flight: &mut VecDeque<InFlight>, err: Error) {
     while let Some(inf) = in_flight.pop_front() {
-        fail_groups(inf.groups, clone_err(&err));
+        fail_groups(shared, inf.groups, clone_err(&err));
     }
 }
 
-fn fail_groups(groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err: Error) {
+fn fail_groups(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err: Error) {
     for (_, _, pendings) in groups {
-        fail_pendings(pendings, clone_err(&err));
+        fail_pendings(shared, pendings, clone_err(&err));
     }
 }
 
-fn fail_pendings(pendings: Vec<Pending>, err: Error) {
+fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
+    let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+    shared.note_errors(n);
     for p in pendings {
         if let Some(tx) = p.tx {
             drop(tx.send(Err(clone_err(&err))));

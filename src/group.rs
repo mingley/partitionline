@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
+//! Consumer-group join / sync / heartbeat / commit.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
@@ -199,6 +196,7 @@ fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<
         .collect()
 }
 
+/// Classic or KIP-848 consumer group member.
 pub struct ConsumerGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -218,6 +216,7 @@ pub struct ConsumerGroup {
     hb_ack: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
     hb_stop: watch::Sender<bool>,
     last_auto_commit: Instant,
+    last_poll: Arc<parking_lot::Mutex<Option<Instant>>>,
 }
 
 impl ConsumerGroup {
@@ -290,6 +289,7 @@ impl ConsumerGroup {
             hb_ack,
             hb_stop,
             last_auto_commit: Instant::now(),
+            last_poll: Arc::new(parking_lot::Mutex::new(None)),
         };
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
@@ -337,6 +337,7 @@ impl ConsumerGroup {
             hb_ack,
             hb_stop,
             last_auto_commit: Instant::now(),
+            last_poll: Arc::new(parking_lot::Mutex::new(None)),
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
@@ -348,6 +349,7 @@ impl ConsumerGroup {
         &self.topics
     }
 
+    /// Assigned `(topic, partition)` pairs (offsets live on the consumer).
     pub fn assignment(&self) -> Vec<(String, i32)> {
         self.consumer
             .assignment()
@@ -356,6 +358,7 @@ impl ConsumerGroup {
             .collect()
     }
 
+    /// Kafka member id assigned by the coordinator.
     pub fn member_id(&self) -> &str {
         &self.member_id
     }
@@ -422,6 +425,7 @@ impl ConsumerGroup {
     /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
     /// elapsed, commits after a successful fetch.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
+        self.check_max_poll_interval()?;
         if self.kip848 {
             self.apply_pending_assignment().await?;
         } else if self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
@@ -430,6 +434,12 @@ impl ConsumerGroup {
         let recs = self.consumer.fetch().await?;
         self.maybe_auto_commit().await?;
         Ok(recs)
+    }
+
+    /// Fetch counters for the underlying consumer.
+    #[must_use]
+    pub fn metrics(&self) -> crate::ConsumerMetrics {
+        self.consumer.metrics()
     }
 
     /// Commit the next fetch offsets for the current assignment.
@@ -486,6 +496,21 @@ impl ConsumerGroup {
         self.commit().await
     }
 
+    fn check_max_poll_interval(&self) -> Result<()> {
+        let interval = self.cfg.max_poll_interval;
+        let mut last = self.last_poll.lock();
+        if !interval.is_zero() {
+            if let Some(t) = *last {
+                if t.elapsed() > interval {
+                    return Err(Error::MaxPollInterval);
+                }
+            }
+        }
+        *last = Some(Instant::now());
+        Ok(())
+    }
+
+    /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).
     pub async fn leave(mut self) -> Result<()> {
         if self.cfg.enable_auto_commit {
             self.commit().await?;

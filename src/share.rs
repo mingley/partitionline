@@ -1,10 +1,5 @@
 //! Share groups (KIP-932): queue-style consumption with per-record ack.
 
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
-
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
@@ -33,17 +28,26 @@ pub use crate::protocol::share::{
     ACK_RELEASE as SHARE_ACK_RELEASE,
 };
 
+/// One record from ShareFetch.
 #[derive(Debug, Clone)]
 pub struct ShareRecord {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Record offset.
     pub offset: i64,
+    /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Optional key.
     pub key: Option<Bytes>,
+    /// Optional value.
     pub value: Option<Bytes>,
+    /// Broker delivery count for this share.
     pub delivery_count: i16,
 }
 
+/// KIP-932 share group member (`ShareGroupHeartbeat` / ShareFetch / ShareAcknowledge).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -121,6 +125,7 @@ impl ShareGroup {
         Ok(g)
     }
 
+    /// Kafka member id assigned by the coordinator.
     pub fn member_id(&self) -> &str {
         &self.member_id
     }
@@ -130,6 +135,7 @@ impl ShareGroup {
         &self.topics
     }
 
+    /// Assigned `(topic, partition)` pairs.
     pub fn assignment(&self) -> Vec<(String, i32)> {
         self.assigned.clone()
     }
@@ -199,6 +205,7 @@ impl ShareGroup {
         }
     }
 
+    /// Fetch records from assigned share partitions.
     pub async fn poll(&mut self) -> Result<Vec<ShareRecord>> {
         let hb = self.hb_err.load(Ordering::SeqCst);
         if hb != 0 {
@@ -219,14 +226,17 @@ impl ShareGroup {
         }
     }
 
+    /// Acknowledge records as successfully processed (`ACCEPT`).
     pub async fn accept(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, ACK_ACCEPT).await
     }
 
+    /// Return records to the share (`RELEASE`).
     pub async fn release(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, ACK_RELEASE).await
     }
 
+    /// Reject records (`REJECT`).
     pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, ACK_REJECT).await
     }
@@ -518,6 +528,7 @@ impl ShareGroup {
         last
     }
 
+    /// Leave the share group (member epoch `-1`).
     pub async fn leave(mut self) -> Result<()> {
         self.hb_stop.send(true).unwrap_or(());
         let timeout = Duration::from_secs(30);

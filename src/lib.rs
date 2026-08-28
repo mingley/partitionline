@@ -19,6 +19,7 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
+//! [`Producer::metrics`] is a snapshot of queued / acked / error counts.
 //!
 //! # Fetch
 //!
@@ -87,6 +88,8 @@ pub mod consumer;
 pub mod error;
 /// Consumer-group join / sync / heartbeat / commit.
 pub mod group;
+/// Client counters: [`ProducerMetrics`], [`ConsumerMetrics`].
+pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
 /// Kafka murmur2 partitioner.
@@ -136,6 +139,7 @@ pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo, RebalanceListener};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
+pub use metrics::{ConsumerMetrics, ProducerMetrics};
 pub use net::TlsConfig;
 pub use partitioner::{
     murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,

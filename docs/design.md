@@ -45,6 +45,8 @@ assignment. `commit_offsets` commits caller-chosen offsets.
 `enable.auto.commit` is off by default; a zero interval commits after every
 `poll`. `ConsumerConfig::session_timeout` / `heartbeat_interval` control classic
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
+`max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`).
+`Producer::metrics` / `Consumer::metrics` are counter snapshots.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.
