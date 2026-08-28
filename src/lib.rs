@@ -155,7 +155,8 @@
 //! [`ProducerConfig::connections_max_idle`] / [`ConsumerConfig::connections_max_idle`] /
 //! [`AdminConfig::connections_max_idle`] are Kafka `connections.max.idle.ms`
 //! (close unused broker TCP connections; default 9 minutes, Java; zero never
-//! closes for idle).
+//! closes for idle). Admin bootstrap RPCs and group/share coordinator sockets
+//! reconnect after the same idle.
 //! [`AdminConfig::retry_backoff`] / [`AdminConfig::retry_backoff_max`] are
 //! Kafka `retry.backoff.ms` / `retry.backoff.max.ms` on admin RPCs
 //! (`NOT_CONTROLLER`, coordinator moves, retriable IO; default 100ms / 1s).

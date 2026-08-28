@@ -1638,6 +1638,12 @@ impl ConsumerGroup {
                         {
                             break;
                         }
+                        if conn
+                            .as_ref()
+                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                        {
+                            conn = None;
+                        }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
                         }
@@ -1728,6 +1734,12 @@ impl ConsumerGroup {
                         .await
                         {
                             break;
+                        }
+                        if conn
+                            .as_ref()
+                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                        {
+                            conn = None;
                         }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await.ok();
@@ -2073,6 +2085,9 @@ pub(crate) async fn coord_roundtrip(
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
 ) -> Result<Bytes> {
+    if coord.idle_expired(cfg.connections_max_idle) {
+        *coord = open_coord(cfg, coord.addr()).await?;
+    }
     let body = match coord
         .roundtrip(
             api_key,

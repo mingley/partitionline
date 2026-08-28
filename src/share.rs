@@ -906,6 +906,12 @@ impl ShareGroup {
                         }
                     }
                     _ = tick.tick() => {
+                        if conn
+                            .as_ref()
+                            .is_some_and(|c| c.idle_expired(cfg.connections_max_idle))
+                        {
+                            conn = None;
+                        }
                         if conn.is_none() {
                             conn = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await.ok();
                         }

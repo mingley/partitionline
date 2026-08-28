@@ -570,6 +570,50 @@ async fn admin_reconnects_when_connection_idle() {
 }
 
 #[tokio::test]
+async fn admin_list_groups_reconnects_when_connection_idle() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(
+        AdminConfig::bootstrap([mock.addr.clone()]).connections_max_idle(Duration::from_millis(30)),
+    )
+    .await
+    .unwrap();
+    let _ = admin.list_groups(&[], &[]).await.unwrap();
+    let after_first = mock.accept_count();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let _ = admin.list_groups(&[], &[]).await.unwrap();
+    let after_idle = mock.accept_count();
+    assert!(
+        after_idle > after_first,
+        "idle ListGroups must open a new TCP connection (before {after_first}, after {after_idle})"
+    );
+}
+
+#[tokio::test]
+async fn group_coord_reconnects_when_connection_idle() {
+    let mock = common::Mock::start().await;
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .heartbeat_interval(Duration::from_secs(60))
+            .connections_max_idle(Duration::from_millis(30)),
+        "idle-coord",
+        "t",
+    )
+    .await
+    .unwrap();
+    let _ = group.committed().await.unwrap();
+    let after_first = mock.accept_count();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let _ = group.committed().await.unwrap();
+    let after_idle = mock.accept_count();
+    assert!(
+        after_idle > after_first,
+        "idle OffsetFetch must open a new coordinator TCP connection (before {after_first}, after {after_idle})"
+    );
+    group.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn admin_reconnect_honors_backoff() {
     let mock = common::Mock::start().await;
     let mut acfg = AdminConfig::bootstrap([mock.addr.clone()]);

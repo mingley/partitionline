@@ -1528,6 +1528,10 @@ impl Consumer {
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
+        if self.conn.idle_expired(self.cfg.connections_max_idle) {
+            let addr = self.conn.addr().to_string();
+            self.conn = self.open_node_conn(&addr).await?;
+        }
         let id = crate::admin::fetch_client_instance_id(
             &mut self.conn,
             version,

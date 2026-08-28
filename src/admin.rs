@@ -7,6 +7,8 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use bytes::{Bytes, BytesMut};
+
 use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
@@ -1052,6 +1054,7 @@ impl Admin {
         if let Some(id) = self.cached_client_instance_id {
             return Ok(id);
         }
+        self.ensure_bootstrap().await?;
         let id = fetch_client_instance_id(
             &mut self.conn,
             self.get_telemetry_subscriptions_version,
@@ -1216,8 +1219,7 @@ impl Admin {
         let version = self.describe_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_CONFIGS,
                 version,
                 |buf| encode_describe_configs_request(buf, version, &req, include_synonyms),
@@ -1841,8 +1843,7 @@ impl Admin {
         let version = self.describe_client_quotas_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
                 version,
                 |buf| encode_describe_client_quotas_request(buf, &components, strict),
@@ -2125,8 +2126,7 @@ impl Admin {
         let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_ACLS,
                 version,
                 |buf| encode_describe_acls_request(buf, resource_type),
@@ -2157,8 +2157,7 @@ impl Admin {
             })
             .collect();
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 ALTER_CONFIGS,
                 version,
                 |buf| {
@@ -2178,12 +2177,10 @@ impl Admin {
     }
 
     async fn refresh_metadata(&mut self, topics: Option<&[String]>) -> Result<()> {
-        self.ensure_bootstrap().await?;
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 METADATA,
                 version,
                 |buf| encode_metadata_request(buf, version, topics, false),
@@ -2221,6 +2218,20 @@ impl Admin {
         let addr = self.conn.addr().to_string();
         self.conn = self.open_node_conn(&addr).await?;
         Ok(())
+    }
+
+    /// Reconnect the bootstrap socket if it has been idle, then round-trip.
+    async fn roundtrip_bootstrap(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        timeout: Duration,
+    ) -> Result<Bytes> {
+        self.ensure_bootstrap().await?;
+        self.conn
+            .roundtrip(api_key, api_version, encode_body, timeout)
+            .await
     }
 
     async fn connect_node(&mut self, node: i32) -> Result<()> {
@@ -2447,12 +2458,10 @@ impl Admin {
 
     /// Brokers, controller, and cluster id (`DescribeCluster`).
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
-        self.ensure_bootstrap().await?;
         let version = self.describe_cluster_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_CLUSTER,
                 version,
                 |buf| encode_describe_cluster_request(buf, false),
@@ -2470,8 +2479,7 @@ impl Admin {
         let version = self.delete_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DELETE_ACLS,
                 version,
                 |buf| encode_delete_acls_request(buf, resource_type),
@@ -2742,8 +2750,7 @@ impl Admin {
         let version = self.list_groups_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 LIST_GROUPS,
                 version,
                 |buf| encode_list_groups_request(buf, &states, &types),
@@ -3183,8 +3190,7 @@ impl Admin {
         let version = self.describe_topic_partitions_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_TOPIC_PARTITIONS,
                 version,
                 |buf| {
@@ -3229,8 +3235,7 @@ impl Admin {
         let version = self.list_config_resources_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 LIST_CONFIG_RESOURCES,
                 version,
                 |buf| encode_list_config_resources_request(buf, &types),
@@ -3269,8 +3274,7 @@ impl Admin {
         let version = self.get_telemetry_subscriptions_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 GET_TELEMETRY_SUBSCRIPTIONS,
                 version,
                 |buf| encode_get_telemetry_subscriptions_request(buf, &client_instance_id),
@@ -3321,8 +3325,7 @@ impl Admin {
             metrics.to_vec(),
         );
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 PUSH_TELEMETRY,
                 version,
                 |buf| encode_push_telemetry_request(buf, &req),
@@ -3446,8 +3449,7 @@ impl Admin {
         let timeout = self.cfg.request_timeout;
         let req = AlterReplicaLogDirsRequest::new(dirs);
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 ALTER_REPLICA_LOG_DIRS,
                 version,
                 |buf| encode_alter_replica_log_dirs_request(buf, &req),
@@ -3486,8 +3488,7 @@ impl Admin {
         let timeout = self.cfg.request_timeout;
         let req = DescribeLogDirsRequest::new(topics);
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_LOG_DIRS,
                 version,
                 |buf| encode_describe_log_dirs_request(buf, &req),
@@ -3525,8 +3526,7 @@ impl Admin {
         let version = self.create_delegation_token_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 CREATE_DELEGATION_TOKEN,
                 version,
                 |buf| encode_create_delegation_token_request(buf, &req),
@@ -3565,8 +3565,7 @@ impl Admin {
         let version = self.renew_delegation_token_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 RENEW_DELEGATION_TOKEN,
                 version,
                 |buf| encode_renew_delegation_token_request(buf, &req),
@@ -3605,8 +3604,7 @@ impl Admin {
         let version = self.expire_delegation_token_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 EXPIRE_DELEGATION_TOKEN,
                 version,
                 |buf| encode_expire_delegation_token_request(buf, &req),
@@ -3647,8 +3645,7 @@ impl Admin {
         let version = self.describe_delegation_token_version;
         let timeout = self.cfg.request_timeout;
         let body = self
-            .conn
-            .roundtrip(
+            .roundtrip_bootstrap(
                 DESCRIBE_DELEGATION_TOKEN,
                 version,
                 |buf| encode_describe_delegation_token_request(buf, &req),
@@ -3668,8 +3665,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             let body = self
-                .conn
-                .roundtrip(
+                .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
                     |buf| encode_find_coordinator_request_typed(buf, group_id, COORDINATOR_GROUP),
@@ -3709,8 +3705,7 @@ impl Admin {
         let mut attempt = 0u32;
         loop {
             let body = self
-                .conn
-                .roundtrip(
+                .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
                     |buf| {
