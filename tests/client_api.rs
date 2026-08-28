@@ -411,6 +411,8 @@ async fn share_join_topics_fetches_both() {
     let sm = group.metrics();
     assert_eq!(sm.fetch_rounds, 1);
     assert_eq!(sm.records_fetched, 2);
+    assert_eq!(sm.bytes_fetched, 2);
+    assert_eq!(sm.fetch_errors, 0);
     assert_eq!(sm.records_acknowledged, 0);
     group.accept(&recs).await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
@@ -765,7 +767,10 @@ async fn commit_offsets_skips_without_poll() {
     )
     .await
     .unwrap();
-    group.commit_offsets(&[("t".into(), 0, 1)]).await.unwrap();
+    group
+        .commit_offsets([(TopicPartition::new("t", 0), 1)])
+        .await
+        .unwrap();
     group.leave().await.unwrap();
 
     let mut group = ConsumerGroup::join(
@@ -1105,7 +1110,7 @@ async fn commit_with_metadata_roundtrip() {
     .unwrap();
     assert_eq!(group.subscription(), &["t".to_string()]);
     group
-        .commit_with_metadata(&[(
+        .commit_with_metadata([(
             TopicPartition::new("t", 0),
             OffsetAndMetadata::with_metadata(1, "ckpt").with_leader_epoch(0),
         )])

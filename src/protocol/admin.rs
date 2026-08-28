@@ -15,7 +15,9 @@ pub const SCRAM_SHA_256: i8 = 1;
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
 pub const SCRAM_SHA_512: i8 = 2;
 
+/// Config resource type for a topic (`DescribeConfigs` / `AlterConfigs`).
 pub const RESOURCE_TOPIC: i8 = 2;
+/// Config resource type for a broker.
 pub const RESOURCE_BROKER: i8 = 4;
 /// Config resource type for broker logger (KIP-1142 ListConfigResources).
 pub const RESOURCE_BROKER_LOGGER: i8 = 8;
@@ -23,7 +25,9 @@ pub const RESOURCE_BROKER_LOGGER: i8 = 8;
 pub const RESOURCE_CLIENT_METRICS: i8 = 16;
 /// Config resource type for consumer groups (KIP-1142).
 pub const RESOURCE_GROUP: i8 = 32;
+/// Config source: dynamic topic config.
 pub const CONFIG_SOURCE_DYNAMIC_TOPIC: i8 = 1;
+/// Config source: default.
 pub const CONFIG_SOURCE_DEFAULT: i8 = 5;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

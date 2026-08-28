@@ -40,7 +40,7 @@ async fn main() -> partitionline::Result<()> {
     if let Some(rec) = recs.first() {
         let tp = TopicPartition::new(&rec.topic, rec.partition);
         group
-            .commit_with_metadata(&[(
+            .commit_with_metadata([(
                 tp,
                 OffsetAndMetadata::with_metadata(rec.offset + 1, "example"),
             )])

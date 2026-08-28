@@ -2304,7 +2304,7 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         .unwrap();
     producer.close().await.unwrap();
     let (low, err) = admin
-        .delete_records("rest", md0.partition, md0.offset + 1, 10_000)
+        .delete_records(("rest", md0.partition), md0.offset + 1, 10_000)
         .await
         .unwrap();
     assert_eq!(err, 0);
@@ -2330,7 +2330,7 @@ async fn delete_records_follows_partition_leader() {
 
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let (low, err) = admin
-        .delete_records("t", md.partition, md.offset + 1, 10_000)
+        .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
     assert_eq!(err, 0);
@@ -2344,7 +2344,7 @@ async fn delete_records_follows_partition_leader() {
 
     mock.set_partition_leader("t", md.partition, 1);
     let (again, err) = admin
-        .delete_records("t", md.partition, md.offset + 1, 10_000)
+        .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
     assert_eq!(err, 0);
@@ -2365,7 +2365,7 @@ async fn delete_records_follows_partition_leader() {
 async fn describe_producers_follows_partition_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let first = admin.describe_producers("t", 0).await.unwrap();
+    let first = admin.describe_producers(("t", 0)).await.unwrap();
     assert_eq!(first.error_code, 0);
     assert_eq!(first.partition_index, 0);
     assert_eq!(first.active_producers.len(), 1);
@@ -2377,7 +2377,7 @@ async fn describe_producers_follows_partition_leader() {
     );
 
     mock.set_partition_leader("t", 0, 1);
-    let again = admin.describe_producers("t", 0).await.unwrap();
+    let again = admin.describe_producers(("t", 0)).await.unwrap();
     assert_eq!(again.error_code, 0);
     assert_eq!(again.active_producers.len(), 1);
     assert_eq!(

@@ -737,38 +737,49 @@ impl ConsumerGroup {
             self.apply_pending_assignment().await?;
         }
         let assigned = self.consumer.assignment().to_vec();
-        self.commit_offsets(&assigned).await?;
+        self.commit_offsets(
+            assigned
+                .into_iter()
+                .map(|(topic, partition, offset)| (TopicPartition::new(topic, partition), offset)),
+        )
+        .await?;
         self.last_auto_commit = Instant::now();
         Ok(())
     }
 
-    /// Commit these `(topic, partition, offset)` triples (`OffsetCommit`).
+    /// Commit these offsets (`OffsetCommit`).
     ///
-    /// Leader epoch is taken from Metadata. For epoch plus a metadata string,
-    /// use [`Self::commit_with_metadata`].
-    pub async fn commit_offsets(&mut self, offsets: &[(String, i32, i64)]) -> Result<()> {
+    /// Each item is a [`TopicPartition`] (or anything that converts to one)
+    /// and the next fetch offset. Leader epoch is taken from Metadata. For
+    /// epoch plus a metadata string, use [`Self::commit_with_metadata`].
+    pub async fn commit_offsets(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+    ) -> Result<()> {
         let items: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
-            .iter()
-            .map(|(t, p, o)| {
+            .into_iter()
+            .map(|(tp, offset)| {
+                let tp = tp.into();
+                let epoch = self.consumer.leader_epoch(&tp.topic, tp.partition);
                 (
-                    TopicPartition::new(t.clone(), *p),
-                    OffsetAndMetadata::from_wire(
-                        *o,
-                        self.consumer.leader_epoch(t, *p),
-                        String::new(),
-                    ),
+                    tp,
+                    OffsetAndMetadata::from_wire(offset, epoch, String::new()),
                 )
             })
             .collect();
-        self.commit_with_metadata(&items).await
+        self.commit_with_metadata(items).await
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
     pub async fn commit_with_metadata(
         &mut self,
-        offsets: &[(TopicPartition, OffsetAndMetadata)],
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
     ) -> Result<()> {
-        let topics = group_offset_topics(offsets);
+        let offsets: Vec<(TopicPartition, OffsetAndMetadata)> = offsets
+            .into_iter()
+            .map(|(tp, md)| (tp.into(), md.into()))
+            .collect();
+        let topics = group_offset_topics(&offsets);
         if topics.is_empty() {
             return Ok(());
         }
@@ -796,7 +807,7 @@ impl ConsumerGroup {
         if err != 0 {
             return Err(Error::broker(err, "OffsetCommit"));
         }
-        self.cfg.interceptors.on_commit(offsets);
+        self.cfg.interceptors.on_commit(&offsets);
         Ok(())
     }
 

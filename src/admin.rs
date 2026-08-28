@@ -1,7 +1,8 @@
-#![expect(
-    missing_docs,
-    reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
-)]
+//! Kafka admin client: topics, configs, ACLs, groups, and cluster operations.
+//!
+//! [`Admin::connect`] / [`Admin::new`] negotiate ApiVersions. Methods that
+//! must land on the controller retry on `NOT_CONTROLLER`. Group and
+//! transaction methods retry on coordinator errors.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -256,6 +257,8 @@ pub struct ConfigResource {
 }
 
 impl ConfigResource {
+    /// Topic resource. Fetches every config key unless [`Self::keys`] is set.
+    #[must_use]
     pub fn topic(name: impl Into<String>) -> Self {
         Self {
             resource_type: RESOURCE_TOPIC,
@@ -264,6 +267,8 @@ impl ConfigResource {
         }
     }
 
+    /// Broker resource (`broker.id` as the name).
+    #[must_use]
     pub fn broker(id: i32) -> Self {
         Self {
             resource_type: RESOURCE_BROKER,
@@ -272,6 +277,8 @@ impl ConfigResource {
         }
     }
 
+    /// Restrict DescribeConfigs to these keys.
+    #[must_use]
     pub fn keys(mut self, keys: impl IntoIterator<Item = impl Into<String>>) -> Self {
         self.keys = Some(keys.into_iter().map(Into::into).collect());
         self
@@ -283,12 +290,17 @@ impl ConfigResource {
 /// `replicas = None` cancels a pending reassignment (KIP-455).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionReassignment {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Target replica broker ids, or `None` to cancel a pending move.
     pub replicas: Option<Vec<i32>>,
 }
 
 impl PartitionReassignment {
+    /// Move `partition` onto `replicas`.
+    #[must_use]
     pub fn assign(topic: impl Into<String>, partition: i32, replicas: Vec<i32>) -> Self {
         Self {
             topic: topic.into(),
@@ -297,6 +309,8 @@ impl PartitionReassignment {
         }
     }
 
+    /// Cancel a pending reassignment for this partition.
+    #[must_use]
     pub fn cancel(topic: impl Into<String>, partition: i32) -> Self {
         Self {
             topic: topic.into(),
@@ -309,31 +323,45 @@ impl PartitionReassignment {
 /// Flattened per-partition result of AlterPartitionReassignments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignmentResult {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Per-partition error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// Flattened ongoing reassignment from ListPartitionReassignments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingReassignment {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Replica set after the move completes.
     pub replicas: Vec<i32>,
+    /// Brokers being added.
     pub adding_replicas: Vec<i32>,
+    /// Brokers being removed.
     pub removing_replicas: Vec<i32>,
 }
 
 /// One finalized-feature update for `Admin::update_features` (v0).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdate {
+    /// Feature name (for example `metadata.version`).
     pub name: String,
+    /// Target finalized version.
     pub max_version_level: i16,
+    /// When true, allow a downgrade (unsafe).
     pub allow_downgrade: bool,
 }
 
 impl FeatureUpdate {
+    /// Feature `name` at `max_version_level` (upgrade only).
+    #[must_use]
     pub fn new(name: impl Into<String>, max_version_level: i16) -> Self {
         Self {
             name: name.into(),
@@ -342,6 +370,8 @@ impl FeatureUpdate {
         }
     }
 
+    /// Allow a downgrade of this feature.
+    #[must_use]
     pub fn allow_downgrade(mut self, allow: bool) -> Self {
         self.allow_downgrade = allow;
         self
@@ -351,19 +381,26 @@ impl FeatureUpdate {
 /// Per-feature result of UpdateFeatures.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdateResult {
+    /// Feature name.
     pub name: String,
+    /// Per-feature error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// One SCRAM credential to remove for `Admin::alter_user_scram_credentials`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserScramCredentialDeletion {
+    /// User name.
     pub name: String,
+    /// `SCRAM_SHA_256` or `SCRAM_SHA_512`.
     pub mechanism: i8,
 }
 
 impl UserScramCredentialDeletion {
+    /// Delete this user's credential for `mechanism`.
+    #[must_use]
     pub fn new(name: impl Into<String>, mechanism: i8) -> Self {
         Self {
             name: name.into(),
@@ -379,14 +416,21 @@ impl UserScramCredentialDeletion {
 /// fields.
 #[derive(Clone, PartialEq, Eq)]
 pub struct UserScramCredentialUpsertion {
+    /// User name.
     pub name: String,
+    /// `SCRAM_SHA_256` or `SCRAM_SHA_512`.
     pub mechanism: i8,
+    /// PBKDF2 iteration count.
     pub iterations: i32,
+    /// Salt bytes. Redacted in `Debug`.
     pub salt: Vec<u8>,
+    /// Salted password bytes. Redacted in `Debug`.
     pub salted_password: Vec<u8>,
 }
 
 impl UserScramCredentialUpsertion {
+    /// Insert or replace this user's SCRAM credential.
+    #[must_use]
     pub fn new(
         name: impl Into<String>,
         mechanism: i8,
@@ -419,8 +463,11 @@ impl std::fmt::Debug for UserScramCredentialUpsertion {
 /// Per-user result of AlterUserScramCredentials.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserScramCredentialResult {
+    /// User name.
     pub user: String,
+    /// Per-user error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
@@ -429,7 +476,9 @@ pub struct UserScramCredentialResult {
 /// Fixture broker id/epoch only. This is not a live cluster PID allocator.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProducerIdBlock {
+    /// First producer id in the allocated block.
     pub producer_id_start: i64,
+    /// Number of ids in the block.
     pub producer_id_len: i32,
 }
 
@@ -916,6 +965,10 @@ impl Admin {
         }
     }
 
+    /// Delete topics (`DeleteTopics`).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller.
     pub async fn delete_topics(
         &mut self,
         names: &[impl AsRef<str>],
@@ -974,6 +1027,7 @@ impl Admin {
         }
     }
 
+    /// Describe broker or topic configs (`DescribeConfigs`).
     pub async fn describe_configs(
         &mut self,
         resources: &[ConfigResource],
@@ -1001,6 +1055,10 @@ impl Admin {
         decode_describe_configs_response(&mut body.clone(), version)
     }
 
+    /// Increase partition count (`CreatePartitions`).
+    ///
+    /// Each item is `(topic, total_partition_count)`. Lands on the Metadata
+    /// controller. `NOT_CONTROLLER` (41) refreshes Metadata and retries.
     pub async fn create_partitions(
         &mut self,
         topics: &[(String, i32)],
@@ -1060,6 +1118,10 @@ impl Admin {
         }
     }
 
+    /// Alter configs incrementally (`IncrementalAlterConfigs`).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller.
     pub async fn incremental_alter_configs(
         &mut self,
         resource_type: i8,
@@ -1126,6 +1188,10 @@ impl Admin {
         }
     }
 
+    /// Create ACL bindings (`CreateAcls`).
+    ///
+    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
+    /// Metadata and retries on the new controller.
     pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
         let version = self.create_acls_version;
         let timeout = self.cfg.request_timeout;
@@ -1913,6 +1979,7 @@ impl Admin {
         }
     }
 
+    /// Describe ACL bindings (`DescribeAcls`) matching `resource_type`.
     pub async fn describe_acls(&mut self, resource_type: i8) -> Result<Vec<AclBinding>> {
         let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
@@ -1928,6 +1995,9 @@ impl Admin {
         decode_describe_acls_response(&mut body.clone())
     }
 
+    /// Replace configs (`AlterConfigs`, legacy api 33).
+    ///
+    /// Prefer [`Self::incremental_alter_configs`] on modern brokers.
     pub async fn alter_configs(
         &mut self,
         resource_type: i8,
@@ -2021,22 +2091,29 @@ impl Admin {
         Ok(())
     }
 
+    /// Delete records before `offset` (`DeleteRecords`).
+    ///
+    /// Lands on the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` (6)
+    /// and other retriable codes refresh Metadata and retry on the new
+    /// leader. Returns `(low_watermark, error_code)`.
     pub async fn delete_records(
         &mut self,
-        topic: &str,
-        partition: i32,
+        partition: impl Into<crate::TopicPartition>,
         offset: i64,
         timeout_ms: i32,
     ) -> Result<(i64, i16)> {
+        let tp = partition.into();
+        let topic = tp.topic;
+        let partition = tp.partition;
         let version = self.delete_records_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         loop {
-            if self.cluster.leader(topic, partition).is_err() {
-                let topics = [topic.to_string()];
+            if self.cluster.leader(&topic, partition).is_err() {
+                let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
             }
-            let (node, _) = self.cluster.leader(topic, partition)?;
+            let (node, _) = self.cluster.leader(&topic, partition)?;
             self.connect_node(node).await?;
             let body = {
                 let conn = self
@@ -2046,7 +2123,7 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_RECORDS,
                     version,
-                    |buf| encode_delete_records_request(buf, topic, partition, offset, timeout_ms),
+                    |buf| encode_delete_records_request(buf, &topic, partition, offset, timeout_ms),
                     timeout,
                 )
                 .await
@@ -2069,12 +2146,12 @@ impl Admin {
             let e = Error::broker(err, format!("{topic}-{partition}"));
             if e.is_retriable() {
                 // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                self.cluster.invalidate_topic(topic);
+                self.cluster.invalidate_topic(&topic);
                 let _ = self.conns.remove(&node);
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
-                let topics = [topic.to_string()];
+                let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
@@ -2097,18 +2174,20 @@ impl Admin {
     /// `"t"` partition `0`), not top-level after throttle.
     pub async fn describe_producers(
         &mut self,
-        topic: &str,
-        partition: i32,
+        partition: impl Into<crate::TopicPartition>,
     ) -> Result<DescribeProducersPartition> {
+        let tp = partition.into();
+        let topic = tp.topic;
+        let partition = tp.partition;
         let version = self.describe_producers_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         loop {
-            if self.cluster.leader(topic, partition).is_err() {
-                let topics = [topic.to_string()];
+            if self.cluster.leader(&topic, partition).is_err() {
+                let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
             }
-            let (node, _) = self.cluster.leader(topic, partition)?;
+            let (node, _) = self.cluster.leader(&topic, partition)?;
             self.connect_node(node).await?;
             let body = {
                 let conn = self
@@ -2118,7 +2197,7 @@ impl Admin {
                 conn.roundtrip(
                     DESCRIBE_PRODUCERS,
                     version,
-                    |buf| encode_describe_producers_request(buf, topic, &[partition]),
+                    |buf| encode_describe_producers_request(buf, &topic, &[partition]),
                     timeout,
                 )
                 .await
@@ -2147,12 +2226,12 @@ impl Admin {
             let e = Error::broker(part.error_code, format!("{topic}-{partition}"));
             if e.is_retriable() {
                 // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                self.cluster.invalidate_topic(topic);
+                self.cluster.invalidate_topic(&topic);
                 let _ = self.conns.remove(&node);
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
-                let topics = [topic.to_string()];
+                let topics = [topic.clone()];
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
@@ -2160,6 +2239,7 @@ impl Admin {
         }
     }
 
+    /// Brokers, controller, and cluster id (`DescribeCluster`).
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
         let version = self.describe_cluster_version;
         let timeout = self.cfg.request_timeout;
@@ -2175,6 +2255,7 @@ impl Admin {
         decode_describe_cluster_response(&mut body.clone())
     }
 
+    /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.
     pub async fn delete_acls(&mut self, resource_type: i8) -> Result<i16> {
         let version = self.delete_acls_version;
         let timeout = self.cfg.request_timeout;

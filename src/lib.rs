@@ -52,6 +52,10 @@
 //! [`TopicPartition`]. [`Consumer::assigned_partitions`] is Java `assignment`.
 //! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] /
 //! [`ShareGroup::poll_timeout`] are Java `poll(Duration)`.
+//! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
+//! that converts to one) plus the next fetch offset.
+//! [`Admin::delete_records`] / [`Admin::describe_producers`] take
+//! [`TopicPartition`].
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] match Java.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).

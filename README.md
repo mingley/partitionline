@@ -48,6 +48,9 @@ let recs = consumer.fetch().await?;
 partition leader at once when there is more than one. `partitions_for`
 returns Metadata (leader, replicas, ISR) on both `Consumer` and
 `Producer`. `beginning_offsets` / `end_offsets` take `TopicPartition`.
+`commit_offsets` takes `TopicPartition` (or anything that converts to one)
+plus the next fetch offset. `Admin::delete_records` / `describe_producers` take
+`TopicPartition`.
 
 ## Groups
 
@@ -133,7 +136,8 @@ cargo run --release --example roundtrip
 ```
 
 Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`,
-`examples/offsets.rs`, `examples/share.rs`, `examples/wakeup.rs`.
+`examples/offsets.rs`, `examples/share.rs`, `examples/wakeup.rs`,
+`examples/pause.rs`, `examples/metrics.rs`.
 
 Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
 rec/s unless broker high watermark equals records sent:

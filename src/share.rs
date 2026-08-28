@@ -73,6 +73,8 @@ pub struct ShareGroup {
     hb_stop: watch::Sender<bool>,
     fetch_rounds: u64,
     records_fetched: u64,
+    bytes_fetched: u64,
+    fetch_errors: u64,
     records_acknowledged: u64,
 }
 
@@ -132,6 +134,8 @@ impl ShareGroup {
             hb_stop,
             fetch_rounds: 0,
             records_fetched: 0,
+            bytes_fetched: 0,
+            fetch_errors: 0,
             records_acknowledged: 0,
         };
         g.heartbeat_join().await?;
@@ -186,6 +190,8 @@ impl ShareGroup {
         crate::ShareMetrics {
             fetch_rounds: self.fetch_rounds,
             records_fetched: self.records_fetched,
+            bytes_fetched: self.bytes_fetched,
+            fetch_errors: self.fetch_errors,
             records_acknowledged: self.records_acknowledged,
         }
     }
@@ -282,6 +288,11 @@ impl ShareGroup {
                     self.fetch_rounds = self.fetch_rounds.saturating_add(1);
                     let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                     self.records_fetched = self.records_fetched.saturating_add(n);
+                    let bytes = recs
+                        .iter()
+                        .map(share_record_bytes)
+                        .fold(0, u64::saturating_add);
+                    self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
                     return Ok(recs);
                 }
                 Err(e) if share_leader_retriable(&e) => {
@@ -290,7 +301,10 @@ impl ShareGroup {
                     }
                     self.refresh_assigned_metadata().await?;
                 }
-                Err(e) => return Err(e),
+                Err(e) => {
+                    self.fetch_errors = self.fetch_errors.saturating_add(1);
+                    return Err(e);
+                }
             }
         }
     }
@@ -778,6 +792,12 @@ impl ShareGroup {
             }
         }));
     }
+}
+
+fn share_record_bytes(rec: &ShareRecord) -> u64 {
+    let k = rec.key.as_ref().map(Bytes::len).unwrap_or(0);
+    let v = rec.value.as_ref().map(Bytes::len).unwrap_or(0);
+    u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
 fn share_leader_retriable(e: &Error) -> bool {

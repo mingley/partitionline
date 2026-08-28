@@ -33,6 +33,10 @@ pub struct ShareMetrics {
     pub fetch_rounds: u64,
     /// Records returned from ShareFetch.
     pub records_fetched: u64,
+    /// Key plus value bytes of returned records.
+    pub bytes_fetched: u64,
+    /// Failed poll rounds (after retries).
+    pub fetch_errors: u64,
     /// Records sent on ShareAcknowledge (`accept` / `release` / `reject`).
     pub records_acknowledged: u64,
 }
@@ -46,5 +50,7 @@ mod tests {
         assert_eq!(ProducerMetrics::default().records_queued, 0);
         assert_eq!(ConsumerMetrics::default().records_fetched, 0);
         assert_eq!(ShareMetrics::default().records_acknowledged, 0);
+        assert_eq!(ShareMetrics::default().bytes_fetched, 0);
+        assert_eq!(ShareMetrics::default().fetch_errors, 0);
     }
 }
