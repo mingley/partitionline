@@ -316,6 +316,8 @@ struct State {
     assign_notify: Arc<Notify>,
     last_fetch_isolation: i8,
     last_fetch_rack: String,
+    last_group_instance_id: Option<String>,
+    last_group_rack: Option<String>,
     in_txn: bool,
     txn_pending: Vec<(String, i32, i64)>,
     txn_aborted: HashSet<(String, i32, i64)>,
@@ -523,6 +525,8 @@ fn new_state(
         assign_notify: Arc::new(Notify::new()),
         last_fetch_isolation: 0,
         last_fetch_rack: String::new(),
+        last_group_instance_id: None,
+        last_group_rack: None,
         in_txn: false,
         txn_pending: Vec::new(),
         txn_aborted: HashSet::new(),
@@ -961,6 +965,14 @@ impl Mock {
 
     pub fn last_fetch_rack(&self) -> String {
         self.state.lock().last_fetch_rack.clone()
+    }
+
+    pub fn last_group_instance_id(&self) -> Option<String> {
+        self.state.lock().last_group_instance_id.clone()
+    }
+
+    pub fn last_group_rack(&self) -> Option<String> {
+        self.state.lock().last_group_rack.clone()
     }
 
     pub fn last_produce_txn_id(&self) -> Option<String> {
@@ -3574,6 +3586,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                st.last_group_instance_id = req.instance_id.clone();
+                st.last_group_rack = req.rack_id.clone();
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
@@ -3654,9 +3668,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             JOIN_GROUP => {
-                let (gid, member_id, metadata) = decode_join_group_request(&mut frame).unwrap();
+                let (gid, member_id, instance, metadata) =
+                    decode_join_group_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.join_group_calls = st.join_group_calls.saturating_add(1);
+                st.last_group_instance_id = instance;
                 if member_id.is_empty() {
                     st.member_seq += 1;
                     let assigned = format!("m-{}", st.member_seq);

@@ -21,6 +21,8 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub group_id: String,
     pub member_id: String,
     pub member_epoch: i32,
+    pub instance_id: Option<String>,
+    pub rack_id: Option<String>,
     pub subscribed_topic_names: Option<Vec<String>>,
     pub topic_partitions: Option<Vec<TopicPartitions>>,
 }
@@ -42,8 +44,8 @@ pub fn encode_consumer_group_heartbeat_request(
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
-    buf::put_compact_string(buf, None)?; // instance_id
-    buf::put_compact_string(buf, None)?; // rack_id
+    buf::put_compact_string(buf, req.instance_id.as_deref())?;
+    buf::put_compact_string(buf, req.rack_id.as_deref())?;
     buf.put_i32(45_000); // rebalance_timeout_ms
     match &req.subscribed_topic_names {
         None => buf::put_array_len(buf, true, None)?,
@@ -66,8 +68,8 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
-    let _instance = buf::get_compact_string(buf)?;
-    let _rack = buf::get_compact_string(buf)?;
+    let instance_id = buf::get_compact_string(buf)?;
+    let rack_id = buf::get_compact_string(buf)?;
     let _rebalance = buf::get_i32(buf)?;
     let subscribed_topic_names = {
         let n = buf::get_array_len(buf, true)?;
@@ -89,6 +91,8 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
         group_id,
         member_id,
         member_epoch,
+        instance_id,
+        rack_id,
         subscribed_topic_names,
         topic_partitions,
     })
@@ -197,6 +201,8 @@ mod tests {
             group_id: "g".into(),
             member_id: String::new(),
             member_epoch: 0,
+            instance_id: Some("worker-1".into()),
+            rack_id: Some("az1".into()),
             subscribed_topic_names: Some(vec!["t".into()]),
             topic_partitions: None,
         };
@@ -233,6 +239,8 @@ mod tests {
             group_id: "g".into(),
             member_id: "m1".into(),
             member_epoch: -1,
+            instance_id: None,
+            rack_id: None,
             subscribed_topic_names: None,
             topic_partitions: None,
         };

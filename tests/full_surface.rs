@@ -1198,6 +1198,7 @@ async fn consumer_group_join_fetch_commit() {
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
     let mut group = ConsumerGroup::join(ccfg, "g1", "t").await.unwrap();
+    assert_eq!(mock.last_group_instance_id(), None);
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
@@ -1470,6 +1471,8 @@ async fn kip848_join_fetch_leave_without_classic_join() {
         0,
         "KIP-848 path must not send JoinGroup"
     );
+    assert_eq!(mock.last_group_instance_id(), None);
+    assert_eq!(mock.last_group_rack(), None);
     group.leave().await.unwrap();
 }
 

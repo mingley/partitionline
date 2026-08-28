@@ -58,33 +58,41 @@ pub fn decode_find_coordinator_response<B: Buf>(buf: &mut B) -> Result<(i16, i32
     Ok((error, node_id, host, port))
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct JoinGroupRequest<'a> {
+    pub group_id: &'a str,
+    pub session_timeout_ms: i32,
+    pub member_id: &'a str,
+    pub group_instance_id: Option<&'a str>,
+    pub protocol_type: &'a str,
+    pub protocol_name: &'a str,
+    pub metadata: &'a [u8],
+}
+
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
-    group_id: &str,
-    session_timeout_ms: i32,
-    member_id: &str,
-    protocol_type: &str,
-    protocol_name: &str,
-    metadata: &[u8],
+    req: &JoinGroupRequest<'_>,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
-    buf.put_i32(session_timeout_ms);
-    buf.put_i32(session_timeout_ms); // rebalance timeout
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_classic_nullable_string(buf, None)?; // group_instance_id
-    buf::put_classic_nullable_string(buf, Some(protocol_type))?;
+    buf::put_classic_nullable_string(buf, Some(req.group_id))?;
+    buf.put_i32(req.session_timeout_ms);
+    buf.put_i32(req.session_timeout_ms); // rebalance timeout
+    buf::put_classic_nullable_string(buf, Some(req.member_id))?;
+    buf::put_classic_nullable_string(buf, req.group_instance_id)?;
+    buf::put_classic_nullable_string(buf, Some(req.protocol_type))?;
     buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(protocol_name))?;
-    buf::put_classic_bytes(buf, Some(metadata))?;
+    buf::put_classic_nullable_string(buf, Some(req.protocol_name))?;
+    buf::put_classic_bytes(buf, Some(req.metadata))?;
     Ok(())
 }
 
-pub fn decode_join_group_request<B: Buf>(buf: &mut B) -> Result<(String, String, Vec<u8>)> {
+pub fn decode_join_group_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(String, String, Option<String>, Vec<u8>)> {
     let group_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let _session = buf::get_i32(buf)?;
     let _rebalance = buf::get_i32(buf)?;
     let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _instance = buf::get_classic_nullable_string(buf)?;
+    let instance = buf::get_classic_nullable_string(buf)?;
     let _ptype = buf::get_classic_nullable_string(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let mut metadata = Vec::new();
@@ -92,7 +100,7 @@ pub fn decode_join_group_request<B: Buf>(buf: &mut B) -> Result<(String, String,
         let _name = buf::get_classic_nullable_string(buf)?;
         metadata = buf::get_classic_bytes(buf)?.unwrap_or_default();
     }
-    Ok((group_id, member_id, metadata))
+    Ok((group_id, member_id, instance, metadata))
 }
 
 #[derive(Debug, Clone)]
@@ -211,11 +219,12 @@ pub fn encode_heartbeat_request(
     group_id: &str,
     generation_id: i32,
     member_id: &str,
+    group_instance_id: Option<&str>,
 ) -> crate::error::Result<()> {
     buf::put_classic_nullable_string(buf, Some(group_id))?;
     buf.put_i32(generation_id);
     buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_classic_nullable_string(buf, group_instance_id)?;
     Ok(())
 }
 
@@ -694,6 +703,29 @@ mod tests {
         assert_eq!(decoded.len(), 2);
         assert_eq!(decoded[0], ("a".into(), vec![0, 2]));
         assert_eq!(decoded[1], ("b".into(), vec![1]));
+    }
+
+    #[test]
+    fn join_group_v5_sends_instance_id() {
+        let mut buf = BytesMut::new();
+        encode_join_group_request(
+            &mut buf,
+            &JoinGroupRequest {
+                group_id: "g",
+                session_timeout_ms: 10_000,
+                member_id: "m1",
+                group_instance_id: Some("worker-1"),
+                protocol_type: "consumer",
+                protocol_name: "range",
+                metadata: &[1, 2, 3],
+            },
+        )
+        .unwrap();
+        let (gid, member, instance, meta) = decode_join_group_request(&mut &buf[..]).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(member, "m1");
+        assert_eq!(instance.as_deref(), Some("worker-1"));
+        assert_eq!(meta, vec![1, 2, 3]);
     }
 
     #[test]

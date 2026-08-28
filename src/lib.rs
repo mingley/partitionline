@@ -44,6 +44,7 @@
 //! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
 //! is sticky, [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
 //! `_topics` variant for several topics.
+//! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ShareGroup`] is KIP-932.
 //!
 //! # Configure

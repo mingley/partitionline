@@ -47,6 +47,8 @@ pub struct ConsumerConfig {
     pub isolation_level: i8,
     /// Client rack for fetch-from-follower (KIP-392). Empty means leader only.
     pub rack: Option<String>,
+    /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
+    pub group_instance_id: Option<String>,
 }
 
 impl Default for ConsumerConfig {
@@ -67,6 +69,7 @@ impl Default for ConsumerConfig {
             max_bytes: 16_777_216,
             isolation_level: 0,
             rack: None,
+            group_instance_id: None,
         }
     }
 }
@@ -120,6 +123,13 @@ impl ConsumerConfig {
     #[must_use]
     pub fn rack(mut self, rack: impl Into<String>) -> Self {
         self.rack = Some(rack.into());
+        self
+    }
+
+    /// `group.instance.id` (static membership).
+    #[must_use]
+    pub fn group_instance_id(mut self, id: impl Into<String>) -> Self {
+        self.group_instance_id = Some(id.into());
         self
     }
 

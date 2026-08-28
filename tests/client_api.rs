@@ -143,10 +143,12 @@ fn config_builders_set_typed_knobs() {
     let c = ConsumerConfig::bootstrap(["127.0.0.1:9092"])
         .isolation(IsolationLevel::ReadCommitted)
         .max_bytes(1024)
-        .rack("az1");
+        .rack("az1")
+        .group_instance_id("worker-1");
     assert_eq!(c.isolation_level, 1);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
+    assert_eq!(c.group_instance_id.as_deref(), Some("worker-1"));
 }
 
 #[test]
@@ -314,4 +316,38 @@ async fn fetch_two_leaders_in_one_round() {
         nodes.contains(&1) && nodes.contains(&2),
         "fetch must hit both leaders, got {nodes:?}"
     );
+}
+
+#[tokio::test]
+async fn classic_join_sends_group_instance_id() {
+    let mock = common::Mock::start().await;
+    let group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("worker-1"),
+        "static",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-1"));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn kip848_join_sends_instance_id_and_rack() {
+    let mock = common::Mock::start().await;
+    let group = ConsumerGroup::join_consumer(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("worker-2")
+            .rack("az1"),
+        "kstatic",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-2"));
+    assert_eq!(mock.last_group_rack().as_deref(), Some("az1"));
+    group.leave().await.unwrap();
 }

@@ -30,7 +30,7 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
     encode_subscription, encode_sync_group_request, encode_tp_assignment, FetchedOffsetTopic,
-    OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
+    JoinGroupRequest, OffsetFetchTopic, OffsetPartition, OffsetTopic, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -411,6 +411,8 @@ impl ConsumerGroup {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
                 member_epoch: -1,
+                instance_id: self.cfg.group_instance_id.clone(),
+                rack_id: self.cfg.rack.clone(),
                 subscribed_topic_names: None,
                 topic_partitions: None,
             };
@@ -466,12 +468,15 @@ impl ConsumerGroup {
                 |buf| {
                     encode_join_group_request(
                         buf,
-                        &self.group_id,
-                        10_000,
-                        "",
-                        "consumer",
-                        &self.protocol,
-                        &metadata,
+                        &JoinGroupRequest {
+                            group_id: &self.group_id,
+                            session_timeout_ms: 10_000,
+                            member_id: "",
+                            group_instance_id: self.cfg.group_instance_id.as_deref(),
+                            protocol_type: "consumer",
+                            protocol_name: &self.protocol,
+                            metadata: &metadata,
+                        },
                     )
                 },
                 timeout,
@@ -493,12 +498,15 @@ impl ConsumerGroup {
             |buf| {
                 encode_join_group_request(
                     buf,
-                    &self.group_id,
-                    10_000,
-                    &self.member_id,
-                    "consumer",
-                    &self.protocol,
-                    &metadata,
+                    &JoinGroupRequest {
+                        group_id: &self.group_id,
+                        session_timeout_ms: 10_000,
+                        member_id: &self.member_id,
+                        group_instance_id: self.cfg.group_instance_id.as_deref(),
+                        protocol_type: "consumer",
+                        protocol_name: &self.protocol,
+                        metadata: &metadata,
+                    },
                 )
             },
             timeout,
@@ -587,6 +595,8 @@ impl ConsumerGroup {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
             member_epoch: 0,
+            instance_id: self.cfg.group_instance_id.clone(),
+            rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(self.topics.clone()),
             topic_partitions: None,
         };
@@ -715,6 +725,8 @@ impl ConsumerGroup {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
                             member_epoch: epoch,
+                            instance_id: cfg.group_instance_id.clone(),
+                            rack_id: cfg.rack.clone(),
                             subscribed_topic_names: None,
                             topic_partitions,
                         };
@@ -785,12 +797,21 @@ impl ConsumerGroup {
                         let timeout = Duration::from_secs(10);
                         let gid = group_id.clone();
                         let mid = member_id.clone();
+                        let instance = cfg.group_instance_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
                         let res = c
                             .roundtrip(
                                 HEARTBEAT,
                                 3,
-                                |buf| encode_heartbeat_request(buf, &gid, generation, &mid),
+                                |buf| {
+                                    encode_heartbeat_request(
+                                        buf,
+                                        &gid,
+                                        generation,
+                                        &mid,
+                                        instance.as_deref(),
+                                    )
+                                },
                                 timeout,
                             )
                             .await;

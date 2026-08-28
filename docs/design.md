@@ -27,7 +27,10 @@ ListOffsets for every assigned partition.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 `join_topics` (range), `join_sticky_topics`, and `join_consumer_topics`
-subscribe to several topics. Range and sticky assign each topic independently.
+subscribe to several topics. Range and sticky assign each topic independently
+among members who subscribed to it. `ConsumerConfig::group_instance_id` is
+Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
+KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 
 ## Wire format notes (for people changing encode/decode)
 
