@@ -15,6 +15,22 @@ pub const SCRAM_SHA_256: i8 = 1;
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
 pub const SCRAM_SHA_512: i8 = 2;
 
+/// Kafka SCRAM mechanism (`ScramMechanism` on the wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum ScramMechanism {
+    /// SCRAM-SHA-256.
+    Sha256 = 1,
+    /// SCRAM-SHA-512.
+    Sha512 = 2,
+}
+
+impl From<ScramMechanism> for i8 {
+    fn from(mech: ScramMechanism) -> Self {
+        mech as i8
+    }
+}
+
 /// Config resource type for a topic (`DescribeConfigs` / `AlterConfigs`).
 pub const RESOURCE_TOPIC: i8 = 2;
 /// Config resource type for a broker.

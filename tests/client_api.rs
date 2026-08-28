@@ -162,7 +162,7 @@ fn config_builders_set_typed_knobs() {
         .auto_commit_interval(Duration::ZERO)
         .max_poll_interval(Duration::from_secs(60))
         .connect_timeout(Duration::from_secs(4));
-    assert_eq!(c.isolation_level, 1);
+    assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
     assert_eq!(c.group_instance_id.as_deref(), Some("worker-1"));

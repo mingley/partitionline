@@ -56,7 +56,8 @@ use crate::protocol::admin::{
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
     ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_GROUP, RESOURCE_TOPIC,
+    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -109,10 +110,11 @@ pub use crate::protocol::admin::{
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
     PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions,
-    TopicPartitionCursor, TransactionListing, TransactionState, TransactionTopic,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY,
-    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
+    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -265,10 +267,32 @@ impl NewPartitions {
     }
 }
 
+/// Kafka config resource type (`ConfigResource.Type`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum ConfigResourceType {
+    /// Topic.
+    Topic = RESOURCE_TOPIC,
+    /// Broker (`broker.id` as the name).
+    Broker = RESOURCE_BROKER,
+    /// Broker logger (KIP-1142).
+    BrokerLogger = RESOURCE_BROKER_LOGGER,
+    /// Client metrics (KIP-714 / KIP-1142).
+    ClientMetrics = RESOURCE_CLIENT_METRICS,
+    /// Consumer group.
+    Group = RESOURCE_GROUP,
+}
+
+impl From<ConfigResourceType> for i8 {
+    fn from(ty: ConfigResourceType) -> Self {
+        ty as i8
+    }
+}
+
 /// Resource for DescribeConfigs / IncrementalAlterConfigs / AlterConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigResource {
-    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, `CONFIG_RESOURCE_BROKER`, …).
+    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, [`ConfigResourceType::Topic`], …).
     pub resource_type: i8,
     /// Resource name (topic name, or broker id as a string).
     pub name: String,
@@ -277,34 +301,32 @@ pub struct ConfigResource {
 }
 
 impl ConfigResource {
-    /// Topic resource. Fetches every config key unless [`Self::keys`] is set.
+    /// Resource of this type. Fetches every config key unless [`Self::keys`] is set.
     #[must_use]
-    pub fn topic(name: impl Into<String>) -> Self {
+    pub fn of(ty: ConfigResourceType, name: impl Into<String>) -> Self {
         Self {
-            resource_type: RESOURCE_TOPIC,
+            resource_type: i8::from(ty),
             name: name.into(),
             keys: None,
         }
+    }
+
+    /// Topic resource. Fetches every config key unless [`Self::keys`] is set.
+    #[must_use]
+    pub fn topic(name: impl Into<String>) -> Self {
+        Self::of(ConfigResourceType::Topic, name)
     }
 
     /// Broker resource (`broker.id` as the name).
     #[must_use]
     pub fn broker(id: i32) -> Self {
-        Self {
-            resource_type: RESOURCE_BROKER,
-            name: id.to_string(),
-            keys: None,
-        }
+        Self::of(ConfigResourceType::Broker, id.to_string())
     }
 
     /// Consumer-group resource.
     #[must_use]
     pub fn group(name: impl Into<String>) -> Self {
-        Self {
-            resource_type: RESOURCE_GROUP,
-            name: name.into(),
-            keys: None,
-        }
+        Self::of(ConfigResourceType::Group, name)
     }
 
     /// Restrict DescribeConfigs to these keys.
@@ -429,17 +451,17 @@ pub struct FeatureUpdateResult {
 pub struct UserScramCredentialDeletion {
     /// User name.
     pub name: String,
-    /// `SCRAM_SHA_256` or `SCRAM_SHA_512`.
+    /// `SCRAM_SHA_256` / [`crate::ScramMechanism::Sha256`], or SHA-512.
     pub mechanism: i8,
 }
 
 impl UserScramCredentialDeletion {
     /// Delete this user's credential for `mechanism`.
     #[must_use]
-    pub fn new(name: impl Into<String>, mechanism: i8) -> Self {
+    pub fn new(name: impl Into<String>, mechanism: impl Into<i8>) -> Self {
         Self {
             name: name.into(),
-            mechanism,
+            mechanism: mechanism.into(),
         }
     }
 }
@@ -453,7 +475,7 @@ impl UserScramCredentialDeletion {
 pub struct UserScramCredentialUpsertion {
     /// User name.
     pub name: String,
-    /// `SCRAM_SHA_256` or `SCRAM_SHA_512`.
+    /// `SCRAM_SHA_256` / [`crate::ScramMechanism::Sha256`], or SHA-512.
     pub mechanism: i8,
     /// PBKDF2 iteration count.
     pub iterations: i32,
@@ -468,14 +490,14 @@ impl UserScramCredentialUpsertion {
     #[must_use]
     pub fn new(
         name: impl Into<String>,
-        mechanism: i8,
+        mechanism: impl Into<i8>,
         iterations: i32,
         salt: impl Into<Vec<u8>>,
         salted_password: impl Into<Vec<u8>>,
     ) -> Self {
         Self {
             name: name.into(),
-            mechanism,
+            mechanism: mechanism.into(),
             iterations,
             salt: salt.into(),
             salted_password: salted_password.into(),
@@ -3079,11 +3101,14 @@ impl Admin {
     /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code`
     /// is the INT16 at bytes 4–5, after throttle — not a first-resource
     /// field. Resources have no ErrorCode.
+    ///
+    /// `resource_types` is [`ConfigResourceType`] or a protocol `i8`
+    /// (`CONFIG_RESOURCE_TOPIC`, …).
     pub async fn list_config_resources(
         &mut self,
-        resource_types: &[i8],
+        resource_types: impl IntoIterator<Item = impl Into<i8>>,
     ) -> Result<Vec<ListedConfigResource>> {
-        let types = resource_types.to_vec();
+        let types: Vec<i8> = resource_types.into_iter().map(Into::into).collect();
         let version = self.list_config_resources_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -3722,4 +3747,34 @@ fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> 
             topic,
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_resource_type_matches_protocol_consts() {
+        assert_eq!(i8::from(ConfigResourceType::Topic), CONFIG_RESOURCE_TOPIC);
+        assert_eq!(i8::from(ConfigResourceType::Broker), CONFIG_RESOURCE_BROKER);
+        assert_eq!(
+            i8::from(ConfigResourceType::BrokerLogger),
+            CONFIG_RESOURCE_BROKER_LOGGER
+        );
+        assert_eq!(
+            i8::from(ConfigResourceType::ClientMetrics),
+            CONFIG_RESOURCE_CLIENT_METRICS
+        );
+        assert_eq!(i8::from(ConfigResourceType::Group), CONFIG_RESOURCE_GROUP);
+        assert_eq!(
+            ConfigResource::topic("t").resource_type,
+            i8::from(ConfigResourceType::Topic)
+        );
+    }
+
+    #[test]
+    fn scram_mechanism_matches_protocol_consts() {
+        assert_eq!(i8::from(ScramMechanism::Sha256), SCRAM_SHA_256);
+        assert_eq!(i8::from(ScramMechanism::Sha512), SCRAM_SHA_512);
+    }
 }

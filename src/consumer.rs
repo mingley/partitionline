@@ -94,8 +94,8 @@ pub struct ConsumerConfig {
     pub min_bytes: i32,
     /// `fetch.max.bytes` / `max.partition.fetch.bytes`. Default 16 MiB.
     pub max_bytes: i32,
-    /// 0 = READ_UNCOMMITTED, 1 = READ_COMMITTED.
-    pub isolation_level: i8,
+    /// Kafka `isolation.level`.
+    pub isolation_level: crate::IsolationLevel,
     /// Client rack for fetch-from-follower (KIP-392). Empty means leader only.
     pub rack: Option<String>,
     /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
@@ -144,7 +144,7 @@ impl Default for ConsumerConfig {
             max_wait_ms: 500,
             min_bytes: 1,
             max_bytes: 16_777_216,
-            isolation_level: 0,
+            isolation_level: crate::IsolationLevel::ReadUncommitted,
             rack: None,
             group_instance_id: None,
             auto_offset_reset: crate::AutoOffsetReset::Earliest,
@@ -201,7 +201,7 @@ impl ConsumerConfig {
     /// `isolation.level`.
     #[must_use]
     pub fn isolation(mut self, level: crate::IsolationLevel) -> Self {
-        self.isolation_level = level.as_i8();
+        self.isolation_level = level;
         self
     }
 
@@ -1315,7 +1315,7 @@ impl Consumer {
         let max_wait = self.cfg.max_wait_ms;
         let min_bytes = self.cfg.min_bytes;
         let max_bytes = self.cfg.max_bytes;
-        let isolation_level = self.cfg.isolation_level;
+        let isolation_level = self.cfg.isolation_level.as_i8();
         let timeout = self.cfg.request_timeout;
         let fetch_version = self.fetch_version;
         let rack = self.cfg.rack.clone();
@@ -1454,11 +1454,13 @@ impl Consumer {
                     }
                     for rec in batch.records {
                         let offset = rec.offset;
-                        if isolation == 1 && offset >= part.last_stable_offset {
+                        if isolation == crate::IsolationLevel::ReadCommitted
+                            && offset >= part.last_stable_offset
+                        {
                             break;
                         }
                         next = Some(offset + 1);
-                        if isolation == 1 {
+                        if isolation == crate::IsolationLevel::ReadCommitted {
                             let aborted = part
                                 .aborted_transactions
                                 .iter()
@@ -1531,7 +1533,7 @@ impl Consumer {
                 .get(&LIST_OFFSETS)
                 .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
                 .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
-            let isolation = self.cfg.isolation_level;
+            let isolation = self.cfg.isolation_level.as_i8();
             let timeout = self.cfg.request_timeout;
             let current_leader_epoch = self.cluster.leader_epoch(topic, partition);
             let body = {

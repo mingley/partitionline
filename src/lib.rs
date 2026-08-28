@@ -50,7 +50,7 @@
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
-//! [`ConfigResource`].
+//! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
@@ -107,6 +107,9 @@
 //! ```
 //!
 //! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
+//! [`ConsumerConfig::isolation`] is [`IsolationLevel`].
+//! [`ConfigResourceType`] / [`ScramMechanism`] type admin config
+//! resources and user SCRAM.
 //!
 //! # Admin
 //!
@@ -155,12 +158,12 @@ pub use admin::{
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
-    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
-    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
-    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    ConfigResourceType, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
+    CreatableRenewer, CreateDelegationTokenRequest, CreateDelegationTokenResponse,
+    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
+    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
@@ -170,7 +173,7 @@ pub use admin::{
     FeatureUpdate, FeatureUpdateResult, GetTelemetrySubscriptionsResponse, ListedConfigResource,
     ListedGroup, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
     PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo,
+    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
     ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor,
     TransactionListing, TransactionState, TransactionTopic, UserScramCredentialDeletion,
     UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,

@@ -55,7 +55,9 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 takes `TopicPartition`. `send_offsets_to_transaction` takes
 `TopicPartition`. `AclBinding::allow_topic`, `AclResourceType`,
 `AclOperation`, and `AclPermission` cover CreateAcls / DescribeAcls /
-DeleteAcls.
+DeleteAcls. `ConsumerConfig.isolation_level` is `IsolationLevel`.
+`ConfigResourceType` / `ScramMechanism` type ListConfigResources and
+user SCRAM.
 
 ## Groups
 

@@ -20,6 +20,10 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 builders (`acks`, `sasl`, `tls`, `isolation`, …). The raw fields remain
 writable.
 
+`ConsumerConfig.isolation_level` is [`IsolationLevel`](../src/config.rs)
+(not a raw `i8`). `ConfigResourceType` and `ScramMechanism` type admin
+config-resource and user-SCRAM calls.
+
 The hot path copies each payload once into the Kafka record batch and checksums it with CRC32-C.
 
 ## Consumer

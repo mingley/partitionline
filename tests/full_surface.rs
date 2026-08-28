@@ -17,12 +17,13 @@ use partitionline::{
     AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
     AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource,
-    Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
-    DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error,
-    ExpireDelegationTokenRequest, FeatureUpdate, NewPartitions, NewTopic, OidcConfig,
-    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
-    RenewDelegationTokenRequest, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
+    ConfigResourceType, Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer,
+    CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
+    DescribeShareGroupOffsetsGroup, Error, ExpireDelegationTokenRequest, FeatureUpdate,
+    IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
+    ScramMechanism, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
     UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
     EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -502,7 +503,7 @@ async fn transactional_commit_visible_abort_hidden() {
 
     let mut ccfg0 = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg0.max_wait_ms = 10;
-    ccfg0.isolation_level = 0;
+    ccfg0.isolation_level = IsolationLevel::ReadUncommitted;
     let mut uncommitted = Consumer::new(ccfg0).await.unwrap();
     uncommitted.assign("t", 0, 0).await.unwrap();
     let all = uncommitted.fetch().await.unwrap();
@@ -514,7 +515,7 @@ async fn transactional_commit_visible_abort_hidden() {
 
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    ccfg.isolation_level = 1;
+    ccfg.isolation_level = IsolationLevel::ReadCommitted;
     let mut consumer = Consumer::new(ccfg).await.unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
@@ -705,7 +706,7 @@ async fn list_offsets_seek_and_read_committed_isolation() {
 
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
-    ccfg.isolation_level = 1;
+    ccfg.isolation_level = IsolationLevel::ReadCommitted;
     let mut consumer = Consumer::new(ccfg).await.unwrap();
     let earliest = consumer
         .list_offsets("t", 0, EARLIEST_TIMESTAMP)
@@ -2793,7 +2794,7 @@ async fn alter_user_scram_credentials_follows_controller() {
 
     let alice = UserScramCredentialUpsertion::new(
         "alice",
-        SCRAM_SHA_256,
+        ScramMechanism::Sha256,
         4096,
         b"dummy-salt".to_vec(),
         b"dummy-salted".to_vec(),
@@ -2825,7 +2826,7 @@ async fn alter_user_scram_credentials_follows_controller() {
         b"dummy-salt-b".to_vec(),
         b"dummy-salted-b".to_vec(),
     );
-    let delete_carol = UserScramCredentialDeletion::new("carol", SCRAM_SHA_256);
+    let delete_carol = UserScramCredentialDeletion::new("carol", ScramMechanism::Sha256);
     let again = admin
         .alter_user_scram_credentials(&[delete_carol], &[bob])
         .await
@@ -3404,7 +3405,7 @@ async fn list_config_resources_follows_broker() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
     let first = admin
-        .list_config_resources(&[CONFIG_RESOURCE_CLIENT_METRICS])
+        .list_config_resources([ConfigResourceType::ClientMetrics])
         .await
         .unwrap();
     assert_eq!(first.len(), 1);
