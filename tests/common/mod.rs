@@ -36,19 +36,20 @@ use partitionline::protocol::admin::{
     decode_delete_records_request, decode_delete_topics_request,
     decode_describe_client_quotas_request, decode_describe_cluster_request,
     decode_describe_configs_request, decode_describe_groups_request,
-    decode_describe_producers_request, decode_describe_transactions_request,
-    decode_describe_user_scram_credentials_request, decode_incremental_alter_configs_request,
-    decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_share_group_describe_request,
-    decode_unregister_broker_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
-    encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_groups_response, encode_delete_records_response, encode_delete_topics_response,
-    encode_describe_client_quotas_response, encode_describe_cluster_response,
-    encode_describe_configs_response, encode_describe_groups_response,
-    encode_describe_producers_response, encode_describe_transactions_response,
+    decode_describe_producers_request, decode_describe_share_group_offsets_request,
+    decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
+    decode_incremental_alter_configs_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
+    encode_consumer_group_describe_response, encode_create_partitions_response,
+    encode_create_topics_response, encode_delete_groups_response, encode_delete_records_response,
+    encode_delete_topics_response, encode_describe_client_quotas_response,
+    encode_describe_cluster_response, encode_describe_configs_response,
+    encode_describe_groups_response, encode_describe_producers_response,
+    encode_describe_share_group_offsets_response, encode_describe_transactions_response,
     encode_describe_user_scram_credentials_response, encode_incremental_alter_configs_response,
     encode_list_groups_response, encode_list_partition_reassignments_response,
     encode_list_transactions_response, encode_share_group_describe_response,
@@ -59,8 +60,8 @@ use partitionline::protocol::admin::{
     ConfigEntry, DeletableGroupResult, DescribeClientQuotasResponse, DescribeConfigsResult,
     DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
     DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, ListGroupsResponse,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedGroup,
+    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, DescribedShareGroupOffsets,
+    ListGroupsResponse, ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedGroup,
     OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
     ReassignmentTopicResult, ScramCredentialInfo, TopicResult, TransactionListing,
     TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse,
@@ -78,12 +79,13 @@ use partitionline::protocol::api_keys::{
     CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS,
     CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
-    DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH,
-    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
-    METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_GROUPS,
+    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -241,6 +243,8 @@ struct State {
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
     share_group_describe_not_coordinator: u32,
+    last_describe_share_group_offsets_node: Option<i32>,
+    describe_share_group_offsets_not_coordinator: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -419,6 +423,8 @@ fn new_state(
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
         share_group_describe_not_coordinator: 0,
+        last_describe_share_group_offsets_node: None,
+        describe_share_group_offsets_not_coordinator: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1130,6 +1136,16 @@ impl Mock {
         self.state.lock().share_group_describe_not_coordinator
     }
 
+    pub fn last_describe_share_group_offsets_node(&self) -> Option<i32> {
+        self.state.lock().last_describe_share_group_offsets_node
+    }
+
+    pub fn describe_share_group_offsets_not_coordinator(&self) -> u32 {
+        self.state
+            .lock()
+            .describe_share_group_offsets_not_coordinator
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1494,6 +1510,7 @@ fn versions() -> ApiVersionsResponse {
         (LIST_GROUPS, 0, 5),
         (DELETE_GROUPS, 0, 2),
         (SHARE_GROUP_DESCRIBE, 1, 1),
+        (DESCRIBE_SHARE_GROUP_OFFSETS, 0, 0),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3691,6 +3708,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         })
                         .collect();
                     encode_share_group_describe_response(&mut body, &results).unwrap();
+                }
+            }
+            DESCRIBE_SHARE_GROUP_OFFSETS => {
+                let groups = decode_describe_share_group_offsets_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.coord_node != node_id {
+                    st.describe_share_group_offsets_not_coordinator = st
+                        .describe_share_group_offsets_not_coordinator
+                        .saturating_add(1);
+                    // Per-group 16 only. Do not invent an offset store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedShareGroupOffsets> = groups
+                        .into_iter()
+                        .map(|g| {
+                            DescribedShareGroupOffsets::new(g.group_id, error::NOT_COORDINATOR)
+                        })
+                        .collect();
+                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_describe_share_group_offsets_node = Some(node_id);
+                    let results: Vec<DescribedShareGroupOffsets> = groups
+                        .into_iter()
+                        .map(|g| DescribedShareGroupOffsets::new(g.group_id, 0))
+                        .collect();
+                    encode_describe_share_group_offsets_response(&mut body, &results).unwrap();
                 }
             }
             _ => break,

@@ -56,6 +56,7 @@ pub const SHARE_GROUP_HEARTBEAT: i16 = 76;
 pub const SHARE_GROUP_DESCRIBE: i16 = 77;
 pub const SHARE_FETCH: i16 = 78;
 pub const SHARE_ACKNOWLEDGE: i16 = 79;
+pub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;
 
 pub fn pick_version(
     broker_min: i16,

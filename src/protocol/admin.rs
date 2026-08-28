@@ -3513,6 +3513,265 @@ pub fn decode_share_group_describe_response<B: Buf>(
     Ok(groups)
 }
 
+/// One requested topic in DescribeShareGroupOffsets (api 90).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeShareGroupOffsetsTopic {
+    pub topic_name: String,
+    pub partitions: Vec<i32>,
+}
+
+impl DescribeShareGroupOffsetsTopic {
+    pub fn new(topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic_name: topic_name.into(),
+            partitions,
+        }
+    }
+}
+
+/// One requested group in DescribeShareGroupOffsets (api 90) v0.
+///
+/// `topics = None` is official nullable Topics (all topic-partitions).
+/// kafka-protocol 0.18.0 `Default` is `Some([])`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeShareGroupOffsetsGroup {
+    pub group_id: String,
+    pub topics: Option<Vec<DescribeShareGroupOffsetsTopic>>,
+}
+
+impl DescribeShareGroupOffsetsGroup {
+    pub fn new(group_id: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            topics: Some(Vec::new()),
+        }
+    }
+}
+
+/// One partition in a described share-group offsets topic.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsetsPartition {
+    pub partition_index: i32,
+    pub start_offset: i64,
+    pub leader_epoch: i32,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+/// One topic in a described share-group offsets group.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsetsTopic {
+    pub topic_name: String,
+    pub topic_id: [u8; 16],
+    pub partitions: Vec<DescribedShareGroupOffsetsPartition>,
+}
+
+/// One described group in DescribeShareGroupOffsets (api 90) v0.
+///
+/// Group-level ErrorCode sits here after GroupId and Topics, not at the
+/// top of the response body and not on the first partition.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsets {
+    pub group_id: String,
+    pub topics: Vec<DescribedShareGroupOffsetsTopic>,
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+impl DescribedShareGroupOffsets {
+    pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            group_id: group_id.into(),
+            topics: Vec::new(),
+            error_code,
+            error_message: None,
+        }
+    }
+}
+
+/// DescribeShareGroupOffsets v0 (flexible from v0; KIP-932).
+///
+/// Official Apache JSON (`apiKey: 90`, request `listeners: ["broker"]`,
+/// `validVersions: "0-1"`, `flexibleVersions: "0+"`) and kafka-protocol
+/// 0.18.0 (`DescribeShareGroupOffsetsRequest` /
+/// `DescribeShareGroupOffsetsResponse`, `VERSIONS` min=0 max=0). This
+/// crate targets v0, the version a client encodes (`VERSIONS.max`).
+/// Official trunk v1 adds `Lag` INT64 (KIP-1226); 0.18.0 does not
+/// speak it and this crate does not invent it. Request encode used
+/// `features = ["client"]`; response encode used `broker`.
+/// Official listed errors (`DescribeShareGroupOffsetsResponse.json`):
+/// `GROUP_AUTHORIZATION_FAILED`, `TOPIC_AUTHORIZATION_FAILED`,
+/// `NOT_COORDINATOR` (16), `COORDINATOR_NOT_AVAILABLE`,
+/// `COORDINATOR_LOAD_IN_PROGRESS`, `GROUP_ID_NOT_FOUND`,
+/// `INVALID_REQUEST`, `UNKNOWN_SERVER_ERROR`.
+/// Request: compact `Groups` of `{GroupId, compact nullable Topics of
+/// {TopicName, compact Partitions INT32[], tagged}, tagged}`, tagged.
+/// Response: `ThrottleTimeMs` INT32, compact `Groups` of `{GroupId,
+/// compact Topics of {TopicName, TopicId UUID, compact Partitions of
+/// {PartitionIndex INT32, StartOffset INT64, LeaderEpoch INT32,
+/// ErrorCode INT16, compact nullable ErrorMessage, tagged}, tagged},
+/// ErrorCode INT16, compact nullable ErrorMessage, tagged}`, tagged.
+/// **Group-level ErrorCode is per-group**, after GroupId and Topics —
+/// not a top-level code after throttle and not the first-partition
+/// code. Measured independently from kafka-protocol 0.18.0 (`broker`
+/// encodes the response) on leftover-empty fixture group `"g"`
+/// (empty Topics): the first-group ErrorCode is the INT16 at
+/// **bytes 8–9**, after throttle, the compact groups length, compact
+/// GroupId `"g"`, and the compact empty Topics length — not bytes
+/// 4–5 (ListGroups / DescribeClientQuotas top-level), 5–6
+/// (ShareGroupDescribe / DescribeGroups first-group first field),
+/// 7–8 (DeleteGroups after GroupId), or 12–13 (DescribeProducers
+/// first partition). First-partition ErrorCode, when a leftover-empty
+/// topic `"t"` partition `0` is present, is at **byte 43** and is not
+/// the hop code. Official Java `ListShareGroupOffsetsHandler` (the
+/// AdminClient handler for this RPC; there is no class named
+/// `DescribeShareGroupOffsetsHandler`) looks up
+/// `CoordinatorType.GROUP` (`FindCoordinator` `key_type=0`). Official
+/// FindCoordinator JSON names SHARE (`key_type=2`) for the
+/// share-state key `"groupId:topicId:partition"` (v6), which this
+/// API does not use. Because `NOT_COORDINATOR` (16) is listed, this
+/// is a share-group coordinator hop (group coordinator), not a
+/// controller hop and not a partition-leader hop.
+pub fn encode_describe_share_group_offsets_request(
+    buf: &mut BytesMut,
+    groups: &[DescribeShareGroupOffsetsGroup],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_array_len(buf, true, g.topics.as_ref().map(Vec::len))?;
+        if let Some(topics) = &g.topics {
+            for t in topics {
+                buf::put_compact_string(buf, Some(&t.topic_name))?;
+                buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+                for p in &t.partitions {
+                    buf.put_i32(*p);
+                }
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_share_group_offsets_request<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<DescribeShareGroupOffsetsGroup>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let topics = match buf::get_array_len(buf, true)? {
+            None => None,
+            Some(tn) => {
+                let mut topics = Vec::with_capacity(tn);
+                for _ in 0..tn {
+                    let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+                    let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+                    let mut partitions = Vec::with_capacity(pn);
+                    for _ in 0..pn {
+                        partitions.push(buf::get_i32(buf)?);
+                    }
+                    buf::skip_tagged_fields(buf)?;
+                    topics.push(DescribeShareGroupOffsetsTopic {
+                        topic_name,
+                        partitions,
+                    });
+                }
+                Some(topics)
+            }
+        };
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribeShareGroupOffsetsGroup { group_id, topics });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(groups)
+}
+
+pub fn encode_describe_share_group_offsets_response(
+    buf: &mut BytesMut,
+    groups: &[DescribedShareGroupOffsets],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_array_len(buf, true, Some(g.topics.len()))?;
+        for t in &g.topics {
+            buf::put_compact_string(buf, Some(&t.topic_name))?;
+            buf.extend_from_slice(&t.topic_id);
+            buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+            for p in &t.partitions {
+                buf.put_i32(p.partition_index);
+                buf.put_i64(p.start_offset);
+                buf.put_i32(p.leader_epoch);
+                buf.put_i16(p.error_code);
+                buf::put_compact_string(buf, p.error_message.as_deref())?;
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf.put_i16(g.error_code);
+        buf::put_compact_string(buf, g.error_message.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_share_group_offsets_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<DescribedShareGroupOffsets>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topic_id = buf::get_uuid(buf)?;
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let start_offset = buf::get_i64(buf)?;
+                let leader_epoch = buf::get_i32(buf)?;
+                let error_code = buf::get_i16(buf)?;
+                let error_message = buf::get_compact_string(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(DescribedShareGroupOffsetsPartition {
+                    partition_index,
+                    start_offset,
+                    leader_epoch,
+                    error_code,
+                    error_message,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(DescribedShareGroupOffsetsTopic {
+                topic_name,
+                topic_id,
+                partitions,
+            });
+        }
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedShareGroupOffsets {
+            group_id,
+            topics,
+            error_code,
+            error_message,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(groups)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5617,6 +5876,146 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ShareGroupDescribe v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 90
+        // validVersions 0-1, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0 (VERSIONS.max). Not copied from
+        // ListGroups (top-level ErrorCode at bytes 4-5), ShareGroupDescribe
+        // / DescribeGroups / ConsumerGroupDescribe (first-group ErrorCode
+        // at bytes 5-6), DeleteGroups (after GroupId at bytes 7-8), or
+        // DescribeProducers (first-partition ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x01, 0x00, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x67, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00,
+        ];
+        let groups = vec![DescribeShareGroupOffsetsGroup::new("g")];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_request(&mut buf, &groups).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![DescribedShareGroupOffsets::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        buf.clear();
+        encode_describe_share_group_offsets_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn describe_share_group_offsets_v0_roundtrip_is_leftover_empty() {
+        let groups = vec![
+            DescribeShareGroupOffsetsGroup {
+                group_id: "g".into(),
+                topics: Some(vec![DescribeShareGroupOffsetsTopic::new("t", vec![0, 1])]),
+            },
+            DescribeShareGroupOffsetsGroup {
+                group_id: "g2".into(),
+                topics: None,
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_request(&mut buf, &groups).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_share_group_offsets_request(&mut cur).unwrap(),
+            groups
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeShareGroupOffsets v0 request must be leftover-empty"
+        );
+
+        let resp = vec![DescribedShareGroupOffsets {
+            group_id: "g".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartition {
+                    partition_index: 0,
+                    start_offset: 7,
+                    leader_epoch: 3,
+                    error_code: 0,
+                    error_message: None,
+                }],
+            }],
+            error_code: 0,
+            error_message: None,
+        }];
+        buf.clear();
+        encode_describe_share_group_offsets_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_share_group_offsets_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeShareGroupOffsets v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_first_group_error_code_is_at_bytes_8_9() {
+        // Official v0 body: throttle INT32, compact Groups of
+        // {GroupId, Topics, ErrorCode, ...}. Measured independently
+        // from Apache DescribeShareGroupOffsetsResponse.json and a
+        // kafka-protocol 0.18.0 broker encode (`features = ["broker"]`)
+        // on leftover-empty fixture group "g" (empty Topics). Do not
+        // assume bytes 4-5 from ListGroups / DescribeClientQuotas,
+        // bytes 5-6 from ShareGroupDescribe / DescribeGroups /
+        // ConsumerGroupDescribe, bytes 7-8 from DeleteGroups after
+        // GroupId, or bytes 12-13 from DescribeProducers.
+        let resp = vec![DescribedShareGroupOffsets::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut buf, &resp).unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b8, b9]),
+            crate::error::NOT_COORDINATOR,
+            "v0 first-group ErrorCode must be the INT16 at bytes 8-9"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v0 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v0 ErrorCode is not at ShareGroupDescribe first-group bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8b = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8b]),
+            crate::error::NOT_COORDINATOR,
+            "v0 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        assert!(
+            buf.len() < 14,
+            "leftover-empty fixture is shorter than DescribeProducers bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_share_group_offsets_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeShareGroupOffsets v0 ErrorCode body must be leftover-empty"
         );
     }
 }
