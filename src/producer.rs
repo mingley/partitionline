@@ -523,6 +523,7 @@ struct Shared {
     m_bytes: AtomicU64,
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
+    topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
 }
 
 /// Produce client: queue records, batch, and wait for offsets.
@@ -536,21 +537,33 @@ struct Inner {
 }
 
 impl Shared {
-    fn note_queued_n(&self, n: u64, bytes: u64) {
+    fn topic_tracker(&self, topic: &Arc<str>) -> Arc<crate::metrics::ProduceTopicTracker> {
+        let mut map = self.topics.lock();
+        map.entry(Arc::clone(topic))
+            .or_insert_with(|| Arc::new(crate::metrics::ProduceTopicTracker::new()))
+            .clone()
+    }
+
+    fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
         let _ = self.m_queued.fetch_add(n, Ordering::Relaxed);
         let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+        self.topic_tracker(topic).note_queued(n, bytes);
     }
 
-    fn note_acked(&self, n: u64) {
+    fn note_acked(&self, topic: &Arc<str>, n: u64) {
         let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
+        self.topic_tracker(topic).note_acked(n);
     }
 
-    fn note_ack_latency(&self, queued_at: Instant) {
-        self.ack_latency.record(queued_at.elapsed());
+    fn note_ack_latency(&self, topic: &Arc<str>, queued_at: Instant) {
+        let d = queued_at.elapsed();
+        self.ack_latency.record(d);
+        self.topic_tracker(topic).note_ack_latency(d);
     }
 
-    fn note_errors(&self, n: u64) {
+    fn note_errors(&self, topic: &Arc<str>, n: u64) {
         let _ = self.m_errors.fetch_add(n, Ordering::Relaxed);
+        self.topic_tracker(topic).note_errors(n);
     }
 }
 
@@ -692,6 +705,7 @@ impl Producer {
             m_bytes: AtomicU64::new(0),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
+            topics: parking_lot::Mutex::new(HashMap::new()),
         });
         let weak = Arc::downgrade(&shared);
         drop(tokio::spawn(async move {
@@ -846,6 +860,7 @@ impl Producer {
             let now = Instant::now();
             let deadline = now + self.inner.shared.cfg.delivery_timeout;
             let bytes = rec_bytes(&rec);
+            let topic = rec.topic.clone();
             w.data
                 .send(Pending {
                     rec,
@@ -857,7 +872,7 @@ impl Producer {
                 })
                 .await
                 .map_err(|_| Error::Closed)?;
-            self.inner.shared.note_queued_n(1, bytes);
+            self.inner.shared.note_queued_n(&topic, 1, bytes);
             rxs.push(rx);
         }
         let mut out = Vec::with_capacity(rxs.len());
@@ -945,6 +960,7 @@ impl Producer {
         let now = Instant::now();
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let bytes = rec_bytes(&rec);
+        let topic = rec.topic.clone();
         w.data
             .try_send(Pending {
                 rec,
@@ -958,11 +974,14 @@ impl Producer {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Closed,
             })?;
-        self.inner.shared.note_queued_n(1, bytes);
+        self.inner.shared.note_queued_n(&topic, 1, bytes);
         Ok(())
     }
 
     /// Produce counters and ack latency since connect (min/mean/max and p50/p99).
+    ///
+    /// [`ProducerMetrics::topics`] is one row per topic that queued, acked, or
+    /// failed at least one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ProducerMetrics {
         crate::ProducerMetrics {
@@ -971,6 +990,7 @@ impl Producer {
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
+            topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
     }
 
@@ -2060,9 +2080,9 @@ impl Worker {
                 }
                 Some(r) => {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-                    self.shared.note_acked(n);
+                    self.shared.note_acked(&topic, n);
                     for (i, p) in pendings.into_iter().enumerate() {
-                        self.shared.note_ack_latency(p.queued_at);
+                        self.shared.note_ack_latency(&topic, p.queued_at);
                         let md = RecordMetadata {
                             topic: topic.to_string(),
                             partition: part,
@@ -2461,11 +2481,11 @@ fn encode_pendings(
 }
 
 fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
-    let mut n = 0u64;
     for (topic, part, pendings) in groups {
+        let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+        shared.note_acked(&topic, n);
         for p in pendings {
-            n = n.saturating_add(1);
-            shared.note_ack_latency(p.queued_at);
+            shared.note_ack_latency(&topic, p.queued_at);
             let md = RecordMetadata {
                 topic: topic.to_string(),
                 partition: part,
@@ -2477,7 +2497,6 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
             }
         }
     }
-    shared.note_acked(n);
 }
 
 fn fail_inflight(shared: &Shared, in_flight: &mut VecDeque<InFlight>, err: Error) {
@@ -2493,9 +2512,8 @@ fn fail_groups(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err:
 }
 
 fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
-    let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
-    shared.note_errors(n);
     for p in pendings {
+        shared.note_errors(&p.rec.topic, 1);
         shared.interceptors.on_error(&err);
         if let Some(tx) = p.tx {
             drop(tx.send(Err(clone_err(&err))));

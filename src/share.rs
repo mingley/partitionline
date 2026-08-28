@@ -177,6 +177,7 @@ pub struct ShareGroup {
     fetch_errors: u64,
     records_acknowledged: u64,
     fetch_latency: crate::metrics::LatencyTracker,
+    topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
 }
 
 fn new_member_id() -> Result<String> {
@@ -239,6 +240,7 @@ impl ShareGroup {
             fetch_errors: 0,
             records_acknowledged: 0,
             fetch_latency: crate::metrics::LatencyTracker::new(),
+            topic_metrics: HashMap::new(),
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat(hb_rx);
@@ -289,6 +291,9 @@ impl ShareGroup {
 
     /// ShareFetch / ShareAcknowledge counters and poll latency since join
     /// (min/mean/max and p50/p99).
+    ///
+    /// [`ShareMetrics::topics`] is one row per topic that returned at least
+    /// one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ShareMetrics {
         crate::ShareMetrics {
@@ -298,6 +303,7 @@ impl ShareGroup {
             fetch_errors: self.fetch_errors,
             records_acknowledged: self.records_acknowledged,
             fetch_latency: self.fetch_latency.snapshot(),
+            topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
     }
 
@@ -399,7 +405,8 @@ impl ShareGroup {
         loop {
             match self.poll_leaders().await {
                 Ok(recs) => {
-                    self.fetch_latency.record(started.elapsed());
+                    let elapsed = started.elapsed();
+                    self.fetch_latency.record(elapsed);
                     self.fetch_rounds = self.fetch_rounds.saturating_add(1);
                     let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                     self.records_fetched = self.records_fetched.saturating_add(n);
@@ -408,6 +415,12 @@ impl ShareGroup {
                         .map(share_record_bytes)
                         .fold(0, u64::saturating_add);
                     self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
+                    crate::metrics::accumulate_fetch_topics(
+                        &mut self.topic_metrics,
+                        recs.iter()
+                            .map(|r| (r.topic.as_str(), share_record_bytes(r))),
+                        elapsed,
+                    );
                     return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) => {

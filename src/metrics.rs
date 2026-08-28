@@ -1,6 +1,8 @@
 //! Client counters and latency stats. Snapshots, not HDR histograms.
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Sliding window for [`LatencyStats::p50_nanos`] / [`LatencyStats::p99_nanos`].
@@ -10,7 +12,9 @@ const LATENCY_WINDOW: usize = 1024;
 ///
 /// `min_nanos` / `max_nanos` / `p50_nanos` / `p99_nanos` are `0` when
 /// [`Self::count`] is `0`. Percentiles are the last 1024 samples (not a
-/// lifetime HDR histogram, not per-topic).
+/// lifetime HDR histogram). Global snapshots are not split by topic;
+/// [`ProducerMetrics::topics`] / [`ConsumerMetrics::topics`] /
+/// [`ShareMetrics::topics`] are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LatencyStats {
     /// Samples recorded.
@@ -158,7 +162,7 @@ impl LatencyTracker {
 }
 
 /// Produce counters since this [`crate::Producer`] connected.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProducerMetrics {
     /// Records successfully queued (`send` / `send_all` / `try_send`).
     pub records_queued: u64,
@@ -170,10 +174,29 @@ pub struct ProducerMetrics {
     pub bytes_queued: u64,
     /// Queue-to-ack latency per acknowledged record (including `acks=0`).
     pub ack_latency: LatencyStats,
+    /// Per-topic counters. Topics with no activity are omitted. Sorted by name.
+    pub topics: Vec<TopicProduceMetrics>,
+}
+
+/// Produce counters for one topic.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TopicProduceMetrics {
+    /// Topic name.
+    pub topic: String,
+    /// Records queued for this topic.
+    pub records_queued: u64,
+    /// Records the broker acknowledged for this topic.
+    pub records_acked: u64,
+    /// Records that failed for this topic.
+    pub produce_errors: u64,
+    /// Key plus value bytes queued for this topic.
+    pub bytes_queued: u64,
+    /// Queue-to-ack latency for this topic.
+    pub ack_latency: LatencyStats,
 }
 
 /// Fetch counters since this [`crate::Consumer`] connected.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConsumerMetrics {
     /// Successful [`crate::Consumer::fetch`] / [`crate::ConsumerGroup::poll`] calls.
     pub fetch_rounds: u64,
@@ -185,10 +208,26 @@ pub struct ConsumerMetrics {
     pub fetch_errors: u64,
     /// End-to-end duration of each successful fetch round.
     pub fetch_latency: LatencyStats,
+    /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
+    pub topics: Vec<TopicFetchMetrics>,
+}
+
+/// Fetch counters for one topic.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TopicFetchMetrics {
+    /// Topic name.
+    pub topic: String,
+    /// Records returned for this topic.
+    pub records_fetched: u64,
+    /// Key plus value bytes returned for this topic.
+    pub bytes_fetched: u64,
+    /// Duration of each successful fetch/poll round that returned records
+    /// for this topic.
+    pub fetch_latency: LatencyStats,
 }
 
 /// Share-group counters since this [`crate::ShareGroup`] joined.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShareMetrics {
     /// Successful [`crate::ShareGroup::poll`] calls.
     pub fetch_rounds: u64,
@@ -202,11 +241,133 @@ pub struct ShareMetrics {
     pub records_acknowledged: u64,
     /// End-to-end duration of each successful poll (including leader retries).
     pub fetch_latency: LatencyStats,
+    /// Per-topic counters. Topics with no fetched records are omitted. Sorted by name.
+    pub topics: Vec<TopicFetchMetrics>,
+}
+
+pub(crate) struct ProduceTopicTracker {
+    records_queued: AtomicU64,
+    records_acked: AtomicU64,
+    produce_errors: AtomicU64,
+    bytes_queued: AtomicU64,
+    ack_latency: LatencyTracker,
+}
+
+impl ProduceTopicTracker {
+    pub(crate) fn new() -> Self {
+        Self {
+            records_queued: AtomicU64::new(0),
+            records_acked: AtomicU64::new(0),
+            produce_errors: AtomicU64::new(0),
+            bytes_queued: AtomicU64::new(0),
+            ack_latency: LatencyTracker::new(),
+        }
+    }
+
+    pub(crate) fn note_queued(&self, n: u64, bytes: u64) {
+        let _ = self.records_queued.fetch_add(n, Ordering::Relaxed);
+        let _ = self.bytes_queued.fetch_add(bytes, Ordering::Relaxed);
+    }
+
+    pub(crate) fn note_acked(&self, n: u64) {
+        let _ = self.records_acked.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn note_ack_latency(&self, d: Duration) {
+        self.ack_latency.record(d);
+    }
+
+    pub(crate) fn note_errors(&self, n: u64) {
+        let _ = self.produce_errors.fetch_add(n, Ordering::Relaxed);
+    }
+
+    pub(crate) fn snapshot(&self, topic: String) -> TopicProduceMetrics {
+        TopicProduceMetrics {
+            topic,
+            records_queued: self.records_queued.load(Ordering::Relaxed),
+            records_acked: self.records_acked.load(Ordering::Relaxed),
+            produce_errors: self.produce_errors.load(Ordering::Relaxed),
+            bytes_queued: self.bytes_queued.load(Ordering::Relaxed),
+            ack_latency: self.ack_latency.snapshot(),
+        }
+    }
+}
+
+pub(crate) struct FetchTopicTracker {
+    records_fetched: AtomicU64,
+    bytes_fetched: AtomicU64,
+    fetch_latency: LatencyTracker,
+}
+
+impl FetchTopicTracker {
+    pub(crate) fn new() -> Self {
+        Self {
+            records_fetched: AtomicU64::new(0),
+            bytes_fetched: AtomicU64::new(0),
+            fetch_latency: LatencyTracker::new(),
+        }
+    }
+
+    pub(crate) fn note_fetched(&self, n: u64, bytes: u64, latency: Duration) {
+        let _ = self.records_fetched.fetch_add(n, Ordering::Relaxed);
+        let _ = self.bytes_fetched.fetch_add(bytes, Ordering::Relaxed);
+        self.fetch_latency.record(latency);
+    }
+
+    pub(crate) fn snapshot(&self, topic: String) -> TopicFetchMetrics {
+        TopicFetchMetrics {
+            topic,
+            records_fetched: self.records_fetched.load(Ordering::Relaxed),
+            bytes_fetched: self.bytes_fetched.load(Ordering::Relaxed),
+            fetch_latency: self.fetch_latency.snapshot(),
+        }
+    }
+}
+
+pub(crate) fn snapshot_produce_topics(
+    map: &HashMap<Arc<str>, Arc<ProduceTopicTracker>>,
+) -> Vec<TopicProduceMetrics> {
+    let mut topics: Vec<TopicProduceMetrics> = map
+        .iter()
+        .map(|(name, t)| t.snapshot(name.to_string()))
+        .collect();
+    topics.sort_by(|a, b| a.topic.cmp(&b.topic));
+    topics
+}
+
+pub(crate) fn snapshot_fetch_topics(
+    map: &HashMap<String, FetchTopicTracker>,
+) -> Vec<TopicFetchMetrics> {
+    let mut topics: Vec<TopicFetchMetrics> = map
+        .iter()
+        .map(|(name, t)| t.snapshot(name.clone()))
+        .collect();
+    topics.sort_by(|a, b| a.topic.cmp(&b.topic));
+    topics
+}
+
+pub(crate) fn accumulate_fetch_topics<'a>(
+    map: &mut HashMap<String, FetchTopicTracker>,
+    recs: impl IntoIterator<Item = (&'a str, u64)>,
+    latency: Duration,
+) {
+    let mut acc: HashMap<&'a str, (u64, u64)> = HashMap::new();
+    for (topic, bytes) in recs {
+        let e = acc.entry(topic).or_insert((0, 0));
+        e.0 = e.0.saturating_add(1);
+        e.1 = e.1.saturating_add(bytes);
+    }
+    for (topic, (n, bytes)) in acc {
+        map.entry(topic.to_string())
+            .or_insert_with(FetchTopicTracker::new)
+            .note_fetched(n, bytes, latency);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use std::time::Duration;
 
     #[test]
@@ -221,6 +382,9 @@ mod tests {
         assert_eq!(ShareMetrics::default().bytes_fetched, 0);
         assert_eq!(ShareMetrics::default().fetch_errors, 0);
         assert_eq!(ShareMetrics::default().fetch_latency.count, 0);
+        assert!(ProducerMetrics::default().topics.is_empty());
+        assert!(ConsumerMetrics::default().topics.is_empty());
+        assert!(ShareMetrics::default().topics.is_empty());
         assert_eq!(LatencyStats::default().mean_nanos(), None);
     }
 
@@ -261,5 +425,25 @@ mod tests {
         assert_eq!(percentile_index(3, 99), 2);
         assert_eq!(percentile_index(100, 50), 49);
         assert_eq!(percentile_index(100, 99), 98);
+    }
+
+    #[test]
+    fn fetch_topics_sorted_and_grouped() {
+        let mut map = HashMap::new();
+        accumulate_fetch_topics(
+            &mut map,
+            [("z", 2u64), ("a", 3), ("z", 1)],
+            Duration::from_nanos(10),
+        );
+        let snap = snapshot_fetch_topics(&map);
+        assert_eq!(snap.len(), 2);
+        assert_eq!(snap[0].topic, "a");
+        assert_eq!(snap[0].records_fetched, 1);
+        assert_eq!(snap[0].bytes_fetched, 3);
+        assert_eq!(snap[0].fetch_latency.count, 1);
+        assert_eq!(snap[1].topic, "z");
+        assert_eq!(snap[1].records_fetched, 2);
+        assert_eq!(snap[1].bytes_fetched, 3);
+        assert_eq!(snap[1].fetch_latency.count, 1);
     }
 }

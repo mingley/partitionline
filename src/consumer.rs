@@ -779,6 +779,7 @@ pub struct Consumer {
     telemetry_version: Option<i16>,
     client_instance_id: Option<[u8; 16]>,
     m_fetch_latency: crate::metrics::LatencyTracker,
+    topic_metrics: HashMap<String, crate::metrics::FetchTopicTracker>,
     reconnect_fails: HashMap<i32, u32>,
 }
 
@@ -876,6 +877,7 @@ impl Consumer {
             telemetry_version,
             client_instance_id: None,
             m_fetch_latency: crate::metrics::LatencyTracker::new(),
+            topic_metrics: HashMap::new(),
             reconnect_fails: HashMap::new(),
         })
     }
@@ -1412,12 +1414,18 @@ impl Consumer {
         let result = self.fetch_assigned().await;
         match result {
             Ok(recs) => {
-                self.m_fetch_latency.record(started.elapsed());
+                let elapsed = started.elapsed();
+                self.m_fetch_latency.record(elapsed);
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
                 let bytes: u64 = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
+                crate::metrics::accumulate_fetch_topics(
+                    &mut self.topic_metrics,
+                    recs.iter().map(|r| (r.topic.as_str(), fetched_bytes(r))),
+                    elapsed,
+                );
                 Ok(ConsumerRecords::from(
                     self.cfg.interceptors.on_consume(recs),
                 ))
@@ -1445,6 +1453,9 @@ impl Consumer {
     }
 
     /// Fetch counters and round latency since connect (min/mean/max and p50/p99).
+    ///
+    /// [`ConsumerMetrics::topics`] is one row per topic that returned at least
+    /// one record.
     #[must_use]
     pub fn metrics(&self) -> crate::ConsumerMetrics {
         crate::ConsumerMetrics {
@@ -1453,6 +1464,7 @@ impl Consumer {
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
             fetch_latency: self.m_fetch_latency.snapshot(),
+            topics: crate::metrics::snapshot_fetch_topics(&self.topic_metrics),
         }
     }
 

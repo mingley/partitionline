@@ -18,7 +18,7 @@ async fn main() -> partitionline::Result<()> {
         .await?;
     let pm = producer.metrics();
     println!(
-        "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={}",
+        "produced {}-{}@{} queued={} acked={} bytes={} ack_us={} p50_us={} p99_us={} topics={}",
         md.topic,
         md.partition,
         md.offset,
@@ -27,7 +27,8 @@ async fn main() -> partitionline::Result<()> {
         pm.bytes_queued,
         pm.ack_latency.mean_nanos().unwrap_or(0) / 1000,
         pm.ack_latency.p50_nanos / 1000,
-        pm.ack_latency.p99_nanos / 1000
+        pm.ack_latency.p99_nanos / 1000,
+        pm.topics.len()
     );
     producer.close().await?;
 
@@ -36,14 +37,15 @@ async fn main() -> partitionline::Result<()> {
     let recs = consumer.fetch().await?;
     let cm = consumer.metrics();
     println!(
-        "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={}",
+        "fetched {} records rounds={} bytes={} errors={} fetch_us={} p50_us={} p99_us={} topics={}",
         recs.len(),
         cm.fetch_rounds,
         cm.bytes_fetched,
         cm.fetch_errors,
         cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000,
         cm.fetch_latency.p50_nanos / 1000,
-        cm.fetch_latency.p99_nanos / 1000
+        cm.fetch_latency.p99_nanos / 1000,
+        cm.topics.len()
     );
     consumer.close().await?;
     Ok(())

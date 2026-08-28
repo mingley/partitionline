@@ -504,6 +504,15 @@ async fn share_join_topics_fetches_both() {
     assert_eq!(sm.records_acknowledged, 0);
     assert_eq!(sm.fetch_latency.count, 1);
     assert!(sm.fetch_latency.max_nanos >= sm.fetch_latency.min_nanos);
+    assert_eq!(sm.topics.len(), 2);
+    assert_eq!(sm.topics[0].topic, "orders");
+    assert_eq!(sm.topics[0].records_fetched, 1);
+    assert_eq!(sm.topics[0].bytes_fetched, 1);
+    assert_eq!(sm.topics[0].fetch_latency.count, 1);
+    assert_eq!(sm.topics[1].topic, "payments");
+    assert_eq!(sm.topics[1].records_fetched, 1);
+    assert_eq!(sm.topics[1].bytes_fetched, 1);
+    assert_eq!(sm.topics[1].fetch_latency.count, 1);
     assert!(recs.iter().all(|r| r.leader_epoch == Some(0)));
     group.accept(&recs).await.unwrap();
     assert_eq!(group.metrics().records_acknowledged, 2);
@@ -939,19 +948,32 @@ async fn producer_and_consumer_metrics() {
         .send_all([
             ProduceRecord::to("t").value(&b"ab"[..]),
             ProduceRecord::to("t").value(&b"cd"[..]),
+            ProduceRecord::to("u").value(&b"x"[..]),
         ])
         .await
         .unwrap();
     let pm = producer.metrics();
-    assert_eq!(pm.records_queued, 2);
-    assert_eq!(pm.records_acked, 2);
+    assert_eq!(pm.records_queued, 3);
+    assert_eq!(pm.records_acked, 3);
     assert_eq!(pm.produce_errors, 0);
-    assert_eq!(pm.bytes_queued, 4);
-    assert_eq!(pm.ack_latency.count, 2);
+    assert_eq!(pm.bytes_queued, 5);
+    assert_eq!(pm.ack_latency.count, 3);
     assert!(pm.ack_latency.max_nanos >= pm.ack_latency.min_nanos);
     assert!(pm.ack_latency.mean_nanos().is_some());
     assert!(pm.ack_latency.p50_nanos <= pm.ack_latency.p99_nanos);
     assert!(pm.ack_latency.p99_nanos <= pm.ack_latency.max_nanos);
+    assert_eq!(pm.topics.len(), 2);
+    assert_eq!(pm.topics[0].topic, "t");
+    assert_eq!(pm.topics[0].records_queued, 2);
+    assert_eq!(pm.topics[0].records_acked, 2);
+    assert_eq!(pm.topics[0].produce_errors, 0);
+    assert_eq!(pm.topics[0].bytes_queued, 4);
+    assert_eq!(pm.topics[0].ack_latency.count, 2);
+    assert_eq!(pm.topics[1].topic, "u");
+    assert_eq!(pm.topics[1].records_queued, 1);
+    assert_eq!(pm.topics[1].records_acked, 1);
+    assert_eq!(pm.topics[1].bytes_queued, 1);
+    assert_eq!(pm.topics[1].ack_latency.count, 1);
     producer.close().await.unwrap();
 
     let mut consumer =
@@ -969,6 +991,11 @@ async fn producer_and_consumer_metrics() {
     assert_eq!(cm.fetch_latency.count, 1);
     assert!(cm.fetch_latency.max_nanos >= cm.fetch_latency.min_nanos);
     assert!(cm.fetch_latency.mean_nanos().is_some());
+    assert_eq!(cm.topics.len(), 1);
+    assert_eq!(cm.topics[0].topic, "t");
+    assert_eq!(cm.topics[0].records_fetched, 2);
+    assert_eq!(cm.topics[0].bytes_fetched, 4);
+    assert_eq!(cm.topics[0].fetch_latency.count, 1);
 }
 
 #[tokio::test]
