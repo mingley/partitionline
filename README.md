@@ -22,11 +22,12 @@ Talks Kafka 3.x / 4.x.
 Kerberos (both blocked on C libraries in default features), Schema Registry.
 Full list: [docs/gaps.md](docs/gaps.md).
 
-Locked produce and fetch vs librdkafka 2.15.0 C on this machine (broker
-high watermark / records consumed equal records sent). Latency was not
-measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
+Locked produce vs librdkafka 2.15.0 C is Lab A (broker high watermark
+equals records sent). Latency was not measured. Numbers:
+[docs/benchmark.md](docs/benchmark.md). Suite HOLD:
+[docs/STATUS.md](docs/STATUS.md).
 
-| Locked 8e6 × 100B | partitionline median | C 2.15.0 median |
+| Locked 8e6 × 100B produce (Lab A) | partitionline median | C 2.15.0 median |
 |---|---|---|
 | uncompressed, `acks=1` (2026-08-25) | 6.17M rec/s | 4.94M rec/s |
 | uncompressed, `acks=1` (2026-08-24) | 7.28M rec/s | 3.88M rec/s |
@@ -36,7 +37,15 @@ measured. Numbers: [docs/benchmark.md](docs/benchmark.md).
 | SASL SCRAM-SHA-256 | 6.81M rec/s | 3.98M rec/s |
 | SASL SCRAM-SHA-512 | 6.89M rec/s | 3.43M rec/s |
 | SASL OAUTHBEARER | 6.82M rec/s | 3.64M rec/s |
-| fetch (consume, same 8e6×100B log) | 4.38M rec/s | 3.12M rec/s |
+
+Fetch writeup **2026-08-28 this-VM** (Apache Kafka 3.9.1 KRaft; consumed
+equals sent, HW 8e6). Comparison is rust-rdkafka **0.39.0**
+`BaseConsumer::poll` (bundled librdkafka 2.12.1), not Lab A and not C
+2.15.0. **Unsigned** until Kernel Integrity signs. Not a Suite HOLD lift.
+
+| Fetch 8e6 × 100B (this-VM, unsigned) | partitionline median | rdkafka 0.39.0 median |
+|---|---|---|
+| consume, same log | 5.28M rec/s | 0.90M rec/s |
 
 ## Demo
 
@@ -54,7 +63,8 @@ COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plb
   cargo run --release --example bench_produce
 ```
 
-C bar and fetch bench: [docs/benchmark.md](docs/benchmark.md).
+Produce C bar (Lab A) and fetch writeup (this-VM, unsigned):
+[docs/benchmark.md](docs/benchmark.md).
 
 ## Example
 

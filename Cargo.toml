@@ -18,6 +18,7 @@ include = [
     "docs/design.md",
     "docs/gaps.md",
     "docs/benchmark.md",
+    "docs/STATUS.md",
     "Cargo.toml",
     "Cargo.lock",
     "clippy.toml",
