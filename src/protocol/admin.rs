@@ -6030,6 +6030,140 @@ pub fn decode_create_delegation_token_response<B: Buf>(
     })
 }
 
+/// RenewDelegationToken (api 39) v2 request body.
+///
+/// Official Apache JSON (`apiKey: 39`, request `listeners: ["broker",
+/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
+/// the 3.9.1 JSON kafka-protocol 0.18.0 was generated against,
+/// `validVersions: "1-2"` on trunk / `"0-2"` on 3.9.1,
+/// `flexibleVersions: "2+"`). Official JSON lists no `errorCodes`.
+/// Request has no ErrorCode field. `Hmac` is the token HMAC (non-null
+/// compact BYTES at v2). `RenewPeriodMs` `-1` uses the server default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RenewDelegationTokenRequest {
+    pub hmac: Vec<u8>,
+    pub renew_period_ms: i64,
+}
+
+impl RenewDelegationTokenRequest {
+    pub fn new(hmac: Vec<u8>, renew_period_ms: i64) -> Self {
+        Self {
+            hmac,
+            renew_period_ms,
+        }
+    }
+}
+
+/// RenewDelegationToken (api 39) v2 response body.
+///
+/// **ErrorCode is top-level**, first field — not after throttle.
+/// Official JSON places `ThrottleTimeMs` last. This is a single token
+/// expiry, not a token array: there is no first-token ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RenewDelegationTokenResponse {
+    pub error_code: i16,
+    pub expiry_timestamp_ms: i64,
+}
+
+impl RenewDelegationTokenResponse {
+    pub fn new(error_code: i16, expiry_timestamp_ms: i64) -> Self {
+        Self {
+            error_code,
+            expiry_timestamp_ms,
+        }
+    }
+}
+
+/// RenewDelegationToken v2 (flexible from v2; KIP-48 / KIP-373).
+///
+/// Official Apache JSON (`apiKey: 39`, request `listeners: ["broker",
+/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
+/// 3.9.1, trunk `validVersions: "1-2"`, 3.9.1 `validVersions: "0-2"`,
+/// `flexibleVersions: "2+"`). Official JSON lists **no** `errorCodes`.
+/// Official Java `KafkaApis.handleRenewTokenRequest` validates the
+/// connection (`allowTokenRequests` →
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64)), then
+/// `forwardToController` — broker-side envelope forwarding, not a
+/// client hop. Official Java `RenewDelegationTokenResponseData`
+/// writes `Errors.forException` / handler `setErrorCode` onto the
+/// **top-level** ErrorCode. Official Java
+/// `KafkaAdminClient.renewDelegationToken` uses
+/// `LeastLoadedNodeProvider` (any broker). `NOT_COORDINATOR` (16) is
+/// **not** listed. `NOT_CONTROLLER` (41) is **not** listed.
+/// `NOT_LEADER_OR_FOLLOWER` (6) is **not** a client hop.
+/// kafka-protocol 0.18.0 (`RenewDelegationTokenRequest` /
+/// `RenewDelegationTokenResponse`, `VERSIONS` min=1 max=2). This
+/// crate targets v2, the version a client encodes (`VERSIONS.max`).
+/// Official 3.9.1 lists a deprecated v0; that version is not encoded.
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: compact `Hmac` BYTES, `RenewPeriodMs` INT64,
+/// tagged. Response: **top-level `ErrorCode` INT16 first**,
+/// `ExpiryTimestampMs` INT64, `ThrottleTimeMs` INT32 last, tagged.
+/// **ErrorCode is top-level**, first field — not after throttle and
+/// not a first-token field. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on
+/// leftover-empty fixture throttle `0`, expiry `0`, error
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64): the leftover-empty
+/// body is **15 bytes** and the top-level ErrorCode is the INT16 at
+/// **bytes 0–1**. i16=64 hits only at byte 0. There is no first-token
+/// ErrorCode. Do not assume bytes 4–5 from DescribeLogDirs /
+/// AssignReplicasToDirs / PushTelemetry / GetTelemetrySubscriptions /
+/// ListConfigResources: this offset was measured on this API's
+/// official first field. Not bytes 5–6 (DescribeTopicPartitions /
+/// ShareGroupDescribe), 7–8 (DeleteGroups after GroupId;
+/// DescribeLogDirs first-directory), 8–9
+/// (DescribeShareGroupOffsets), 12–13 (AlterReplicaLogDirs /
+/// DescribeProducers first-partition), 27–28, or 45–46. Because 41
+/// is not listed, 16 is not listed, and 6 is not a client hop, this
+/// is broker-only: no FindCoordinator, no `key_type`, no controller
+/// hop, no partition-leader hop. This is not a token store. Do not
+/// copy CreateDelegationToken just because it is the previous slice.
+pub fn encode_renew_delegation_token_request(
+    buf: &mut BytesMut,
+    req: &RenewDelegationTokenRequest,
+) -> crate::error::Result<()> {
+    buf::put_compact_bytes(buf, Some(&req.hmac))?;
+    buf.put_i64(req.renew_period_ms);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_renew_delegation_token_request<B: Buf>(
+    buf: &mut B,
+) -> Result<RenewDelegationTokenRequest> {
+    let hmac = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    let renew_period_ms = buf::get_i64(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(RenewDelegationTokenRequest {
+        hmac,
+        renew_period_ms,
+    })
+}
+
+pub fn encode_renew_delegation_token_response(
+    buf: &mut BytesMut,
+    resp: &RenewDelegationTokenResponse,
+) -> crate::error::Result<()> {
+    buf.put_i16(resp.error_code);
+    buf.put_i64(resp.expiry_timestamp_ms);
+    buf.put_i32(0);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_renew_delegation_token_response<B: Buf>(
+    buf: &mut B,
+) -> Result<RenewDelegationTokenResponse> {
+    let error_code = buf::get_i16(buf)?;
+    let expiry_timestamp_ms = buf::get_i64(buf)?;
+    let _th = buf::get_i32(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(RenewDelegationTokenResponse {
+        error_code,
+        expiry_timestamp_ms,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -10307,6 +10441,308 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "v3 request must be leftover-empty; a later-version field would leave leftover"
+        );
+    }
+
+    #[test]
+    fn renew_delegation_token_v2_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 39
+        // listeners broker + controller. This crate targets v2
+        // (VERSIONS.max). Not copied from CreateDelegationToken
+        // (top-level ErrorCode at bytes 0-1 on a 37-byte empty-token
+        // body), DescribeLogDirs / AssignReplicasToDirs / PushTelemetry
+        // / GetTelemetrySubscriptions / ListConfigResources / ListGroups
+        // (top-level ErrorCode at bytes 4-5),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), AlterReplicaLogDirs / DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13), or
+        // DescribeTopicPartitions first-partition (bytes 27-28).
+        const REQ_EMPTY: &[u8] = &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const REQ_NULL_PERIOD: &[u8] =
+            &[0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00];
+        const REQ_ONE: &[u8] = &[
+            0x02, 0xaa, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
+        ];
+        // DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64). Leftover-empty
+        // body is 15 bytes. Top-level ErrorCode is at bytes 0-1.
+        const RESP_64: &[u8] = &[
+            0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        const RESP_OK: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_renew_delegation_token_request(
+            &mut buf,
+            &RenewDelegationTokenRequest::new(vec![], 0),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ_EMPTY);
+        buf.clear();
+        encode_renew_delegation_token_request(
+            &mut buf,
+            &RenewDelegationTokenRequest::new(vec![], -1),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ_NULL_PERIOD);
+        buf.clear();
+        encode_renew_delegation_token_request(
+            &mut buf,
+            &RenewDelegationTokenRequest::new(vec![0xaa], -1),
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ_ONE);
+        let resp = RenewDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            0,
+        );
+        buf.clear();
+        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_64);
+        buf.clear();
+        encode_renew_delegation_token_response(&mut buf, &RenewDelegationTokenResponse::new(0, 0))
+            .unwrap();
+        assert_eq!(&buf[..], RESP_OK);
+    }
+
+    #[test]
+    fn renew_delegation_token_v2_roundtrip_is_leftover_empty() {
+        let req = RenewDelegationTokenRequest::new(vec![0xaa, 0xbb], -1);
+        let mut buf = BytesMut::new();
+        encode_renew_delegation_token_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "RenewDelegationToken v2 request must be leftover-empty"
+        );
+
+        let resp = RenewDelegationTokenResponse::new(0, 1_700_000_000_000);
+        buf.clear();
+        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "RenewDelegationToken v2 response must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_renew_delegation_token_request(
+            &mut buf,
+            &RenewDelegationTokenRequest::new(vec![], -1),
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            RenewDelegationTokenRequest::new(vec![], -1)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "RenewDelegationToken v2 empty-hmac request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn renew_delegation_token_top_level_error_code_is_at_bytes_0_1() {
+        // Official v2 body: top-level ErrorCode INT16 first, then
+        // ExpiryTimestampMs INT64, ThrottleTimeMs INT32 last. Measured
+        // independently from Apache RenewDelegationTokenResponse.json
+        // and a kafka-protocol 0.18.0 broker encode (`features =
+        // ["broker"]`) on leftover-empty fixture throttle 0, expiry 0,
+        // error DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64). Do not
+        // assume bytes 0-1 from CreateDelegationToken (different
+        // response, 37-byte empty-token body), bytes 4-5 from
+        // DescribeLogDirs / AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // AlterReplicaLogDirs / DescribeProducers first-partition,
+        // bytes 27-28 from DescribeTopicPartitions first-partition, or
+        // bytes 45-46 from AssignReplicasToDirs first-partition.
+        // Official JSON lists no errorCodes; official handler writes
+        // DELEGATION_TOKEN_REQUEST_NOT_ALLOWED (64) onto the
+        // top-level field when allowTokenRequests fails.
+        let empty = RenewDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            0,
+        );
+        let mut buf = BytesMut::new();
+        encode_renew_delegation_token_response(&mut buf, &empty).unwrap();
+        assert_eq!(
+            buf.len(),
+            15,
+            "v2 leftover-empty body is top-level INT16 + expiry INT64 + throttle INT32 + tagged"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 top-level ErrorCode must be the INT16 at bytes 0-1"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not after throttle at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not a first-renewer / first-topic field at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not at DeleteGroups / first-directory bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not a first-partition field at bytes 12-13"
+        );
+        assert!(
+            buf.get(27).is_none(),
+            "v2 leftover-empty body is 15 bytes and does not reach bytes 27-28"
+        );
+        assert!(
+            buf.get(45).is_none(),
+            "v2 leftover-empty body is 15 bytes and does not reach bytes 45-46"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=64 hits only at byte 0");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "RenewDelegationToken v2 empty-expiry body must be leftover-empty"
+        );
+
+        let resp = RenewDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            1_700_000_000_000,
+        );
+        buf.clear();
+        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            15,
+            "v2 body stays 15 bytes when expiry is non-zero"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 top-level ErrorCode stays at bytes 0-1 when expiry is present"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 ErrorCode is not after throttle at bytes 4-5"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=64 hits only at byte 0");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "RenewDelegationToken v2 non-zero-expiry body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn renew_delegation_token_does_not_speak_v0() {
+        // kafka-protocol 0.18.0 VERSIONS.min = 1, VERSIONS.max = 2.
+        // This crate negotiates 2 only. Official 3.9.1 lists deprecated
+        // v0; that version is not encoded. Official trunk removed v0.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 2, 2), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 2, 2), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 2, 2), None);
+        let req = RenewDelegationTokenRequest::new(vec![], -1);
+        let mut buf = BytesMut::new();
+        encode_renew_delegation_token_request(&mut buf, &req).unwrap();
+        assert_eq!(
+            buf.len(),
+            10,
+            "v2 leftover-empty empty-hmac request has no extra field after RenewPeriodMs"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "v2 request must be leftover-empty; a later-version field would leave leftover"
         );
     }
 }
