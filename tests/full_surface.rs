@@ -12,7 +12,7 @@ mod common;
 
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
+    error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
     AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic,
     AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
     AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
@@ -2701,6 +2701,40 @@ async fn describe_producers_follows_partition_leader() {
         mock.last_describe_producers_node(),
         Some(1),
         "DescribeProducers must follow Metadata after NOT_LEADER"
+    );
+}
+
+#[tokio::test]
+async fn abort_transaction_follows_partition_leader() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    admin
+        .abort_transaction(AbortTransactionSpec::new(("t", 0), 1000, 0, 1))
+        .await
+        .unwrap();
+    let marker = mock.last_write_txn_markers().expect("WriteTxnMarkers sent");
+    assert_eq!(marker.producer_id, 1000);
+    assert!(!marker.transaction_result);
+    assert_eq!(
+        mock.last_write_txn_markers_node(),
+        Some(2),
+        "WriteTxnMarkers must land on the partition leader, not a follower"
+    );
+
+    mock.set_partition_leader("t", 0, 1);
+    admin
+        .abort_transaction(AbortTransactionSpec::new(("t", 0), 1000, 0, 1))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.write_txn_markers_not_leader(),
+        1,
+        "stale leader must return NOT_LEADER_OR_FOLLOWER (6) once"
+    );
+    assert_eq!(
+        mock.last_write_txn_markers_node(),
+        Some(1),
+        "WriteTxnMarkers must follow Metadata after NOT_LEADER"
     );
 }
 

@@ -45,7 +45,8 @@ pub mod sasl;
 pub mod scram;
 /// Share groups (KIP-932).
 pub mod share;
-/// Transactional produce APIs.
+/// AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
+/// TxnOffsetCommit codecs.
 pub mod txn;
 
 pub use api::{

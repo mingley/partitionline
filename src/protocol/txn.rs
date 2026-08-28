@@ -1,4 +1,5 @@
-//! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, and TxnOffsetCommit (api keys 24–26, 28).
+//! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
+//! TxnOffsetCommit (api keys 24–28).
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -11,6 +12,8 @@ pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
 pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 /// EndTxn (26).
 pub const END_TXN: i16 = 26;
+/// WriteTxnMarkers (27).
+pub const WRITE_TXN_MARKERS: i16 = 27;
 /// TxnOffsetCommit (28).
 pub const TXN_OFFSET_COMMIT: i16 = 28;
 
@@ -305,6 +308,189 @@ pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     Ok(first_err)
 }
 
+/// One topic in a WriteTxnMarkers marker (api 27 v0, classic).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarkerTopic {
+    /// Topic name.
+    pub name: String,
+    /// Partition indexes to write the marker on.
+    pub partitions: Vec<i32>,
+}
+
+/// One transaction marker in WriteTxnMarkers v0 (classic).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarker {
+    /// Producer id.
+    pub producer_id: i64,
+    /// Producer epoch.
+    pub producer_epoch: i16,
+    /// `true` is COMMIT, `false` is ABORT.
+    pub transaction_result: bool,
+    /// Topics and partitions that receive the marker.
+    pub topics: Vec<WritableTxnMarkerTopic>,
+    /// Transaction coordinator epoch.
+    pub coordinator_epoch: i32,
+}
+
+impl WritableTxnMarker {
+    /// Per-partition result with the same layout and `error_code`.
+    #[must_use]
+    pub fn result(&self, error_code: i16) -> WritableTxnMarkerResult {
+        WritableTxnMarkerResult {
+            producer_id: self.producer_id,
+            topics: self
+                .topics
+                .iter()
+                .map(|t| WritableTxnMarkerTopicResult {
+                    name: t.name.clone(),
+                    partitions: t
+                        .partitions
+                        .iter()
+                        .map(|&partition_index| WritableTxnMarkerPartitionResult {
+                            partition_index,
+                            error_code,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        }
+    }
+}
+
+/// One partition in a WriteTxnMarkers response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarkerPartitionResult {
+    /// Partition index.
+    pub partition_index: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+}
+
+/// One topic in a WriteTxnMarkers response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarkerTopicResult {
+    /// Topic name.
+    pub name: String,
+    /// Per-partition results.
+    pub partitions: Vec<WritableTxnMarkerPartitionResult>,
+}
+
+/// One marker in a WriteTxnMarkers response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarkerResult {
+    /// Producer id from the request.
+    pub producer_id: i64,
+    /// Per-topic results.
+    pub topics: Vec<WritableTxnMarkerTopicResult>,
+}
+
+/// WriteTxnMarkers v0 (classic). v1 is flexible and is not implemented.
+pub fn encode_write_txn_markers_request(
+    buf: &mut BytesMut,
+    markers: &[WritableTxnMarker],
+) -> Result<()> {
+    buf::put_array_len(buf, false, Some(markers.len()))?;
+    for m in markers {
+        buf.put_i64(m.producer_id);
+        buf.put_i16(m.producer_epoch);
+        buf.put_u8(u8::from(m.transaction_result));
+        buf::put_array_len(buf, false, Some(m.topics.len()))?;
+        for t in &m.topics {
+            buf::put_classic_nullable_string(buf, Some(&t.name))?;
+            buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+            for p in &t.partitions {
+                buf.put_i32(*p);
+            }
+        }
+        buf.put_i32(m.coordinator_epoch);
+    }
+    Ok(())
+}
+
+/// Decode WriteTxnMarkers v0.
+pub fn decode_write_txn_markers_request<B: Buf>(buf: &mut B) -> Result<Vec<WritableTxnMarker>> {
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut markers = Vec::with_capacity(n);
+    for _ in 0..n {
+        let producer_id = buf::get_i64(buf)?;
+        let producer_epoch = buf::get_i16(buf)?;
+        let transaction_result = buf::get_bool(buf)?;
+        let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                partitions.push(buf::get_i32(buf)?);
+            }
+            topics.push(WritableTxnMarkerTopic { name, partitions });
+        }
+        let coordinator_epoch = buf::get_i32(buf)?;
+        markers.push(WritableTxnMarker {
+            producer_id,
+            producer_epoch,
+            transaction_result,
+            topics,
+            coordinator_epoch,
+        });
+    }
+    Ok(markers)
+}
+
+/// Encode WriteTxnMarkers v0.
+pub fn encode_write_txn_markers_response(
+    buf: &mut BytesMut,
+    markers: &[WritableTxnMarkerResult],
+) -> Result<()> {
+    buf::put_array_len(buf, false, Some(markers.len()))?;
+    for m in markers {
+        buf.put_i64(m.producer_id);
+        buf::put_array_len(buf, false, Some(m.topics.len()))?;
+        for t in &m.topics {
+            buf::put_classic_nullable_string(buf, Some(&t.name))?;
+            buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+            for p in &t.partitions {
+                buf.put_i32(p.partition_index);
+                buf.put_i16(p.error_code);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Decode WriteTxnMarkers v0.
+pub fn decode_write_txn_markers_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<WritableTxnMarkerResult>> {
+    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let mut markers = Vec::with_capacity(n);
+    for _ in 0..n {
+        let producer_id = buf::get_i64(buf)?;
+        let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let error_code = buf::get_i16(buf)?;
+                partitions.push(WritableTxnMarkerPartitionResult {
+                    partition_index,
+                    error_code,
+                });
+            }
+            topics.push(WritableTxnMarkerTopicResult { name, partitions });
+        }
+        markers.push(WritableTxnMarkerResult {
+            producer_id,
+            topics,
+        });
+    }
+    Ok(markers)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -410,5 +596,80 @@ mod tests {
         let mut cur = &buf[..];
         assert_eq!(decode_add_partitions_to_txn_response(&mut cur).unwrap(), 0);
         assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn write_txn_markers_v0_roundtrip_is_leftover_empty() {
+        let markers = vec![WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0],
+            }],
+            coordinator_epoch: 1,
+        }];
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, &markers).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_write_txn_markers_request(&mut cur).unwrap(), markers);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 request must be leftover-empty"
+        );
+
+        let resp = vec![markers[0].result(0)];
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_write_txn_markers_response(&mut cur).unwrap(), resp);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_v0_abort_matches_classic_layout() {
+        // Independent encode: markers INT32, {ProducerId INT64,
+        // ProducerEpoch INT16, TransactionResult BOOLEAN, topics
+        // {Name STRING, PartitionIndexes INT32 array}, CoordinatorEpoch
+        // INT32}. Response has no throttle; first partition ErrorCode
+        // for topic "t" / partition 0 is at bytes 27–28.
+        const REQ: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x74, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        ];
+        const RESP_6: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x01, 0x74, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x06,
+        ];
+        let markers = vec![WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0],
+            }],
+            coordinator_epoch: 1,
+        }];
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, &markers).unwrap();
+        assert_eq!(&buf[..], REQ);
+        buf.clear();
+        encode_write_txn_markers_response(
+            &mut buf,
+            &[markers[0].result(crate::error::NOT_LEADER_OR_FOLLOWER)],
+        )
+        .unwrap();
+        assert_eq!(&buf[..], RESP_6);
+        assert_eq!(
+            &RESP_6[27..29],
+            &crate::error::NOT_LEADER_OR_FOLLOWER.to_be_bytes()
+        );
     }
 }

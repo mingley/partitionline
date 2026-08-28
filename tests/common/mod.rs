@@ -115,6 +115,7 @@ use partitionline::protocol::api_keys::{
     OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
     SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    WRITE_TXN_MARKERS,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -160,9 +161,10 @@ use partitionline::protocol::share::{
 };
 use partitionline::protocol::txn::{
     decode_add_offsets_to_txn_request, decode_add_partitions_to_txn_request,
-    decode_end_txn_request, decode_txn_offset_commit_request, encode_add_offsets_to_txn_response,
-    encode_add_partitions_to_txn_response, encode_end_txn_response,
-    encode_txn_offset_commit_response,
+    decode_end_txn_request, decode_txn_offset_commit_request, decode_write_txn_markers_request,
+    encode_add_offsets_to_txn_response, encode_add_partitions_to_txn_response,
+    encode_end_txn_response, encode_txn_offset_commit_response, encode_write_txn_markers_response,
+    WritableTxnMarker,
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
@@ -229,6 +231,9 @@ struct State {
     delete_records_not_leader: u32,
     last_describe_producers_node: Option<i32>,
     describe_producers_not_leader: u32,
+    last_write_txn_markers_node: Option<i32>,
+    write_txn_markers_not_leader: u32,
+    last_write_txn_markers: Option<WritableTxnMarker>,
     controller_node: i32,
     last_create_topics_node: Option<i32>,
     create_topics_not_controller: u32,
@@ -449,6 +454,9 @@ fn new_state(
         delete_records_not_leader: 0,
         last_describe_producers_node: None,
         describe_producers_not_leader: 0,
+        last_write_txn_markers_node: None,
+        write_txn_markers_not_leader: 0,
+        last_write_txn_markers: None,
         controller_node: 1,
         last_create_topics_node: None,
         create_topics_not_controller: 0,
@@ -1092,6 +1100,18 @@ impl Mock {
 
     pub fn describe_producers_not_leader(&self) -> u32 {
         self.state.lock().describe_producers_not_leader
+    }
+
+    pub fn last_write_txn_markers_node(&self) -> Option<i32> {
+        self.state.lock().last_write_txn_markers_node
+    }
+
+    pub fn write_txn_markers_not_leader(&self) -> u32 {
+        self.state.lock().write_txn_markers_not_leader
+    }
+
+    pub fn last_write_txn_markers(&self) -> Option<WritableTxnMarker> {
+        self.state.lock().last_write_txn_markers.clone()
     }
 
     pub fn set_controller(&self, node_id: i32) {
@@ -1906,6 +1926,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
+        (WRITE_TXN_MARKERS, 0, 0),
         (TXN_OFFSET_COMMIT, 0, 2),
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
@@ -3122,6 +3143,40 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.in_txn = false;
                     st.last_end_txn_node = Some(node_id);
                     encode_end_txn_response(&mut body, 0).unwrap();
+                }
+            }
+            WRITE_TXN_MARKERS => {
+                let markers = decode_write_txn_markers_request(&mut frame).unwrap();
+                let marker = markers.into_iter().next();
+                let mut st = state.lock();
+                let (topic, partition) = marker
+                    .as_ref()
+                    .and_then(|m| {
+                        m.topics.first().and_then(|t| {
+                            t.partitions.first().copied().map(|p| (t.name.clone(), p))
+                        })
+                    })
+                    .unwrap_or_else(|| ("t".into(), 0));
+                let key = (topic.clone(), partition);
+                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                if leader != node_id {
+                    st.write_txn_markers_not_leader =
+                        st.write_txn_markers_not_leader.saturating_add(1);
+                    let resp = marker
+                        .as_ref()
+                        .map(|m| m.result(error::NOT_LEADER_OR_FOLLOWER))
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    encode_write_txn_markers_response(&mut body, &resp).unwrap();
+                } else {
+                    st.last_write_txn_markers_node = Some(node_id);
+                    st.last_write_txn_markers = marker.clone();
+                    let resp = marker
+                        .as_ref()
+                        .map(|m| m.result(0))
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    encode_write_txn_markers_response(&mut body, &resp).unwrap();
                 }
             }
             TXN_OFFSET_COMMIT => {

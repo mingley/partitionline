@@ -46,6 +46,8 @@ pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
 pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 /// EndTxn (26).
 pub const END_TXN: i16 = 26;
+/// WriteTxnMarkers (27).
+pub const WRITE_TXN_MARKERS: i16 = 27;
 /// TxnOffsetCommit (28).
 pub const TXN_OFFSET_COMMIT: i16 = 28;
 /// DescribeAcls (29).

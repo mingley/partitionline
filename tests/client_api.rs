@@ -11,11 +11,11 @@
 mod common;
 
 use partitionline::{
-    partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
-    ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error, FetchedRecord, IsolationLevel,
-    MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
-    Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, Sasl, ShareGroup,
-    TopicPartition, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
+    Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error,
+    FetchedRecord, IsolationLevel, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
+    Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
+    Sasl, ShareGroup, TopicPartition, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2498,5 +2498,27 @@ async fn admin_describe_features_from_api_versions() {
     assert_eq!(finalized.max_version_level, 20);
     assert_eq!(features.finalized_features_epoch, Some(1));
     assert!(!features.zk_migration_ready);
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_abort_transaction_writes_abort_marker() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .abort_transaction(AbortTransactionSpec::new(("t", 0), 1000, 0, 1))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_write_txn_markers_node(), Some(1));
+    let marker = mock.last_write_txn_markers().expect("WriteTxnMarkers sent");
+    assert_eq!(marker.producer_id, 1000);
+    assert_eq!(marker.producer_epoch, 0);
+    assert!(!marker.transaction_result);
+    assert_eq!(marker.coordinator_epoch, 1);
+    assert_eq!(marker.topics.len(), 1);
+    assert_eq!(marker.topics[0].name, "t");
+    assert_eq!(marker.topics[0].partitions, vec![0]);
     admin.close().await.unwrap();
 }

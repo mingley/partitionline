@@ -78,7 +78,7 @@ use crate::protocol::api_keys::{
     INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
     OFFSET_DELETE, OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE,
-    UNREGISTER_BROKER, UPDATE_FEATURES,
+    UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_leave_group_response_version,
@@ -90,6 +90,10 @@ use crate::protocol::group::{
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
 use crate::protocol::sasl;
+use crate::protocol::txn::{
+    decode_write_txn_markers_response, encode_write_txn_markers_request, WritableTxnMarker,
+    WritableTxnMarkerTopic,
+};
 
 pub use crate::protocol::acl::{AclBinding, AclOperation, AclPermission, AclResourceType};
 pub use crate::protocol::admin::{
@@ -696,6 +700,44 @@ pub struct FencedProducer {
     pub producer_id: i64,
     /// Producer epoch after InitProducerId.
     pub epoch: i16,
+}
+
+/// Spec for [`Admin::abort_transaction`] (Java `AbortTransactionSpec`).
+///
+/// Sends WriteTxnMarkers (api 27) with `transactionResult=false` (ABORT)
+/// to the Metadata partition leader.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AbortTransactionSpec {
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Producer id that owns the open transaction.
+    pub producer_id: i64,
+    /// Producer epoch.
+    pub producer_epoch: i16,
+    /// Transaction coordinator epoch.
+    pub coordinator_epoch: i32,
+}
+
+impl AbortTransactionSpec {
+    /// Abort the open transaction of `producer_id` on `partition`.
+    #[must_use]
+    pub fn new(
+        partition: impl Into<crate::TopicPartition>,
+        producer_id: i64,
+        producer_epoch: i16,
+        coordinator_epoch: i32,
+    ) -> Self {
+        let tp = partition.into();
+        Self {
+            topic: tp.topic,
+            partition: tp.partition,
+            producer_id,
+            producer_epoch,
+            coordinator_epoch,
+        }
+    }
 }
 
 /// One static member for [`Admin::remove_members_from_consumer_group`].
@@ -2241,6 +2283,88 @@ impl Admin {
                 continue;
             }
             return Err(Error::broker(err, "InitProducerId"));
+        }
+    }
+
+    /// Force-abort an open transaction on a partition (Java `abortTransaction`).
+    ///
+    /// Sends WriteTxnMarkers (api 27) v0 with `transactionResult=false`
+    /// to the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` and
+    /// fenced/unknown leader epochs refresh Metadata and retry. This is
+    /// not a controller hop and not a transaction-coordinator hop.
+    pub async fn abort_transaction(&mut self, spec: AbortTransactionSpec) -> Result<()> {
+        let version = self
+            .versions
+            .get(&WRITE_TXN_MARKERS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| Error::Unsupported("broker does not support WriteTxnMarkers".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let marker = WritableTxnMarker {
+            producer_id: spec.producer_id,
+            producer_epoch: spec.producer_epoch,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: spec.topic.clone(),
+                partitions: vec![spec.partition],
+            }],
+            coordinator_epoch: spec.coordinator_epoch,
+        };
+        loop {
+            if self.cluster.leader(&spec.topic, spec.partition).is_err() {
+                let topics = [spec.topic.clone()];
+                self.refresh_metadata(Some(&topics)).await?;
+            }
+            let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
+                conn.roundtrip(
+                    WRITE_TXN_MARKERS,
+                    version,
+                    |buf| encode_write_txn_markers_request(buf, std::slice::from_ref(&marker)),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let resp = decode_write_txn_markers_response(&mut body.clone())?;
+            let error_code = resp
+                .iter()
+                .flat_map(|m| m.topics.iter())
+                .flat_map(|t| t.partitions.iter())
+                .map(|p| p.error_code)
+                .find(|&c| c != 0)
+                .unwrap_or(0);
+            if error_code == 0 {
+                return Ok(());
+            }
+            let e = Error::broker(error_code, "WriteTxnMarkers");
+            if matches!(
+                error_code,
+                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+            ) || e.is_retriable()
+            {
+                self.cluster.invalidate_topic(&spec.topic);
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                let topics = [spec.topic.clone()];
+                self.refresh_metadata(Some(&topics)).await?;
+                continue;
+            }
+            return Err(e);
         }
     }
 

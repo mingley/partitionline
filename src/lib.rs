@@ -93,6 +93,8 @@
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
+//! [`Admin::abort_transaction`] is Java `abortTransaction`
+//! ([`AbortTransactionSpec`]; WriteTxnMarkers).
 //! [`Admin::remove_members_from_consumer_group`] is Java
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
 //! [`Admin::describe_features`] is Java `describeFeatures`
@@ -228,8 +230,8 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AclBinding, AclOperation, AclPermission, AclResourceType, ActiveProducer, Admin, AdminConfig,
-    AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AbortTransactionSpec, AclBinding, AclOperation, AclPermission, AclResourceType, ActiveProducer,
+    Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
     AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,

@@ -48,6 +48,8 @@ and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for 
 partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
 timestamp; returns `OffsetAndTimestamp`). `Admin::fence_producers` is Java
 `Admin.fenceProducers` (InitProducerId on the transaction coordinator).
+`Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
+ABORT on the partition leader).
 `Admin::remove_members_from_consumer_group` is Java
 `removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
@@ -127,6 +129,7 @@ topics.
 - `acks=0` means the broker sends no Produce response. Do not read one.
 - This client uses Produce versions 3–8 (classic record bytes). Version 9+ is compact.
 - ListOffsets v4+ has `current_leader_epoch` before timestamp. The v4+ response has `leader_epoch` after offset.
+- WriteTxnMarkers v0 is classic (no throttle). `TransactionResult` false is ABORT. Coordinator epoch is after the topic array.
 - ApiVersions v3+ response tagged fields (KIP-482): 0 `supportedFeatures` (name, min, max), 1 `finalizedFeaturesEpoch` INT64 (`-1` omitted), 2 `finalizedFeatures` (name, **max** then min), 3 `zkMigrationReady`. Empty/default tags are omitted.
 
 ## Compression
