@@ -4210,6 +4210,59 @@ async fn describe_replica_log_dirs_follows_replica_broker() {
 }
 
 #[tokio::test]
+async fn describe_broker_log_dirs_follows_each_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let empty = admin
+        .describe_broker_log_dirs(Vec::<i32>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_describe_log_dirs_node(),
+        None,
+        "empty describe_broker_log_dirs is a no-op"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        0,
+        "empty input must not send Metadata"
+    );
+
+    let dirs = admin.describe_broker_log_dirs([1, 2, 1]).await.unwrap();
+    assert_eq!(dirs.len(), 2, "duplicate broker ids are sent once");
+    assert_eq!(dirs[0].0, 1);
+    assert_eq!(dirs[1].0, 2);
+    assert_eq!(dirs[0].1.error_code, 0);
+    assert_eq!(dirs[1].1.error_code, 0);
+    assert_eq!(dirs[0].1.results[0].log_dir, "/d");
+    assert_eq!(
+        mock.describe_log_dirs_nodes(),
+        vec![1, 2],
+        "describeLogDirs must send one DescribeLogDirs to each broker"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs(),
+        Some(DescribeLogDirsRequest::new(None)),
+        "Java describeLogDirs uses a null topic array (all dirs)"
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        None,
+        "describe_broker_log_dirs must not hop via AlterReplicaLogDirs"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "describe_broker_log_dirs must not hop via DescribeGroups or FindCoordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn create_delegation_token_follows_broker() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();

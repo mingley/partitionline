@@ -4524,7 +4524,9 @@ impl Admin {
     /// INT16 at bytes 4–5, after throttle — not a first-directory
     /// field and not a first-partition field. Fixture directory path
     /// and topic/partition indexes only; this is not a log-dir store.
-    /// Speaks v4 only (`VERSIONS.max`).
+    /// Speaks v4 only (`VERSIONS.max`). Java
+    /// `describeLogDirs(Collection<Integer>)` is
+    /// [`Self::describe_broker_log_dirs`].
     pub async fn describe_log_dirs(
         &mut self,
         topics: Option<Vec<DescribableLogDirTopic>>,
@@ -4562,7 +4564,7 @@ impl Admin {
         for broker_id in replica_broker_ids(&replicas) {
             self.ensure_broker(broker_id).await?;
             let topics = describable_topics_for_broker(&replicas, broker_id);
-            let resp = self.describe_log_dirs_on(broker_id, topics).await?;
+            let resp = self.describe_log_dirs_on(broker_id, Some(topics)).await?;
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
             }
@@ -4582,16 +4584,47 @@ impl Admin {
         Ok(out)
     }
 
+    /// Log directories on these brokers (Java
+    /// `Admin.describeLogDirs(Collection<Integer>)`).
+    ///
+    /// Sends DescribeLogDirs with a null topic array (all dirs) to
+    /// each broker. Duplicate ids are sent once, in first-seen order.
+    /// Empty input is a no-op. Unknown broker ids refresh Metadata
+    /// then fail. This is not [`Self::describe_log_dirs`] (bootstrap,
+    /// optional topic filter) and not
+    /// [`Self::describe_replica_log_dirs`].
+    pub async fn describe_broker_log_dirs(
+        &mut self,
+        brokers: impl IntoIterator<Item = i32>,
+    ) -> Result<Vec<(i32, DescribeLogDirsResponse)>> {
+        let mut ids = Vec::new();
+        for id in brokers {
+            if !ids.contains(&id) {
+                ids.push(id);
+            }
+        }
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut out = Vec::with_capacity(ids.len());
+        for broker_id in ids {
+            self.ensure_broker(broker_id).await?;
+            let resp = self.describe_log_dirs_on(broker_id, None).await?;
+            out.push((broker_id, resp));
+        }
+        Ok(out)
+    }
+
     async fn describe_log_dirs_on(
         &mut self,
         node: i32,
-        topics: Vec<DescribableLogDirTopic>,
+        topics: Option<Vec<DescribableLogDirTopic>>,
     ) -> Result<DescribeLogDirsResponse> {
         let version = self.describe_log_dirs_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let req = DescribeLogDirsRequest::new(Some(topics));
+        let req = DescribeLogDirsRequest::new(topics);
         loop {
             self.connect_node(node).await?;
             let body = {

@@ -12,11 +12,11 @@ mod common;
 
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
-    Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error,
-    FetchedRecord, IsolationLevel, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
-    Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
-    ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP,
+    Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
+    DescribeLogDirsRequest, Error, FetchedRecord, IsolationLevel, MemberToRemove, NewTopic,
+    OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig,
+    ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition,
+    TopicPartitionReplica, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2634,6 +2634,31 @@ async fn admin_describe_replica_log_dirs() {
     assert_eq!(
         described[0].1,
         ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_describe_broker_log_dirs() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let empty = admin
+        .describe_broker_log_dirs(Vec::<i32>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(mock.last_describe_log_dirs_node(), None);
+    let dirs = admin.describe_broker_log_dirs([1, 1]).await.unwrap();
+    assert_eq!(dirs.len(), 1);
+    assert_eq!(dirs[0].0, 1);
+    assert_eq!(dirs[0].1.error_code, 0);
+    assert_eq!(dirs[0].1.results[0].log_dir, "/d");
+    assert_eq!(
+        mock.last_describe_log_dirs(),
+        Some(DescribeLogDirsRequest::new(None))
     );
     assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
     admin.close().await.unwrap();

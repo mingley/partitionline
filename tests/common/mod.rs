@@ -325,6 +325,7 @@ struct State {
     last_alter_replica_log_dirs_node: Option<i32>,
     last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
     last_describe_log_dirs_node: Option<i32>,
+    describe_log_dirs_nodes: Vec<i32>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
     last_create_delegation_token_node: Option<i32>,
     last_create_delegation_token: Option<CreateDelegationTokenRequest>,
@@ -550,6 +551,7 @@ fn new_state(
         last_alter_replica_log_dirs_node: None,
         last_alter_replica_log_dirs: None,
         last_describe_log_dirs_node: None,
+        describe_log_dirs_nodes: Vec::new(),
         last_describe_log_dirs: None,
         last_create_delegation_token_node: None,
         last_create_delegation_token: None,
@@ -1550,6 +1552,10 @@ impl Mock {
 
     pub fn last_describe_log_dirs_node(&self) -> Option<i32> {
         self.state.lock().last_describe_log_dirs_node
+    }
+
+    pub fn describe_log_dirs_nodes(&self) -> Vec<i32> {
+        self.state.lock().describe_log_dirs_nodes.clone()
     }
 
     pub fn last_describe_log_dirs(&self) -> Option<DescribeLogDirsRequest> {
@@ -4586,6 +4592,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // or NOT_CONTROLLER (41), so the wrong node does not
                 // return 16 or 41.
                 st.last_describe_log_dirs_node = Some(node_id);
+                st.describe_log_dirs_nodes.push(node_id);
                 let topics = req
                     .topics
                     .as_ref()

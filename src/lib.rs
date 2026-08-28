@@ -105,6 +105,8 @@
 //! `listTopics` / `describeTopics` ([`TopicListing`] / [`TopicDescription`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
+//! [`Admin::describe_broker_log_dirs`] is Java
+//! `describeLogDirs(Collection<Integer>)`.
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
