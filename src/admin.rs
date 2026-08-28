@@ -16,10 +16,10 @@ use crate::protocol::acl::{
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
     decode_alter_configs_response, decode_alter_partition_reassignments_response,
-    decode_alter_share_group_offsets_response, decode_alter_user_scram_credentials_response,
-    decode_assign_replicas_to_dirs_response, decode_consumer_group_describe_response,
-    decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_groups_response, decode_delete_records_response,
+    decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
+    decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
+    decode_consumer_group_describe_response, decode_create_partitions_response,
+    decode_create_topics_response, decode_delete_groups_response, decode_delete_records_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response, decode_describe_groups_response,
@@ -32,24 +32,24 @@ use crate::protocol::admin::{
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
     encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_share_group_offsets_request,
-    encode_alter_user_scram_credentials_request, encode_assign_replicas_to_dirs_request,
-    encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
-    encode_delete_share_group_offsets_request, encode_delete_topics_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_groups_request,
-    encode_describe_producers_request, encode_describe_share_group_offsets_request,
-    encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_request, encode_list_config_resources_request,
-    encode_list_groups_request, encode_list_partition_reassignments_request,
-    encode_list_transactions_request, encode_push_telemetry_request,
-    encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_alter_partition_reassignments_request, encode_alter_replica_log_dirs_request,
+    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
+    encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
+    encode_delete_records_request, encode_delete_share_group_offsets_request,
+    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_groups_request, encode_describe_producers_request,
+    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_request,
+    encode_list_config_resources_request, encode_list_groups_request,
+    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    encode_push_telemetry_request, encode_share_group_describe_request,
+    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
+    CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -57,15 +57,16 @@ use crate::protocol::api::{
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
-    ALTER_PARTITION_REASSIGNMENTS, ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS,
-    API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS,
-    CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR,
-    GET_TELEMETRY_SUBSCRIPTIONS, INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY,
-    SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS, ALTER_SHARE_GROUP_OFFSETS,
+    ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
+    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
+    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
+    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
+    INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, PUSH_TELEMETRY, SHARE_GROUP_DESCRIBE,
+    UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -76,19 +77,22 @@ use crate::protocol::sasl;
 
 pub use crate::protocol::acl::AclBinding;
 pub use crate::protocol::admin::{
-    ActiveProducer, AlterConfig, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
-    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
-    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
-    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
-    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
-    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
-    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
+    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
+    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym,
+    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
+    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
+    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup,
     PushTelemetryRequest, PushTelemetryResponse, ScramCredentialInfo, ShareGroupAssignment,
@@ -395,6 +399,7 @@ pub struct Admin {
     get_telemetry_subscriptions_version: i16,
     push_telemetry_version: i16,
     assign_replicas_to_dirs_version: i16,
+    alter_replica_log_dirs_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -645,6 +650,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AssignReplicasToDirs".into())
             })?;
+        let alter_replica_log_dirs_version = versions
+            .get(&ALTER_REPLICA_LOG_DIRS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -688,6 +699,7 @@ impl Admin {
             get_telemetry_subscriptions_version,
             push_telemetry_version,
             assign_replicas_to_dirs_version,
+            alter_replica_log_dirs_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2997,6 +3009,49 @@ impl Admin {
             }
             return Ok(resp);
         }
+    }
+
+    /// Alter replica log directories (AlterReplicaLogDirs api 34,
+    /// KIP-113).
+    ///
+    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Apache JSON listeners are `broker` only. Official JSON lists no
+    /// `errorCodes`. Official Java
+    /// `KafkaApis.handleAlterReplicaLogDirsRequest` answers from the
+    /// connected broker (`replicaManager.alterReplicaLogDirs`).
+    /// Official Java `AlterReplicaLogDirsRequest.getErrorResponse`
+    /// writes the exception onto each partition ErrorCode (no
+    /// top-level field). `CLUSTER_AUTHORIZATION_FAILED` (31),
+    /// `INVALID_TOPIC_EXCEPTION` (17), `KAFKA_STORAGE_ERROR` (56),
+    /// `INVALID_REPLICA_ASSIGNMENT` (39), `LOG_DIR_NOT_FOUND` (57),
+    /// and `REPLICA_NOT_AVAILABLE` (9) (handler converts
+    /// `NotLeaderOrFollowerException` to 9) are handler-observed.
+    /// `NOT_COORDINATOR` (16) is not listed. `NOT_CONTROLLER` (41) is
+    /// not listed. This is not a group-coordinator hop, not a
+    /// controller hop, and not a partition-leader hop: there is no
+    /// FindCoordinator, no Metadata `controller_id` lookup, no
+    /// `NOT_CONTROLLER` (41) retry, and no `NOT_LEADER_OR_FOLLOWER`
+    /// (6) hop. First-partition `error_code` is the INT16 at bytes
+    /// 12–13 on leftover-empty fixture topic `"t"` partition `0` —
+    /// not a top-level field after throttle. Fixture directory path
+    /// and topic/partition indexes only; this is not a log-dir store.
+    pub async fn alter_replica_log_dirs(
+        &mut self,
+        dirs: Vec<AlterReplicaLogDirsDirectory>,
+    ) -> Result<AlterReplicaLogDirsResponse> {
+        let version = self.alter_replica_log_dirs_version;
+        let timeout = self.cfg.request_timeout;
+        let req = AlterReplicaLogDirsRequest::new(dirs);
+        let body = self
+            .conn
+            .roundtrip(
+                ALTER_REPLICA_LOG_DIRS,
+                version,
+                |buf| encode_alter_replica_log_dirs_request(buf, &req),
+                timeout,
+            )
+            .await?;
+        decode_alter_replica_log_dirs_response(&mut body.clone())
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

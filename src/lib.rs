@@ -14,7 +14,7 @@
 //! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
-//! AssignReplicasToDirs, DescribeCluster).
+//! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -40,7 +40,9 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsPartition,
+    AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
     AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
     AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
