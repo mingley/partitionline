@@ -21,8 +21,9 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 ## Consumer
 
 `Consumer` is manual: you say topic, partition, offset, then `fetch`.
-`seek_to_beginning` / `seek_to_end` call ListOffsets for every assigned
-partition.
+`fetch` sends one request per partition leader and waits for all of them
+when there is more than one. `seek_to_beginning` / `seek_to_end` call
+ListOffsets for every assigned partition.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 `join_topics` (range), `join_sticky_topics`, and `join_consumer_topics`

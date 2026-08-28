@@ -36,7 +36,8 @@
 //!
 //! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`],
 //! [`Consumer::seek_to_beginning`], and [`Consumer::seek_to_end`] move the
-//! next fetch offset.
+//! next fetch offset. [`Consumer::fetch`] talks to every partition leader
+//! in parallel.
 //!
 //! # Groups
 //!

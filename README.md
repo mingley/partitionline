@@ -43,7 +43,8 @@ let recs = consumer.fetch().await?;
 ```
 
 `assign_topic` assigns every partition. `seek` / `seek_to_beginning` /
-`seek_to_end` move the next fetch offset.
+`seek_to_end` move the next fetch offset. `fetch` talks to every
+partition leader at once when there is more than one.
 
 ## Groups
 

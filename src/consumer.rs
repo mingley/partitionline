@@ -597,6 +597,9 @@ impl Consumer {
     }
 
     /// Fetch one round from every assigned partition. Empty if nothing is assigned.
+    ///
+    /// Partitions that share a leader go in one Fetch. Distinct leaders are
+    /// fetched at the same time.
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
         if self.assigned.is_empty() {
             return Ok(Vec::new());
@@ -650,25 +653,58 @@ impl Consumer {
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
-            let max_wait = self.cfg.max_wait_ms;
-            let min_bytes = self.cfg.min_bytes;
-            let max_bytes = self.cfg.max_bytes;
-            let isolation_level = self.cfg.isolation_level;
-            let timeout = self.cfg.request_timeout;
-            let fetch_version = self.fetch_version;
-            let rack = self.cfg.rack.clone();
+            let bodies = self.fetch_from_leaders(by_leader).await?;
             let mut out = Vec::new();
             let mut retry = false;
-            let leaders: Vec<i32> = by_leader.keys().copied().collect();
-            for node in leaders {
+            for (node, body) in bodies {
+                let mut body = match body {
+                    Ok(b) => b,
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        retry = true;
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                };
+                if self.apply_fetch_body(node, &mut body, &mut out).await? {
+                    retry = true;
+                }
+            }
+            if retry {
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+                self.refresh_metadata(Some(&topics)).await?;
+                continue;
+            }
+            return Ok(out);
+        }
+    }
+
+    async fn fetch_from_leaders(
+        &mut self,
+        mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
+    ) -> Result<Vec<(i32, Result<Bytes>)>> {
+        let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
+        nodes.sort_unstable();
+        for node in &nodes {
+            self.connect_node(*node).await?;
+        }
+        let max_wait = self.cfg.max_wait_ms;
+        let min_bytes = self.cfg.min_bytes;
+        let max_bytes = self.cfg.max_bytes;
+        let isolation_level = self.cfg.isolation_level;
+        let timeout = self.cfg.request_timeout;
+        let fetch_version = self.fetch_version;
+        let rack = self.cfg.rack.clone();
+        if nodes.len() <= 1 {
+            let mut out = Vec::with_capacity(nodes.len());
+            for node in nodes {
                 let Some(by_topic) = by_leader.remove(&node) else {
                     continue;
                 };
-                let topics: Vec<FetchTopic> = by_topic
-                    .into_iter()
-                    .map(|(topic, partitions)| FetchTopic { topic, partitions })
-                    .collect();
-                self.connect_node(node).await?;
+                let topics = fetch_topics(by_topic);
                 let body = {
                     let conn = self
                         .conns
@@ -692,105 +728,141 @@ impl Consumer {
                     )
                     .await
                 };
-                let mut body = match body {
-                    Ok(b) => b,
-                    Err(e) if e.is_retriable() => {
+                out.push((node, body));
+            }
+            return Ok(out);
+        }
+        let mut set = tokio::task::JoinSet::new();
+        for node in nodes {
+            let Some(by_topic) = by_leader.remove(&node) else {
+                continue;
+            };
+            let topics = fetch_topics(by_topic);
+            let mut conn = self
+                .conns
+                .remove(&node)
+                .ok_or_else(|| Error::protocol("missing fetch conn"))?;
+            let rack = rack.clone();
+            let _ = set.spawn(async move {
+                let result = conn
+                    .roundtrip(
+                        FETCH,
+                        fetch_version,
+                        |buf| {
+                            encode_fetch_request(
+                                buf,
+                                max_wait,
+                                min_bytes,
+                                max_bytes,
+                                isolation_level,
+                                &topics,
+                                rack.as_deref(),
+                            )
+                        },
+                        timeout,
+                    )
+                    .await;
+                (node, conn, result)
+            });
+        }
+        let mut out = Vec::new();
+        while let Some(joined) = set.join_next().await {
+            let (node, conn, result) =
+                joined.map_err(|e| Error::protocol(format!("fetch task: {e}")))?;
+            let _ = self.conns.insert(node, conn);
+            out.push((node, result));
+        }
+        out.sort_by_key(|(n, _)| *n);
+        Ok(out)
+    }
+
+    async fn apply_fetch_body(
+        &mut self,
+        node: i32,
+        body: &mut Bytes,
+        out: &mut Vec<FetchedRecord>,
+    ) -> Result<bool> {
+        let fetched = decode_fetch_response(body)?;
+        let mut retry = false;
+        for topic in fetched {
+            for part in topic.partitions {
+                if part.preferred_read_replica >= 0
+                    && self.cfg.rack.is_some()
+                    && part.preferred_read_replica != node
+                {
+                    let _prev = self.preferred.insert(
+                        (topic.topic.clone(), part.partition),
+                        part.preferred_read_replica,
+                    );
+                    retry = true;
+                    continue;
+                }
+                if part.error_code == error::OFFSET_OUT_OF_RANGE {
+                    self.advance(&topic.topic, part.partition, part.log_start_offset);
+                    continue;
+                }
+                if part.error_code == error::FENCED_LEADER_EPOCH
+                    || part.error_code == error::UNKNOWN_LEADER_EPOCH
+                {
+                    self.recover_leader_epoch(&topic.topic, part.partition)
+                        .await?;
+                    retry = true;
+                    continue;
+                }
+                if part.error_code != 0 {
+                    let e = Error::broker(
+                        part.error_code,
+                        format!("{}-{}", topic.topic, part.partition),
+                    );
+                    if e.is_retriable() {
+                        self.cluster.invalidate_topic(&topic.topic);
                         let _ = self.conns.remove(&node);
                         retry = true;
                         continue;
                     }
-                    Err(e) => return Err(e),
-                };
-                let fetched = decode_fetch_response(&mut body)?;
-                for topic in fetched {
-                    for part in topic.partitions {
-                        if part.preferred_read_replica >= 0
-                            && self.cfg.rack.is_some()
-                            && part.preferred_read_replica != node
-                        {
-                            let _prev = self.preferred.insert(
-                                (topic.topic.clone(), part.partition),
-                                part.preferred_read_replica,
-                            );
-                            retry = true;
-                            continue;
+                    return Err(e);
+                }
+                let mut next = None;
+                let isolation = self.cfg.isolation_level;
+                for batch in part.records {
+                    if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {
+                        if let Some(last) = batch.records.last() {
+                            next = Some(last.offset + 1);
                         }
-                        if part.error_code == error::OFFSET_OUT_OF_RANGE {
-                            self.advance(&topic.topic, part.partition, part.log_start_offset);
-                            continue;
+                        continue;
+                    }
+                    for rec in batch.records {
+                        let offset = rec.offset;
+                        if isolation == 1 && offset >= part.last_stable_offset {
+                            break;
                         }
-                        if part.error_code == error::FENCED_LEADER_EPOCH
-                            || part.error_code == error::UNKNOWN_LEADER_EPOCH
-                        {
-                            self.recover_leader_epoch(&topic.topic, part.partition)
-                                .await?;
-                            retry = true;
-                            continue;
-                        }
-                        if part.error_code != 0 {
-                            let e = Error::broker(
-                                part.error_code,
-                                format!("{}-{}", topic.topic, part.partition),
-                            );
-                            if e.is_retriable() {
-                                self.cluster.invalidate_topic(&topic.topic);
-                                let _ = self.conns.remove(&node);
-                                retry = true;
+                        next = Some(offset + 1);
+                        if isolation == 1 {
+                            let aborted = part
+                                .aborted_transactions
+                                .iter()
+                                .any(|(pid, first)| batch.producer_id == *pid && offset >= *first);
+                            if aborted {
                                 continue;
                             }
-                            return Err(e);
                         }
-                        let mut next = None;
-                        let isolation = self.cfg.isolation_level;
-                        for batch in part.records {
-                            if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {
-                                if let Some(last) = batch.records.last() {
-                                    next = Some(last.offset + 1);
-                                }
-                                continue;
-                            }
-                            for rec in batch.records {
-                                let offset = rec.offset;
-                                if isolation == 1 && offset >= part.last_stable_offset {
-                                    break;
-                                }
-                                next = Some(offset + 1);
-                                if isolation == 1 {
-                                    let aborted =
-                                        part.aborted_transactions.iter().any(|(pid, first)| {
-                                            batch.producer_id == *pid && offset >= *first
-                                        });
-                                    if aborted {
-                                        continue;
-                                    }
-                                }
-                                out.push(FetchedRecord {
-                                    topic: topic.topic.clone(),
-                                    partition: part.partition,
-                                    offset,
-                                    timestamp: rec.timestamp,
-                                    key: rec.key,
-                                    value: rec.value,
-                                    headers: rec.headers,
-                                });
-                            }
-                        }
-                        if let Some(n) = next {
-                            self.advance(&topic.topic, part.partition, n);
-                        }
+                        out.push(FetchedRecord {
+                            topic: topic.topic.clone(),
+                            partition: part.partition,
+                            offset,
+                            timestamp: rec.timestamp,
+                            key: rec.key,
+                            value: rec.value,
+                            headers: rec.headers,
+                        });
                     }
                 }
-            }
-            if retry {
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
+                if let Some(n) = next {
+                    self.advance(&topic.topic, part.partition, n);
                 }
-                let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                self.refresh_metadata(Some(&topics)).await?;
-                continue;
             }
-            return Ok(out);
         }
+        Ok(retry)
     }
 
     pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
@@ -935,4 +1007,11 @@ impl Consumer {
         }
         Ok(())
     }
+}
+
+fn fetch_topics(by_topic: HashMap<String, Vec<FetchPartition>>) -> Vec<FetchTopic> {
+    by_topic
+        .into_iter()
+        .map(|(topic, partitions)| FetchTopic { topic, partitions })
+        .collect()
 }

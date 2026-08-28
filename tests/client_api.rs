@@ -269,3 +269,49 @@ async fn classic_group_mixed_subscriptions_stay_on_own_topics() {
     assert_eq!(order_topics, vec!["orders".to_string()]);
     assert_eq!(pay_topics, vec!["payments".to_string()]);
 }
+
+#[tokio::test]
+async fn fetch_two_leaders_in_one_round() {
+    let mock = common::Mock::start_two_node().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("split", 2, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.set_partition_leader("split", 0, 1);
+    mock.set_partition_leader("split", 1, 2);
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("split").partition(0).value(&b"n1"[..]),
+            ProduceRecord::to("split").partition(1).value(&b"n2"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("split", 0, 0).await.unwrap();
+    consumer.assign("split", 1, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    let mut values: Vec<&[u8]> = recs.iter().filter_map(|r| r.value.as_deref()).collect();
+    values.sort_unstable();
+    assert_eq!(values, vec![&b"n1"[..], &b"n2"[..]]);
+    let mut nodes = mock.fetch_nodes();
+    nodes.sort_unstable();
+    nodes.dedup();
+    assert!(
+        nodes.contains(&1) && nodes.contains(&2),
+        "fetch must hit both leaders, got {nodes:?}"
+    );
+}
