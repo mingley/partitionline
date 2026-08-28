@@ -22,6 +22,8 @@
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
+//! [`Admin::metrics`] is the same snapshot pattern for Admin RPCs
+//! ([`AdminMetrics`]; Java `Admin.metrics()`).
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
 //!
 //! # Fetch
@@ -112,6 +114,7 @@
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`Admin::describe_broker_log_dirs`] is Java
 //! `describeLogDirs(Collection<Integer>)`.
+//! [`Admin::metrics`] is Java `Admin.metrics()` ([`AdminMetrics`]).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -229,7 +232,7 @@ pub mod error;
 pub mod group;
 /// Produce and fetch interceptors.
 pub mod interceptor;
-/// Client counters, latency min/mean/max plus p50/p99, and per-topic rows: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
+/// Client counters, latency min/mean/max plus p50/p99, and per-topic rows: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`], [`AdminMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
@@ -289,7 +292,7 @@ pub use error::{Error, Result};
 pub use group::{ConsumerGroup, ConsumerGroupMetadata};
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
-    ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics, TopicFetchMetrics,
+    AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics, TopicFetchMetrics,
     TopicProduceMetrics,
 };
 pub use net::TlsConfig;

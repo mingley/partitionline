@@ -87,10 +87,10 @@ several topics. Set `group.instance.id` with
 `ConsumerConfig::auto_offset_reset` is used when the group has no
 committed offset (`Earliest` by default, unlike Java's `latest`).
 `auto_commit(true)` commits after poll (off by default).
-`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots
-plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round),
+`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` are counter snapshots
+plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round / Admin RPC),
 and per-topic rows on `ProducerMetrics::topics` / `ConsumerMetrics::topics` /
-`ShareMetrics::topics`.
+`ShareMetrics::topics`. `AdminMetrics` is Java `Admin.metrics()`.
 `client_instance_id` is Java `clientInstanceId` (KIP-714) on producer, consumer, group, share, and admin.
 `max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes);
 the heartbeat thread leaves the group if it is exceeded.

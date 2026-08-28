@@ -5,6 +5,7 @@
 //! transaction methods retry on coordinator errors.
 
 use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
@@ -962,6 +963,7 @@ pub struct Admin {
     reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
     txn_coord: Option<(String, i32)>,
+    stats: Arc<crate::metrics::AdminTracker>,
 }
 
 pub(crate) async fn fetch_client_instance_id(
@@ -996,6 +998,7 @@ impl Admin {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
         }
+        let stats = Arc::new(crate::metrics::AdminTracker::default());
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,
@@ -1003,6 +1006,7 @@ impl Admin {
             cfg.tls.as_ref(),
         )
         .await?;
+        conn.set_stats(Arc::clone(&stats));
         let body = conn
             .roundtrip(
                 API_VERSIONS,
@@ -1320,6 +1324,7 @@ impl Admin {
             reconnect_fails: HashMap::new(),
             group_coord: None,
             txn_coord: None,
+            stats,
         })
     }
 
@@ -1327,6 +1332,18 @@ impl Admin {
     #[must_use]
     pub fn versions(&self) -> &HashMap<i16, ApiVersion> {
         &self.versions
+    }
+
+    /// Admin RPC counters and round-trip latency since connect.
+    ///
+    /// Java `Admin.metrics()` is Kafka's live metric map. This snapshot
+    /// counts every Admin [`BrokerConn::roundtrip`]. `errors` is I/O,
+    /// timeout, and protocol failure — not a decoded broker `error_code`
+    /// on a valid body. `connections` is the bootstrap socket plus
+    /// per-node sockets.
+    #[must_use]
+    pub fn metrics(&self) -> crate::AdminMetrics {
+        self.stats.snapshot(1 + self.conns.len() as u64)
     }
 
     /// Drop the admin connection.
@@ -2859,6 +2876,7 @@ impl Admin {
             self.cfg.tls.as_ref(),
         )
         .await?;
+        conn.set_stats(Arc::clone(&self.stats));
         let _versions = conn
             .roundtrip(
                 API_VERSIONS,

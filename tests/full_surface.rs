@@ -4278,6 +4278,13 @@ async fn describe_broker_log_dirs_follows_each_broker() {
         None,
         "describe_broker_log_dirs must not hop via DescribeGroups or FindCoordinator"
     );
+    let m = admin.metrics();
+    assert!(
+        m.connections >= 2,
+        "describe_broker_log_dirs([1, 2]) opens per-node sockets: {m:?}"
+    );
+    assert!(m.requests >= 2, "ApiVersions plus DescribeLogDirs: {m:?}");
+    assert_eq!(m.errors, 0);
     admin.close().await.unwrap();
 }
 

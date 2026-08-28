@@ -2735,3 +2735,30 @@ async fn admin_describe_broker_log_dirs() {
     assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
     admin.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_metrics() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let after_connect = admin.metrics();
+    assert!(
+        after_connect.requests >= 1,
+        "Admin::new sends ApiVersions: {after_connect:?}"
+    );
+    assert_eq!(after_connect.errors, 0);
+    assert_eq!(after_connect.connections, 1);
+    assert_eq!(after_connect.request_latency.count, after_connect.requests);
+    let before = after_connect.requests;
+    admin.describe_cluster().await.unwrap();
+    let after_rpc = admin.metrics();
+    assert!(
+        after_rpc.requests > before,
+        "bootstrap RPC must increment requests: before={before} after={after_rpc:?}"
+    );
+    assert_eq!(after_rpc.errors, 0);
+    assert_eq!(after_rpc.connections, 1);
+    assert_eq!(after_rpc.request_latency.count, after_rpc.requests);
+    admin.close().await.unwrap();
+}

@@ -14,7 +14,7 @@ const LATENCY_WINDOW: usize = 1024;
 /// [`Self::count`] is `0`. Percentiles are the last 1024 samples (not a
 /// lifetime HDR histogram). Global snapshots are not split by topic;
 /// [`ProducerMetrics::topics`] / [`ConsumerMetrics::topics`] /
-/// [`ShareMetrics::topics`] are.
+/// [`ShareMetrics::topics`] are. [`AdminMetrics`] has no per-topic rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LatencyStats {
     /// Samples recorded.
@@ -247,6 +247,62 @@ pub struct ShareMetrics {
     pub topics: Vec<TopicFetchMetrics>,
 }
 
+/// Snapshot of [`crate::Admin`] RPC counters.
+///
+/// Java `Admin.metrics()` is Kafka's live metric map. This snapshot is the
+/// same pattern as [`ProducerMetrics`] / [`ConsumerMetrics`]: counters plus
+/// [`LatencyStats`] for every Admin [`crate::net::BrokerConn::roundtrip`].
+///
+/// `errors` counts I/O, timeout, and protocol failures — not a decoded broker
+/// `error_code` on a valid body.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct AdminMetrics {
+    /// RPCs this client has completed (success or failure).
+    pub requests: u64,
+    /// Round-trips that returned [`crate::Error`].
+    pub errors: u64,
+    /// Time from encode to decode on each round-trip.
+    pub request_latency: LatencyStats,
+    /// Open TCP sockets (bootstrap plus per-node).
+    pub connections: u64,
+}
+
+/// Live Admin counters. [`crate::Admin::metrics`] snapshots this.
+pub(crate) struct AdminTracker {
+    requests: AtomicU64,
+    errors: AtomicU64,
+    latency: LatencyTracker,
+}
+
+impl Default for AdminTracker {
+    fn default() -> Self {
+        Self {
+            requests: AtomicU64::new(0),
+            errors: AtomicU64::new(0),
+            latency: LatencyTracker::new(),
+        }
+    }
+}
+
+impl AdminTracker {
+    pub(crate) fn snapshot(&self, connections: u64) -> AdminMetrics {
+        AdminMetrics {
+            requests: self.requests.load(Ordering::Relaxed),
+            errors: self.errors.load(Ordering::Relaxed),
+            request_latency: self.latency.snapshot(),
+            connections,
+        }
+    }
+
+    pub(crate) fn record(&self, elapsed: Duration, ok: bool) {
+        let _ = self.requests.fetch_add(1, Ordering::Relaxed);
+        if !ok {
+            let _ = self.errors.fetch_add(1, Ordering::Relaxed);
+        }
+        self.latency.record(elapsed);
+    }
+}
+
 pub(crate) struct ProduceTopicTracker {
     records_queued: AtomicU64,
     records_acked: AtomicU64,
@@ -388,6 +444,10 @@ mod tests {
         assert!(ProducerMetrics::default().topics.is_empty());
         assert!(ConsumerMetrics::default().topics.is_empty());
         assert!(ShareMetrics::default().topics.is_empty());
+        assert_eq!(AdminMetrics::default().requests, 0);
+        assert_eq!(AdminMetrics::default().errors, 0);
+        assert_eq!(AdminMetrics::default().connections, 0);
+        assert_eq!(AdminMetrics::default().request_latency.count, 0);
         assert_eq!(LatencyStats::default().mean_nanos(), None);
     }
 

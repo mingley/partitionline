@@ -66,7 +66,8 @@ tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `deleteShareGroups` (DeleteGroups). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
-each broker). `assignment` is Java `assignment`
+each broker). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`
+snapshot; I/O errors, not broker `error_code`). `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
@@ -111,10 +112,10 @@ commits transactional offsets with epoch and a metadata string.
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
 `max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`)
 and the heartbeat thread leaves the group.
-`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots
-plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round),
+`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` are counter snapshots
+plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / fetch round / Admin RPC),
 and per-topic rows on `ProducerMetrics::topics` / `ConsumerMetrics::topics` /
-`ShareMetrics::topics`.
+`ShareMetrics::topics`. `AdminMetrics` is Java `Admin.metrics()`.
 `client_instance_id` is Java `clientInstanceId` (KIP-714).
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite

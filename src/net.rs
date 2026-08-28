@@ -250,6 +250,9 @@ pub struct BrokerConn {
     client_id: String,
     addr: String,
     last_io: Instant,
+    /// Admin-only. Producer and consumer sockets leave this `None` so
+    /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
+    stats: Option<Arc<crate::metrics::AdminTracker>>,
 }
 
 impl BrokerConn {
@@ -302,6 +305,7 @@ impl BrokerConn {
             client_id: client_id.to_string(),
             addr: addr.to_string(),
             last_io: Instant::now(),
+            stats: None,
         })
     }
 
@@ -373,6 +377,11 @@ impl BrokerConn {
         self.last_io = Instant::now();
     }
 
+    /// Count this socket's [`Self::roundtrip`] on an Admin tracker.
+    pub(crate) fn set_stats(&mut self, stats: Arc<crate::metrics::AdminTracker>) {
+        self.stats = Some(stats);
+    }
+
     /// Encode and write one request. Returns the correlation id.
     pub async fn send(
         &mut self,
@@ -411,11 +420,19 @@ impl BrokerConn {
         encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
         request_timeout: Duration,
     ) -> Result<Bytes> {
-        let correlation = self
-            .send(api_key, api_version, encode_body, request_timeout)
-            .await?;
-        self.read_response(api_key, api_version, correlation, request_timeout)
-            .await
+        let started = Instant::now();
+        let result = async {
+            let correlation = self
+                .send(api_key, api_version, encode_body, request_timeout)
+                .await?;
+            self.read_response(api_key, api_version, correlation, request_timeout)
+                .await
+        }
+        .await;
+        if let Some(stats) = &self.stats {
+            stats.record(started.elapsed(), result.is_ok());
+        }
+        result
     }
 
     async fn read_frame(&mut self) -> Result<Bytes> {
