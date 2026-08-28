@@ -12,7 +12,8 @@ mod common;
 
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AclBinding, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsTopic,
+    error, AclBinding, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic,
     AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
     AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity,
     ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
@@ -3598,6 +3599,54 @@ async fn assign_replicas_to_dirs_follows_controller() {
         mock.last_assign_replicas_to_dirs_node(),
         Some(1),
         "AssignReplicasToDirs must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn alter_replica_log_dirs_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let dir =
+        AlterReplicaLogDirsDirectory::new("/d", vec![AlterReplicaLogDirsTopic::new("t", vec![0])]);
+    let first = admin
+        .alter_replica_log_dirs(vec![dir.clone()])
+        .await
+        .unwrap();
+    assert_eq!(first.results.len(), 1);
+    assert_eq!(first.results[0].topic_name, "t");
+    assert_eq!(first.results[0].partitions[0].partition_index, 0);
+    assert_eq!(first.results[0].partitions[0].error_code, 0);
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        Some(1),
+        "AlterReplicaLogDirs must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs(),
+        Some(AlterReplicaLogDirsRequest::new(vec![dir]))
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        None,
+        "AlterReplicaLogDirs must not hop via AssignReplicasToDirs"
+    );
+    assert_eq!(
+        mock.last_push_telemetry_node(),
+        None,
+        "AlterReplicaLogDirs must not hop via PushTelemetry"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "AlterReplicaLogDirs must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "AlterReplicaLogDirs must not hop via Metadata controller_id"
     );
 }
 

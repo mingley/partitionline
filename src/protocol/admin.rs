@@ -5228,6 +5228,257 @@ pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
     })
 }
 
+/// One topic in an AlterReplicaLogDirs (api 34) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsTopic {
+    pub name: String,
+    pub partitions: Vec<i32>,
+}
+
+impl AlterReplicaLogDirsTopic {
+    pub fn new(name: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
+/// One directory in an AlterReplicaLogDirs (api 34) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsDirectory {
+    pub path: String,
+    pub topics: Vec<AlterReplicaLogDirsTopic>,
+}
+
+impl AlterReplicaLogDirsDirectory {
+    pub fn new(path: impl Into<String>, topics: Vec<AlterReplicaLogDirsTopic>) -> Self {
+        Self {
+            path: path.into(),
+            topics,
+        }
+    }
+}
+
+/// AlterReplicaLogDirs (api 34) v2 request body.
+///
+/// Official Apache JSON (`apiKey: 34`, request `listeners: ["broker"]`,
+/// `validVersions: "1-2"`, `flexibleVersions: "2+"`). Official JSON lists
+/// no `errorCodes`. Request has no ErrorCode field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsRequest {
+    pub dirs: Vec<AlterReplicaLogDirsDirectory>,
+}
+
+impl AlterReplicaLogDirsRequest {
+    pub fn new(dirs: Vec<AlterReplicaLogDirsDirectory>) -> Self {
+        Self { dirs }
+    }
+}
+
+/// One partition in an AlterReplicaLogDirs (api 34) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsResponsePartition {
+    pub partition_index: i32,
+    pub error_code: i16,
+}
+
+impl AlterReplicaLogDirsResponsePartition {
+    pub fn new(partition_index: i32, error_code: i16) -> Self {
+        Self {
+            partition_index,
+            error_code,
+        }
+    }
+}
+
+/// One topic in an AlterReplicaLogDirs (api 34) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsResponseTopic {
+    pub topic_name: String,
+    pub partitions: Vec<AlterReplicaLogDirsResponsePartition>,
+}
+
+impl AlterReplicaLogDirsResponseTopic {
+    pub fn new(
+        topic_name: impl Into<String>,
+        partitions: Vec<AlterReplicaLogDirsResponsePartition>,
+    ) -> Self {
+        Self {
+            topic_name: topic_name.into(),
+            partitions,
+        }
+    }
+}
+
+/// AlterReplicaLogDirs (api 34) v2 response body.
+///
+/// **ErrorCode is first-partition**, not top-level and not a
+/// first-directory field. Official JSON has no top-level ErrorCode;
+/// throttle is followed by compact `Results` of `{TopicName,
+/// Partitions of {PartitionIndex, ErrorCode}}`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterReplicaLogDirsResponse {
+    pub results: Vec<AlterReplicaLogDirsResponseTopic>,
+}
+
+impl AlterReplicaLogDirsResponse {
+    pub fn new(results: Vec<AlterReplicaLogDirsResponseTopic>) -> Self {
+        Self { results }
+    }
+}
+
+/// AlterReplicaLogDirs v2 (flexible from v2; KIP-113).
+///
+/// Official Apache JSON (`apiKey: 34`, request `listeners: ["broker"]`,
+/// `validVersions: "1-2"`, `flexibleVersions: "2+"`). Official JSON lists
+/// **no** `errorCodes`. Official Java
+/// `AlterReplicaLogDirsRequest.getErrorResponse` writes
+/// `Errors.forException(e).code()` onto each **partition** ErrorCode
+/// (no top-level field). Official Java
+/// `KafkaApis.handleAlterReplicaLogDirsRequest` answers from the
+/// connected broker (`replicaManager.alterReplicaLogDirs`); it does
+/// not look up a controller or a coordinator. Auth failure uses
+/// `getErrorResponse` with `CLUSTER_AUTHORIZATION_FAILED` (31).
+/// Official `ReplicaManager.alterReplicaLogDirs` handler-observed
+/// codes: `INVALID_TOPIC_EXCEPTION` (17) on a too-long topic name,
+/// `KAFKA_STORAGE_ERROR` (56) when the destination dir or partition
+/// is offline, `INVALID_REPLICA_ASSIGNMENT` (39) when the dir is
+/// cordoned, `LOG_DIR_NOT_FOUND` (57), `REPLICA_NOT_AVAILABLE` (9)
+/// when `getPartitionOrException` throws
+/// `NotLeaderOrFollowerException` (retained as 9 for compatibility;
+/// 6 is **not** written). `NOT_COORDINATOR` (16) is **not** listed.
+/// `NOT_CONTROLLER` (41) is **not** listed. kafka-protocol 0.18.0
+/// (`AlterReplicaLogDirsRequest` / `AlterReplicaLogDirsResponse`,
+/// `VERSIONS` min=1 max=2). This crate targets v2, the version a
+/// client encodes (`VERSIONS.max`). Request encode used
+/// `features = ["client"]`; response encode used `broker`. Request:
+/// compact `Dirs` of `{Path compact STRING, Topics compact [{Name
+/// compact STRING, Partitions compact INT32[], tagged}], tagged}`,
+/// tagged. Response: `ThrottleTimeMs` INT32, compact `Results` of
+/// `{TopicName compact STRING, Partitions compact [{PartitionIndex
+/// INT32, ErrorCode INT16, tagged}], tagged}`, tagged.
+/// **ErrorCode is first-partition**, after throttle, compact results
+/// len, compact topic name, compact partitions len, and
+/// PartitionIndex — not a top-level field and not a first-directory
+/// field (request directories are paths; the response has no
+/// directory array). Measured independently from kafka-protocol
+/// 0.18.0 (`broker` encodes the response) on leftover-empty fixture
+/// throttle `0`, empty `Results`: the leftover-empty body is **6
+/// bytes** (throttle + compact empty array + tagged) and has **no
+/// ErrorCode**. On leftover-empty fixture topic `"t"` partition `0`,
+/// error `CLUSTER_AUTHORIZATION_FAILED` (31): the first-partition
+/// ErrorCode is the INT16 at **bytes 12–13**. i16=31 hits only at
+/// byte 12. There is no top-level ErrorCode and no INT16 at bytes
+/// 4–5 (AssignReplicasToDirs / PushTelemetry /
+/// GetTelemetrySubscriptions / ListConfigResources), 5–6
+/// (DescribeTopicPartitions / ShareGroupDescribe), 7–8
+/// (DeleteGroups), 8–9 (DescribeShareGroupOffsets), 27–28
+/// (DescribeTopicPartitions first-partition), or 45–46
+/// (AssignReplicasToDirs first-partition). This offset happens to
+/// match DescribeProducers first-partition INT16; it was measured
+/// on this API's official first-partition field, not copied.
+/// Because 41 is not listed, 16 is not listed, and 6 is converted
+/// to 9 as a per-partition handler code (not a client hop), this is
+/// broker-only: no FindCoordinator, no `key_type`, no controller
+/// hop, no partition-leader hop.
+pub fn encode_alter_replica_log_dirs_request(
+    buf: &mut BytesMut,
+    req: &AlterReplicaLogDirsRequest,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(req.dirs.len()))?;
+    for dir in &req.dirs {
+        buf::put_compact_string(buf, Some(&dir.path))?;
+        buf::put_array_len(buf, true, Some(dir.topics.len()))?;
+        for topic in &dir.topics {
+            buf::put_compact_string(buf, Some(&topic.name))?;
+            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+            for part in &topic.partitions {
+                buf.put_i32(*part);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_replica_log_dirs_request<B: Buf>(
+    buf: &mut B,
+) -> Result<AlterReplicaLogDirsRequest> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut dirs = Vec::with_capacity(n);
+    for _ in 0..n {
+        let path = buf::get_compact_string(buf)?.unwrap_or_default();
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                partitions.push(buf::get_i32(buf)?);
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(AlterReplicaLogDirsTopic { name, partitions });
+        }
+        buf::skip_tagged_fields(buf)?;
+        dirs.push(AlterReplicaLogDirsDirectory { path, topics });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(AlterReplicaLogDirsRequest { dirs })
+}
+
+pub fn encode_alter_replica_log_dirs_response(
+    buf: &mut BytesMut,
+    resp: &AlterReplicaLogDirsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(resp.results.len()))?;
+    for topic in &resp.results {
+        buf::put_compact_string(buf, Some(&topic.topic_name))?;
+        buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+        for part in &topic.partitions {
+            buf.put_i32(part.partition_index);
+            buf.put_i16(part.error_code);
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_alter_replica_log_dirs_response<B: Buf>(
+    buf: &mut B,
+) -> Result<AlterReplicaLogDirsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition_index = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            partitions.push(AlterReplicaLogDirsResponsePartition {
+                partition_index,
+                error_code,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        results.push(AlterReplicaLogDirsResponseTopic {
+            topic_name,
+            partitions,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(AlterReplicaLogDirsResponse { results })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8597,6 +8848,244 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AssignReplicasToDirs v0 one-directory body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_v2_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 34
+        // validVersions 1-2, flexibleVersions 2+, listeners broker only.
+        // This crate targets v2 (VERSIONS.max). Not copied from
+        // AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups
+        // (top-level ErrorCode at bytes 4-5),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), DescribeProducers (first-partition
+        // ErrorCode at bytes 12-13), or DescribeTopicPartitions
+        // first-partition (bytes 27-28).
+        const REQ: &[u8] = &[
+            0x02, 0x03, 0x2f, 0x64, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        // CLUSTER_AUTHORIZATION_FAILED (31). One-partition body is 17
+        // bytes. Leftover-empty (empty Results) is 6 bytes and has no
+        // ErrorCode.
+        const RESP_31: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f,
+            0x00, 0x00, 0x00,
+        ];
+        const RESP_EMPTY: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let req = AlterReplicaLogDirsRequest::new(vec![AlterReplicaLogDirsDirectory::new(
+            "/d",
+            vec![AlterReplicaLogDirsTopic::new("t", vec![0])],
+        )]);
+        let mut buf = BytesMut::new();
+        encode_alter_replica_log_dirs_request(&mut buf, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+            "t",
+            vec![AlterReplicaLogDirsResponsePartition::new(
+                0,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            )],
+        )]);
+        buf.clear();
+        encode_alter_replica_log_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_31);
+        buf.clear();
+        encode_alter_replica_log_dirs_response(&mut buf, &AlterReplicaLogDirsResponse::new(vec![]))
+            .unwrap();
+        assert_eq!(&buf[..], RESP_EMPTY);
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_v2_roundtrip_is_leftover_empty() {
+        let req = AlterReplicaLogDirsRequest::new(vec![AlterReplicaLogDirsDirectory::new(
+            "/d",
+            vec![AlterReplicaLogDirsTopic::new("t", vec![0])],
+        )]);
+        let mut buf = BytesMut::new();
+        encode_alter_replica_log_dirs_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_replica_log_dirs_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 request must be leftover-empty"
+        );
+
+        let resp = AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+            "t",
+            vec![AlterReplicaLogDirsResponsePartition::new(0, 0)],
+        )]);
+        buf.clear();
+        encode_alter_replica_log_dirs_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_replica_log_dirs_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 response must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_alter_replica_log_dirs_request(&mut buf, &AlterReplicaLogDirsRequest::new(vec![]))
+            .unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_replica_log_dirs_request(&mut cur).unwrap(),
+            AlterReplicaLogDirsRequest::new(vec![])
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 empty request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_first_partition_error_code_is_at_bytes_12_13() {
+        // Official v2 body: throttle INT32, then compact Results of
+        // {TopicName, Partitions of {PartitionIndex INT32, ErrorCode
+        // INT16, tagged}}. There is no top-level ErrorCode and no
+        // first-directory ErrorCode (the response has no directory
+        // array). Leftover-empty empty Results has no ErrorCode.
+        // Measured independently from Apache
+        // AlterReplicaLogDirsResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture throttle 0, topic "t", partition 0, error
+        // CLUSTER_AUTHORIZATION_FAILED (31). Do not assume bytes 4-5
+        // from AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // DescribeProducers, bytes 27-28 from DescribeTopicPartitions
+        // first-partition, or bytes 45-46 from AssignReplicasToDirs
+        // first-partition. Official JSON lists no errorCodes; official
+        // getErrorResponse writes CLUSTER_AUTHORIZATION_FAILED (31)
+        // onto each partition when KafkaApis authorization fails.
+        let empty = AlterReplicaLogDirsResponse::new(vec![]);
+        let mut buf = BytesMut::new();
+        encode_alter_replica_log_dirs_response(&mut buf, &empty).unwrap();
+        assert_eq!(
+            buf.len(),
+            6,
+            "v2 leftover-empty empty-Results body is throttle + compact empty + tagged"
+        );
+        assert!(
+            buf.get(4).zip(buf.get(5)).is_some(),
+            "v2 leftover-empty body reaches bytes 4-5 as compact empty + tagged, not ErrorCode"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 leftover-empty has no top-level ErrorCode at bytes 4-5"
+        );
+        assert!(
+            buf.get(12).is_none(),
+            "v2 leftover-empty empty-Results has no first-partition ErrorCode"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_replica_log_dirs_response(&mut cur).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 empty-Results body must be leftover-empty"
+        );
+
+        let resp = AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+            "t",
+            vec![AlterReplicaLogDirsResponsePartition::new(
+                0,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            )],
+        )]);
+        buf.clear();
+        encode_alter_replica_log_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            17,
+            "v2 one-partition ErrorCode body is throttle + results + topic t + partition 0 + INT16 + tagged"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 first-partition ErrorCode must be the INT16 at bytes 12-13"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 ErrorCode is not a first-topic / first-directory field at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v2 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        assert!(
+            buf.get(27).is_none(),
+            "v2 one-partition body is shorter than DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        assert!(
+            buf.get(45).is_none(),
+            "v2 one-partition body is shorter than AssignReplicasToDirs first-partition bytes 45-46"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi]) == crate::error::CLUSTER_AUTHORIZATION_FAILED {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 12, "i16=31 must hit only at byte 12");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=31 hits only at byte 12");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_replica_log_dirs_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 one-partition body must be leftover-empty"
         );
     }
 }
