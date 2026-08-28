@@ -10,7 +10,7 @@ use super::api_keys::{
     ALTER_REPLICA_LOG_DIRS, ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, DELETE_GROUPS,
     DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_GROUPS,
-    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, GET_TELEMETRY_SUBSCRIPTIONS,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
     PRODUCE, PUSH_TELEMETRY, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
@@ -78,6 +78,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // AlterReplicaLogDirs is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
         ALTER_REPLICA_LOG_DIRS if api_version >= 2 => 2,
+        // DescribeLogDirs is classic at v1; flexible from v2
+        // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
+        // This crate speaks v4 only (VERSIONS.max).
+        DESCRIBE_LOG_DIRS if api_version >= 2 => 2,
         _ => 1,
     }
 }
@@ -119,6 +123,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | PUSH_TELEMETRY
         | ASSIGN_REPLICAS_TO_DIRS => 1,
         ALTER_REPLICA_LOG_DIRS if api_version >= 2 => 1,
+        DESCRIBE_LOG_DIRS if api_version >= 2 => 1,
         _ => 0,
     }
 }
@@ -406,6 +411,17 @@ mod tests {
         assert_eq!(response_header_version(ALTER_REPLICA_LOG_DIRS, 1), 0);
         assert_eq!(request_header_version(ALTER_REPLICA_LOG_DIRS, 2), 2);
         assert_eq!(response_header_version(ALTER_REPLICA_LOG_DIRS, 2), 1);
+    }
+
+    #[test]
+    fn describe_log_dirs_v4_is_flexible() {
+        // Official JSON: flexibleVersions 2+. kafka-protocol 0.18.0
+        // VERSIONS min=1 max=4; HeaderVersion is 2 / 1 at v2–4; 1 / 0
+        // at v1. This crate speaks v4 (VERSIONS.max).
+        assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 1), 1);
+        assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 1), 0);
+        assert_eq!(request_header_version(DESCRIBE_LOG_DIRS, 4), 2);
+        assert_eq!(response_header_version(DESCRIBE_LOG_DIRS, 4), 1);
     }
 
     #[test]

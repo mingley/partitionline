@@ -5479,6 +5479,310 @@ pub fn decode_alter_replica_log_dirs_response<B: Buf>(
     Ok(AlterReplicaLogDirsResponse { results })
 }
 
+/// One topic in a DescribeLogDirs (api 35) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribableLogDirTopic {
+    pub name: String,
+    pub partitions: Vec<i32>,
+}
+
+impl DescribableLogDirTopic {
+    pub fn new(name: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
+/// DescribeLogDirs (api 35) v4 request body.
+///
+/// Official Apache JSON (`apiKey: 35`, request `listeners: ["broker"]`,
+/// `validVersions: "1-5"` on trunk / `"0-4"` on the 3.9.1 JSON
+/// kafka-protocol 0.18.0 was generated against, `flexibleVersions:
+/// "2+"`). Official JSON lists no `errorCodes`. Request has no
+/// ErrorCode field. `Topics` is nullable: null means all topics.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeLogDirsRequest {
+    pub topics: Option<Vec<DescribableLogDirTopic>>,
+}
+
+impl DescribeLogDirsRequest {
+    pub fn new(topics: Option<Vec<DescribableLogDirTopic>>) -> Self {
+        Self { topics }
+    }
+}
+
+/// One partition in a DescribeLogDirs (api 35) response.
+///
+/// Official JSON has no partition ErrorCode. Fields are
+/// PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeLogDirsPartition {
+    pub partition_index: i32,
+    pub partition_size: i64,
+    pub offset_lag: i64,
+    pub is_future_key: bool,
+}
+
+impl DescribeLogDirsPartition {
+    pub fn new(
+        partition_index: i32,
+        partition_size: i64,
+        offset_lag: i64,
+        is_future_key: bool,
+    ) -> Self {
+        Self {
+            partition_index,
+            partition_size,
+            offset_lag,
+            is_future_key,
+        }
+    }
+}
+
+/// One topic in a DescribeLogDirs (api 35) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeLogDirsTopic {
+    pub name: String,
+    pub partitions: Vec<DescribeLogDirsPartition>,
+}
+
+impl DescribeLogDirsTopic {
+    pub fn new(name: impl Into<String>, partitions: Vec<DescribeLogDirsPartition>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+}
+
+/// One directory in a DescribeLogDirs (api 35) response.
+///
+/// First-directory ErrorCode is this struct's `error_code`, not a
+/// first-partition field. `total_bytes` / `usable_bytes` are v4
+/// (official JSON default `-1`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeLogDirsResult {
+    pub error_code: i16,
+    pub log_dir: String,
+    pub topics: Vec<DescribeLogDirsTopic>,
+    pub total_bytes: i64,
+    pub usable_bytes: i64,
+}
+
+impl DescribeLogDirsResult {
+    pub fn new(
+        error_code: i16,
+        log_dir: impl Into<String>,
+        topics: Vec<DescribeLogDirsTopic>,
+        total_bytes: i64,
+        usable_bytes: i64,
+    ) -> Self {
+        Self {
+            error_code,
+            log_dir: log_dir.into(),
+            topics,
+            total_bytes,
+            usable_bytes,
+        }
+    }
+}
+
+/// DescribeLogDirs (api 35) v4 response body.
+///
+/// **ErrorCode is top-level**, after throttle. Official JSON adds
+/// top-level ErrorCode at versions `3+`. Each result also has a
+/// first-directory ErrorCode. There is no first-partition ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeLogDirsResponse {
+    pub error_code: i16,
+    pub results: Vec<DescribeLogDirsResult>,
+}
+
+impl DescribeLogDirsResponse {
+    pub fn new(error_code: i16, results: Vec<DescribeLogDirsResult>) -> Self {
+        Self {
+            error_code,
+            results,
+        }
+    }
+}
+
+/// DescribeLogDirs v4 (flexible from v2; KIP-113 / KIP-784 / KIP-827).
+///
+/// Official Apache JSON (`apiKey: 35`, request `listeners: ["broker"]`,
+/// trunk `validVersions: "1-5"`, 3.9.1 `validVersions: "0-4"`,
+/// `flexibleVersions: "2+"`). Official JSON lists **no** `errorCodes`.
+/// Official Java `KafkaApis.handleDescribeLogDirsRequest` answers from
+/// the connected broker (`replicaManager.describeLogDirs`); it does
+/// not look up a controller or a coordinator. Auth failure writes
+/// `CLUSTER_AUTHORIZATION_FAILED` (31) onto the **top-level**
+/// ErrorCode (KIP-784). Official `ReplicaManager.describeLogDirs`
+/// writes `KAFKA_STORAGE_ERROR` (56) onto a **first-directory**
+/// ErrorCode when that dir is offline, or `Errors.forException(t).code()`
+/// for other throwables. `NOT_COORDINATOR` (16) is **not** listed.
+/// `NOT_CONTROLLER` (41) is **not** listed. `NOT_LEADER_OR_FOLLOWER`
+/// (6) is **not** a client hop. kafka-protocol 0.18.0
+/// (`DescribeLogDirsRequest` / `DescribeLogDirsResponse`, `VERSIONS`
+/// min=1 max=4). This crate targets v4, the version a client encodes
+/// (`VERSIONS.max`). Official trunk lists a later version; that later
+/// version stays a named codec gap and is not encoded. Request encode
+/// used `features = ["client"]`; response encode used `broker`.
+/// Request: compact nullable `Topics` of `{Topic compact STRING,
+/// Partitions compact INT32[], tagged}`, tagged. Response:
+/// `ThrottleTimeMs` INT32, **top-level `ErrorCode` INT16** (v3+),
+/// compact `Results` of `{ErrorCode INT16, LogDir compact STRING,
+/// Topics compact [{Name compact STRING, Partitions compact
+/// [{PartitionIndex INT32, PartitionSize INT64, OffsetLag INT64,
+/// IsFutureKey BOOLEAN, tagged}], tagged}], TotalBytes INT64,
+/// UsableBytes INT64, tagged}`, tagged. v4 directory fields are
+/// TotalBytes and UsableBytes (official JSON default `-1`).
+/// **ErrorCode is top-level**, after throttle — not a first-directory
+/// field and not a first-partition field. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on leftover-
+/// empty fixture throttle `0`, empty `Results`, error
+/// `CLUSTER_AUTHORIZATION_FAILED` (31): the leftover-empty body is
+/// **8 bytes** (throttle + top-level INT16 + compact empty array +
+/// tagged) and the top-level ErrorCode is the INT16 at **bytes 4–5**.
+/// i16=31 hits only at byte 4. On leftover-empty fixture directory
+/// `"/d"` topic `"t"` partition `0`, top-level 31 and first-directory
+/// 0: the first-directory ErrorCode is the INT16 at **bytes 7–8**.
+/// There is no first-partition ErrorCode. Do not assume bytes 4–5
+/// from AssignReplicasToDirs / PushTelemetry /
+/// GetTelemetrySubscriptions / ListConfigResources: this offset was
+/// measured on this API's official top-level field (versions 3+).
+/// Not bytes 5–6 (DescribeTopicPartitions / ShareGroupDescribe), 7–8
+/// as the hop/auth code (DeleteGroups after GroupId; 7–8 here is
+/// first-directory, not the top-level hop field), 8–9
+/// (DescribeShareGroupOffsets), 12–13 (AlterReplicaLogDirs /
+/// DescribeProducers first-partition), 27–28, or 45–46. Because 41
+/// is not listed, 16 is not listed, and 6 is not a client hop, this
+/// is broker-only: no FindCoordinator, no `key_type`, no controller
+/// hop, no partition-leader hop.
+pub fn encode_describe_log_dirs_request(
+    buf: &mut BytesMut,
+    req: &DescribeLogDirsRequest,
+) -> crate::error::Result<()> {
+    match &req.topics {
+        None => buf::put_array_len(buf, true, None)?,
+        Some(topics) => {
+            buf::put_array_len(buf, true, Some(topics.len()))?;
+            for topic in topics {
+                buf::put_compact_string(buf, Some(&topic.name))?;
+                buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+                for part in &topic.partitions {
+                    buf.put_i32(*part);
+                }
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_log_dirs_request<B: Buf>(buf: &mut B) -> Result<DescribeLogDirsRequest> {
+    let topics = match buf::get_array_len(buf, true)? {
+        None => None,
+        Some(n) => {
+            let mut topics = Vec::with_capacity(n);
+            for _ in 0..n {
+                let name = buf::get_compact_string(buf)?.unwrap_or_default();
+                let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+                let mut partitions = Vec::with_capacity(pn);
+                for _ in 0..pn {
+                    partitions.push(buf::get_i32(buf)?);
+                }
+                buf::skip_tagged_fields(buf)?;
+                topics.push(DescribableLogDirTopic { name, partitions });
+            }
+            Some(topics)
+        }
+    };
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeLogDirsRequest { topics })
+}
+
+pub fn encode_describe_log_dirs_response(
+    buf: &mut BytesMut,
+    resp: &DescribeLogDirsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_array_len(buf, true, Some(resp.results.len()))?;
+    for dir in &resp.results {
+        buf.put_i16(dir.error_code);
+        buf::put_compact_string(buf, Some(&dir.log_dir))?;
+        buf::put_array_len(buf, true, Some(dir.topics.len()))?;
+        for topic in &dir.topics {
+            buf::put_compact_string(buf, Some(&topic.name))?;
+            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+            for part in &topic.partitions {
+                buf.put_i32(part.partition_index);
+                buf.put_i64(part.partition_size);
+                buf.put_i64(part.offset_lag);
+                buf.put_u8(u8::from(part.is_future_key));
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf.put_i64(dir.total_bytes);
+        buf.put_i64(dir.usable_bytes);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_describe_log_dirs_response<B: Buf>(buf: &mut B) -> Result<DescribeLogDirsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut results = Vec::with_capacity(n);
+    for _ in 0..n {
+        let dir_error = buf::get_i16(buf)?;
+        let log_dir = buf::get_compact_string(buf)?.unwrap_or_default();
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let partition_size = buf::get_i64(buf)?;
+                let offset_lag = buf::get_i64(buf)?;
+                let is_future_key = buf::get_bool(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(DescribeLogDirsPartition {
+                    partition_index,
+                    partition_size,
+                    offset_lag,
+                    is_future_key,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(DescribeLogDirsTopic { name, partitions });
+        }
+        let total_bytes = buf::get_i64(buf)?;
+        let usable_bytes = buf::get_i64(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        results.push(DescribeLogDirsResult {
+            error_code: dir_error,
+            log_dir,
+            topics,
+            total_bytes,
+            usable_bytes,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(DescribeLogDirsResponse {
+        error_code,
+        results,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -9086,6 +9390,307 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterReplicaLogDirs v2 one-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_v4_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 35
+        // listeners broker only. This crate targets v4 (VERSIONS.max).
+        // Not copied from AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups
+        // (top-level ErrorCode at bytes 4-5),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), AlterReplicaLogDirs / DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13), or
+        // DescribeTopicPartitions first-partition (bytes 27-28).
+        const REQ: &[u8] = &[0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const REQ_EMPTY: &[u8] = &[0x01, 0x00];
+        const REQ_NULL: &[u8] = &[0x00, 0x00];
+        // CLUSTER_AUTHORIZATION_FAILED (31). Empty-Results body is 8
+        // bytes. Top-level ErrorCode is at bytes 4-5.
+        const RESP_31: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x01, 0x00];
+        const RESP_EMPTY: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let req =
+            DescribeLogDirsRequest::new(Some(vec![DescribableLogDirTopic::new("t", vec![0])]));
+        let mut buf = BytesMut::new();
+        encode_describe_log_dirs_request(&mut buf, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        buf.clear();
+        encode_describe_log_dirs_request(&mut buf, &DescribeLogDirsRequest::new(Some(vec![])))
+            .unwrap();
+        assert_eq!(&buf[..], REQ_EMPTY);
+        buf.clear();
+        encode_describe_log_dirs_request(&mut buf, &DescribeLogDirsRequest::new(None)).unwrap();
+        assert_eq!(&buf[..], REQ_NULL);
+        let resp = DescribeLogDirsResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, vec![]);
+        buf.clear();
+        encode_describe_log_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_31);
+        buf.clear();
+        encode_describe_log_dirs_response(&mut buf, &DescribeLogDirsResponse::new(0, vec![]))
+            .unwrap();
+        assert_eq!(&buf[..], RESP_EMPTY);
+    }
+
+    #[test]
+    fn describe_log_dirs_v4_roundtrip_is_leftover_empty() {
+        let req =
+            DescribeLogDirsRequest::new(Some(vec![DescribableLogDirTopic::new("t", vec![0])]));
+        let mut buf = BytesMut::new();
+        encode_describe_log_dirs_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_log_dirs_request(&mut cur).unwrap(), req);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeLogDirs v4 request must be leftover-empty"
+        );
+
+        let resp = DescribeLogDirsResponse::new(
+            0,
+            vec![DescribeLogDirsResult::new(
+                0,
+                "/d",
+                vec![DescribeLogDirsTopic::new(
+                    "t",
+                    vec![DescribeLogDirsPartition::new(0, 0, 0, false)],
+                )],
+                -1,
+                -1,
+            )],
+        );
+        buf.clear();
+        encode_describe_log_dirs_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_log_dirs_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeLogDirs v4 response must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_describe_log_dirs_request(&mut buf, &DescribeLogDirsRequest::new(None)).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_log_dirs_request(&mut cur).unwrap(),
+            DescribeLogDirsRequest::new(None)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeLogDirs v4 null-Topics request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_top_level_error_code_is_at_bytes_4_5() {
+        // Official v4 body: throttle INT32, then top-level ErrorCode
+        // INT16 (versions 3+), then compact Results of {ErrorCode
+        // INT16, LogDir, Topics, TotalBytes, UsableBytes, tagged}.
+        // Measured independently from Apache DescribeLogDirsResponse.json
+        // and a kafka-protocol 0.18.0 broker encode (`features =
+        // ["broker"]`) on leftover-empty fixture throttle 0, empty
+        // Results, error CLUSTER_AUTHORIZATION_FAILED (31). Do not
+        // assume bytes 4-5 from AssignReplicasToDirs / PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // AlterReplicaLogDirs / DescribeProducers first-partition,
+        // bytes 27-28 from DescribeTopicPartitions first-partition, or
+        // bytes 45-46 from AssignReplicasToDirs first-partition.
+        // Official JSON lists no errorCodes; official handler writes
+        // CLUSTER_AUTHORIZATION_FAILED (31) onto the top-level field
+        // when KafkaApis authorization fails.
+        let empty =
+            DescribeLogDirsResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, vec![]);
+        let mut buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut buf, &empty).unwrap();
+        assert_eq!(
+            buf.len(),
+            8,
+            "v4 leftover-empty empty-Results body is throttle + top-level INT16 + compact empty + tagged"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not a first-directory field at bytes 5-6"
+        );
+        assert!(
+            buf.get(8).is_none(),
+            "v4 leftover-empty empty-Results has no first-directory ErrorCode at bytes 7-8"
+        );
+        assert!(
+            buf.get(12).is_none(),
+            "v4 leftover-empty empty-Results is shorter than AlterReplicaLogDirs first-partition bytes 12-13"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi]) == crate::error::CLUSTER_AUTHORIZATION_FAILED {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 4, "i16=31 must hit only at byte 4");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=31 hits only at byte 4");
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_log_dirs_response(&mut cur).unwrap(), empty);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeLogDirs v4 empty-Results body must be leftover-empty"
+        );
+
+        let resp = DescribeLogDirsResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            vec![DescribeLogDirsResult::new(
+                0,
+                "/d",
+                vec![DescribeLogDirsTopic::new(
+                    "t",
+                    vec![DescribeLogDirsPartition::new(0, 0, 0, false)],
+                )],
+                -1,
+                -1,
+            )],
+        );
+        buf.clear();
+        encode_describe_log_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            57,
+            "v4 one-directory body is throttle + top-level INT16 + results + dir + topic t + partition 0 + TotalBytes + UsableBytes + tagged"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 top-level ErrorCode stays at bytes 4-5 when Results are present"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b7, b8]),
+            0,
+            "v4 first-directory ErrorCode is at bytes 7-8, not the hop/auth code"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not a first-directory field at bytes 5-6"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not a first-partition field at bytes 12-13"
+        );
+        assert!(
+            buf.get(27).is_some(),
+            "v4 one-directory body reaches DescribeTopicPartitions first-partition bytes 27-28 as OffsetLag, not ErrorCode"
+        );
+        let b27 = buf.get(27).copied().unwrap();
+        let b28 = buf.get(28).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b27, b28]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not at DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        assert!(
+            buf.get(45).is_some(),
+            "v4 one-directory body reaches AssignReplicasToDirs first-partition bytes 45-46 as UsableBytes, not ErrorCode"
+        );
+        let b45 = buf.get(45).copied().unwrap();
+        let b46 = buf.get(46).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b45, b46]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v4 ErrorCode is not at AssignReplicasToDirs first-partition bytes 45-46"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi]) == crate::error::CLUSTER_AUTHORIZATION_FAILED {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 4, "i16=31 must hit only at byte 4");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "i16=31 hits only at byte 4");
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_log_dirs_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeLogDirs v4 one-directory body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_does_not_speak_v5() {
+        // kafka-protocol 0.18.0 VERSIONS.max = 4. This crate
+        // negotiates 4 only. Official trunk lists a later version;
+        // that later version stays a named codec gap.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 5, 4, 4), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(5, 5, 4, 4), None);
+        let resp = DescribeLogDirsResponse::new(
+            0,
+            vec![DescribeLogDirsResult::new(
+                0,
+                "/d",
+                vec![DescribeLogDirsTopic::new(
+                    "t",
+                    vec![DescribeLogDirsPartition::new(0, 0, 0, false)],
+                )],
+                -1,
+                -1,
+            )],
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_log_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            57,
+            "v4 one-directory leftover-empty has no extra directory field after UsableBytes"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_log_dirs_response(&mut cur).unwrap(), resp);
+        assert!(
+            !cur.has_remaining(),
+            "v4 body must be leftover-empty; a later-version directory field would leave leftover"
         );
     }
 }
