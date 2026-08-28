@@ -40,38 +40,41 @@ use partitionline::protocol::admin::{
     decode_describe_producers_request, decode_describe_share_group_offsets_request,
     decode_describe_topic_partitions_request, decode_describe_transactions_request,
     decode_describe_user_scram_credentials_request, decode_incremental_alter_configs_request,
-    decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_share_group_describe_request,
-    decode_unregister_broker_request, decode_update_features_request,
-    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
-    encode_alter_share_group_offsets_response, encode_alter_user_scram_credentials_response,
-    encode_consumer_group_describe_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_groups_response, encode_delete_records_response,
+    decode_list_config_resources_request, decode_list_groups_request,
+    decode_list_partition_reassignments_request, decode_list_transactions_request,
+    decode_share_group_describe_request, decode_unregister_broker_request,
+    decode_update_features_request, encode_allocate_producer_ids_response,
+    encode_alter_client_quotas_response, encode_alter_configs_response,
+    encode_alter_partition_reassignments_response, encode_alter_share_group_offsets_response,
+    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_groups_response, encode_delete_records_response,
     encode_delete_share_group_offsets_response, encode_delete_topics_response,
     encode_describe_client_quotas_response, encode_describe_cluster_response,
     encode_describe_configs_response, encode_describe_groups_response,
     encode_describe_producers_response, encode_describe_share_group_offsets_response,
     encode_describe_topic_partitions_response, encode_describe_transactions_response,
     encode_describe_user_scram_credentials_response, encode_incremental_alter_configs_response,
-    encode_list_groups_response, encode_list_partition_reassignments_response,
-    encode_list_transactions_response, encode_share_group_describe_response,
-    encode_unregister_broker_response, encode_update_features_response, ActiveProducer,
-    AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
-    AlterUserScramCredentialsResult, AlteredShareGroupOffsets, ClientQuotaAlterationResult,
-    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue,
-    ClusterDescription, ConfigEntry, DeletableGroupResult, DeletedShareGroupOffsets,
-    DescribeClientQuotasResponse, DescribeConfigsResult, DescribeProducersPartition,
-    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedTopicPartition, DescribedTopicPartitions, ListGroupsResponse,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedGroup,
-    OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
-    ReassignmentTopicResult, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
-    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
-    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    encode_list_config_resources_response, encode_list_groups_response,
+    encode_list_partition_reassignments_response, encode_list_transactions_response,
+    encode_share_group_describe_response, encode_unregister_broker_response,
+    encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
+    AlterPartitionReassignmentsResponse, AlterUserScramCredentialsResult, AlteredShareGroupOffsets,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, DeletableGroupResult,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
+    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedTopicPartitions, ListConfigResourcesResponse, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
+    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment,
+    ReassignmentPartitionResult, ReassignmentTopicResult, ScramCredentialInfo,
+    TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
+    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -87,11 +90,11 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
     DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
     DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, FETCH, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_GROUPS,
-    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -257,6 +260,8 @@ struct State {
     delete_share_group_offsets_not_coordinator: u32,
     last_describe_topic_partitions_node: Option<i32>,
     last_describe_topic_partitions: Option<(Vec<String>, i32, Option<TopicPartitionCursor>)>,
+    last_list_config_resources_node: Option<i32>,
+    last_list_config_resources: Option<Vec<i8>>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -443,6 +448,8 @@ fn new_state(
         delete_share_group_offsets_not_coordinator: 0,
         last_describe_topic_partitions_node: None,
         last_describe_topic_partitions: None,
+        last_list_config_resources_node: None,
+        last_list_config_resources: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1190,6 +1197,14 @@ impl Mock {
         self.state.lock().last_describe_topic_partitions.clone()
     }
 
+    pub fn last_list_config_resources_node(&self) -> Option<i32> {
+        self.state.lock().last_list_config_resources_node
+    }
+
+    pub fn last_list_config_resources(&self) -> Option<Vec<i8>> {
+        self.state.lock().last_list_config_resources.clone()
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1558,6 +1573,7 @@ fn versions() -> ApiVersionsResponse {
         (ALTER_SHARE_GROUP_OFFSETS, 0, 0),
         (DELETE_SHARE_GROUP_OFFSETS, 0, 0),
         (DESCRIBE_TOPIC_PARTITIONS, 0, 0),
+        (LIST_CONFIG_RESOURCES, 0, 1),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3857,6 +3873,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_describe_topic_partitions_response(
                     &mut body,
                     &DescribeTopicPartitionsResponse::new(vec![topic]),
+                )
+                .unwrap();
+            }
+            LIST_CONFIG_RESOURCES => {
+                let types = decode_list_config_resources_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                // Any connected broker answers. Fixture resource only;
+                // not a config store, not a coordinator hop, not a
+                // 41/6 path. Official JSON lists no error codes;
+                // official handler does not use NOT_COORDINATOR (16),
+                // so the wrong node does not return 16.
+                st.last_list_config_resources_node = Some(node_id);
+                st.last_list_config_resources = Some(types);
+                encode_list_config_resources_response(
+                    &mut body,
+                    &ListConfigResourcesResponse::new(
+                        0,
+                        vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
+                    ),
                 )
                 .unwrap();
             }

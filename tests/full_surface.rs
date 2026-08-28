@@ -19,8 +19,8 @@ use partitionline::{
     OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
     ProducerConfig, ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
     UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
-    ALTER_CONFIG_SET, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
-    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -3404,6 +3404,46 @@ async fn describe_topic_partitions_follows_broker() {
         mock.last_delete_share_group_offsets_node(),
         None,
         "DescribeTopicPartitions must not hop via DeleteShareGroupOffsets"
+    );
+}
+
+#[tokio::test]
+async fn list_config_resources_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .list_config_resources(&[CONFIG_RESOURCE_CLIENT_METRICS])
+        .await
+        .unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].resource_name, "r");
+    assert_eq!(first[0].resource_type, CONFIG_RESOURCE_CLIENT_METRICS);
+    assert_eq!(
+        mock.last_list_config_resources_node(),
+        Some(1),
+        "ListConfigResources must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_list_config_resources(),
+        Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "ListConfigResources must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "ListConfigResources must not hop via Metadata controller_id"
+    );
+    assert_eq!(
+        mock.last_describe_topic_partitions_node(),
+        None,
+        "ListConfigResources must not hop via DescribeTopicPartitions"
     );
 }
 
