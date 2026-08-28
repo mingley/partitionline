@@ -4190,7 +4190,7 @@ async fn offset_delete_follows_group_coordinator() {
 
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let deleted = admin
-        .delete_offsets("od-coord", &[("t".into(), 0)])
+        .delete_offsets("od-coord", [TopicPartition::new("t", 0)])
         .await
         .unwrap();
     assert_eq!(deleted[0].error_code, 0);
@@ -4202,7 +4202,7 @@ async fn offset_delete_follows_group_coordinator() {
 
     mock.move_coordinator();
     let again = admin
-        .delete_offsets("od-coord", &[("t".into(), 0)])
+        .delete_offsets("od-coord", [TopicPartition::new("t", 0)])
         .await
         .unwrap();
     assert_eq!(again[0].error_code, 0);
