@@ -124,8 +124,11 @@
 //! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
-//! Kafka `max.block.ms` (how long `send` waits for metadata; default 30s,
-//! Java 60s). [`ProducerConfig::retry_backoff`] /
+//! Kafka `max.block.ms` (how long `send` waits for metadata and
+//! [`ProducerConfig::buffer_memory`]; default 30s, Java 60s).
+//! [`ProducerConfig::buffer_memory`] is Kafka `buffer.memory` (queued
+//! key-plus-value bytes not yet acked; default 32 MiB, Java; zero is no
+//! client-side cap). [`ProducerConfig::retry_backoff`] /
 //! [`ProducerConfig::retry_backoff_max`] are Kafka `retry.backoff.ms` /
 //! `retry.backoff.max.ms` (exponential wait after a retriable Produce;
 //! default 100ms / 1s). [`ConsumerConfig::retry_backoff`] is the same pair

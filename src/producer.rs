@@ -50,14 +50,21 @@ pub struct ProducerConfig {
     pub batch_records: usize,
     /// Max bytes in one Produce batch.
     pub batch_bytes: usize,
+    /// Kafka `buffer.memory`. Key plus value bytes of records queued and not
+    /// yet acked. Default 32 MiB (Java). Zero means no client-side cap (the
+    /// per-connection channel still bounds how many records sit in memory).
+    /// [`crate::Producer::send`] waits up to [`Self::max_block`];
+    /// [`crate::Producer::try_send`] returns [`crate::Error::QueueFull`].
+    pub buffer_memory: usize,
     /// Per-request timeout (produce, metadata, init pid).
     pub request_timeout: Duration,
     /// Kafka `delivery.timeout.ms`. Time from queue until ack or timeout,
     /// including retries. Default 30s (this crate; Java defaults to 120s).
     pub delivery_timeout: Duration,
     /// Kafka `max.block.ms`. How long [`crate::Producer::send`] waits for
-    /// metadata and a leader connection. Default 30s (this crate; Java
-    /// defaults to 60s). [`crate::Producer::try_send`] does not wait.
+    /// metadata, a leader connection, and [`Self::buffer_memory`]. Default
+    /// 30s (this crate; Java defaults to 60s). [`crate::Producer::try_send`]
+    /// does not wait.
     pub max_block: Duration,
     /// Kafka `retry.backoff.ms`. Wait after a retriable Produce failure
     /// before the next attempt. Default 100ms (Java / librdkafka). Zero
@@ -128,6 +135,7 @@ impl Default for ProducerConfig {
             linger: Duration::from_millis(5),
             batch_records: 32_768,
             batch_bytes: 1_000_000,
+            buffer_memory: 32 * 1024 * 1024,
             request_timeout: Duration::from_secs(30),
             delivery_timeout: Duration::from_secs(30),
             max_block: Duration::from_secs(30),
@@ -197,6 +205,15 @@ impl ProducerConfig {
     #[must_use]
     pub fn batch_bytes(mut self, n: usize) -> Self {
         self.batch_bytes = n;
+        self
+    }
+
+    /// Kafka `buffer.memory`. Key plus value bytes queued and not yet acked.
+    ///
+    /// Default 32 MiB (Java). Zero means no client-side cap.
+    #[must_use]
+    pub fn buffer_memory(mut self, bytes: usize) -> Self {
+        self.buffer_memory = bytes;
         self
     }
 
@@ -293,7 +310,8 @@ impl ProducerConfig {
         self
     }
 
-    /// Kafka `max.block.ms`. How long [`crate::Producer::send`] waits for metadata.
+    /// Kafka `max.block.ms`. How long [`crate::Producer::send`] waits for metadata
+    /// and [`Self::buffer_memory`].
     ///
     /// Default 30s. Java `max.block.ms` defaults to 60s. [`crate::Producer::try_send`]
     /// returns [`crate::Error::QueueFull`] instead of waiting.
@@ -504,6 +522,7 @@ struct Shared {
     producer_epoch: i16,
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
+    buffer_nudge: Notify,
     meta_tx: mpsc::Sender<Arc<str>>,
     connect_tx: mpsc::Sender<i32>,
     retry_tx: mpsc::Sender<Pending>,
@@ -521,6 +540,7 @@ struct Shared {
     m_acked: AtomicU64,
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
+    buffered_bytes: AtomicU64,
     ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
     topics: parking_lot::Mutex<HashMap<Arc<str>, Arc<crate::metrics::ProduceTopicTracker>>>,
@@ -565,12 +585,42 @@ impl Shared {
         let _ = self.m_errors.fetch_add(n, Ordering::Relaxed);
         self.topic_tracker(topic).note_errors(n);
     }
+
+    fn try_reserve_buffer(&self, bytes: u64) -> bool {
+        let cap = self.cfg.buffer_memory;
+        if cap == 0 || bytes == 0 {
+            return true;
+        }
+        let cap = u64::try_from(cap).unwrap_or(u64::MAX);
+        let prev = self.buffered_bytes.fetch_add(bytes, Ordering::Relaxed);
+        if prev.saturating_add(bytes) > cap {
+            let _ = self.buffered_bytes.fetch_sub(bytes, Ordering::Relaxed);
+            false
+        } else {
+            true
+        }
+    }
+
+    fn release_buffer(&self, bytes: u64) {
+        if bytes == 0 {
+            return;
+        }
+        let _ = self.buffered_bytes.fetch_sub(bytes, Ordering::Relaxed);
+        self.buffer_nudge.notify_waiters();
+    }
 }
 
 fn rec_bytes(rec: &ProduceRecord) -> u64 {
     let k = rec.key.as_ref().map(bytes::Bytes::len).unwrap_or(0);
     let v = rec.value.as_ref().map(bytes::Bytes::len).unwrap_or(0);
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
+}
+
+fn pendings_bytes(pendings: &[Pending]) -> u64 {
+    pendings
+        .iter()
+        .map(|p| rec_bytes(&p.rec))
+        .fold(0, u64::saturating_add)
 }
 
 impl Producer {
@@ -687,6 +737,7 @@ impl Producer {
             producer_epoch,
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
+            buffer_nudge: Notify::new(),
             meta_tx,
             connect_tx,
             retry_tx,
@@ -703,6 +754,7 @@ impl Producer {
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
+            buffered_bytes: AtomicU64::new(0),
             ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
             topics: parking_lot::Mutex::new(HashMap::new()),
@@ -794,8 +846,7 @@ impl Producer {
         }
     }
 
-    async fn ensure_ready(&self, rec: &mut ProduceRecord) -> Result<()> {
-        let deadline = Instant::now() + self.inner.shared.cfg.max_block;
+    async fn ensure_ready(&self, rec: &mut ProduceRecord, deadline: Instant) -> Result<()> {
         loop {
             if let Some(e) = peek_meta_err(&self.inner.shared) {
                 return Err(e);
@@ -823,6 +874,24 @@ impl Producer {
             tokio::select! {
                 _ = notified => {}
                 _ = tokio::time::sleep(rest) => return Err(Error::Timeout),
+            }
+        }
+    }
+
+    async fn wait_buffer(&self, bytes: u64, deadline: Instant) -> Result<()> {
+        loop {
+            if self.inner.shared.try_reserve_buffer(bytes) {
+                return Ok(());
+            }
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let rest = deadline.saturating_duration_since(Instant::now());
+            let notified = self.inner.shared.buffer_nudge.notified();
+            tokio::pin!(notified);
+            tokio::select! {
+                _ = notified => {}
+                _ = tokio::time::sleep(rest.min(Duration::from_millis(5))) => {}
             }
         }
     }
@@ -855,13 +924,15 @@ impl Producer {
         for rec in recs {
             let (tx, rx) = oneshot::channel();
             let mut rec = self.inner.shared.interceptors.on_send(rec);
-            self.ensure_ready(&mut rec).await?;
+            let block_deadline = Instant::now() + self.inner.shared.cfg.max_block;
+            self.ensure_ready(&mut rec, block_deadline).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             let now = Instant::now();
             let deadline = now + self.inner.shared.cfg.delivery_timeout;
             let bytes = rec_bytes(&rec);
             let topic = rec.topic.clone();
-            w.data
+            self.wait_buffer(bytes, block_deadline).await?;
+            if w.data
                 .send(Pending {
                     rec,
                     tx: Some(tx),
@@ -871,7 +942,11 @@ impl Producer {
                     retry: 0,
                 })
                 .await
-                .map_err(|_| Error::Closed)?;
+                .is_err()
+            {
+                self.inner.shared.release_buffer(bytes);
+                return Err(Error::Closed);
+            }
             self.inner.shared.note_queued_n(&topic, 1, bytes);
             rxs.push(rx);
         }
@@ -939,7 +1014,8 @@ impl Producer {
     /// Enqueue without a per-record future. Delivery is observed on [`Self::flush`].
     ///
     /// Returns [`Error::QueueFull`] until metadata and a connection to the
-    /// partition leader are ready. Call again; [`Self::send`] waits up to
+    /// partition leader are ready, or when [`ProducerConfig::buffer_memory`]
+    /// is full. Call again; [`Self::send`] waits up to
     /// [`ProducerConfig::max_block`].
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
@@ -961,19 +1037,23 @@ impl Producer {
         let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let bytes = rec_bytes(&rec);
         let topic = rec.topic.clone();
-        w.data
-            .try_send(Pending {
-                rec,
-                tx: None,
-                seq: None,
-                deadline,
-                queued_at: now,
-                retry: 0,
-            })
-            .map_err(|e| match e {
+        if !self.inner.shared.try_reserve_buffer(bytes) {
+            return Err(Error::QueueFull);
+        }
+        if let Err(e) = w.data.try_send(Pending {
+            rec,
+            tx: None,
+            seq: None,
+            deadline,
+            queued_at: now,
+            retry: 0,
+        }) {
+            self.inner.shared.release_buffer(bytes);
+            return Err(match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Closed,
-            })?;
+            });
+        }
         self.inner.shared.note_queued_n(&topic, 1, bytes);
         Ok(())
     }
@@ -989,6 +1069,7 @@ impl Producer {
             records_acked: self.inner.shared.m_acked.load(Ordering::Relaxed),
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
+            bytes_buffered: self.inner.shared.buffered_bytes.load(Ordering::Relaxed),
             ack_latency: self.inner.shared.ack_latency.snapshot(),
             topics: crate::metrics::snapshot_produce_topics(&self.inner.shared.topics.lock()),
         }
@@ -2080,6 +2161,7 @@ impl Worker {
                 }
                 Some(r) => {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
+                    self.shared.release_buffer(pendings_bytes(&pendings));
                     self.shared.note_acked(&topic, n);
                     for (i, p) in pendings.into_iter().enumerate() {
                         self.shared.note_ack_latency(&topic, p.queued_at);
@@ -2482,6 +2564,7 @@ fn encode_pendings(
 
 fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
     for (topic, part, pendings) in groups {
+        shared.release_buffer(pendings_bytes(&pendings));
         let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
         shared.note_acked(&topic, n);
         for p in pendings {
@@ -2512,6 +2595,7 @@ fn fail_groups(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>, err:
 }
 
 fn fail_pendings(shared: &Shared, pendings: Vec<Pending>, err: Error) {
+    shared.release_buffer(pendings_bytes(&pendings));
     for p in pendings {
         shared.note_errors(&p.rec.topic, 1);
         shared.interceptors.on_error(&err);

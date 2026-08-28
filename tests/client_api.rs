@@ -177,6 +177,7 @@ async fn seek_to_beginning_rereads_from_start() {
 
 #[test]
 fn config_builders_set_typed_knobs() {
+    assert_eq!(ProducerConfig::default().buffer_memory, 32 * 1024 * 1024);
     let p = ProducerConfig::bootstrap(["127.0.0.1:9092"])
         .acks(Acks::All)
         .compression(Compression::Lz4)
@@ -185,6 +186,7 @@ fn config_builders_set_typed_knobs() {
         .connect_timeout(Duration::from_secs(3))
         .delivery_timeout(Duration::from_secs(45))
         .max_block(Duration::from_secs(15))
+        .buffer_memory(4096)
         .retry_backoff(Duration::from_millis(80))
         .retry_backoff_max(Duration::from_millis(400))
         .transaction_timeout(Duration::from_secs(45))
@@ -199,6 +201,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.connect_timeout, Duration::from_secs(3));
     assert_eq!(p.delivery_timeout, Duration::from_secs(45));
     assert_eq!(p.max_block, Duration::from_secs(15));
+    assert_eq!(p.buffer_memory, 4096);
     assert_eq!(p.retry_backoff, Duration::from_millis(80));
     assert_eq!(p.retry_backoff_max, Duration::from_millis(400));
     assert_eq!(p.transaction_timeout, Duration::from_secs(45));
@@ -968,6 +971,7 @@ async fn producer_and_consumer_metrics() {
     assert_eq!(pm.records_acked, 3);
     assert_eq!(pm.produce_errors, 0);
     assert_eq!(pm.bytes_queued, 5);
+    assert_eq!(pm.bytes_buffered, 0);
     assert_eq!(pm.ack_latency.count, 3);
     assert!(pm.ack_latency.max_nanos >= pm.ack_latency.min_nanos);
     assert!(pm.ack_latency.mean_nanos().is_some());
@@ -1007,6 +1011,57 @@ async fn producer_and_consumer_metrics() {
     assert_eq!(cm.topics[0].records_fetched, 2);
     assert_eq!(cm.topics[0].bytes_fetched, 4);
     assert_eq!(cm.topics[0].fetch_latency.count, 1);
+}
+
+#[tokio::test]
+async fn try_send_queue_full_when_buffer_memory_is_full() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .buffer_memory(3),
+    )
+    .await
+    .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b""[..]))
+        .await
+        .unwrap();
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"ab"[..]))
+        .unwrap();
+    let err = producer
+        .try_send(ProduceRecord::to("t").value(&b"cd"[..]))
+        .unwrap_err();
+    assert!(matches!(err, Error::QueueFull), "got {err}");
+    assert_eq!(producer.metrics().bytes_buffered, 2);
+    producer.flush().await.unwrap();
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    producer
+        .try_send(ProduceRecord::to("t").value(&b"cd"[..]))
+        .unwrap();
+    producer.flush().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn send_times_out_when_record_exceeds_buffer_memory() {
+    let mock = common::Mock::start().await;
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .buffer_memory(1)
+            .max_block(Duration::from_millis(40)),
+    )
+    .await
+    .unwrap();
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"ab"[..]))
+        .await
+        .unwrap_err();
+    assert!(matches!(err, Error::Timeout), "got {err}");
+    assert_eq!(producer.metrics().bytes_buffered, 0);
+    producer.close().await.unwrap();
 }
 
 #[tokio::test]

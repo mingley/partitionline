@@ -142,7 +142,9 @@ let _iso = IsolationLevel::ReadCommitted;
 `ProducerConfig::allow_auto_create_topics` is Kafka `allow.auto.create.topics`.
 `ProducerConfig::delivery_timeout` is Kafka `delivery.timeout.ms` (default 30s;
 Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
-(how long `send` waits for metadata; default 30s, Java 60s).
+(how long `send` waits for metadata and `buffer.memory`; default 30s, Java 60s).
+`ProducerConfig::buffer_memory` is Kafka `buffer.memory` (queued key-plus-value
+bytes not yet acked; default 32 MiB, same as Java; zero is no client-side cap).
 `ProducerConfig::retry_backoff` / `retry_backoff_max` are Kafka
 `retry.backoff.ms` / `retry.backoff.max.ms` (exponential wait after a retriable
 Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable

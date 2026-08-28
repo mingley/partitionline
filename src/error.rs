@@ -32,7 +32,7 @@ pub enum Error {
     Closed,
     /// A request exceeded [`crate::ProducerConfig::request_timeout`] or similar.
     Timeout,
-    /// `try_send` could not queue (metadata or connection not ready).
+    /// `try_send` could not queue (metadata, connection, or `buffer.memory`).
     QueueFull,
     /// [`crate::ConsumerGroup::poll`] was not called within `max.poll.interval.ms`.
     MaxPollInterval,

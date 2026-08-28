@@ -18,7 +18,7 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 
 `ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
 builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`,
-`retry_backoff`, `reconnect_backoff`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.
+`buffer_memory`, `retry_backoff`, `reconnect_backoff`, `transaction_timeout`, `metadata_max_age`, …). The raw fields remain writable.
 
 `ConsumerConfig.isolation_level` is [`IsolationLevel`](../src/config.rs)
 (not a raw `i8`). `ConfigResourceType` and `ScramMechanism` type admin
