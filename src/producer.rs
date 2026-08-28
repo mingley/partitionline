@@ -4,7 +4,7 @@
 )]
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -14,7 +14,7 @@ use tokio::sync::{mpsc, oneshot, Mutex, Notify};
 use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
-use crate::partitioner::{partition_for_key, to_positive};
+use crate::partitioner::{to_positive, Partitioner, PartitionerBox};
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, decode_produce_response,
     encode_api_versions_request, encode_metadata_request, ApiVersion,
@@ -61,6 +61,8 @@ pub struct ProducerConfig {
     pub enable_idempotence: bool,
     pub transactional_id: Option<String>,
     pub tls: Option<TlsConfig>,
+    /// How records without an explicit partition are mapped.
+    pub partitioner: PartitionerBox,
 }
 
 impl Default for ProducerConfig {
@@ -86,6 +88,7 @@ impl Default for ProducerConfig {
             enable_idempotence: false,
             transactional_id: None,
             tls: None,
+            partitioner: PartitionerBox::default(),
         }
     }
 }
@@ -166,6 +169,13 @@ impl ProducerConfig {
     #[must_use]
     pub fn transactional_id(mut self, id: impl Into<String>) -> Self {
         self.transactional_id = Some(id.into());
+        self
+    }
+
+    /// Replace the default murmur2 / round-robin partitioner.
+    #[must_use]
+    pub fn partitioner(mut self, p: impl Partitioner) -> Self {
+        self.partitioner = PartitionerBox::new(p);
         self
     }
 
@@ -302,7 +312,7 @@ struct Shared {
     produce_version: i16,
     add_partitions_version: i16,
     txn_offset_version: i16,
-    rr: AtomicI32,
+    partitioner: Arc<dyn Partitioner>,
     producer_id: i64,
     producer_epoch: i16,
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
@@ -435,7 +445,7 @@ impl Producer {
             produce_version,
             add_partitions_version,
             txn_offset_version,
-            rr: AtomicI32::new(0),
+            partitioner: cfg.partitioner.arc(),
             producer_id,
             producer_epoch,
             seqs: parking_lot::Mutex::new(HashMap::new()),
@@ -505,7 +515,7 @@ impl Producer {
         else {
             return false;
         };
-        rec.partition = Some(pick_part(rec, np, &self.inner.shared.rr));
+        rec.partition = Some(pick_part(rec, np, self.inner.shared.partitioner.as_ref()));
         true
     }
 
@@ -620,7 +630,7 @@ impl Producer {
         }
         let p = match rec.partition {
             Some(p) => p,
-            None => pick_part(rec, f.np, &self.inner.shared.rr),
+            None => pick_part(rec, f.np, self.inner.shared.partitioner.as_ref()),
         };
         if p < 0 || p >= f.np {
             return None;
@@ -1256,7 +1266,7 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
     }
     if p.rec.partition.is_none() {
         if let Some(np) = shared.cluster.lock().partition_count(p.rec.topic.as_ref()) {
-            p.rec.partition = Some(pick_part(&p.rec, np, &shared.rr));
+            p.rec.partition = Some(pick_part(&p.rec, np, shared.partitioner.as_ref()));
         }
     }
     let Some(part) = p.rec.partition else {
@@ -2022,14 +2032,18 @@ fn clone_err(err: &Error) -> Error {
     err.clone()
 }
 
-fn pick_part(rec: &ProduceRecord, np: i32, rr: &AtomicI32) -> i32 {
+fn pick_part(rec: &ProduceRecord, np: i32, partitioner: &dyn Partitioner) -> i32 {
     if let Some(p) = rec.partition {
         return p;
     }
-    if let Some(k) = &rec.key {
-        partition_for_key(k, np)
+    if np <= 0 {
+        return 0;
+    }
+    let p = partitioner.partition(rec.topic.as_ref(), rec.key.as_deref(), np);
+    if (0..np).contains(&p) {
+        p
     } else {
-        to_positive(rr.fetch_add(1, Ordering::Relaxed)) % np
+        to_positive(p) % np
     }
 }
 

@@ -36,8 +36,10 @@
 //!
 //! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`],
 //! [`Consumer::seek_to_beginning`], and [`Consumer::seek_to_end`] move the
-//! next fetch offset. [`Consumer::fetch`] talks to every partition leader
-//! in parallel.
+//! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
+//! partitions without dropping the assignment. [`Consumer::fetch`] talks to
+//! every partition leader in parallel. [`Consumer::partitions_for`] returns
+//! Metadata (leader, replicas, ISR).
 //!
 //! # Groups
 //!
@@ -45,7 +47,8 @@
 //! is sticky, [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
 //! `_topics` variant for several topics.
 //! [`ConsumerConfig::group_instance_id`] is static membership.
-//! [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
+//! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
+//! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`]).
 //!
 //! # Configure
 //!
@@ -129,11 +132,14 @@ pub use admin::{
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
-pub use config::{Acks, IsolationLevel, Sasl};
-pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
+pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
+pub use consumer::{Consumer, ConsumerConfig, FetchedRecord, PartitionInfo};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;
 pub use net::TlsConfig;
+pub use partitioner::{
+    murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,
+};
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::acl::{ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};

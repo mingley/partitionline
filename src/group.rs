@@ -11,6 +11,7 @@ use std::time::Duration;
 use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
 
+use crate::config::AutoOffsetReset;
 use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord};
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
@@ -356,6 +357,63 @@ impl ConsumerGroup {
         &self.member_id
     }
 
+    /// Stop fetching these assigned partitions until [`resume`](Self::resume).
+    ///
+    /// Pause is stored on the consumer, so it survives rebalance.
+    pub fn pause(&mut self, partitions: &[(String, i32)]) {
+        self.consumer.pause(partitions);
+    }
+
+    /// Undo [`pause`](Self::pause) for these partitions.
+    pub fn resume(&mut self, partitions: &[(String, i32)]) {
+        self.consumer.resume(partitions);
+    }
+
+    /// Assigned partitions that [`poll`](Self::poll) currently skips.
+    pub fn paused(&self) -> Vec<(String, i32)> {
+        self.consumer.paused()
+    }
+
+    /// Next fetch offset for an assigned partition.
+    pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
+        self.consumer.position(topic, partition)
+    }
+
+    /// Last committed offsets for the current assignment (`OffsetFetch`).
+    ///
+    /// Partitions with no committed offset return `-1`.
+    pub async fn committed(&mut self) -> Result<Vec<(String, i32, i64)>> {
+        if self.kip848 {
+            self.apply_pending_assignment().await?;
+        }
+        let assigned: Vec<(String, i32)> = self.assignment();
+        if assigned.is_empty() {
+            return Ok(Vec::new());
+        }
+        let topics = group_offset_fetch_topics(&assigned);
+        let timeout = Duration::from_secs(30);
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            5,
+            |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
+            timeout,
+        )
+        .await?;
+        let fetched = decode_offset_fetch_response(&mut body.clone())?;
+        let map = committed_offset_map(&fetched)?;
+        Ok(assigned
+            .into_iter()
+            .map(|(t, p)| {
+                let off = map.get(&(t.clone(), p)).copied().unwrap_or(-1);
+                (t, p, off)
+            })
+            .collect())
+    }
+
     /// Fetch the current assignment. Rejoins on a classic rebalance.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
         if self.kip848 {
@@ -672,23 +730,36 @@ impl ConsumerGroup {
             .await?;
             decode_offset_fetch_response(&mut body.clone())?
         };
-        let added_starts = committed_starts(&added, &fetched)?;
-        let added_map: HashMap<(String, i32), i64> = added_starts
-            .into_iter()
-            .map(|(t, p, o)| ((t, p), o))
-            .collect();
-        let starts: Vec<(String, i32, i64)> = wanted
-            .iter()
-            .map(|(topic, part)| {
-                let key = (topic.clone(), *part);
-                let start = current
-                    .get(&key)
-                    .copied()
-                    .or_else(|| added_map.get(&key).copied())
-                    .unwrap_or(0);
-                (topic.clone(), *part, start)
-            })
-            .collect();
+        let map = committed_offset_map(&fetched)?;
+        let reset = self.cfg.auto_offset_reset;
+        let mut starts: Vec<(String, i32, i64)> = Vec::with_capacity(wanted.len());
+        for (topic, part) in wanted {
+            let key = (topic.clone(), *part);
+            if let Some(o) = current.get(&key) {
+                starts.push((topic.clone(), *part, *o));
+                continue;
+            }
+            let committed = map.get(&key).copied().unwrap_or(-1);
+            let start = if committed >= 0 {
+                committed
+            } else {
+                match reset {
+                    AutoOffsetReset::Earliest => 0,
+                    AutoOffsetReset::Latest => {
+                        self.consumer.ensure_topic_metadata(topic).await?;
+                        self.consumer
+                            .list_offsets(topic.clone(), *part, crate::LATEST_TIMESTAMP)
+                            .await?
+                    }
+                    AutoOffsetReset::None => {
+                        return Err(Error::protocol(format!(
+                            "no committed offset for {topic}-{part}"
+                        )));
+                    }
+                }
+            };
+            starts.push((topic.clone(), *part, start));
+        }
         self.consumer.assign_all(&starts).await?;
         Ok(())
     }
@@ -907,10 +978,7 @@ fn group_offset_fetch_topics(wanted: &[(String, i32)]) -> Vec<OffsetFetchTopic> 
         .collect()
 }
 
-fn committed_starts(
-    wanted: &[(String, i32)],
-    fetched: &[FetchedOffsetTopic],
-) -> Result<Vec<(String, i32, i64)>> {
+fn committed_offset_map(fetched: &[FetchedOffsetTopic]) -> Result<HashMap<(String, i32), i64>> {
     let mut map = HashMap::new();
     for t in fetched {
         for p in &t.partitions {
@@ -923,14 +991,39 @@ fn committed_starts(
             let _ = map.insert((t.topic.clone(), p.partition), p.offset);
         }
     }
-    Ok(wanted
-        .iter()
-        .map(|(topic, part)| {
-            let committed = map.get(&(topic.clone(), *part)).copied().unwrap_or(-1);
-            let start = if committed < 0 { 0 } else { committed };
-            (topic.clone(), *part, start)
-        })
-        .collect())
+    Ok(map)
+}
+
+#[cfg(test)]
+fn committed_starts(
+    wanted: &[(String, i32)],
+    fetched: &[FetchedOffsetTopic],
+    reset: AutoOffsetReset,
+) -> Result<Vec<(String, i32, i64)>> {
+    let map = committed_offset_map(fetched)?;
+    let mut out = Vec::with_capacity(wanted.len());
+    for (topic, part) in wanted {
+        let committed = map.get(&(topic.clone(), *part)).copied().unwrap_or(-1);
+        let start = if committed >= 0 {
+            committed
+        } else {
+            match reset {
+                AutoOffsetReset::Earliest => 0,
+                AutoOffsetReset::Latest => {
+                    return Err(Error::protocol(
+                        "auto.offset.reset=latest needs ListOffsets at assign",
+                    ));
+                }
+                AutoOffsetReset::None => {
+                    return Err(Error::protocol(format!(
+                        "no committed offset for {topic}-{part}"
+                    )));
+                }
+            }
+        };
+        out.push((topic.clone(), *part, start));
+    }
+    Ok(out)
 }
 
 fn peek_error_code(body: &[u8]) -> Option<i16> {
@@ -1315,7 +1408,8 @@ mod tests {
                 error_code: 0,
             }],
         }];
-        let starts = committed_starts(&wanted, &fetched).unwrap();
+        let starts = committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).unwrap();
         assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);
+        assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
     }
 }

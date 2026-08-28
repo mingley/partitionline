@@ -6,7 +6,11 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 
 1. You call `try_send` (throughput), `send_all` (many offsets), or `send`
    (one offset future per record).
-2. The record is given a partition **before** it is queued (round-robin, or murmur2 if there is a key). Until metadata for that topic is cached, `try_send` returns `QueueFull` and `send` / `send_all` wait.
+2. The record is given a partition **before** it is queued (the
+   [`Partitioner`](../src/partitioner.rs): murmur2 if there is a key,
+   round-robin if not, or `ProducerConfig::partitioner`). Until metadata for
+   that topic is cached, `try_send` returns `QueueFull` and `send` /
+   `send_all` wait.
 3. The record goes onto the queue for **one** TCP connection: `partition % connections`. Idempotent sequences for a partition never share a socket with another worker.
 4. That connection's worker waits a few milliseconds (`linger`) or until the batch is big enough, then writes a Produce request.
 5. Several Produce requests can be in flight on the same socket.
@@ -23,7 +27,11 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 `Consumer` is manual: you say topic, partition, offset, then `fetch`.
 `fetch` sends one request per partition leader and waits for all of them
 when there is more than one. `seek_to_beginning` / `seek_to_end` call
-ListOffsets for every assigned partition.
+ListOffsets for every assigned partition. `pause` / `resume` skip
+assigned partitions without dropping them; pause survives group rebalance.
+`position` is the next fetch offset. `partitions_for` / `beginning_offsets`
+/ `end_offsets` wrap Metadata and ListOffsets. `max.poll.records` caps
+how many records one `fetch` returns; the rest stay buffered.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 `join_topics` (range), `join_sticky_topics`, and `join_consumer_topics`
@@ -31,6 +39,9 @@ subscribe to several topics. Range and sticky assign each topic independently
 among members who subscribed to it. `ConsumerConfig::group_instance_id` is
 Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
+`ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
+offset (`Earliest` by default). `committed` is OffsetFetch for the current
+assignment.
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

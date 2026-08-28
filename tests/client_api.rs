@@ -11,8 +11,9 @@
 mod common;
 
 use partitionline::{
-    Acks, Admin, AdminConfig, Compression, Consumer, ConsumerConfig, ConsumerGroup, Error,
-    IsolationLevel, NewTopic, ProduceRecord, Producer, ProducerConfig, Sasl, ShareGroup,
+    partition_for_key, Acks, Admin, AdminConfig, AutoOffsetReset, Compression, Consumer,
+    ConsumerConfig, ConsumerGroup, Error, IsolationLevel, NewTopic, Partitioner, ProduceRecord,
+    Producer, ProducerConfig, Sasl, ShareGroup,
 };
 use std::time::Duration;
 
@@ -144,11 +145,15 @@ fn config_builders_set_typed_knobs() {
         .isolation(IsolationLevel::ReadCommitted)
         .max_bytes(1024)
         .rack("az1")
-        .group_instance_id("worker-1");
+        .group_instance_id("worker-1")
+        .auto_offset_reset(AutoOffsetReset::Latest)
+        .max_poll_records(50);
     assert_eq!(c.isolation_level, 1);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
     assert_eq!(c.group_instance_id.as_deref(), Some("worker-1"));
+    assert_eq!(c.auto_offset_reset, AutoOffsetReset::Latest);
+    assert_eq!(c.max_poll_records, Some(50));
 }
 
 #[test]
@@ -386,5 +391,254 @@ async fn share_join_topics_fetches_both() {
     let mut names: Vec<&str> = recs.iter().map(|r| r.topic.as_str()).collect();
     names.sort_unstable();
     assert_eq!(names, vec!["orders", "payments"]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn pause_skips_one_partition_until_resume() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("parts", 2, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("parts").partition(0).value(&b"p0"[..]),
+            ProduceRecord::to("parts").partition(1).value(&b"p1"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("parts", 0, 0).await.unwrap();
+    consumer.assign("parts", 1, 0).await.unwrap();
+    consumer.pause(&[("parts".into(), 1)]);
+    assert_eq!(consumer.paused(), vec![("parts".into(), 1)]);
+    assert_eq!(consumer.position("parts", 0).unwrap(), 0);
+
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].partition, 0);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"p0"[..]));
+    assert_eq!(consumer.position("parts", 0).unwrap(), 1);
+    assert_eq!(consumer.position("parts", 1).unwrap(), 0);
+
+    consumer.resume(&[("parts".into(), 1)]);
+    assert!(consumer.paused().is_empty());
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].partition, 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"p1"[..]));
+}
+
+#[tokio::test]
+async fn max_poll_records_returns_rest_on_next_fetch() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+            ProduceRecord::to("t").value(&b"c"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer = Consumer::new(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .max_poll_records(1),
+    )
+    .await
+    .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let a = consumer.fetch().await.unwrap();
+    let b = consumer.fetch().await.unwrap();
+    let c = consumer.fetch().await.unwrap();
+    assert_eq!(a.len(), 1);
+    assert_eq!(b.len(), 1);
+    assert_eq!(c.len(), 1);
+    assert_eq!(a[0].value.as_deref(), Some(&b"a"[..]));
+    assert_eq!(b[0].value.as_deref(), Some(&b"b"[..]));
+    assert_eq!(c[0].value.as_deref(), Some(&b"c"[..]));
+}
+
+#[tokio::test]
+async fn partitions_for_and_end_offsets() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"one"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let info = consumer.partitions_for("t").await.unwrap();
+    assert_eq!(info.len(), 1);
+    assert_eq!(info[0].partition, 0);
+    assert_eq!(info[0].leader, 1);
+    let end = consumer.end_offsets(&[("t".into(), 0)]).await.unwrap();
+    assert_eq!(end, vec![("t".into(), 0, 1)]);
+    let begin = consumer
+        .beginning_offsets(&[("t".into(), 0)])
+        .await
+        .unwrap();
+    assert_eq!(begin, vec![("t".into(), 0, 0)]);
+}
+
+#[tokio::test]
+async fn custom_partitioner_pins_keyed_records() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("keyed", 2, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+
+    struct AlwaysZero;
+    impl Partitioner for AlwaysZero {
+        fn partition(&self, _topic: &str, _key: Option<&[u8]>, _n: i32) -> i32 {
+            0
+        }
+    }
+
+    let mut keys_on_one = Vec::new();
+    for i in 0..32u8 {
+        let k = [i];
+        if partition_for_key(&k, 2) == 1 {
+            keys_on_one.push(k);
+        }
+    }
+    assert!(
+        !keys_on_one.is_empty(),
+        "need murmur2 keys that would land on partition 1"
+    );
+
+    let producer = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .partitioner(AlwaysZero),
+    )
+    .await
+    .unwrap();
+    let recs: Vec<ProduceRecord> = keys_on_one
+        .iter()
+        .map(|k| ProduceRecord::to("keyed").key(k.to_vec()).value(&b"v"[..]))
+        .collect();
+    let mds = producer.send_all(recs).await.unwrap();
+    assert!(mds.iter().all(|m| m.partition == 0));
+    producer
+        .send(
+            ProduceRecord::to("keyed")
+                .partition(1)
+                .value(&b"explicit"[..]),
+        )
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("keyed", 1, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"explicit"[..]));
+}
+
+#[tokio::test]
+async fn auto_offset_reset_latest_skips_existing() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"old"[..]))
+        .await
+        .unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_offset_reset(AutoOffsetReset::Latest),
+        "reset-latest",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(recs.is_empty(), "latest must skip the existing record");
+    producer
+        .send(ProduceRecord::to("t").value(&b"new"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"new"[..]));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn group_committed_after_commit() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "cmt",
+        "t",
+    )
+    .await
+    .unwrap();
+    let before = group.committed().await.unwrap();
+    assert_eq!(before, vec![("t".into(), 0, -1)]);
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    group.commit().await.unwrap();
+    let after = group.committed().await.unwrap();
+    assert_eq!(after, vec![("t".into(), 0, 1)]);
     group.leave().await.unwrap();
 }

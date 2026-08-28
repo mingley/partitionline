@@ -3,7 +3,7 @@
     reason = "public client types are named for their Kafka role; crate rustdoc covers connect/send/fetch/admin"
 )]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
@@ -49,6 +49,12 @@ pub struct ConsumerConfig {
     pub rack: Option<String>,
     /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
     pub group_instance_id: Option<String>,
+    /// Kafka `auto.offset.reset` for group members with no committed offset.
+    pub auto_offset_reset: crate::AutoOffsetReset,
+    /// Cap on records returned from one [`Consumer::fetch`] / [`crate::ConsumerGroup::poll`].
+    ///
+    /// `None` (the default) returns every record from the Fetch round.
+    pub max_poll_records: Option<usize>,
 }
 
 impl Default for ConsumerConfig {
@@ -70,6 +76,8 @@ impl Default for ConsumerConfig {
             isolation_level: 0,
             rack: None,
             group_instance_id: None,
+            auto_offset_reset: crate::AutoOffsetReset::Earliest,
+            max_poll_records: None,
         }
     }
 }
@@ -133,6 +141,20 @@ impl ConsumerConfig {
         self
     }
 
+    /// `auto.offset.reset` when a group member has no committed offset.
+    #[must_use]
+    pub fn auto_offset_reset(mut self, reset: crate::AutoOffsetReset) -> Self {
+        self.auto_offset_reset = reset;
+        self
+    }
+
+    /// Kafka `max.poll.records`. `None` means no cap.
+    #[must_use]
+    pub fn max_poll_records(mut self, n: usize) -> Self {
+        self.max_poll_records = Some(n);
+        self
+    }
+
     /// SASL. Replaces any previously set mechanism.
     #[must_use]
     pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
@@ -172,6 +194,16 @@ pub struct FetchedRecord {
     pub headers: Vec<Header>,
 }
 
+/// One partition from Metadata: leader, replicas, and ISR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartitionInfo {
+    pub topic: String,
+    pub partition: i32,
+    pub leader: i32,
+    pub replicas: Vec<i32>,
+    pub isr: Vec<i32>,
+}
+
 pub struct Consumer {
     cfg: ConsumerConfig,
     conn: BrokerConn,
@@ -183,6 +215,8 @@ pub struct Consumer {
     conns: HashMap<i32, BrokerConn>,
     assigned: Vec<(String, i32, i64)>,
     preferred: HashMap<(String, i32), i32>,
+    paused: HashSet<(String, i32)>,
+    pending: VecDeque<FetchedRecord>,
 }
 
 impl Consumer {
@@ -248,6 +282,8 @@ impl Consumer {
             conns: HashMap::new(),
             assigned: Vec::new(),
             preferred: HashMap::new(),
+            paused: HashSet::new(),
+            pending: VecDeque::new(),
         })
     }
 
@@ -260,6 +296,7 @@ impl Consumer {
         let topic = topic.into();
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
+        self.drop_pending_for(&topic, partition);
         self.assigned
             .retain(|(t, p, _)| !(t == &topic && *p == partition));
         self.assigned.push((topic, partition, offset));
@@ -294,6 +331,7 @@ impl Consumer {
         }
         self.assigned.retain(|(t, _, _)| t != &topic);
         for p in parts {
+            self.drop_pending_for(&topic, p);
             self.assigned.push((topic.clone(), p, offset));
         }
         Ok(())
@@ -303,8 +341,43 @@ impl Consumer {
         &self.assigned
     }
 
+    /// Next fetch offset for an assigned partition.
+    pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
+        self.assigned
+            .iter()
+            .find(|(t, p, _)| t == topic && *p == partition)
+            .map(|(_, _, o)| *o)
+            .ok_or_else(|| Error::protocol(format!("no position for {topic}-{partition}")))
+    }
+
+    /// Stop fetching these assigned partitions until [`resume`](Self::resume).
+    ///
+    /// Pause is stored on the consumer, so it survives group rebalance. Fetch
+    /// skips a partition only while it is both assigned and paused. Records
+    /// already buffered for a paused partition are held until resume.
+    pub fn pause(&mut self, partitions: &[(String, i32)]) {
+        self.paused.extend(partitions.iter().cloned());
+    }
+
+    /// Undo [`pause`](Self::pause) for these partitions.
+    pub fn resume(&mut self, partitions: &[(String, i32)]) {
+        for tp in partitions {
+            let _removed = self.paused.remove(tp);
+        }
+    }
+
+    /// Assigned partitions that [`fetch`](Self::fetch) currently skips.
+    pub fn paused(&self) -> Vec<(String, i32)> {
+        self.assigned
+            .iter()
+            .filter(|(t, p, _)| self.paused.contains(&(t.clone(), *p)))
+            .map(|(t, p, _)| (t.clone(), *p))
+            .collect()
+    }
+
     pub(crate) fn clear_assignment(&mut self) {
         self.assigned.clear();
+        self.pending.clear();
     }
 
     /// Replace the assignment. One Metadata refresh for the topic set.
@@ -321,6 +394,7 @@ impl Consumer {
         }
         self.refresh_metadata(Some(&topics)).await?;
         self.assigned.extend(starts.iter().cloned());
+        self.retain_pending_assigned();
         Ok(())
     }
 
@@ -606,11 +680,18 @@ impl Consumer {
         }
     }
 
-    /// Fetch one round from every assigned partition. Empty if nothing is assigned.
+    /// Fetch one round from every assigned partition that is not paused.
     ///
+    /// Empty if nothing is assigned, or every assigned partition is paused.
     /// Partitions that share a leader go in one Fetch. Distinct leaders are
     /// fetched at the same time.
+    ///
+    /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
+    /// the Fetch stay buffered and are returned on the next call.
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
+        if let Some(ready) = self.take_ready() {
+            return Ok(ready);
+        }
         if self.assigned.is_empty() {
             return Ok(Vec::new());
         }
@@ -623,6 +704,9 @@ impl Consumer {
             let mut by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>> = HashMap::new();
             let mut missing_leader = false;
             for (topic, part, offset) in &self.assigned {
+                if self.paused.contains(&(topic.clone(), *part)) {
+                    continue;
+                }
                 let node = if self.cfg.rack.is_some() {
                     self.preferred.get(&(topic.clone(), *part)).copied()
                 } else {
@@ -688,7 +772,7 @@ impl Consumer {
                 self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
-            return Ok(out);
+            return Ok(self.finish_fetch(out));
         }
     }
 
@@ -986,6 +1070,7 @@ impl Consumer {
             .find(|(t, p, _)| t == topic && *p == partition)
         {
             slot.2 = offset;
+            self.drop_pending_for(topic, partition);
             return Ok(());
         }
         Err(Error::protocol(format!(
@@ -1016,6 +1101,124 @@ impl Consumer {
             self.seek(&topic, partition, offset)?;
         }
         Ok(())
+    }
+
+    /// Partition metadata for `topic` (leader, replicas, ISR).
+    pub async fn partitions_for(&mut self, topic: impl Into<String>) -> Result<Vec<PartitionInfo>> {
+        let topic = topic.into();
+        self.refresh_metadata(Some(std::slice::from_ref(&topic)))
+            .await?;
+        let tmd = self
+            .metadata
+            .as_ref()
+            .and_then(|md| {
+                md.topics
+                    .iter()
+                    .find(|t| t.name.as_deref() == Some(topic.as_str()))
+            })
+            .ok_or_else(|| Error::UnknownTopic(topic.clone()))?;
+        if tmd.error_code != 0 {
+            return Err(Error::broker(tmd.error_code, topic));
+        }
+        Ok(tmd
+            .partitions
+            .iter()
+            .map(|p| PartitionInfo {
+                topic: topic.clone(),
+                partition: p.partition_index,
+                leader: p.leader_id,
+                replicas: p.replica_nodes.clone(),
+                isr: p.isr_nodes.clone(),
+            })
+            .collect())
+    }
+
+    /// Log-start offset for each partition (`ListOffsets` earliest).
+    pub async fn beginning_offsets(
+        &mut self,
+        partitions: &[(String, i32)],
+    ) -> Result<Vec<(String, i32, i64)>> {
+        self.offsets_for_times(partitions, crate::EARLIEST_TIMESTAMP)
+            .await
+    }
+
+    /// High-watermark offset for each partition (`ListOffsets` latest).
+    pub async fn end_offsets(
+        &mut self,
+        partitions: &[(String, i32)],
+    ) -> Result<Vec<(String, i32, i64)>> {
+        self.offsets_for_times(partitions, crate::LATEST_TIMESTAMP)
+            .await
+    }
+
+    async fn offsets_for_times(
+        &mut self,
+        partitions: &[(String, i32)],
+        timestamp: i64,
+    ) -> Result<Vec<(String, i32, i64)>> {
+        let mut out = Vec::with_capacity(partitions.len());
+        for (topic, partition) in partitions {
+            let offset = self
+                .list_offsets(topic.clone(), *partition, timestamp)
+                .await?;
+            out.push((topic.clone(), *partition, offset));
+        }
+        Ok(out)
+    }
+
+    fn drop_pending_for(&mut self, topic: &str, partition: i32) {
+        self.pending
+            .retain(|r| !(r.topic == topic && r.partition == partition));
+    }
+
+    fn retain_pending_assigned(&mut self) {
+        let assigned: HashSet<(String, i32)> = self
+            .assigned
+            .iter()
+            .map(|(t, p, _)| (t.clone(), *p))
+            .collect();
+        self.pending
+            .retain(|r| assigned.contains(&(r.topic.clone(), r.partition)));
+    }
+
+    fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
+        if self.pending.is_empty() {
+            return None;
+        }
+        let drained = self.drain_pending();
+        if drained.is_empty() {
+            None
+        } else {
+            Some(drained)
+        }
+    }
+
+    fn finish_fetch(&mut self, recs: Vec<FetchedRecord>) -> Vec<FetchedRecord> {
+        if self.pending.is_empty() && self.cfg.max_poll_records.is_none() && self.paused.is_empty()
+        {
+            return recs;
+        }
+        self.pending.extend(recs);
+        self.drain_pending()
+    }
+
+    fn drain_pending(&mut self) -> Vec<FetchedRecord> {
+        let cap = self
+            .cfg
+            .max_poll_records
+            .filter(|n| *n > 0)
+            .unwrap_or(usize::MAX);
+        let mut out = Vec::new();
+        let mut kept = VecDeque::new();
+        while let Some(rec) = self.pending.pop_front() {
+            if self.paused.contains(&(rec.topic.clone(), rec.partition)) || out.len() >= cap {
+                kept.push_back(rec);
+                continue;
+            }
+            out.push(rec);
+        }
+        self.pending = kept;
+        out
     }
 }
 

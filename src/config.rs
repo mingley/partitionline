@@ -74,6 +74,21 @@ impl IsolationLevel {
     }
 }
 
+/// Where a group member starts when OffsetFetch returns no committed offset.
+///
+/// Kafka `auto.offset.reset`. Java defaults to [`Self::Latest`]. This crate
+/// defaults to [`Self::Earliest`] so a new group reads the existing log.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AutoOffsetReset {
+    /// Log start (offset `0` when the broker has no committed offset).
+    #[default]
+    Earliest,
+    /// High watermark (`ListOffsets` latest).
+    Latest,
+    /// Fail join / rebalance if there is no committed offset.
+    None,
+}
+
 /// SASL mechanism. Set at most one.
 ///
 /// ```
@@ -203,6 +218,11 @@ mod tests {
             Some(IsolationLevel::ReadCommitted)
         );
         assert_eq!(IsolationLevel::from_i8(9), None);
+    }
+
+    #[test]
+    fn auto_offset_reset_default_is_earliest() {
+        assert_eq!(AutoOffsetReset::default(), AutoOffsetReset::Earliest);
     }
 
     #[test]

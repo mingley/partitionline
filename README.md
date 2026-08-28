@@ -43,8 +43,10 @@ let recs = consumer.fetch().await?;
 ```
 
 `assign_topic` assigns every partition. `seek` / `seek_to_beginning` /
-`seek_to_end` move the next fetch offset. `fetch` talks to every
-partition leader at once when there is more than one.
+`seek_to_end` move the next fetch offset. `pause` / `resume` skip
+partitions without dropping the assignment. `fetch` talks to every
+partition leader at once when there is more than one. `partitions_for`
+returns Metadata (leader, replicas, ISR).
 
 ## Groups
 
@@ -53,6 +55,8 @@ Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups
 `join_topics` / `join_sticky_topics` / `join_consumer_topics` subscribe to
 several topics. Set `group.instance.id` with
 `ConsumerConfig::group_instance_id` for static membership.
+`ConsumerConfig::auto_offset_reset` is used when the group has no
+committed offset (`Earliest` by default, unlike Java's `latest`).
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {
@@ -90,7 +94,8 @@ let _iso = IsolationLevel::ReadCommitted;
 
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and
-the Kafka 3.x / 4.x admin APIs are in the crate rustdoc.
+the Kafka 3.x / 4.x admin APIs are in the crate rustdoc. Produce partitioning
+is murmur2 / round-robin; override it with `ProducerConfig::partitioner`.
 
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
 Kerberos (C libraries), Schema Registry. Full list:
