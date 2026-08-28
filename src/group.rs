@@ -6,7 +6,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
@@ -217,6 +217,7 @@ pub struct ConsumerGroup {
     /// Last applied assignment, sent once on the next heartbeat (KIP-848 ack).
     hb_ack: Arc<parking_lot::Mutex<Option<Vec<TopicPartitions>>>>,
     hb_stop: watch::Sender<bool>,
+    last_auto_commit: Instant,
 }
 
 impl ConsumerGroup {
@@ -288,6 +289,7 @@ impl ConsumerGroup {
             hb_assignment,
             hb_ack,
             hb_stop,
+            last_auto_commit: Instant::now(),
         };
         g.rejoin().await?;
         g.spawn_heartbeat(hb_rx);
@@ -334,6 +336,7 @@ impl ConsumerGroup {
             hb_assignment,
             hb_ack,
             hb_stop,
+            last_auto_commit: Instant::now(),
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
@@ -415,13 +418,18 @@ impl ConsumerGroup {
     }
 
     /// Fetch the current assignment. Rejoins on a classic rebalance.
+    ///
+    /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
+    /// elapsed, commits after a successful fetch.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
         } else if self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
-        self.consumer.fetch().await
+        let recs = self.consumer.fetch().await?;
+        self.maybe_auto_commit().await?;
+        Ok(recs)
     }
 
     /// Commit the next fetch offsets for the current assignment.
@@ -430,7 +438,9 @@ impl ConsumerGroup {
             self.apply_pending_assignment().await?;
         }
         let assigned = self.consumer.assignment().to_vec();
-        self.commit_offsets(&assigned).await
+        self.commit_offsets(&assigned).await?;
+        self.last_auto_commit = Instant::now();
+        Ok(())
     }
 
     /// Commit these `(topic, partition, offset)` triples (`OffsetCommit`).
@@ -466,7 +476,20 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    async fn maybe_auto_commit(&mut self) -> Result<()> {
+        if !self.cfg.enable_auto_commit {
+            return Ok(());
+        }
+        if self.last_auto_commit.elapsed() < self.cfg.auto_commit_interval {
+            return Ok(());
+        }
+        self.commit().await
+    }
+
     pub async fn leave(mut self) -> Result<()> {
+        if self.cfg.enable_auto_commit {
+            self.commit().await?;
+        }
         self.hb_stop.send(true).unwrap_or(());
         let timeout = Duration::from_secs(30);
         if self.kip848 {

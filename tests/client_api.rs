@@ -149,7 +149,9 @@ fn config_builders_set_typed_knobs() {
         .auto_offset_reset(AutoOffsetReset::Latest)
         .max_poll_records(50)
         .session_timeout(Duration::from_secs(20))
-        .heartbeat_interval(Duration::from_millis(200));
+        .heartbeat_interval(Duration::from_millis(200))
+        .auto_commit(true)
+        .auto_commit_interval(Duration::ZERO);
     assert_eq!(c.isolation_level, 1);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.rack.as_deref(), Some("az1"));
@@ -158,6 +160,8 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(c.max_poll_records, Some(50));
     assert_eq!(c.session_timeout_ms, 20_000);
     assert_eq!(c.heartbeat_interval, Duration::from_millis(200));
+    assert!(c.enable_auto_commit);
+    assert_eq!(c.auto_commit_interval, Duration::ZERO);
 }
 
 #[test]
@@ -644,6 +648,51 @@ async fn group_committed_after_commit() {
     group.commit().await.unwrap();
     let after = group.committed().await.unwrap();
     assert_eq!(after, vec![("t".into(), 0, 1)]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn auto_commit_on_poll_then_rejoin() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"old"[..]),
+            ProduceRecord::to("t").value(&b"new"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .auto_commit(true)
+            .auto_commit_interval(Duration::ZERO),
+        "auto",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 2);
+    group.leave().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "auto",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(
+        recs.is_empty(),
+        "auto-commit must have stored the high watermark"
+    );
     group.leave().await.unwrap();
 }
 

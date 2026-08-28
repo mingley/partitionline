@@ -108,6 +108,12 @@ pub struct ConsumerConfig {
     pub heartbeat_interval: Duration,
     /// Optional `(revoked, assigned)` callback after a group assignment change.
     pub rebalance: RebalanceListener,
+    /// Kafka `enable.auto.commit`. Off by default (Java defaults to on).
+    pub enable_auto_commit: bool,
+    /// Kafka `auto.commit.interval.ms`. Used when [`Self::enable_auto_commit`] is on.
+    ///
+    /// A zero interval commits after every [`crate::ConsumerGroup::poll`].
+    pub auto_commit_interval: Duration,
 }
 
 impl Default for ConsumerConfig {
@@ -134,6 +140,8 @@ impl Default for ConsumerConfig {
             session_timeout_ms: 10_000,
             heartbeat_interval: Duration::from_millis(150),
             rebalance: RebalanceListener::default(),
+            enable_auto_commit: false,
+            auto_commit_interval: Duration::from_secs(5),
         }
     }
 }
@@ -233,6 +241,20 @@ impl ConsumerConfig {
         f: impl Fn(&[(String, i32)], &[(String, i32)]) + Send + Sync + 'static,
     ) -> Self {
         self.rebalance = RebalanceListener::from_fn(f);
+        self
+    }
+
+    /// Kafka `enable.auto.commit`. Off by default.
+    #[must_use]
+    pub fn auto_commit(mut self, on: bool) -> Self {
+        self.enable_auto_commit = on;
+        self
+    }
+
+    /// Kafka `auto.commit.interval.ms`. Zero commits after every poll.
+    #[must_use]
+    pub fn auto_commit_interval(mut self, interval: Duration) -> Self {
+        self.auto_commit_interval = interval;
         self
     }
 
