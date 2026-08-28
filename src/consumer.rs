@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -368,6 +369,94 @@ fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
     bytes
         .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
         .unwrap_or(-1)
+}
+
+/// Records from one fetch or poll (Java `ConsumerRecords`).
+///
+/// Indexes and iterates like a slice of [`FetchedRecord`]. [`Self::partitions`]
+/// / [`Self::records`] match Java `partitions` / `records(TopicPartition)`.
+#[derive(Debug, Clone, Default)]
+pub struct ConsumerRecords {
+    records: Vec<FetchedRecord>,
+}
+
+impl ConsumerRecords {
+    /// Number of records (Java `count`). Same as slice `len` via [`Deref`].
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.records.len()
+    }
+
+    /// Distinct partitions in this batch, in first-seen order.
+    #[must_use]
+    pub fn partitions(&self) -> Vec<TopicPartition> {
+        let mut seen = HashSet::new();
+        let mut out = Vec::new();
+        for rec in &self.records {
+            let tp = rec.topic_partition();
+            if seen.insert(tp.clone()) {
+                out.push(tp);
+            }
+        }
+        out
+    }
+
+    /// Records for this partition (Java `records(TopicPartition)`).
+    pub fn records(
+        &self,
+        partition: impl Into<TopicPartition>,
+    ) -> impl Iterator<Item = &FetchedRecord> {
+        let tp = partition.into();
+        self.records
+            .iter()
+            .filter(move |r| r.topic == tp.topic && r.partition == tp.partition)
+    }
+
+    /// Records for this topic name (Java `records(String)`).
+    pub fn records_for_topic<'a>(
+        &'a self,
+        topic: &'a str,
+    ) -> impl Iterator<Item = &'a FetchedRecord> {
+        self.records.iter().filter(move |r| r.topic == topic)
+    }
+}
+
+impl Deref for ConsumerRecords {
+    type Target = [FetchedRecord];
+
+    fn deref(&self) -> &Self::Target {
+        &self.records
+    }
+}
+
+impl AsRef<[FetchedRecord]> for ConsumerRecords {
+    fn as_ref(&self) -> &[FetchedRecord] {
+        &self.records
+    }
+}
+
+impl From<Vec<FetchedRecord>> for ConsumerRecords {
+    fn from(records: Vec<FetchedRecord>) -> Self {
+        Self { records }
+    }
+}
+
+impl IntoIterator for ConsumerRecords {
+    type Item = FetchedRecord;
+    type IntoIter = std::vec::IntoIter<FetchedRecord>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.records.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ConsumerRecords {
+    type Item = &'a FetchedRecord;
+    type IntoIter = std::slice::Iter<'a, FetchedRecord>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.records.iter()
+    }
 }
 
 /// A topic name and partition index.
@@ -1096,13 +1185,15 @@ impl Consumer {
 
     /// Fetch one round from every assigned partition that is not paused.
     ///
-    /// Empty if nothing is assigned, or every assigned partition is paused.
+    /// Returns [`ConsumerRecords`], which indexes like a slice of
+    /// [`FetchedRecord`]. Empty if nothing is assigned, or every assigned
+    /// partition is paused.
     /// Partitions that share a leader go in one Fetch. Distinct leaders are
     /// fetched at the same time.
     ///
     /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
     /// the Fetch stay buffered and are returned on the next call.
-    pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
+    pub async fn fetch(&mut self) -> Result<ConsumerRecords> {
         if self.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -1114,7 +1205,9 @@ impl Consumer {
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
                 let bytes: u64 = recs.iter().map(fetched_bytes).fold(0, u64::saturating_add);
                 let _ = self.m_bytes.fetch_add(bytes, Ordering::Relaxed);
-                Ok(self.cfg.interceptors.on_consume(recs))
+                Ok(ConsumerRecords::from(
+                    self.cfg.interceptors.on_consume(recs),
+                ))
             }
             Err(Error::Wakeup) => {
                 let _ = self.take_wakeup();
@@ -1130,7 +1223,7 @@ impl Consumer {
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
     /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
-    pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<Vec<FetchedRecord>> {
+    pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
         let prev = self.cfg.max_wait_ms;
         self.cfg.max_wait_ms = duration_millis_i32(timeout);
         let out = self.fetch().await;
@@ -1853,4 +1946,48 @@ pub(crate) fn partition_infos_from(
         }
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rec(topic: &str, partition: i32, offset: i64) -> FetchedRecord {
+        FetchedRecord {
+            topic: topic.into(),
+            partition,
+            offset,
+            timestamp: 0,
+            key: None,
+            value: None,
+            headers: Vec::new(),
+            leader_epoch: None,
+        }
+    }
+
+    #[test]
+    fn consumer_records_partitions_and_filters() {
+        let recs = ConsumerRecords::from(vec![
+            rec("a", 0, 1),
+            rec("a", 1, 2),
+            rec("a", 0, 3),
+            rec("b", 0, 4),
+        ]);
+        assert_eq!(recs.count(), 4);
+        assert_eq!(recs.len(), 4);
+        assert_eq!(
+            recs.partitions(),
+            vec![
+                TopicPartition::new("a", 0),
+                TopicPartition::new("a", 1),
+                TopicPartition::new("b", 0),
+            ]
+        );
+        let a0: Vec<_> = recs.records(("a", 0)).map(|r| r.offset).collect();
+        assert_eq!(a0, vec![1, 3]);
+        assert_eq!(recs.records_for_topic("a").count(), 3);
+        assert_eq!(recs.records_for_topic("missing").count(), 0);
+        let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset).collect();
+        assert_eq!(via_ref, vec![1, 2, 3, 4]);
+    }
 }

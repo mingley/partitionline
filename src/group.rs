@@ -10,7 +10,9 @@ use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
 
 use crate::config::AutoOffsetReset;
-use crate::consumer::{Consumer, ConsumerConfig, FetchedRecord, OffsetAndMetadata, TopicPartition};
+use crate::consumer::{
+    Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata, TopicPartition,
+};
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request};
@@ -633,22 +635,25 @@ impl ConsumerGroup {
 
     /// Fetch the current assignment. Rejoins on a classic rebalance.
     ///
+    /// Returns [`ConsumerRecords`], which indexes like a slice of
+    /// [`crate::FetchedRecord`].
+    ///
     /// When [`ConsumerConfig::enable_auto_commit`] is on and the interval has
     /// elapsed, commits after a successful fetch.
     ///
     /// Returns [`Error::MaxPollInterval`] if this member did not poll within
     /// [`ConsumerConfig::max_poll_interval`]. The heartbeat thread also leaves
     /// the group when that happens.
-    pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
+    pub async fn poll(&mut self) -> Result<ConsumerRecords> {
         self.poll_fetch(None).await
     }
 
     /// Poll with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
-    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<Vec<FetchedRecord>> {
+    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
         self.poll_fetch(Some(timeout)).await
     }
 
-    async fn poll_fetch(&mut self, wait: Option<Duration>) -> Result<Vec<FetchedRecord>> {
+    async fn poll_fetch(&mut self, wait: Option<Duration>) -> Result<ConsumerRecords> {
         if self.left_max_poll.load(Ordering::SeqCst) {
             return Err(Error::MaxPollInterval);
         }

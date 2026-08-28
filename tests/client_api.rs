@@ -65,6 +65,10 @@ async fn produce_header_survives_fetch() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs.len(), 1);
+    assert_eq!(recs.count(), 1);
+    assert_eq!(recs.partitions(), vec![TopicPartition::new("t", 0)]);
+    assert_eq!(recs.records(TopicPartition::new("t", 0)).count(), 1);
+    assert_eq!(recs.records_for_topic("t").count(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"with-header"[..]));
     assert_eq!(recs[0].timestamp, 1_700_000_000_000);
     assert_eq!(recs[0].leader_epoch, Some(0));
@@ -1510,6 +1514,9 @@ async fn share_subscribe_switches_topics() {
     );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
+    assert_eq!(recs.count(), 1);
+    assert_eq!(recs.partitions(), vec![TopicPartition::new("u", 0)]);
+    assert_eq!(recs.records(TopicPartition::new("u", 0)).count(), 1);
     assert_eq!(recs[0].topic, "u");
     group.accept(&recs).await.unwrap();
     group.leave().await.unwrap();

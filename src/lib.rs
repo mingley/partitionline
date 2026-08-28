@@ -58,8 +58,11 @@
 //! [`TopicPartition`]. [`Consumer::assignment`] is Java `assignment`
 //! ([`Consumer::assigned_partitions`] is the same list; [`Consumer::positions`]
 //! pairs each partition with its next fetch offset).
-//! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] /
-//! [`ShareGroup::poll_timeout`] are Java `poll(Duration)`.
+//! [`Consumer::fetch`] / [`ConsumerGroup::poll`] return [`ConsumerRecords`]
+//! (Java `count` / `partitions` / `records`). [`ShareGroup::poll`] returns
+//! [`ShareRecords`]. [`Consumer::fetch_timeout`] /
+//! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
+//! `poll(Duration)`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
@@ -183,8 +186,8 @@ pub use admin::{
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
-    Consumer, ConsumerConfig, FetchedRecord, OffsetAndMetadata, OffsetAndTimestamp, PartitionInfo,
-    RebalanceListener, TopicPartition, WakeupHandle,
+    Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
+    OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
 pub use group::{ConsumerGroup, ConsumerGroupMetadata};
@@ -200,7 +203,9 @@ pub use protocol::admin::{DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
-pub use share::{ShareGroup, ShareRecord, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE};
+pub use share::{
+    ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
+};
 
 /// Software name sent in ApiVersions v3+.
 pub const CLIENT_NAME: &str = "partitionline";

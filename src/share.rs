@@ -1,6 +1,7 @@
 //! Share groups (KIP-932): queue-style consumption with per-record ack.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ops::Deref;
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -72,6 +73,85 @@ impl ShareRecord {
             .as_ref()
             .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
             .unwrap_or(-1)
+    }
+}
+
+/// Records from one share poll (Java `ConsumerRecords` for KIP-932).
+///
+/// Indexes and iterates like a slice of [`ShareRecord`].
+#[derive(Debug, Clone, Default)]
+pub struct ShareRecords {
+    records: Vec<ShareRecord>,
+}
+
+impl ShareRecords {
+    /// Number of records (Java `count`). Same as slice `len` via [`Deref`].
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.records.len()
+    }
+
+    /// Distinct partitions in this batch, in first-seen order.
+    #[must_use]
+    pub fn partitions(&self) -> Vec<crate::TopicPartition> {
+        let mut seen = HashSet::new();
+        let mut out = Vec::new();
+        for rec in &self.records {
+            let tp = rec.topic_partition();
+            if seen.insert(tp.clone()) {
+                out.push(tp);
+            }
+        }
+        out
+    }
+
+    /// Records for this partition.
+    pub fn records(
+        &self,
+        partition: impl Into<crate::TopicPartition>,
+    ) -> impl Iterator<Item = &ShareRecord> {
+        let tp = partition.into();
+        self.records
+            .iter()
+            .filter(move |r| r.topic == tp.topic && r.partition == tp.partition)
+    }
+}
+
+impl Deref for ShareRecords {
+    type Target = [ShareRecord];
+
+    fn deref(&self) -> &Self::Target {
+        &self.records
+    }
+}
+
+impl AsRef<[ShareRecord]> for ShareRecords {
+    fn as_ref(&self) -> &[ShareRecord] {
+        &self.records
+    }
+}
+
+impl From<Vec<ShareRecord>> for ShareRecords {
+    fn from(records: Vec<ShareRecord>) -> Self {
+        Self { records }
+    }
+}
+
+impl IntoIterator for ShareRecords {
+    type Item = ShareRecord;
+    type IntoIter = std::vec::IntoIter<ShareRecord>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.records.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ShareRecords {
+    type Item = &'a ShareRecord;
+    type IntoIter = std::slice::Iter<'a, ShareRecord>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.records.iter()
     }
 }
 
@@ -294,7 +374,9 @@ impl ShareGroup {
     }
 
     /// Fetch records from assigned share partitions.
-    pub async fn poll(&mut self) -> Result<Vec<ShareRecord>> {
+    ///
+    /// Returns [`ShareRecords`], which indexes like a slice of [`ShareRecord`].
+    pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
@@ -314,7 +396,7 @@ impl ShareGroup {
                         .map(share_record_bytes)
                         .fold(0, u64::saturating_add);
                     self.bytes_fetched = self.bytes_fetched.saturating_add(bytes);
-                    return Ok(recs);
+                    return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) => {
                     if Instant::now() >= deadline {
@@ -494,7 +576,7 @@ impl ShareGroup {
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
     /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
-    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<Vec<ShareRecord>> {
+    pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<ShareRecords> {
         let prev = self.cfg.max_wait_ms;
         self.cfg.max_wait_ms = crate::consumer::duration_millis_i32(timeout);
         let out = self.poll().await;
@@ -959,5 +1041,26 @@ mod tests {
         assert_eq!(batches[0].2[0].last_offset, 1);
         assert_eq!(batches[0].2[1].first_offset, 4);
         assert_eq!(batches[0].2[1].types, vec![ACK_REJECT]);
+    }
+
+    #[test]
+    fn share_records_partitions_and_filters() {
+        let recs = ShareRecords::from(vec![rec(0, 1), rec(1, 2), rec(0, 3)]);
+        assert_eq!(recs.count(), 3);
+        assert_eq!(recs.len(), 3);
+        assert_eq!(
+            recs.partitions(),
+            vec![
+                crate::TopicPartition::new("t", 0),
+                crate::TopicPartition::new("t", 1),
+            ]
+        );
+        let p0: Vec<_> = recs
+            .records(crate::TopicPartition::new("t", 0))
+            .map(|r| r.offset)
+            .collect();
+        assert_eq!(p0, vec![1, 3]);
+        let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset).collect();
+        assert_eq!(via_ref, vec![1, 2, 3]);
     }
 }
