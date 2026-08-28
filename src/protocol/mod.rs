@@ -7,7 +7,8 @@ pub mod acl;
 /// UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
 /// DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
 /// AlterShareGroupOffsets, DeleteShareGroupOffsets,
-/// DescribeTopicPartitions, ListConfigResources codecs.
+/// DescribeTopicPartitions, ListConfigResources,
+/// GetTelemetrySubscriptions codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

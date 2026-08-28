@@ -4629,6 +4629,162 @@ pub fn decode_list_config_resources_response<B: Buf>(
     })
 }
 
+/// GetTelemetrySubscriptions (api 71) v0 response body.
+///
+/// **ErrorCode is top-level**, after throttle — not a first-subscription
+/// field and not a first-metric field. SubscriptionId is an INT32.
+/// RequestedMetrics are compact strings with no ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GetTelemetrySubscriptionsResponse {
+    pub error_code: i16,
+    pub client_instance_id: [u8; 16],
+    pub subscription_id: i32,
+    pub accepted_compression_types: Vec<i8>,
+    pub push_interval_ms: i32,
+    pub telemetry_max_bytes: i32,
+    pub delta_temporality: bool,
+    pub requested_metrics: Vec<String>,
+}
+
+impl GetTelemetrySubscriptionsResponse {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "constructor mirrors official GetTelemetrySubscriptionsResponse fields"
+    )]
+    pub fn new(
+        error_code: i16,
+        client_instance_id: [u8; 16],
+        subscription_id: i32,
+        accepted_compression_types: Vec<i8>,
+        push_interval_ms: i32,
+        telemetry_max_bytes: i32,
+        delta_temporality: bool,
+        requested_metrics: Vec<String>,
+    ) -> Self {
+        Self {
+            error_code,
+            client_instance_id,
+            subscription_id,
+            accepted_compression_types,
+            push_interval_ms,
+            telemetry_max_bytes,
+            delta_temporality,
+            requested_metrics,
+        }
+    }
+}
+
+/// GetTelemetrySubscriptions v0 (flexible from v0; KIP-714).
+///
+/// Official Apache JSON (`apiKey: 71`, request `listeners: ["broker"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Official JSON lists
+/// **no** `errorCodes`. Official Java
+/// `KafkaApis.handleGetTelemetrySubscriptionsRequest` answers from the
+/// connected broker (`clientMetricsManager.processGetTelemetrySubscriptionRequest`).
+/// Official Java `GetTelemetrySubscriptionsRequest.getErrorResponse`
+/// writes the exception onto the top-level `ErrorCode`. Handler-observed
+/// codes: `INVALID_REQUEST` (42) on catch-all, `UNSUPPORTED_VERSION`
+/// (35) on the older ZooKeeper path, `THROTTLING_QUOTA_EXCEEDED` (89)
+/// when a get arrives before the push interval.
+/// `NOT_COORDINATOR` (16) is **not** listed. kafka-protocol 0.18.0
+/// (`GetTelemetrySubscriptionsRequest` /
+/// `GetTelemetrySubscriptionsResponse`, `VERSIONS` min=0 max=0). This
+/// crate targets v0, the version a client encodes (`VERSIONS.max`).
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: `ClientInstanceId` UUID, tagged. Response:
+/// `ThrottleTimeMs` INT32, top-level `ErrorCode` INT16,
+/// `ClientInstanceId` UUID, `SubscriptionId` INT32, compact
+/// `AcceptedCompressionTypes` of INT8, `PushIntervalMs` INT32,
+/// `TelemetryMaxBytes` INT32, `DeltaTemporality` BOOLEAN, compact
+/// `RequestedMetrics` of compact STRING, tagged.
+/// **ErrorCode is top-level**, after throttle — not a first-subscription
+/// field and not a first-metric field. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on leftover-
+/// empty fixture ClientInstanceId `[0x11; 16]`, SubscriptionId `1`,
+/// accepted compression `[1]`, PushIntervalMs `1000`, TelemetryMaxBytes
+/// `100`, DeltaTemporality `true`, RequestedMetrics `["m"]`, error
+/// `UNSUPPORTED_VERSION` (35): the top-level ErrorCode is the INT16 at
+/// **bytes 4–5** — not bytes 5–6 (DescribeTopicPartitions /
+/// ShareGroupDescribe first-topic / first-group), 7–8 (DeleteGroups
+/// after GroupId), 8–9 (DescribeShareGroupOffsets first-group after
+/// GroupId and Topics), 12–13 (DescribeProducers first partition), or
+/// 27–28 (DescribeTopicPartitions first-partition). i16=35 hits only
+/// at byte 4. This offset happens to match ListConfigResources /
+/// DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups
+/// top-level INT16; it was measured on this API's official top-level
+/// field, not copied. Because 16 is not listed, this is broker-only:
+/// no FindCoordinator, no controller hop, no partition-leader hop.
+pub fn encode_get_telemetry_subscriptions_request(
+    buf: &mut BytesMut,
+    client_instance_id: &[u8; 16],
+) -> crate::error::Result<()> {
+    buf.extend_from_slice(client_instance_id);
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_get_telemetry_subscriptions_request<B: Buf>(buf: &mut B) -> Result<[u8; 16]> {
+    let client_instance_id = buf::get_uuid(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(client_instance_id)
+}
+
+pub fn encode_get_telemetry_subscriptions_response(
+    buf: &mut BytesMut,
+    resp: &GetTelemetrySubscriptionsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf.extend_from_slice(&resp.client_instance_id);
+    buf.put_i32(resp.subscription_id);
+    buf::put_array_len(buf, true, Some(resp.accepted_compression_types.len()))?;
+    for ty in &resp.accepted_compression_types {
+        buf.put_i8(*ty);
+    }
+    buf.put_i32(resp.push_interval_ms);
+    buf.put_i32(resp.telemetry_max_bytes);
+    buf.put_u8(u8::from(resp.delta_temporality));
+    buf::put_array_len(buf, true, Some(resp.requested_metrics.len()))?;
+    for m in &resp.requested_metrics {
+        buf::put_compact_string(buf, Some(m))?;
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
+    buf: &mut B,
+) -> Result<GetTelemetrySubscriptionsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let client_instance_id = buf::get_uuid(buf)?;
+    let subscription_id = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut accepted_compression_types = Vec::with_capacity(n);
+    for _ in 0..n {
+        accepted_compression_types.push(buf::get_i8(buf)?);
+    }
+    let push_interval_ms = buf::get_i32(buf)?;
+    let telemetry_max_bytes = buf::get_i32(buf)?;
+    let delta_temporality = buf::get_bool(buf)?;
+    let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut requested_metrics = Vec::with_capacity(mn);
+    for _ in 0..mn {
+        requested_metrics.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(GetTelemetrySubscriptionsResponse {
+        error_code,
+        client_instance_id,
+        subscription_id,
+        accepted_compression_types,
+        push_interval_ms,
+        telemetry_max_bytes,
+        delta_temporality,
+        requested_metrics,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7520,6 +7676,174 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ListConfigResources v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 71
+        // validVersions 0, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0 (VERSIONS.max). Not copied from
+        // ListConfigResources / DeleteShareGroupOffsets /
+        // AlterShareGroupOffsets / ListGroups (top-level ErrorCode at
+        // bytes 4-5, different fields after), DescribeTopicPartitions /
+        // ShareGroupDescribe / DescribeGroups (first-topic / first-
+        // group ErrorCode at bytes 5-6), DeleteGroups (after GroupId
+        // at bytes 7-8), DescribeShareGroupOffsets (first-group after
+        // GroupId and Topics at bytes 8-9), DescribeProducers (first-
+        // partition ErrorCode at bytes 12-13), or DescribeTopicPartitions
+        // first-partition (bytes 27-28).
+        const REQ: &[u8] = &[
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x00,
+        ];
+        const RESP_35: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x23, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01,
+            0x00, 0x00, 0x03, 0xe8, 0x00, 0x00, 0x00, 0x64, 0x01, 0x02, 0x02, 0x6d, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_request(&mut buf, &[0x11; 16]).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = GetTelemetrySubscriptionsResponse::new(
+            crate::error::UNSUPPORTED_VERSION,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        buf.clear();
+        encode_get_telemetry_subscriptions_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_35);
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_v0_roundtrip_is_leftover_empty() {
+        let id = [0x11u8; 16];
+        let mut buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_request(&mut buf, &id).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_get_telemetry_subscriptions_request(&mut cur).unwrap(),
+            id
+        );
+        assert!(
+            !cur.has_remaining(),
+            "GetTelemetrySubscriptions v0 request must be leftover-empty"
+        );
+
+        let resp = GetTelemetrySubscriptionsResponse::new(
+            0,
+            id,
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        buf.clear();
+        encode_get_telemetry_subscriptions_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_get_telemetry_subscriptions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "GetTelemetrySubscriptions v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_top_level_error_code_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16, then ClientInstanceId UUID, SubscriptionId INT32,
+        // compact AcceptedCompressionTypes, PushIntervalMs,
+        // TelemetryMaxBytes, DeltaTemporality, compact RequestedMetrics.
+        // There is no first-subscription ErrorCode and no first-metric
+        // ErrorCode. Measured independently from Apache
+        // GetTelemetrySubscriptionsResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture ClientInstanceId [0x11; 16], SubscriptionId 1,
+        // accepted compression [1], PushIntervalMs 1000,
+        // TelemetryMaxBytes 100, DeltaTemporality true, RequestedMetrics
+        // ["m"]. Do not assume bytes 4-5 from ListConfigResources /
+        // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // DescribeProducers, or bytes 27-28 from DescribeTopicPartitions
+        // first-partition. Official JSON lists no errorCodes; official
+        // handler writes UNSUPPORTED_VERSION (35) via getErrorResponse
+        // on the older ZooKeeper path.
+        let resp = GetTelemetrySubscriptionsResponse::new(
+            crate::error::UNSUPPORTED_VERSION,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        let mut buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 ErrorCode is not a first-subscription field at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let b27 = buf.get(27).copied().unwrap();
+        let b28 = buf.get(28).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b27, b28]),
+            crate::error::UNSUPPORTED_VERSION,
+            "v0 ErrorCode is not at DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_get_telemetry_subscriptions_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "GetTelemetrySubscriptions v0 ErrorCode body must be leftover-empty"
         );
     }
 }

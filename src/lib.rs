@@ -13,7 +13,7 @@
 //! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
 //! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
-//! ListConfigResources, DescribeCluster).
+//! ListConfigResources, GetTelemetrySubscriptions, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -50,11 +50,12 @@ pub use admin::{
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, FeatureUpdate, FeatureUpdateResult, ListedConfigResource,
-    ListedGroup, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, ReassignmentResult, ScramCredentialInfo, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    DescribedTopicPartitions, FeatureUpdate, FeatureUpdateResult,
+    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, NewTopic,
+    OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    ReassignmentResult, ScramCredentialInfo, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
