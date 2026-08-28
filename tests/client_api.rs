@@ -15,7 +15,8 @@ use partitionline::{
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor, Error,
     FetchedRecord, IsolationLevel, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
     Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
-    Sasl, ShareGroup, TopicPartition, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2554,5 +2555,31 @@ async fn admin_list_and_describe_topics() {
         calls,
         "empty describe_topics is a no-op"
     );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_describe_replica_log_dirs() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let empty = admin
+        .describe_replica_log_dirs(Vec::<TopicPartitionReplica>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(mock.last_describe_log_dirs_node(), None);
+    let described = admin
+        .describe_replica_log_dirs([TopicPartitionReplica::new("t", 0, 1)])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].0, TopicPartitionReplica::new("t", 0, 1));
+    assert_eq!(
+        described[0].1,
+        ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
     admin.close().await.unwrap();
 }

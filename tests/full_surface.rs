@@ -23,9 +23,10 @@ use partitionline::{
     DescribeShareGroupOffsetsGroup, Error, ExpireDelegationTokenRequest, FeatureUpdate,
     IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
-    ScramMechanism, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
+    TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialUpsertion,
+    CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4065,6 +4066,67 @@ async fn describe_log_dirs_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "DescribeLogDirs must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn describe_replica_log_dirs_follows_replica_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let empty = admin
+        .describe_replica_log_dirs(Vec::<TopicPartitionReplica>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_describe_log_dirs_node(),
+        None,
+        "empty describe_replica_log_dirs is a no-op"
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        0,
+        "empty input must not send Metadata"
+    );
+
+    let described = admin
+        .describe_replica_log_dirs([TopicPartitionReplica::new("t", 0, 2)])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].0.broker_id, 2);
+    assert_eq!(
+        described[0].1,
+        ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs_node(),
+        Some(2),
+        "describe_replica_log_dirs must send DescribeLogDirs to the replica broker"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs(),
+        Some(DescribeLogDirsRequest::new(Some(vec![
+            DescribableLogDirTopic::new("t", vec![0])
+        ])))
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        None,
+        "describe_replica_log_dirs must not hop via AlterReplicaLogDirs"
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        None,
+        "describe_replica_log_dirs must not hop via AssignReplicasToDirs"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "describe_replica_log_dirs must not hop via DescribeGroups or FindCoordinator"
     );
 }
 

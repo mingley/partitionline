@@ -392,6 +392,68 @@ impl TopicDescription {
     }
 }
 
+/// One replica: topic, partition, and broker id (Java `TopicPartitionReplica`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TopicPartitionReplica {
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Broker that hosts this replica.
+    pub broker_id: i32,
+}
+
+impl TopicPartitionReplica {
+    /// Topic `topic`, partition `partition`, on `broker_id`.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partition: i32, broker_id: i32) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+            broker_id,
+        }
+    }
+}
+
+/// Log directory for one replica (Java `ReplicaLogDirInfo`).
+///
+/// Missing current or future dirs are [`None`]. Unknown lag is `-1`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplicaLogDirInfo {
+    /// Current log directory, when the replica is online there.
+    pub current_log_dir: Option<String>,
+    /// Offset lag in [`Self::current_log_dir`] (`-1` when unknown).
+    pub current_offset_lag: i64,
+    /// Future log directory (AlterReplicaLogDirs in progress).
+    pub future_log_dir: Option<String>,
+    /// Offset lag in [`Self::future_log_dir`] (`-1` when unknown).
+    pub future_offset_lag: i64,
+}
+
+impl ReplicaLogDirInfo {
+    /// Current and future log dirs with their offset lags.
+    #[must_use]
+    pub fn new(
+        current_log_dir: Option<String>,
+        current_offset_lag: i64,
+        future_log_dir: Option<String>,
+        future_offset_lag: i64,
+    ) -> Self {
+        Self {
+            current_log_dir,
+            current_offset_lag,
+            future_log_dir,
+            future_offset_lag,
+        }
+    }
+
+    /// No dirs known (Java `ReplicaLogDirInfo()`). Lags are `-1`.
+    #[must_use]
+    pub fn unknown() -> Self {
+        Self::new(None, -1, None, -1)
+    }
+}
+
 /// Increase a topic's partition count (`CreatePartitions`). Java `NewPartitions`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPartitions {
@@ -4347,6 +4409,94 @@ impl Admin {
         decode_describe_log_dirs_response(&mut body.clone())
     }
 
+    /// Replica log directories (Java `Admin.describeReplicaLogDirs`).
+    ///
+    /// Groups replicas by [`TopicPartitionReplica::broker_id`] and
+    /// sends DescribeLogDirs (api 35) to each replica's broker. Empty
+    /// input is a no-op. This is not [`Self::describe_log_dirs`]
+    /// (bootstrap only) and not a controller or partition-leader hop.
+    /// Replicas missing from the response get [`ReplicaLogDirInfo::unknown`].
+    pub async fn describe_replica_log_dirs(
+        &mut self,
+        replicas: impl IntoIterator<Item = TopicPartitionReplica>,
+    ) -> Result<Vec<(TopicPartitionReplica, ReplicaLogDirInfo)>> {
+        let replicas: Vec<TopicPartitionReplica> = replicas.into_iter().collect();
+        if replicas.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut infos: HashMap<(String, i32, i32), ReplicaLogDirInfo> = HashMap::new();
+        for broker_id in replica_broker_ids(&replicas) {
+            self.ensure_broker(broker_id).await?;
+            let topics = describable_topics_for_broker(&replicas, broker_id);
+            let resp = self.describe_log_dirs_on(broker_id, topics).await?;
+            if resp.error_code != 0 {
+                return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
+            }
+            for r in replicas.iter().filter(|r| r.broker_id == broker_id) {
+                let info = replica_log_dir_info_from(r, &resp.results);
+                let _ = infos.insert((r.topic.clone(), r.partition, r.broker_id), info);
+            }
+        }
+        let mut out = Vec::with_capacity(replicas.len());
+        for r in replicas {
+            let info = infos
+                .get(&(r.topic.clone(), r.partition, r.broker_id))
+                .cloned()
+                .unwrap_or_else(ReplicaLogDirInfo::unknown);
+            out.push((r, info));
+        }
+        Ok(out)
+    }
+
+    async fn describe_log_dirs_on(
+        &mut self,
+        node: i32,
+        topics: Vec<DescribableLogDirTopic>,
+    ) -> Result<DescribeLogDirsResponse> {
+        let version = self.describe_log_dirs_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let req = DescribeLogDirsRequest::new(Some(topics));
+        loop {
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing describe_log_dirs conn"))?;
+                conn.roundtrip(
+                    DESCRIBE_LOG_DIRS,
+                    version,
+                    |buf| encode_describe_log_dirs_request(buf, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            return decode_describe_log_dirs_response(&mut body.clone());
+        }
+    }
+
+    async fn ensure_broker(&mut self, node: i32) -> Result<()> {
+        if !self.cluster.brokers.contains_key(&node) {
+            self.refresh_metadata(None).await?;
+        }
+        if self.cluster.brokers.contains_key(&node) {
+            Ok(())
+        } else {
+            Err(Error::protocol(format!("unknown broker {node}")))
+        }
+    }
+
     /// Create a delegation token (CreateDelegationToken api 38, KIP-48 /
     /// KIP-373).
     ///
@@ -4747,6 +4897,77 @@ fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
         .collect()
 }
 
+fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
+    let mut ids = Vec::new();
+    for r in replicas {
+        if !ids.contains(&r.broker_id) {
+            ids.push(r.broker_id);
+        }
+    }
+    ids
+}
+
+fn describable_topics_for_broker(
+    replicas: &[TopicPartitionReplica],
+    broker_id: i32,
+) -> Vec<DescribableLogDirTopic> {
+    let mut order: Vec<String> = Vec::new();
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    for r in replicas {
+        if r.broker_id != broker_id {
+            continue;
+        }
+        match by_topic.entry(r.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(r.topic.clone());
+                let _ = slot.insert(vec![r.partition]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                if !slot.get().contains(&r.partition) {
+                    slot.get_mut().push(r.partition);
+                }
+            }
+        }
+    }
+    order
+        .into_iter()
+        .map(|name| DescribableLogDirTopic {
+            partitions: by_topic.remove(&name).unwrap_or_default(),
+            name,
+        })
+        .collect()
+}
+
+fn replica_log_dir_info_from(
+    replica: &TopicPartitionReplica,
+    results: &[DescribeLogDirsResult],
+) -> ReplicaLogDirInfo {
+    let mut info = ReplicaLogDirInfo::unknown();
+    for dir in results {
+        if dir.error_code != 0 {
+            continue;
+        }
+        for topic in &dir.topics {
+            if topic.name != replica.topic {
+                continue;
+            }
+            for part in &topic.partitions {
+                if part.partition_index != replica.partition {
+                    continue;
+                }
+                if part.is_future_key {
+                    info.future_log_dir = Some(dir.log_dir.clone());
+                    info.future_offset_lag = part.offset_lag;
+                } else {
+                    info.current_log_dir = Some(dir.log_dir.clone());
+                    info.current_offset_lag = part.offset_lag;
+                }
+            }
+        }
+    }
+    info
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4837,5 +5058,56 @@ mod tests {
         assert_eq!(described[1].name, "gone");
         assert_eq!(described[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
         assert!(described[1].partitions.is_empty());
+    }
+
+    #[test]
+    fn replica_log_dirs_group_and_map_current_future() {
+        let replicas = [
+            TopicPartitionReplica::new("t", 0, 2),
+            TopicPartitionReplica::new("t", 1, 2),
+            TopicPartitionReplica::new("u", 0, 1),
+            TopicPartitionReplica::new("t", 0, 2),
+        ];
+        assert_eq!(replica_broker_ids(&replicas), vec![2, 1]);
+        let on_two = describable_topics_for_broker(&replicas, 2);
+        assert_eq!(on_two.len(), 1);
+        assert_eq!(on_two[0].name, "t");
+        assert_eq!(on_two[0].partitions, vec![0, 1]);
+        let on_one = describable_topics_for_broker(&replicas, 1);
+        assert_eq!(on_one.len(), 1);
+        assert_eq!(on_one[0].name, "u");
+        assert_eq!(on_one[0].partitions, vec![0]);
+
+        let dirs = vec![
+            DescribeLogDirsResult::new(
+                0,
+                "/current",
+                vec![DescribeLogDirsTopic::new(
+                    "t",
+                    vec![DescribeLogDirsPartition::new(0, 10, 3, false)],
+                )],
+                -1,
+                -1,
+            ),
+            DescribeLogDirsResult::new(
+                0,
+                "/future",
+                vec![DescribeLogDirsTopic::new(
+                    "t",
+                    vec![DescribeLogDirsPartition::new(0, 4, 7, true)],
+                )],
+                -1,
+                -1,
+            ),
+            DescribeLogDirsResult::new(56, "/offline", Vec::new(), -1, -1),
+        ];
+        let replica = TopicPartitionReplica::new("t", 0, 2);
+        let info = replica_log_dir_info_from(&replica, &dirs);
+        assert_eq!(info.current_log_dir.as_deref(), Some("/current"));
+        assert_eq!(info.current_offset_lag, 3);
+        assert_eq!(info.future_log_dir.as_deref(), Some("/future"));
+        assert_eq!(info.future_offset_lag, 7);
+        let missing = replica_log_dir_info_from(&TopicPartitionReplica::new("t", 9, 2), &dirs);
+        assert_eq!(missing, ReplicaLogDirInfo::unknown());
     }
 }

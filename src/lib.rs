@@ -101,6 +101,8 @@
 //! ([`FeatureMetadata`]; ApiVersions v3 tagged fields).
 //! [`Admin::list_topics`] / [`Admin::describe_topics`] are Java
 //! `listTopics` / `describeTopics` ([`TopicListing`] / [`TopicDescription`]).
+//! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
+//! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -259,9 +261,10 @@ pub use admin::{
     GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, MemberToRemove,
     NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
     ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RemovedMember,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
-    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
-    TopicDescription, TopicListing, TopicPartitionCursor, TransactionListing, TransactionState,
+    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
+    TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
     TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,

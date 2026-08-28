@@ -55,7 +55,8 @@ ABORT on the partition leader).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
 tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
-`describeTopics`. `assignment` is Java `assignment`
+`describeTopics`. `Admin::describe_replica_log_dirs` is Java
+`describeReplicaLogDirs`. `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
