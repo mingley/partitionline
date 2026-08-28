@@ -13,14 +13,16 @@ mod common;
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AclBinding, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsTopic,
-    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
-    Compression, ConfigResource, Consumer, ConsumerConfig, ConsumerGroup,
-    DeleteShareGroupOffsetsTopic, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, NewTopic,
-    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
-    ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity,
+    ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
+    ConsumerConfig, ConsumerGroup, DeleteShareGroupOffsetsTopic, DescribeShareGroupOffsetsGroup,
+    Error, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment, PartitionReassignment,
+    ProduceRecord, Producer, ProducerConfig, ShareGroup, TransactionState, TransactionTopic,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS,
+    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
+    SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -3532,6 +3534,70 @@ async fn push_telemetry_follows_broker() {
         mock.last_list_config_resources_node(),
         None,
         "PushTelemetry must not hop via ListConfigResources"
+    );
+}
+
+#[tokio::test]
+async fn assign_replicas_to_dirs_follows_controller() {
+    let mock = common::Mock::start_two_node().await;
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let dir = AssignReplicasToDirsDirectory::new(
+        [0x11; 16],
+        vec![AssignReplicasToDirsTopic::new(
+            [0x22; 16],
+            vec![AssignReplicasToDirsPartition::new(0)],
+        )],
+    );
+    let first = admin
+        .assign_replicas_to_dirs(7, -1, vec![dir.clone()])
+        .await
+        .unwrap();
+    assert_eq!(first.error_code, 0);
+    assert_eq!(first.directories.len(), 1);
+    assert_eq!(first.directories[0].id, [0x11; 16]);
+    assert_eq!(first.directories[0].topics[0].topic_id, [0x22; 16]);
+    assert_eq!(
+        first.directories[0].topics[0].partitions[0].partition_index,
+        0
+    );
+    assert_eq!(first.directories[0].topics[0].partitions[0].error_code, 0);
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        Some(2),
+        "AssignReplicasToDirs must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs(),
+        Some(AssignReplicasToDirsRequest::new(7, -1, vec![dir.clone()]))
+    );
+    assert_eq!(
+        mock.last_push_telemetry_node(),
+        None,
+        "AssignReplicasToDirs must not hop via PushTelemetry"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "AssignReplicasToDirs must not hop via DescribeGroups or FindCoordinator"
+    );
+
+    mock.set_controller(1);
+    let again = admin
+        .assign_replicas_to_dirs(7, -1, vec![dir.clone()])
+        .await
+        .unwrap();
+    assert_eq!(again.error_code, 0);
+    assert_eq!(
+        mock.assign_replicas_to_dirs_not_controller(),
+        1,
+        "stale controller must return NOT_CONTROLLER (41) once"
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        Some(1),
+        "AssignReplicasToDirs must follow Metadata after NOT_CONTROLLER"
     );
 }
 

@@ -14,7 +14,7 @@
 //! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
 //! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
 //! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
-//! DescribeCluster).
+//! AssignReplicasToDirs, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -42,14 +42,18 @@ pub mod share;
 pub use admin::{
     AclBinding, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
-    AlteredShareGroupOffsetsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
-    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
-    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
+    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
+    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
+    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, FeatureUpdate, FeatureUpdateResult,
     GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, NewTopic,

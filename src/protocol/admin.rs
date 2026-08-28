@@ -4918,6 +4918,316 @@ pub fn decode_push_telemetry_response<B: Buf>(buf: &mut B) -> Result<PushTelemet
     Ok(PushTelemetryResponse { error_code })
 }
 
+/// One partition in an AssignReplicasToDirs (api 73) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsPartition {
+    pub partition_index: i32,
+}
+
+impl AssignReplicasToDirsPartition {
+    pub fn new(partition_index: i32) -> Self {
+        Self { partition_index }
+    }
+}
+
+/// One topic in an AssignReplicasToDirs (api 73) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsTopic {
+    pub topic_id: [u8; 16],
+    pub partitions: Vec<AssignReplicasToDirsPartition>,
+}
+
+impl AssignReplicasToDirsTopic {
+    pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsPartition>) -> Self {
+        Self {
+            topic_id,
+            partitions,
+        }
+    }
+}
+
+/// One directory in an AssignReplicasToDirs (api 73) request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsDirectory {
+    pub id: [u8; 16],
+    pub topics: Vec<AssignReplicasToDirsTopic>,
+}
+
+impl AssignReplicasToDirsDirectory {
+    pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsTopic>) -> Self {
+        Self { id, topics }
+    }
+}
+
+/// AssignReplicasToDirs (api 73) v0 request body.
+///
+/// Official Apache JSON (`apiKey: 73`, request `listeners: ["controller"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Official JSON lists
+/// no `errorCodes`. Request has no ErrorCode field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsRequest {
+    pub broker_id: i32,
+    pub broker_epoch: i64,
+    pub directories: Vec<AssignReplicasToDirsDirectory>,
+}
+
+impl AssignReplicasToDirsRequest {
+    pub fn new(
+        broker_id: i32,
+        broker_epoch: i64,
+        directories: Vec<AssignReplicasToDirsDirectory>,
+    ) -> Self {
+        Self {
+            broker_id,
+            broker_epoch,
+            directories,
+        }
+    }
+}
+
+/// One partition in an AssignReplicasToDirs (api 73) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsResponsePartition {
+    pub partition_index: i32,
+    pub error_code: i16,
+}
+
+impl AssignReplicasToDirsResponsePartition {
+    pub fn new(partition_index: i32, error_code: i16) -> Self {
+        Self {
+            partition_index,
+            error_code,
+        }
+    }
+}
+
+/// One topic in an AssignReplicasToDirs (api 73) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsResponseTopic {
+    pub topic_id: [u8; 16],
+    pub partitions: Vec<AssignReplicasToDirsResponsePartition>,
+}
+
+impl AssignReplicasToDirsResponseTopic {
+    pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsResponsePartition>) -> Self {
+        Self {
+            topic_id,
+            partitions,
+        }
+    }
+}
+
+/// One directory in an AssignReplicasToDirs (api 73) response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsResponseDirectory {
+    pub id: [u8; 16],
+    pub topics: Vec<AssignReplicasToDirsResponseTopic>,
+}
+
+impl AssignReplicasToDirsResponseDirectory {
+    pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsResponseTopic>) -> Self {
+        Self { id, topics }
+    }
+}
+
+/// AssignReplicasToDirs (api 73) v0 response body.
+///
+/// **ErrorCode is top-level**, after throttle — not a first-directory
+/// field and not a first-partition field. Official JSON then lists
+/// compact `Directories` with a nested per-partition ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssignReplicasToDirsResponse {
+    pub error_code: i16,
+    pub directories: Vec<AssignReplicasToDirsResponseDirectory>,
+}
+
+impl AssignReplicasToDirsResponse {
+    pub fn new(error_code: i16, directories: Vec<AssignReplicasToDirsResponseDirectory>) -> Self {
+        Self {
+            error_code,
+            directories,
+        }
+    }
+}
+
+/// AssignReplicasToDirs v0 (flexible from v0; KIP-858).
+///
+/// Official Apache JSON (`apiKey: 73`, request `listeners: ["controller"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`). Official JSON lists
+/// **no** `errorCodes`. Official Java
+/// `AssignReplicasToDirsRequest.getErrorResponse` writes
+/// `Errors.forException(e).code()` onto the top-level `ErrorCode`.
+/// Official Java `QuorumController.assignReplicasToDirs` is an
+/// `appendWriteEvent`; `ControllerWriteEvent.run` throws
+/// `ControllerExceptions.newWrongControllerException` (a
+/// `NotControllerException`) when the node is not the active
+/// controller, which `getErrorResponse` writes as `NOT_CONTROLLER`
+/// (41) on the top-level ErrorCode. Official Java
+/// `ReplicationControlManager.handleAssignReplicasToDirs` does not
+/// write 41 or `NOT_COORDINATOR` (16); handler-observed per-partition
+/// codes are `UNKNOWN_TOPIC_ID`, `UNKNOWN_TOPIC_OR_PARTITION`, and
+/// `NOT_LEADER_OR_FOLLOWER` (6) when the broker is not a replica.
+/// kafka-protocol 0.18.0 (`AssignReplicasToDirsRequest` /
+/// `AssignReplicasToDirsResponse`, `VERSIONS` min=0 max=0). This crate
+/// targets v0, the version a client encodes (`VERSIONS.max`).
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: `BrokerId` INT32, `BrokerEpoch` INT64, compact
+/// `Directories` of `{Id UUID, Topics compact [{TopicId UUID,
+/// Partitions compact [{PartitionIndex INT32, tagged}], tagged}],
+/// tagged}`, tagged. Response: `ThrottleTimeMs` INT32, top-level
+/// `ErrorCode` INT16, compact `Directories` of `{Id UUID, Topics
+/// compact [{TopicId UUID, Partitions compact [{PartitionIndex INT32,
+/// ErrorCode INT16, tagged}], tagged}], tagged}`, tagged.
+/// **ErrorCode is top-level**, after throttle — not a first-directory
+/// field (directory `Id` is a UUID) and not a first-partition field.
+/// Measured independently from kafka-protocol 0.18.0 (`broker` encodes
+/// the response) on leftover-empty fixture throttle `0`, error
+/// `NOT_CONTROLLER` (41), empty `Directories`: the top-level ErrorCode
+/// is the INT16 at **bytes 4–5**. The leftover-empty body is 8 bytes
+/// (throttle + INT16 + compact empty array + tagged), so there is no
+/// first-directory ErrorCode and no first-partition ErrorCode and no
+/// INT16 at bytes 7–8 (DeleteGroups), 8–9
+/// (DescribeShareGroupOffsets), 12–13 (DescribeProducers), or 27–28
+/// (DescribeTopicPartitions first-partition). i16=41 hits only at
+/// byte 4. A one-directory / one-topic / one-partition fixture still
+/// has 41 only at bytes 4–5; the first-partition ErrorCode is at
+/// bytes 45–46. This offset happens to match PushTelemetry /
+/// GetTelemetrySubscriptions / ListConfigResources / ListGroups
+/// top-level INT16; it was measured on this API's official top-level
+/// field, not copied. Because 41 is the hop written by
+/// `getErrorResponse` on `NotControllerException` and listeners are
+/// controller only, this is a controller hop via Metadata
+/// `controller_id`. No FindCoordinator, no `key_type`, no
+/// partition-leader hop on 6 (6 is a per-partition handler code and
+/// is not listed in the official JSON).
+pub fn encode_assign_replicas_to_dirs_request(
+    buf: &mut BytesMut,
+    req: &AssignReplicasToDirsRequest,
+) -> crate::error::Result<()> {
+    buf.put_i32(req.broker_id);
+    buf.put_i64(req.broker_epoch);
+    buf::put_array_len(buf, true, Some(req.directories.len()))?;
+    for dir in &req.directories {
+        buf.extend_from_slice(&dir.id);
+        buf::put_array_len(buf, true, Some(dir.topics.len()))?;
+        for topic in &dir.topics {
+            buf.extend_from_slice(&topic.topic_id);
+            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+            for part in &topic.partitions {
+                buf.put_i32(part.partition_index);
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_assign_replicas_to_dirs_request<B: Buf>(
+    buf: &mut B,
+) -> Result<AssignReplicasToDirsRequest> {
+    let broker_id = buf::get_i32(buf)?;
+    let broker_epoch = buf::get_i64(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut directories = Vec::with_capacity(n);
+    for _ in 0..n {
+        let id = buf::get_uuid(buf)?;
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let topic_id = buf::get_uuid(buf)?;
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(AssignReplicasToDirsPartition { partition_index });
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(AssignReplicasToDirsTopic {
+                topic_id,
+                partitions,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        directories.push(AssignReplicasToDirsDirectory { id, topics });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(AssignReplicasToDirsRequest {
+        broker_id,
+        broker_epoch,
+        directories,
+    })
+}
+
+pub fn encode_assign_replicas_to_dirs_response(
+    buf: &mut BytesMut,
+    resp: &AssignReplicasToDirsResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_array_len(buf, true, Some(resp.directories.len()))?;
+    for dir in &resp.directories {
+        buf.extend_from_slice(&dir.id);
+        buf::put_array_len(buf, true, Some(dir.topics.len()))?;
+        for topic in &dir.topics {
+            buf.extend_from_slice(&topic.topic_id);
+            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+            for part in &topic.partitions {
+                buf.put_i32(part.partition_index);
+                buf.put_i16(part.error_code);
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
+    buf: &mut B,
+) -> Result<AssignReplicasToDirsResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut directories = Vec::with_capacity(n);
+    for _ in 0..n {
+        let id = buf::get_uuid(buf)?;
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let topic_id = buf::get_uuid(buf)?;
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let error_code = buf::get_i16(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(AssignReplicasToDirsResponsePartition {
+                    partition_index,
+                    error_code,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(AssignReplicasToDirsResponseTopic {
+                topic_id,
+                partitions,
+            });
+        }
+        buf::skip_tagged_fields(buf)?;
+        directories.push(AssignReplicasToDirsResponseDirectory { id, topics });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(AssignReplicasToDirsResponse {
+        error_code,
+        directories,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8097,6 +8407,196 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "PushTelemetry v0 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 73
+        // validVersions 0, flexibleVersions 0+, listeners controller
+        // only. This crate targets v0 (VERSIONS.max). Not copied from
+        // PushTelemetry / GetTelemetrySubscriptions /
+        // ListConfigResources / ListGroups (top-level ErrorCode at
+        // bytes 4-5, no Directories array after),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), DescribeProducers (first-partition
+        // ErrorCode at bytes 12-13), or DescribeTopicPartitions
+        // first-partition (bytes 27-28).
+        const REQ: &[u8] = &[
+            0x00, 0x00, 0x00, 0x07, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00,
+        ];
+        // NOT_CONTROLLER (41). Leftover-empty body is 8 bytes.
+        const RESP_41: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x01, 0x00];
+        let req = AssignReplicasToDirsRequest::new(7, -1, vec![]);
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_request(&mut buf, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = AssignReplicasToDirsResponse::new(crate::error::NOT_CONTROLLER, vec![]);
+        buf.clear();
+        encode_assign_replicas_to_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_41);
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_v0_roundtrip_is_leftover_empty() {
+        let req = AssignReplicasToDirsRequest::new(
+            7,
+            -1,
+            vec![AssignReplicasToDirsDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsPartition::new(0)],
+                )],
+            )],
+        );
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_request(&mut buf, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_assign_replicas_to_dirs_request(&mut cur).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AssignReplicasToDirs v0 request must be leftover-empty"
+        );
+
+        let resp = AssignReplicasToDirsResponse::new(
+            0,
+            vec![AssignReplicasToDirsResponseDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsResponseTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsResponsePartition::new(0, 0)],
+                )],
+            )],
+        );
+        buf.clear();
+        encode_assign_replicas_to_dirs_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_assign_replicas_to_dirs_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AssignReplicasToDirs v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_top_level_error_code_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16, then compact Directories, then tagged. There is no
+        // first-directory ErrorCode (directory Id is a UUID) and the
+        // leftover-empty fixture has no first-partition ErrorCode.
+        // Measured independently from Apache
+        // AssignReplicasToDirsResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture throttle 0, error NOT_CONTROLLER (41). Do not
+        // assume bytes 4-5 from PushTelemetry /
+        // GetTelemetrySubscriptions / ListConfigResources / ListGroups,
+        // bytes 5-6 from DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, bytes 12-13 from
+        // DescribeProducers, or bytes 27-28 from DescribeTopicPartitions
+        // first-partition. Official JSON lists no errorCodes; official
+        // getErrorResponse writes NOT_CONTROLLER (41) via
+        // NotControllerException from ControllerWriteEvent when the
+        // node is not the active controller.
+        let resp = AssignReplicasToDirsResponse::new(crate::error::NOT_CONTROLLER, vec![]);
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut buf, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            8,
+            "v0 leftover-empty ErrorCode body is throttle + INT16 + empty dirs + tagged"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::NOT_CONTROLLER,
+            "v0 ErrorCode is not a first-directory / first-partition field at bytes 5-6"
+        );
+        assert!(
+            buf.get(8).is_none(),
+            "v0 leftover-empty ErrorCode is not at DeleteGroups after-GroupId bytes 7-8 as a 2-byte field past the body"
+        );
+        assert!(
+            buf.get(8).is_none(),
+            "v0 leftover-empty ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        assert!(
+            buf.get(12).is_none(),
+            "v0 leftover-empty ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        assert!(
+            buf.get(27).is_none(),
+            "v0 leftover-empty ErrorCode is not at DescribeTopicPartitions first-partition bytes 27-28"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_assign_replicas_to_dirs_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AssignReplicasToDirs v0 ErrorCode body must be leftover-empty"
+        );
+
+        // One-directory fixture: first-partition ErrorCode is at
+        // bytes 45-46, not the hop code.
+        let with_part = AssignReplicasToDirsResponse::new(
+            crate::error::NOT_CONTROLLER,
+            vec![AssignReplicasToDirsResponseDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsResponseTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsResponsePartition::new(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    )],
+                )],
+            )],
+        );
+        buf.clear();
+        encode_assign_replicas_to_dirs_response(&mut buf, &with_part).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 top-level 41 stays at bytes 4-5 when Directories are present"
+        );
+        let b45 = buf.get(45).copied().unwrap();
+        let b46 = buf.get(46).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b45, b46]),
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+            "v0 first-partition ErrorCode is at bytes 45-46, not a hop"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_assign_replicas_to_dirs_response(&mut cur).unwrap(),
+            with_part
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AssignReplicasToDirs v0 one-directory body must be leftover-empty"
         );
     }
 }
