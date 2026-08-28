@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! CreateAcls, DescribeAcls, and DeleteAcls (api keys 29–31). Classic v0.
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -162,6 +159,7 @@ impl AclBinding {
     }
 }
 
+/// Encode CreateAcls v0.
 pub fn encode_create_acls_request(buf: &mut BytesMut, acls: &[AclBinding]) -> Result<()> {
     buf::put_array_len(buf, false, Some(acls.len()))?;
     for a in acls {
@@ -175,6 +173,7 @@ pub fn encode_create_acls_request(buf: &mut BytesMut, acls: &[AclBinding]) -> Re
     Ok(())
 }
 
+/// Decode CreateAcls v0.
 pub fn decode_create_acls_request<B: Buf>(buf: &mut B) -> Result<Vec<AclBinding>> {
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
@@ -197,6 +196,7 @@ pub fn decode_create_acls_request<B: Buf>(buf: &mut B) -> Result<Vec<AclBinding>
     Ok(out)
 }
 
+/// Encode CreateAcls: throttle `0` plus per-binding error codes.
 pub fn encode_create_acls_response(buf: &mut BytesMut, errors: &[i16]) -> Result<()> {
     buf.put_i32(0);
     buf::put_array_len(buf, false, Some(errors.len()))?;
@@ -207,6 +207,7 @@ pub fn encode_create_acls_response(buf: &mut BytesMut, errors: &[i16]) -> Result
     Ok(())
 }
 
+/// Decode CreateAcls: per-binding error codes.
 pub fn decode_create_acls_response<B: Buf>(buf: &mut B) -> Result<Vec<i16>> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -219,6 +220,7 @@ pub fn decode_create_acls_response<B: Buf>(buf: &mut B) -> Result<Vec<i16>> {
     Ok(out)
 }
 
+/// Encode DescribeAcls filtered by resource type (`Any` is 1).
 pub fn encode_describe_acls_request(buf: &mut BytesMut, resource_type: i8) -> Result<()> {
     buf.put_i8(resource_type);
     buf::put_classic_nullable_string(buf, None)?;
@@ -229,6 +231,7 @@ pub fn encode_describe_acls_request(buf: &mut BytesMut, resource_type: i8) -> Re
     Ok(())
 }
 
+/// Decode DescribeAcls: resource type filter.
 pub fn decode_describe_acls_request<B: Buf>(buf: &mut B) -> Result<i8> {
     let rt = buf::get_i8(buf)?;
     let _name = buf::get_classic_nullable_string(buf)?;
@@ -239,6 +242,7 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B) -> Result<i8> {
     Ok(rt)
 }
 
+/// Encode DescribeAcls with matching bindings.
 pub fn encode_describe_acls_response(buf: &mut BytesMut, acls: &[AclBinding]) -> Result<()> {
     buf.put_i32(0);
     buf.put_i16(0);
@@ -256,6 +260,7 @@ pub fn encode_describe_acls_response(buf: &mut BytesMut, acls: &[AclBinding]) ->
     Ok(())
 }
 
+/// Decode DescribeAcls bindings. Top-level error returns an empty list.
 pub fn decode_describe_acls_response<B: Buf>(buf: &mut B) -> Result<Vec<AclBinding>> {
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
@@ -287,6 +292,7 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B) -> Result<Vec<AclBindi
     Ok(out)
 }
 
+/// Encode DeleteAcls filtered by resource type.
 pub fn encode_delete_acls_request(buf: &mut BytesMut, resource_type: i8) -> Result<()> {
     buf::put_array_len(buf, false, Some(1))?;
     buf.put_i8(resource_type);
@@ -298,6 +304,7 @@ pub fn encode_delete_acls_request(buf: &mut BytesMut, resource_type: i8) -> Resu
     Ok(())
 }
 
+/// Decode DeleteAcls: resource type filter.
 pub fn decode_delete_acls_request<B: Buf>(buf: &mut B) -> Result<i8> {
     let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let rt = buf::get_i8(buf)?;
@@ -309,6 +316,7 @@ pub fn decode_delete_acls_request<B: Buf>(buf: &mut B) -> Result<i8> {
     Ok(rt)
 }
 
+/// Encode DeleteAcls: `removed` matching filters (mock count).
 pub fn encode_delete_acls_response(buf: &mut BytesMut, removed: i32) -> Result<()> {
     buf.put_i32(0);
     buf::put_array_len(buf, false, Some(1))?;
@@ -322,6 +330,7 @@ pub fn encode_delete_acls_response(buf: &mut BytesMut, removed: i32) -> Result<(
     Ok(())
 }
 
+/// Decode DeleteAcls: first filter error code.
 pub fn decode_delete_acls_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     let _n = buf::get_array_len(buf, false)?.unwrap_or(0);

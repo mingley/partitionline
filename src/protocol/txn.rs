@@ -1,25 +1,29 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, and TxnOffsetCommit (api keys 24–26, 28).
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::Result;
 
+/// AddPartitionsToTxn (24).
 pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
+/// AddOffsetsToTxn (25).
 pub const ADD_OFFSETS_TO_TXN: i16 = 25;
+/// EndTxn (26).
 pub const END_TXN: i16 = 26;
+/// TxnOffsetCommit (28).
 pub const TXN_OFFSET_COMMIT: i16 = 28;
 
 /// One topic in AddPartitionsToTxn v0–1 (classic).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnPartitionsTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partition indexes to add to the transaction.
     pub partitions: Vec<i32>,
 }
 
+/// Encode AddPartitionsToTxn v0–1.
 pub fn encode_add_partitions_to_txn_request(
     buf: &mut BytesMut,
     transactional_id: &str,
@@ -41,6 +45,7 @@ pub fn encode_add_partitions_to_txn_request(
     Ok(())
 }
 
+/// Decode AddPartitionsToTxn: `(transactional_id, producer_id, producer_epoch, topics)`.
 pub fn decode_add_partitions_to_txn_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, i64, i16, Vec<TxnPartitionsTopic>)> {
@@ -61,6 +66,7 @@ pub fn decode_add_partitions_to_txn_request<B: Buf>(
     Ok((tid, pid, epoch, topics))
 }
 
+/// Encode AddPartitionsToTxn: one error code applied to every partition.
 pub fn encode_add_partitions_to_txn_response(
     buf: &mut BytesMut,
     topics: &[TxnPartitionsTopic],
@@ -79,6 +85,7 @@ pub fn encode_add_partitions_to_txn_response(
     Ok(())
 }
 
+/// Decode AddPartitionsToTxn: first non-zero partition error, or `0`.
 pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -97,6 +104,7 @@ pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16>
     Ok(first_err)
 }
 
+/// Encode EndTxn (`committed` is commit vs abort).
 pub fn encode_end_txn_request(
     buf: &mut BytesMut,
     transactional_id: &str,
@@ -111,6 +119,7 @@ pub fn encode_end_txn_request(
     Ok(())
 }
 
+/// Decode EndTxn: `(transactional_id, producer_id, producer_epoch, committed)`.
 pub fn decode_end_txn_request<B: Buf>(buf: &mut B) -> Result<(String, i64, i16, bool)> {
     let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let pid = buf::get_i64(buf)?;
@@ -119,17 +128,20 @@ pub fn decode_end_txn_request<B: Buf>(buf: &mut B) -> Result<(String, i64, i16, 
     Ok((tid, pid, epoch, committed))
 }
 
+/// Encode EndTxn: throttle `0` plus error code.
 pub fn encode_end_txn_response(buf: &mut BytesMut, error: i16) -> Result<()> {
     buf.put_i32(0);
     buf.put_i16(error);
     Ok(())
 }
 
+/// Decode EndTxn: error code.
 pub fn decode_end_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     buf::get_i16(buf)
 }
 
+/// Encode AddOffsetsToTxn.
 pub fn encode_add_offsets_to_txn_request(
     buf: &mut BytesMut,
     transactional_id: &str,
@@ -144,6 +156,7 @@ pub fn encode_add_offsets_to_txn_request(
     Ok(())
 }
 
+/// Decode AddOffsetsToTxn: `(transactional_id, group_id)`.
 pub fn decode_add_offsets_to_txn_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
     let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let _pid = buf::get_i64(buf)?;
@@ -152,12 +165,14 @@ pub fn decode_add_offsets_to_txn_request<B: Buf>(buf: &mut B) -> Result<(String,
     Ok((tid, gid))
 }
 
+/// Encode AddOffsetsToTxn: throttle `0` plus error code.
 pub fn encode_add_offsets_to_txn_response(buf: &mut BytesMut, error: i16) -> Result<()> {
     buf.put_i32(0);
     buf.put_i16(error);
     Ok(())
 }
 
+/// Decode AddOffsetsToTxn: error code.
 pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     buf::get_i16(buf)
@@ -166,16 +181,22 @@ pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
 /// One partition in TxnOffsetCommit v0–2 (classic).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Committed offset.
     pub offset: i64,
+    /// Leader epoch (v2+), or `-1`.
     pub leader_epoch: i32,
+    /// Commit metadata string.
     pub metadata: String,
 }
 
 /// Topic + partitions for TxnOffsetCommit v0–2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partitions in this topic.
     pub partitions: Vec<TxnOffsetPartition>,
 }
 
@@ -214,6 +235,7 @@ pub fn encode_txn_offset_commit_request(
     Ok(())
 }
 
+/// Decode TxnOffsetCommit: `(transactional_id, group_id, topics)`.
 pub fn decode_txn_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -245,6 +267,7 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
     Ok((tid, gid, topics))
 }
 
+/// Encode TxnOffsetCommit: one error code applied to every partition.
 pub fn encode_txn_offset_commit_response(
     buf: &mut BytesMut,
     topics: &[TxnOffsetTopic],
@@ -263,6 +286,7 @@ pub fn encode_txn_offset_commit_response(
     Ok(())
 }
 
+/// Decode TxnOffsetCommit: first non-zero partition error, or `0`.
 pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, false)?.unwrap_or(0);

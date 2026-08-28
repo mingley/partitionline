@@ -658,7 +658,10 @@ impl OffsetAndTimestamp {
     }
 }
 
-/// One partition from Metadata: leader, replicas, and ISR.
+/// One partition from Metadata: leader, replicas, ISR, and offline replicas.
+///
+/// Java `PartitionInfo`. [`Self::offline_replicas`] is Java `offlineReplicas`.
+/// [`Self::leader_epoch`] is Metadata v7+ (`-1` when unknown).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionInfo {
     /// Topic name.
@@ -667,10 +670,14 @@ pub struct PartitionInfo {
     pub partition: i32,
     /// Leader broker id, or `-1` if unknown.
     pub leader: i32,
+    /// Leader epoch from Metadata v7+, or `-1`.
+    pub leader_epoch: i32,
     /// Replica broker ids.
     pub replicas: Vec<i32>,
     /// In-sync replica broker ids.
     pub isr: Vec<i32>,
+    /// Offline replica broker ids (Java `offlineReplicas`).
+    pub offline_replicas: Vec<i32>,
 }
 
 /// Manual-assignment fetch client.
@@ -1846,7 +1853,7 @@ impl Consumer {
         Ok(())
     }
 
-    /// Partition metadata for `topic` (leader, replicas, ISR).
+    /// Partition metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
     pub async fn partitions_for(&mut self, topic: impl Into<String>) -> Result<Vec<PartitionInfo>> {
         let topic = topic.into();
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
@@ -2045,8 +2052,10 @@ pub(crate) fn partition_infos_from(
                 topic: name.clone(),
                 partition: p.partition_index,
                 leader: p.leader_id,
+                leader_epoch: p.leader_epoch,
                 replicas: p.replica_nodes.clone(),
                 isr: p.isr_nodes.clone(),
+                offline_replicas: p.offline_replicas.clone(),
             });
         }
     }

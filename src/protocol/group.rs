@@ -1,22 +1,24 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Consumer group codecs: FindCoordinator, Join/Sync/Heartbeat/Leave,
+//! OffsetCommit/OffsetFetch, OffsetDelete, and ConsumerProtocol assignment.
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::Result;
 
+/// FindCoordinator `key_type` for a consumer group.
 pub const COORDINATOR_GROUP: i8 = 0;
 /// FindCoordinator `key_type` for a transactional.id (KIP-98).
 pub const COORDINATOR_TRANSACTION: i8 = 1;
+/// FindCoordinator `key_type` for a share group (KIP-932).
 pub const COORDINATOR_SHARE: i8 = 2;
 
+/// Encode FindCoordinator for a consumer group id.
 pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) -> crate::error::Result<()> {
     encode_find_coordinator_request_typed(buf, key, COORDINATOR_GROUP)
 }
 
+/// Encode FindCoordinator with an explicit `key_type`.
 pub fn encode_find_coordinator_request_typed(
     buf: &mut BytesMut,
     key: &str,
@@ -27,12 +29,14 @@ pub fn encode_find_coordinator_request_typed(
     Ok(())
 }
 
+/// Decode FindCoordinator: `(key, key_type)`.
 pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<(String, i8)> {
     let key = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let key_type = buf::get_i8(buf)?;
     Ok((key, key_type))
 }
 
+/// Encode FindCoordinator: node, host, port (error `0`).
 pub fn encode_find_coordinator_response(
     buf: &mut BytesMut,
     node_id: i32,
@@ -48,6 +52,7 @@ pub fn encode_find_coordinator_response(
     Ok(())
 }
 
+/// Decode FindCoordinator: `(error_code, node_id, host, port)`.
 pub fn decode_find_coordinator_response<B: Buf>(buf: &mut B) -> Result<(i16, i32, String, i32)> {
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
@@ -58,17 +63,26 @@ pub fn decode_find_coordinator_response<B: Buf>(buf: &mut B) -> Result<(i16, i32
     Ok((error, node_id, host, port))
 }
 
+/// JoinGroup request (classic v5–7 shape this crate speaks).
 #[derive(Debug, Clone, Copy)]
 pub struct JoinGroupRequest<'a> {
+    /// Group id.
     pub group_id: &'a str,
+    /// Session timeout.
     pub session_timeout_ms: i32,
+    /// Member id (`""` on first join).
     pub member_id: &'a str,
+    /// Kafka `group.instance.id`.
     pub group_instance_id: Option<&'a str>,
+    /// Protocol type (`"consumer"`).
     pub protocol_type: &'a str,
+    /// Protocol name (`"range"`, `"sticky"`, `"cooperative-sticky"`).
     pub protocol_name: &'a str,
+    /// Subscription metadata bytes.
     pub metadata: &'a [u8],
 }
 
+/// Encode JoinGroup.
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
     req: &JoinGroupRequest<'_>,
@@ -85,6 +99,7 @@ pub fn encode_join_group_request(
     Ok(())
 }
 
+/// Decode JoinGroup: `(group_id, member_id, instance_id, metadata)`.
 pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, String, Option<String>, Vec<u8>)> {
@@ -103,12 +118,16 @@ pub fn decode_join_group_request<B: Buf>(
     Ok((group_id, member_id, instance, metadata))
 }
 
+/// One member in a JoinGroup response (leader sees all).
 #[derive(Debug, Clone)]
 pub struct JoinMember {
+    /// Member id.
     pub member_id: String,
+    /// Subscription metadata bytes.
     pub metadata: Vec<u8>,
 }
 
+/// Encode JoinGroup: generation, protocol, leader, members.
 pub fn encode_join_group_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -133,6 +152,7 @@ pub fn encode_join_group_response(
     Ok(())
 }
 
+/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, members)`.
 pub fn decode_join_group_response<B: Buf>(
     buf: &mut B,
 ) -> Result<(i16, i32, String, String, String, Vec<JoinMember>)> {
@@ -156,6 +176,7 @@ pub fn decode_join_group_response<B: Buf>(
     Ok((error, generation, protocol, leader, member_id, members))
 }
 
+/// Encode SyncGroup with member assignments (`member_id` → assignment bytes).
 pub fn encode_sync_group_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -179,6 +200,7 @@ pub fn encode_sync_group_request(
     clippy::type_complexity,
     reason = "SyncGroup assignment list is (member_id, bytes) pairs"
 )]
+/// Decode SyncGroup: `(group_id, member_id, assignments)`.
 pub fn decode_sync_group_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, String, Vec<(String, Vec<u8>)>)> {
@@ -196,6 +218,7 @@ pub fn decode_sync_group_request<B: Buf>(
     Ok((group_id, member_id, assignments))
 }
 
+/// Encode SyncGroup: error plus this member's assignment bytes.
 pub fn encode_sync_group_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -207,6 +230,7 @@ pub fn encode_sync_group_response(
     Ok(())
 }
 
+/// Decode SyncGroup: `(error_code, assignment)`.
 pub fn decode_sync_group_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<u8>)> {
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
@@ -214,6 +238,7 @@ pub fn decode_sync_group_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<u8>)>
     Ok((error, assignment))
 }
 
+/// Encode Heartbeat.
 pub fn encode_heartbeat_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -228,6 +253,7 @@ pub fn encode_heartbeat_request(
     Ok(())
 }
 
+/// Decode Heartbeat: `(group_id, generation_id, member_id)`.
 pub fn decode_heartbeat_request<B: Buf>(buf: &mut B) -> Result<(String, i32, String)> {
     let g = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let gen = buf::get_i32(buf)?;
@@ -235,17 +261,20 @@ pub fn decode_heartbeat_request<B: Buf>(buf: &mut B) -> Result<(String, i32, Str
     Ok((g, gen, m))
 }
 
+/// Encode Heartbeat: throttle `0` plus error code.
 pub fn encode_heartbeat_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
     buf.put_i32(0);
     buf.put_i16(error_code);
     Ok(())
 }
 
+/// Decode Heartbeat: error code.
 pub fn decode_heartbeat_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _throttle = buf::get_i32(buf)?;
     buf::get_i16(buf)
 }
 
+/// Encode LeaveGroup.
 pub fn encode_leave_group_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -256,12 +285,14 @@ pub fn encode_leave_group_request(
     Ok(())
 }
 
+/// Decode LeaveGroup: `(group_id, member_id)`.
 pub fn decode_leave_group_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
     let g = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let m = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     Ok((g, m))
 }
 
+/// Encode LeaveGroup: throttle `0` plus error code.
 pub fn encode_leave_group_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -270,6 +301,7 @@ pub fn encode_leave_group_response(
     Ok(())
 }
 
+/// Decode LeaveGroup: error code.
 pub fn decode_leave_group_response<B: Buf>(buf: &mut B) -> Result<i16> {
     buf::get_i16(buf)
 }
@@ -277,13 +309,18 @@ pub fn decode_leave_group_response<B: Buf>(buf: &mut B) -> Result<i16> {
 /// One partition in OffsetCommit v7 / OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Committed offset.
     pub offset: i64,
+    /// Leader epoch, or `-1`.
     pub leader_epoch: i32,
+    /// Commit metadata string.
     pub metadata: String,
 }
 
 impl OffsetPartition {
+    /// Offset and partition with unknown epoch and empty metadata.
     #[must_use]
     pub fn new(partition: i32, offset: i64) -> Self {
         Self {
@@ -298,28 +335,38 @@ impl OffsetPartition {
 /// Topic + partitions for OffsetCommit v7.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partitions to commit.
     pub partitions: Vec<OffsetPartition>,
 }
 
 /// Topic + partition indexes for OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partition indexes to fetch.
     pub partitions: Vec<i32>,
 }
 
 /// One partition in an OffsetFetch v5 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
+    /// Partition index.
     pub partition: i32,
+    /// Committed offset, or `-1` when none.
     pub offset: i64,
+    /// Leader epoch, or `-1`.
     pub leader_epoch: i32,
+    /// Commit metadata string.
     pub metadata: String,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl FetchedOffset {
+    /// Offset with unknown epoch and empty metadata.
     #[must_use]
     pub fn new(partition: i32, offset: i64, error_code: i16) -> Self {
         Self {
@@ -335,10 +382,13 @@ impl FetchedOffset {
 /// Topic + committed offsets from OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffsetTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partitions in this topic.
     pub partitions: Vec<FetchedOffset>,
 }
 
+/// Encode OffsetCommit v7 (leader epoch + metadata).
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -369,6 +419,7 @@ pub fn encode_offset_commit_request(
     Ok(())
 }
 
+/// Decode OffsetCommit: `(group_id, generation_id, member_id, topics)`.
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, String, Vec<OffsetTopic>)> {
@@ -399,6 +450,7 @@ pub fn decode_offset_commit_request<B: Buf>(
     Ok((group, member, topics))
 }
 
+/// Encode OffsetCommit: one error code applied to every partition.
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
     topics: &[OffsetTopic],
@@ -417,6 +469,7 @@ pub fn encode_offset_commit_response(
     Ok(())
 }
 
+/// Decode OffsetCommit: first non-zero partition error, or `0`.
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _throttle = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -435,6 +488,7 @@ pub fn decode_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     Ok(first_err)
 }
 
+/// Encode OffsetFetch v5.
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -452,6 +506,7 @@ pub fn encode_offset_fetch_request(
     Ok(())
 }
 
+/// Decode OffsetFetch: `(group_id, topics)`.
 pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<OffsetFetchTopic>)> {
     let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -468,6 +523,7 @@ pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<O
     Ok((group, topics))
 }
 
+/// Encode OffsetFetch v5.
 pub fn encode_offset_fetch_response(
     buf: &mut BytesMut,
     topics: &[FetchedOffsetTopic],
@@ -494,6 +550,7 @@ pub fn encode_offset_fetch_response(
     Ok(())
 }
 
+/// Decode OffsetFetch. Top-level error is [`crate::error::Error::Broker`].
 pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOffsetTopic>> {
     let _throttle = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -528,15 +585,20 @@ pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOf
 /// Topic + partitions for OffsetDelete (api 47) v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetDeleteTopic {
+    /// Topic name.
     pub topic: String,
+    /// Partition indexes to delete.
     pub partitions: Vec<i32>,
 }
 
 /// One partition result from OffsetDelete (api 47) v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetDeleteResult {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
@@ -558,6 +620,7 @@ pub fn encode_offset_delete_request(
     Ok(())
 }
 
+/// Decode OffsetDelete: `(group_id, topics)`.
 pub fn decode_offset_delete_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, Vec<OffsetDeleteTopic>)> {
@@ -576,6 +639,7 @@ pub fn decode_offset_delete_request<B: Buf>(
     Ok((group, topics))
 }
 
+/// Encode OffsetDelete (error code before throttle).
 pub fn encode_offset_delete_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -610,6 +674,7 @@ pub fn encode_offset_delete_response(
     Ok(())
 }
 
+/// Decode OffsetDelete: `(error_code, results)`.
 pub fn decode_offset_delete_response<B: Buf>(
     buf: &mut B,
 ) -> Result<(i16, Vec<OffsetDeleteResult>)> {
@@ -673,11 +738,12 @@ pub fn encode_subscription_owned(topics: &[String], owned: &[(String, i32)]) -> 
     Ok(buf.to_vec())
 }
 
+/// Decode ConsumerProtocol subscription topics (v0 or v1, owned partitions ignored).
 pub fn decode_subscription(bytes: &[u8]) -> Result<Vec<String>> {
     Ok(decode_subscription_owned(bytes)?.0)
 }
 
-/// Topics plus owned `(topic, partition)` pairs from subscription metadata.
+/// Topics plus owned `(topic, partition)` pairs from ConsumerProtocol subscription metadata.
 ///
 /// v0 metadata yields an empty owned list.
 #[expect(
@@ -712,6 +778,7 @@ pub fn decode_subscription_owned(mut bytes: &[u8]) -> Result<(Vec<String>, Vec<(
     Ok((topics, owned))
 }
 
+/// ConsumerProtocol assignment v0 for one topic.
 pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
     encode_owned_assignment(&[(topic.to_string(), partitions.to_vec())])
 }
@@ -744,6 +811,7 @@ pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
     encode_owned_assignment(&topics)
 }
 
+/// Decode ConsumerProtocol assignment: `(topic, partitions)` per topic.
 pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
     if bytes.is_empty() {
         return Ok(Vec::new());

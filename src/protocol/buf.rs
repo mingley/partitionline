@@ -1,36 +1,40 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Classic and compact Kafka primitive codecs.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::error::{Error, Result};
 
+/// Convert `usize` to `i16` (classic string/array lengths).
 pub fn i16_from_usize(n: usize) -> Result<i16> {
     i16::try_from(n).map_err(|_| Error::protocol("length exceeds i16"))
 }
 
+/// Convert `usize` to `i32` (classic bytes/array lengths).
 pub fn i32_from_usize(n: usize) -> Result<i32> {
     i32::try_from(n).map_err(|_| Error::protocol("length exceeds i32"))
 }
 
+/// Convert `usize` to `u32` (compact lengths).
 pub fn u32_from_usize(n: usize) -> Result<u32> {
     u32::try_from(n).map_err(|_| Error::protocol("length exceeds u32"))
 }
 
+/// Convert `usize` to `i64`.
 pub fn i64_from_usize(n: usize) -> Result<i64> {
     i64::try_from(n).map_err(|_| Error::protocol("length exceeds i64"))
 }
 
+/// Convert a non-negative `i16` length to `usize`.
 pub fn usize_from_i16(n: i16) -> Result<usize> {
     usize::try_from(n).map_err(|_| Error::protocol("negative length"))
 }
 
+/// Convert a non-negative `i32` length to `usize`.
 pub fn usize_from_i32(n: i32) -> Result<usize> {
     usize::try_from(n).map_err(|_| Error::protocol("negative length"))
 }
 
+/// Convert `u32` to `usize`.
 pub fn usize_from_u32(n: u32) -> Result<usize> {
     usize::try_from(n).map_err(|_| Error::protocol("length exceeds usize"))
 }
@@ -73,6 +77,7 @@ fn varint_byte_u64(v: u64, more: bool) -> u8 {
     }
 }
 
+/// Fail if `buf` has fewer than `n` remaining bytes.
 pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     if buf.remaining() < n {
         Err(Error::protocol(format!(
@@ -84,6 +89,7 @@ pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     }
 }
 
+/// Encoded size of an unsigned varint.
 pub fn unsigned_varint_size(mut v: u32) -> usize {
     let mut n = 1;
     while v >= 0x80 {
@@ -93,6 +99,7 @@ pub fn unsigned_varint_size(mut v: u32) -> usize {
     n
 }
 
+/// Encoded size of an unsigned varlong.
 pub fn unsigned_varlong_size(mut v: u64) -> usize {
     let mut n = 1;
     while v >= 0x80 {
@@ -102,14 +109,17 @@ pub fn unsigned_varlong_size(mut v: u64) -> usize {
     n
 }
 
+/// Encoded size of a zigzag varint.
 pub fn varint_size(v: i32) -> usize {
     unsigned_varint_size(zigzag_i32(v))
 }
 
+/// Encoded size of a zigzag varlong.
 pub fn varlong_size(v: i64) -> usize {
     unsigned_varlong_size(zigzag_i64(v))
 }
 
+/// Write an unsigned varint (compact protocol lengths).
 pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
     while v >= 0x80 {
         buf.put_u8(varint_byte_u32(v, true));
@@ -118,6 +128,7 @@ pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
     buf.put_u8(varint_byte_u32(v, false));
 }
 
+/// Read an unsigned varint.
 pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
     let mut result = 0u32;
     for i in 0..5 {
@@ -131,14 +142,17 @@ pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
     Err(Error::protocol("unsigned varint overflow"))
 }
 
+/// Write a zigzag varint (record lengths).
 pub fn put_varint(buf: &mut BytesMut, v: i32) {
     put_unsigned_varint(buf, zigzag_i32(v));
 }
 
+/// Read a zigzag varint.
 pub fn get_varint<B: Buf>(buf: &mut B) -> Result<i32> {
     Ok(unzigzag_i32(get_unsigned_varint(buf)?))
 }
 
+/// Write an unsigned varlong.
 pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
     while v >= 0x80 {
         buf.put_u8(varint_byte_u64(v, true));
@@ -147,6 +161,7 @@ pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
     buf.put_u8(varint_byte_u64(v, false));
 }
 
+/// Read an unsigned varlong.
 pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
     let mut result = 0u64;
     for i in 0..10 {
@@ -160,14 +175,17 @@ pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
     Err(Error::protocol("unsigned varlong overflow"))
 }
 
+/// Write a zigzag varlong.
 pub fn put_varlong(buf: &mut BytesMut, v: i64) {
     put_unsigned_varlong(buf, zigzag_i64(v));
 }
 
+/// Read a zigzag varlong.
 pub fn get_varlong<B: Buf>(buf: &mut B) -> Result<i64> {
     Ok(unzigzag_i64(get_unsigned_varlong(buf)?))
 }
 
+/// Write a classic nullable STRING (`i16` length, `-1` is null).
 pub fn put_classic_nullable_string(buf: &mut BytesMut, s: Option<&str>) -> Result<()> {
     match s {
         None => buf.put_i16(-1),
@@ -179,6 +197,7 @@ pub fn put_classic_nullable_string(buf: &mut BytesMut, s: Option<&str>) -> Resul
     Ok(())
 }
 
+/// Read a classic nullable STRING.
 pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
     need(buf, 2)?;
     let len = buf.get_i16();
@@ -194,6 +213,7 @@ pub fn get_classic_nullable_string<B: Buf>(buf: &mut B) -> Result<Option<String>
         .map_err(|e| Error::protocol(e.to_string()))
 }
 
+/// Write a compact STRING (`unsigned varint` of `n+1`, `0` is null).
 pub fn put_compact_string(buf: &mut BytesMut, s: Option<&str>) -> Result<()> {
     match s {
         None => put_unsigned_varint(buf, 0),
@@ -208,6 +228,7 @@ pub fn put_compact_string(buf: &mut BytesMut, s: Option<&str>) -> Result<()> {
     Ok(())
 }
 
+/// Read a compact STRING.
 pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
     let n = get_unsigned_varint(buf)?;
     if n == 0 {
@@ -222,6 +243,7 @@ pub fn get_compact_string<B: Buf>(buf: &mut B) -> Result<Option<String>> {
         .map_err(|e| Error::protocol(e.to_string()))
 }
 
+/// Write STRING: compact when `flexible`, otherwise classic nullable.
 pub fn put_string(buf: &mut BytesMut, flexible: bool, s: Option<&str>) -> Result<()> {
     if flexible {
         put_compact_string(buf, s)?;
@@ -231,6 +253,7 @@ pub fn put_string(buf: &mut BytesMut, flexible: bool, s: Option<&str>) -> Result
     Ok(())
 }
 
+/// Read STRING: compact when `flexible`, otherwise classic nullable.
 pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>> {
     if flexible {
         get_compact_string(buf)
@@ -239,6 +262,7 @@ pub fn get_string<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<String>>
     }
 }
 
+/// Write compact BYTES (`unsigned varint` of `n+1`, `0` is null).
 pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
     match bytes {
         None => put_unsigned_varint(buf, 0),
@@ -253,6 +277,7 @@ pub fn put_compact_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()>
     Ok(())
 }
 
+/// Read compact BYTES as a `Bytes` view when the buffer is frozen.
 pub fn take_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     let n = get_unsigned_varint(buf)?;
     if n == 0 {
@@ -263,10 +288,12 @@ pub fn take_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     Ok(Some(buf.copy_to_bytes(len)))
 }
 
+/// Read compact BYTES into a `Vec`.
 pub fn get_compact_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
     Ok(take_compact_bytes(buf)?.map(|b| b.to_vec()))
 }
 
+/// Write classic BYTES (`i32` length, `-1` is null).
 pub fn put_classic_bytes(buf: &mut BytesMut, bytes: Option<&[u8]>) -> Result<()> {
     match bytes {
         None => buf.put_i32(-1),
@@ -293,10 +320,12 @@ pub fn take_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     Ok(Some(buf.copy_to_bytes(len)))
 }
 
+/// Read classic BYTES into a `Vec`.
 pub fn get_classic_bytes<B: Buf>(buf: &mut B) -> Result<Option<Vec<u8>>> {
     Ok(take_classic_bytes(buf)?.map(|b| b.to_vec()))
 }
 
+/// Write BYTES: compact when `flexible`, otherwise classic.
 pub fn put_bytes(buf: &mut BytesMut, flexible: bool, bytes: Option<&[u8]>) -> Result<()> {
     if flexible {
         put_compact_bytes(buf, bytes)?;
@@ -306,6 +335,7 @@ pub fn put_bytes(buf: &mut BytesMut, flexible: bool, bytes: Option<&[u8]>) -> Re
     Ok(())
 }
 
+/// Read BYTES: compact when `flexible`, otherwise classic.
 pub fn get_bytes<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<Vec<u8>>> {
     if flexible {
         get_compact_bytes(buf)
@@ -314,6 +344,7 @@ pub fn get_bytes<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<Vec<u8>>>
     }
 }
 
+/// Write an array length: compact `n+1` when `flexible`, otherwise `i32` (`-1` is null).
 pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) -> Result<()> {
     match len {
         None => {
@@ -337,6 +368,7 @@ pub fn put_array_len(buf: &mut BytesMut, flexible: bool, len: Option<usize>) -> 
     Ok(())
 }
 
+/// Read an array length. `None` is a null array.
 pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize>> {
     if flexible {
         let n = get_unsigned_varint(buf)?;
@@ -356,6 +388,7 @@ pub fn get_array_len<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<usize
     }
 }
 
+/// Skip tagged fields (flexible protocol). Unknown tags are discarded.
 pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
     let n = get_unsigned_varint(buf)?;
     for _ in 0..n {
@@ -367,10 +400,12 @@ pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
     Ok(())
 }
 
+/// Write an empty tagged-fields count (`0`).
 pub fn put_empty_tagged_fields(buf: &mut BytesMut) {
     put_unsigned_varint(buf, 0);
 }
 
+/// Overwrite a previously reserved `i32` (record-batch length / CRC placeholders).
 pub fn patch_i32(buf: &mut BytesMut, pos: usize, v: i32) -> Result<()> {
     let slot = buf
         .get_mut(pos..pos + 4)
@@ -379,40 +414,48 @@ pub fn patch_i32(buf: &mut BytesMut, pos: usize, v: i32) -> Result<()> {
     Ok(())
 }
 
+/// Read `INT8`.
 pub fn get_i8<B: Buf>(buf: &mut B) -> Result<i8> {
     need(buf, 1)?;
     Ok(buf.get_i8())
 }
 
+/// Read `INT16`.
 pub fn get_i16<B: Buf>(buf: &mut B) -> Result<i16> {
     need(buf, 2)?;
     Ok(buf.get_i16())
 }
 
+/// Read `INT32`.
 pub fn get_i32<B: Buf>(buf: &mut B) -> Result<i32> {
     need(buf, 4)?;
     Ok(buf.get_i32())
 }
 
+/// Read `INT64`.
 pub fn get_i64<B: Buf>(buf: &mut B) -> Result<i64> {
     need(buf, 8)?;
     Ok(buf.get_i64())
 }
 
+/// Read `FLOAT64`.
 pub fn get_f64<B: Buf>(buf: &mut B) -> Result<f64> {
     need(buf, 8)?;
     Ok(buf.get_f64())
 }
 
+/// Read `UINT32`.
 pub fn get_u32<B: Buf>(buf: &mut B) -> Result<u32> {
     need(buf, 4)?;
     Ok(buf.get_u32())
 }
 
+/// Read `BOOLEAN` (`INT8 != 0`).
 pub fn get_bool<B: Buf>(buf: &mut B) -> Result<bool> {
     Ok(get_i8(buf)? != 0)
 }
 
+/// Read a 16-byte UUID.
 pub fn get_uuid<B: Buf>(buf: &mut B) -> Result<[u8; 16]> {
     need(buf, 16)?;
     let mut id = [0u8; 16];

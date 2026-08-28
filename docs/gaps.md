@@ -44,7 +44,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; rebalance listener too) | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
-| `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`) | yes | **done** |
+| `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters, including share bytes/errors) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |

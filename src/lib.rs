@@ -42,7 +42,8 @@
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. [`Consumer::partitions_for`] /
-//! [`Producer::partitions_for`] return Metadata (leader, replicas, ISR).
+//! [`Producer::partitions_for`] return Metadata (leader, replicas, ISR,
+//! [`PartitionInfo::offline_replicas`], [`PartitionInfo::leader_epoch`]).
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`

@@ -1,7 +1,4 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! ApiVersions, Metadata, and Produce codecs.
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -9,20 +6,29 @@ use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
 
+/// One key in an ApiVersions response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiVersion {
+    /// Kafka api key.
     pub api_key: i16,
+    /// Lowest version the broker speaks.
     pub min_version: i16,
+    /// Highest version the broker speaks.
     pub max_version: i16,
 }
 
+/// ApiVersions response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiVersionsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Supported api keys.
     pub api_keys: Vec<ApiVersion>,
+    /// Throttle time (v1+).
     pub throttle_time_ms: i32,
 }
 
+/// Encode ApiVersions. v3+ sends `softwareName` / `softwareVersion`.
 pub fn encode_api_versions_request(
     buf: &mut BytesMut,
     version: i16,
@@ -37,6 +43,7 @@ pub fn encode_api_versions_request(
     Ok(())
 }
 
+/// Decode ApiVersions (classic v0–2, flexible v3+).
 pub fn decode_api_versions_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -69,6 +76,7 @@ pub fn decode_api_versions_response<B: Buf>(
     })
 }
 
+/// Encode ApiVersions (used by the mock broker).
 pub fn encode_api_versions_response(
     buf: &mut BytesMut,
     version: i16,
@@ -94,42 +102,69 @@ pub fn encode_api_versions_response(
     Ok(())
 }
 
+/// One broker in a Metadata response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Broker {
+    /// Broker id.
     pub node_id: i32,
+    /// Hostname or IP.
     pub host: String,
+    /// Port.
     pub port: i32,
+    /// Rack id (v1+).
     pub rack: Option<String>,
 }
 
+/// One partition in a Metadata response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionMetadata {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Partition index.
     pub partition_index: i32,
+    /// Leader broker id, or `-1`.
     pub leader_id: i32,
+    /// Leader epoch (v7+), or `-1`.
     pub leader_epoch: i32,
+    /// Replica broker ids.
     pub replica_nodes: Vec<i32>,
+    /// In-sync replica broker ids.
     pub isr_nodes: Vec<i32>,
+    /// Offline replica broker ids (v5+). Java `offlineReplicas`.
+    pub offline_replicas: Vec<i32>,
 }
 
+/// One topic in a Metadata response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicMetadata {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Topic name.
     pub name: Option<String>,
+    /// Topic id (v10+), or zeros.
     pub topic_id: [u8; 16],
+    /// Internal topic (v1+).
     pub is_internal: bool,
+    /// Partitions.
     pub partitions: Vec<PartitionMetadata>,
 }
 
+/// Metadata response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetadataResponse {
+    /// Throttle time (v3+).
     pub throttle_time_ms: i32,
+    /// Brokers in the cluster.
     pub brokers: Vec<Broker>,
+    /// Cluster id (v2+).
     pub cluster_id: Option<String>,
+    /// Controller broker id (v1+), or `-1`.
     pub controller_id: i32,
+    /// Topics.
     pub topics: Vec<TopicMetadata>,
 }
 
+/// Encode Metadata. `topics = None` asks for all topics.
 pub fn encode_metadata_request(
     buf: &mut BytesMut,
     version: i16,
@@ -184,6 +219,7 @@ fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::
     Ok(())
 }
 
+/// Decode Metadata.
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
     let flexible = version >= 9;
     let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
@@ -239,9 +275,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             let leader_epoch = if version >= 7 { buf::get_i32(buf)? } else { -1 };
             let replica_nodes = get_int32_array(buf, flexible)?;
             let isr_nodes = get_int32_array(buf, flexible)?;
-            if version >= 5 {
-                let _offline = get_int32_array(buf, flexible)?;
-            }
+            let offline_replicas = if version >= 5 {
+                get_int32_array(buf, flexible)?
+            } else {
+                Vec::new()
+            };
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
@@ -252,6 +290,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
                 leader_epoch,
                 replica_nodes,
                 isr_nodes,
+                offline_replicas,
             });
         }
         if version >= 8 {
@@ -286,6 +325,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
     })
 }
 
+/// Encode Metadata (used by the mock broker).
 pub fn encode_metadata_response(
     buf: &mut BytesMut,
     version: i16,
@@ -334,7 +374,7 @@ pub fn encode_metadata_response(
             put_int32_array(buf, flexible, &p.replica_nodes)?;
             put_int32_array(buf, flexible, &p.isr_nodes)?;
             if version >= 5 {
-                put_int32_array(buf, flexible, &[])?;
+                put_int32_array(buf, flexible, &p.offline_replicas)?;
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -359,28 +399,42 @@ pub fn encode_metadata_response(
     Ok(())
 }
 
+/// One topic in a Produce request.
 #[derive(Debug, Clone)]
 pub struct ProduceTopicData {
+    /// Topic name.
     pub topic: String,
+    /// Partition batches.
     pub partitions: Vec<ProducePartitionData>,
 }
 
+/// One partition in a Produce request.
 #[derive(Debug, Clone)]
 pub struct ProducePartitionData {
+    /// Partition index.
     pub index: i32,
+    /// Record batch to produce.
     pub records: RecordBatch,
 }
 
+/// One partition in a Produce response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProducePartitionResponse {
+    /// Topic name.
     pub topic: String,
+    /// Partition index.
     pub partition: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// First offset assigned to the batch.
     pub base_offset: i64,
+    /// Log append time, or `-1`.
     pub log_append_time_ms: i64,
+    /// Log start offset.
     pub log_start_offset: i64,
 }
 
+/// Encode Produce v3–8 (classic) or v9+ (flexible).
 pub fn encode_produce_request(
     buf: &mut BytesMut,
     version: i16,
@@ -428,6 +482,7 @@ pub fn encode_produce_request(
     Ok(())
 }
 
+/// Decode Produce: `(transactional_id, acks, timeout_ms, topics)`.
 pub fn decode_produce_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -476,6 +531,7 @@ pub fn decode_produce_request<B: Buf>(
     Ok((transactional_id, acks, timeout_ms, topics))
 }
 
+/// Encode Produce: one response per partition (mock broker).
 pub fn encode_produce_response(
     buf: &mut BytesMut,
     version: i16,
@@ -530,6 +586,7 @@ pub fn encode_produce_response(
     Ok(())
 }
 
+/// Decode Produce into per-partition results.
 pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -703,6 +760,7 @@ mod tests {
                     leader_epoch: 3,
                     replica_nodes: vec![1],
                     isr_nodes: vec![1],
+                    offline_replicas: vec![2],
                 }],
             }],
         };

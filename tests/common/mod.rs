@@ -717,6 +717,7 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
                                 .unwrap_or(0),
                             replica_nodes: replica_nodes.clone(),
                             isr_nodes: replica_nodes.clone(),
+                            offline_replicas: Vec::new(),
                         }
                     })
                     .collect(),

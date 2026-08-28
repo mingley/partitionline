@@ -579,6 +579,8 @@ async fn partitions_for_and_end_offsets() {
     assert_eq!(info.len(), 1);
     assert_eq!(info[0].partition, 0);
     assert_eq!(info[0].leader, 1);
+    assert_eq!(info[0].leader_epoch, 0);
+    assert!(info[0].offline_replicas.is_empty());
     let end = consumer.end_offsets([("t", 0)]).await.unwrap();
     assert_eq!(end, vec![(TopicPartition::new("t", 0), 1)]);
     let begin = consumer.beginning_offsets([("t", 0)]).await.unwrap();

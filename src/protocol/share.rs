@@ -1,11 +1,6 @@
 //! Share groups (KIP-932): ShareGroupHeartbeat (76), ShareFetch (78),
 //! ShareAcknowledge (79). Flexible v1 (Kafka 4.1 stable).
 
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
-
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
@@ -21,70 +16,108 @@ pub const ACK_RELEASE: i8 = 2;
 /// Reject an acquired record.
 pub const ACK_REJECT: i8 = 3;
 
+/// Topic UUID plus partition indexes in a share-group assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareTopicPartitions {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// Assigned partition indexes.
     pub partitions: Vec<i32>,
 }
 
+/// ShareGroupHeartbeat request (join, heartbeat, or leave).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupHeartbeatRequest {
+    /// Group id.
     pub group_id: String,
+    /// Member id (`""` on join).
     pub member_id: String,
+    /// Member epoch (`0` join, `-1` leave, otherwise heartbeat).
     pub member_epoch: i32,
+    /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
 }
 
+/// ShareGroupHeartbeat response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupHeartbeatResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message.
     pub error_message: Option<String>,
+    /// Assigned member id.
     pub member_id: Option<String>,
+    /// Current member epoch.
     pub member_epoch: i32,
+    /// Next heartbeat interval.
     pub heartbeat_interval_ms: i32,
+    /// New assignment, or `None` when unchanged.
     pub assignment: Option<Vec<ShareTopicPartitions>>,
 }
 
+/// One contiguous offset range in ShareAcknowledge / ShareFetch acks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcknowledgementBatch {
+    /// First offset in the range.
     pub first_offset: i64,
+    /// Last offset in the range (inclusive).
     pub last_offset: i64,
+    /// Per-offset ack type ([`ACK_ACCEPT`], [`ACK_RELEASE`], [`ACK_REJECT`], [`ACK_GAP`]).
     pub types: Vec<i8>,
 }
 
+/// One partition in a ShareFetch request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Acknowledgements piggybacked on this fetch.
     pub acknowledgements: Vec<AcknowledgementBatch>,
 }
 
+/// One topic in a ShareFetch request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchTopic {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// Partitions to fetch.
     pub partitions: Vec<ShareFetchPartition>,
 }
 
+/// Acquired offset range in a ShareFetch response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcquiredRange {
+    /// First acquired offset.
     pub first_offset: i64,
+    /// Last acquired offset (inclusive).
     pub last_offset: i64,
+    /// Delivery count for this range.
     pub delivery_count: i16,
 }
 
+/// One partition in a ShareFetch response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchedPartition {
+    /// Partition index.
     pub partition: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Record batches.
     pub records: Vec<RecordBatch>,
+    /// Offsets acquired by this member.
     pub acquired: Vec<AcquiredRange>,
 }
 
+/// One topic in a ShareFetch response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchedTopic {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// Partition bodies.
     pub partitions: Vec<ShareFetchedPartition>,
 }
 
+/// Encode a flexible v1 ShareGroupHeartbeat request.
 pub fn encode_share_group_heartbeat_request(
     buf: &mut BytesMut,
     req: &ShareGroupHeartbeatRequest,
@@ -106,6 +139,7 @@ pub fn encode_share_group_heartbeat_request(
     Ok(())
 }
 
+/// Decode a flexible v1 ShareGroupHeartbeat request.
 pub fn decode_share_group_heartbeat_request<B: Buf>(
     buf: &mut B,
 ) -> Result<ShareGroupHeartbeatRequest> {
@@ -135,6 +169,7 @@ pub fn decode_share_group_heartbeat_request<B: Buf>(
     })
 }
 
+/// Encode a flexible v1 ShareGroupHeartbeat response.
 pub fn encode_share_group_heartbeat_response(
     buf: &mut BytesMut,
     resp: &ShareGroupHeartbeatResponse,
@@ -165,6 +200,7 @@ pub fn encode_share_group_heartbeat_response(
     Ok(())
 }
 
+/// Decode a flexible v1 ShareGroupHeartbeat response.
 pub fn decode_share_group_heartbeat_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ShareGroupHeartbeatResponse> {
@@ -249,6 +285,7 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
     clippy::too_many_arguments,
     reason = "ShareFetch v1 body fields are a single wire encode"
 )]
+/// Encode ShareFetch v1.
 pub fn encode_share_fetch_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -284,6 +321,7 @@ pub fn encode_share_fetch_request(
     Ok(())
 }
 
+/// Decode ShareFetch: `(group_id, member_id, epoch, max_records, topics)`.
 pub fn decode_share_fetch_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, String, i32, i32, Vec<ShareFetchTopic>)> {
@@ -342,6 +380,7 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
     Ok((id, epoch))
 }
 
+/// Encode a successful ShareFetch response.
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     topics: &[ShareFetchedTopic],
@@ -382,6 +421,7 @@ pub fn encode_share_fetch_response(
     Ok(())
 }
 
+/// Decode ShareFetch into topic/partition bodies.
 pub fn decode_share_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<ShareFetchedTopic>> {
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
@@ -449,6 +489,7 @@ pub fn decode_share_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<ShareFetch
     Ok(topics)
 }
 
+/// Encode ShareAcknowledge for one topic.
 pub fn encode_share_acknowledge_request(
     buf: &mut BytesMut,
     group_id: &str,
@@ -473,9 +514,12 @@ pub fn encode_share_acknowledge_request(
     }
 }
 
+/// One topic in a multi-topic ShareAcknowledge request.
 #[derive(Debug, Clone)]
 pub struct ShareAckTopic {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// `(partition, acknowledgement batches)`.
     pub partitions: Vec<(i32, Vec<AcknowledgementBatch>)>,
 }
 
@@ -521,6 +565,7 @@ pub fn encode_share_fetch_error(buf: &mut BytesMut, error_code: i16) -> crate::e
     clippy::type_complexity,
     reason = "ack request is group, member, epoch, and topic-partition batches"
 )]
+/// Decode ShareAcknowledge: `(group_id, member_id, epoch, topic-partition batches)`.
 pub fn decode_share_acknowledge_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(
@@ -549,6 +594,7 @@ pub fn decode_share_acknowledge_request<B: Buf>(
     Ok((group_id, member_id, epoch, topics))
 }
 
+/// Encode ShareAcknowledge: throttle `0` plus error code.
 pub fn encode_share_acknowledge_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -562,6 +608,7 @@ pub fn encode_share_acknowledge_response(
     Ok(())
 }
 
+/// Decode ShareAcknowledge: error code.
 pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;

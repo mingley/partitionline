@@ -718,7 +718,7 @@ impl ConsumerGroup {
         self.consumer.wakeup_handle()
     }
 
-    /// Metadata for `topic` (leader, replicas, ISR).
+    /// Metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
     pub async fn partitions_for(
         &mut self,
         topic: impl Into<String>,

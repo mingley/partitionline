@@ -1087,7 +1087,7 @@ impl Producer {
         }
     }
 
-    /// Partition metadata for `topic` (Java `partitionsFor`).
+    /// Partition metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
     pub async fn partitions_for(
         &self,
         topic: impl Into<String>,

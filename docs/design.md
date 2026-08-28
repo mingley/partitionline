@@ -40,7 +40,8 @@ ListOffsets for every assigned partition; `seek_to_beginning_of` /
 assigned partitions without dropping them; pause survives group rebalance.
 `position` is the next fetch offset (`position_of` takes `TopicPartition`).
 `partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
-ListOffsets and take `TopicPartition`. `list_offset` is ListOffsets for one
+ListOffsets and take `TopicPartition`. `partitions_for` includes leader epoch
+and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
