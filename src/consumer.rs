@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use bytes::Bytes;
-use tokio::sync::Notify;
+use tokio::sync::watch;
 
 use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
@@ -365,7 +365,7 @@ pub struct Consumer {
     m_bytes: AtomicU64,
     m_errors: AtomicU64,
     wakeup: Arc<AtomicBool>,
-    wakeup_notify: Arc<Notify>,
+    wakeup_tx: watch::Sender<bool>,
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -374,14 +374,14 @@ pub struct Consumer {
 #[derive(Clone)]
 pub struct WakeupHandle {
     flag: Arc<AtomicBool>,
-    notify: Arc<Notify>,
+    tx: watch::Sender<bool>,
 }
 
 impl WakeupHandle {
     /// Make the next (or in-flight) fetch return [`Error::Wakeup`].
     pub fn wakeup(&self) {
         self.flag.store(true, Ordering::SeqCst);
-        self.notify.notify_one();
+        self.tx.send(true).unwrap_or(());
     }
 }
 
@@ -455,7 +455,7 @@ impl Consumer {
             m_bytes: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             wakeup: Arc::new(AtomicBool::new(false)),
-            wakeup_notify: Arc::new(Notify::new()),
+            wakeup_tx: watch::channel(false).0,
         })
     }
 
@@ -905,7 +905,7 @@ impl Consumer {
     /// use [`Self::wakeup_handle`].
     pub fn wakeup(&self) {
         self.wakeup.store(true, Ordering::SeqCst);
-        self.wakeup_notify.notify_one();
+        self.wakeup_tx.send(true).unwrap_or(());
     }
 
     /// Cloneable handle for [`Self::wakeup`] from another task.
@@ -913,12 +913,16 @@ impl Consumer {
     pub fn wakeup_handle(&self) -> WakeupHandle {
         WakeupHandle {
             flag: Arc::clone(&self.wakeup),
-            notify: Arc::clone(&self.wakeup_notify),
+            tx: self.wakeup_tx.clone(),
         }
     }
 
     pub(crate) fn take_wakeup(&self) -> bool {
-        self.wakeup.swap(false, Ordering::SeqCst)
+        let was = self.wakeup.swap(false, Ordering::SeqCst);
+        if was {
+            self.wakeup_tx.send(false).unwrap_or(());
+        }
+        was
     }
 
     fn woken(&self) -> bool {
@@ -1020,21 +1024,20 @@ impl Consumer {
         &mut self,
         by_leader: HashMap<i32, HashMap<String, Vec<FetchPartition>>>,
     ) -> Result<Vec<(i32, Result<Bytes>)>> {
-        let notify = Arc::clone(&self.wakeup_notify);
-        let flag = Arc::clone(&self.wakeup);
-        let fut = self.fetch_from_leaders_io(by_leader);
-        tokio::pin!(fut);
-        loop {
-            if flag.load(Ordering::SeqCst) {
-                return Err(Error::Wakeup);
+        if self.woken() {
+            self.conns.clear();
+            return Err(Error::Wakeup);
+        }
+        let mut rx = self.wakeup_tx.subscribe();
+        tokio::select! {
+            biased;
+            result = rx.wait_for(|on| *on) => {
+                drop(result);
+                self.conns.clear();
+                Err(Error::Wakeup)
             }
-            tokio::select! {
-                _ = notify.notified() => {
-                    continue;
-                }
-                result = &mut fut => {
-                    return result;
-                }
+            result = self.fetch_from_leaders_io(by_leader) => {
+                result
             }
         }
     }
