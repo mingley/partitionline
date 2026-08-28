@@ -56,7 +56,7 @@ use crate::protocol::admin::{
     encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
     ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_TOPIC,
+    RESOURCE_BROKER, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -293,6 +293,16 @@ impl ConfigResource {
         Self {
             resource_type: RESOURCE_BROKER,
             name: id.to_string(),
+            keys: None,
+        }
+    }
+
+    /// Consumer-group resource.
+    #[must_use]
+    pub fn group(name: impl Into<String>) -> Self {
+        Self {
+            resource_type: RESOURCE_GROUP,
+            name: name.into(),
             keys: None,
         }
     }
@@ -1148,15 +1158,15 @@ impl Admin {
     /// Metadata and retries on the new controller.
     pub async fn incremental_alter_configs(
         &mut self,
-        resource_type: i8,
-        name: &str,
+        resource: &ConfigResource,
         configs: &[AlterConfig],
         validate_only: bool,
     ) -> Result<i16> {
         let version = self.alter_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
-        let name = name.to_string();
+        let resource_type = resource.resource_type;
+        let name = resource.name.clone();
         let configs = configs.to_vec();
         loop {
             if self.cluster.controller().is_err() {
@@ -2024,13 +2034,14 @@ impl Admin {
     /// Prefer [`Self::incremental_alter_configs`] on modern brokers.
     pub async fn alter_configs(
         &mut self,
-        resource_type: i8,
-        name: &str,
+        resource: &ConfigResource,
         configs: &[(String, Option<String>)],
         validate_only: bool,
     ) -> Result<i16> {
         let version = self.legacy_alter_version;
         let timeout = self.cfg.request_timeout;
+        let resource_type = resource.resource_type;
+        let name = resource.name.clone();
         let configs: Vec<TopicConfig> = configs
             .iter()
             .map(|(n, v)| TopicConfig {
@@ -2048,7 +2059,7 @@ impl Admin {
                         buf,
                         version,
                         resource_type,
-                        name,
+                        &name,
                         &configs,
                         validate_only,
                     )

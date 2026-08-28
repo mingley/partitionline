@@ -24,9 +24,8 @@ use partitionline::{
     OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
     RenewDelegationTokenRequest, ShareGroup, TopicPartition, TransactionState, TransactionTopic,
     UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
-    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS,
-    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
-    SCRAM_SHA_512,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -2204,13 +2203,8 @@ async fn admin_partitions_alter_configs_and_acls() {
     assert_eq!(parts[0].error_code, 0);
     let err = admin
         .incremental_alter_configs(
-            CONFIG_RESOURCE_TOPIC,
-            "acl-t",
-            &[AlterConfig {
-                name: "retention.ms".into(),
-                op: ALTER_CONFIG_SET,
-                value: Some("1000".into()),
-            }],
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::set("retention.ms", "1000")],
             false,
         )
         .await
@@ -2268,8 +2262,7 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     );
     let err = admin
         .alter_configs(
-            CONFIG_RESOURCE_TOPIC,
-            "rest",
+            &ConfigResource::topic("rest"),
             &[("retention.ms".into(), Some("2000".into()))],
             false,
         )
@@ -2529,13 +2522,8 @@ async fn incremental_alter_configs_follows_controller() {
 
     let err = admin
         .incremental_alter_configs(
-            CONFIG_RESOURCE_TOPIC,
-            "iac2",
-            &[AlterConfig {
-                name: "retention.ms".into(),
-                op: ALTER_CONFIG_SET,
-                value: Some("1000".into()),
-            }],
+            &ConfigResource::topic("iac2"),
+            &[AlterConfig::set("retention.ms", "1000")],
             false,
         )
         .await
@@ -2550,13 +2538,8 @@ async fn incremental_alter_configs_follows_controller() {
     mock.set_controller(1);
     let again = admin
         .incremental_alter_configs(
-            CONFIG_RESOURCE_TOPIC,
-            "iac1",
-            &[AlterConfig {
-                name: "retention.ms".into(),
-                op: ALTER_CONFIG_SET,
-                value: Some("2000".into()),
-            }],
+            &ConfigResource::topic("iac1"),
+            &[AlterConfig::set("retention.ms", "2000")],
             false,
         )
         .await

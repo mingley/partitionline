@@ -71,6 +71,7 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `TopicPartition` / `offsets_for_times` match Java `offsetsForTimes`.
 `FetchedRecord::leader_epoch` is the record-batch partition leader epoch.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
+`incremental_alter_configs` / `alter_configs` take `ConfigResource`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.

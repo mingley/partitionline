@@ -47,6 +47,8 @@
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`.
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
+//! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
+//! [`ConfigResource`].
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.

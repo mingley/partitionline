@@ -8,17 +8,27 @@ use bytes::{Buf, BufMut, BytesMut};
 use super::buf;
 use crate::error::Result;
 
+/// ACL resource type: topic.
 pub const ACL_RESOURCE_TOPIC: i8 = 2;
+/// ACL operation: all.
 pub const ACL_OPERATION_ALL: i8 = 2;
+/// ACL permission: allow.
 pub const ACL_PERMISSION_ALLOW: i8 = 3;
 
+/// One ACL binding for CreateAcls / DescribeAcls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AclBinding {
+    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, …).
     pub resource_type: i8,
+    /// Resource name (topic name, …).
     pub resource_name: String,
+    /// Principal, for example `User:alice`.
     pub principal: String,
+    /// Host filter (`*` is any).
     pub host: String,
+    /// Operation (`ACL_OPERATION_ALL`, …).
     pub operation: i8,
+    /// Permission (`ACL_PERMISSION_ALLOW`, …).
     pub permission: i8,
 }
 

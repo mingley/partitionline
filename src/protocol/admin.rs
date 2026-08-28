@@ -60,8 +60,11 @@ pub struct CreateTopicsRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicResult {
+    /// Topic name.
     pub name: String,
+    /// Per-topic error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
@@ -72,29 +75,46 @@ pub struct DescribeConfigsResource {
     pub keys: Option<Vec<String>>,
 }
 
+/// A config key that is an alias or parent of a [`ConfigEntry`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigSynonym {
+    /// Config key.
     pub name: String,
+    /// Config value, or `None` when unset.
     pub value: Option<String>,
+    /// Kafka config source (`CONFIG_SOURCE_DYNAMIC_TOPIC`, …).
     pub source: i8,
 }
 
+/// One key from DescribeConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigEntry {
+    /// Config key.
     pub name: String,
+    /// Config value, or `None` when unset.
     pub value: Option<String>,
+    /// When true, the broker will not apply a write to this key.
     pub read_only: bool,
+    /// Kafka config source (`CONFIG_SOURCE_DYNAMIC_TOPIC`, …).
     pub source: i8,
+    /// When true, the value is redacted by the broker.
     pub is_sensitive: bool,
+    /// Synonyms / parents of this key.
     pub synonyms: Vec<ConfigSynonym>,
 }
 
+/// Per-resource result of DescribeConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResult {
+    /// Per-resource error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, …).
     pub resource_type: i8,
+    /// Resource name.
     pub name: String,
+    /// Config keys on this resource.
     pub entries: Vec<ConfigEntry>,
 }
 
@@ -464,7 +484,9 @@ pub fn decode_describe_configs_response<B: Buf>(
     Ok(out)
 }
 
+/// Incremental AlterConfigs op: set a key.
 pub const ALTER_CONFIG_SET: i8 = 0;
+/// Incremental AlterConfigs op: delete a key.
 pub const ALTER_CONFIG_DELETE: i8 = 1;
 
 pub fn encode_create_partitions_request(
@@ -535,11 +557,37 @@ pub fn decode_create_partitions_response<B: Buf>(buf: &mut B) -> Result<Vec<Topi
     Ok(out)
 }
 
+/// One incremental config change (`AlterConfigOp`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfig {
+    /// Config key.
     pub name: String,
+    /// `ALTER_CONFIG_SET` or `ALTER_CONFIG_DELETE`.
     pub op: i8,
+    /// New value. `None` for delete.
     pub value: Option<String>,
+}
+
+impl AlterConfig {
+    /// Set `name` to `value` (`ALTER_CONFIG_SET`).
+    #[must_use]
+    pub fn set(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            op: ALTER_CONFIG_SET,
+            value: Some(value.into()),
+        }
+    }
+
+    /// Delete `name` (`ALTER_CONFIG_DELETE`).
+    #[must_use]
+    pub fn delete(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            op: ALTER_CONFIG_DELETE,
+            value: None,
+        }
+    }
 }
 
 pub fn encode_incremental_alter_configs_request(
@@ -736,10 +784,15 @@ pub fn decode_delete_records_response<B: Buf>(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterDescription {
+    /// Top-level error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Cluster id from DescribeCluster, when known.
     pub cluster_id: Option<String>,
+    /// Controller broker id, or `-1`.
     pub controller_id: i32,
+    /// Brokers in the cluster.
     pub brokers: Vec<super::api::Broker>,
 }
 
