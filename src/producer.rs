@@ -510,6 +510,8 @@ struct Shared {
     last_meta_err: parking_lot::Mutex<Option<Error>>,
     nodes: parking_lot::Mutex<HashMap<i32, Vec<WorkerHandle>>>,
     reconnect_fails: parking_lot::Mutex<HashMap<i32, u32>>,
+    /// Brokers with a connect or reconnect-backoff in flight.
+    reconnect_busy: parking_lot::Mutex<HashSet<i32>>,
     retries_out: AtomicUsize,
     in_txn: AtomicBool,
     txn_partitions: parking_lot::Mutex<HashSet<(Arc<str>, i32)>>,
@@ -678,6 +680,7 @@ impl Producer {
             last_meta_err: parking_lot::Mutex::new(None),
             nodes: parking_lot::Mutex::new(HashMap::new()),
             reconnect_fails: parking_lot::Mutex::new(HashMap::new()),
+            reconnect_busy: parking_lot::Mutex::new(HashSet::new()),
             retries_out: AtomicUsize::new(0),
             in_txn: AtomicBool::new(false),
             txn_partitions: parking_lot::Mutex::new(HashSet::new()),
@@ -1598,11 +1601,18 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
             continue;
         };
         {
+            let mut busy = shared.reconnect_busy.lock();
+            if !busy.insert(node) {
+                continue;
+            }
+        }
+        {
             let mut nodes = shared.nodes.lock();
             let _ = nodes.entry(node).or_insert_with(Vec::new);
         }
         match spawn_node_workers(&shared, node, &addr, cap).await {
             Ok(workers) => {
+                let _ = shared.reconnect_busy.lock().remove(&node);
                 let _ = shared.reconnect_fails.lock().remove(&node);
                 let _prev = shared.nodes.lock().insert(node, workers);
                 *shared.last_meta_err.lock() = None;
@@ -1618,19 +1628,18 @@ async fn connect_loop(weak: std::sync::Weak<Shared>, mut rx: mpsc::Receiver<i32>
                         shared.cfg.reconnect_backoff_max,
                         fails,
                     );
-                    if delay.is_zero() {
-                        try_nudge_node(&shared.connect_tx, node);
-                        shared.cache_nudge.notify_waiters();
-                    } else {
-                        let weak = weak.clone();
-                        drop(tokio::spawn(async move {
+                    let weak = weak.clone();
+                    drop(tokio::spawn(async move {
+                        if !delay.is_zero() {
                             tokio::time::sleep(delay).await;
-                            if let Some(shared) = weak.upgrade() {
-                                try_nudge_node(&shared.connect_tx, node);
-                            }
-                        }));
-                    }
+                        }
+                        if let Some(shared) = weak.upgrade() {
+                            let _ = shared.reconnect_busy.lock().remove(&node);
+                            try_nudge_node(&shared.connect_tx, node);
+                        }
+                    }));
                 } else {
+                    let _ = shared.reconnect_busy.lock().remove(&node);
                     *shared.last_meta_err.lock() = Some(clone_err(&e));
                     shared.cache_nudge.notify_waiters();
                 }
