@@ -11,7 +11,9 @@ use tokio::sync::watch;
 
 use crate::consumer::{Consumer, ConsumerConfig};
 use crate::error::{self, Error, Result};
-use crate::group::{collect_topics, coord_roundtrip, discover_coord};
+use crate::group::{
+    collect_topics, coord_roundtrip, discover_coord, filter_matching_topics, TopicMatch,
+};
 use crate::net::BrokerConn;
 use crate::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
 use crate::protocol::group::COORDINATOR_SHARE;
@@ -164,6 +166,9 @@ pub struct ShareGroup {
     member_id: String,
     member_epoch: i32,
     topics: Vec<String>,
+    /// Java `subscribe(Pattern)`: re-list cluster topics on poll.
+    topic_match: Option<TopicMatch>,
+    last_match_refresh: Instant,
     assigned: Vec<(String, i32)>,
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
@@ -214,6 +219,29 @@ impl ShareGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topics = collect_topics(topics)?;
+        Self::join_list(cfg, group_id, topics, None).await
+    }
+
+    /// Join a share group with a topic predicate (Java `subscribe(Pattern)`).
+    ///
+    /// Cluster topics for which `matches` is true become the subscription.
+    /// Names starting with `__` are skipped. [`Self::poll`] re-lists Metadata
+    /// when [`ConsumerConfig::metadata_max_age`] has elapsed (every poll when
+    /// that age is zero).
+    pub async fn join_matching(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::join_list(cfg, group_id.into(), Vec::new(), Some(Arc::new(matches))).await
+    }
+
+    async fn join_list(
+        cfg: ConsumerConfig,
+        group_id: String,
+        topics: Vec<String>,
+        topic_match: Option<TopicMatch>,
+    ) -> Result<Self> {
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
@@ -228,6 +256,8 @@ impl ShareGroup {
             member_id,
             member_epoch: 0,
             topics,
+            topic_match,
+            last_match_refresh: Instant::now(),
             assigned: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
@@ -242,6 +272,10 @@ impl ShareGroup {
             fetch_latency: crate::metrics::LatencyTracker::new(),
             topic_metrics: HashMap::new(),
         };
+        if g.topic_match.is_some() {
+            g.topics = g.matching_topic_names().await?;
+            g.last_match_refresh = Instant::now();
+        }
         g.heartbeat_join().await?;
         g.spawn_heartbeat(hb_rx);
         Ok(g)
@@ -406,6 +440,7 @@ impl ShareGroup {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        self.maybe_refresh_matching().await?;
         let hb = self.hb_err.load(Ordering::SeqCst);
         if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
@@ -631,12 +666,14 @@ impl ShareGroup {
     /// again with a new topic list. [`Self::leave`] after this is a no-op.
     pub async fn unsubscribe(&mut self) -> Result<()> {
         if self.member_id.is_empty() {
+            self.topic_match = None;
             self.topics.clear();
             self.assigned.clear();
             self.topic_ids.clear();
             self.share_epochs.clear();
             return Ok(());
         }
+        self.topic_match = None;
         self.hb_stop.send(true).unwrap_or(());
         self.close_share_session().await?;
         self.leave_coordinator().await?;
@@ -661,6 +698,26 @@ impl ShareGroup {
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<()> {
         let topics = collect_topics(topics)?;
+        self.topic_match = None;
+        self.apply_topics(topics).await
+    }
+
+    /// [`Self::subscribe`] with a topic predicate (Java `subscribe(Pattern)`).
+    ///
+    /// Names starting with `__` are skipped. [`Self::poll`] re-lists Metadata
+    /// when [`ConsumerConfig::metadata_max_age`] has elapsed. [`Self::subscribe`]
+    /// with an explicit list drops the predicate.
+    pub async fn subscribe_matching(
+        &mut self,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<()> {
+        self.topic_match = Some(Arc::new(matches));
+        let topics = self.matching_topic_names().await?;
+        self.last_match_refresh = Instant::now();
+        self.apply_topics(topics).await
+    }
+
+    async fn apply_topics(&mut self, topics: Vec<String>) -> Result<()> {
         if topics == self.topics && !self.member_id.is_empty() {
             return Ok(());
         }
@@ -682,6 +739,30 @@ impl ShareGroup {
         self.heartbeat_join().await?;
         self.spawn_heartbeat(hb_rx);
         Ok(())
+    }
+
+    async fn matching_topic_names(&mut self) -> Result<Vec<String>> {
+        let Some(pred) = self.topic_match.clone() else {
+            return Ok(self.topics.clone());
+        };
+        let infos = self.consumer.list_topics().await?;
+        Ok(filter_matching_topics(
+            infos.iter().map(|i| i.topic.as_str()),
+            |n| pred(n),
+        ))
+    }
+
+    async fn maybe_refresh_matching(&mut self) -> Result<()> {
+        if self.topic_match.is_none() {
+            return Ok(());
+        }
+        let age = self.cfg.metadata_max_age;
+        if !age.is_zero() && self.last_match_refresh.elapsed() < age {
+            return Ok(());
+        }
+        let topics = self.matching_topic_names().await?;
+        self.last_match_refresh = Instant::now();
+        self.apply_topics(topics).await
     }
 
     fn name_for_topic_id(&self, id: [u8; 16]) -> String {

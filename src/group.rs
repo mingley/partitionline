@@ -36,7 +36,7 @@ use crate::protocol::group::{
 };
 use crate::protocol::sasl;
 
-type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+pub(crate) type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
@@ -472,6 +472,39 @@ impl ConsumerGroup {
         .await
     }
 
+    /// [`Self::join_sticky`] with a topic predicate (Java `subscribe(Pattern)`).
+    pub async fn join_sticky_matching(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::join_with_protocol_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            "sticky",
+            Some(Arc::new(matches)),
+        )
+        .await
+    }
+
+    /// [`Self::join_cooperative_sticky`] with a topic predicate
+    /// (Java `subscribe(Pattern)`).
+    pub async fn join_cooperative_sticky_matching(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::join_with_protocol_list(
+            cfg,
+            group_id.into(),
+            Vec::new(),
+            "cooperative-sticky",
+            Some(Arc::new(matches)),
+        )
+        .await
+    }
+
     /// KIP-848 `group.protocol=consumer`. One topic.
     pub async fn join_consumer(
         cfg: ConsumerConfig,
@@ -489,6 +522,24 @@ impl ConsumerGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topics = collect_topics(topics)?;
+        Self::join_consumer_list(cfg, group_id, topics, None).await
+    }
+
+    /// [`Self::join_consumer`] with a topic predicate (Java `subscribe(Pattern)`).
+    pub async fn join_consumer_matching(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        matches: impl Fn(&str) -> bool + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::join_consumer_list(cfg, group_id.into(), Vec::new(), Some(Arc::new(matches))).await
+    }
+
+    async fn join_consumer_list(
+        cfg: ConsumerConfig,
+        group_id: String,
+        topics: Vec<String>,
+        topic_match: Option<TopicMatch>,
+    ) -> Result<Self> {
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -504,7 +555,7 @@ impl ConsumerGroup {
             member_id: String::new(),
             generation_id: 0,
             topics,
-            topic_match: None,
+            topic_match,
             last_match_refresh: Instant::now(),
             protocol: "consumer".into(),
             kip848: true,
@@ -519,6 +570,10 @@ impl ConsumerGroup {
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
         };
+        if g.topic_match.is_some() {
+            g.topics = g.matching_topic_names().await?;
+            g.last_match_refresh = Instant::now();
+        }
         g.heartbeat_join().await?;
         g.spawn_heartbeat_consumer(hb_rx);
         Ok(g)
@@ -1208,17 +1263,10 @@ impl ConsumerGroup {
             return Ok(self.topics.clone());
         };
         let infos = self.consumer.list_topics().await?;
-        let mut names = Vec::new();
-        for info in infos {
-            if info.topic.is_empty() || info.topic.starts_with("__") {
-                continue;
-            }
-            if pred(&info.topic) && !names.contains(&info.topic) {
-                names.push(info.topic);
-            }
-        }
-        names.sort();
-        Ok(names)
+        Ok(filter_matching_topics(
+            infos.iter().map(|i| i.topic.as_str()),
+            |n| pred(n),
+        ))
     }
 
     async fn maybe_refresh_matching(&mut self) -> Result<()> {
@@ -1891,6 +1939,24 @@ pub(crate) fn collect_topics(
     Ok(out)
 }
 
+pub(crate) fn filter_matching_topics(
+    topics: impl IntoIterator<Item = impl AsRef<str>>,
+    pred: impl Fn(&str) -> bool,
+) -> Vec<String> {
+    let mut names = Vec::new();
+    for topic in topics {
+        let topic = topic.as_ref();
+        if topic.is_empty() || topic.starts_with("__") {
+            continue;
+        }
+        if pred(topic) && !names.iter().any(|n| n == topic) {
+            names.push(topic.to_string());
+        }
+    }
+    names.sort();
+    names
+}
+
 fn group_offset_topics(items: &[(TopicPartition, OffsetAndMetadata)]) -> Vec<OffsetTopic> {
     let mut by_topic: HashMap<String, Vec<OffsetPartition>> = HashMap::new();
     for (tp, md) in items {
@@ -2392,5 +2458,14 @@ mod tests {
         let starts = committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).unwrap();
         assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
+    }
+
+    #[test]
+    fn filter_matching_topics_skips_internal_and_sorts() {
+        let names = filter_matching_topics(
+            ["z-a", "__consumer_offsets", "a-1", "a-1", "", "b-1"],
+            |n| n.starts_with("a-") || n.starts_with("z-"),
+        );
+        assert_eq!(names, vec!["a-1".to_string(), "z-a".to_string()]);
     }
 }

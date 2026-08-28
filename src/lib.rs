@@ -96,12 +96,16 @@
 //! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
 //! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429, and
 //! [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
-//! `_topics` variant for several topics. [`ConsumerGroup::join_matching`]
-//! is range plus Java `subscribe(Pattern)`.
+//! `_topics` variant for several topics. [`ConsumerGroup::join_matching`] /
+//! [`ConsumerGroup::join_sticky_matching`] /
+//! [`ConsumerGroup::join_cooperative_sticky_matching`] /
+//! [`ConsumerGroup::join_consumer_matching`] are Java `subscribe(Pattern)`
+//! at join (range, sticky, cooperative-sticky, KIP-848).
 //! [`ConsumerConfig::group_instance_id`] is static membership.
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
-//! [`ShareGroup::subscribe`] / [`ShareGroup::unsubscribe`]).
+//! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
+//! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`]).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::commit_timeout`] /
 //! [`ConsumerGroup::commit_with_metadata_timeout`] are Java
@@ -110,7 +114,6 @@
 //! [`TopicPartition`] slices. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::subscribe_matching`] / [`ConsumerGroup::unsubscribe`]
 //! change the topic list without dropping the handle.
-//! [`ConsumerGroup::join_matching`] is Java `subscribe(Pattern)` at join.
 //! [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.

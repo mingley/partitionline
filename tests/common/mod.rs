@@ -3547,11 +3547,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (member_id, epoch, assignment) = match req.member_epoch.cmp(&0) {
                     std::cmp::Ordering::Less => (req.member_id, -1, None),
                     std::cmp::Ordering::Equal => {
-                        let names = req
-                            .subscribed_topic_names
-                            .clone()
-                            .filter(|n| !n.is_empty())
-                            .unwrap_or_else(|| vec!["t".into()]);
+                        let names = match &req.subscribed_topic_names {
+                            Some(n) if n.is_empty() => Vec::new(),
+                            Some(n) => n.clone(),
+                            None => vec!["t".into()],
+                        };
                         let assignment = names
                             .iter()
                             .map(|name| {
@@ -3727,11 +3727,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     std::cmp::Ordering::Equal => {
                         st.member_seq += 1;
                         let id = format!("k-{}", st.member_seq);
-                        let topic_names = req
-                            .subscribed_topic_names
-                            .clone()
-                            .filter(|n| !n.is_empty())
-                            .unwrap_or_else(|| vec!["t".into()]);
+                        let topic_names = match &req.subscribed_topic_names {
+                            Some(n) if n.is_empty() => Vec::new(),
+                            Some(n) => n.clone(),
+                            None => vec!["t".into()],
+                        };
                         let g = st.kip848_groups.entry(req.group_id.clone()).or_default();
                         let _ = g.members.insert(
                             id.clone(),

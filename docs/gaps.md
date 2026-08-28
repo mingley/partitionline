@@ -53,12 +53,12 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
-| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `ConsumerGroup::subscribe_matching` / `join_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `unassign`) | yes | **done** |
+| `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes (`list_topics_timeout` is Java `listTopics(Duration)`; `partitions_for_timeout` / `beginning_offsets_timeout` / `end_offsets_timeout` / `offsets_for_times_timeout` match the Java `Duration` overloads) | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
 | `close(Duration)` | yes (`Producer::close_timeout`; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`) | yes | **done** |
-| Share groups | yes (`ShareGroup::join` / `join_topics` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
+| Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL

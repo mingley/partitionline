@@ -1704,6 +1704,157 @@ async fn join_matching_picks_up_new_topic_on_poll() {
 }
 
 #[tokio::test]
+async fn join_sticky_matching_subscribes() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(
+            &[
+                NewTopic::new("sticky-a", 1, 1),
+                NewTopic::new("other", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    let mut group = ConsumerGroup::join_sticky_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sticky-pat",
+        |n: &str| n.starts_with("sticky-"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.subscription(), &["sticky-a".to_string()]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn join_cooperative_sticky_matching_subscribes() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(
+            &[NewTopic::new("coop-a", 1, 1), NewTopic::new("other", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    let mut group = ConsumerGroup::join_cooperative_sticky_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "coop-pat",
+        |n: &str| n.starts_with("coop-"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.subscription(), &["coop-a".to_string()]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn join_consumer_matching_subscribes() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("kmatch-a", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    let mut group = ConsumerGroup::join_consumer_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "kpat",
+        |n: &str| n.starts_with("kmatch-"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(group.subscription(), &["kmatch-a".to_string()]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_join_matching_picks_up_new_topic_on_poll() {
+    let mock = common::Mock::start().await;
+    let mut group = ShareGroup::join_matching(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .metadata_max_age(Duration::ZERO),
+        "sg-pat",
+        |n: &str| n.starts_with("sh-"),
+    )
+    .await
+    .unwrap();
+    assert!(
+        !group.subscription().iter().any(|t| t.starts_with("sh-")),
+        "seeded topic t must not match, got {:?}",
+        group.subscription()
+    );
+
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("sh-1", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    let _ = group.poll().await.unwrap();
+    assert_eq!(group.subscription(), &["sh-1".to_string()]);
+
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("sh-1").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut got = Vec::new();
+    for _ in 0..8 {
+        let recs = group.poll().await.unwrap();
+        got.extend(recs.iter().cloned());
+        if !got.is_empty() {
+            break;
+        }
+    }
+    assert_eq!(got.len(), 1);
+    assert_eq!(got[0].topic, "sh-1");
+    group.accept(&got).await.unwrap();
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_subscribe_matching_replaces_subscription() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .create_topics(&[NewTopic::new("pat-s", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    let mut group = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-sub-pat",
+        "t",
+    )
+    .await
+    .unwrap();
+    group
+        .subscribe_matching(|n: &str| n.starts_with("pat-"))
+        .await
+        .unwrap();
+    assert_eq!(group.subscription(), &["pat-s".to_string()]);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn kip848_unsubscribe_then_subscribe() {
     let mock = common::Mock::start().await;
     let mut group = ConsumerGroup::join_consumer(

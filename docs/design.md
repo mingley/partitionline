@@ -72,9 +72,11 @@ for the current assignment (Java `committed` / `committed(Duration)`). `commit` 
 `current_lag` is high watermark minus position. `subscription` is the
 topic list. `enforce_rebalance` rejoins on the next poll.
 `subscribe` / `unsubscribe` change the topic list without dropping the
-handle. `subscribe_matching` / `join_matching` are Java `subscribe(Pattern)`
-(re-list cluster topics on poll when `metadata.max.age.ms` elapses; names
-starting with `__` are skipped). `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
+handle. `subscribe_matching` / `join_matching` / `join_sticky_matching` /
+`join_cooperative_sticky_matching` / `join_consumer_matching` are Java
+`subscribe(Pattern)` (re-list cluster topics on poll when `metadata.max.age.ms`
+elapses; names starting with `__` are skipped). Share groups have the same
+`subscribe_matching` / `join_matching`. `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics`
 is cluster Metadata. `fetch_timeout` / `poll_timeout` are Java
 `poll(Duration)`. [`Producer::send_offsets_to_transaction`](../src/producer.rs)
 takes [`TopicPartition`](../src/consumer.rs).
