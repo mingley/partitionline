@@ -17,6 +17,12 @@ pub const SCRAM_SHA_512: i8 = 2;
 
 pub const RESOURCE_TOPIC: i8 = 2;
 pub const RESOURCE_BROKER: i8 = 4;
+/// Config resource type for broker logger (KIP-1142 ListConfigResources).
+pub const RESOURCE_BROKER_LOGGER: i8 = 8;
+/// Config resource type for client metrics (KIP-714 / KIP-1142).
+pub const RESOURCE_CLIENT_METRICS: i8 = 16;
+/// Config resource type for consumer groups (KIP-1142).
+pub const RESOURCE_GROUP: i8 = 32;
 pub const CONFIG_SOURCE_DYNAMIC_TOPIC: i8 = 1;
 pub const CONFIG_SOURCE_DEFAULT: i8 = 5;
 
@@ -4487,6 +4493,142 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
     })
 }
 
+/// One listed resource in ListConfigResources (api 74) v1.
+///
+/// There is no per-resource ErrorCode. The response error sits at the
+/// top of the body, after throttle.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListedConfigResource {
+    pub resource_name: String,
+    pub resource_type: i8,
+}
+
+impl ListedConfigResource {
+    pub fn new(resource_name: impl Into<String>, resource_type: i8) -> Self {
+        Self {
+            resource_name: resource_name.into(),
+            resource_type,
+        }
+    }
+}
+
+/// ListConfigResources (api 74) v1 response body.
+///
+/// **ErrorCode is top-level**, after throttle — not a first-resource
+/// field and not a first-config field. Resources have no ErrorCode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListConfigResourcesResponse {
+    pub error_code: i16,
+    pub config_resources: Vec<ListedConfigResource>,
+}
+
+impl ListConfigResourcesResponse {
+    pub fn new(error_code: i16, config_resources: Vec<ListedConfigResource>) -> Self {
+        Self {
+            error_code,
+            config_resources,
+        }
+    }
+}
+
+/// ListConfigResources v1 (flexible from v0; KIP-1142, formerly
+/// ListClientMetricsResources).
+///
+/// Official Apache JSON (`apiKey: 74`, request `listeners: ["broker"]`,
+/// `validVersions: "0-1"`, `flexibleVersions: "0+"`). Official JSON
+/// lists **no** `errorCodes`. Official Java
+/// `KafkaApis.handleListConfigResources` answers from the connected
+/// broker (`DESCRIBE_CONFIGS` on `CLUSTER`, then
+/// `groupConfigManager` / `clientMetricsManager` / `metadataCache`).
+/// Official Java `ListConfigResourcesRequest.getErrorResponse` writes
+/// the exception onto the top-level `ErrorCode`. Handler-observed
+/// codes: `CLUSTER_AUTHORIZATION_FAILED` (31), `UNSUPPORTED_VERSION`
+/// (35). `NOT_COORDINATOR` (16) is **not** listed. kafka-protocol
+/// 0.18.0 (`ListConfigResourcesRequest` /
+/// `ListConfigResourcesResponse`, `VERSIONS` min=0 max=1). This crate
+/// targets v1, the version a client encodes (`VERSIONS.max`). Version
+/// 0 is the legacy ListClientMetricsResources body (no ResourceTypes
+/// / ResourceType) and is not spoken here. Request encode used
+/// `features = ["client"]`; response encode used `broker`. Request:
+/// compact `ResourceTypes` of INT8, tagged. Response: `ThrottleTimeMs`
+/// INT32, top-level `ErrorCode` INT16, compact `ConfigResources` of
+/// `{compact ResourceName, ResourceType INT8, tagged}`, tagged.
+/// **ErrorCode is top-level**, after throttle — not a first-resource
+/// field. Resources have no ErrorCode. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on leftover-
+/// empty fixture resource `"r"` type `CLIENT_METRICS` (16): the top-
+/// level ErrorCode is the INT16 at **bytes 4–5** — not bytes 5–6
+/// (DescribeTopicPartitions / ShareGroupDescribe first-topic / first-
+/// group), 7–8 (DeleteGroups after GroupId), 8–9
+/// (DescribeShareGroupOffsets first-group after GroupId and Topics),
+/// or 12–13 (DescribeProducers first partition). The leftover-empty
+/// body is 12 bytes, so those later offsets are not a first ErrorCode
+/// here. This offset happens to match DeleteShareGroupOffsets /
+/// AlterShareGroupOffsets / ListGroups top-level INT16; it was
+/// measured on this API's official top-level field, not copied.
+/// Because 16 is not listed, this is broker-only: no FindCoordinator,
+/// no controller hop, no partition-leader hop.
+pub fn encode_list_config_resources_request(
+    buf: &mut BytesMut,
+    resource_types: &[i8],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(resource_types.len()))?;
+    for ty in resource_types {
+        buf.put_i8(*ty);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B) -> Result<Vec<i8>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut resource_types = Vec::with_capacity(n);
+    for _ in 0..n {
+        resource_types.push(buf::get_i8(buf)?);
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(resource_types)
+}
+
+pub fn encode_list_config_resources_response(
+    buf: &mut BytesMut,
+    resp: &ListConfigResourcesResponse,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_array_len(buf, true, Some(resp.config_resources.len()))?;
+    for r in &resp.config_resources {
+        buf::put_compact_string(buf, Some(&r.resource_name))?;
+        buf.put_i8(r.resource_type);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_list_config_resources_response<B: Buf>(
+    buf: &mut B,
+) -> Result<ListConfigResourcesResponse> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut config_resources = Vec::with_capacity(n);
+    for _ in 0..n {
+        let resource_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let resource_type = buf::get_i8(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        config_resources.push(ListedConfigResource {
+            resource_name,
+            resource_type,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ListConfigResourcesResponse {
+        error_code,
+        config_resources,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7246,6 +7388,138 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeTopicPartitions v0 first-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_config_resources_v1_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 74
+        // validVersions 0-1, flexibleVersions 0+, listeners broker only.
+        // This crate targets v1 (VERSIONS.max). Not copied from
+        // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups
+        // (top-level ErrorCode at bytes 4-5, different fields after),
+        // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
+        // (first-topic / first-group ErrorCode at bytes 5-6),
+        // DeleteGroups (after GroupId at bytes 7-8),
+        // DescribeShareGroupOffsets (first-group after GroupId and
+        // Topics at bytes 8-9), or DescribeProducers (first-partition
+        // ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x10, 0x00];
+        const RESP_31: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x02, 0x02, 0x72, 0x10, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_list_config_resources_request(&mut buf, &[RESOURCE_CLIENT_METRICS]).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = ListConfigResourcesResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
+        );
+        buf.clear();
+        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_31);
+    }
+
+    #[test]
+    fn list_config_resources_v1_roundtrip_is_leftover_empty() {
+        let types = vec![RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC];
+        let mut buf = BytesMut::new();
+        encode_list_config_resources_request(&mut buf, &types).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_config_resources_request(&mut cur).unwrap(),
+            types
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListConfigResources v1 request must be leftover-empty"
+        );
+
+        let resp = ListConfigResourcesResponse::new(
+            0,
+            vec![
+                ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS),
+                ListedConfigResource::new("t", RESOURCE_TOPIC),
+            ],
+        );
+        buf.clear();
+        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_config_resources_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListConfigResources v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_config_resources_top_level_error_code_is_at_bytes_4_5() {
+        // Official v1 body: throttle INT32, then top-level ErrorCode
+        // INT16, then compact ConfigResources. There is no first-
+        // resource ErrorCode. Measured independently from Apache
+        // ListConfigResourcesResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture resource "r" type CLIENT_METRICS (16). Do not
+        // assume bytes 4-5 from DeleteShareGroupOffsets /
+        // AlterShareGroupOffsets / ListGroups, bytes 5-6 from
+        // DescribeTopicPartitions / ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, or bytes 12-13 from
+        // DescribeProducers. The leftover-empty body is 12 bytes, so
+        // bytes 12-13 are not present. Official JSON lists no
+        // errorCodes; official handler writes
+        // CLUSTER_AUTHORIZATION_FAILED (31) via getErrorResponse.
+        let resp = ListConfigResourcesResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
+        );
+        let mut buf = BytesMut::new();
+        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v1 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b5b = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5b, b6]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v1 ErrorCode is not a first-resource field at bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v1 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        let b8b = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b8b, b9]),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            "v1 ErrorCode is not at DescribeShareGroupOffsets first-group bytes 8-9"
+        );
+        assert!(
+            buf.get(12).is_none(),
+            "v1 leftover-empty body is 12 bytes; DescribeProducers bytes 12-13 are not present"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_config_resources_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListConfigResources v1 ErrorCode body must be leftover-empty"
         );
     }
 }
