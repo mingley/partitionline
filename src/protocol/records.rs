@@ -60,6 +60,16 @@ pub struct Header {
     pub value: Option<Bytes>,
 }
 
+impl Header {
+    /// Header with a non-null value.
+    pub fn new(key: impl Into<String>, value: impl Into<Bytes>) -> Self {
+        Self {
+            key: key.into(),
+            value: Some(value.into()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
     pub offset: i64,

@@ -151,11 +151,46 @@ impl Default for AdminConfig {
 }
 
 impl AdminConfig {
+    /// Bootstrap brokers, for example `["127.0.0.1:9092"]`.
     pub fn bootstrap<S: Into<String>>(servers: impl IntoIterator<Item = S>) -> Self {
         Self {
             bootstrap: servers.into_iter().map(Into::into).collect(),
             ..Self::default()
         }
+    }
+
+    /// Kafka `client.id`.
+    #[must_use]
+    pub fn client_id(mut self, id: impl Into<String>) -> Self {
+        self.client_id = id.into();
+        self
+    }
+
+    /// SASL. Replaces any previously set mechanism.
+    #[must_use]
+    pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
+        sasl.apply_to(
+            &mut self.sasl_plain,
+            &mut self.sasl_scram,
+            &mut self.sasl_scram_sha512,
+            &mut self.sasl_oauthbearer,
+            &mut self.sasl_oauthbearer_oidc,
+        );
+        self
+    }
+
+    /// rustls. No OpenSSL.
+    #[must_use]
+    pub fn tls(mut self, tls: TlsConfig) -> Self {
+        crate::config::apply_tls(&mut self.tls, tls);
+        self
+    }
+
+    /// Per-request timeout.
+    #[must_use]
+    pub fn request_timeout(mut self, timeout: Duration) -> Self {
+        self.request_timeout = timeout;
+        self
     }
 }
 

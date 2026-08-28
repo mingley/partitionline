@@ -100,6 +100,12 @@ name = "roundtrip"
 name = "bench_fetch"
 
 [[example]]
+name = "consume"
+
+[[example]]
+name = "group"
+
+[[example]]
 name = "bench_latency"
 
 [profile.release]

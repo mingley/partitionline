@@ -64,7 +64,7 @@ impl Default for ConsumerConfig {
             tls: None,
             max_wait_ms: 500,
             min_bytes: 1,
-            max_bytes: 1_048_576,
+            max_bytes: 16_777_216,
             isolation_level: 0,
             rack: None,
         }
@@ -72,11 +72,82 @@ impl Default for ConsumerConfig {
 }
 
 impl ConsumerConfig {
+    /// Bootstrap brokers, for example `["127.0.0.1:9092"]`.
     pub fn bootstrap<S: Into<String>>(servers: impl IntoIterator<Item = S>) -> Self {
         Self {
             bootstrap: servers.into_iter().map(Into::into).collect(),
             ..Self::default()
         }
+    }
+
+    /// Kafka `client.id`.
+    #[must_use]
+    pub fn client_id(mut self, id: impl Into<String>) -> Self {
+        self.client_id = id.into();
+        self
+    }
+
+    /// `fetch.max.wait.ms`.
+    #[must_use]
+    pub fn max_wait_ms(mut self, ms: i32) -> Self {
+        self.max_wait_ms = ms;
+        self
+    }
+
+    /// `fetch.min.bytes`.
+    #[must_use]
+    pub fn min_bytes(mut self, n: i32) -> Self {
+        self.min_bytes = n;
+        self
+    }
+
+    /// Cap for the Fetch request and each partition (`fetch.max.bytes` /
+    /// `max.partition.fetch.bytes`). Default 16 MiB.
+    #[must_use]
+    pub fn max_bytes(mut self, n: i32) -> Self {
+        self.max_bytes = n;
+        self
+    }
+
+    /// `isolation.level`.
+    #[must_use]
+    pub fn isolation(mut self, level: crate::IsolationLevel) -> Self {
+        self.isolation_level = level.as_i8();
+        self
+    }
+
+    /// `client.rack` for fetch-from-follower (KIP-392).
+    #[must_use]
+    pub fn rack(mut self, rack: impl Into<String>) -> Self {
+        self.rack = Some(rack.into());
+        self
+    }
+
+    /// SASL. Replaces any previously set mechanism.
+    #[must_use]
+    pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
+        sasl.apply_to(
+            &mut self.sasl_plain,
+            &mut self.sasl_scram,
+            &mut self.sasl_scram_sha512,
+            &mut self.sasl_oauthbearer,
+            &mut self.sasl_oauthbearer_oidc,
+        );
+        self
+    }
+
+    /// rustls. No OpenSSL.
+    #[must_use]
+    pub fn tls(mut self, tls: crate::net::TlsConfig) -> Self {
+        crate::config::apply_tls(&mut self.tls, tls);
+        self
+    }
+
+    /// Per-request timeout.
+    #[must_use]
+    pub fn request_timeout(mut self, timeout: Duration) -> Self {
+        self.request_timeout = timeout;
+        self
     }
 }
 
@@ -105,10 +176,12 @@ pub struct Consumer {
 }
 
 impl Consumer {
+    /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(ConsumerConfig::bootstrap([bootstrap.into()])).await
     }
 
+    /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -500,6 +573,7 @@ impl Consumer {
         }
     }
 
+    /// Fetch one round from every assigned partition. Empty if nothing is assigned.
     pub async fn fetch(&mut self) -> Result<Vec<FetchedRecord>> {
         if self.assigned.is_empty() {
             return Ok(Vec::new());
@@ -799,6 +873,7 @@ impl Consumer {
         }
     }
 
+    /// Set the next fetch offset for an assigned partition.
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
         if let Some(slot) = self
             .assigned
@@ -811,5 +886,30 @@ impl Consumer {
         Err(Error::protocol(format!(
             "seek of unassigned {topic}-{partition}"
         )))
+    }
+
+    /// Seek every assigned partition to the log start (`ListOffsets` earliest).
+    pub async fn seek_to_beginning(&mut self) -> Result<()> {
+        self.seek_assigned(crate::EARLIEST_TIMESTAMP).await
+    }
+
+    /// Seek every assigned partition to the high watermark (`ListOffsets` latest).
+    pub async fn seek_to_end(&mut self) -> Result<()> {
+        self.seek_assigned(crate::LATEST_TIMESTAMP).await
+    }
+
+    async fn seek_assigned(&mut self, timestamp: i64) -> Result<()> {
+        let assigned: Vec<(String, i32)> = self
+            .assigned
+            .iter()
+            .map(|(t, p, _)| (t.clone(), *p))
+            .collect();
+        for (topic, partition) in assigned {
+            let offset = self
+                .list_offsets(topic.clone(), partition, timestamp)
+                .await?;
+            self.seek(&topic, partition, offset)?;
+        }
+        Ok(())
     }
 }

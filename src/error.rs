@@ -20,14 +20,25 @@ pub enum Error {
 }
 
 impl Error {
+    /// Wrap a protocol / client-side failure.
     pub fn protocol(msg: impl Into<String>) -> Self {
         Self::Protocol(msg.into())
     }
 
+    /// Broker `error_code` plus a short context string (api or `topic-partition`).
     pub fn broker(code: i16, message: impl Into<String>) -> Self {
         Self::Broker {
             code,
             message: message.into(),
+        }
+    }
+
+    /// Kafka error code when this is a broker error.
+    #[must_use]
+    pub fn broker_code(&self) -> Option<i16> {
+        match self {
+            Self::Broker { code, .. } => Some(*code),
+            _ => None,
         }
     }
 
@@ -60,16 +71,12 @@ impl fmt::Display for Error {
             Self::Io(e) => write!(f, "io: {e}"),
             Self::Protocol(m) => write!(f, "protocol: {m}"),
             Self::Broker { code, message } => {
-                write!(
-                    f,
-                    "broker error {code} ({}){suffix}",
-                    error_name(*code).unwrap_or("unknown"),
-                    suffix = if message.is_empty() {
-                        String::new()
-                    } else {
-                        format!(": {message}")
-                    }
-                )
+                let name = error_name(*code).unwrap_or("unknown");
+                if message.is_empty() {
+                    write!(f, "broker error {code} ({name})")
+                } else {
+                    write!(f, "broker error {code} ({name}): {message}")
+                }
             }
             Self::UnknownTopic(t) => write!(f, "unknown topic {t}"),
             Self::NoLeader { topic, partition } => {
@@ -95,6 +102,28 @@ impl std::error::Error for Error {
 impl From<io::Error> for Error {
     fn from(value: io::Error) -> Self {
         Self::Io(value)
+    }
+}
+
+impl Clone for Error {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Io(e) => Self::Io(io::Error::new(e.kind(), e.to_string())),
+            Self::Protocol(m) => Self::Protocol(m.clone()),
+            Self::Broker { code, message } => Self::Broker {
+                code: *code,
+                message: message.clone(),
+            },
+            Self::UnknownTopic(t) => Self::UnknownTopic(t.clone()),
+            Self::NoLeader { topic, partition } => Self::NoLeader {
+                topic: topic.clone(),
+                partition: *partition,
+            },
+            Self::Unsupported(m) => Self::Unsupported(m.clone()),
+            Self::Closed => Self::Closed,
+            Self::Timeout => Self::Timeout,
+            Self::QueueFull => Self::QueueFull,
+        }
     }
 }
 

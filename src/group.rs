@@ -132,6 +132,7 @@ pub struct ConsumerGroup {
 }
 
 impl ConsumerGroup {
+    /// Join with the Java range assignor.
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -140,6 +141,7 @@ impl ConsumerGroup {
         Self::join_with_protocol(cfg, group_id, topic, "range").await
     }
 
+    /// Join with the sticky assignor.
     pub async fn join_sticky(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -235,6 +237,7 @@ impl ConsumerGroup {
         &self.member_id
     }
 
+    /// Fetch the current assignment. Rejoins on a classic rebalance.
     pub async fn poll(&mut self) -> Result<Vec<FetchedRecord>> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -244,6 +247,7 @@ impl ConsumerGroup {
         self.consumer.fetch().await
     }
 
+    /// Commit the next fetch offsets for the current assignment.
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {
             self.apply_pending_assignment().await?;

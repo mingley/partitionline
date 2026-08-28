@@ -9,23 +9,114 @@ A Kafka client written in Rust. It does not call into C or librdkafka.
 partitionline = { git = "https://github.com/mingley/partitionline" }
 ```
 
-Produce, fetch, classic groups (range/sticky) and KIP-848
-`ConsumerGroup::join_consumer`, share groups (KIP-932 `ShareGroup`),
-ListOffsets/seek, gzip / snappy / lz4, SASL PLAIN / SCRAM-SHA-256 /
-SCRAM-SHA-512 / OAUTHBEARER (unsecured JWT or OIDC `http://` and `https://`
-token URLs), TLS (`rustls`, no OpenSSL), idempotent and transactional produce,
-fetch-from-follower (`ConsumerConfig.rack`), OffsetForLeaderEpoch fencing,
-admin (topics, partitions, configs, ACLs, DeleteRecords, DescribeCluster).
-Talks Kafka 3.x / 4.x.
+## Produce
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::{ProduceRecord, Producer};
+
+let producer = Producer::connect("127.0.0.1:9092").await?;
+let md = producer
+    .send(ProduceRecord::to("events").value(&b"hello"[..]))
+    .await?;
+println!("{}-{}@{}", md.topic, md.partition, md.offset);
+producer.close().await?;
+# Ok(())
+# }
+```
+
+`send` waits for that record's offset. For many records, `send_all` queues
+then waits; `try_send` plus `flush` is the throughput path.
+
+## Fetch
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::Consumer;
+
+let mut consumer = Consumer::connect("127.0.0.1:9092").await?;
+consumer.assign("events", 0, 0).await?;
+let recs = consumer.fetch().await?;
+# let _ = recs;
+# Ok(())
+# }
+```
+
+`assign_topic` assigns every partition. `seek` / `seek_to_beginning` /
+`seek_to_end` move the next fetch offset.
+
+## Groups
+
+Classic range, sticky, KIP-848 (`join_consumer`), and KIP-932 share groups:
+
+```rust,no_run
+# async fn example() -> partitionline::Result<()> {
+use partitionline::{ConsumerConfig, ConsumerGroup};
+
+let mut group = ConsumerGroup::join(
+    ConsumerConfig::bootstrap(["127.0.0.1:9092"]),
+    "workers",
+    "events",
+)
+.await?;
+let recs = group.poll().await?;
+group.commit().await?;
+group.leave().await?;
+# let _ = recs;
+# Ok(())
+# }
+```
+
+## Configure
+
+Builders, not a property bag of strings:
+
+```rust,no_run
+use std::time::Duration;
+use partitionline::{Acks, Compression, IsolationLevel, ProducerConfig, Sasl};
+
+let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
+    .acks(Acks::All)
+    .linger(Duration::from_millis(5))
+    .compression(Compression::Lz4)
+    .sasl(Sasl::scram_sha256("alice", "secret"));
+let _iso = IsolationLevel::ReadCommitted;
+```
+
+TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
+snappy / lz4, idempotent and transactional produce, fetch-from-follower, and
+the Kafka 3.x / 4.x admin APIs are in the crate rustdoc.
 
 **Not a drop-in for `rd_kafka_*`.** Still missing vs librdkafka: zstd and
-Kerberos (both blocked on C libraries in default features), Schema Registry.
-Full list: [docs/gaps.md](docs/gaps.md).
+Kerberos (C libraries), Schema Registry. Full list:
+[docs/gaps.md](docs/gaps.md).
+
+## Demo
+
+Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
+
+```
+cargo run --release --example roundtrip
+```
+
+Also: `examples/produce.rs`, `examples/consume.rs`, `examples/group.rs`.
+
+Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
+rec/s unless broker high watermark equals records sent:
+
+```
+COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbench \
+  cargo run --release --example bench_produce
+```
+
+Produce C bar (Lab A), fetch writeup (this-VM, unsigned), and latency
+writeup (this-VM, unsigned): [docs/benchmark.md](docs/benchmark.md).
+Suite HOLD: [docs/STATUS.md](docs/STATUS.md).
+
+## Numbers
 
 Locked produce vs librdkafka 2.15.0 C is Lab A (broker high watermark
 equals records sent). Latency writeup is this-VM 2026-08-28, **unsigned**.
-Numbers: [docs/benchmark.md](docs/benchmark.md). Suite HOLD:
-[docs/STATUS.md](docs/STATUS.md).
 
 | Locked 8e6 × 100B produce (Lab A) | partitionline median | C 2.15.0 median |
 |---|---|---|
@@ -59,73 +150,11 @@ Sequential produce-ack, linger 0, 10k × 100 B, 1 partition, HW 11,000
 | p50 | 62 µs | 58 µs |
 | p99 | 95 µs | 90 µs |
 
-## Demo
-
-Broker on `127.0.0.1:9092` (Docker `apache/kafka:3.9.1` is enough):
-
-```
-cargo run --release --example roundtrip
-```
-
-Locked produce vs librdkafka 2.15.0 C (linger 5ms, 8e6×100B). Do not publish
-rec/s unless broker high watermark equals records sent:
-
-```
-COUNT=8000000 WARMUP_SECS=0 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=5 KAFKA_TOPIC=plbench \
-  cargo run --release --example bench_produce
-```
-
-Produce C bar (Lab A), fetch writeup (this-VM, unsigned), and latency
-writeup (this-VM, unsigned): [docs/benchmark.md](docs/benchmark.md).
-
-Sequential produce-ack / fetch-request latency (linger 0, 10k×100B). Do
-not publish p50/p99 unless they match a run you executed:
-
 ```
 COUNT=10000 WARMUP=1000 PAYLOAD_BYTES=100 ACKS=1 LINGER_MS=0 \
   MODE=both KAFKA_TOPIC=pllat \
   cargo run --release --example bench_latency
 ```
-
-## Example
-
-```rust,no_run
-use partitionline::{
-    Admin, Consumer, ConsumerConfig, NewTopic, ProduceRecord, Producer, ShareGroup,
-};
-
-# async fn example() -> partitionline::Result<()> {
-let mut admin = Admin::connect("127.0.0.1:9092").await?;
-admin
-    .create_topics(&[NewTopic::new("topic", 1, 1)], 10_000, false)
-    .await?;
-
-let producer = Producer::connect("127.0.0.1:9092").await?;
-let md = producer
-    .send(ProduceRecord::to("topic").value(&b"hello"[..]))
-    .await?;
-println!("wrote {}-{}@{}", md.topic, md.partition, md.offset);
-producer.close().await?;
-
-let mut consumer = Consumer::connect("127.0.0.1:9092").await?;
-consumer.assign("topic", md.partition, md.offset).await?;
-let recs = consumer.fetch().await?;
-# let _ = recs;
-
-let mut share = ShareGroup::join(
-    ConsumerConfig::bootstrap(["127.0.0.1:9092"]),
-    "share-group",
-    "topic",
-)
-.await?;
-let acquired = share.poll().await?;
-share.accept(&acquired).await?;
-share.leave().await?;
-# Ok(())
-# }
-```
-
-More: `examples/produce.rs`, `examples/roundtrip.rs`.
 
 ## License
 

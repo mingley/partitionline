@@ -1,29 +1,80 @@
 //! A Kafka client written in Rust. No C, no librdkafka.
 //!
-//! Send and fetch records, join a consumer group, gzip, snappy, lz4, SASL PLAIN,
-//! SASL SCRAM-SHA-256, SASL SCRAM-SHA-512, SASL OAUTHBEARER (unsecured JWT or
-//! OIDC client_credentials http/https token URL), TLS (rustls), fetch from
-//! follower, KIP-848 groups, share groups,
-//! idempotent and transactional produce, ListOffsets/seek, and admin
-//! (topics, partitions, configs, ACLs, DeleteRecords, OffsetDelete,
-//! AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures,
-//! AlterUserScramCredentials, DescribeUserScramCredentials,
-//! AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
-//! AllocateProducerIds, DescribeTransactions, ListTransactions,
-//! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
-//! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
-//! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions,
-//! ListConfigResources, GetTelemetrySubscriptions, PushTelemetry,
-//! AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs,
-//! CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken,
-//! DescribeDelegationToken, DescribeCluster).
-//! See the crate README and `docs/gaps.md` for what is still missing.
+//! # Produce
+//!
+//! ```no_run
+//! # async fn example() -> partitionline::Result<()> {
+//! use partitionline::{ProduceRecord, Producer};
+//!
+//! let producer = Producer::connect("127.0.0.1:9092").await?;
+//! let md = producer
+//!     .send(ProduceRecord::to("events").value(&b"hello"[..]))
+//!     .await?;
+//! println!("{}-{}@{}", md.topic, md.partition, md.offset);
+//! producer.close().await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! For many records, [`Producer::send_all`] waits for every offset after
+//! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
+//! throughput path (see `examples/bench_produce.rs`).
+//!
+//! # Fetch
+//!
+//! ```no_run
+//! # async fn example() -> partitionline::Result<()> {
+//! use partitionline::Consumer;
+//!
+//! let mut consumer = Consumer::connect("127.0.0.1:9092").await?;
+//! consumer.assign("events", 0, 0).await?;
+//! let recs = consumer.fetch().await?;
+//! # let _ = recs;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`],
+//! [`Consumer::seek_to_beginning`], and [`Consumer::seek_to_end`] move the
+//! next fetch offset.
+//!
+//! # Groups
+//!
+//! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
+//! is sticky, [`ConsumerGroup::join_consumer`] is KIP-848.
+//! [`ShareGroup`] is KIP-932.
+//!
+//! # Configure
+//!
+//! ```no_run
+//! use std::time::Duration;
+//! use partitionline::{Acks, Compression, IsolationLevel, ProducerConfig, Sasl};
+//!
+//! let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
+//!     .acks(Acks::All)
+//!     .linger(Duration::from_millis(5))
+//!     .compression(Compression::Lz4)
+//!     .sasl(Sasl::scram_sha256("alice", "secret"));
+//!
+//! let _iso = IsolationLevel::ReadCommitted;
+//! ```
+//!
+//! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
+//!
+//! # Admin
+//!
+//! [`Admin`] covers topics, partitions, configs, ACLs, groups, transactions,
+//! quotas, telemetry, log dirs, and delegation tokens. See the [`admin`]
+//! module. Still missing versus librdkafka: zstd and Kerberos (C libraries)
+//! and Schema Registry. Tracker: `docs/gaps.md`.
 
 #![forbid(unsafe_code)]
 
-/// Admin client: CreateTopics, DeleteTopics, DescribeConfigs.
+/// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;
 pub(crate) mod cluster;
+/// Shared config: [`Acks`], [`IsolationLevel`], [`Sasl`].
+pub mod config;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
 /// Kafka and client error types.
@@ -75,6 +126,7 @@ pub use admin::{
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
+pub use config::{Acks, IsolationLevel, Sasl};
 pub use consumer::{Consumer, ConsumerConfig, FetchedRecord};
 pub use error::{Error, Result};
 pub use group::ConsumerGroup;

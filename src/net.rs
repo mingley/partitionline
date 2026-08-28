@@ -40,10 +40,40 @@ pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
 pub struct TlsConfig {
     /// PEM CA bundle. If `None`, Mozilla webpki-roots are used.
     pub ca_pem: Option<Vec<u8>>,
+    /// Client certificate PEM for mTLS.
     pub client_cert_pem: Option<Vec<u8>>,
+    /// Client private key PEM for mTLS.
     pub client_key_pem: Option<Vec<u8>>,
     /// SNI and certificate hostname. Defaults to the bootstrap host (no port).
     pub server_name: Option<String>,
+}
+
+impl TlsConfig {
+    /// Trust this CA PEM bundle instead of Mozilla roots.
+    #[must_use]
+    pub fn ca_pem(mut self, pem: impl Into<Vec<u8>>) -> Self {
+        self.ca_pem = Some(pem.into());
+        self
+    }
+
+    /// SNI / certificate hostname, for example `localhost`.
+    #[must_use]
+    pub fn server_name(mut self, name: impl Into<String>) -> Self {
+        self.server_name = Some(name.into());
+        self
+    }
+
+    /// Client certificate and key for mTLS.
+    #[must_use]
+    pub fn client_identity(
+        mut self,
+        cert_pem: impl Into<Vec<u8>>,
+        key_pem: impl Into<Vec<u8>>,
+    ) -> Self {
+        self.client_cert_pem = Some(cert_pem.into());
+        self.client_key_pem = Some(key_pem.into());
+        self
+    }
 }
 
 fn ensure_crypto() {

@@ -4,18 +4,25 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 
 ## Producer
 
-1. You call `try_send` (or `send` if you want one offset future per record).
-2. The record is given a partition **before** it is queued (round-robin, or murmur2 if there is a key). Until metadata for that topic is cached, `try_send` returns `QueueFull` and `send` waits.
+1. You call `try_send` (throughput), `send_all` (many offsets), or `send`
+   (one offset future per record).
+2. The record is given a partition **before** it is queued (round-robin, or murmur2 if there is a key). Until metadata for that topic is cached, `try_send` returns `QueueFull` and `send` / `send_all` wait.
 3. The record goes onto the queue for **one** TCP connection: `partition % connections`. Idempotent sequences for a partition never share a socket with another worker.
 4. That connection's worker waits a few milliseconds (`linger`) or until the batch is big enough, then writes a Produce request.
 5. Several Produce requests can be in flight on the same socket.
 6. `flush` waits for those responses and returns the first broker error. `try_send` Ok only means queued.
+
+`ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
+builders (`acks`, `sasl`, `tls`, `isolation`, …). The raw fields remain
+writable.
 
 The hot path copies each payload once into the Kafka record batch and checksums it with CRC32-C.
 
 ## Consumer
 
 `Consumer` is manual: you say topic, partition, offset, then `fetch`.
+`seek_to_beginning` / `seek_to_end` call ListOffsets for every assigned
+partition.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.
 

@@ -91,11 +91,109 @@ impl Default for ProducerConfig {
 }
 
 impl ProducerConfig {
+    /// Bootstrap brokers, for example `["127.0.0.1:9092"]`.
     pub fn bootstrap<S: Into<String>>(servers: impl IntoIterator<Item = S>) -> Self {
         Self {
             bootstrap: servers.into_iter().map(Into::into).collect(),
             ..Self::default()
         }
+    }
+
+    /// Kafka `client.id`.
+    #[must_use]
+    pub fn client_id(mut self, id: impl Into<String>) -> Self {
+        self.client_id = id.into();
+        self
+    }
+
+    /// Acknowledgements. Prefer this over writing [`Self::acks`] as a raw `i16`.
+    #[must_use]
+    pub fn acks(mut self, acks: crate::Acks) -> Self {
+        self.acks = acks.as_i16();
+        self
+    }
+
+    /// How long to wait for a batch to fill before sending.
+    #[must_use]
+    pub fn linger(mut self, linger: Duration) -> Self {
+        self.linger = linger;
+        self
+    }
+
+    /// Max records in one Produce batch.
+    #[must_use]
+    pub fn batch_records(mut self, n: usize) -> Self {
+        self.batch_records = n;
+        self
+    }
+
+    /// Max bytes in one Produce batch.
+    #[must_use]
+    pub fn batch_bytes(mut self, n: usize) -> Self {
+        self.batch_bytes = n;
+        self
+    }
+
+    /// Record batch compression.
+    #[must_use]
+    pub fn compression(mut self, compression: Compression) -> Self {
+        self.compression = compression;
+        self
+    }
+
+    /// TCP connections per leader. Idempotent produce uses one per partition.
+    #[must_use]
+    pub fn connections(mut self, n: usize) -> Self {
+        self.connections = n.max(1);
+        self
+    }
+
+    /// Pipelined Produce requests per connection. Capped at 5 when idempotent.
+    #[must_use]
+    pub fn max_in_flight(mut self, n: usize) -> Self {
+        self.max_in_flight = n.max(1);
+        self
+    }
+
+    /// `enable.idempotence`. Also forces `acks=all` and `max_in_flight ≤ 5`.
+    #[must_use]
+    pub fn idempotent(mut self, on: bool) -> Self {
+        self.enable_idempotence = on;
+        self
+    }
+
+    /// `transactional.id`. Implies idempotence.
+    #[must_use]
+    pub fn transactional_id(mut self, id: impl Into<String>) -> Self {
+        self.transactional_id = Some(id.into());
+        self
+    }
+
+    /// SASL. Replaces any previously set mechanism.
+    #[must_use]
+    pub fn sasl(mut self, sasl: crate::Sasl) -> Self {
+        sasl.apply_to(
+            &mut self.sasl_plain,
+            &mut self.sasl_scram,
+            &mut self.sasl_scram_sha512,
+            &mut self.sasl_oauthbearer,
+            &mut self.sasl_oauthbearer_oidc,
+        );
+        self
+    }
+
+    /// rustls. No OpenSSL.
+    #[must_use]
+    pub fn tls(mut self, tls: TlsConfig) -> Self {
+        crate::config::apply_tls(&mut self.tls, tls);
+        self
+    }
+
+    /// Per-request timeout (produce, metadata, init pid).
+    #[must_use]
+    pub fn request_timeout(mut self, timeout: Duration) -> Self {
+        self.request_timeout = timeout;
+        self
     }
 }
 
@@ -133,6 +231,32 @@ impl ProduceRecord {
 
     pub fn partition(mut self, partition: i32) -> Self {
         self.partition = Some(partition);
+        self
+    }
+
+    /// Record timestamp in milliseconds since the Unix epoch.
+    ///
+    /// `None` (the default) uses the producer clock when the batch is written.
+    #[must_use]
+    pub fn timestamp(mut self, timestamp: i64) -> Self {
+        self.timestamp = Some(timestamp);
+        self
+    }
+
+    /// Append one header. Call more than once for several headers.
+    #[must_use]
+    pub fn header(mut self, key: impl Into<String>, value: impl Into<Bytes>) -> Self {
+        self.headers.push(RecordHeader {
+            key: key.into(),
+            value: Some(value.into()),
+        });
+        self
+    }
+
+    /// Replace all headers.
+    #[must_use]
+    pub fn headers(mut self, headers: Vec<RecordHeader>) -> Self {
+        self.headers = headers;
         self
     }
 }
@@ -205,10 +329,13 @@ struct Inner {
 }
 
 impl Producer {
+    /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
         Self::new(ProducerConfig::bootstrap([bootstrap.into()])).await
     }
 
+    /// Connect using `cfg`. Negotiates ApiVersions, optional SASL/TLS, and
+    /// `InitProducerId` when idempotent or transactional.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -436,30 +563,55 @@ impl Producer {
         }
     }
 
+    /// Queue one record and wait for its offset.
+    ///
+    /// This waits for the Produce response of *this* record before returning.
+    /// A loop of `send().await` therefore cannot pipeline. For many records
+    /// use [`Self::send_all`] (offsets) or [`Self::try_send`] plus
+    /// [`Self::flush`] (throughput).
     pub async fn send(&self, rec: ProduceRecord) -> Result<RecordMetadata> {
-        let (tx, rx) = oneshot::channel();
-        let mut rec = rec;
-        self.ensure_ready(&mut rec).await?;
-        let w = self.worker_for(&rec).ok_or(Error::Closed)?;
-        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
-        w.data
-            .send(Pending {
-                rec,
-                tx: Some(tx),
-                seq: None,
-                deadline,
-            })
-            .await
-            .map_err(|_| Error::Closed)?;
-        rx.await.map_err(|_| Error::Closed)?
+        let mut out = self.send_all(std::iter::once(rec)).await?;
+        out.pop().ok_or_else(|| Error::protocol("send_all empty"))
     }
 
-    /// Enqueue without a per-record future. Delivery is observed on `flush`.
+    /// Queue every record, then wait for every offset.
     ///
-    /// Returns `QueueFull` until metadata and a connection to the partition
-    /// leader are ready. Call again; `send` waits instead. Records are never
-    /// queued without a partition, so each partition is pinned to one TCP
-    /// connection on its current leader.
+    /// Records are handed to workers as soon as metadata is ready, so batches
+    /// fill while later records are still being partitioned. Empty input
+    /// returns an empty vec.
+    pub async fn send_all(
+        &self,
+        recs: impl IntoIterator<Item = ProduceRecord>,
+    ) -> Result<Vec<RecordMetadata>> {
+        let recs: Vec<ProduceRecord> = recs.into_iter().collect();
+        if recs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut rxs = Vec::with_capacity(recs.len());
+        for rec in recs {
+            let (tx, rx) = oneshot::channel();
+            let mut rec = rec;
+            self.ensure_ready(&mut rec).await?;
+            let w = self.worker_for(&rec).ok_or(Error::Closed)?;
+            let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+            w.data
+                .send(Pending {
+                    rec,
+                    tx: Some(tx),
+                    seq: None,
+                    deadline,
+                })
+                .await
+                .map_err(|_| Error::Closed)?;
+            rxs.push(rx);
+        }
+        let mut out = Vec::with_capacity(rxs.len());
+        for rx in rxs {
+            out.push(rx.await.map_err(|_| Error::Closed)??);
+        }
+        Ok(out)
+    }
+
     fn fast_route(&self, rec: &ProduceRecord) -> Option<(i32, WorkerHandle)> {
         let fast = self.inner.shared.fast.lock();
         let f = fast.as_ref()?;
@@ -514,6 +666,12 @@ impl Producer {
         });
     }
 
+    /// Enqueue without a per-record future. Delivery is observed on [`Self::flush`].
+    ///
+    /// Returns [`Error::QueueFull`] until metadata and a connection to the
+    /// partition leader are ready. Call again; [`Self::send`] waits instead.
+    /// Records are never queued without a partition, so each partition is
+    /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {
         let mut rec = rec;
         let w = if let Some((p, w)) = self.fast_route(&rec) {
@@ -570,6 +728,7 @@ impl Producer {
         Ok(())
     }
 
+    /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(Error::protocol("transactional.id is not set"));
@@ -679,6 +838,8 @@ impl Producer {
         Ok(())
     }
 
+    /// Wait until queued records are acked (or a broker error). `try_send` Ok
+    /// only means queued.
     pub async fn flush(&self) -> Result<()> {
         let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
         loop {
@@ -702,6 +863,7 @@ impl Producer {
         }
     }
 
+    /// Flush, then stop workers. Further sends return [`Error::Closed`].
     pub async fn close(self) -> Result<()> {
         let workers: Vec<WorkerHandle> = self
             .inner
@@ -1400,7 +1562,8 @@ impl Worker {
                 return Err(e);
             }
         };
-        let responses = match decode_produce_response(&mut body.clone(), version) {
+        let mut body = body;
+        let responses = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
                 fail_groups(inf.groups, clone_err(&e));
@@ -1856,23 +2019,7 @@ fn fail_pendings(pendings: Vec<Pending>, err: Error) {
 }
 
 fn clone_err(err: &Error) -> Error {
-    match err {
-        Error::Io(e) => Error::Io(std::io::Error::new(e.kind(), e.to_string())),
-        Error::Protocol(m) => Error::Protocol(m.clone()),
-        Error::Broker { code, message } => Error::Broker {
-            code: *code,
-            message: message.clone(),
-        },
-        Error::UnknownTopic(t) => Error::UnknownTopic(t.to_string()),
-        Error::NoLeader { topic, partition } => Error::NoLeader {
-            topic: topic.clone(),
-            partition: *partition,
-        },
-        Error::Unsupported(m) => Error::Unsupported(m.clone()),
-        Error::Closed => Error::Closed,
-        Error::Timeout => Error::Timeout,
-        Error::QueueFull => Error::QueueFull,
-    }
+    err.clone()
 }
 
 fn pick_part(rec: &ProduceRecord, np: i32, rr: &AtomicI32) -> i32 {
