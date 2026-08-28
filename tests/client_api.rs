@@ -940,6 +940,17 @@ async fn commit_offsets_skips_without_poll() {
 #[tokio::test]
 async fn producer_and_consumer_metrics() {
     let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("u", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
     let producer =
         Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
             .await
