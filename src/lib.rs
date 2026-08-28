@@ -12,7 +12,7 @@
 //! AllocateProducerIds, DescribeTransactions, ListTransactions,
 //! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
 //! DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets,
-//! AlterShareGroupOffsets, DescribeCluster).
+//! AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -44,6 +44,7 @@ pub use admin::{
     ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
     ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConsumerGroupAssignment,
     ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,

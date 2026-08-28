@@ -58,6 +58,7 @@ pub const SHARE_FETCH: i16 = 78;
 pub const SHARE_ACKNOWLEDGE: i16 = 79;
 pub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;
 pub const ALTER_SHARE_GROUP_OFFSETS: i16 = 91;
+pub const DELETE_SHARE_GROUP_OFFSETS: i16 = 92;
 
 pub fn pick_version(
     broker_min: i16,

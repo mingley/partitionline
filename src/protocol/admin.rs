@@ -4000,6 +4000,174 @@ pub fn decode_alter_share_group_offsets_response<B: Buf>(
     })
 }
 
+/// One requested topic in DeleteShareGroupOffsets (api 92).
+///
+/// Official request topics are topic names only — no partitions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteShareGroupOffsetsTopic {
+    pub topic_name: String,
+}
+
+impl DeleteShareGroupOffsetsTopic {
+    pub fn new(topic_name: impl Into<String>) -> Self {
+        Self {
+            topic_name: topic_name.into(),
+        }
+    }
+}
+
+/// One topic in a DeleteShareGroupOffsets (api 92) v0 response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletedShareGroupOffsetsTopic {
+    pub topic_name: String,
+    pub topic_id: [u8; 16],
+    pub error_code: i16,
+    pub error_message: Option<String>,
+}
+
+/// DeleteShareGroupOffsets (api 92) v0 response body.
+///
+/// **ErrorCode is top-level**, after throttle — not a first-group field
+/// and not the first-topic code. This API has a single GroupId on the
+/// request and no Groups array on the response. Official request topics
+/// have no partitions; the response ErrorCode after TopicName/TopicId
+/// is topic-level, not partition-level.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletedShareGroupOffsets {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub topics: Vec<DeletedShareGroupOffsetsTopic>,
+}
+
+impl DeletedShareGroupOffsets {
+    pub fn new(error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            topics: Vec::new(),
+        }
+    }
+}
+
+/// DeleteShareGroupOffsets v0 (flexible from v0; KIP-932).
+///
+/// Official Apache JSON (`apiKey: 92`, request `listeners: ["broker"]`,
+/// `validVersions: "0"`, `flexibleVersions: "0+"`) and kafka-protocol
+/// 0.18.0 (`DeleteShareGroupOffsetsRequest` /
+/// `DeleteShareGroupOffsetsResponse`, `VERSIONS` min=0 max=0). This
+/// crate targets v0, the version a client encodes (`VERSIONS.max`).
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Official listed errors
+/// (`DeleteShareGroupOffsetsResponse.json`):
+/// `GROUP_AUTHORIZATION_FAILED`, `TOPIC_AUTHORIZATION_FAILED`,
+/// `NOT_COORDINATOR` (16), `COORDINATOR_NOT_AVAILABLE`,
+/// `COORDINATOR_LOAD_IN_PROGRESS`, `GROUP_ID_NOT_FOUND`,
+/// `NON_EMPTY_GROUP`, `KAFKA_STORAGE_ERROR`, `INVALID_REQUEST`,
+/// `UNKNOWN_SERVER_ERROR`, `UNKNOWN_TOPIC_OR_PARTITION`.
+/// Request: compact `GroupId`, compact `Topics` of `{TopicName,
+/// tagged}`, tagged. No partitions on the request.
+/// Response: `ThrottleTimeMs` INT32, `ErrorCode` INT16, compact
+/// nullable `ErrorMessage`, compact `Responses` of `{TopicName,
+/// TopicId UUID, ErrorCode INT16, compact nullable ErrorMessage,
+/// tagged}`, tagged.
+/// **ErrorCode is top-level**, after throttle — not a first-group
+/// field and not the first-topic code. Measured independently
+/// from kafka-protocol 0.18.0 (`broker` encodes the response) on
+/// leftover-empty fixture group `"g"` (empty Responses): the
+/// top-level ErrorCode is the INT16 at **bytes 4–5**, after throttle
+/// — not bytes 5–6 (ShareGroupDescribe / DescribeGroups first-group
+/// first field), 7–8 (DeleteGroups after GroupId), 8–9
+/// (DescribeShareGroupOffsets first-group after GroupId and Topics),
+/// or 12–13 (DescribeProducers first partition). The leftover-empty
+/// body is 9 bytes, so those later offsets are not present. First-
+/// topic ErrorCode, when a leftover-empty topic `"t"` is present, is
+/// at **bytes 26–27** and is not the hop code. This API has no
+/// first-partition ErrorCode (official request topics are names only).
+/// Official Java `DeleteShareGroupOffsetsHandler` looks up
+/// `CoordinatorType.GROUP` (`FindCoordinator` `key_type=0`). Official
+/// FindCoordinator JSON names SHARE (`key_type=2`) for the
+/// share-state key `"groupId:topicId:partition"` (v6), which this
+/// API does not use. Because `NOT_COORDINATOR` (16) is listed, this
+/// is a share-group coordinator hop (group coordinator), not a
+/// controller hop and not a partition-leader hop.
+pub fn encode_delete_share_group_offsets_request(
+    buf: &mut BytesMut,
+    group_id: &str,
+    topics: &[DeleteShareGroupOffsetsTopic],
+) -> crate::error::Result<()> {
+    buf::put_compact_string(buf, Some(group_id))?;
+    buf::put_array_len(buf, true, Some(topics.len()))?;
+    for t in topics {
+        buf::put_compact_string(buf, Some(&t.topic_name))?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_delete_share_group_offsets_request<B: Buf>(
+    buf: &mut B,
+) -> Result<(String, Vec<DeleteShareGroupOffsetsTopic>)> {
+    let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        topics.push(DeleteShareGroupOffsetsTopic { topic_name });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((group_id, topics))
+}
+
+pub fn encode_delete_share_group_offsets_response(
+    buf: &mut BytesMut,
+    resp: &DeletedShareGroupOffsets,
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf.put_i16(resp.error_code);
+    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_array_len(buf, true, Some(resp.topics.len()))?;
+    for t in &resp.topics {
+        buf::put_compact_string(buf, Some(&t.topic_name))?;
+        buf.extend_from_slice(&t.topic_id);
+        buf.put_i16(t.error_code);
+        buf::put_compact_string(buf, t.error_message.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_delete_share_group_offsets_response<B: Buf>(
+    buf: &mut B,
+) -> Result<DeletedShareGroupOffsets> {
+    let _th = buf::get_i32(buf)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_compact_string(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let topic_id = buf::get_uuid(buf)?;
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        topics.push(DeletedShareGroupOffsetsTopic {
+            topic_name,
+            topic_id,
+            error_code,
+            error_message,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(DeletedShareGroupOffsets {
+        error_code,
+        error_message,
+        topics,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -6415,6 +6583,166 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterShareGroupOffsets v0 first-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_share_group_offsets_v0_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 92
+        // validVersions 0, flexibleVersions 0+, listeners broker only.
+        // This crate targets v0 (VERSIONS.max). Not copied from
+        // AlterShareGroupOffsets / ListGroups (top-level ErrorCode at
+        // bytes 4-5, different fields after the INT16),
+        // ShareGroupDescribe / DescribeGroups / ConsumerGroupDescribe
+        // (first-group ErrorCode at bytes 5-6), DeleteGroups (after
+        // GroupId at bytes 7-8), DescribeShareGroupOffsets (first-group
+        // after GroupId and Topics at bytes 8-9), or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x67, 0x01, 0x00];
+        const RESP_16: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x01, 0x00];
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_request(&mut buf, "g", &[]).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = DeletedShareGroupOffsets::new(crate::error::NOT_COORDINATOR);
+        buf.clear();
+        encode_delete_share_group_offsets_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn delete_share_group_offsets_v0_roundtrip_is_leftover_empty() {
+        let topics = vec![
+            DeleteShareGroupOffsetsTopic::new("t"),
+            DeleteShareGroupOffsetsTopic::new("t2"),
+        ];
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_request(&mut buf, "g", &topics).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_delete_share_group_offsets_request(&mut cur).unwrap(),
+            ("g".into(), topics)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteShareGroupOffsets v0 request must be leftover-empty"
+        );
+
+        let resp = DeletedShareGroupOffsets {
+            error_code: 0,
+            error_message: None,
+            topics: vec![DeletedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [0; 16],
+                error_code: 0,
+                error_message: None,
+            }],
+        };
+        buf.clear();
+        encode_delete_share_group_offsets_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_delete_share_group_offsets_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteShareGroupOffsets v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_share_group_offsets_top_level_error_code_is_at_bytes_4_5() {
+        // Official v0 body: throttle INT32, then top-level ErrorCode
+        // INT16, then compact nullable ErrorMessage, then compact
+        // Responses. Measured independently from Apache
+        // DeleteShareGroupOffsetsResponse.json and a kafka-protocol
+        // 0.18.0 broker encode (`features = ["broker"]`) on leftover-
+        // empty fixture group "g" (empty Responses). Do not assume
+        // bytes 4-5 from AlterShareGroupOffsets / ListGroups /
+        // DescribeClientQuotas, bytes 5-6 from ShareGroupDescribe /
+        // DescribeGroups / ConsumerGroupDescribe, bytes 7-8 from
+        // DeleteGroups after GroupId, bytes 8-9 from
+        // DescribeShareGroupOffsets first-group, or bytes 12-13 from
+        // DescribeProducers. The hop code is this top-level INT16, not
+        // the first-topic ErrorCode (bytes 26-27 when leftover-empty
+        // topic "t" is present). This API has no first-partition
+        // ErrorCode.
+        let resp = DeletedShareGroupOffsets::new(crate::error::NOT_COORDINATOR);
+        let mut buf = BytesMut::new();
+        encode_delete_share_group_offsets_response(&mut buf, &resp).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v0 top-level ErrorCode must be the INT16 at bytes 4-5"
+        );
+        let b6 = buf.get(6).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v0 ErrorCode is not at ShareGroupDescribe first-group bytes 5-6"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::NOT_COORDINATOR,
+            "v0 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        assert!(
+            buf.len() < 10,
+            "leftover-empty fixture is shorter than DescribeShareGroupOffsets bytes 8-9"
+        );
+        assert!(
+            buf.len() < 14,
+            "leftover-empty fixture is shorter than DescribeProducers bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_delete_share_group_offsets_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteShareGroupOffsets v0 ErrorCode body must be leftover-empty"
+        );
+
+        let with_topic = DeletedShareGroupOffsets {
+            error_code: crate::error::NOT_COORDINATOR,
+            error_message: None,
+            topics: vec![DeletedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [0; 16],
+                error_code: 0,
+                error_message: None,
+            }],
+        };
+        buf.clear();
+        encode_delete_share_group_offsets_response(&mut buf, &with_topic).unwrap();
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_COORDINATOR,
+            "v0 hop ErrorCode stays the top-level INT16 at bytes 4-5"
+        );
+        let b26 = buf.get(26).copied().unwrap();
+        let b27 = buf.get(27).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b26, b27]),
+            0,
+            "v0 first-topic ErrorCode is the INT16 at bytes 26-27 and is not the hop code"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_delete_share_group_offsets_response(&mut cur).unwrap(),
+            with_topic
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteShareGroupOffsets v0 first-topic body must be leftover-empty"
         );
     }
 }
