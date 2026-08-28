@@ -310,10 +310,14 @@ impl ProduceRecord {
     /// Append one header. Call more than once for several headers.
     #[must_use]
     pub fn header(mut self, key: impl Into<String>, value: impl Into<Bytes>) -> Self {
-        self.headers.push(RecordHeader {
-            key: key.into(),
-            value: Some(value.into()),
-        });
+        self.headers.push(RecordHeader::new(key, value));
+        self
+    }
+
+    /// Append a header with a null value (Java `RecordHeader(key, null)`).
+    #[must_use]
+    pub fn null_header(mut self, key: impl Into<String>) -> Self {
+        self.headers.push(RecordHeader::null(key));
         self
     }
 

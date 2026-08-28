@@ -82,6 +82,15 @@ impl Header {
             value: Some(value.into()),
         }
     }
+
+    /// Header with a null value (Java `RecordHeader(key, null)`).
+    #[must_use]
+    pub fn null(key: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            value: None,
+        }
+    }
 }
 
 /// One record inside a magic-v2 batch.
@@ -628,10 +637,10 @@ mod tests {
             timestamp: 1_700_000_000_000,
             key: Some(Bytes::from_static(b"k")),
             value: Some(Bytes::from_static(b"hello")),
-            headers: vec![Header {
-                key: "h".into(),
-                value: Some(Bytes::from_static(b"v")),
-            }],
+            headers: vec![
+                Header::new("h", Bytes::from_static(b"v")),
+                Header::null("empty"),
+            ],
         };
         let batch = RecordBatch::from_records(vec![rec]);
         let mut buf = BytesMut::new();

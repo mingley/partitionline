@@ -29,6 +29,6 @@ async fn main() -> partitionline::Result<()> {
         for rec in &recs {
             println!("{}-{}@{}", rec.topic, rec.partition, rec.offset);
         }
-        group.commit().await?;
+        group.commit_with_metadata(recs.next_offsets()).await?;
     }
 }

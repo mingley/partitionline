@@ -52,6 +52,7 @@ async fn produce_header_survives_fetch() {
             ProduceRecord::to("t")
                 .value(&b"with-header"[..])
                 .header("k", &b"v"[..])
+                .null_header("empty")
                 .timestamp(1_700_000_000_000),
         )
         .await
@@ -85,9 +86,11 @@ async fn produce_header_survives_fetch() {
     assert_eq!(recs[0].leader_epoch, Some(0));
     assert_eq!(recs[0].serialized_key_size(), -1);
     assert_eq!(recs[0].serialized_value_size(), 11);
-    assert_eq!(recs[0].headers.len(), 1);
+    assert_eq!(recs[0].headers.len(), 2);
     assert_eq!(recs[0].headers[0].key, "k");
     assert_eq!(recs[0].headers[0].value.as_deref(), Some(&b"v"[..]));
+    assert_eq!(recs[0].headers[1].key, "empty");
+    assert!(recs[0].headers[1].value.is_none());
 }
 
 #[tokio::test]
@@ -698,6 +701,55 @@ async fn group_committed_after_commit() {
     assert_eq!(after.len(), 1);
     assert_eq!(after[0].1.offset, 1);
     assert_eq!(after[0].1.leader_epoch, Some(0));
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_next_offsets_from_poll() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "nxt",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.count(), 2);
+    let next = recs.next_offsets();
+    assert_eq!(next.len(), 1);
+    assert_eq!(next[0].0, TopicPartition::new("t", 0));
+    assert_eq!(next[0].1.offset, recs[1].offset + 1);
+    group.commit_with_metadata(next).await.unwrap();
+    let after = group.committed().await.unwrap();
+    assert_eq!(after[0].1.offset, recs[1].offset + 1);
+    group.leave().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "nxt",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(
+        recs.is_empty(),
+        "committed nextOffsets should skip consumed records"
+    );
     group.leave().await.unwrap();
 }
 

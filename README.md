@@ -82,7 +82,9 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
 `incremental_alter_configs` / `alter_configs` take `ConfigResource`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
-metadata string. `current_lag` is Java `currentLag`. `enforce_rebalance`
+metadata string. `commit_with_metadata(recs.next_offsets())` is Java
+`commitSync(records.nextOffsets())`. `ProduceRecord::null_header` is a
+null header value. `current_lag` is Java `currentLag`. `enforce_rebalance`
 rejoins on the next poll. `subscription` is the topic list.
 `subscribe` / `unsubscribe` change topics without dropping the handle.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
@@ -105,9 +107,8 @@ let mut group = ConsumerGroup::join_topics(
 )
 .await?;
 let recs = group.poll().await?;
-group.commit().await?;
+group.commit_with_metadata(recs.next_offsets()).await?;
 group.leave().await?;
-# let _ = recs;
 # Ok(())
 # }
 ```

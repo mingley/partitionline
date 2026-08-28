@@ -57,7 +57,9 @@ offset (`Earliest` by default). `committed` is OffsetFetch for the current
 assignment. `commit_offsets` commits caller-chosen offsets
 ([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
 `commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
-(leader epoch and a metadata string). `committed` returns the same type.
+(leader epoch and a metadata string). Pass
+[`ConsumerRecords::next_offsets`](../src/consumer.rs) to match Java
+`commitSync(records.nextOffsets())`. `committed` returns the same type.
 `current_lag` is high watermark minus position. `subscription` is the
 topic list. `enforce_rebalance` rejoins on the next poll.
 `subscribe` / `unsubscribe` change the topic list without dropping the

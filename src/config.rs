@@ -45,6 +45,12 @@ impl Acks {
     }
 }
 
+impl From<Acks> for i16 {
+    fn from(acks: Acks) -> Self {
+        acks.as_i16()
+    }
+}
+
 /// Fetch isolation. Matches Kafka `isolation.level`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i8)]
@@ -207,6 +213,8 @@ mod tests {
         assert_eq!(Acks::from_i16(1), Some(Acks::Leader));
         assert_eq!(Acks::from_i16(2), None);
         assert_eq!(Acks::default(), Acks::Leader);
+        assert_eq!(i16::from(Acks::All), -1);
+        assert_eq!(i16::from(Acks::Leader), 1);
     }
 
     #[test]

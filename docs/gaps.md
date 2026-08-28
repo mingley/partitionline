@@ -49,7 +49,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
-| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; OffsetCommit v7 epoch + metadata) | yes | **done** |
+| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `ConsumerRecords::next_offsets`; OffsetCommit v7 epoch + metadata) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `Consumer::assign_many` / `unassign`) | yes | **done** |

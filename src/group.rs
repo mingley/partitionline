@@ -736,7 +736,11 @@ impl ConsumerGroup {
         self.rebalance_needed = true;
     }
 
-    /// Commit the next fetch offsets for the current assignment.
+    /// Commit the next fetch offsets for the current assignment
+    /// (Java `commitSync()` with no arguments).
+    ///
+    /// To commit only partitions from the last poll, pass
+    /// [`ConsumerRecords::next_offsets`] to [`Self::commit_with_metadata`].
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -776,6 +780,11 @@ impl ConsumerGroup {
     }
 
     /// Commit offsets with optional leader epoch and user metadata.
+    ///
+    /// Pass [`ConsumerRecords::next_offsets`] to match Java
+    /// `commitSync(records.nextOffsets())`. That commits only partitions
+    /// present in the batch. [`Self::commit`] commits every assigned
+    /// partition's current position.
     pub async fn commit_with_metadata(
         &mut self,
         offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,

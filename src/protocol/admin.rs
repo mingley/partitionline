@@ -74,6 +74,7 @@ pub struct CreateTopicsRequest {
     pub validate_only: bool,
 }
 
+/// Per-topic result of CreateTopics / DeleteTopics.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicResult {
     /// Topic name.

@@ -65,6 +65,8 @@
 //! `poll(Duration)`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
+//! [`ConsumerGroup::commit_with_metadata`] takes
+//! [`ConsumerRecords::next_offsets`] (Java `commitSync(records.nextOffsets())`).
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
 //! [`Admin::delete_offsets`] take [`TopicPartition`].
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /

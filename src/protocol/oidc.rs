@@ -2,11 +2,6 @@
 //!
 //! HTTP/1.1 POST over `tokio::net::TcpStream`. `https://` uses rustls.
 
-#![expect(
-    missing_docs,
-    reason = "OidcConfig fields match librdkafka oauthbearer oidc knobs"
-)]
-
 use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -23,13 +18,17 @@ const FORM_BODY: &str = "grant_type=client_credentials";
 pub struct OidcConfig {
     /// Token endpoint, `http://` or `https://host:port/path`.
     pub token_url: String,
+    /// OAuth client id (`client_id`).
     pub client_id: String,
+    /// OAuth client secret (`client_secret`).
     pub client_secret: String,
     /// TLS for `https://` token URLs. `None` uses webpki-roots.
     pub tls: Option<crate::net::TlsConfig>,
 }
 
 impl OidcConfig {
+    /// Token URL plus client id and secret. `https://` uses Mozilla roots
+    /// by default; call [`OidcConfig::tls()`] for a custom CA or mTLS.
     pub fn new(
         token_url: impl Into<String>,
         client_id: impl Into<String>,
@@ -41,6 +40,13 @@ impl OidcConfig {
             client_secret: client_secret.into(),
             tls: None,
         }
+    }
+
+    /// rustls config for `https://` token URLs (custom CA or mTLS).
+    #[must_use]
+    pub fn tls(mut self, tls: crate::net::TlsConfig) -> Self {
+        self.tls = Some(tls);
+        self
     }
 }
 
