@@ -633,6 +633,11 @@ async fn produce_refreshes_metadata_after_max_age() {
         after_first >= 1,
         "first send must fetch Metadata, got {after_first}"
     );
+    assert_eq!(
+        mock.last_metadata_allow_auto(),
+        Some(false),
+        "producer default allow.auto.create.topics is false"
+    );
     producer
         .send(ProduceRecord::to("t").value(&b"b"[..]))
         .await
