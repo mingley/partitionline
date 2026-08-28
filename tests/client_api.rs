@@ -2474,3 +2474,29 @@ async fn admin_remove_members_from_consumer_group() {
     admin.close().await.unwrap();
     group.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_describe_features_from_api_versions() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let features = admin.describe_features().await.unwrap();
+    let supported = features
+        .supported_features
+        .iter()
+        .find(|f| f.name == "metadata.version")
+        .expect("metadata.version supported");
+    assert_eq!(supported.min_version, 1);
+    assert_eq!(supported.max_version, 20);
+    let finalized = features
+        .finalized_features
+        .iter()
+        .find(|f| f.name == "metadata.version")
+        .expect("metadata.version finalized");
+    assert_eq!(finalized.min_version_level, 1);
+    assert_eq!(finalized.max_version_level, 20);
+    assert_eq!(features.finalized_features_epoch, Some(1));
+    assert!(!features.zk_migration_ready);
+    admin.close().await.unwrap();
+}

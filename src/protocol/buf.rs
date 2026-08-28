@@ -400,6 +400,48 @@ pub fn skip_tagged_fields<B: Buf>(buf: &mut B) -> Result<()> {
     Ok(())
 }
 
+/// Write tagged fields. `fields` must be strictly ascending by tag.
+pub fn put_tagged_fields<T: AsRef<[u8]>>(buf: &mut BytesMut, fields: &[(u32, T)]) -> Result<()> {
+    put_unsigned_varint(buf, u32_from_usize(fields.len())?);
+    let mut prev: Option<u32> = None;
+    for (tag, value) in fields {
+        let tag = *tag;
+        if prev.is_some_and(|p| tag <= p) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        prev = Some(tag);
+        let bytes = value.as_ref();
+        put_unsigned_varint(buf, tag);
+        put_unsigned_varint(buf, u32_from_usize(bytes.len())?);
+        buf.extend_from_slice(bytes);
+    }
+    Ok(())
+}
+
+/// Read tagged fields. Tags must be strictly ascending.
+pub fn get_tagged_fields<B: Buf>(buf: &mut B) -> Result<Vec<(u32, Bytes)>> {
+    let n = get_unsigned_varint(buf)?;
+    let mut out = Vec::with_capacity(usize_from_u32(n)?);
+    let mut prev: Option<u32> = None;
+    for _ in 0..n {
+        let tag = get_unsigned_varint(buf)?;
+        if prev.is_some_and(|p| tag <= p) {
+            return Err(Error::protocol(
+                "tagged fields must be in ascending tag order",
+            ));
+        }
+        prev = Some(tag);
+        let size = usize_from_u32(get_unsigned_varint(buf)?)?;
+        need(buf, size)?;
+        let mut bytes = vec![0u8; size];
+        buf.copy_to_slice(&mut bytes);
+        out.push((tag, Bytes::from(bytes)));
+    }
+    Ok(out)
+}
+
 /// Write an empty tagged-fields count (`0`).
 pub fn put_empty_tagged_fields(buf: &mut BytesMut) {
     put_unsigned_varint(buf, 0);
@@ -538,6 +580,23 @@ mod tests {
         let taken = take_compact_bytes(&mut cur).unwrap().unwrap();
         assert_eq!(&taken[..], &payload[..]);
         assert_eq!(taken.as_ptr(), expected.as_ptr());
+    }
+
+    #[test]
+    fn tagged_fields_roundtrip_and_require_ascending_tags() {
+        let mut buf = BytesMut::new();
+        put_tagged_fields(&mut buf, &[(0, &b"aa"[..]), (2, &b"bbb"[..])]).unwrap();
+        let mut cur = &buf[..];
+        let got = get_tagged_fields(&mut cur).unwrap();
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].0, 0);
+        assert_eq!(&got[0].1[..], b"aa");
+        assert_eq!(got[1].0, 2);
+        assert_eq!(&got[1].1[..], b"bbb");
+        assert_eq!(cur.remaining(), 0);
+
+        let mut bad = BytesMut::new();
+        assert!(put_tagged_fields(&mut bad, &[(2, &b"x"[..]), (1, &b"y"[..])]).is_err());
     }
 
     #[test]

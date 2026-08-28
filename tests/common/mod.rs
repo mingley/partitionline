@@ -96,7 +96,8 @@ use partitionline::protocol::admin::{
 use partitionline::protocol::api::{
     decode_metadata_request, decode_produce_request, encode_api_versions_response,
     encode_metadata_response, encode_produce_response, ApiVersion, ApiVersionsResponse, Broker,
-    MetadataResponse, PartitionMetadata, ProducePartitionResponse, TopicMetadata,
+    FinalizedFeatureKey, MetadataResponse, PartitionMetadata, ProducePartitionResponse,
+    SupportedFeatureKey, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -1922,6 +1923,18 @@ fn versions() -> ApiVersionsResponse {
             })
             .collect(),
         throttle_time_ms: 0,
+        supported_features: vec![SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        }],
+        finalized_features_epoch: Some(1),
+        finalized_features: vec![FinalizedFeatureKey {
+            name: "metadata.version".into(),
+            max_version_level: 20,
+            min_version_level: 1,
+        }],
+        zk_migration_ready: false,
     }
 }
 

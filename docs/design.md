@@ -49,7 +49,9 @@ partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest 
 timestamp; returns `OffsetAndTimestamp`). `Admin::fence_producers` is Java
 `Admin.fenceProducers` (InitProducerId on the transaction coordinator).
 `Admin::remove_members_from_consumer_group` is Java
-`removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`). `assignment` is Java `assignment`
+`removeMembersFromConsumerGroup` (LeaveGroup v3 by `group.instance.id`).
+`Admin::describe_features` is Java `describeFeatures` (ApiVersions v3
+tagged fields; [`FeatureMetadata`](../src/admin.rs)). `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
@@ -125,6 +127,7 @@ topics.
 - `acks=0` means the broker sends no Produce response. Do not read one.
 - This client uses Produce versions 3–8 (classic record bytes). Version 9+ is compact.
 - ListOffsets v4+ has `current_leader_epoch` before timestamp. The v4+ response has `leader_epoch` after offset.
+- ApiVersions v3+ response tagged fields (KIP-482): 0 `supportedFeatures` (name, min, max), 1 `finalizedFeaturesEpoch` INT64 (`-1` omitted), 2 `finalizedFeatures` (name, **max** then min), 3 `zkMigrationReady`. Empty/default tags are omitted.
 
 ## Compression
 

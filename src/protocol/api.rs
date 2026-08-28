@@ -1,6 +1,6 @@
 //! ApiVersions, Metadata, and Produce codecs.
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
 use super::records::{self, RecordBatch};
@@ -17,8 +17,32 @@ pub struct ApiVersion {
     pub max_version: i16,
 }
 
-/// ApiVersions response body.
+/// One broker-supported feature in ApiVersions v3+ tagged field 0 (KIP-482).
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportedFeatureKey {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Lowest version the broker supports.
+    pub min_version: i16,
+    /// Highest version the broker supports.
+    pub max_version: i16,
+}
+
+/// One finalized feature in ApiVersions v3+ tagged field 2 (KIP-482).
+///
+/// Wire order is `max_version_level` then `min_version_level`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FinalizedFeatureKey {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Highest finalized version.
+    pub max_version_level: i16,
+    /// Lowest finalized version.
+    pub min_version_level: i16,
+}
+
+/// ApiVersions response body.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ApiVersionsResponse {
     /// Kafka error code (`0` is success).
     pub error_code: i16,
@@ -26,6 +50,14 @@ pub struct ApiVersionsResponse {
     pub api_keys: Vec<ApiVersion>,
     /// Throttle time (v1+).
     pub throttle_time_ms: i32,
+    /// Supported features (v3+ tagged field 0). Empty when omitted.
+    pub supported_features: Vec<SupportedFeatureKey>,
+    /// Finalized-features epoch (v3+ tagged field 1). `None` when omitted or `-1`.
+    pub finalized_features_epoch: Option<i64>,
+    /// Finalized features (v3+ tagged field 2). Empty when omitted.
+    pub finalized_features: Vec<FinalizedFeatureKey>,
+    /// ZooKeeper migration ready (v3+ tagged field 3, KIP-866).
+    pub zk_migration_ready: bool,
 }
 
 /// Encode ApiVersions. v3+ sends `softwareName` / `softwareVersion`.
@@ -66,13 +98,20 @@ pub fn decode_api_versions_response<B: Buf>(
         });
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
+    let (supported_features, finalized_features_epoch, finalized_features, zk_migration_ready) =
+        if flexible {
+            decode_api_versions_tagged_fields(buf)?
+        } else {
+            (Vec::new(), None, Vec::new(), false)
+        };
     Ok(ApiVersionsResponse {
         error_code,
         api_keys,
         throttle_time_ms,
+        supported_features,
+        finalized_features_epoch,
+        finalized_features,
+        zk_migration_ready,
     })
 }
 
@@ -97,9 +136,138 @@ pub fn encode_api_versions_response(
         buf.put_i32(resp.throttle_time_ms);
     }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
+        encode_api_versions_tagged_fields(buf, resp)?;
     }
     Ok(())
+}
+
+fn leftover_empty<B: Buf>(buf: &B, what: &'static str) -> Result<()> {
+    if buf.has_remaining() {
+        Err(Error::protocol(format!("{what} leftover")))
+    } else {
+        Ok(())
+    }
+}
+
+fn encode_supported_feature_keys(features: &[SupportedFeatureKey]) -> Result<Bytes> {
+    let mut buf = BytesMut::new();
+    buf::put_array_len(&mut buf, true, Some(features.len()))?;
+    for f in features {
+        buf::put_compact_string(&mut buf, Some(&f.name))?;
+        buf.put_i16(f.min_version);
+        buf.put_i16(f.max_version);
+        buf::put_empty_tagged_fields(&mut buf);
+    }
+    Ok(buf.freeze())
+}
+
+fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFeatureKey>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let min_version = buf::get_i16(buf)?;
+        let max_version = buf::get_i16(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        out.push(SupportedFeatureKey {
+            name,
+            min_version,
+            max_version,
+        });
+    }
+    Ok(out)
+}
+
+fn encode_finalized_feature_keys(features: &[FinalizedFeatureKey]) -> Result<Bytes> {
+    let mut buf = BytesMut::new();
+    buf::put_array_len(&mut buf, true, Some(features.len()))?;
+    for f in features {
+        buf::put_compact_string(&mut buf, Some(&f.name))?;
+        buf.put_i16(f.max_version_level);
+        buf.put_i16(f.min_version_level);
+        buf::put_empty_tagged_fields(&mut buf);
+    }
+    Ok(buf.freeze())
+}
+
+fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFeatureKey>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let max_version_level = buf::get_i16(buf)?;
+        let min_version_level = buf::get_i16(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        out.push(FinalizedFeatureKey {
+            name,
+            max_version_level,
+            min_version_level,
+        });
+    }
+    Ok(out)
+}
+
+fn encode_api_versions_tagged_fields(buf: &mut BytesMut, resp: &ApiVersionsResponse) -> Result<()> {
+    let mut tags: Vec<(u32, Bytes)> = Vec::new();
+    if !resp.supported_features.is_empty() {
+        tags.push((0, encode_supported_feature_keys(&resp.supported_features)?));
+    }
+    if let Some(epoch) = resp.finalized_features_epoch {
+        if epoch >= 0 {
+            let mut b = BytesMut::new();
+            b.put_i64(epoch);
+            tags.push((1, b.freeze()));
+        }
+    }
+    if !resp.finalized_features.is_empty() {
+        tags.push((2, encode_finalized_feature_keys(&resp.finalized_features)?));
+    }
+    if resp.zk_migration_ready {
+        tags.push((3, Bytes::from_static(&[1])));
+    }
+    buf::put_tagged_fields(buf, &tags)
+}
+
+fn decode_api_versions_tagged_fields<B: Buf>(
+    buf: &mut B,
+) -> Result<(
+    Vec<SupportedFeatureKey>,
+    Option<i64>,
+    Vec<FinalizedFeatureKey>,
+    bool,
+)> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut supported = Vec::new();
+    let mut epoch = None;
+    let mut finalized = Vec::new();
+    let mut zk = false;
+    for (tag, value) in tags {
+        match tag {
+            0 => {
+                let mut cur = value.as_ref();
+                supported = decode_supported_feature_keys(&mut cur)?;
+                leftover_empty(&cur, "supported_features")?;
+            }
+            1 => {
+                let mut cur = value.as_ref();
+                let v = buf::get_i64(&mut cur)?;
+                leftover_empty(&cur, "finalized_features_epoch")?;
+                epoch = (v >= 0).then_some(v);
+            }
+            2 => {
+                let mut cur = value.as_ref();
+                finalized = decode_finalized_feature_keys(&mut cur)?;
+                leftover_empty(&cur, "finalized_features")?;
+            }
+            3 => {
+                let mut cur = value.as_ref();
+                zk = buf::get_bool(&mut cur)?;
+                leftover_empty(&cur, "zk_migration_ready")?;
+            }
+            _ => {}
+        }
+    }
+    Ok((supported, epoch, finalized, zk))
 }
 
 /// One broker in a Metadata response.
@@ -718,11 +886,78 @@ mod tests {
                 },
             ],
             throttle_time_ms: 0,
+            ..Default::default()
         };
         let mut buf = BytesMut::new();
         encode_api_versions_response(&mut buf, 3, &resp).unwrap();
-        let decoded = decode_api_versions_response(&mut &buf[..], 3).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, resp);
+        assert!(
+            !cur.has_remaining(),
+            "ApiVersions v3 empty features must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn api_versions_v3_empty_features_is_zero_tagged_fields() {
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            ..Default::default()
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 3, &resp).unwrap();
+        assert_eq!(&buf[..], &[0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        let mut cur = &buf[..];
+        assert_eq!(decode_api_versions_response(&mut cur, 3).unwrap(), resp);
+        assert!(!cur.has_remaining());
+    }
+
+    #[test]
+    fn api_versions_v3_features_roundtrip_is_leftover_empty() {
+        // KIP-482: tag 0 supported (name, min, max), tag 1 epoch INT64,
+        // tag 2 finalized (name, max, min). Empty tags omitted.
+        const BODY: &[u8] = &[
+            0x00, 0x00, 0x02, 0x00, 0x12, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x17, 0x02, 0x11, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x2e,
+            0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x01, 0x00, 0x14, 0x00, 0x01, 0x08,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x17, 0x02, 0x11, 0x6d, 0x65,
+            0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+            0x00, 0x14, 0x00, 0x01, 0x00,
+        ];
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            }],
+            finalized_features_epoch: Some(1),
+            finalized_features: vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }],
+            zk_migration_ready: false,
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 3, &resp).unwrap();
+        assert_eq!(&buf[..], BODY);
+        let mut cur = &buf[..];
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            !cur.has_remaining(),
+            "ApiVersions v3 features must be leftover-empty"
+        );
     }
 
     #[test]

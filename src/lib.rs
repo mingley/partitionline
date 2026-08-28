@@ -95,6 +95,8 @@
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::remove_members_from_consumer_group`] is Java
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
+//! [`Admin::describe_features`] is Java `describeFeatures`
+//! ([`FeatureMetadata`]; ApiVersions v3 tagged fields).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -249,17 +251,18 @@ pub use admin::{
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    FeatureUpdate, FeatureUpdateResult, FencedProducer, GetTelemetrySubscriptionsResponse,
-    ListedConfigResource, ListedGroup, MemberToRemove, NewPartitions, NewTopic, OffsetDeleteResult,
-    OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse,
-    ReassignmentResult, RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
-    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
-    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
-    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    FeatureMetadata, FeatureUpdate, FeatureUpdateResult, FencedProducer, FinalizedVersionRange,
+    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, MemberToRemove,
+    NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
+    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RemovedMember,
+    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
+    TopicPartitionCursor, TransactionListing, TransactionState, TransactionTopic,
+    UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
+    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
+    CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
+    SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{

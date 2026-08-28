@@ -529,6 +529,68 @@ pub struct FeatureUpdateResult {
     pub error_message: Option<String>,
 }
 
+/// Supported version range from [`Admin::describe_features`] (Java `SupportedVersionRange`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportedVersionRange {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Lowest version the broker supports.
+    pub min_version: i16,
+    /// Highest version the broker supports.
+    pub max_version: i16,
+}
+
+impl SupportedVersionRange {
+    /// Feature `name` supported from `min_version` through `max_version`.
+    #[must_use]
+    pub fn new(name: impl Into<String>, min_version: i16, max_version: i16) -> Self {
+        Self {
+            name: name.into(),
+            min_version,
+            max_version,
+        }
+    }
+}
+
+/// Finalized version range from [`Admin::describe_features`] (Java `FinalizedVersionRange`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FinalizedVersionRange {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Lowest finalized version.
+    pub min_version_level: i16,
+    /// Highest finalized version.
+    pub max_version_level: i16,
+}
+
+impl FinalizedVersionRange {
+    /// Feature `name` finalized from `min_version_level` through `max_version_level`.
+    #[must_use]
+    pub fn new(name: impl Into<String>, min_version_level: i16, max_version_level: i16) -> Self {
+        Self {
+            name: name.into(),
+            min_version_level,
+            max_version_level,
+        }
+    }
+}
+
+/// Cluster feature metadata from [`Admin::describe_features`] (Java `FeatureMetadata`).
+///
+/// There is no DescribeFeatures api key. Java and this client re-issue
+/// ApiVersions v3+ and read KIP-482 tagged fields.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FeatureMetadata {
+    /// Features the broker supports (`supportedFeatures`).
+    pub supported_features: Vec<SupportedVersionRange>,
+    /// Finalized features (`finalizedFeatures`).
+    pub finalized_features: Vec<FinalizedVersionRange>,
+    /// Monotonic finalized-features epoch. `None` when the broker sends `-1`.
+    pub finalized_features_epoch: Option<i64>,
+    /// ApiVersions tagged field 3 (`zkMigrationReady`, KIP-866).
+    pub zk_migration_ready: bool,
+}
+
 /// One SCRAM credential to remove for `Admin::alter_user_scram_credentials`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserScramCredentialDeletion {
@@ -1684,6 +1746,55 @@ impl Admin {
                 })
                 .collect());
         }
+    }
+
+    /// Supported and finalized features (Java `describeFeatures`).
+    ///
+    /// There is no DescribeFeatures api key. This re-issues ApiVersions v3+
+    /// on the bootstrap connection and reads KIP-482 tagged fields
+    /// (`supportedFeatures`, `finalizedFeaturesEpoch`, `finalizedFeatures`,
+    /// `zkMigrationReady`).
+    pub async fn describe_features(&mut self) -> Result<FeatureMetadata> {
+        let version = self
+            .versions
+            .get(&API_VERSIONS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 4))
+            .unwrap_or(3);
+        let timeout = self.cfg.request_timeout;
+        let body = self
+            .roundtrip_bootstrap(
+                API_VERSIONS,
+                version,
+                |buf| encode_api_versions_request(buf, version, "partitionline", "0.1.0"),
+                timeout,
+            )
+            .await?;
+        let resp = decode_api_versions_response(&mut body.clone(), version)?;
+        if resp.error_code != 0 {
+            return Err(Error::broker(resp.error_code, "ApiVersions"));
+        }
+        Ok(FeatureMetadata {
+            supported_features: resp
+                .supported_features
+                .into_iter()
+                .map(|f| SupportedVersionRange {
+                    name: f.name,
+                    min_version: f.min_version,
+                    max_version: f.max_version,
+                })
+                .collect(),
+            finalized_features: resp
+                .finalized_features
+                .into_iter()
+                .map(|f| FinalizedVersionRange {
+                    name: f.name,
+                    min_version_level: f.min_version_level,
+                    max_version_level: f.max_version_level,
+                })
+                .collect(),
+            finalized_features_epoch: resp.finalized_features_epoch,
+            zk_migration_ready: resp.zk_migration_ready,
+        })
     }
 
     /// Upsert or delete user SCRAM credentials (AlterUserScramCredentials
