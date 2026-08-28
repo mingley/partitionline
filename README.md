@@ -57,6 +57,7 @@ several topics. Set `group.instance.id` with
 `ConsumerConfig::group_instance_id` for static membership.
 `ConsumerConfig::auto_offset_reset` is used when the group has no
 committed offset (`Earliest` by default, unlike Java's `latest`).
+`auto_commit(true)` commits after poll (off by default).
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

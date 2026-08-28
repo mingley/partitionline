@@ -39,27 +39,48 @@ use crate::protocol::txn::{
     TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
+/// Produce settings. Prefer the chainable builders; raw fields remain writable.
 #[derive(Debug, Clone)]
 pub struct ProducerConfig {
+    /// Bootstrap brokers, `host:port`.
     pub bootstrap: Vec<String>,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Kafka `acks` (`0`, `1`, or `-1`). Prefer [`Self::acks`] with [`crate::Acks`].
     pub acks: i16,
+    /// How long to wait for a batch to fill.
     pub linger: Duration,
+    /// Max records in one Produce batch.
     pub batch_records: usize,
+    /// Max bytes in one Produce batch.
     pub batch_bytes: usize,
+    /// Per-request timeout (produce, metadata, init pid).
     pub request_timeout: Duration,
+    /// TCP connect timeout.
     pub connect_timeout: Duration,
+    /// Kafka `allow.auto.create.topics` on Metadata.
     pub allow_auto_topic_creation: bool,
+    /// Record batch compression.
     pub compression: Compression,
+    /// SASL PLAIN `(username, password)`.
     pub sasl_plain: Option<(String, String)>,
+    /// SASL SCRAM-SHA-256 `(username, password)`.
     pub sasl_scram: Option<(String, String)>,
+    /// SASL SCRAM-SHA-512 `(username, password)`.
     pub sasl_scram_sha512: Option<(String, String)>,
+    /// Unsecured OAUTHBEARER principal.
     pub sasl_oauthbearer: Option<String>,
+    /// OIDC client-credentials, then OAUTHBEARER.
     pub sasl_oauthbearer_oidc: Option<crate::OidcConfig>,
+    /// TCP connections per leader. Idempotent produce uses one per partition.
     pub connections: usize,
+    /// Pipelined Produce requests per connection. Capped at 5 when idempotent.
     pub max_in_flight: usize,
+    /// Kafka `enable.idempotence`.
     pub enable_idempotence: bool,
+    /// Kafka `transactional.id`. Implies idempotence.
     pub transactional_id: Option<String>,
+    /// rustls. `None` is plain TCP.
     pub tls: Option<TlsConfig>,
     /// How records without an explicit partition are mapped.
     pub partitioner: PartitionerBox,
@@ -207,17 +228,25 @@ impl ProducerConfig {
     }
 }
 
+/// One record to produce.
 #[derive(Debug, Clone)]
 pub struct ProduceRecord {
+    /// Topic name.
     pub topic: Arc<str>,
+    /// Explicit partition. `None` uses the [`Partitioner`].
     pub partition: Option<i32>,
+    /// Optional key (murmur2 when the default partitioner is used).
     pub key: Option<Bytes>,
+    /// Optional value.
     pub value: Option<Bytes>,
+    /// Timestamp in milliseconds since the Unix epoch. `None` uses the producer clock.
     pub timestamp: Option<i64>,
+    /// Record headers.
     pub headers: Vec<RecordHeader>,
 }
 
 impl ProduceRecord {
+    /// Start a record for `topic`.
     pub fn to(topic: impl Into<Arc<str>>) -> Self {
         Self {
             topic: topic.into(),
@@ -229,16 +258,22 @@ impl ProduceRecord {
         }
     }
 
+    /// Set the key. The default partitioner hashes it with murmur2.
+    #[must_use]
     pub fn key(mut self, key: impl Into<Bytes>) -> Self {
         self.key = Some(key.into());
         self
     }
 
+    /// Set the value.
+    #[must_use]
     pub fn value(mut self, value: impl Into<Bytes>) -> Self {
         self.value = Some(value.into());
         self
     }
 
+    /// Pin the partition. Skips the [`Partitioner`].
+    #[must_use]
     pub fn partition(mut self, partition: i32) -> Self {
         self.partition = Some(partition);
         self
@@ -271,10 +306,14 @@ impl ProduceRecord {
     }
 }
 
+/// Broker acknowledgement for a produced record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordMetadata {
+    /// Topic name.
     pub topic: String,
+    /// Partition the record was written to.
     pub partition: i32,
+    /// Assigned offset, or `-1` when `acks=0`.
     pub offset: i64,
 }
 
