@@ -176,6 +176,7 @@ pub struct ShareGroup {
     bytes_fetched: u64,
     fetch_errors: u64,
     records_acknowledged: u64,
+    fetch_latency: crate::metrics::LatencyTracker,
 }
 
 fn new_member_id() -> Result<String> {
@@ -237,6 +238,7 @@ impl ShareGroup {
             bytes_fetched: 0,
             fetch_errors: 0,
             records_acknowledged: 0,
+            fetch_latency: crate::metrics::LatencyTracker::new(),
         };
         g.heartbeat_join().await?;
         g.spawn_heartbeat(hb_rx);
@@ -285,7 +287,7 @@ impl ShareGroup {
         self.consumer.list_topics().await
     }
 
-    /// ShareFetch / ShareAcknowledge counters since join.
+    /// ShareFetch / ShareAcknowledge counters and poll latency since join.
     #[must_use]
     pub fn metrics(&self) -> crate::ShareMetrics {
         crate::ShareMetrics {
@@ -294,6 +296,7 @@ impl ShareGroup {
             bytes_fetched: self.bytes_fetched,
             fetch_errors: self.fetch_errors,
             records_acknowledged: self.records_acknowledged,
+            fetch_latency: self.fetch_latency.snapshot(),
         }
     }
 
@@ -389,10 +392,12 @@ impl ShareGroup {
         if hb != 0 {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
         }
-        let deadline = Instant::now() + Duration::from_secs(30);
+        let started = Instant::now();
+        let deadline = started + Duration::from_secs(30);
         loop {
             match self.poll_leaders().await {
                 Ok(recs) => {
+                    self.fetch_latency.record(started.elapsed());
                     self.fetch_rounds = self.fetch_rounds.saturating_add(1);
                     let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                     self.records_fetched = self.records_fetched.saturating_add(n);

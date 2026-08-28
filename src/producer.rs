@@ -346,6 +346,7 @@ struct Pending {
     tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
     seq: Option<i32>,
     deadline: Instant,
+    queued_at: Instant,
 }
 
 enum Ctrl {
@@ -396,6 +397,7 @@ struct Shared {
     m_acked: AtomicU64,
     m_errors: AtomicU64,
     m_bytes: AtomicU64,
+    ack_latency: crate::metrics::LatencyTracker,
     interceptors: crate::interceptor::ProducerInterceptors,
 }
 
@@ -417,6 +419,10 @@ impl Shared {
 
     fn note_acked(&self, n: u64) {
         let _ = self.m_acked.fetch_add(n, Ordering::Relaxed);
+    }
+
+    fn note_ack_latency(&self, queued_at: Instant) {
+        self.ack_latency.record(queued_at.elapsed());
     }
 
     fn note_errors(&self, n: u64) {
@@ -558,6 +564,7 @@ impl Producer {
             m_acked: AtomicU64::new(0),
             m_errors: AtomicU64::new(0),
             m_bytes: AtomicU64::new(0),
+            ack_latency: crate::metrics::LatencyTracker::new(),
             interceptors: cfg.interceptors.clone(),
         });
         let weak = Arc::downgrade(&shared);
@@ -702,7 +709,8 @@ impl Producer {
             let mut rec = self.inner.shared.interceptors.on_send(rec);
             self.ensure_ready(&mut rec).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
-            let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+            let now = Instant::now();
+            let deadline = now + self.inner.shared.cfg.request_timeout;
             let bytes = rec_bytes(&rec);
             w.data
                 .send(Pending {
@@ -710,6 +718,7 @@ impl Producer {
                     tx: Some(tx),
                     seq: None,
                     deadline,
+                    queued_at: now,
                 })
                 .await
                 .map_err(|_| Error::Closed)?;
@@ -797,7 +806,8 @@ impl Producer {
             self.remember_fast(&rec);
             w
         };
-        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        let now = Instant::now();
+        let deadline = now + self.inner.shared.cfg.request_timeout;
         let bytes = rec_bytes(&rec);
         w.data
             .try_send(Pending {
@@ -805,6 +815,7 @@ impl Producer {
                 tx: None,
                 seq: None,
                 deadline,
+                queued_at: now,
             })
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
@@ -814,7 +825,7 @@ impl Producer {
         Ok(())
     }
 
-    /// Produce counters since connect.
+    /// Produce counters and ack latency since connect.
     #[must_use]
     pub fn metrics(&self) -> crate::ProducerMetrics {
         crate::ProducerMetrics {
@@ -822,6 +833,7 @@ impl Producer {
             records_acked: self.inner.shared.m_acked.load(Ordering::Relaxed),
             produce_errors: self.inner.shared.m_errors.load(Ordering::Relaxed),
             bytes_queued: self.inner.shared.m_bytes.load(Ordering::Relaxed),
+            ack_latency: self.inner.shared.ack_latency.snapshot(),
         }
     }
 
@@ -1863,6 +1875,7 @@ impl Worker {
                     let n = u64::try_from(pendings.len()).unwrap_or(u64::MAX);
                     self.shared.note_acked(n);
                     for (i, p) in pendings.into_iter().enumerate() {
+                        self.shared.note_ack_latency(p.queued_at);
                         let md = RecordMetadata {
                             topic: topic.to_string(),
                             partition: part,
@@ -2264,6 +2277,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
     for (topic, part, pendings) in groups {
         for p in pendings {
             n = n.saturating_add(1);
+            shared.note_ack_latency(p.queued_at);
             let md = RecordMetadata {
                 topic: topic.to_string(),
                 partition: part,

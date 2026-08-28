@@ -19,7 +19,8 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
-//! [`Producer::metrics`] is a snapshot of queued / acked / error counts.
+//! [`Producer::metrics`] is a snapshot of queued / acked / error counts
+//! plus produce-ack latency min/mean/max.
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
 //!
 //! # Fetch
@@ -146,7 +147,7 @@ pub mod error;
 pub mod group;
 /// Produce and fetch interceptors.
 pub mod interceptor;
-/// Client counters: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
+/// Client counters and latency min/mean/max: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
@@ -202,7 +203,7 @@ pub use consumer::{
 pub use error::{Error, Result};
 pub use group::{ConsumerGroup, ConsumerGroupMetadata};
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
-pub use metrics::{ConsumerMetrics, ProducerMetrics, ShareMetrics};
+pub use metrics::{ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics};
 pub use net::TlsConfig;
 pub use partitioner::{
     murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,

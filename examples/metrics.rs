@@ -18,8 +18,14 @@ async fn main() -> partitionline::Result<()> {
         .await?;
     let pm = producer.metrics();
     println!(
-        "produced {}-{}@{} queued={} acked={} bytes={}",
-        md.topic, md.partition, md.offset, pm.records_queued, pm.records_acked, pm.bytes_queued
+        "produced {}-{}@{} queued={} acked={} bytes={} ack_us={}",
+        md.topic,
+        md.partition,
+        md.offset,
+        pm.records_queued,
+        pm.records_acked,
+        pm.bytes_queued,
+        pm.ack_latency.mean_nanos().unwrap_or(0) / 1000
     );
     producer.close().await?;
 
@@ -28,11 +34,12 @@ async fn main() -> partitionline::Result<()> {
     let recs = consumer.fetch().await?;
     let cm = consumer.metrics();
     println!(
-        "fetched {} records rounds={} bytes={} errors={}",
+        "fetched {} records rounds={} bytes={} errors={} fetch_us={}",
         recs.len(),
         cm.fetch_rounds,
         cm.bytes_fetched,
-        cm.fetch_errors
+        cm.fetch_errors,
+        cm.fetch_latency.mean_nanos().unwrap_or(0) / 1000
     );
     consumer.close().await?;
     Ok(())

@@ -78,7 +78,8 @@ commits transactional offsets with epoch and a metadata string.
 JoinGroup and the heartbeat loop. `on_rebalance` is `(revoked, assigned)`.
 `max.poll.interval.ms` errors on the next `poll` if exceeded (`Error::MaxPollInterval`)
 and the heartbeat thread leaves the group.
-`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots.
+`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` are counter snapshots
+plus latency min/mean/max (produce-ack / fetch round).
 `client_instance_id` is Java `clientInstanceId` (KIP-714).
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite

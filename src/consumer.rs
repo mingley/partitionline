@@ -703,6 +703,7 @@ pub struct Consumer {
     wakeup_tx: watch::Sender<bool>,
     telemetry_version: Option<i16>,
     client_instance_id: Option<[u8; 16]>,
+    m_fetch_latency: crate::metrics::LatencyTracker,
 }
 
 /// Thread-safe handle that interrupts [`Consumer::fetch`] / group `poll`.
@@ -798,6 +799,7 @@ impl Consumer {
             wakeup_tx: watch::channel(false).0,
             telemetry_version,
             client_instance_id: None,
+            m_fetch_latency: crate::metrics::LatencyTracker::new(),
         })
     }
 
@@ -1268,9 +1270,11 @@ impl Consumer {
         if self.take_wakeup() {
             return Err(Error::Wakeup);
         }
+        let started = Instant::now();
         let result = self.fetch_assigned().await;
         match result {
             Ok(recs) => {
+                self.m_fetch_latency.record(started.elapsed());
                 let _ = self.m_fetch_rounds.fetch_add(1, Ordering::Relaxed);
                 let n = u64::try_from(recs.len()).unwrap_or(u64::MAX);
                 let _ = self.m_records.fetch_add(n, Ordering::Relaxed);
@@ -1302,7 +1306,7 @@ impl Consumer {
         out
     }
 
-    /// Fetch counters since connect.
+    /// Fetch counters and round latency since connect.
     #[must_use]
     pub fn metrics(&self) -> crate::ConsumerMetrics {
         crate::ConsumerMetrics {
@@ -1310,6 +1314,7 @@ impl Consumer {
             records_fetched: self.m_records.load(Ordering::Relaxed),
             bytes_fetched: self.m_bytes.load(Ordering::Relaxed),
             fetch_errors: self.m_errors.load(Ordering::Relaxed),
+            fetch_latency: self.m_fetch_latency.snapshot(),
         }
     }
 
