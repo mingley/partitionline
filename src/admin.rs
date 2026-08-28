@@ -75,7 +75,7 @@ use crate::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS,
     DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS,
-    INCREMENTAL_ALTER_CONFIGS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_DELETE,
     OFFSET_FETCH, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, UNREGISTER_BROKER,
     UPDATE_FEATURES,
@@ -86,6 +86,7 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_request,
     OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
+use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
 use crate::protocol::sasl;
 
@@ -618,6 +619,20 @@ pub struct ProducerIdBlock {
     pub producer_id_start: i64,
     /// Number of ids in the block.
     pub producer_id_len: i32,
+}
+
+/// One transactional.id fenced by [`Admin::fence_producers`].
+///
+/// Java `FenceProducersResult`: [`Self::producer_id`] is `producerId`,
+/// [`Self::epoch`] is `epoch`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FencedProducer {
+    /// Kafka `transactional.id`.
+    pub transactional_id: String,
+    /// Producer id after InitProducerId.
+    pub producer_id: i64,
+    /// Producer epoch after InitProducerId.
+    pub epoch: i16,
 }
 
 /// Kafka admin client: topics, configs, ACLs, groups, and cluster operations.
@@ -1978,6 +1993,100 @@ impl Admin {
                 producer_id_start: resp.producer_id_start,
                 producer_id_len: resp.producer_id_len,
             });
+        }
+    }
+
+    /// Fence transactional producers (Java `Admin.fenceProducers`).
+    ///
+    /// InitProducerId v0–v1 on each `transactional.id`'s transaction
+    /// coordinator (`FindCoordinator` `key_type=1`). Empty
+    /// `transactional_ids` returns an empty list. Coordinator load /
+    /// move errors refresh and retry. [`AdminConfig::request_timeout`]
+    /// is sent as `transaction.timeout.ms`.
+    pub async fn fence_producers(
+        &mut self,
+        transactional_ids: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Vec<FencedProducer>> {
+        let mut out = Vec::new();
+        for id in transactional_ids {
+            let transactional_id = id.into();
+            let (producer_id, epoch) = self.fence_one(&transactional_id).await?;
+            out.push(FencedProducer {
+                transactional_id,
+                producer_id,
+                epoch,
+            });
+        }
+        Ok(out)
+    }
+
+    async fn fence_one(&mut self, transactional_id: &str) -> Result<(i64, i16)> {
+        let version = self
+            .versions
+            .get(&INIT_PRODUCER_ID)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
+        let timeout = self.cfg.request_timeout;
+        let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        loop {
+            let stale = self
+                .txn_coord
+                .as_ref()
+                .is_none_or(|(k, _)| k != transactional_id);
+            if stale {
+                let node = self.discover_txn_coord(transactional_id).await?;
+                self.txn_coord = Some((transactional_id.to_string(), node));
+            }
+            let node = self
+                .txn_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing fence_producers conn"))?;
+                conn.roundtrip(
+                    INIT_PRODUCER_ID,
+                    version,
+                    |buf| {
+                        encode_init_producer_id_request(
+                            buf,
+                            version,
+                            Some(transactional_id),
+                            txn_timeout_ms,
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.txn_coord = None;
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let (err, producer_id, epoch) =
+                decode_init_producer_id_response(&mut body.clone(), version)?;
+            if err == 0 {
+                return Ok((producer_id, epoch));
+            }
+            if error::coordinator_retriable(err) {
+                self.txn_coord = None;
+                let _ = self.conns.remove(&node);
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            return Err(Error::broker(err, "InitProducerId"));
         }
     }
 

@@ -57,7 +57,8 @@ plus the next fetch offset. `assignment` is Java `assignment` (`positions`
 is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
 `alter_consumer_group_offsets` take `TopicPartition`.
-`Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`). `PartitionReassignment::assign`
+`Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
+`Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`). `PartitionReassignment::assign`
 takes `TopicPartition`. `send_offsets_to_transaction` takes
 `TopicPartition`. `AclBinding::allow_topic`, `AclResourceType`,
 `AclOperation`, and `AclPermission` cover CreateAcls / DescribeAcls /

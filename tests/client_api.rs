@@ -2419,3 +2419,21 @@ async fn admin_list_offsets_earliest_and_latest() {
     assert!(empty.is_empty());
     admin.close().await.unwrap();
 }
+
+#[tokio::test]
+async fn admin_fence_producers_inits_on_txn_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let fenced = admin.fence_producers(["tid-fence"]).await.unwrap();
+    assert_eq!(fenced.len(), 1);
+    assert_eq!(fenced[0].transactional_id, "tid-fence");
+    assert_eq!(fenced[0].producer_id, 1000);
+    assert_eq!(fenced[0].epoch, 0);
+    assert_eq!(mock.last_init_producer_id_node(), Some(1));
+    assert_eq!(mock.last_init_producer_id_timeout(), Some(30_000));
+    let empty = admin.fence_producers(Vec::<String>::new()).await.unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}

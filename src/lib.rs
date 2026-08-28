@@ -88,6 +88,7 @@
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]).
+//! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
 //! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
@@ -242,13 +243,14 @@ pub use admin::{
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    FeatureUpdate, FeatureUpdateResult, GetTelemetrySubscriptionsResponse, ListedConfigResource,
-    ListedGroup, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
-    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
-    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor,
-    TransactionListing, TransactionState, TransactionTopic, UserScramCredentialDeletion,
-    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    FeatureUpdate, FeatureUpdateResult, FencedProducer, GetTelemetrySubscriptionsResponse,
+    ListedConfigResource, ListedGroup, NewPartitions, NewTopic, OffsetDeleteResult,
+    OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse,
+    ReassignmentResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,

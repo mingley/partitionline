@@ -46,7 +46,8 @@ ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
 `partitions_for` includes leader epoch
 and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
-timestamp; returns `OffsetAndTimestamp`). `assignment` is Java `assignment`
+timestamp; returns `OffsetAndTimestamp`). `Admin::fence_producers` is Java
+`Admin.fenceProducers` (InitProducerId on the transaction coordinator). `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
