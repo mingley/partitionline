@@ -1,7 +1,7 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! Admin Kafka protocol codecs: topics, configs, groups, quotas,
+//! transactions, telemetry, log dirs, and delegation tokens.
+//!
+//! ACL codecs live in [`super::acl`].
 
 use std::fmt;
 
@@ -46,31 +46,47 @@ pub const CONFIG_SOURCE_DYNAMIC_TOPIC: i8 = 1;
 /// Config source: default.
 pub const CONFIG_SOURCE_DEFAULT: i8 = 5;
 
+/// Manual replica assignment for one CreateTopics partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplicaAssignment {
+    /// Partition index.
     pub partition_index: i32,
+    /// Replica broker ids.
     pub broker_ids: Vec<i32>,
 }
 
+/// Topic config key/value for CreateTopics.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicConfig {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Config value, or `None` when unset.
     pub value: Option<String>,
 }
 
+/// One topic in a CreateTopics request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreatableTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partition count, or `-1` to use cluster default.
     pub num_partitions: i32,
+    /// Replication factor, or `-1` to use cluster default.
     pub replication_factor: i16,
+    /// Manual replica assignments. Empty means broker default.
     pub assignments: Vec<ReplicaAssignment>,
+    /// Topic configs to set at create time.
     pub configs: Vec<TopicConfig>,
 }
 
+/// CreateTopics request body (classic v0–4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateTopicsRequest {
+    /// Topics in this request or response.
     pub topics: Vec<CreatableTopic>,
+    /// Broker-side operation timeout in milliseconds.
     pub timeout_ms: i32,
+    /// When true, validate without applying the change.
     pub validate_only: bool,
 }
 
@@ -213,6 +229,7 @@ pub fn encode_create_topics_request(
     Ok(())
 }
 
+/// Decode a CreateTopics request.
 pub fn decode_create_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -261,6 +278,7 @@ pub fn decode_create_topics_request<B: Buf>(
     })
 }
 
+/// Encode a CreateTopics response.
 pub fn encode_create_topics_response(
     buf: &mut BytesMut,
     version: i16,
@@ -280,6 +298,7 @@ pub fn encode_create_topics_response(
     Ok(())
 }
 
+/// Decode a CreateTopics response.
 pub fn decode_create_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -320,12 +339,14 @@ pub fn encode_delete_topics_request(
     Ok(())
 }
 
+/// Decode a DeleteTopics request.
 pub fn decode_delete_topics_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, i32)> {
     let names = get_string_array(buf)?.unwrap_or_default();
     let timeout_ms = buf::get_i32(buf)?;
     Ok((names, timeout_ms))
 }
 
+/// Encode a DeleteTopics response.
 pub fn encode_delete_topics_response(
     buf: &mut BytesMut,
     version: i16,
@@ -342,6 +363,7 @@ pub fn encode_delete_topics_response(
     Ok(())
 }
 
+/// Decode a DeleteTopics response.
 pub fn decode_delete_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -382,6 +404,7 @@ pub fn encode_describe_configs_request(
     Ok(())
 }
 
+/// Decode a DescribeConfigs request.
 pub fn decode_describe_configs_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -406,6 +429,7 @@ pub fn decode_describe_configs_request<B: Buf>(
     Ok((resources, include_synonyms))
 }
 
+/// Encode a DescribeConfigs response.
 pub fn encode_describe_configs_response(
     buf: &mut BytesMut,
     version: i16,
@@ -442,6 +466,7 @@ pub fn encode_describe_configs_response(
     Ok(())
 }
 
+/// Decode a DescribeConfigs response.
 pub fn decode_describe_configs_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -510,6 +535,7 @@ pub const ALTER_CONFIG_SET: i8 = 0;
 /// Incremental AlterConfigs op: delete a key.
 pub const ALTER_CONFIG_DELETE: i8 = 1;
 
+/// Encode a CreatePartitions request.
 pub fn encode_create_partitions_request(
     buf: &mut BytesMut,
     topics: &[(String, i32)],
@@ -527,6 +553,7 @@ pub fn encode_create_partitions_request(
     Ok(())
 }
 
+/// Decode a CreatePartitions request.
 pub fn decode_create_partitions_request<B: Buf>(buf: &mut B) -> Result<(Vec<(String, i32)>, bool)> {
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -547,6 +574,7 @@ pub fn decode_create_partitions_request<B: Buf>(buf: &mut B) -> Result<(Vec<(Str
     Ok((topics, validate_only))
 }
 
+/// Encode a CreatePartitions response.
 pub fn encode_create_partitions_response(
     buf: &mut BytesMut,
     results: &[TopicResult],
@@ -561,6 +589,7 @@ pub fn encode_create_partitions_response(
     Ok(())
 }
 
+/// Decode a CreatePartitions response.
 pub fn decode_create_partitions_response<B: Buf>(buf: &mut B) -> Result<Vec<TopicResult>> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -611,6 +640,7 @@ impl AlterConfig {
     }
 }
 
+/// Encode an IncrementalAlterConfigs request.
 pub fn encode_incremental_alter_configs_request(
     buf: &mut BytesMut,
     resource_type: i8,
@@ -631,6 +661,7 @@ pub fn encode_incremental_alter_configs_request(
     Ok(())
 }
 
+/// Decode an IncrementalAlterConfigs request.
 pub fn decode_incremental_alter_configs_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(i8, String, Vec<AlterConfig>, bool)> {
@@ -653,6 +684,7 @@ pub fn decode_incremental_alter_configs_request<B: Buf>(
     Ok((resource_type, name, configs, validate_only))
 }
 
+/// Encode an IncrementalAlterConfigs response.
 pub fn encode_incremental_alter_configs_response(
     buf: &mut BytesMut,
     error_code: i16,
@@ -667,6 +699,7 @@ pub fn encode_incremental_alter_configs_response(
     Ok(())
 }
 
+/// Decode an IncrementalAlterConfigs response.
 pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, false)?.unwrap_or(0);
@@ -679,6 +712,7 @@ pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B) -> Result<
     Ok(error_code)
 }
 
+/// Encode an AlterConfigs request.
 pub fn encode_alter_configs_request(
     buf: &mut BytesMut,
     _version: i16,
@@ -699,6 +733,7 @@ pub fn encode_alter_configs_request(
     Ok(())
 }
 
+/// Decode an AlterConfigs request.
 pub fn decode_alter_configs_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(i8, String, Vec<TopicConfig>, bool)> {
@@ -716,6 +751,7 @@ pub fn decode_alter_configs_request<B: Buf>(
     Ok((resource_type, name, configs, validate_only))
 }
 
+/// Encode an AlterConfigs response.
 pub fn encode_alter_configs_response(
     buf: &mut BytesMut,
     version: i16,
@@ -733,6 +769,7 @@ pub fn encode_alter_configs_response(
     Ok(())
 }
 
+/// Decode an AlterConfigs response.
 pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
     if version >= 1 {
         let _th = buf::get_i32(buf)?;
@@ -741,6 +778,7 @@ pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     buf::get_i16(buf)
 }
 
+/// Encode a DeleteRecords request.
 pub fn encode_delete_records_request(
     buf: &mut BytesMut,
     topic: &str,
@@ -757,6 +795,7 @@ pub fn encode_delete_records_request(
     Ok(())
 }
 
+/// Decode a DeleteRecords request.
 pub fn decode_delete_records_request<B: Buf>(buf: &mut B) -> Result<(String, i32, i64, i32)> {
     let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
     let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
@@ -767,6 +806,7 @@ pub fn decode_delete_records_request<B: Buf>(buf: &mut B) -> Result<(String, i32
     Ok((topic, partition, offset, timeout_ms))
 }
 
+/// Encode a DeleteRecords response.
 pub fn encode_delete_records_response(
     buf: &mut BytesMut,
     version: i16,
@@ -787,6 +827,7 @@ pub fn encode_delete_records_response(
     Ok(())
 }
 
+/// Decode a DeleteRecords response.
 pub fn decode_delete_records_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -818,6 +859,7 @@ pub struct ClusterDescription {
     pub brokers: Vec<super::api::Broker>,
 }
 
+/// Encode a DescribeCluster request.
 pub fn encode_describe_cluster_request(
     buf: &mut BytesMut,
     include_authorized_operations: bool,
@@ -827,12 +869,14 @@ pub fn encode_describe_cluster_request(
     Ok(())
 }
 
+/// Decode a DescribeCluster request.
 pub fn decode_describe_cluster_request<B: Buf>(buf: &mut B) -> Result<bool> {
     let include = buf::get_bool(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(include)
 }
 
+/// Encode a DescribeCluster response.
 pub fn encode_describe_cluster_response(
     buf: &mut BytesMut,
     desc: &ClusterDescription,
@@ -858,37 +902,49 @@ pub fn encode_describe_cluster_response(
 /// One partition in AlterPartitionReassignments v0 (flexible).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignablePartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Replica broker ids, or `None` to cancel the reassignment.
     pub replicas: Option<Vec<i32>>,
 }
 
 /// One topic in AlterPartitionReassignments v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignableTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<ReassignablePartition>,
 }
 
 /// Per-partition result of AlterPartitionReassignments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignmentPartitionResult {
+    /// Partition index.
     pub partition_index: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// Per-topic result of AlterPartitionReassignments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignmentTopicResult {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<ReassignmentPartitionResult>,
 }
 
 /// AlterPartitionReassignments v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterPartitionReassignmentsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Per-item results.
     pub results: Vec<ReassignmentTopicResult>,
 }
 
@@ -941,6 +997,7 @@ pub fn encode_alter_partition_reassignments_request(
     Ok(())
 }
 
+/// Decode an AlterPartitionReassignments request.
 pub fn decode_alter_partition_reassignments_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(i32, Vec<ReassignableTopic>)> {
@@ -967,6 +1024,7 @@ pub fn decode_alter_partition_reassignments_request<B: Buf>(
     Ok((timeout_ms, topics))
 }
 
+/// Encode an AlterPartitionReassignments response.
 pub fn encode_alter_partition_reassignments_response(
     buf: &mut BytesMut,
     resp: &AlterPartitionReassignmentsResponse,
@@ -990,6 +1048,7 @@ pub fn encode_alter_partition_reassignments_response(
     Ok(())
 }
 
+/// Decode an AlterPartitionReassignments response.
 pub fn decode_alter_partition_reassignments_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AlterPartitionReassignmentsResponse> {
@@ -1027,31 +1086,42 @@ pub fn decode_alter_partition_reassignments_response<B: Buf>(
 /// One topic in ListPartitionReassignments v0 (flexible; topics nullable).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListReassignmentTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partition indexes.
     pub partition_indexes: Vec<i32>,
 }
 
 /// One ongoing partition reassignment in the List response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingPartitionReassignment {
+    /// Partition index.
     pub partition_index: i32,
+    /// Replica broker ids.
     pub replicas: Vec<i32>,
+    /// Replicas being added.
     pub adding_replicas: Vec<i32>,
+    /// Replicas being removed.
     pub removing_replicas: Vec<i32>,
 }
 
 /// One topic in ListPartitionReassignments response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingTopicReassignment {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<OngoingPartitionReassignment>,
 }
 
 /// ListPartitionReassignments v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListPartitionReassignmentsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Topics in this request or response.
     pub topics: Vec<OngoingTopicReassignment>,
 }
 
@@ -1087,6 +1157,7 @@ pub fn encode_list_partition_reassignments_request(
     Ok(())
 }
 
+/// Decode a ListPartitionReassignments request.
 pub fn decode_list_partition_reassignments_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(i32, Option<Vec<ListReassignmentTopic>>)> {
@@ -1111,6 +1182,7 @@ pub fn decode_list_partition_reassignments_request<B: Buf>(
     Ok((timeout_ms, topics))
 }
 
+/// Encode a ListPartitionReassignments response.
 pub fn encode_list_partition_reassignments_response(
     buf: &mut BytesMut,
     resp: &ListPartitionReassignmentsResponse,
@@ -1135,6 +1207,7 @@ pub fn encode_list_partition_reassignments_response(
     Ok(())
 }
 
+/// Decode a ListPartitionReassignments response.
 pub fn decode_list_partition_reassignments_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ListPartitionReassignmentsResponse> {
@@ -1174,24 +1247,33 @@ pub fn decode_list_partition_reassignments_response<B: Buf>(
 /// One finalized-feature update in UpdateFeatures v0 (flexible; KIP-584).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdateKey {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Maximum feature version to set.
     pub max_version_level: i16,
+    /// When true, the broker may lower the feature level.
     pub allow_downgrade: bool,
 }
 
 /// Per-feature result of UpdateFeatures v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdatableFeatureResult {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// UpdateFeatures v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFeaturesResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Per-item results.
     pub results: Vec<UpdatableFeatureResult>,
 }
 
@@ -1218,6 +1300,7 @@ pub fn encode_update_features_request(
     Ok(())
 }
 
+/// Decode an UpdateFeatures request.
 pub fn decode_update_features_request<B: Buf>(buf: &mut B) -> Result<(i32, Vec<FeatureUpdateKey>)> {
     let timeout_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -1237,6 +1320,7 @@ pub fn decode_update_features_request<B: Buf>(buf: &mut B) -> Result<(i32, Vec<F
     Ok((timeout_ms, updates))
 }
 
+/// Encode an UpdateFeatures response.
 pub fn encode_update_features_response(
     buf: &mut BytesMut,
     resp: &UpdateFeaturesResponse,
@@ -1255,6 +1339,7 @@ pub fn encode_update_features_response(
     Ok(())
 }
 
+/// Decode an UpdateFeatures response.
 pub fn decode_update_features_response<B: Buf>(buf: &mut B) -> Result<UpdateFeaturesResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -1283,7 +1368,9 @@ pub fn decode_update_features_response<B: Buf>(buf: &mut B) -> Result<UpdateFeat
 /// One SCRAM credential to remove (AlterUserScramCredentials v0).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScramCredentialDeletion {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
     pub mechanism: i8,
 }
 
@@ -1293,10 +1380,15 @@ pub struct ScramCredentialDeletion {
 /// hash a password. `Debug` redacts those fields.
 #[derive(Clone, PartialEq, Eq)]
 pub struct ScramCredentialUpsertion {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
     pub mechanism: i8,
+    /// SCRAM iteration count.
     pub iterations: i32,
+    /// SCRAM salt.
     pub salt: Vec<u8>,
+    /// SCRAM salted password.
     pub salted_password: Vec<u8>,
 }
 
@@ -1315,8 +1407,11 @@ impl fmt::Debug for ScramCredentialUpsertion {
 /// Per-user result of AlterUserScramCredentials v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterUserScramCredentialsResult {
+    /// SCRAM user name.
     pub user: String,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
@@ -1354,6 +1449,7 @@ pub fn encode_alter_user_scram_credentials_request(
     Ok(())
 }
 
+/// Decode an AlterUserScramCredentials request.
 pub fn decode_alter_user_scram_credentials_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(Vec<ScramCredentialDeletion>, Vec<ScramCredentialUpsertion>)> {
@@ -1386,6 +1482,7 @@ pub fn decode_alter_user_scram_credentials_request<B: Buf>(
     Ok((deletions, upsertions))
 }
 
+/// Encode an AlterUserScramCredentials response.
 pub fn encode_alter_user_scram_credentials_response(
     buf: &mut BytesMut,
     results: &[AlterUserScramCredentialsResult],
@@ -1402,6 +1499,7 @@ pub fn encode_alter_user_scram_credentials_response(
     Ok(())
 }
 
+/// Decode an AlterUserScramCredentials response.
 pub fn decode_alter_user_scram_credentials_response<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<AlterUserScramCredentialsResult>> {
@@ -1429,16 +1527,22 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
 /// carry salt or salted password.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScramCredentialInfo {
+    /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
     pub mechanism: i8,
+    /// SCRAM iteration count.
     pub iterations: i32,
 }
 
 /// Per-user result of DescribeUserScramCredentials v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResult {
+    /// SCRAM user name.
     pub user: String,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// SCRAM credentials for this user.
     pub credential_infos: Vec<ScramCredentialInfo>,
 }
 
@@ -1457,11 +1561,15 @@ pub struct DescribeUserScramCredentialsResult {
 /// 41 after compact User at bytes 11–12). Fixture users only.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Per-item results.
     pub results: Vec<DescribeUserScramCredentialsResult>,
 }
 
+/// Encode a DescribeUserScramCredentials request.
 pub fn encode_describe_user_scram_credentials_request(
     buf: &mut BytesMut,
     users: Option<&[String]>,
@@ -1477,6 +1585,7 @@ pub fn encode_describe_user_scram_credentials_request(
     Ok(())
 }
 
+/// Decode a DescribeUserScramCredentials request.
 pub fn decode_describe_user_scram_credentials_request<B: Buf>(
     buf: &mut B,
 ) -> Result<Option<Vec<String>>> {
@@ -1497,6 +1606,7 @@ pub fn decode_describe_user_scram_credentials_request<B: Buf>(
     Ok(users)
 }
 
+/// Encode a DescribeUserScramCredentials response.
 pub fn encode_describe_user_scram_credentials_response(
     buf: &mut BytesMut,
     resp: &DescribeUserScramCredentialsResponse,
@@ -1521,6 +1631,7 @@ pub fn encode_describe_user_scram_credentials_response(
     Ok(())
 }
 
+/// Decode a DescribeUserScramCredentials response.
 pub fn decode_describe_user_scram_credentials_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeUserScramCredentialsResponse> {
@@ -1563,11 +1674,14 @@ pub fn decode_describe_user_scram_credentials_response<B: Buf>(
 /// One quota entity component (type + optional name). Null name is the default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaEntity {
+    /// Quota entity type (for example `client-id`).
     pub entity_type: String,
+    /// Topic, resource, group, or feature name.
     pub name: Option<String>,
 }
 
 impl ClientQuotaEntity {
+    /// Construct [`Self`].
     pub fn new(entity_type: impl Into<String>, name: Option<String>) -> Self {
         Self {
             entity_type: entity_type.into(),
@@ -1586,12 +1700,16 @@ pub const QUOTA_MATCH_ANY: i8 = 2;
 /// One filter component in DescribeClientQuotas (api 48).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaFilterComponent {
+    /// Quota entity type (for example `client-id`).
     pub entity_type: String,
+    /// Quota filter match type (`QUOTA_MATCH_*`).
     pub match_type: i8,
+    /// Quota filter match value.
     pub match_value: Option<String>,
 }
 
 impl ClientQuotaFilterComponent {
+    /// Construct [`Self`].
     pub fn new(
         entity_type: impl Into<String>,
         match_type: i8,
@@ -1608,11 +1726,14 @@ impl ClientQuotaFilterComponent {
 /// One quota key/value in a DescribeClientQuotas entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaValue {
+    /// Quota or config key.
     pub key: String,
+    /// Quota value.
     pub value: f64,
 }
 
 impl ClientQuotaValue {
+    /// Construct [`Self`].
     pub fn new(key: impl Into<String>, value: f64) -> Self {
         Self {
             key: key.into(),
@@ -1624,11 +1745,14 @@ impl ClientQuotaValue {
 /// One described quota entity plus its values.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaEntry {
+    /// Quota entity entries.
     pub entity: Vec<ClientQuotaEntity>,
+    /// Quota key/value pairs.
     pub values: Vec<ClientQuotaValue>,
 }
 
 impl ClientQuotaEntry {
+    /// Construct [`Self`].
     pub fn new(entity: Vec<ClientQuotaEntity>, values: Vec<ClientQuotaValue>) -> Self {
         Self { entity, values }
     }
@@ -1637,8 +1761,11 @@ impl ClientQuotaEntry {
 /// DescribeClientQuotas v1 response body (top-level ErrorCode).
 #[derive(Debug, Clone, PartialEq)]
 pub struct DescribeClientQuotasResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Matching quota entries.
     pub entries: Option<Vec<ClientQuotaEntry>>,
 }
 
@@ -1648,12 +1775,16 @@ pub struct DescribeClientQuotasResponse {
 /// live cluster quota store.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaOp {
+    /// Quota or config key.
     pub key: String,
+    /// Quota value.
     pub value: f64,
+    /// When true, delete this quota key.
     pub remove: bool,
 }
 
 impl ClientQuotaOp {
+    /// Quota op that sets `key` to `value`.
     pub fn set(key: impl Into<String>, value: f64) -> Self {
         Self {
             key: key.into(),
@@ -1662,6 +1793,7 @@ impl ClientQuotaOp {
         }
     }
 
+    /// Quota op that deletes `key`.
     pub fn remove(key: impl Into<String>) -> Self {
         Self {
             key: key.into(),
@@ -1674,11 +1806,14 @@ impl ClientQuotaOp {
 /// One entity plus its ops in AlterClientQuotas v1.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaAlteration {
+    /// Quota entity entries.
     pub entity: Vec<ClientQuotaEntity>,
+    /// Quota alterations.
     pub ops: Vec<ClientQuotaOp>,
 }
 
 impl ClientQuotaAlteration {
+    /// Construct [`Self`].
     pub fn new(entity: Vec<ClientQuotaEntity>, ops: Vec<ClientQuotaOp>) -> Self {
         Self { entity, ops }
     }
@@ -1688,8 +1823,11 @@ impl ClientQuotaAlteration {
 /// there is no top-level response error_code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaAlterationResult {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Quota entity entries.
     pub entity: Vec<ClientQuotaEntity>,
 }
 
@@ -1733,6 +1871,7 @@ pub fn encode_alter_client_quotas_request(
     Ok(())
 }
 
+/// Decode an AlterClientQuotas request.
 pub fn decode_alter_client_quotas_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(Vec<ClientQuotaAlteration>, bool)> {
@@ -1764,6 +1903,7 @@ pub fn decode_alter_client_quotas_request<B: Buf>(
     Ok((entries, validate_only))
 }
 
+/// Encode an AlterClientQuotas response.
 pub fn encode_alter_client_quotas_response(
     buf: &mut BytesMut,
     results: &[ClientQuotaAlterationResult],
@@ -1785,6 +1925,7 @@ pub fn encode_alter_client_quotas_response(
     Ok(())
 }
 
+/// Decode an AlterClientQuotas response.
 pub fn decode_alter_client_quotas_response<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<ClientQuotaAlterationResult>> {
@@ -1847,6 +1988,7 @@ pub fn encode_describe_client_quotas_request(
     Ok(())
 }
 
+/// Decode a DescribeClientQuotas request.
 pub fn decode_describe_client_quotas_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(Vec<ClientQuotaFilterComponent>, bool)> {
@@ -1868,6 +2010,7 @@ pub fn decode_describe_client_quotas_request<B: Buf>(
     Ok((components, strict))
 }
 
+/// Encode a DescribeClientQuotas response.
 pub fn encode_describe_client_quotas_response(
     buf: &mut BytesMut,
     resp: &DescribeClientQuotasResponse,
@@ -1900,6 +2043,7 @@ pub fn encode_describe_client_quotas_response(
     Ok(())
 }
 
+/// Decode a DescribeClientQuotas response.
 pub fn decode_describe_client_quotas_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeClientQuotasResponse> {
@@ -1944,15 +2088,22 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
 /// One active producer in DescribeProducers (api 61, KIP-360).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveProducer {
+    /// Producer id, or `-1`.
     pub producer_id: i64,
+    /// Producer epoch, or `-1`.
     pub producer_epoch: i32,
+    /// Last Produce sequence number.
     pub last_sequence: i32,
+    /// Last Produce timestamp (milliseconds).
     pub last_timestamp: i64,
+    /// Transaction coordinator epoch.
     pub coordinator_epoch: i32,
+    /// Start offset of the current transaction, or `-1`.
     pub current_txn_start_offset: i64,
 }
 
 impl ActiveProducer {
+    /// Construct [`Self`].
     pub fn new(
         producer_id: i64,
         producer_epoch: i32,
@@ -1976,13 +2127,18 @@ impl ActiveProducer {
 /// at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersPartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Active producers on this partition.
     pub active_producers: Vec<ActiveProducer>,
 }
 
 impl DescribeProducersPartition {
+    /// Construct [`Self`].
     pub fn new(
         partition_index: i32,
         error_code: i16,
@@ -2001,11 +2157,14 @@ impl DescribeProducersPartition {
 /// One topic in a DescribeProducers v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<DescribeProducersPartition>,
 }
 
 impl DescribeProducersTopic {
+    /// Construct [`Self`].
     pub fn new(name: impl Into<String>, partitions: Vec<DescribeProducersPartition>) -> Self {
         Self {
             name: name.into(),
@@ -2018,10 +2177,12 @@ impl DescribeProducersTopic {
 /// after throttle; the first-partition code is later in the body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersResponse {
+    /// Topics in this request or response.
     pub topics: Vec<DescribeProducersTopic>,
 }
 
 impl DescribeProducersResponse {
+    /// Construct [`Self`].
     pub fn new(topics: Vec<DescribeProducersTopic>) -> Self {
         Self { topics }
     }
@@ -2065,6 +2226,7 @@ pub fn encode_describe_producers_request(
     Ok(())
 }
 
+/// Decode a DescribeProducers request.
 pub fn decode_describe_producers_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<i32>)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut topic = String::new();
@@ -2086,6 +2248,7 @@ pub fn decode_describe_producers_request<B: Buf>(buf: &mut B) -> Result<(String,
     Ok((topic, partitions))
 }
 
+/// Encode a DescribeProducers response.
 pub fn encode_describe_producers_response(
     buf: &mut BytesMut,
     resp: &DescribeProducersResponse,
@@ -2117,6 +2280,7 @@ pub fn encode_describe_producers_response(
     Ok(())
 }
 
+/// Decode a DescribeProducers response.
 pub fn decode_describe_producers_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeProducersResponse> {
@@ -2168,8 +2332,11 @@ pub fn decode_describe_producers_response<B: Buf>(
 /// AllocateProducerIds v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocateProducerIdsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// First producer id in the allocated block.
     pub producer_id_start: i64,
+    /// Number of producer ids in the allocated block.
     pub producer_id_len: i32,
 }
 
@@ -2195,6 +2362,7 @@ pub fn encode_allocate_producer_ids_request(
     Ok(())
 }
 
+/// Decode an AllocateProducerIds request.
 pub fn decode_allocate_producer_ids_request<B: Buf>(buf: &mut B) -> Result<(i32, i64)> {
     let broker_id = buf::get_i32(buf)?;
     let broker_epoch = buf::get_i64(buf)?;
@@ -2202,6 +2370,7 @@ pub fn decode_allocate_producer_ids_request<B: Buf>(buf: &mut B) -> Result<(i32,
     Ok((broker_id, broker_epoch))
 }
 
+/// Encode an AllocateProducerIds response.
 pub fn encode_allocate_producer_ids_response(
     buf: &mut BytesMut,
     resp: &AllocateProducerIdsResponse,
@@ -2214,6 +2383,7 @@ pub fn encode_allocate_producer_ids_response(
     Ok(())
 }
 
+/// Decode an AllocateProducerIds response.
 pub fn decode_allocate_producer_ids_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AllocateProducerIdsResponse> {
@@ -2232,20 +2402,30 @@ pub fn decode_allocate_producer_ids_response<B: Buf>(
 /// One topic in a DescribeTransactions v0 transaction state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 /// One transactional.id result from DescribeTransactions (api 65) v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionState {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Kafka `transactional.id`.
     pub transactional_id: String,
+    /// Transaction state name from the broker.
     pub transaction_state: String,
+    /// Transaction timeout in milliseconds.
     pub transaction_timeout_ms: i32,
+    /// Transaction start time in milliseconds since the Unix epoch.
     pub transaction_start_time_ms: i64,
+    /// Producer id, or `-1`.
     pub producer_id: i64,
+    /// Producer epoch, or `-1`.
     pub producer_epoch: i16,
+    /// Topics in this request or response.
     pub topics: Vec<TransactionTopic>,
 }
 
@@ -2275,6 +2455,7 @@ pub fn encode_describe_transactions_request(
     Ok(())
 }
 
+/// Decode a DescribeTransactions request.
 pub fn decode_describe_transactions_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut ids = Vec::with_capacity(n);
@@ -2285,6 +2466,7 @@ pub fn decode_describe_transactions_request<B: Buf>(buf: &mut B) -> Result<Vec<S
     Ok(ids)
 }
 
+/// Encode a DescribeTransactions response.
 pub fn encode_describe_transactions_response(
     buf: &mut BytesMut,
     states: &[TransactionState],
@@ -2314,6 +2496,7 @@ pub fn encode_describe_transactions_response(
     Ok(())
 }
 
+/// Decode a DescribeTransactions response.
 pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<TransactionState>> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -2359,8 +2542,11 @@ pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<
 /// This is not [`TransactionState`] (DescribeTransactions api 65).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionListing {
+    /// Kafka `transactional.id`.
     pub transactional_id: String,
+    /// Producer id, or `-1`.
     pub producer_id: i64,
+    /// Transaction state name from the broker.
     pub transaction_state: String,
 }
 
@@ -2382,11 +2568,15 @@ pub struct TransactionListing {
 /// at bytes 5–6). Fixture transactional ids only.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListTransactionsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Transaction state filters the broker did not recognize.
     pub unknown_state_filters: Vec<String>,
+    /// Matching transactions.
     pub transaction_states: Vec<TransactionListing>,
 }
 
+/// Encode a ListTransactions request.
 pub fn encode_list_transactions_request(
     buf: &mut BytesMut,
     state_filters: &[String],
@@ -2404,6 +2594,7 @@ pub fn encode_list_transactions_request(
     Ok(())
 }
 
+/// Decode a ListTransactions request.
 pub fn decode_list_transactions_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, Vec<i64>)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut state_filters = Vec::with_capacity(n);
@@ -2419,6 +2610,7 @@ pub fn decode_list_transactions_request<B: Buf>(buf: &mut B) -> Result<(Vec<Stri
     Ok((state_filters, producer_id_filters))
 }
 
+/// Encode a ListTransactions response.
 pub fn encode_list_transactions_response(
     buf: &mut BytesMut,
     resp: &ListTransactionsResponse,
@@ -2440,6 +2632,7 @@ pub fn encode_list_transactions_response(
     Ok(())
 }
 
+/// Decode a ListTransactions response.
 pub fn decode_list_transactions_response<B: Buf>(buf: &mut B) -> Result<ListTransactionsResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2485,10 +2678,13 @@ pub fn decode_list_transactions_response<B: Buf>(buf: &mut B) -> Result<ListTran
 /// 5–6). Fixture broker id only; not a live KRaft unregistration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnregisterBrokerResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
+/// Encode an UnregisterBroker request.
 pub fn encode_unregister_broker_request(
     buf: &mut BytesMut,
     broker_id: i32,
@@ -2498,12 +2694,14 @@ pub fn encode_unregister_broker_request(
     Ok(())
 }
 
+/// Decode an UnregisterBroker request.
 pub fn decode_unregister_broker_request<B: Buf>(buf: &mut B) -> Result<i32> {
     let broker_id = buf::get_i32(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(broker_id)
 }
 
+/// Encode an UnregisterBroker response.
 pub fn encode_unregister_broker_response(
     buf: &mut BytesMut,
     resp: &UnregisterBrokerResponse,
@@ -2515,6 +2713,7 @@ pub fn encode_unregister_broker_response(
     Ok(())
 }
 
+/// Decode an UnregisterBroker response.
 pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<UnregisterBrokerResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2526,6 +2725,7 @@ pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<Unregist
     })
 }
 
+/// Decode a DescribeCluster response.
 pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -2564,12 +2764,16 @@ pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
 /// One assigned topic in ConsumerGroupDescribe (api 69) Assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupTopicPartitions {
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Topic name.
     pub topic_name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 impl ConsumerGroupTopicPartitions {
+    /// Construct [`Self`].
     pub fn new(topic_id: [u8; 16], topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
         Self {
             topic_id,
@@ -2582,10 +2786,12 @@ impl ConsumerGroupTopicPartitions {
 /// Current or target assignment for one described member.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConsumerGroupAssignment {
+    /// Assigned topic partitions.
     pub topic_partitions: Vec<ConsumerGroupTopicPartitions>,
 }
 
 impl ConsumerGroupAssignment {
+    /// Construct [`Self`].
     pub fn new(topic_partitions: Vec<ConsumerGroupTopicPartitions>) -> Self {
         Self { topic_partitions }
     }
@@ -2596,20 +2802,32 @@ impl ConsumerGroupAssignment {
 /// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMember {
+    /// Group member id.
     pub member_id: String,
+    /// Kafka `group.instance.id`, when static membership is set.
     pub instance_id: Option<String>,
+    /// Client rack, when known.
     pub rack_id: Option<String>,
+    /// Member epoch (KIP-848 / share).
     pub member_epoch: i32,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Client host as seen by the broker.
     pub client_host: String,
+    /// Subscribed topic names.
     pub subscribed_topic_names: Vec<String>,
+    /// Subscribed topic regex, when present.
     pub subscribed_topic_regex: Option<String>,
+    /// Assigned partitions for this member.
     pub assignment: ConsumerGroupAssignment,
+    /// Target assignment (KIP-848).
     pub target_assignment: ConsumerGroupAssignment,
+    /// Member type byte from the broker.
     pub member_type: i8,
 }
 
 impl ConsumerGroupMember {
+    /// Construct [`Self`].
     pub fn new(
         member_id: impl Into<String>,
         member_epoch: i32,
@@ -2637,18 +2855,28 @@ impl ConsumerGroupMember {
 /// ErrorCode sits here, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedConsumerGroup {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Group state name from the broker.
     pub group_state: String,
+    /// Group epoch.
     pub group_epoch: i32,
+    /// Assignment epoch.
     pub assignment_epoch: i32,
+    /// Assignor name.
     pub assignor_name: String,
+    /// Group members.
     pub members: Vec<ConsumerGroupMember>,
+    /// Bitfield of authorized operations, or `AUTHORIZED_OPERATIONS_OMITTED`.
     pub authorized_operations: i32,
 }
 
 impl DescribedConsumerGroup {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             error_code,
@@ -2706,6 +2934,7 @@ pub fn encode_consumer_group_describe_request(
     Ok(())
 }
 
+/// Decode a ConsumerGroupDescribe request.
 pub fn decode_consumer_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
@@ -2811,6 +3040,7 @@ fn decode_consumer_group_member<B: Buf>(buf: &mut B) -> Result<ConsumerGroupMemb
     })
 }
 
+/// Encode a ConsumerGroupDescribe response.
 pub fn encode_consumer_group_describe_response(
     buf: &mut BytesMut,
     groups: &[DescribedConsumerGroup],
@@ -2836,6 +3066,7 @@ pub fn encode_consumer_group_describe_response(
     Ok(())
 }
 
+/// Decode a ConsumerGroupDescribe response.
 pub fn decode_consumer_group_describe_response<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<DescribedConsumerGroup>> {
@@ -2879,15 +3110,22 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
 /// protocol bytes, not a parsed member store.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedGroupMember {
+    /// Group member id.
     pub member_id: String,
+    /// Kafka `group.instance.id`, when static membership is set.
     pub group_instance_id: Option<String>,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Client host as seen by the broker.
     pub client_host: String,
+    /// Classic JoinGroup member metadata bytes.
     pub member_metadata: Vec<u8>,
+    /// Classic SyncGroup assignment bytes.
     pub member_assignment: Vec<u8>,
 }
 
 impl DescribedGroupMember {
+    /// Construct [`Self`].
     pub fn new(
         member_id: impl Into<String>,
         client_id: impl Into<String>,
@@ -2909,17 +3147,26 @@ impl DescribedGroupMember {
 /// ErrorCode sits here, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedGroup {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Group state name from the broker.
     pub group_state: String,
+    /// Group protocol type (for example `consumer`).
     pub protocol_type: String,
+    /// Classic group protocol data.
     pub protocol_data: String,
+    /// Group members.
     pub members: Vec<DescribedGroupMember>,
+    /// Bitfield of authorized operations, or `AUTHORIZED_OPERATIONS_OMITTED`.
     pub authorized_operations: i32,
 }
 
 impl DescribedGroup {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             error_code,
@@ -2975,6 +3222,7 @@ pub fn encode_describe_groups_request(
     Ok(())
 }
 
+/// Decode a DescribeGroups request.
 pub fn decode_describe_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
@@ -3018,6 +3266,7 @@ fn decode_described_group_member<B: Buf>(buf: &mut B) -> Result<DescribedGroupMe
     })
 }
 
+/// Encode a DescribeGroups response.
 pub fn encode_describe_groups_response(
     buf: &mut BytesMut,
     groups: &[DescribedGroup],
@@ -3042,6 +3291,7 @@ pub fn encode_describe_groups_response(
     Ok(())
 }
 
+/// Decode a DescribeGroups response.
 pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DescribedGroup>> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -3081,13 +3331,18 @@ pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<Descri
 /// of the body, after throttle.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedGroup {
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Group protocol type (for example `consumer`).
     pub protocol_type: String,
+    /// Group state name from the broker.
     pub group_state: String,
+    /// Group type (`classic`, `consumer`, `share`, …).
     pub group_type: String,
 }
 
 impl ListedGroup {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>) -> Self {
         Self {
             group_id: group_id.into(),
@@ -3121,10 +3376,13 @@ impl ListedGroup {
 /// FindCoordinator hop, no controller hop, no partition-leader hop.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListGroupsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Groups in this response.
     pub groups: Vec<ListedGroup>,
 }
 
+/// Encode a ListGroups request.
 pub fn encode_list_groups_request(
     buf: &mut BytesMut,
     states_filter: &[String],
@@ -3142,6 +3400,7 @@ pub fn encode_list_groups_request(
     Ok(())
 }
 
+/// Decode a ListGroups request.
 pub fn decode_list_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, Vec<String>)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut states_filter = Vec::with_capacity(n);
@@ -3157,6 +3416,7 @@ pub fn decode_list_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, V
     Ok((states_filter, types_filter))
 }
 
+/// Encode a ListGroups response.
 pub fn encode_list_groups_response(
     buf: &mut BytesMut,
     resp: &ListGroupsResponse,
@@ -3175,6 +3435,7 @@ pub fn encode_list_groups_response(
     Ok(())
 }
 
+/// Decode a ListGroups response.
 pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -3202,11 +3463,14 @@ pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResp
 /// ErrorCode sits here after GroupId, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletableGroupResult {
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl DeletableGroupResult {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             group_id: group_id.into(),
@@ -3253,6 +3517,7 @@ pub fn encode_delete_groups_request(
     Ok(())
 }
 
+/// Decode a DeleteGroups request.
 pub fn decode_delete_groups_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
@@ -3263,6 +3528,7 @@ pub fn decode_delete_groups_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> 
     Ok(group_ids)
 }
 
+/// Encode a DeleteGroups response.
 pub fn encode_delete_groups_response(
     buf: &mut BytesMut,
     results: &[DeletableGroupResult],
@@ -3278,6 +3544,7 @@ pub fn encode_delete_groups_response(
     Ok(())
 }
 
+/// Decode a DeleteGroups response.
 pub fn decode_delete_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DeletableGroupResult>> {
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -3298,12 +3565,16 @@ pub fn decode_delete_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<Deletabl
 /// One assigned topic in ShareGroupDescribe (api 77) Assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupTopicPartitions {
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Topic name.
     pub topic_name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 impl ShareGroupTopicPartitions {
+    /// Construct [`Self`].
     pub fn new(topic_id: [u8; 16], topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
         Self {
             topic_id,
@@ -3316,10 +3587,12 @@ impl ShareGroupTopicPartitions {
 /// Current assignment for one described share-group member.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShareGroupAssignment {
+    /// Assigned topic partitions.
     pub topic_partitions: Vec<ShareGroupTopicPartitions>,
 }
 
 impl ShareGroupAssignment {
+    /// Construct [`Self`].
     pub fn new(topic_partitions: Vec<ShareGroupTopicPartitions>) -> Self {
         Self { topic_partitions }
     }
@@ -3332,16 +3605,24 @@ impl ShareGroupAssignment {
 /// SubscribedTopicRegex, TargetAssignment, or MemberType.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupMember {
+    /// Group member id.
     pub member_id: String,
+    /// Client rack, when known.
     pub rack_id: Option<String>,
+    /// Member epoch (KIP-848 / share).
     pub member_epoch: i32,
+    /// Kafka `client.id`.
     pub client_id: String,
+    /// Client host as seen by the broker.
     pub client_host: String,
+    /// Subscribed topic names.
     pub subscribed_topic_names: Vec<String>,
+    /// Assigned partitions for this member.
     pub assignment: ShareGroupAssignment,
 }
 
 impl ShareGroupMember {
+    /// Construct [`Self`].
     pub fn new(
         member_id: impl Into<String>,
         member_epoch: i32,
@@ -3365,18 +3646,28 @@ impl ShareGroupMember {
 /// ErrorCode sits here, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroup {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Group state name from the broker.
     pub group_state: String,
+    /// Group epoch.
     pub group_epoch: i32,
+    /// Assignment epoch.
     pub assignment_epoch: i32,
+    /// Assignor name.
     pub assignor_name: String,
+    /// Group members.
     pub members: Vec<ShareGroupMember>,
+    /// Bitfield of authorized operations, or `AUTHORIZED_OPERATIONS_OMITTED`.
     pub authorized_operations: i32,
 }
 
 impl DescribedShareGroup {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             error_code,
@@ -3443,6 +3734,7 @@ pub fn encode_share_group_describe_request(
     Ok(())
 }
 
+/// Decode a ShareGroupDescribe request.
 pub fn decode_share_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
@@ -3536,6 +3828,7 @@ fn decode_share_group_member<B: Buf>(buf: &mut B) -> Result<ShareGroupMember> {
     })
 }
 
+/// Encode a ShareGroupDescribe response.
 pub fn encode_share_group_describe_response(
     buf: &mut BytesMut,
     groups: &[DescribedShareGroup],
@@ -3561,6 +3854,7 @@ pub fn encode_share_group_describe_response(
     Ok(())
 }
 
+/// Decode a ShareGroupDescribe response.
 pub fn decode_share_group_describe_response<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<DescribedShareGroup>> {
@@ -3601,11 +3895,14 @@ pub fn decode_share_group_describe_response<B: Buf>(
 /// One requested topic in DescribeShareGroupOffsets (api 90).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 impl DescribeShareGroupOffsetsTopic {
+    /// Construct [`Self`].
     pub fn new(topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
         Self {
             topic_name: topic_name.into(),
@@ -3620,11 +3917,14 @@ impl DescribeShareGroupOffsetsTopic {
 /// kafka-protocol 0.18.0 `Default` is `Some([])`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeShareGroupOffsetsGroup {
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Topics in this request or response.
     pub topics: Option<Vec<DescribeShareGroupOffsetsTopic>>,
 }
 
 impl DescribeShareGroupOffsetsGroup {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>) -> Self {
         Self {
             group_id: group_id.into(),
@@ -3636,18 +3936,26 @@ impl DescribeShareGroupOffsetsGroup {
 /// One partition in a described share-group offsets topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroupOffsetsPartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Start offset.
     pub start_offset: i64,
+    /// Leader epoch, or `-1`.
     pub leader_epoch: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// One topic in a described share-group offsets group.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Partitions in this topic.
     pub partitions: Vec<DescribedShareGroupOffsetsPartition>,
 }
 
@@ -3657,13 +3965,18 @@ pub struct DescribedShareGroupOffsetsTopic {
 /// top of the response body and not on the first partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroupOffsets {
+    /// Kafka `group.id`.
     pub group_id: String,
+    /// Topics in this request or response.
     pub topics: Vec<DescribedShareGroupOffsetsTopic>,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 impl DescribedShareGroupOffsets {
+    /// Construct [`Self`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             group_id: group_id.into(),
@@ -3741,6 +4054,7 @@ pub fn encode_describe_share_group_offsets_request(
     Ok(())
 }
 
+/// Decode a DescribeShareGroupOffsets request.
 pub fn decode_describe_share_group_offsets_request<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<DescribeShareGroupOffsetsGroup>> {
@@ -3775,6 +4089,7 @@ pub fn decode_describe_share_group_offsets_request<B: Buf>(
     Ok(groups)
 }
 
+/// Encode a DescribeShareGroupOffsets response.
 pub fn encode_describe_share_group_offsets_response(
     buf: &mut BytesMut,
     groups: &[DescribedShareGroupOffsets],
@@ -3806,6 +4121,7 @@ pub fn encode_describe_share_group_offsets_response(
     Ok(())
 }
 
+/// Decode a DescribeShareGroupOffsets response.
 pub fn decode_describe_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<Vec<DescribedShareGroupOffsets>> {
@@ -3860,11 +4176,14 @@ pub fn decode_describe_share_group_offsets_response<B: Buf>(
 /// One requested partition in AlterShareGroupOffsets (api 91).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterShareGroupOffsetsPartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Start offset.
     pub start_offset: i64,
 }
 
 impl AlterShareGroupOffsetsPartition {
+    /// Construct [`Self`].
     pub fn new(partition_index: i32, start_offset: i64) -> Self {
         Self {
             partition_index,
@@ -3876,11 +4195,14 @@ impl AlterShareGroupOffsetsPartition {
 /// One requested topic in AlterShareGroupOffsets (api 91) v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<AlterShareGroupOffsetsPartition>,
 }
 
 impl AlterShareGroupOffsetsTopic {
+    /// Construct [`Self`].
     pub fn new(
         topic_name: impl Into<String>,
         partitions: Vec<AlterShareGroupOffsetsPartition>,
@@ -3895,16 +4217,22 @@ impl AlterShareGroupOffsetsTopic {
 /// One partition in an altered share-group offsets topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlteredShareGroupOffsetsPartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
 /// One topic in an AlterShareGroupOffsets (api 91) v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlteredShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Partitions in this topic.
     pub partitions: Vec<AlteredShareGroupOffsetsPartition>,
 }
 
@@ -3915,12 +4243,16 @@ pub struct AlteredShareGroupOffsetsTopic {
 /// the request and no Groups array on the response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlteredShareGroupOffsets {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Topics in this request or response.
     pub topics: Vec<AlteredShareGroupOffsetsTopic>,
 }
 
 impl AlteredShareGroupOffsets {
+    /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self {
             error_code,
@@ -3993,6 +4325,7 @@ pub fn encode_alter_share_group_offsets_request(
     Ok(())
 }
 
+/// Decode an AlterShareGroupOffsets request.
 pub fn decode_alter_share_group_offsets_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, Vec<AlterShareGroupOffsetsTopic>)> {
@@ -4022,6 +4355,7 @@ pub fn decode_alter_share_group_offsets_request<B: Buf>(
     Ok((group_id, topics))
 }
 
+/// Encode an AlterShareGroupOffsets response.
 pub fn encode_alter_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &AlteredShareGroupOffsets,
@@ -4046,6 +4380,7 @@ pub fn encode_alter_share_group_offsets_response(
     Ok(())
 }
 
+/// Decode an AlterShareGroupOffsets response.
 pub fn decode_alter_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AlteredShareGroupOffsets> {
@@ -4090,10 +4425,12 @@ pub fn decode_alter_share_group_offsets_response<B: Buf>(
 /// Official request topics are topic names only — no partitions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
 }
 
 impl DeleteShareGroupOffsetsTopic {
+    /// Construct [`Self`].
     pub fn new(topic_name: impl Into<String>) -> Self {
         Self {
             topic_name: topic_name.into(),
@@ -4104,9 +4441,13 @@ impl DeleteShareGroupOffsetsTopic {
 /// One topic in a DeleteShareGroupOffsets (api 92) v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedShareGroupOffsetsTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
 }
 
@@ -4119,12 +4460,16 @@ pub struct DeletedShareGroupOffsetsTopic {
 /// is topic-level, not partition-level.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedShareGroupOffsets {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Topics in this request or response.
     pub topics: Vec<DeletedShareGroupOffsetsTopic>,
 }
 
 impl DeletedShareGroupOffsets {
+    /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self {
             error_code,
@@ -4190,6 +4535,7 @@ pub fn encode_delete_share_group_offsets_request(
     Ok(())
 }
 
+/// Decode a DeleteShareGroupOffsets request.
 pub fn decode_delete_share_group_offsets_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(String, Vec<DeleteShareGroupOffsetsTopic>)> {
@@ -4205,6 +4551,7 @@ pub fn decode_delete_share_group_offsets_request<B: Buf>(
     Ok((group_id, topics))
 }
 
+/// Encode a DeleteShareGroupOffsets response.
 pub fn encode_delete_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &DeletedShareGroupOffsets,
@@ -4224,6 +4571,7 @@ pub fn encode_delete_share_group_offsets_response(
     Ok(())
 }
 
+/// Decode a DeleteShareGroupOffsets response.
 pub fn decode_delete_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DeletedShareGroupOffsets> {
@@ -4256,11 +4604,14 @@ pub fn decode_delete_share_group_offsets_response<B: Buf>(
 /// Cursor for DescribeTopicPartitions (api 75) pagination.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicPartitionCursor {
+    /// Topic name.
     pub topic_name: String,
+    /// Partition index.
     pub partition_index: i32,
 }
 
 impl TopicPartitionCursor {
+    /// Construct [`Self`].
     pub fn new(topic_name: impl Into<String>, partition_index: i32) -> Self {
         Self {
             topic_name: topic_name.into(),
@@ -4272,18 +4623,28 @@ impl TopicPartitionCursor {
 /// One partition in a DescribeTopicPartitions (api 75) v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedTopicPartition {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Partition index.
     pub partition_index: i32,
+    /// Leader broker id, or `-1`.
     pub leader_id: i32,
+    /// Leader epoch, or `-1`.
     pub leader_epoch: i32,
+    /// Replica broker ids.
     pub replica_nodes: Vec<i32>,
+    /// In-sync replica broker ids.
     pub isr_nodes: Vec<i32>,
+    /// Eligible leader replicas (KIP-966), when present.
     pub eligible_leader_replicas: Option<Vec<i32>>,
+    /// Last known eligible leader replicas, when present.
     pub last_known_elr: Option<Vec<i32>>,
+    /// Offline replica broker ids.
     pub offline_replicas: Vec<i32>,
 }
 
 impl DescribedTopicPartition {
+    /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self {
             error_code,
@@ -4302,15 +4663,22 @@ impl DescribedTopicPartition {
 /// One topic in a DescribeTopicPartitions (api 75) v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedTopicPartitions {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Topic, resource, group, or feature name.
     pub name: Option<String>,
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// When true, this is an internal topic.
     pub is_internal: bool,
+    /// Partitions in this topic.
     pub partitions: Vec<DescribedTopicPartition>,
+    /// Bitfield of authorized topic operations.
     pub topic_authorized_operations: i32,
 }
 
 impl DescribedTopicPartitions {
+    /// Construct [`Self`].
     pub fn new(name: impl Into<String>, error_code: i16) -> Self {
         Self {
             error_code,
@@ -4330,11 +4698,14 @@ impl DescribedTopicPartitions {
 /// partition is present and is later in the body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeTopicPartitionsResponse {
+    /// Topics in this request or response.
     pub topics: Vec<DescribedTopicPartitions>,
+    /// Cursor for the next page, when truncated.
     pub next_cursor: Option<TopicPartitionCursor>,
 }
 
 impl DescribeTopicPartitionsResponse {
+    /// Construct [`Self`].
     pub fn new(topics: Vec<DescribedTopicPartitions>) -> Self {
         Self {
             topics,
@@ -4469,6 +4840,7 @@ pub fn encode_describe_topic_partitions_request(
     Ok(())
 }
 
+/// Decode a DescribeTopicPartitions request.
 pub fn decode_describe_topic_partitions_request<B: Buf>(
     buf: &mut B,
 ) -> Result<(Vec<String>, i32, Option<TopicPartitionCursor>)> {
@@ -4485,6 +4857,7 @@ pub fn decode_describe_topic_partitions_request<B: Buf>(
     Ok((topics, response_partition_limit, cursor))
 }
 
+/// Encode a DescribeTopicPartitions response.
 pub fn encode_describe_topic_partitions_response(
     buf: &mut BytesMut,
     resp: &DescribeTopicPartitionsResponse,
@@ -4517,6 +4890,7 @@ pub fn encode_describe_topic_partitions_response(
     Ok(())
 }
 
+/// Decode a DescribeTopicPartitions response.
 pub fn decode_describe_topic_partitions_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeTopicPartitionsResponse> {
@@ -4578,11 +4952,14 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
 /// top of the body, after throttle.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedConfigResource {
+    /// Config resource name.
     pub resource_name: String,
+    /// Config resource type (`RESOURCE_*`).
     pub resource_type: i8,
 }
 
 impl ListedConfigResource {
+    /// Construct [`Self`].
     pub fn new(resource_name: impl Into<String>, resource_type: i8) -> Self {
         Self {
             resource_name: resource_name.into(),
@@ -4597,11 +4974,14 @@ impl ListedConfigResource {
 /// field and not a first-config field. Resources have no ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListConfigResourcesResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Matching config resources.
     pub config_resources: Vec<ListedConfigResource>,
 }
 
 impl ListConfigResourcesResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, config_resources: Vec<ListedConfigResource>) -> Self {
         Self {
             error_code,
@@ -4659,6 +5039,7 @@ pub fn encode_list_config_resources_request(
     Ok(())
 }
 
+/// Decode a ListConfigResources request.
 pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B) -> Result<Vec<i8>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut resource_types = Vec::with_capacity(n);
@@ -4669,6 +5050,7 @@ pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B) -> Result<Vec<i
     Ok(resource_types)
 }
 
+/// Encode a ListConfigResources response.
 pub fn encode_list_config_resources_response(
     buf: &mut BytesMut,
     resp: &ListConfigResourcesResponse,
@@ -4685,6 +5067,7 @@ pub fn encode_list_config_resources_response(
     Ok(())
 }
 
+/// Decode a ListConfigResources response.
 pub fn decode_list_config_resources_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ListConfigResourcesResponse> {
@@ -4738,6 +5121,7 @@ impl GetTelemetrySubscriptionsResponse {
         clippy::too_many_arguments,
         reason = "constructor mirrors official GetTelemetrySubscriptionsResponse fields"
     )]
+    /// Construct [`Self`].
     pub fn new(
         error_code: i16,
         client_instance_id: [u8; 16],
@@ -4810,12 +5194,14 @@ pub fn encode_get_telemetry_subscriptions_request(
     Ok(())
 }
 
+/// Decode a GetTelemetrySubscriptions request.
 pub fn decode_get_telemetry_subscriptions_request<B: Buf>(buf: &mut B) -> Result<[u8; 16]> {
     let client_instance_id = buf::get_uuid(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(client_instance_id)
 }
 
+/// Encode a GetTelemetrySubscriptions response.
 pub fn encode_get_telemetry_subscriptions_response(
     buf: &mut BytesMut,
     resp: &GetTelemetrySubscriptionsResponse,
@@ -4839,6 +5225,7 @@ pub fn encode_get_telemetry_subscriptions_response(
     Ok(())
 }
 
+/// Decode a GetTelemetrySubscriptions response.
 pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
     buf: &mut B,
 ) -> Result<GetTelemetrySubscriptionsResponse> {
@@ -4879,14 +5266,20 @@ pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
 /// BYTES (OTLP MetricsData). There is no per-metric ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PushTelemetryRequest {
+    /// KIP-714 client instance UUID.
     pub client_instance_id: [u8; 16],
+    /// Telemetry subscription generation.
     pub subscription_id: i32,
+    /// When true, this is the last PushTelemetry for the process.
     pub terminating: bool,
+    /// Compression codec for the metrics payload.
     pub compression_type: i8,
+    /// Encoded client metrics payload.
     pub metrics: Vec<u8>,
 }
 
 impl PushTelemetryRequest {
+    /// Construct [`Self`].
     pub fn new(
         client_instance_id: [u8; 16],
         subscription_id: i32,
@@ -4911,10 +5304,12 @@ impl PushTelemetryRequest {
 /// array. Official JSON lists only `ThrottleTimeMs` and `ErrorCode`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PushTelemetryResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl PushTelemetryResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self { error_code }
     }
@@ -4972,6 +5367,7 @@ pub fn encode_push_telemetry_request(
     Ok(())
 }
 
+/// Decode a PushTelemetry request.
 pub fn decode_push_telemetry_request<B: Buf>(buf: &mut B) -> Result<PushTelemetryRequest> {
     let client_instance_id = buf::get_uuid(buf)?;
     let subscription_id = buf::get_i32(buf)?;
@@ -4988,6 +5384,7 @@ pub fn decode_push_telemetry_request<B: Buf>(buf: &mut B) -> Result<PushTelemetr
     })
 }
 
+/// Encode a PushTelemetry response.
 pub fn encode_push_telemetry_response(
     buf: &mut BytesMut,
     resp: &PushTelemetryResponse,
@@ -4998,6 +5395,7 @@ pub fn encode_push_telemetry_response(
     Ok(())
 }
 
+/// Decode a PushTelemetry response.
 pub fn decode_push_telemetry_response<B: Buf>(buf: &mut B) -> Result<PushTelemetryResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -5008,10 +5406,12 @@ pub fn decode_push_telemetry_response<B: Buf>(buf: &mut B) -> Result<PushTelemet
 /// One partition in an AssignReplicasToDirs (api 73) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsPartition {
+    /// Partition index.
     pub partition_index: i32,
 }
 
 impl AssignReplicasToDirsPartition {
+    /// Construct [`Self`].
     pub fn new(partition_index: i32) -> Self {
         Self { partition_index }
     }
@@ -5020,11 +5420,14 @@ impl AssignReplicasToDirsPartition {
 /// One topic in an AssignReplicasToDirs (api 73) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsTopic {
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Partitions in this topic.
     pub partitions: Vec<AssignReplicasToDirsPartition>,
 }
 
 impl AssignReplicasToDirsTopic {
+    /// Construct [`Self`].
     pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsPartition>) -> Self {
         Self {
             topic_id,
@@ -5036,11 +5439,14 @@ impl AssignReplicasToDirsTopic {
 /// One directory in an AssignReplicasToDirs (api 73) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsDirectory {
+    /// Directory or topic UUID.
     pub id: [u8; 16],
+    /// Topics in this request or response.
     pub topics: Vec<AssignReplicasToDirsTopic>,
 }
 
 impl AssignReplicasToDirsDirectory {
+    /// Construct [`Self`].
     pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsTopic>) -> Self {
         Self { id, topics }
     }
@@ -5053,12 +5459,16 @@ impl AssignReplicasToDirsDirectory {
 /// no `errorCodes`. Request has no ErrorCode field.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsRequest {
+    /// Broker id.
     pub broker_id: i32,
+    /// Broker epoch.
     pub broker_epoch: i64,
+    /// Log directories.
     pub directories: Vec<AssignReplicasToDirsDirectory>,
 }
 
 impl AssignReplicasToDirsRequest {
+    /// Construct [`Self`].
     pub fn new(
         broker_id: i32,
         broker_epoch: i64,
@@ -5075,11 +5485,14 @@ impl AssignReplicasToDirsRequest {
 /// One partition in an AssignReplicasToDirs (api 73) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsResponsePartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl AssignReplicasToDirsResponsePartition {
+    /// Construct [`Self`].
     pub fn new(partition_index: i32, error_code: i16) -> Self {
         Self {
             partition_index,
@@ -5091,11 +5504,14 @@ impl AssignReplicasToDirsResponsePartition {
 /// One topic in an AssignReplicasToDirs (api 73) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsResponseTopic {
+    /// Topic id (UUID), or zeros.
     pub topic_id: [u8; 16],
+    /// Partitions in this topic.
     pub partitions: Vec<AssignReplicasToDirsResponsePartition>,
 }
 
 impl AssignReplicasToDirsResponseTopic {
+    /// Construct [`Self`].
     pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsResponsePartition>) -> Self {
         Self {
             topic_id,
@@ -5107,11 +5523,14 @@ impl AssignReplicasToDirsResponseTopic {
 /// One directory in an AssignReplicasToDirs (api 73) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsResponseDirectory {
+    /// Directory or topic UUID.
     pub id: [u8; 16],
+    /// Topics in this request or response.
     pub topics: Vec<AssignReplicasToDirsResponseTopic>,
 }
 
 impl AssignReplicasToDirsResponseDirectory {
+    /// Construct [`Self`].
     pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsResponseTopic>) -> Self {
         Self { id, topics }
     }
@@ -5124,11 +5543,14 @@ impl AssignReplicasToDirsResponseDirectory {
 /// compact `Directories` with a nested per-partition ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Log directories.
     pub directories: Vec<AssignReplicasToDirsResponseDirectory>,
 }
 
 impl AssignReplicasToDirsResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, directories: Vec<AssignReplicasToDirsResponseDirectory>) -> Self {
         Self {
             error_code,
@@ -5212,6 +5634,7 @@ pub fn encode_assign_replicas_to_dirs_request(
     Ok(())
 }
 
+/// Decode an AssignReplicasToDirs request.
 pub fn decode_assign_replicas_to_dirs_request<B: Buf>(
     buf: &mut B,
 ) -> Result<AssignReplicasToDirsRequest> {
@@ -5249,6 +5672,7 @@ pub fn decode_assign_replicas_to_dirs_request<B: Buf>(
     })
 }
 
+/// Encode an AssignReplicasToDirs response.
 pub fn encode_assign_replicas_to_dirs_response(
     buf: &mut BytesMut,
     resp: &AssignReplicasToDirsResponse,
@@ -5275,6 +5699,7 @@ pub fn encode_assign_replicas_to_dirs_response(
     Ok(())
 }
 
+/// Decode an AssignReplicasToDirs response.
 pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AssignReplicasToDirsResponse> {
@@ -5318,11 +5743,14 @@ pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
 /// One topic in an AlterReplicaLogDirs (api 34) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 impl AlterReplicaLogDirsTopic {
+    /// Construct [`Self`].
     pub fn new(name: impl Into<String>, partitions: Vec<i32>) -> Self {
         Self {
             name: name.into(),
@@ -5334,11 +5762,14 @@ impl AlterReplicaLogDirsTopic {
 /// One directory in an AlterReplicaLogDirs (api 34) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsDirectory {
+    /// Log directory path.
     pub path: String,
+    /// Topics in this request or response.
     pub topics: Vec<AlterReplicaLogDirsTopic>,
 }
 
 impl AlterReplicaLogDirsDirectory {
+    /// Construct [`Self`].
     pub fn new(path: impl Into<String>, topics: Vec<AlterReplicaLogDirsTopic>) -> Self {
         Self {
             path: path.into(),
@@ -5354,10 +5785,12 @@ impl AlterReplicaLogDirsDirectory {
 /// no `errorCodes`. Request has no ErrorCode field.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsRequest {
+    /// Log directories in this request.
     pub dirs: Vec<AlterReplicaLogDirsDirectory>,
 }
 
 impl AlterReplicaLogDirsRequest {
+    /// Construct [`Self`].
     pub fn new(dirs: Vec<AlterReplicaLogDirsDirectory>) -> Self {
         Self { dirs }
     }
@@ -5366,11 +5799,14 @@ impl AlterReplicaLogDirsRequest {
 /// One partition in an AlterReplicaLogDirs (api 34) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsResponsePartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl AlterReplicaLogDirsResponsePartition {
+    /// Construct [`Self`].
     pub fn new(partition_index: i32, error_code: i16) -> Self {
         Self {
             partition_index,
@@ -5382,11 +5818,14 @@ impl AlterReplicaLogDirsResponsePartition {
 /// One topic in an AlterReplicaLogDirs (api 34) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsResponseTopic {
+    /// Topic name.
     pub topic_name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<AlterReplicaLogDirsResponsePartition>,
 }
 
 impl AlterReplicaLogDirsResponseTopic {
+    /// Construct [`Self`].
     pub fn new(
         topic_name: impl Into<String>,
         partitions: Vec<AlterReplicaLogDirsResponsePartition>,
@@ -5406,10 +5845,12 @@ impl AlterReplicaLogDirsResponseTopic {
 /// Partitions of {PartitionIndex, ErrorCode}}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsResponse {
+    /// Per-item results.
     pub results: Vec<AlterReplicaLogDirsResponseTopic>,
 }
 
 impl AlterReplicaLogDirsResponse {
+    /// Construct [`Self`].
     pub fn new(results: Vec<AlterReplicaLogDirsResponseTopic>) -> Self {
         Self { results }
     }
@@ -5491,6 +5932,7 @@ pub fn encode_alter_replica_log_dirs_request(
     Ok(())
 }
 
+/// Decode an AlterReplicaLogDirs request.
 pub fn decode_alter_replica_log_dirs_request<B: Buf>(
     buf: &mut B,
 ) -> Result<AlterReplicaLogDirsRequest> {
@@ -5517,6 +5959,7 @@ pub fn decode_alter_replica_log_dirs_request<B: Buf>(
     Ok(AlterReplicaLogDirsRequest { dirs })
 }
 
+/// Encode an AlterReplicaLogDirs response.
 pub fn encode_alter_replica_log_dirs_response(
     buf: &mut BytesMut,
     resp: &AlterReplicaLogDirsResponse,
@@ -5537,6 +5980,7 @@ pub fn encode_alter_replica_log_dirs_response(
     Ok(())
 }
 
+/// Decode an AlterReplicaLogDirs response.
 pub fn decode_alter_replica_log_dirs_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AlterReplicaLogDirsResponse> {
@@ -5569,11 +6013,14 @@ pub fn decode_alter_replica_log_dirs_response<B: Buf>(
 /// One topic in a DescribeLogDirs (api 35) request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribableLogDirTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<i32>,
 }
 
 impl DescribableLogDirTopic {
+    /// Construct [`Self`].
     pub fn new(name: impl Into<String>, partitions: Vec<i32>) -> Self {
         Self {
             name: name.into(),
@@ -5591,10 +6038,12 @@ impl DescribableLogDirTopic {
 /// ErrorCode field. `Topics` is nullable: null means all topics.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsRequest {
+    /// Topics in this request or response.
     pub topics: Option<Vec<DescribableLogDirTopic>>,
 }
 
 impl DescribeLogDirsRequest {
+    /// Construct [`Self`].
     pub fn new(topics: Option<Vec<DescribableLogDirTopic>>) -> Self {
         Self { topics }
     }
@@ -5606,13 +6055,18 @@ impl DescribeLogDirsRequest {
 /// PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsPartition {
+    /// Partition index.
     pub partition_index: i32,
+    /// Partition log size in bytes.
     pub partition_size: i64,
+    /// Offset lag on this replica.
     pub offset_lag: i64,
+    /// When true, this replica is a future log directory.
     pub is_future_key: bool,
 }
 
 impl DescribeLogDirsPartition {
+    /// Construct [`Self`].
     pub fn new(
         partition_index: i32,
         partition_size: i64,
@@ -5631,11 +6085,14 @@ impl DescribeLogDirsPartition {
 /// One topic in a DescribeLogDirs (api 35) response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsTopic {
+    /// Topic, resource, group, or feature name.
     pub name: String,
+    /// Partitions in this topic.
     pub partitions: Vec<DescribeLogDirsPartition>,
 }
 
 impl DescribeLogDirsTopic {
+    /// Construct [`Self`].
     pub fn new(name: impl Into<String>, partitions: Vec<DescribeLogDirsPartition>) -> Self {
         Self {
             name: name.into(),
@@ -5651,14 +6108,20 @@ impl DescribeLogDirsTopic {
 /// (official JSON default `-1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsResult {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Log directory path.
     pub log_dir: String,
+    /// Topics in this request or response.
     pub topics: Vec<DescribeLogDirsTopic>,
+    /// Total bytes on this log directory.
     pub total_bytes: i64,
+    /// Usable bytes on this log directory.
     pub usable_bytes: i64,
 }
 
 impl DescribeLogDirsResult {
+    /// Construct [`Self`].
     pub fn new(
         error_code: i16,
         log_dir: impl Into<String>,
@@ -5683,11 +6146,14 @@ impl DescribeLogDirsResult {
 /// first-directory ErrorCode. There is no first-partition ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Per-item results.
     pub results: Vec<DescribeLogDirsResult>,
 }
 
 impl DescribeLogDirsResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, results: Vec<DescribeLogDirsResult>) -> Self {
         Self {
             error_code,
@@ -5769,6 +6235,7 @@ pub fn encode_describe_log_dirs_request(
     Ok(())
 }
 
+/// Decode a DescribeLogDirs request.
 pub fn decode_describe_log_dirs_request<B: Buf>(buf: &mut B) -> Result<DescribeLogDirsRequest> {
     let topics = match buf::get_array_len(buf, true)? {
         None => None,
@@ -5791,6 +6258,7 @@ pub fn decode_describe_log_dirs_request<B: Buf>(buf: &mut B) -> Result<DescribeL
     Ok(DescribeLogDirsRequest { topics })
 }
 
+/// Encode a DescribeLogDirs response.
 pub fn encode_describe_log_dirs_response(
     buf: &mut BytesMut,
     resp: &DescribeLogDirsResponse,
@@ -5822,6 +6290,7 @@ pub fn encode_describe_log_dirs_response(
     Ok(())
 }
 
+/// Decode a DescribeLogDirs response.
 pub fn decode_describe_log_dirs_response<B: Buf>(buf: &mut B) -> Result<DescribeLogDirsResponse> {
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
@@ -5876,11 +6345,14 @@ pub fn decode_describe_log_dirs_response<B: Buf>(buf: &mut B) -> Result<Describe
 /// PrincipalName only. There is no per-renewer ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreatableRenewer {
+    /// Principal type (for example `User`).
     pub principal_type: String,
+    /// Principal name.
     pub principal_name: String,
 }
 
 impl CreatableRenewer {
+    /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {
             principal_type: principal_type.into(),
@@ -5901,13 +6373,18 @@ impl CreatableRenewer {
 /// request principal. `MaxLifetimeMs` `-1` uses the server default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateDelegationTokenRequest {
+    /// Token owner principal type, when filtering.
     pub owner_principal_type: Option<String>,
+    /// Token owner principal name, when filtering.
     pub owner_principal_name: Option<String>,
+    /// Principals allowed to renew the token.
     pub renewers: Vec<CreatableRenewer>,
+    /// Maximum token lifetime in milliseconds.
     pub max_lifetime_ms: i64,
 }
 
 impl CreateDelegationTokenRequest {
+    /// Construct [`Self`].
     pub fn new(
         owner_principal_type: Option<String>,
         owner_principal_name: Option<String>,
@@ -5931,15 +6408,25 @@ impl CreateDelegationTokenRequest {
 /// first-renewer ErrorCode (renewers are request-only).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateDelegationTokenResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Principal type (for example `User`).
     pub principal_type: String,
+    /// Principal name.
     pub principal_name: String,
+    /// Token requester principal type.
     pub token_requester_principal_type: String,
+    /// Token requester principal name.
     pub token_requester_principal_name: String,
+    /// Issue time in milliseconds since the Unix epoch.
     pub issue_timestamp_ms: i64,
+    /// Expiry time in milliseconds since the Unix epoch.
     pub expiry_timestamp_ms: i64,
+    /// Maximum expiry in milliseconds since the Unix epoch.
     pub max_timestamp_ms: i64,
+    /// Delegation token id.
     pub token_id: String,
+    /// Token HMAC bytes.
     pub hmac: Vec<u8>,
 }
 
@@ -5948,6 +6435,7 @@ impl CreateDelegationTokenResponse {
         clippy::too_many_arguments,
         reason = "wire type follows the Kafka spec field-for-field"
     )]
+    /// Construct [`Self`].
     pub fn new(
         error_code: i16,
         principal_type: impl Into<String>,
@@ -6043,6 +6531,7 @@ pub fn encode_create_delegation_token_request(
     Ok(())
 }
 
+/// Decode a CreateDelegationToken request.
 pub fn decode_create_delegation_token_request<B: Buf>(
     buf: &mut B,
 ) -> Result<CreateDelegationTokenRequest> {
@@ -6069,6 +6558,7 @@ pub fn decode_create_delegation_token_request<B: Buf>(
     })
 }
 
+/// Encode a CreateDelegationToken response.
 pub fn encode_create_delegation_token_response(
     buf: &mut BytesMut,
     resp: &CreateDelegationTokenResponse,
@@ -6088,6 +6578,7 @@ pub fn encode_create_delegation_token_response(
     Ok(())
 }
 
+/// Decode a CreateDelegationToken response.
 pub fn decode_create_delegation_token_response<B: Buf>(
     buf: &mut B,
 ) -> Result<CreateDelegationTokenResponse> {
@@ -6128,11 +6619,14 @@ pub fn decode_create_delegation_token_response<B: Buf>(
 /// compact BYTES at v2). `RenewPeriodMs` `-1` uses the server default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenewDelegationTokenRequest {
+    /// Token HMAC bytes.
     pub hmac: Vec<u8>,
+    /// Renewal period in milliseconds.
     pub renew_period_ms: i64,
 }
 
 impl RenewDelegationTokenRequest {
+    /// Construct [`Self`].
     pub fn new(hmac: Vec<u8>, renew_period_ms: i64) -> Self {
         Self {
             hmac,
@@ -6148,11 +6642,14 @@ impl RenewDelegationTokenRequest {
 /// expiry, not a token array: there is no first-token ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenewDelegationTokenResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Expiry time in milliseconds since the Unix epoch.
     pub expiry_timestamp_ms: i64,
 }
 
 impl RenewDelegationTokenResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, expiry_timestamp_ms: i64) -> Self {
         Self {
             error_code,
@@ -6215,6 +6712,7 @@ pub fn encode_renew_delegation_token_request(
     Ok(())
 }
 
+/// Decode a RenewDelegationToken request.
 pub fn decode_renew_delegation_token_request<B: Buf>(
     buf: &mut B,
 ) -> Result<RenewDelegationTokenRequest> {
@@ -6227,6 +6725,7 @@ pub fn decode_renew_delegation_token_request<B: Buf>(
     })
 }
 
+/// Encode a RenewDelegationToken response.
 pub fn encode_renew_delegation_token_response(
     buf: &mut BytesMut,
     resp: &RenewDelegationTokenResponse,
@@ -6238,6 +6737,7 @@ pub fn encode_renew_delegation_token_response(
     Ok(())
 }
 
+/// Decode a RenewDelegationToken response.
 pub fn decode_renew_delegation_token_response<B: Buf>(
     buf: &mut B,
 ) -> Result<RenewDelegationTokenResponse> {
@@ -6262,11 +6762,14 @@ pub fn decode_renew_delegation_token_response<B: Buf>(
 /// compact BYTES at v2). `ExpiryTimePeriodMs` `-1` expires immediately.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpireDelegationTokenRequest {
+    /// Token HMAC bytes.
     pub hmac: Vec<u8>,
+    /// Remaining lifetime in milliseconds (`-1` expires immediately).
     pub expiry_time_period_ms: i64,
 }
 
 impl ExpireDelegationTokenRequest {
+    /// Construct [`Self`].
     pub fn new(hmac: Vec<u8>, expiry_time_period_ms: i64) -> Self {
         Self {
             hmac,
@@ -6282,11 +6785,14 @@ impl ExpireDelegationTokenRequest {
 /// expiry, not a token array: there is no first-token ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpireDelegationTokenResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Expiry time in milliseconds since the Unix epoch.
     pub expiry_timestamp_ms: i64,
 }
 
 impl ExpireDelegationTokenResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, expiry_timestamp_ms: i64) -> Self {
         Self {
             error_code,
@@ -6351,6 +6857,7 @@ pub fn encode_expire_delegation_token_request(
     Ok(())
 }
 
+/// Decode an ExpireDelegationToken request.
 pub fn decode_expire_delegation_token_request<B: Buf>(
     buf: &mut B,
 ) -> Result<ExpireDelegationTokenRequest> {
@@ -6363,6 +6870,7 @@ pub fn decode_expire_delegation_token_request<B: Buf>(
     })
 }
 
+/// Encode an ExpireDelegationToken response.
 pub fn encode_expire_delegation_token_response(
     buf: &mut BytesMut,
     resp: &ExpireDelegationTokenResponse,
@@ -6374,6 +6882,7 @@ pub fn encode_expire_delegation_token_response(
     Ok(())
 }
 
+/// Decode an ExpireDelegationToken response.
 pub fn decode_expire_delegation_token_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ExpireDelegationTokenResponse> {
@@ -6393,11 +6902,14 @@ pub fn decode_expire_delegation_token_response<B: Buf>(
 /// There is no per-owner ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenOwner {
+    /// Principal type (for example `User`).
     pub principal_type: String,
+    /// Principal name.
     pub principal_name: String,
 }
 
 impl DescribeDelegationTokenOwner {
+    /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {
             principal_type: principal_type.into(),
@@ -6418,10 +6930,12 @@ impl DescribeDelegationTokenOwner {
 /// describes none.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenRequest {
+    /// Owner filter, or `None` for every token.
     pub owners: Option<Vec<DescribeDelegationTokenOwner>>,
 }
 
 impl DescribeDelegationTokenRequest {
+    /// Construct [`Self`].
     pub fn new(owners: Option<Vec<DescribeDelegationTokenOwner>>) -> Self {
         Self { owners }
     }
@@ -6433,11 +6947,14 @@ impl DescribeDelegationTokenRequest {
 /// There is no per-renewer ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedDelegationTokenRenewer {
+    /// Principal type (for example `User`).
     pub principal_type: String,
+    /// Principal name.
     pub principal_name: String,
 }
 
 impl DescribedDelegationTokenRenewer {
+    /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {
             principal_type: principal_type.into(),
@@ -6452,15 +6969,25 @@ impl DescribedDelegationTokenRenewer {
 /// TokenRequesterPrincipalType / TokenRequesterPrincipalName.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedDelegationToken {
+    /// Principal type (for example `User`).
     pub principal_type: String,
+    /// Principal name.
     pub principal_name: String,
+    /// Token requester principal type.
     pub token_requester_principal_type: String,
+    /// Token requester principal name.
     pub token_requester_principal_name: String,
+    /// Issue time in milliseconds since the Unix epoch.
     pub issue_timestamp: i64,
+    /// Expiry time in milliseconds since the Unix epoch.
     pub expiry_timestamp: i64,
+    /// Maximum expiry in milliseconds since the Unix epoch.
     pub max_timestamp: i64,
+    /// Delegation token id.
     pub token_id: String,
+    /// Token HMAC bytes.
     pub hmac: Vec<u8>,
+    /// Principals allowed to renew the token.
     pub renewers: Vec<DescribedDelegationTokenRenewer>,
 }
 
@@ -6469,6 +6996,7 @@ impl DescribedDelegationToken {
         clippy::too_many_arguments,
         reason = "wire type follows the Kafka spec field-for-field"
     )]
+    /// Construct [`Self`].
     pub fn new(
         principal_type: impl Into<String>,
         principal_name: impl Into<String>,
@@ -6503,11 +7031,14 @@ impl DescribedDelegationToken {
 /// `ThrottleTimeMs` last. Empty Tokens is not a first-token ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenResponse {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Delegation tokens.
     pub tokens: Vec<DescribedDelegationToken>,
 }
 
 impl DescribeDelegationTokenResponse {
+    /// Construct [`Self`].
     pub fn new(error_code: i16, tokens: Vec<DescribedDelegationToken>) -> Self {
         Self { error_code, tokens }
     }
@@ -6582,6 +7113,7 @@ pub fn encode_describe_delegation_token_request(
     Ok(())
 }
 
+/// Decode a DescribeDelegationToken request.
 pub fn decode_describe_delegation_token_request<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeDelegationTokenRequest> {
@@ -6605,6 +7137,7 @@ pub fn decode_describe_delegation_token_request<B: Buf>(
     Ok(DescribeDelegationTokenRequest { owners })
 }
 
+/// Encode a DescribeDelegationToken response.
 pub fn encode_describe_delegation_token_response(
     buf: &mut BytesMut,
     resp: &DescribeDelegationTokenResponse,
@@ -6634,6 +7167,7 @@ pub fn encode_describe_delegation_token_response(
     Ok(())
 }
 
+/// Decode a DescribeDelegationToken response.
 pub fn decode_describe_delegation_token_response<B: Buf>(
     buf: &mut B,
 ) -> Result<DescribeDelegationTokenResponse> {
