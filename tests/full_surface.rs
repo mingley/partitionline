@@ -633,6 +633,7 @@ async fn transactional_producer_finds_txn_coordinator() {
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     pcfg.linger = Duration::ZERO;
     pcfg.transactional_id = Some("tx-coord".into());
+    pcfg.transaction_timeout = Duration::from_secs(45);
     let producer = Producer::new(pcfg).await.unwrap();
     assert!(
         mock.find_coordinator_key_types()
@@ -643,6 +644,11 @@ async fn transactional_producer_finds_txn_coordinator() {
         mock.last_init_producer_id_node(),
         Some(2),
         "InitProducerId must land on the transaction coordinator, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_timeout(),
+        Some(45_000),
+        "InitProducerId must send transaction.timeout.ms"
     );
 
     producer.begin_transaction().await.unwrap();

@@ -187,6 +187,7 @@ fn config_builders_set_typed_knobs() {
         .max_block(Duration::from_secs(15))
         .retry_backoff(Duration::from_millis(80))
         .retry_backoff_max(Duration::from_millis(400))
+        .transaction_timeout(Duration::from_secs(45))
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
@@ -197,6 +198,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.max_block, Duration::from_secs(15));
     assert_eq!(p.retry_backoff, Duration::from_millis(80));
     assert_eq!(p.retry_backoff_max, Duration::from_millis(400));
+    assert_eq!(p.transaction_timeout, Duration::from_secs(45));
     assert_eq!(p.sasl_scram, Some(("alice".into(), "secret".into())));
     assert!(p.sasl_plain.is_none());
 

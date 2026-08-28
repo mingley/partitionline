@@ -91,6 +91,12 @@ pub struct ProducerConfig {
     pub enable_idempotence: bool,
     /// Kafka `transactional.id`. Implies idempotence.
     pub transactional_id: Option<String>,
+    /// Kafka `transaction.timeout.ms` on InitProducerId. Default 60s (Java).
+    ///
+    /// The transaction coordinator aborts the txn if the producer does not
+    /// finish within this timeout. Must not exceed the broker's
+    /// `transaction.max.timeout.ms`.
+    pub transaction_timeout: Duration,
     /// rustls. `None` is plain TCP.
     pub tls: Option<TlsConfig>,
     /// How records without an explicit partition are mapped.
@@ -125,6 +131,7 @@ impl Default for ProducerConfig {
             max_in_flight: 16,
             enable_idempotence: false,
             transactional_id: None,
+            transaction_timeout: Duration::from_secs(60),
             tls: None,
             partitioner: PartitionerBox::default(),
             interceptors: crate::interceptor::ProducerInterceptors::default(),
@@ -208,6 +215,13 @@ impl ProducerConfig {
     #[must_use]
     pub fn transactional_id(mut self, id: impl Into<String>) -> Self {
         self.transactional_id = Some(id.into());
+        self
+    }
+
+    /// Kafka `transaction.timeout.ms` on InitProducerId. Default 60s (Java).
+    #[must_use]
+    pub fn transaction_timeout(mut self, timeout: Duration) -> Self {
+        self.transaction_timeout = timeout;
         self
     }
 
@@ -1312,12 +1326,15 @@ async fn init_producer_id_roundtrip(
 ) -> Result<Bytes> {
     let txn_id = cfg.transactional_id.clone();
     let timeout = cfg.request_timeout;
+    let txn_timeout_ms = i32::try_from(cfg.transaction_timeout.as_millis())
+        .unwrap_or(i32::MAX)
+        .max(0);
     let first = {
         let conn = txn.as_mut().unwrap_or(meta);
         conn.roundtrip(
             INIT_PRODUCER_ID,
             version,
-            |buf| encode_init_producer_id_request(buf, version, txn_id.as_deref()),
+            |buf| encode_init_producer_id_request(buf, version, txn_id.as_deref(), txn_timeout_ms),
             timeout,
         )
         .await
@@ -1343,7 +1360,7 @@ async fn init_producer_id_roundtrip(
     conn.roundtrip(
         INIT_PRODUCER_ID,
         version,
-        |buf| encode_init_producer_id_request(buf, version, Some(tid.as_str())),
+        |buf| encode_init_producer_id_request(buf, version, Some(tid.as_str()), txn_timeout_ms),
         timeout,
     )
     .await

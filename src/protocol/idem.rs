@@ -6,13 +6,17 @@ use super::buf;
 use crate::error::Result;
 
 /// InitProducerId v0–v1 (classic). v2+ is flexible; we speak v1.
+///
+/// `transaction_timeout_ms` is Kafka `transaction.timeout.ms` (INT32 after
+/// the nullable transactional id).
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,
     transactional_id: Option<&str>,
+    transaction_timeout_ms: i32,
 ) -> crate::error::Result<()> {
     buf::put_classic_nullable_string(buf, transactional_id)?;
-    buf.put_i32(60_000);
+    buf.put_i32(transaction_timeout_ms);
     if version >= 3 {
         buf.put_i64(-1);
         buf.put_i16(-1);
@@ -57,10 +61,15 @@ mod tests {
     #[test]
     fn init_producer_id_v1_roundtrip() {
         let mut req = BytesMut::new();
-        encode_init_producer_id_request(&mut req, 1, None).unwrap();
+        encode_init_producer_id_request(&mut req, 1, Some("tid"), 45_000).unwrap();
         let mut cur = &req[..];
-        assert_eq!(buf::get_classic_nullable_string(&mut cur).unwrap(), None);
-        assert_eq!(buf::get_i32(&mut cur).unwrap(), 60_000);
+        assert_eq!(
+            buf::get_classic_nullable_string(&mut cur)
+                .unwrap()
+                .as_deref(),
+            Some("tid")
+        );
+        assert_eq!(buf::get_i32(&mut cur).unwrap(), 45_000);
         assert!(cur.is_empty());
 
         let mut resp = BytesMut::new();

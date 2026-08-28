@@ -129,6 +129,8 @@
 //! `retry.backoff.max.ms` (exponential wait after a retriable Produce;
 //! default 100ms / 1s). [`ConsumerConfig::retry_backoff`] is the same pair
 //! for retriable Fetch (preferred-replica redirects do not wait).
+//! [`ProducerConfig::transaction_timeout`] is Kafka `transaction.timeout.ms`
+//! on InitProducerId (default 60s, same as Java).
 //! [`ConsumerConfig::isolation`] is [`IsolationLevel`].
 //! [`ConfigResourceType`] / [`ScramMechanism`] type admin config
 //! resources and user SCRAM.

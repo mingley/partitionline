@@ -145,6 +145,8 @@ Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
 `retry.backoff.ms` / `retry.backoff.max.ms` (exponential wait after a retriable
 Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable
 Fetch (preferred-replica redirects do not wait).
+`ProducerConfig::transaction_timeout` is Kafka `transaction.timeout.ms` on
+InitProducerId (default 60s, same as Java).
 `connect_timeout` is on the producer, consumer, and admin builders.
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and
