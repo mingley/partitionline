@@ -8,7 +8,7 @@ use bytes::{Buf, BufMut, BytesMut};
 use super::api_keys::{
     ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_PARTITION_REASSIGNMENTS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, DESCRIBE_CLIENT_QUOTAS,
-    DESCRIBE_CLUSTER, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
+    DESCRIBE_CLUSTER, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
     SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
@@ -42,7 +42,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | ALLOCATE_PRODUCER_IDS
         | DESCRIBE_TRANSACTIONS
         | LIST_TRANSACTIONS
-        | UNREGISTER_BROKER => 2,
+        | UNREGISTER_BROKER
+        | DESCRIBE_PRODUCERS => 2,
         // DescribeClientQuotas / AlterClientQuotas are classic at v0;
         // flexible from v1 (Apache JSON flexibleVersions: "1+",
         // kafka-protocol 0.18.0).
@@ -68,7 +69,8 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         | ALLOCATE_PRODUCER_IDS
         | DESCRIBE_TRANSACTIONS
         | LIST_TRANSACTIONS
-        | UNREGISTER_BROKER => 1,
+        | UNREGISTER_BROKER
+        | DESCRIBE_PRODUCERS => 1,
         DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 1,
         CONSUMER_GROUP_HEARTBEAT | SHARE_GROUP_HEARTBEAT | SHARE_FETCH | SHARE_ACKNOWLEDGE => 1,
         _ => 0,
@@ -201,6 +203,14 @@ mod tests {
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v0.
         assert_eq!(request_header_version(UNREGISTER_BROKER, 0), 2);
         assert_eq!(response_header_version(UNREGISTER_BROKER, 0), 1);
+    }
+
+    #[test]
+    fn describe_producers_v0_is_flexible() {
+        // Official JSON: validVersions 0, flexibleVersions 0+.
+        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v0.
+        assert_eq!(request_header_version(DESCRIBE_PRODUCERS, 0), 2);
+        assert_eq!(response_header_version(DESCRIBE_PRODUCERS, 0), 1);
     }
 
     #[test]
