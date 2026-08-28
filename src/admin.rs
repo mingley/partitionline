@@ -24,18 +24,19 @@ use crate::protocol::admin::{
     decode_describe_producers_response, decode_describe_transactions_response,
     decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
     decode_list_groups_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_unregister_broker_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
-    encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
-    encode_describe_cluster_request, encode_describe_configs_request,
-    encode_describe_groups_request, encode_describe_producers_request,
-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
-    encode_incremental_alter_configs_request, encode_list_groups_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request,
+    decode_list_transactions_response, decode_share_group_describe_response,
+    decode_unregister_broker_response, decode_update_features_response,
+    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
+    encode_delete_records_request, encode_delete_topics_request,
+    encode_describe_client_quotas_request, encode_describe_cluster_request,
+    encode_describe_configs_request, encode_describe_groups_request,
+    encode_describe_producers_request, encode_describe_transactions_request,
+    encode_describe_user_scram_credentials_request, encode_incremental_alter_configs_request,
+    encode_list_groups_request, encode_list_partition_reassignments_request,
+    encode_list_transactions_request, encode_share_group_describe_request,
     encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
     CreateTopicsRequest, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
     ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
@@ -52,8 +53,8 @@ use crate::protocol::api_keys::{
     DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS,
     DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, UNREGISTER_BROKER,
-    UPDATE_FEATURES,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, SHARE_GROUP_DESCRIBE,
+    UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -69,7 +70,8 @@ pub use crate::protocol::admin::{
     ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
     ConsumerGroupMember, ConsumerGroupTopicPartitions, DeletableGroupResult,
     DescribeProducersPartition, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedGroup, DescribedGroupMember, ListedGroup, ScramCredentialInfo, TransactionListing,
+    DescribedGroup, DescribedGroupMember, DescribedShareGroup, ListedGroup, ScramCredentialInfo,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, TransactionListing,
     TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -360,6 +362,7 @@ pub struct Admin {
     describe_groups_version: i16,
     list_groups_version: i16,
     delete_groups_version: i16,
+    share_group_describe_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -558,6 +561,12 @@ impl Admin {
             .get(&DELETE_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
             .ok_or_else(|| Error::Unsupported("broker does not support DeleteGroups".into()))?;
+        let share_group_describe_version = versions
+            .get(&SHARE_GROUP_DESCRIBE)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support ShareGroupDescribe".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -592,6 +601,7 @@ impl Admin {
             describe_groups_version,
             list_groups_version,
             delete_groups_version,
+            share_group_describe_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2292,6 +2302,96 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let results = decode_delete_groups_response(&mut body.clone())?;
+            if results
+                .iter()
+                .any(|r| error::coordinator_retriable(r.error_code))
+            {
+                // 14/15/16: FindCoordinator, then the new group coordinator.
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            return Ok(results);
+        }
+    }
+
+    /// Describe KIP-932 share groups (ShareGroupDescribe api 77).
+    ///
+    /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// Official Apache JSON listeners are `broker` only. Official listed
+    /// errors include `NOT_COORDINATOR` (16). Official Java
+    /// `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`. This is
+    /// not a controller hop and not a partition-leader hop: there is no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
+    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. SHARE (`key_type=2`) is
+    /// the FindCoordinator v6 share-state key
+    /// (`groupId:topicId:partition`) and is not used here.
+    /// `COORDINATOR_LOAD_IN_PROGRESS` / `COORDINATOR_NOT_AVAILABLE` /
+    /// `NOT_COORDINATOR` (16) refresh the coordinator and retry.
+    /// ErrorCode is per-group (bytes 5–6 on leftover-empty fixture
+    /// group `"g"`), not top-level after throttle.
+    pub async fn share_group_describe(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedShareGroup>> {
+        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let Some(coord_key) = ids.first().cloned() else {
+            return Ok(Vec::new());
+        };
+        let version = self.share_group_describe_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &coord_key);
+            if stale {
+                let node = self.discover_group_coord(&coord_key).await?;
+                self.group_coord = Some((coord_key.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing share_group_describe conn"))?;
+                conn.roundtrip(
+                    SHARE_GROUP_DESCRIBE,
+                    version,
+                    |buf| {
+                        encode_share_group_describe_request(
+                            buf,
+                            &ids,
+                            include_authorized_operations,
+                        )
+                    },
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_share_group_describe_response(&mut body.clone())?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))

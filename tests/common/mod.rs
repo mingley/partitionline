@@ -39,18 +39,19 @@ use partitionline::protocol::admin::{
     decode_describe_producers_request, decode_describe_transactions_request,
     decode_describe_user_scram_credentials_request, decode_incremental_alter_configs_request,
     decode_list_groups_request, decode_list_partition_reassignments_request,
-    decode_list_transactions_request, decode_unregister_broker_request,
-    decode_update_features_request, encode_allocate_producer_ids_response,
-    encode_alter_client_quotas_response, encode_alter_configs_response,
-    encode_alter_partition_reassignments_response, encode_alter_user_scram_credentials_response,
-    encode_consumer_group_describe_response, encode_create_partitions_response,
-    encode_create_topics_response, encode_delete_groups_response, encode_delete_records_response,
-    encode_delete_topics_response, encode_describe_client_quotas_response,
-    encode_describe_cluster_response, encode_describe_configs_response,
-    encode_describe_groups_response, encode_describe_producers_response,
-    encode_describe_transactions_response, encode_describe_user_scram_credentials_response,
-    encode_incremental_alter_configs_response, encode_list_groups_response,
-    encode_list_partition_reassignments_response, encode_list_transactions_response,
+    decode_list_transactions_request, decode_share_group_describe_request,
+    decode_unregister_broker_request, decode_update_features_request,
+    encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
+    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_user_scram_credentials_response, encode_consumer_group_describe_response,
+    encode_create_partitions_response, encode_create_topics_response,
+    encode_delete_groups_response, encode_delete_records_response, encode_delete_topics_response,
+    encode_describe_client_quotas_response, encode_describe_cluster_response,
+    encode_describe_configs_response, encode_describe_groups_response,
+    encode_describe_producers_response, encode_describe_transactions_response,
+    encode_describe_user_scram_credentials_response, encode_incremental_alter_configs_response,
+    encode_list_groups_response, encode_list_partition_reassignments_response,
+    encode_list_transactions_response, encode_share_group_describe_response,
     encode_unregister_broker_response, encode_update_features_response, ActiveProducer,
     AllocateProducerIdsResponse, AlterPartitionReassignmentsResponse,
     AlterUserScramCredentialsResult, ClientQuotaAlterationResult, ClientQuotaEntity,
@@ -58,12 +59,13 @@ use partitionline::protocol::admin::{
     ConfigEntry, DeletableGroupResult, DescribeClientQuotasResponse, DescribeConfigsResult,
     DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
     DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, ListGroupsResponse, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment,
-    ReassignmentPartitionResult, ReassignmentTopicResult, ScramCredentialInfo, TopicResult,
-    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
-    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_TOPIC,
+    DescribedConsumerGroup, DescribedGroup, DescribedShareGroup, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedGroup,
+    OngoingPartitionReassignment, OngoingTopicReassignment, ReassignmentPartitionResult,
+    ReassignmentTopicResult, ScramCredentialInfo, TopicResult, TransactionListing,
+    TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    RESOURCE_BROKER, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_produce_request, encode_api_versions_response, encode_metadata_response,
@@ -80,8 +82,8 @@ use partitionline::protocol::api_keys::{
     FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID, JOIN_GROUP,
     LEAVE_GROUP, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
     METADATA, OFFSET_COMMIT, OFFSET_DELETE, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, PRODUCE,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
@@ -237,6 +239,8 @@ struct State {
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_delete_groups_node: Option<i32>,
     delete_groups_not_coordinator: u32,
+    last_share_group_describe_node: Option<i32>,
+    share_group_describe_not_coordinator: u32,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -413,6 +417,8 @@ fn new_state(
         last_list_groups: None,
         last_delete_groups_node: None,
         delete_groups_not_coordinator: 0,
+        last_share_group_describe_node: None,
+        share_group_describe_not_coordinator: 0,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
         accepted_fetch: Vec::new(),
@@ -1116,6 +1122,14 @@ impl Mock {
         self.state.lock().delete_groups_not_coordinator
     }
 
+    pub fn last_share_group_describe_node(&self) -> Option<i32> {
+        self.state.lock().last_share_group_describe_node
+    }
+
+    pub fn share_group_describe_not_coordinator(&self) -> u32 {
+        self.state.lock().share_group_describe_not_coordinator
+    }
+
     pub fn join_group_calls(&self) -> u32 {
         self.state.lock().join_group_calls
     }
@@ -1479,6 +1493,7 @@ fn versions() -> ApiVersionsResponse {
         (DESCRIBE_GROUPS, 0, 6),
         (LIST_GROUPS, 0, 5),
         (DELETE_GROUPS, 0, 2),
+        (SHARE_GROUP_DESCRIBE, 1, 1),
         (SHARE_GROUP_HEARTBEAT, 1, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
@@ -3647,6 +3662,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .map(|group_id| DeletableGroupResult::new(group_id, 0))
                         .collect();
                     encode_delete_groups_response(&mut body, &results).unwrap();
+                }
+            }
+            SHARE_GROUP_DESCRIBE => {
+                let (ids, _include) = decode_share_group_describe_request(&mut frame).unwrap();
+                let mut st = state.lock();
+                if st.coord_node != node_id {
+                    st.share_group_describe_not_coordinator =
+                        st.share_group_describe_not_coordinator.saturating_add(1);
+                    // Per-group 16 only. Do not invent a member store,
+                    // a 41 path, or a 6 path.
+                    let results: Vec<DescribedShareGroup> = ids
+                        .into_iter()
+                        .map(|group_id| DescribedShareGroup::new(group_id, error::NOT_COORDINATOR))
+                        .collect();
+                    encode_share_group_describe_response(&mut body, &results).unwrap();
+                } else {
+                    st.last_share_group_describe_node = Some(node_id);
+                    let results: Vec<DescribedShareGroup> = ids
+                        .into_iter()
+                        .map(|group_id| {
+                            let mut g = DescribedShareGroup::new(group_id, 0);
+                            g.group_state = "Stable".into();
+                            g.group_epoch = 1;
+                            g.assignment_epoch = 1;
+                            g.assignor_name = "uniform".into();
+                            g
+                        })
+                        .collect();
+                    encode_share_group_describe_response(&mut body, &results).unwrap();
                 }
             }
             _ => break,
