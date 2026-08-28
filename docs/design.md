@@ -57,8 +57,8 @@ them, then rejoins so the new owner can take them. `ConsumerConfig::group_instan
 Kafka `group.instance.id` (static membership) on JoinGroup, Heartbeat, and
 KIP-848 heartbeats. `ConsumerConfig::rack` is also sent on KIP-848.
 `ConsumerConfig::auto_offset_reset` runs when OffsetFetch has no committed
-offset (`Earliest` by default). `committed` is OffsetFetch for the current
-assignment. `commit_offsets` commits caller-chosen offsets
+offset (`Earliest` by default). `committed` / `committed_timeout` are OffsetFetch
+for the current assignment (Java `committed` / `committed(Duration)`). `commit_offsets` commits caller-chosen offsets
 ([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
 `commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
 (leader epoch and a metadata string). Pass

@@ -611,15 +611,37 @@ impl ConsumerGroup {
     /// Last committed offsets for the current assignment (`OffsetFetch`).
     ///
     /// Partitions with no committed offset return offset `-1`.
+    /// Waits up to [`ConsumerConfig::request_timeout`].
     pub async fn committed(&mut self) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
         let assigned = self.assignment();
         self.committed_for(assigned).await
     }
 
+    /// [`Self::committed`] with a one-shot timeout (Java `committed(Duration)`).
+    pub async fn committed_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
+        let assigned = self.assignment();
+        self.committed_for_timeout(assigned, timeout).await
+    }
+
     /// Last committed offsets for these partitions (`OffsetFetch`).
+    ///
+    /// Waits up to [`ConsumerConfig::request_timeout`].
     pub async fn committed_for(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
+        let timeout = self.cfg.request_timeout;
+        self.committed_for_timeout(partitions, timeout).await
+    }
+
+    /// [`Self::committed_for`] with a one-shot timeout.
+    pub async fn committed_for_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+        timeout: Duration,
     ) -> Result<Vec<(TopicPartition, OffsetAndMetadata)>> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -633,7 +655,6 @@ impl ConsumerGroup {
             .map(|tp| (tp.topic.clone(), tp.partition))
             .collect();
         let topics = group_offset_fetch_topics(&wanted);
-        let timeout = Duration::from_secs(30);
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -793,8 +814,9 @@ impl ConsumerGroup {
     /// Commit the next fetch offsets for the current assignment
     /// (Java `commitSync()` with no arguments).
     ///
-    /// To commit only partitions from the last poll, pass
-    /// [`ConsumerRecords::next_offsets`] to [`Self::commit_with_metadata`].
+    /// Waits up to [`ConsumerConfig::request_timeout`]. To commit only
+    /// partitions from the last poll, pass [`ConsumerRecords::next_offsets`]
+    /// to [`Self::commit_with_metadata`].
     pub async fn commit(&mut self) -> Result<()> {
         if self.kip848 {
             self.apply_pending_assignment().await?;
@@ -851,7 +873,7 @@ impl ConsumerGroup {
         if topics.is_empty() {
             return Ok(());
         }
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -1001,9 +1023,9 @@ impl ConsumerGroup {
 
     /// Leave the group, waiting up to `timeout` (Java `close(Duration)`).
     ///
-    /// [`Self::leave`] / [`Self::close`] wait up to 30 seconds for the
-    /// coordinator. A shorter `timeout` returns [`Error::Timeout`] if leave
-    /// does not finish in time.
+    /// [`Self::leave`] / [`Self::close`] wait up to
+    /// [`ConsumerConfig::request_timeout`] for the coordinator. A shorter
+    /// `timeout` returns [`Error::Timeout`] if leave does not finish in time.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         match tokio::time::timeout(timeout, self.leave()).await {
             Ok(out) => out,
@@ -1012,7 +1034,7 @@ impl ConsumerGroup {
     }
 
     async fn leave_coordinator(&mut self) -> Result<()> {
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         if self.kip848 {
             let req = ConsumerGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
@@ -1081,7 +1103,7 @@ impl ConsumerGroup {
     }
 
     async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         let metadata = self.join_metadata()?;
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
@@ -1221,7 +1243,7 @@ impl ConsumerGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let req = ConsumerGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
@@ -1290,7 +1312,7 @@ impl ConsumerGroup {
             Vec::new()
         } else {
             let topics = group_offset_fetch_topics(&added);
-            let timeout = Duration::from_secs(30);
+            let timeout = self.cfg.request_timeout;
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
@@ -1388,7 +1410,7 @@ impl ConsumerGroup {
                         let Some(c) = conn.as_mut() else {
                             continue;
                         };
-                        let timeout = Duration::from_secs(10);
+                        let timeout = cfg.request_timeout;
                         let epoch = hb_generation.load(Ordering::SeqCst);
                         let topic_partitions = hb_ack.lock().clone();
                         let req = ConsumerGroupHeartbeatRequest {
@@ -1479,7 +1501,7 @@ impl ConsumerGroup {
                         let Some(c) = conn.as_mut() else {
                             continue;
                         };
-                        let timeout = Duration::from_secs(10);
+                        let timeout = cfg.request_timeout;
                         let gid = group_id.clone();
                         let mid = member_id.clone();
                         let instance = cfg.group_instance_id.clone();
@@ -1543,7 +1565,7 @@ async fn leave_if_max_poll(
     }
     left.store(true, Ordering::SeqCst);
     if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
-        let timeout = Duration::from_secs(10);
+        let timeout = cfg.request_timeout;
         if kip848 {
             let req = ConsumerGroupHeartbeatRequest {
                 group_id: group_id.to_string(),

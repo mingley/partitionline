@@ -74,7 +74,7 @@ pub struct ConsumerConfig {
     pub bootstrap: Vec<String>,
     /// Kafka `client.id`.
     pub client_id: String,
-    /// Per-request timeout (fetch, metadata, offsets, group RPCs that use this config).
+    /// Per-request timeout (fetch, metadata, offsets, group and share RPCs).
     pub request_timeout: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,

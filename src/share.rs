@@ -324,7 +324,7 @@ impl ShareGroup {
     }
 
     async fn heartbeat_join(&mut self) -> Result<()> {
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
@@ -400,7 +400,7 @@ impl ShareGroup {
             return Err(Error::broker(hb, "ShareGroupHeartbeat"));
         }
         let started = Instant::now();
-        let deadline = started + Duration::from_secs(30);
+        let deadline = started + self.cfg.request_timeout;
         let mut attempt = 0u32;
         loop {
             match self.poll_leaders().await {
@@ -497,7 +497,7 @@ impl ShareGroup {
     async fn poll_leaders(&mut self) -> Result<Vec<ShareRecord>> {
         let assigned = self.assigned.clone();
         let by_leader = self.leaders_of(&assigned).await?;
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         let max_wait = self.cfg.max_wait_ms;
         let mut out = Vec::new();
         for (node, tps) in by_leader {
@@ -690,7 +690,7 @@ impl ShareGroup {
         if partitions.is_empty() {
             return Ok(());
         }
-        let deadline = Instant::now() + Duration::from_secs(30);
+        let deadline = Instant::now() + self.cfg.request_timeout;
         loop {
             match self.acknowledge_leaders(&partitions).await {
                 Ok(()) => {
@@ -715,7 +715,7 @@ impl ShareGroup {
     ) -> Result<()> {
         let tps: Vec<(String, i32)> = partitions.iter().map(|(t, p, _)| (t.clone(), *p)).collect();
         let by_leader = self.leaders_of(&tps).await?;
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         for (node, node_tps) in by_leader {
             let epoch = self.session_epoch(node);
             if epoch <= 0 {
@@ -786,7 +786,7 @@ impl ShareGroup {
         if open.is_empty() {
             return Ok(());
         }
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         let mut last = Ok(());
         for node in open {
             let body = self
@@ -835,7 +835,7 @@ impl ShareGroup {
     }
 
     async fn leave_coordinator(&mut self) -> Result<()> {
-        let timeout = Duration::from_secs(30);
+        let timeout = self.cfg.request_timeout;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -867,9 +867,10 @@ impl ShareGroup {
 
     /// Leave the share group, waiting up to `timeout` (Java `close(Duration)`).
     ///
-    /// [`Self::leave`] / [`Self::close`] wait up to 30 seconds for the
-    /// coordinator. A shorter `timeout` returns [`Error::Timeout`] if leave
-    /// does not finish in time.
+    /// [`Self::leave`] / [`Self::close`] wait up to
+    /// [`crate::ConsumerConfig::request_timeout`] for the coordinator. A
+    /// shorter `timeout` returns [`Error::Timeout`] if leave does not finish
+    /// in time.
     pub async fn close_timeout(self, timeout: Duration) -> Result<()> {
         match tokio::time::timeout(timeout, self.leave()).await {
             Ok(out) => out,
@@ -912,7 +913,7 @@ impl ShareGroup {
                                 SHARE_GROUP_HEARTBEAT,
                                 1,
                                 |buf| encode_share_group_heartbeat_request(buf, &req),
-                                Duration::from_secs(10),
+                                cfg.request_timeout,
                             )
                             .await;
                         match res {

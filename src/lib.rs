@@ -70,7 +70,8 @@
 //! (Java `count` / `partitions` / `records` / `nextOffsets`).
 //! [`ShareGroup::poll`] returns [`ShareRecords`]. [`Consumer::fetch_timeout`] /
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
-//! `poll(Duration)`.
+//! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java
+//! `committed(Duration)`.
 //! [`ConsumerGroup::commit_offsets`] takes [`TopicPartition`] (or anything
 //! that converts to one) plus the next fetch offset.
 //! [`ConsumerGroup::commit_with_metadata`] takes

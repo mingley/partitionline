@@ -42,7 +42,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
 | Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on `assignment` / pause/resume/paused/`seek_to`/`position_of`/`seek_to_beginning_of`/`seek_to_end_of`; rebalance listener too) | yes | **done** |
-| `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
+| `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`; `committed_timeout` is Java `committed(Duration)`; group/share RPCs use `request_timeout`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` counters plus produce-ack / fetch-round latency min/mean/max and p50/p99 over the last 1024 samples; per-topic rows on `topics`; share includes bytes/errors) | yes | **done** |

@@ -780,6 +780,16 @@ async fn group_committed_after_commit() {
     assert_eq!(after.len(), 1);
     assert_eq!(after[0].1.offset, 1);
     assert_eq!(after[0].1.leader_epoch, Some(0));
+    let timed = group
+        .committed_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].1.offset, 1);
+    let one = group
+        .committed_for_timeout([TopicPartition::new("t", 0)], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(one[0].1.offset, 1);
     group.leave().await.unwrap();
 }
 
