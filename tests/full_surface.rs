@@ -17,13 +17,13 @@ use partitionline::{
     AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
     AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity,
     ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource, Consumer,
-    ConsumerConfig, ConsumerGroup, DeleteShareGroupOffsetsTopic, DescribeShareGroupOffsetsGroup,
-    Error, FeatureUpdate, NewTopic, OidcConfig, OngoingReassignment, PartitionReassignment,
-    ProduceRecord, Producer, ProducerConfig, ShareGroup, TransactionState, TransactionTopic,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, ACL_OPERATION_ALL,
-    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC, ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS,
-    CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256,
-    SCRAM_SHA_512,
+    ConsumerConfig, ConsumerGroup, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
+    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FeatureUpdate, NewTopic,
+    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, ShareGroup, TransactionState, TransactionTopic, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
+    ALTER_CONFIG_SET, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_TOPIC, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::Duration;
 
@@ -3647,6 +3647,57 @@ async fn alter_replica_log_dirs_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "AlterReplicaLogDirs must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn describe_log_dirs_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let topics = Some(vec![DescribableLogDirTopic::new("t", vec![0])]);
+    let first = admin.describe_log_dirs(topics.clone()).await.unwrap();
+    assert_eq!(first.error_code, 0);
+    assert_eq!(first.results.len(), 1);
+    assert_eq!(first.results[0].log_dir, "/d");
+    assert_eq!(first.results[0].error_code, 0);
+    assert_eq!(first.results[0].topics[0].name, "t");
+    assert_eq!(first.results[0].topics[0].partitions[0].partition_index, 0);
+    assert_eq!(
+        mock.last_describe_log_dirs_node(),
+        Some(1),
+        "DescribeLogDirs must land on the connected broker, not the coordinator or controller"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs(),
+        Some(DescribeLogDirsRequest::new(topics))
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        None,
+        "DescribeLogDirs must not hop via AlterReplicaLogDirs"
+    );
+    assert_eq!(
+        mock.last_assign_replicas_to_dirs_node(),
+        None,
+        "DescribeLogDirs must not hop via AssignReplicasToDirs"
+    );
+    assert_eq!(
+        mock.last_push_telemetry_node(),
+        None,
+        "DescribeLogDirs must not hop via PushTelemetry"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "DescribeLogDirs must not hop via DescribeGroups or FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_node(),
+        None,
+        "DescribeLogDirs must not hop via Metadata controller_id"
     );
 }
 

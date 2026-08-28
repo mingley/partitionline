@@ -33,6 +33,7 @@ pub const DELETE_ACLS: i16 = 31;
 pub const DESCRIBE_CONFIGS: i16 = 32;
 pub const ALTER_CONFIGS: i16 = 33;
 pub const ALTER_REPLICA_LOG_DIRS: i16 = 34;
+pub const DESCRIBE_LOG_DIRS: i16 = 35;
 pub const SASL_AUTHENTICATE: i16 = 36;
 pub const CREATE_PARTITIONS: i16 = 37;
 pub const DELETE_GROUPS: i16 = 42;
