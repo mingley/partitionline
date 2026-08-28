@@ -59,6 +59,14 @@ pub struct ProducerConfig {
     /// metadata and a leader connection. Default 30s (this crate; Java
     /// defaults to 60s). [`crate::Producer::try_send`] does not wait.
     pub max_block: Duration,
+    /// Kafka `retry.backoff.ms`. Wait after a retriable Produce failure
+    /// before the next attempt. Default 100ms (Java / librdkafka). Zero
+    /// retries immediately. Grows as `base * 2^n` up to
+    /// [`Self::retry_backoff_max`].
+    pub retry_backoff: Duration,
+    /// Kafka `retry.backoff.max.ms`. Cap on [`Self::retry_backoff`]
+    /// exponential growth. Default 1s.
+    pub retry_backoff_max: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
@@ -103,6 +111,8 @@ impl Default for ProducerConfig {
             request_timeout: Duration::from_secs(30),
             delivery_timeout: Duration::from_secs(30),
             max_block: Duration::from_secs(30),
+            retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
+            retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             connect_timeout: Duration::from_secs(10),
             allow_auto_topic_creation: false,
             compression: Compression::None,
@@ -262,6 +272,25 @@ impl ProducerConfig {
         self
     }
 
+    /// Kafka `retry.backoff.ms`. Wait after a retriable Produce before retrying.
+    ///
+    /// Default 100ms. Zero retries immediately. Combined with
+    /// [`Self::retry_backoff_max`] this is exponential (`base * 2^n`), no jitter.
+    #[must_use]
+    pub fn retry_backoff(mut self, backoff: Duration) -> Self {
+        self.retry_backoff = backoff;
+        self
+    }
+
+    /// Kafka `retry.backoff.max.ms`. Cap on exponential produce retry waits.
+    ///
+    /// Default 1s. Raised to [`Self::retry_backoff`] when set lower.
+    #[must_use]
+    pub fn retry_backoff_max(mut self, backoff: Duration) -> Self {
+        self.retry_backoff_max = backoff;
+        self
+    }
+
     /// TCP connect timeout.
     #[must_use]
     pub fn connect_timeout(mut self, timeout: Duration) -> Self {
@@ -376,6 +405,9 @@ struct Pending {
     seq: Option<i32>,
     deadline: Instant,
     queued_at: Instant,
+    /// Failed Produce attempts so far. The first retry sleeps
+    /// [`ProducerConfig::retry_backoff`].
+    retry: u32,
 }
 
 enum Ctrl {
@@ -748,6 +780,7 @@ impl Producer {
                     seq: None,
                     deadline,
                     queued_at: now,
+                    retry: 0,
                 })
                 .await
                 .map_err(|_| Error::Closed)?;
@@ -846,6 +879,7 @@ impl Producer {
                 seq: None,
                 deadline,
                 queued_at: now,
+                retry: 0,
             })
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
@@ -1549,6 +1583,17 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         fail_pendings(shared, vec![p], Error::Timeout);
         return;
     }
+    crate::config::sleep_retry_backoff(
+        shared.cfg.retry_backoff,
+        shared.cfg.retry_backoff_max,
+        p.retry.saturating_sub(1),
+        p.deadline,
+    )
+    .await;
+    if Instant::now() >= p.deadline {
+        fail_pendings(shared, vec![p], Error::Timeout);
+        return;
+    }
     invalidate_cached_topic(shared, p.rec.topic.as_ref());
     if let Err(e) = partitions_for(shared, &p.rec.topic).await {
         fail_pendings(shared, vec![p], e);
@@ -1984,7 +2029,8 @@ impl Worker {
     }
 
     fn requeue_pendings(&mut self, pendings: Vec<Pending>) {
-        for p in pendings {
+        for mut p in pendings {
+            p.retry = p.retry.saturating_add(1);
             let _ = self.shared.retries_out.fetch_add(1, Ordering::SeqCst);
             match self.shared.retry_tx.try_send(p) {
                 Ok(()) => {}

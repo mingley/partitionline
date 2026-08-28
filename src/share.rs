@@ -394,6 +394,7 @@ impl ShareGroup {
         }
         let started = Instant::now();
         let deadline = started + Duration::from_secs(30);
+        let mut attempt = 0u32;
         loop {
             match self.poll_leaders().await {
                 Ok(recs) => {
@@ -409,6 +410,11 @@ impl ShareGroup {
                     return Ok(ShareRecords::from(recs));
                 }
                 Err(e) if share_leader_retriable(&e) => {
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    self.consumer.sleep_retry_backoff(attempt, deadline).await?;
+                    attempt = attempt.saturating_add(1);
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }

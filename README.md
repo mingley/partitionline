@@ -141,6 +141,10 @@ let _iso = IsolationLevel::ReadCommitted;
 `ProducerConfig::delivery_timeout` is Kafka `delivery.timeout.ms` (default 30s;
 Java defaults to 120s). `ProducerConfig::max_block` is Kafka `max.block.ms`
 (how long `send` waits for metadata; default 30s, Java 60s).
+`ProducerConfig::retry_backoff` / `retry_backoff_max` are Kafka
+`retry.backoff.ms` / `retry.backoff.max.ms` (exponential wait after a retriable
+Produce; default 100ms / 1s). The same pair on `ConsumerConfig` covers retriable
+Fetch (preferred-replica redirects do not wait).
 `connect_timeout` is on the producer, consumer, and admin builders.
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and

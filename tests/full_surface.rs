@@ -27,7 +27,7 @@ use partitionline::{
     UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
     EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[tokio::test]
 async fn try_send_flush_writes_record() {
@@ -420,6 +420,29 @@ async fn produce_retries_retriable_then_succeeds() {
     assert_eq!(md.offset, 0);
     producer.flush().await.unwrap();
     assert_eq!(mock.log_len("t", 0), 1);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn produce_retry_honors_backoff() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::LEADER_NOT_AVAILABLE, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.retry_backoff = Duration::from_millis(50);
+    pcfg.retry_backoff_max = Duration::from_millis(50);
+    let producer = Producer::new(pcfg).await.unwrap();
+    let start = Instant::now();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"retry-backoff"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    assert!(
+        start.elapsed() >= Duration::from_millis(50),
+        "retriable Produce must wait retry.backoff.ms, elapsed {:?}",
+        start.elapsed()
+    );
     producer.close().await.unwrap();
 }
 

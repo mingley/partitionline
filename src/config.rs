@@ -4,8 +4,46 @@
 //! [`ProducerConfig`](crate::ProducerConfig) still works; the builders here are
 //! the shorter path.
 
+use std::time::{Duration, Instant};
+
 use crate::net::TlsConfig;
 use crate::protocol::oidc::OidcConfig;
+
+/// Kafka `retry.backoff.ms` default (Java and librdkafka: 100).
+pub(crate) const DEFAULT_RETRY_BACKOFF: Duration = Duration::from_millis(100);
+/// Kafka `retry.backoff.max.ms` default (Java and librdkafka: 1000).
+pub(crate) const DEFAULT_RETRY_BACKOFF_MAX: Duration = Duration::from_millis(1000);
+
+/// Exponential delay for retry attempt `n` (0-based): `base * 2^n`, capped at `max`.
+///
+/// A zero `base` disables the wait (immediate retry). No jitter (Java adds up
+/// to 20%). `max` is raised to `base` when the caller sets it lower.
+pub(crate) fn retry_backoff_delay(base: Duration, max: Duration, attempt: u32) -> Duration {
+    if base.is_zero() {
+        return Duration::ZERO;
+    }
+    let cap = max.max(base);
+    let shift = attempt.min(16);
+    base.saturating_mul(1u32 << shift).min(cap)
+}
+
+/// Sleep [`retry_backoff_delay`], not past `deadline`.
+pub(crate) async fn sleep_retry_backoff(
+    base: Duration,
+    max: Duration,
+    attempt: u32,
+    deadline: Instant,
+) {
+    let delay = retry_backoff_delay(base, max, attempt);
+    if delay.is_zero() {
+        return;
+    }
+    let now = Instant::now();
+    if now >= deadline {
+        return;
+    }
+    tokio::time::sleep(delay.min(deadline.saturating_duration_since(now))).await;
+}
 
 /// Broker acknowledgements the producer waits for.
 ///
@@ -231,6 +269,33 @@ mod tests {
     #[test]
     fn auto_offset_reset_default_is_earliest() {
         assert_eq!(AutoOffsetReset::default(), AutoOffsetReset::Earliest);
+    }
+
+    #[test]
+    fn retry_backoff_delay_doubles_then_caps() {
+        let base = Duration::from_millis(100);
+        let max = Duration::from_millis(1000);
+        assert_eq!(retry_backoff_delay(base, max, 0), base);
+        assert_eq!(
+            retry_backoff_delay(base, max, 1),
+            Duration::from_millis(200)
+        );
+        assert_eq!(
+            retry_backoff_delay(base, max, 2),
+            Duration::from_millis(400)
+        );
+        assert_eq!(
+            retry_backoff_delay(base, max, 3),
+            Duration::from_millis(800)
+        );
+        assert_eq!(retry_backoff_delay(base, max, 4), max);
+        assert_eq!(retry_backoff_delay(base, max, 20), max);
+        assert_eq!(retry_backoff_delay(Duration::ZERO, max, 5), Duration::ZERO);
+        assert_eq!(
+            retry_backoff_delay(base, Duration::from_millis(50), 3),
+            base,
+            "max below base still waits at least base"
+        );
     }
 
     #[test]

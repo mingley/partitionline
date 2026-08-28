@@ -126,6 +126,14 @@ pub struct ConsumerConfig {
     /// [`crate::Error::MaxPollInterval`] if exceeded. The heartbeat thread
     /// also leaves the group (classic `LeaveGroup` or KIP-848 epoch `-1`).
     pub max_poll_interval: Duration,
+    /// Kafka `retry.backoff.ms`. Wait after a retriable Fetch error before
+    /// the next attempt in the same [`Consumer::fetch`]. Default 100ms.
+    /// Zero retries immediately. Preferred-replica redirects do not wait.
+    /// Grows as `base * 2^n` up to [`Self::retry_backoff_max`].
+    pub retry_backoff: Duration,
+    /// Kafka `retry.backoff.max.ms`. Cap on [`Self::retry_backoff`]
+    /// exponential growth. Default 1s.
+    pub retry_backoff_max: Duration,
     /// Fetch interceptors. Empty is a no-op.
     pub interceptors: crate::interceptor::ConsumerInterceptors,
 }
@@ -157,6 +165,8 @@ impl Default for ConsumerConfig {
             enable_auto_commit: false,
             auto_commit_interval: Duration::from_secs(5),
             max_poll_interval: Duration::from_secs(300),
+            retry_backoff: crate::config::DEFAULT_RETRY_BACKOFF,
+            retry_backoff_max: crate::config::DEFAULT_RETRY_BACKOFF_MAX,
             interceptors: crate::interceptor::ConsumerInterceptors::default(),
         }
     }
@@ -278,6 +288,26 @@ impl ConsumerConfig {
     #[must_use]
     pub fn max_poll_interval(mut self, interval: Duration) -> Self {
         self.max_poll_interval = interval;
+        self
+    }
+
+    /// Kafka `retry.backoff.ms`. Wait after a retriable Fetch before retrying.
+    ///
+    /// Default 100ms. Zero retries immediately. Preferred-replica redirects
+    /// (KIP-392) do not wait. Combined with [`Self::retry_backoff_max`] this
+    /// is exponential (`base * 2^n`), no jitter.
+    #[must_use]
+    pub fn retry_backoff(mut self, backoff: Duration) -> Self {
+        self.retry_backoff = backoff;
+        self
+    }
+
+    /// Kafka `retry.backoff.max.ms`. Cap on exponential fetch retry waits.
+    ///
+    /// Default 1s. Raised to [`Self::retry_backoff`] when set lower.
+    #[must_use]
+    pub fn retry_backoff_max(mut self, backoff: Duration) -> Self {
+        self.retry_backoff_max = backoff;
         self
     }
 
@@ -1381,6 +1411,35 @@ impl Consumer {
         self.wakeup.load(Ordering::SeqCst)
     }
 
+    /// Wait [`ConsumerConfig::retry_backoff`] (exponential) unless a wakeup arrives.
+    pub(crate) async fn sleep_retry_backoff(&self, attempt: u32, deadline: Instant) -> Result<()> {
+        if self.woken() {
+            return Err(Error::Wakeup);
+        }
+        let delay = crate::config::retry_backoff_delay(
+            self.cfg.retry_backoff,
+            self.cfg.retry_backoff_max,
+            attempt,
+        );
+        if delay.is_zero() {
+            return Ok(());
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            return Ok(());
+        }
+        let rest = delay.min(deadline.saturating_duration_since(now));
+        let mut rx = self.wakeup_tx.subscribe();
+        tokio::select! {
+            biased;
+            result = rx.wait_for(|on| *on) => {
+                drop(result);
+                Err(Error::Wakeup)
+            }
+            _ = tokio::time::sleep(rest) => Ok(())
+        }
+    }
+
     async fn fetch_assigned(&mut self) -> Result<Vec<FetchedRecord>> {
         if let Some(ready) = self.take_ready() {
             return Ok(ready);
@@ -1389,6 +1448,7 @@ impl Consumer {
             return Ok(Vec::new());
         }
         let deadline = Instant::now() + self.cfg.request_timeout;
+        let mut attempt = 0u32;
         loop {
             if self.woken() {
                 return Err(Error::Wakeup);
@@ -1436,6 +1496,11 @@ impl Consumer {
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
                 }
+                self.sleep_retry_backoff(attempt, deadline).await?;
+                attempt = attempt.saturating_add(1);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
                 for (t, _, _) in &self.assigned {
                     self.cluster.invalidate_topic(t);
                 }
@@ -1445,24 +1510,29 @@ impl Consumer {
             }
             let bodies = self.fetch_from_leaders(by_leader).await?;
             let mut out = Vec::new();
-            let mut retry = false;
+            let mut retry = FetchRetry::None;
             for (node, body) in bodies {
                 let mut body = match body {
                     Ok(b) => b,
                     Err(e) if e.is_retriable() => {
                         let _ = self.conns.remove(&node);
-                        retry = true;
+                        retry = retry.merge(FetchRetry::Backoff);
                         continue;
                     }
                     Err(e) => return Err(e),
                 };
-                if self.apply_fetch_body(node, &mut body, &mut out).await? {
-                    retry = true;
-                }
+                retry = retry.merge(self.apply_fetch_body(node, &mut body, &mut out).await?);
             }
-            if retry {
+            if retry.should_retry() {
                 if Instant::now() >= deadline {
                     return Err(Error::Timeout);
+                }
+                if retry.needs_backoff() {
+                    self.sleep_retry_backoff(attempt, deadline).await?;
+                    attempt = attempt.saturating_add(1);
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
                 }
                 let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
                 self.refresh_metadata(Some(&topics)).await?;
@@ -1593,9 +1663,9 @@ impl Consumer {
         node: i32,
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
-    ) -> Result<bool> {
+    ) -> Result<FetchRetry> {
         let fetched = decode_fetch_response(body)?;
-        let mut retry = false;
+        let mut retry = FetchRetry::None;
         for topic in fetched {
             for part in topic.partitions {
                 if part.preferred_read_replica >= 0
@@ -1606,7 +1676,7 @@ impl Consumer {
                         (topic.topic.clone(), part.partition),
                         part.preferred_read_replica,
                     );
-                    retry = true;
+                    retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
@@ -1618,7 +1688,7 @@ impl Consumer {
                 {
                     self.recover_leader_epoch(&topic.topic, part.partition)
                         .await?;
-                    retry = true;
+                    retry = retry.merge(FetchRetry::Backoff);
                     continue;
                 }
                 if part.error_code != 0 {
@@ -1629,7 +1699,7 @@ impl Consumer {
                     if e.is_retriable() {
                         self.cluster.invalidate_topic(&topic.topic);
                         let _ = self.conns.remove(&node);
-                        retry = true;
+                        retry = retry.merge(FetchRetry::Backoff);
                         continue;
                     }
                     return Err(e);
@@ -2045,6 +2115,33 @@ impl Consumer {
         }
         self.pending = kept;
         out
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FetchRetry {
+    None,
+    /// Preferred replica (KIP-392). Retry the Fetch immediately.
+    Redirect,
+    /// Retriable broker / IO error. Wait `retry.backoff.ms`.
+    Backoff,
+}
+
+impl FetchRetry {
+    fn should_retry(self) -> bool {
+        self != Self::None
+    }
+
+    fn needs_backoff(self) -> bool {
+        self == Self::Backoff
+    }
+
+    fn merge(self, other: Self) -> Self {
+        match (self, other) {
+            (Self::Backoff, _) | (_, Self::Backoff) => Self::Backoff,
+            (Self::Redirect, _) | (_, Self::Redirect) => Self::Redirect,
+            (Self::None, Self::None) => Self::None,
+        }
     }
 }
 

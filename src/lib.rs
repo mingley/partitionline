@@ -124,7 +124,11 @@
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
 //! Kafka `max.block.ms` (how long `send` waits for metadata; default 30s,
-//! Java 60s).
+//! Java 60s). [`ProducerConfig::retry_backoff`] /
+//! [`ProducerConfig::retry_backoff_max`] are Kafka `retry.backoff.ms` /
+//! `retry.backoff.max.ms` (exponential wait after a retriable Produce;
+//! default 100ms / 1s). [`ConsumerConfig::retry_backoff`] is the same pair
+//! for retriable Fetch (preferred-replica redirects do not wait).
 //! [`ConsumerConfig::isolation`] is [`IsolationLevel`].
 //! [`ConfigResourceType`] / [`ScramMechanism`] type admin config
 //! resources and user SCRAM.

@@ -17,8 +17,8 @@ The library talks Kafka's network protocol itself. There is no C Kafka library i
 6. `flush` waits for those responses and returns the first broker error. `try_send` Ok only means queued.
 
 `ProducerConfig`, `ConsumerConfig`, and `AdminConfig` accept chainable
-builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`, …). The raw fields remain
-writable.
+builders (`acks`, `sasl`, `tls`, `isolation`, `delivery_timeout`, `max_block`,
+`retry_backoff`, …). The raw fields remain writable.
 
 `ConsumerConfig.isolation_level` is [`IsolationLevel`](../src/config.rs)
 (not a raw `i8`). `ConfigResourceType` and `ScramMechanism` type admin

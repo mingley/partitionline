@@ -185,6 +185,8 @@ fn config_builders_set_typed_knobs() {
         .connect_timeout(Duration::from_secs(3))
         .delivery_timeout(Duration::from_secs(45))
         .max_block(Duration::from_secs(15))
+        .retry_backoff(Duration::from_millis(80))
+        .retry_backoff_max(Duration::from_millis(400))
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
@@ -193,6 +195,8 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(p.connect_timeout, Duration::from_secs(3));
     assert_eq!(p.delivery_timeout, Duration::from_secs(45));
     assert_eq!(p.max_block, Duration::from_secs(15));
+    assert_eq!(p.retry_backoff, Duration::from_millis(80));
+    assert_eq!(p.retry_backoff_max, Duration::from_millis(400));
     assert_eq!(p.sasl_scram, Some(("alice".into(), "secret".into())));
     assert!(p.sasl_plain.is_none());
 
@@ -208,6 +212,8 @@ fn config_builders_set_typed_knobs() {
         .auto_commit(true)
         .auto_commit_interval(Duration::ZERO)
         .max_poll_interval(Duration::from_secs(60))
+        .retry_backoff(Duration::from_millis(25))
+        .retry_backoff_max(Duration::from_millis(250))
         .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
     assert_eq!(c.max_bytes, 1024);
@@ -220,6 +226,8 @@ fn config_builders_set_typed_knobs() {
     assert!(c.enable_auto_commit);
     assert_eq!(c.auto_commit_interval, Duration::ZERO);
     assert_eq!(c.max_poll_interval, Duration::from_secs(60));
+    assert_eq!(c.retry_backoff, Duration::from_millis(25));
+    assert_eq!(c.retry_backoff_max, Duration::from_millis(250));
     assert_eq!(c.connect_timeout, Duration::from_secs(4));
 }
 
