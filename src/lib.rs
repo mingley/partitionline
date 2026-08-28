@@ -10,7 +10,8 @@
 //! AlterUserScramCredentials, DescribeUserScramCredentials,
 //! AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
 //! AllocateProducerIds, DescribeTransactions, ListTransactions,
-//! UnregisterBroker, ConsumerGroupDescribe, DescribeCluster).
+//! UnregisterBroker, ConsumerGroupDescribe, DescribeGroups,
+//! DescribeCluster).
 //! See the crate README and `docs/gaps.md` for what is still missing.
 
 #![forbid(unsafe_code)]
@@ -41,10 +42,11 @@ pub use admin::{
     ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
     ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
     DescribeProducersPartition, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    FeatureUpdate, FeatureUpdateResult, NewTopic, OffsetDeleteResult, OngoingReassignment,
-    PartitionReassignment, ProducerIdBlock, ReassignmentResult, ScramCredentialInfo,
-    TransactionListing, TransactionState, TransactionTopic, UserScramCredentialDeletion,
-    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    DescribedGroup, DescribedGroupMember, FeatureUpdate, FeatureUpdateResult, NewTopic,
+    OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    ReassignmentResult, ScramCredentialInfo, TransactionListing, TransactionState,
+    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
     QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };

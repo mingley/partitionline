@@ -14,6 +14,7 @@ pub const JOIN_GROUP: i16 = 11;
 pub const HEARTBEAT: i16 = 12;
 pub const LEAVE_GROUP: i16 = 13;
 pub const SYNC_GROUP: i16 = 14;
+pub const DESCRIBE_GROUPS: i16 = 15;
 pub const SASL_HANDSHAKE: i16 = 17;
 pub const API_VERSIONS: i16 = 18;
 pub const CREATE_TOPICS: i16 = 19;

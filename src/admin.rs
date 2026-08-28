@@ -20,17 +20,18 @@ use crate::protocol::admin::{
     decode_create_partitions_response, decode_create_topics_response,
     decode_delete_records_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
-    decode_describe_configs_response, decode_describe_producers_response,
-    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
-    decode_incremental_alter_configs_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_unregister_broker_response,
-    decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
-    encode_alter_partition_reassignments_request, encode_alter_user_scram_credentials_request,
-    encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_records_request, encode_delete_topics_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_producers_request,
+    decode_describe_configs_response, decode_describe_groups_response,
+    decode_describe_producers_response, decode_describe_transactions_response,
+    decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
+    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_unregister_broker_response, decode_update_features_response,
+    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
+    encode_alter_configs_request, encode_alter_partition_reassignments_request,
+    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_records_request,
+    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_groups_request, encode_describe_producers_request,
     encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
     encode_incremental_alter_configs_request, encode_list_partition_reassignments_request,
     encode_list_transactions_request, encode_unregister_broker_request,
@@ -48,9 +49,10 @@ use crate::protocol::api_keys::{
     ALTER_PARTITION_REASSIGNMENTS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS,
     CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
-    DESCRIBE_CONFIGS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS,
-    FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS,
-    METADATA, OFFSET_DELETE, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, UNREGISTER_BROKER,
+    UPDATE_FEATURES,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_offset_delete_response,
@@ -65,9 +67,10 @@ pub use crate::protocol::admin::{
     ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
     ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym, ConsumerGroupAssignment,
     ConsumerGroupMember, ConsumerGroupTopicPartitions, DescribeProducersPartition,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, ScramCredentialInfo,
-    TransactionListing, TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    AUTHORIZED_OPERATIONS_OMITTED, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, ScramCredentialInfo, TransactionListing, TransactionState,
+    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
+    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
     SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -353,6 +356,7 @@ pub struct Admin {
     describe_transactions_version: i16,
     list_transactions_version: i16,
     consumer_group_describe_version: i16,
+    describe_groups_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -539,6 +543,10 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ConsumerGroupDescribe".into())
             })?;
+        let describe_groups_version = versions
+            .get(&DESCRIBE_GROUPS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 6, 6))
+            .ok_or_else(|| Error::Unsupported("broker does not support DescribeGroups".into()))?;
         Ok(Self {
             cfg,
             conn,
@@ -570,6 +578,7 @@ impl Admin {
             describe_transactions_version,
             list_transactions_version,
             consumer_group_describe_version,
+            describe_groups_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2076,6 +2085,86 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let results = decode_consumer_group_describe_response(&mut body.clone())?;
+            if results
+                .iter()
+                .any(|r| error::coordinator_retriable(r.error_code))
+            {
+                // 14/15/16: FindCoordinator, then the new group coordinator.
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            return Ok(results);
+        }
+    }
+
+    /// Describe classic consumer groups (DescribeGroups api 15).
+    ///
+    /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// Official Apache JSON listeners are `broker` only. Official
+    /// listed per-group errors include `NOT_COORDINATOR` (16). This is
+    /// not a controller hop and not a partition-leader hop: there is no
+    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
+    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. `COORDINATOR_LOAD_IN_PROGRESS`
+    /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
+    /// coordinator and retry. ErrorCode is per-group (bytes 5–6 on
+    /// leftover-empty fixture group `"g"`), not top-level after throttle.
+    pub async fn describe_groups(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedGroup>> {
+        let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
+        let Some(coord_key) = ids.first().cloned() else {
+            return Ok(Vec::new());
+        };
+        let version = self.describe_groups_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &coord_key);
+            if stale {
+                let node = self.discover_group_coord(&coord_key).await?;
+                self.group_coord = Some((coord_key.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing describe_groups conn"))?;
+                conn.roundtrip(
+                    DESCRIBE_GROUPS,
+                    version,
+                    |buf| encode_describe_groups_request(buf, &ids, include_authorized_operations),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let results = decode_describe_groups_response(&mut body.clone())?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))
