@@ -498,6 +498,12 @@ impl ConsumerGroup {
             .collect()
     }
 
+    /// Assigned partitions (Java `assignment`).
+    #[must_use]
+    pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
+        self.consumer.assigned_partitions()
+    }
+
     /// Kafka `group.id`.
     #[must_use]
     pub fn group_id(&self) -> &str {
@@ -539,13 +545,28 @@ impl ConsumerGroup {
     }
 
     /// Assigned partitions that [`poll`](Self::poll) currently skips.
-    pub fn paused(&self) -> Vec<(String, i32)> {
+    pub fn paused(&self) -> Vec<TopicPartition> {
         self.consumer.paused()
     }
 
     /// Next fetch offset for an assigned partition.
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
         self.consumer.position(topic, partition)
+    }
+
+    /// [`Self::position`] for a [`TopicPartition`].
+    pub fn position_of(&self, partition: impl Into<TopicPartition>) -> Result<i64> {
+        self.consumer.position_of(partition)
+    }
+
+    /// Set the next fetch offset for an assigned partition.
+    pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
+        self.consumer.seek(topic, partition, offset)
+    }
+
+    /// [`Self::seek`] for a [`TopicPartition`].
+    pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
+        self.consumer.seek_to(partition, offset)
     }
 
     /// High watermark minus position (Java `currentLag`).
@@ -682,16 +703,16 @@ impl ConsumerGroup {
     /// Log-start offset for each partition.
     pub async fn beginning_offsets(
         &mut self,
-        partitions: &[(String, i32)],
-    ) -> Result<Vec<(String, i32, i64)>> {
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
         self.consumer.beginning_offsets(partitions).await
     }
 
     /// High-watermark offset for each partition.
     pub async fn end_offsets(
         &mut self,
-        partitions: &[(String, i32)],
-    ) -> Result<Vec<(String, i32, i64)>> {
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
         self.consumer.end_offsets(partitions).await
     }
 

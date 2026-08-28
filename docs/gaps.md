@@ -35,13 +35,13 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | SASL OAUTHBEARER | yes (RFC 7628, unsecured JWT `alg=none`, matches librdkafka `enable.sasl.oauthbearer.unsecure.jwt`) | yes | **done** |
 | SASL OIDC (token endpoint) | yes (RFC 6749 client_credentials `http://` or `https://` rustls POST, then OAUTHBEARER) | yes | **done** |
 | Idempotent produce (`enable.idempotence`, PID/epoch/seq) | yes (`InitProducerId` v1, per-partition sequences, one TCP conn per partition, acks=all, max in-flight 5; `flush` fails on broker error) | yes | **done** |
-| Transactions / EOS | yes (`transactional.id`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
+| Transactions / EOS | yes (`transactional.id`, `init_transactions`, begin/commit/abort, AddPartitionsToTxn / AddOffsetsToTxn / EndTxn / TxnOffsetCommit) | yes | **done** |
 | Admin: CreateTopics, DeleteTopics, DescribeConfigs | yes (classic CreateTopics v0–4, DeleteTopics v0–3, DescribeConfigs v0–1) | yes | **done** |
 | Admin: IncrementalAlterConfigs, CreatePartitions, ACLs, OffsetDelete, AlterPartitionReassignments, ListPartitionReassignments, UpdateFeatures, AlterUserScramCredentials, DescribeUserScramCredentials, AlterClientQuotas, DescribeClientQuotas, DescribeProducers, AllocateProducerIds, DescribeTransactions, ListTransactions, UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups, DeleteGroups, ShareGroupDescribe, DescribeShareGroupOffsets, AlterShareGroupOffsets, DeleteShareGroupOffsets, DescribeTopicPartitions, ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs, AlterReplicaLogDirs, DescribeLogDirs, CreateDelegationToken, RenewDelegationToken, ExpireDelegationToken, DescribeDelegationToken | yes | yes | **done** |
 | Admin: AlterConfigs, DeleteRecords, DescribeCluster | yes (legacy AlterConfigs 33, DeleteRecords 21, DescribeCluster 60); `Admin::close` | yes | **done** |
 | KIP-848 next-gen consumer groups | yes (`ConsumerGroup::join_consumer` / `join_consumer_topics`, ConsumerGroupHeartbeat api 68; `group.instance.id` and `client.rack`; classic Join/Sync still work) | yes (newer releases) | **done** |
 | Fetch from follower / rack awareness | yes (`ConsumerConfig.rack`; follow Fetch `preferred_read_replica`) | yes | **done** |
-| Pause / resume, position, `max.poll.records` | yes | yes | **done** |
+| Pause / resume, position, `max.poll.records` | yes (`TopicPartition` on pause/resume/paused/`seek_to`/`position_of`) | yes | **done** |
 | `auto.offset.reset`, `committed` | yes (`Earliest` default; Java is `latest`) | yes | **done** |
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | `partitionsFor` | yes (`Producer::partitions_for` / `Consumer::partitions_for`) | yes | **done** |

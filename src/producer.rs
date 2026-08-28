@@ -830,6 +830,18 @@ impl Producer {
         Ok(())
     }
 
+    /// Java `initTransactions`. [`Self::new`] already runs `InitProducerId`
+    /// when [`ProducerConfig::transactional_id`] is set. Safe to call again.
+    pub async fn init_transactions(&self) -> Result<()> {
+        if self.inner.shared.cfg.transactional_id.is_none() {
+            return Err(Error::protocol("transactional.id is not set"));
+        }
+        if self.inner.shared.producer_id < 0 {
+            return Err(Error::protocol("InitProducerId did not run"));
+        }
+        Ok(())
+    }
+
     /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
@@ -975,7 +987,16 @@ impl Producer {
     /// Wait until queued records are acked (or a broker error). `try_send` Ok
     /// only means queued.
     pub async fn flush(&self) -> Result<()> {
-        let deadline = Instant::now() + self.inner.shared.cfg.request_timeout;
+        self.flush_until(Instant::now() + self.inner.shared.cfg.request_timeout)
+            .await
+    }
+
+    /// [`Self::flush`] with a caller-chosen deadline (Java `flush` + timeout).
+    pub async fn flush_timeout(&self, timeout: Duration) -> Result<()> {
+        self.flush_until(Instant::now() + timeout).await
+    }
+
+    async fn flush_until(&self, deadline: Instant) -> Result<()> {
         loop {
             self.flush_workers().await?;
             if self.inner.shared.retries_out.load(Ordering::SeqCst) == 0 {

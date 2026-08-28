@@ -24,8 +24,8 @@ async fn main() -> partitionline::Result<()> {
 
     let mut consumer = Consumer::connect(bootstrap.clone()).await?;
     consumer.assign(&topic, 0, 0).await?;
-    let begin = consumer.beginning_offsets(&[(topic.clone(), 0)]).await?;
-    let end = consumer.end_offsets(&[(topic.clone(), 0)]).await?;
+    let begin = consumer.beginning_offsets([(topic.as_str(), 0)]).await?;
+    let end = consumer.end_offsets([(topic.as_str(), 0)]).await?;
     let lag = consumer.current_lag((topic.as_str(), 0)).await?;
     println!("begin={begin:?} end={end:?} lag={lag:?}");
     consumer.close().await?;

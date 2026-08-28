@@ -47,6 +47,14 @@ pub struct ShareRecord {
     pub delivery_count: i16,
 }
 
+impl ShareRecord {
+    /// Topic and partition of this record.
+    #[must_use]
+    pub fn topic_partition(&self) -> crate::TopicPartition {
+        crate::TopicPartition::new(self.topic.clone(), self.partition)
+    }
+}
+
 /// KIP-932 share group member (`ShareGroupHeartbeat` / ShareFetch / ShareAcknowledge).
 pub struct ShareGroup {
     consumer: Consumer,
@@ -156,6 +164,15 @@ impl ShareGroup {
     /// Assigned `(topic, partition)` pairs.
     pub fn assignment(&self) -> Vec<(String, i32)> {
         self.assigned.clone()
+    }
+
+    /// Assigned partitions (Java `assignment`).
+    #[must_use]
+    pub fn assigned_partitions(&self) -> Vec<crate::TopicPartition> {
+        self.assigned
+            .iter()
+            .map(|(t, p)| crate::TopicPartition::new(t.clone(), *p))
+            .collect()
     }
 
     /// Cluster Metadata for every topic (Java `listTopics`).

@@ -35,8 +35,9 @@
 //! # }
 //! ```
 //!
-//! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`],
-//! [`Consumer::seek_to_beginning`], and [`Consumer::seek_to_end`] move the
+//! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`] /
+//! [`Consumer::seek_to`] / [`Consumer::seek_to_beginning`] /
+//! [`Consumer::seek_to_end`] move the
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. [`Consumer::partitions_for`] /
@@ -47,8 +48,11 @@
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::unassign`] replace or drop a manual assignment.
+//! [`Consumer::beginning_offsets`] / [`Consumer::end_offsets`] take
+//! [`TopicPartition`]. [`Consumer::assigned_partitions`] is Java `assignment`.
 //! [`Consumer::fetch_timeout`] / [`ConsumerGroup::poll_timeout`] /
 //! [`ShareGroup::poll_timeout`] are Java `poll(Duration)`.
+//! [`Producer::init_transactions`] / [`Producer::flush_timeout`] match Java.
 //! [`ProducerConfig::interceptor`] / [`ConsumerConfig::interceptor`] observe
 //! or rewrite records (`close` / [`ConsumerInterceptor::on_commit`]).
 //!

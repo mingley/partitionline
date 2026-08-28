@@ -42,12 +42,12 @@ let recs = consumer.fetch().await?;
 # }
 ```
 
-`assign_topic` assigns every partition. `seek` / `seek_to_beginning` /
-`seek_to_end` move the next fetch offset. `pause` / `resume` skip
-partitions without dropping the assignment. `fetch` talks to every
+`assign_topic` assigns every partition. `seek` / `seek_to` /
+`seek_to_beginning` / `seek_to_end` move the next fetch offset. `pause` /
+`resume` skip partitions without dropping the assignment. `fetch` talks to every
 partition leader at once when there is more than one. `partitions_for`
 returns Metadata (leader, replicas, ISR) on both `Consumer` and
-`Producer`.
+`Producer`. `beginning_offsets` / `end_offsets` take `TopicPartition`.
 
 ## Groups
 
@@ -76,6 +76,8 @@ Metadata. `assign_many` / `unassign` replace or drop a manual assignment.
 `Consumer::close` drops fetch connections; group `close` is `leave`.
 `Admin::close` drops the admin connection. Interceptors have `close`;
 consumer interceptors also see `on_commit`.
+`Producer::init_transactions` is a no-op after connect when
+`transactional.id` is set. `flush_timeout` caps `flush`.
 
 ```rust,no_run
 # async fn example() -> partitionline::Result<()> {

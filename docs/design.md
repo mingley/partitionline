@@ -29,8 +29,10 @@ The hot path copies each payload once into the Kafka record batch and checksums 
 when there is more than one. `seek_to_beginning` / `seek_to_end` call
 ListOffsets for every assigned partition. `pause` / `resume` skip
 assigned partitions without dropping them; pause survives group rebalance.
-`position` is the next fetch offset. `partitions_for` / `beginning_offsets`
-/ `end_offsets` wrap Metadata and ListOffsets. `max.poll.records` caps
+`position` is the next fetch offset (`position_of` takes `TopicPartition`).
+`partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
+ListOffsets and take `TopicPartition`. `assigned_partitions` is Java
+`assignment`. `max.poll.records` caps
 how many records one `fetch` returns; the rest stay buffered.
 
 `ConsumerGroup` joins a group, heartbeats, fetches, and can commit offsets.

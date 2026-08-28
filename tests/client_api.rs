@@ -445,7 +445,7 @@ async fn pause_skips_one_partition_until_resume() {
     consumer.assign("parts", 0, 0).await.unwrap();
     consumer.assign("parts", 1, 0).await.unwrap();
     consumer.pause([TopicPartition::new("parts", 1)]);
-    assert_eq!(consumer.paused(), vec![("parts".into(), 1)]);
+    assert_eq!(consumer.paused(), vec![TopicPartition::new("parts", 1)]);
     assert_eq!(consumer.position("parts", 0).unwrap(), 0);
 
     let recs = consumer.fetch().await.unwrap();
@@ -520,13 +520,10 @@ async fn partitions_for_and_end_offsets() {
     assert_eq!(info.len(), 1);
     assert_eq!(info[0].partition, 0);
     assert_eq!(info[0].leader, 1);
-    let end = consumer.end_offsets(&[("t".into(), 0)]).await.unwrap();
-    assert_eq!(end, vec![("t".into(), 0, 1)]);
-    let begin = consumer
-        .beginning_offsets(&[("t".into(), 0)])
-        .await
-        .unwrap();
-    assert_eq!(begin, vec![("t".into(), 0, 0)]);
+    let end = consumer.end_offsets([("t", 0)]).await.unwrap();
+    assert_eq!(end, vec![(TopicPartition::new("t", 0), 1)]);
+    let begin = consumer.beginning_offsets([("t", 0)]).await.unwrap();
+    assert_eq!(begin, vec![(TopicPartition::new("t", 0), 0)]);
     let listed = consumer.list_topics().await.unwrap();
     assert!(listed.iter().any(|p| p.topic == "t" && p.partition == 0));
     consumer
@@ -1491,4 +1488,67 @@ async fn share_subscribe_switches_topics() {
     assert_eq!(recs[0].topic, "u");
     group.accept(&recs).await.unwrap();
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn seek_to_and_assigned_partitions() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer
+        .flush_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(
+        consumer.assigned_partitions(),
+        vec![TopicPartition::new("t", 0)]
+    );
+    consumer.seek_to(TopicPartition::new("t", 0), 1).unwrap();
+    assert_eq!(consumer.position_of(("t", 0)).unwrap(), 1);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].topic_partition(), TopicPartition::new("t", 0));
+    assert_eq!(recs[0].offset, 1);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn init_transactions_requires_transactional_id() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let err = producer.init_transactions().await.unwrap_err();
+    assert!(
+        matches!(err, Error::Protocol(_)),
+        "expected protocol error, got {err}"
+    );
+    producer.close().await.unwrap();
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-init".into());
+    let txn = Producer::new(pcfg).await.unwrap();
+    txn.init_transactions().await.unwrap();
+    txn.begin_transaction().await.unwrap();
+    txn.abort_transaction().await.unwrap();
+    txn.close().await.unwrap();
 }

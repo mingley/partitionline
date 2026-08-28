@@ -331,6 +331,14 @@ pub struct FetchedRecord {
     pub headers: Vec<Header>,
 }
 
+impl FetchedRecord {
+    /// Topic and partition of this record.
+    #[must_use]
+    pub fn topic_partition(&self) -> TopicPartition {
+        TopicPartition::new(self.topic.clone(), self.partition)
+    }
+}
+
 /// A topic name and partition index.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TopicPartition {
@@ -668,6 +676,15 @@ impl Consumer {
         &self.assigned
     }
 
+    /// Assigned partitions without offsets (Java `assignment`).
+    #[must_use]
+    pub fn assigned_partitions(&self) -> Vec<TopicPartition> {
+        self.assigned
+            .iter()
+            .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
+            .collect()
+    }
+
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
         self.cluster.leader_epoch(topic, partition)
     }
@@ -679,6 +696,12 @@ impl Consumer {
             .find(|(t, p, _)| t == topic && *p == partition)
             .map(|(_, _, o)| *o)
             .ok_or_else(|| Error::protocol(format!("no position for {topic}-{partition}")))
+    }
+
+    /// [`Self::position`] for a [`TopicPartition`].
+    pub fn position_of(&self, partition: impl Into<TopicPartition>) -> Result<i64> {
+        let tp = partition.into();
+        self.position(&tp.topic, tp.partition)
     }
 
     /// Stop fetching these assigned partitions until [`resume`](Self::resume).
@@ -702,11 +725,11 @@ impl Consumer {
     }
 
     /// Assigned partitions that [`fetch`](Self::fetch) currently skips.
-    pub fn paused(&self) -> Vec<(String, i32)> {
+    pub fn paused(&self) -> Vec<TopicPartition> {
         self.assigned
             .iter()
             .filter(|(t, p, _)| self.paused.contains(&(t.clone(), *p)))
-            .map(|(t, p, _)| (t.clone(), *p))
+            .map(|(t, p, _)| TopicPartition::new(t.clone(), *p))
             .collect()
     }
 
@@ -1537,6 +1560,12 @@ impl Consumer {
         )))
     }
 
+    /// [`Self::seek`] for a [`TopicPartition`].
+    pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
+        let tp = partition.into();
+        self.seek(&tp.topic, tp.partition, offset)
+    }
+
     /// Seek every assigned partition to the log start (`ListOffsets` earliest).
     pub async fn seek_to_beginning(&mut self) -> Result<()> {
         self.seek_assigned(crate::EARLIEST_TIMESTAMP).await
@@ -1590,16 +1619,16 @@ impl Consumer {
     /// Log-start offset for each partition (`ListOffsets` earliest).
     pub async fn beginning_offsets(
         &mut self,
-        partitions: &[(String, i32)],
-    ) -> Result<Vec<(String, i32, i64)>> {
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
         self.offsets_at(partitions, crate::EARLIEST_TIMESTAMP).await
     }
 
     /// High-watermark offset for each partition (`ListOffsets` latest).
     pub async fn end_offsets(
         &mut self,
-        partitions: &[(String, i32)],
-    ) -> Result<Vec<(String, i32, i64)>> {
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
+    ) -> Result<Vec<(TopicPartition, i64)>> {
         self.offsets_at(partitions, crate::LATEST_TIMESTAMP).await
     }
 
@@ -1611,7 +1640,7 @@ impl Consumer {
         partition: impl Into<TopicPartition>,
     ) -> Result<Option<i64>> {
         let tp = partition.into();
-        let pos = self.position(&tp.topic, tp.partition)?;
+        let pos = self.position_of(tp.clone())?;
         let hw = self
             .list_offsets(tp.topic.clone(), tp.partition, crate::LATEST_TIMESTAMP)
             .await?;
@@ -1649,15 +1678,16 @@ impl Consumer {
 
     async fn offsets_at(
         &mut self,
-        partitions: &[(String, i32)],
+        partitions: impl IntoIterator<Item = impl Into<TopicPartition>>,
         timestamp: i64,
-    ) -> Result<Vec<(String, i32, i64)>> {
-        let mut out = Vec::with_capacity(partitions.len());
-        for (topic, partition) in partitions {
+    ) -> Result<Vec<(TopicPartition, i64)>> {
+        let mut out = Vec::new();
+        for p in partitions {
+            let tp = p.into();
             let offset = self
-                .list_offsets(topic.clone(), *partition, timestamp)
+                .list_offsets(tp.topic.clone(), tp.partition, timestamp)
                 .await?;
-            out.push((topic.clone(), *partition, offset));
+            out.push((tp, offset));
         }
         Ok(out)
     }
