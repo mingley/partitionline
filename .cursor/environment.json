@@ -1,5 +1,4 @@
 {
   "name": "partitionline",
-  "install": "bash .cursor/install.sh",
-  "start": "bash .cursor/start.sh"
+  "install": "bash .cursor/install.sh"
 }
