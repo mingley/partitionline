@@ -19,19 +19,20 @@ use crate::protocol::admin::{
     decode_alter_share_group_offsets_response, decode_alter_user_scram_credentials_response,
     decode_consumer_group_describe_response, decode_create_partitions_response,
     decode_create_topics_response, decode_delete_groups_response, decode_delete_records_response,
-    decode_delete_topics_response, decode_describe_client_quotas_response,
-    decode_describe_cluster_response, decode_describe_configs_response,
-    decode_describe_groups_response, decode_describe_producers_response,
-    decode_describe_share_group_offsets_response, decode_describe_transactions_response,
-    decode_describe_user_scram_credentials_response, decode_incremental_alter_configs_response,
-    decode_list_groups_response, decode_list_partition_reassignments_response,
-    decode_list_transactions_response, decode_share_group_describe_response,
-    decode_unregister_broker_response, decode_update_features_response,
-    encode_allocate_producer_ids_request, encode_alter_client_quotas_request,
-    encode_alter_configs_request, encode_alter_partition_reassignments_request,
-    encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
-    encode_consumer_group_describe_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
+    decode_delete_share_group_offsets_response, decode_delete_topics_response,
+    decode_describe_client_quotas_response, decode_describe_cluster_response,
+    decode_describe_configs_response, decode_describe_groups_response,
+    decode_describe_producers_response, decode_describe_share_group_offsets_response,
+    decode_describe_transactions_response, decode_describe_user_scram_credentials_response,
+    decode_incremental_alter_configs_response, decode_list_groups_response,
+    decode_list_partition_reassignments_response, decode_list_transactions_response,
+    decode_share_group_describe_response, decode_unregister_broker_response,
+    decode_update_features_response, encode_allocate_producer_ids_request,
+    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_partition_reassignments_request, encode_alter_share_group_offsets_request,
+    encode_alter_user_scram_credentials_request, encode_consumer_group_describe_request,
+    encode_create_partitions_request, encode_create_topics_request, encode_delete_groups_request,
+    encode_delete_records_request, encode_delete_share_group_offsets_request,
     encode_delete_topics_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_groups_request, encode_describe_producers_request,
@@ -52,8 +53,8 @@ use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS,
     API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
+    DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS,
+    DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TRANSACTIONS,
     DESCRIBE_USER_SCRAM_CREDENTIALS, FIND_COORDINATOR, INCREMENTAL_ALTER_CONFIGS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_DELETE, SHARE_GROUP_DESCRIBE,
@@ -73,7 +74,8 @@ pub use crate::protocol::admin::{
     ClientQuotaAlteration, ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry,
     ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry,
     ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    DeletableGroupResult, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
+    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribeProducersPartition, DescribeShareGroupOffsetsGroup,
     DescribeShareGroupOffsetsTopic, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedGroup, DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, ListedGroup,
@@ -371,6 +373,7 @@ pub struct Admin {
     share_group_describe_version: i16,
     describe_share_group_offsets_version: i16,
     alter_share_group_offsets_version: i16,
+    delete_share_group_offsets_version: i16,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     group_coord: Option<(String, i32)>,
@@ -587,6 +590,12 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AlterShareGroupOffsets".into())
             })?;
+        let delete_share_group_offsets_version = versions
+            .get(&DELETE_SHARE_GROUP_OFFSETS)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DeleteShareGroupOffsets".into())
+            })?;
         Ok(Self {
             cfg,
             conn,
@@ -624,6 +633,7 @@ impl Admin {
             share_group_describe_version,
             describe_share_group_offsets_version,
             alter_share_group_offsets_version,
+            delete_share_group_offsets_version,
             cluster: Cluster::default(),
             conns: HashMap::new(),
             group_coord: None,
@@ -2583,6 +2593,88 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let result = decode_alter_share_group_offsets_response(&mut body.clone())?;
+            if error::coordinator_retriable(result.error_code) {
+                // 14/15/16: FindCoordinator, then the new group coordinator.
+                self.group_coord = None;
+                let _ = self.conns.remove(&node);
+                if Instant::now() >= deadline {
+                    return Err(Error::Timeout);
+                }
+                continue;
+            }
+            return Ok(result);
+        }
+    }
+
+    /// Delete KIP-932 share-group offsets (DeleteShareGroupOffsets
+    /// api 92).
+    ///
+    /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// Official Apache JSON listeners are `broker` only. Official listed
+    /// errors include `NOT_COORDINATOR` (16). Official Java
+    /// `DeleteShareGroupOffsetsHandler` uses `CoordinatorType.GROUP`.
+    /// This is not a controller hop and not a partition-leader hop:
+    /// there is no Metadata `controller_id` lookup, no
+    /// `NOT_CONTROLLER` (41) retry, and no `NOT_LEADER_OR_FOLLOWER`
+    /// (6) hop. SHARE (`key_type=2`) is the FindCoordinator v6
+    /// share-state key (`groupId:topicId:partition`) and is not used
+    /// here. `COORDINATOR_LOAD_IN_PROGRESS` /
+    /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh
+    /// the coordinator and retry. ErrorCode is top-level after
+    /// throttle (bytes 4–5 on leftover-empty fixture group `"g"`),
+    /// not first-group and not first-topic (bytes 26–27 when
+    /// leftover-empty topic `"t"` is present). Official request topics
+    /// are names only — no partitions.
+    pub async fn delete_share_group_offsets(
+        &mut self,
+        group_id: &str,
+        topics: &[DeleteShareGroupOffsetsTopic],
+    ) -> Result<DeletedShareGroupOffsets> {
+        let coord_key = group_id.to_string();
+        let version = self.delete_share_group_offsets_version;
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        loop {
+            let stale = self
+                .group_coord
+                .as_ref()
+                .is_none_or(|(g, _)| g != &coord_key);
+            if stale {
+                let node = self.discover_group_coord(&coord_key).await?;
+                self.group_coord = Some((coord_key.clone(), node));
+            }
+            let node = self
+                .group_coord
+                .as_ref()
+                .map(|(_, n)| *n)
+                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing delete_share_group_offsets conn"))?;
+                conn.roundtrip(
+                    DELETE_SHARE_GROUP_OFFSETS,
+                    version,
+                    |buf| encode_delete_share_group_offsets_request(buf, group_id, topics),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.group_coord = None;
+                    if Instant::now() >= deadline {
+                        return Err(Error::Timeout);
+                    }
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let result = decode_delete_share_group_offsets_response(&mut body.clone())?;
             if error::coordinator_retriable(result.error_code) {
                 // 14/15/16: FindCoordinator, then the new group coordinator.
                 self.group_coord = None;
