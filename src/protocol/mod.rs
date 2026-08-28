@@ -5,7 +5,7 @@ pub mod acl;
 /// AlterClientQuotas, DescribeClientQuotas, DescribeProducers,
 /// AllocateProducerIds, DescribeTransactions, ListTransactions,
 /// UnregisterBroker, ConsumerGroupDescribe, DescribeGroups, ListGroups,
-/// DeleteGroups codecs.
+/// DeleteGroups, ShareGroupDescribe codecs.
 pub mod admin;
 /// ApiVersions, Metadata, Produce codecs.
 pub mod api;

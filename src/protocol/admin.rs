@@ -3210,6 +3210,309 @@ pub fn decode_delete_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<Deletabl
     Ok(results)
 }
 
+/// One assigned topic in ShareGroupDescribe (api 77) Assignment.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShareGroupTopicPartitions {
+    pub topic_id: [u8; 16],
+    pub topic_name: String,
+    pub partitions: Vec<i32>,
+}
+
+impl ShareGroupTopicPartitions {
+    pub fn new(topic_id: [u8; 16], topic_name: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic_id,
+            topic_name: topic_name.into(),
+            partitions,
+        }
+    }
+}
+
+/// Current assignment for one described share-group member.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ShareGroupAssignment {
+    pub topic_partitions: Vec<ShareGroupTopicPartitions>,
+}
+
+impl ShareGroupAssignment {
+    pub fn new(topic_partitions: Vec<ShareGroupTopicPartitions>) -> Self {
+        Self { topic_partitions }
+    }
+}
+
+/// One member in a ShareGroupDescribe v1 group.
+///
+/// Official member fields are MemberId, RackId, MemberEpoch, ClientId,
+/// ClientHost, SubscribedTopicNames, Assignment. There is no InstanceId,
+/// SubscribedTopicRegex, TargetAssignment, or MemberType.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShareGroupMember {
+    pub member_id: String,
+    pub rack_id: Option<String>,
+    pub member_epoch: i32,
+    pub client_id: String,
+    pub client_host: String,
+    pub subscribed_topic_names: Vec<String>,
+    pub assignment: ShareGroupAssignment,
+}
+
+impl ShareGroupMember {
+    pub fn new(
+        member_id: impl Into<String>,
+        member_epoch: i32,
+        client_id: impl Into<String>,
+        client_host: impl Into<String>,
+    ) -> Self {
+        Self {
+            member_id: member_id.into(),
+            rack_id: None,
+            member_epoch,
+            client_id: client_id.into(),
+            client_host: client_host.into(),
+            subscribed_topic_names: Vec::new(),
+            assignment: ShareGroupAssignment::default(),
+        }
+    }
+}
+
+/// One described group in ShareGroupDescribe (api 77) v1.
+///
+/// ErrorCode sits here, not at the top of the response body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroup {
+    pub error_code: i16,
+    pub error_message: Option<String>,
+    pub group_id: String,
+    pub group_state: String,
+    pub group_epoch: i32,
+    pub assignment_epoch: i32,
+    pub assignor_name: String,
+    pub members: Vec<ShareGroupMember>,
+    pub authorized_operations: i32,
+}
+
+impl DescribedShareGroup {
+    pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            group_id: group_id.into(),
+            group_state: String::new(),
+            group_epoch: 0,
+            assignment_epoch: 0,
+            assignor_name: String::new(),
+            members: Vec::new(),
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
+}
+
+/// ShareGroupDescribe v1 (flexible from v0; KIP-932).
+///
+/// Official Apache JSON (`apiKey: 77`, request `listeners: ["broker"]`,
+/// `validVersions: "1"`, `flexibleVersions: "0+"`) and kafka-protocol
+/// 0.18.0 (`ShareGroupDescribeRequest` / `ShareGroupDescribeResponse`,
+/// `VERSIONS` min=1 max=1). This crate targets v1, the version a client
+/// encodes (`VERSIONS.max`). Version 0 was early-access in Kafka 4.0 and
+/// was removed in 4.1; this crate does not speak it. Request encode
+/// used `features = ["client"]`; response encode used `broker`.
+/// Official listed errors (`ShareGroupDescribeResponse.json` /
+/// `ShareGroupDescribeResponse.java`): `GROUP_AUTHORIZATION_FAILED`,
+/// `TOPIC_AUTHORIZATION_FAILED` (v1+), `NOT_COORDINATOR` (16),
+/// `COORDINATOR_NOT_AVAILABLE`, `COORDINATOR_LOAD_IN_PROGRESS`,
+/// `INVALID_GROUP_ID`, `GROUP_ID_NOT_FOUND`, `INVALID_REQUEST`.
+/// Request: compact `GroupIds`, `IncludeAuthorizedOperations` BOOLEAN,
+/// tagged. Response: `ThrottleTimeMs` INT32, compact `Groups` of
+/// `{ErrorCode INT16, compact nullable ErrorMessage, GroupId,
+/// GroupState, GroupEpoch INT32, AssignmentEpoch INT32, AssignorName,
+/// compact Members of {MemberId, compact nullable RackId, MemberEpoch
+/// INT32, ClientId, ClientHost, compact SubscribedTopicNames,
+/// Assignment, tagged}, AuthorizedOperations INT32, tagged}`, tagged.
+/// Assignment is compact TopicPartitions of `{TopicId UUID, TopicName,
+/// compact Partitions INT32[], tagged}`. **ErrorCode is per-group**,
+/// the first field of each DescribedGroup — not a top-level code after
+/// throttle. Measured independently from kafka-protocol 0.18.0
+/// (`broker` encodes the response) on leftover-empty fixture group
+/// `"g"`: the first-group ErrorCode is the INT16 at **bytes 5–6**,
+/// after throttle and the compact groups length — not bytes 4–5
+/// (ListGroups / DescribeClientQuotas top-level), 7–8 (DeleteGroups
+/// after GroupId), or 12–13 (DescribeProducers first partition).
+/// Official Java `DescribeShareGroupsHandler` looks up
+/// `CoordinatorType.GROUP` (`FindCoordinator` `key_type=0`). Official
+/// FindCoordinator JSON names SHARE (`key_type=2`) for the share-state
+/// key `"groupId:topicId:partition"` (v6), which this API does not use.
+/// Because `NOT_COORDINATOR` (16) is listed, this is a
+/// share-group coordinator hop (group coordinator), not a controller
+/// hop and not a partition-leader hop.
+pub fn encode_share_group_describe_request(
+    buf: &mut BytesMut,
+    group_ids: &[String],
+    include_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    for id in group_ids {
+        buf::put_compact_string(buf, Some(id))?;
+    }
+    buf.put_u8(u8::from(include_authorized_operations));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_share_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut group_ids = Vec::with_capacity(n);
+    for _ in 0..n {
+        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let include_authorized_operations = buf::get_bool(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok((group_ids, include_authorized_operations))
+}
+
+fn encode_share_group_assignment(
+    buf: &mut BytesMut,
+    assignment: &ShareGroupAssignment,
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(assignment.topic_partitions.len()))?;
+    for tp in &assignment.topic_partitions {
+        buf.extend_from_slice(&tp.topic_id);
+        buf::put_compact_string(buf, Some(&tp.topic_name))?;
+        buf::put_array_len(buf, true, Some(tp.partitions.len()))?;
+        for p in &tp.partitions {
+            buf.put_i32(*p);
+        }
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn decode_share_group_assignment<B: Buf>(buf: &mut B) -> Result<ShareGroupAssignment> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut topic_partitions = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_id = buf::get_uuid(buf)?;
+        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            partitions.push(buf::get_i32(buf)?);
+        }
+        buf::skip_tagged_fields(buf)?;
+        topic_partitions.push(ShareGroupTopicPartitions {
+            topic_id,
+            topic_name,
+            partitions,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(ShareGroupAssignment { topic_partitions })
+}
+
+fn encode_share_group_member(
+    buf: &mut BytesMut,
+    member: &ShareGroupMember,
+) -> crate::error::Result<()> {
+    buf::put_compact_string(buf, Some(&member.member_id))?;
+    buf::put_compact_string(buf, member.rack_id.as_deref())?;
+    buf.put_i32(member.member_epoch);
+    buf::put_compact_string(buf, Some(&member.client_id))?;
+    buf::put_compact_string(buf, Some(&member.client_host))?;
+    buf::put_array_len(buf, true, Some(member.subscribed_topic_names.len()))?;
+    for name in &member.subscribed_topic_names {
+        buf::put_compact_string(buf, Some(name))?;
+    }
+    encode_share_group_assignment(buf, &member.assignment)?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn decode_share_group_member<B: Buf>(buf: &mut B) -> Result<ShareGroupMember> {
+    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let rack_id = buf::get_compact_string(buf)?;
+    let member_epoch = buf::get_i32(buf)?;
+    let client_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let client_host = buf::get_compact_string(buf)?.unwrap_or_default();
+    let sn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut subscribed_topic_names = Vec::with_capacity(sn);
+    for _ in 0..sn {
+        subscribed_topic_names.push(buf::get_compact_string(buf)?.unwrap_or_default());
+    }
+    let assignment = decode_share_group_assignment(buf)?;
+    buf::skip_tagged_fields(buf)?;
+    Ok(ShareGroupMember {
+        member_id,
+        rack_id,
+        member_epoch,
+        client_id,
+        client_host,
+        subscribed_topic_names,
+        assignment,
+    })
+}
+
+pub fn encode_share_group_describe_response(
+    buf: &mut BytesMut,
+    groups: &[DescribedShareGroup],
+) -> crate::error::Result<()> {
+    buf.put_i32(0);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        buf.put_i16(g.error_code);
+        buf::put_compact_string(buf, g.error_message.as_deref())?;
+        buf::put_compact_string(buf, Some(&g.group_id))?;
+        buf::put_compact_string(buf, Some(&g.group_state))?;
+        buf.put_i32(g.group_epoch);
+        buf.put_i32(g.assignment_epoch);
+        buf::put_compact_string(buf, Some(&g.assignor_name))?;
+        buf::put_array_len(buf, true, Some(g.members.len()))?;
+        for m in &g.members {
+            encode_share_group_member(buf, m)?;
+        }
+        buf.put_i32(g.authorized_operations);
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+pub fn decode_share_group_describe_response<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<DescribedShareGroup>> {
+    let _th = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_epoch = buf::get_i32(buf)?;
+        let assignment_epoch = buf::get_i32(buf)?;
+        let assignor_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut members = Vec::with_capacity(mn);
+        for _ in 0..mn {
+            members.push(decode_share_group_member(buf)?);
+        }
+        let authorized_operations = buf::get_i32(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedShareGroup {
+            error_code,
+            error_message,
+            group_id,
+            group_state,
+            group_epoch,
+            assignment_epoch,
+            assignor_name,
+            members,
+            authorized_operations,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok(groups)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5194,6 +5497,126 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn share_group_describe_v1_matches_kafka_protocol_0_18() {
+        // Independent encode from kafka-protocol 0.18.0 (client encodes
+        // the request; broker encodes the response). Apache JSON api 77
+        // validVersions 1, flexibleVersions 0+, listeners broker only.
+        // This crate targets v1 (VERSIONS.max). Not copied from
+        // ListGroups (top-level ErrorCode at bytes 4-5), DescribeGroups
+        // / ConsumerGroupDescribe (first-group ErrorCode at bytes 5-6
+        // on a different member layout), DeleteGroups (after GroupId at
+        // bytes 7-8), or DescribeProducers (first-partition ErrorCode
+        // at bytes 12-13).
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let mut buf = BytesMut::new();
+        encode_share_group_describe_request(&mut buf, &ids, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
+        buf.clear();
+        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn share_group_describe_v1_roundtrip_is_leftover_empty() {
+        let ids = vec!["g".to_string(), "g2".to_string()];
+        let mut buf = BytesMut::new();
+        encode_share_group_describe_request(&mut buf, &ids, true).unwrap();
+        let mut cur = &buf[..];
+        let (got, include) = decode_share_group_describe_request(&mut cur).unwrap();
+        assert_eq!(got, ids);
+        assert!(include);
+        assert!(
+            !cur.has_remaining(),
+            "ShareGroupDescribe v1 request must be leftover-empty"
+        );
+
+        let mut member = ShareGroupMember::new("m1", 1, "c", "h");
+        member.subscribed_topic_names = vec!["t".into()];
+        member.assignment =
+            ShareGroupAssignment::new(vec![ShareGroupTopicPartitions::new([0; 16], "t", vec![0])]);
+        let resp = vec![DescribedShareGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "g".into(),
+            group_state: "Stable".into(),
+            group_epoch: 1,
+            assignment_epoch: 1,
+            assignor_name: "uniform".into(),
+            members: vec![member],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        buf.clear();
+        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_share_group_describe_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ShareGroupDescribe v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn share_group_describe_first_group_error_code_is_at_bytes_5_6() {
+        // Official v1 body: throttle INT32, compact Groups of
+        // {ErrorCode, ...}. Measured independently from Apache
+        // ShareGroupDescribeResponse.json and a kafka-protocol 0.18.0
+        // broker encode (`features = ["broker"]`) on leftover-empty
+        // fixture group "g". Do not assume bytes 4-5 from ListGroups /
+        // DescribeClientQuotas, bytes 5-6 from DescribeGroups /
+        // ConsumerGroupDescribe, bytes 7-8 from DeleteGroups after
+        // GroupId, or bytes 12-13 from DescribeProducers.
+        let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
+        let mut buf = BytesMut::new();
+        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        let b6 = buf.get(6).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b5, b6]),
+            crate::error::NOT_COORDINATOR,
+            "v1 first-group ErrorCode must be the INT16 at bytes 5-6"
+        );
+        let b4 = buf.get(4).copied().unwrap();
+        let b5b = buf.get(5).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b4, b5b]),
+            crate::error::NOT_COORDINATOR,
+            "v1 ErrorCode is not a top-level field at bytes 4-5"
+        );
+        let b7 = buf.get(7).copied().unwrap();
+        let b8 = buf.get(8).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b7, b8]),
+            crate::error::NOT_COORDINATOR,
+            "v1 ErrorCode is not at DeleteGroups after-GroupId bytes 7-8"
+        );
+        let b12 = buf.get(12).copied().unwrap();
+        let b13 = buf.get(13).copied().unwrap();
+        assert_ne!(
+            i16::from_be_bytes([b12, b13]),
+            crate::error::NOT_COORDINATOR,
+            "v1 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_share_group_describe_response(&mut cur).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ShareGroupDescribe v1 ErrorCode body must be leftover-empty"
         );
     }
 }

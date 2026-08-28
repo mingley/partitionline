@@ -11,7 +11,7 @@ use super::api_keys::{
     DELETE_GROUPS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_GROUPS, DESCRIBE_PRODUCERS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, LIST_GROUPS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use super::buf;
 use crate::error::Result;
@@ -60,6 +60,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         DELETE_GROUPS if api_version >= 2 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
+        | SHARE_GROUP_DESCRIBE
         | SHARE_GROUP_HEARTBEAT
         | SHARE_FETCH
         | SHARE_ACKNOWLEDGE => 2,
@@ -91,6 +92,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DELETE_GROUPS if api_version >= 2 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
+        | SHARE_GROUP_DESCRIBE
         | SHARE_GROUP_HEARTBEAT
         | SHARE_FETCH
         | SHARE_ACKNOWLEDGE => 1,
@@ -286,6 +288,15 @@ mod tests {
         assert_eq!(response_header_version(CONSUMER_GROUP_DESCRIBE, 0), 1);
         assert_eq!(request_header_version(CONSUMER_GROUP_DESCRIBE, 1), 2);
         assert_eq!(response_header_version(CONSUMER_GROUP_DESCRIBE, 1), 1);
+    }
+
+    #[test]
+    fn share_group_describe_v1_is_flexible() {
+        // Official JSON: validVersions 1, flexibleVersions 0+.
+        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v1.
+        // This crate speaks v1 (VERSIONS.max).
+        assert_eq!(request_header_version(SHARE_GROUP_DESCRIBE, 1), 2);
+        assert_eq!(response_header_version(SHARE_GROUP_DESCRIBE, 1), 1);
     }
 
     #[test]
