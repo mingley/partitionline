@@ -138,6 +138,8 @@ let _iso = IsolationLevel::ReadCommitted;
 ```
 
 `ProducerConfig::allow_auto_create_topics` is Kafka `allow.auto.create.topics`.
+`ProducerConfig::delivery_timeout` is Kafka `delivery.timeout.ms` (default 30s;
+Java defaults to 120s).
 `connect_timeout` is on the producer, consumer, and admin builders.
 TLS is `TlsConfig` on the same builders (`rustls`, no OpenSSL). Admin, gzip /
 snappy / lz4, idempotent and transactional produce, fetch-from-follower, and

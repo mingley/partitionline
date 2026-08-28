@@ -183,12 +183,14 @@ fn config_builders_set_typed_knobs() {
         .idempotent(true)
         .allow_auto_create_topics(true)
         .connect_timeout(Duration::from_secs(3))
+        .delivery_timeout(Duration::from_secs(45))
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
     assert!(p.enable_idempotence);
     assert!(p.allow_auto_topic_creation);
     assert_eq!(p.connect_timeout, Duration::from_secs(3));
+    assert_eq!(p.delivery_timeout, Duration::from_secs(45));
     assert_eq!(p.sasl_scram, Some(("alice".into(), "secret".into())));
     assert!(p.sasl_plain.is_none());
 

@@ -52,6 +52,9 @@ pub struct ProducerConfig {
     pub batch_bytes: usize,
     /// Per-request timeout (produce, metadata, init pid).
     pub request_timeout: Duration,
+    /// Kafka `delivery.timeout.ms`. Time from queue until ack or timeout,
+    /// including retries. Default 30s (this crate; Java defaults to 120s).
+    pub delivery_timeout: Duration,
     /// TCP connect timeout.
     pub connect_timeout: Duration,
     /// Kafka `allow.auto.create.topics` on Metadata.
@@ -94,6 +97,7 @@ impl Default for ProducerConfig {
             batch_records: 32_768,
             batch_bytes: 1_000_000,
             request_timeout: Duration::from_secs(30),
+            delivery_timeout: Duration::from_secs(30),
             connect_timeout: Duration::from_secs(10),
             allow_auto_topic_creation: false,
             compression: Compression::None,
@@ -230,6 +234,16 @@ impl ProducerConfig {
     #[must_use]
     pub fn request_timeout(mut self, timeout: Duration) -> Self {
         self.request_timeout = timeout;
+        self
+    }
+
+    /// Kafka `delivery.timeout.ms`. Time from queue until ack or [`crate::Error::Timeout`].
+    ///
+    /// Default 30s. Java `delivery.timeout.ms` defaults to 120s. Per-RPC waits
+    /// still use [`Self::request_timeout`].
+    #[must_use]
+    pub fn delivery_timeout(mut self, timeout: Duration) -> Self {
+        self.delivery_timeout = timeout;
         self
     }
 
@@ -710,7 +724,7 @@ impl Producer {
             self.ensure_ready(&mut rec).await?;
             let w = self.worker_for(&rec).ok_or(Error::Closed)?;
             let now = Instant::now();
-            let deadline = now + self.inner.shared.cfg.request_timeout;
+            let deadline = now + self.inner.shared.cfg.delivery_timeout;
             let bytes = rec_bytes(&rec);
             w.data
                 .send(Pending {
@@ -807,7 +821,7 @@ impl Producer {
             w
         };
         let now = Instant::now();
-        let deadline = now + self.inner.shared.cfg.request_timeout;
+        let deadline = now + self.inner.shared.cfg.delivery_timeout;
         let bytes = rec_bytes(&rec);
         w.data
             .try_send(Pending {

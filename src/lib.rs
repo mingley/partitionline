@@ -121,6 +121,8 @@
 //! ```
 //!
 //! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
+//! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
+//! (default 30s; Java defaults to 120s).
 //! [`ConsumerConfig::isolation`] is [`IsolationLevel`].
 //! [`ConfigResourceType`] / [`ScramMechanism`] type admin config
 //! resources and user SCRAM.
