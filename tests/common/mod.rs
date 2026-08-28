@@ -151,6 +151,15 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::{watch, Notify};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LastPushTelemetry {
+    pub client_instance_id: [u8; 16],
+    pub subscription_id: i32,
+    pub terminating: bool,
+    pub compression_type: i8,
+    pub metrics: Vec<u8>,
+}
+
 #[derive(Clone)]
 pub struct Mock {
     pub addr: String,
@@ -268,7 +277,7 @@ struct State {
     last_get_telemetry_subscriptions_node: Option<i32>,
     last_get_telemetry_subscriptions: Option<[u8; 16]>,
     last_push_telemetry_node: Option<i32>,
-    last_push_telemetry: Option<([u8; 16], i32, bool, i8, Vec<u8>)>,
+    last_push_telemetry: Option<LastPushTelemetry>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
     accepted_fetch: Vec<i32>,
@@ -1228,7 +1237,7 @@ impl Mock {
         self.state.lock().last_push_telemetry_node
     }
 
-    pub fn last_push_telemetry(&self) -> Option<([u8; 16], i32, bool, i8, Vec<u8>)> {
+    pub fn last_push_telemetry(&self) -> Option<LastPushTelemetry> {
         self.state.lock().last_push_telemetry.clone()
     }
 
@@ -3964,13 +3973,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // official handler does not use NOT_COORDINATOR (16),
                 // so the wrong node does not return 16.
                 st.last_push_telemetry_node = Some(node_id);
-                st.last_push_telemetry = Some((
-                    req.client_instance_id,
-                    req.subscription_id,
-                    req.terminating,
-                    req.compression_type,
-                    req.metrics,
-                ));
+                st.last_push_telemetry = Some(LastPushTelemetry {
+                    client_instance_id: req.client_instance_id,
+                    subscription_id: req.subscription_id,
+                    terminating: req.terminating,
+                    compression_type: req.compression_type,
+                    metrics: req.metrics,
+                });
                 encode_push_telemetry_response(&mut body, &PushTelemetryResponse::new(0)).unwrap();
             }
             _ => break,

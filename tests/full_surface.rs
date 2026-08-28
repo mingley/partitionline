@@ -3505,7 +3505,13 @@ async fn push_telemetry_follows_broker() {
     );
     assert_eq!(
         mock.last_push_telemetry(),
-        Some(([0x11; 16], 1, false, 0, b"m".to_vec()))
+        Some(common::LastPushTelemetry {
+            client_instance_id: [0x11; 16],
+            subscription_id: 1,
+            terminating: false,
+            compression_type: 0,
+            metrics: b"m".to_vec(),
+        })
     );
     assert_eq!(
         mock.last_get_telemetry_subscriptions_node(),
