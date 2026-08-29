@@ -1184,7 +1184,7 @@ pub struct Admin {
     delete_version: i16,
     describe_version: i16,
     partitions_version: i16,
-    alter_version: i16,
+    alter_version: Option<i16>,
     legacy_alter_version: i16,
     delete_records_version: i16,
     describe_producers_version: Option<i16>,
@@ -1425,8 +1425,8 @@ impl Admin {
     /// AlterUserScramCredentials, DescribeUserScramCredentials,
     /// AlterReplicaLogDirs, DescribeLogDirs, the delegation-token APIs,
     /// DescribeTransactions, ListTransactions, AlterPartitionReassignments,
-    /// ListPartitionReassignments, and OffsetDelete are optional at
-    /// connect. Missing APIs fail on the method with
+    /// ListPartitionReassignments, OffsetDelete, and IncrementalAlterConfigs
+    /// are optional at connect. Missing APIs fail on the method with
     /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
@@ -1484,10 +1484,7 @@ impl Admin {
             })?;
         let alter_version = versions
             .get(&INCREMENTAL_ALTER_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support IncrementalAlterConfigs v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let legacy_alter_version = versions
             .get(&ALTER_CONFIGS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
@@ -2726,7 +2723,9 @@ impl Admin {
     /// [`Self::incremental_alter_configs_for`]. IncrementalAlterConfigs
     /// has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::incremental_alter_configs_timeout`].
+    /// [`Self::incremental_alter_configs_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 2.3+ / KIP-339); a broker that omits api 44
+    /// returns [`Error::Unsupported`].
     pub async fn incremental_alter_configs(
         &mut self,
         resource: &ConfigResource,
@@ -2799,6 +2798,9 @@ impl Admin {
         if updates.is_empty() {
             return Ok(Vec::new());
         }
+        let version = self.alter_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support IncrementalAlterConfigs v0-1".into())
+        })?;
         let resources: Vec<AlterableResource> = updates
             .iter()
             .map(|u| AlterableResource {
@@ -2807,7 +2809,6 @@ impl Admin {
                 configs: u.configs.clone(),
             })
             .collect();
-        let version = self.alter_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

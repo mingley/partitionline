@@ -6124,6 +6124,27 @@ async fn incremental_alter_configs_follows_controller() {
         Some(1),
         "IncrementalAlterConfigs must follow Metadata after NOT_CONTROLLER"
     );
+    admin.close().await.unwrap();
+    mock.hide_api(INCREMENTAL_ALTER_CONFIGS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("iac2"),
+            &[AlterConfig::set("retention.ms", "1000")],
+            false,
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "IncrementalAlterConfigs is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
