@@ -1223,10 +1223,10 @@ pub struct Admin {
     assign_replicas_to_dirs_version: Option<i16>,
     alter_replica_log_dirs_version: Option<i16>,
     describe_log_dirs_version: Option<i16>,
-    create_delegation_token_version: i16,
-    renew_delegation_token_version: i16,
-    expire_delegation_token_version: i16,
-    describe_delegation_token_version: i16,
+    create_delegation_token_version: Option<i16>,
+    renew_delegation_token_version: Option<i16>,
+    expire_delegation_token_version: Option<i16>,
+    describe_delegation_token_version: Option<i16>,
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     reconnect_fails: HashMap<i32, u32>,
@@ -1423,8 +1423,9 @@ impl Admin {
     /// UnregisterBroker, DescribeProducers, DescribeCluster,
     /// UpdateFeatures, DescribeClientQuotas, AlterClientQuotas,
     /// AlterUserScramCredentials, DescribeUserScramCredentials,
-    /// AlterReplicaLogDirs, and DescribeLogDirs are optional at connect.
-    /// Missing APIs fail on the method with [`Error::Unsupported`].
+    /// AlterReplicaLogDirs, DescribeLogDirs, and the delegation-token
+    /// APIs are optional at connect. Missing APIs fail on the method
+    /// with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1628,28 +1629,16 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 4));
         let create_delegation_token_version = versions
             .get(&CREATE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support CreateDelegationToken".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3));
         let renew_delegation_token_version = versions
             .get(&RENEW_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support RenewDelegationToken".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2));
         let expire_delegation_token_version = versions
             .get(&EXPIRE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support ExpireDelegationToken".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2));
         let describe_delegation_token_version = versions
             .get(&DESCRIBE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeDelegationToken".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3));
         Ok(Self {
             cfg,
             conn,
@@ -8467,7 +8456,9 @@ impl Admin {
     /// (decode fills `None`) and omit requester (decode fills empty).
     /// CreateDelegationToken has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::create_delegation_token_timeout`].
+    /// [`Self::create_delegation_token_timeout`]. Optional at [`Self::new`]
+    /// (Kafka 1.1+ / KIP-48); a broker that omits api 38 returns
+    /// [`Error::Unsupported`].
     pub async fn create_delegation_token(
         &mut self,
         req: CreateDelegationTokenRequest,
@@ -8485,7 +8476,9 @@ impl Admin {
         req: CreateDelegationTokenRequest,
         timeout: Duration,
     ) -> Result<CreateDelegationTokenResponse> {
-        let version = self.create_delegation_token_version;
+        let version = self.create_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support CreateDelegationToken".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 CREATE_DELEGATION_TOKEN,
@@ -8545,6 +8538,8 @@ impl Admin {
     /// because it is the previous slice. RenewDelegationToken has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use [`Self::renew_delegation_token_timeout`].
+    /// Optional at [`Self::new`] (Kafka 1.1+ / KIP-48); a broker that
+    /// omits api 39 returns [`Error::Unsupported`].
     pub async fn renew_delegation_token(
         &mut self,
         req: RenewDelegationTokenRequest,
@@ -8562,7 +8557,9 @@ impl Admin {
         req: RenewDelegationTokenRequest,
         timeout: Duration,
     ) -> Result<RenewDelegationTokenResponse> {
-        let version = self.renew_delegation_token_version;
+        let version = self.renew_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support RenewDelegationToken".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 RENEW_DELEGATION_TOKEN,
@@ -8627,6 +8624,8 @@ impl Admin {
     /// because it is the previous slice. ExpireDelegationToken has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use [`Self::expire_delegation_token_timeout`].
+    /// Optional at [`Self::new`] (Kafka 1.1+ / KIP-48); a broker that
+    /// omits api 40 returns [`Error::Unsupported`].
     pub async fn expire_delegation_token(
         &mut self,
         req: ExpireDelegationTokenRequest,
@@ -8644,7 +8643,9 @@ impl Admin {
         req: ExpireDelegationTokenRequest,
         timeout: Duration,
     ) -> Result<ExpireDelegationTokenResponse> {
-        let version = self.expire_delegation_token_version;
+        let version = self.expire_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ExpireDelegationToken".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 EXPIRE_DELEGATION_TOKEN,
@@ -8712,7 +8713,9 @@ impl Admin {
     /// just because it is the previous slice. DescribeDelegationToken
     /// has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::describe_delegation_token_timeout`].
+    /// [`Self::describe_delegation_token_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 1.1+ / KIP-48); a broker that omits api 41
+    /// returns [`Error::Unsupported`].
     pub async fn describe_delegation_token(
         &mut self,
         req: DescribeDelegationTokenRequest,
@@ -8731,7 +8734,9 @@ impl Admin {
         req: DescribeDelegationTokenRequest,
         timeout: Duration,
     ) -> Result<DescribeDelegationTokenResponse> {
-        let version = self.describe_delegation_token_version;
+        let version = self.describe_delegation_token_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeDelegationToken".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_DELEGATION_TOKEN,

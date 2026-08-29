@@ -8941,6 +8941,20 @@ async fn create_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_default.error_code, 0);
+    admin.close().await.unwrap();
+    mock.hide_api(CREATE_DELEGATION_TOKEN);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.create_delegation_token_default().await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "CreateDelegationToken is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -9044,6 +9058,20 @@ async fn renew_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_hmac.error_code, 0);
+    admin.close().await.unwrap();
+    mock.hide_api(RENEW_DELEGATION_TOKEN);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.renew_delegation_token_hmac([0xdd]).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "RenewDelegationToken is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -9144,6 +9172,23 @@ async fn expire_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_hmac.error_code, 0);
+    admin.close().await.unwrap();
+    mock.hide_api(EXPIRE_DELEGATION_TOKEN);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .expire_delegation_token_hmac([0xdd])
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "ExpireDelegationToken is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -9253,6 +9298,20 @@ async fn describe_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_all.error_code, 0);
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_DELEGATION_TOKEN);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_delegation_tokens().await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeDelegationToken is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
