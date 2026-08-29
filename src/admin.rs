@@ -117,31 +117,31 @@ pub use crate::protocol::admin::{
     AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
     AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigSynonym,
-    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
-    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeProducersTopic, DescribeShareGroupOffsetsGroup,
-    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
-    DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
-    DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
-    DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
-    EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
-    PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
-    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
-    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS,
-    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
-    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
+    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry,
+    ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
+    CreatableRenewer, CreateDelegationTokenRequest, CreateDelegationTokenResponse,
+    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeProducersTopic, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
+    DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
+    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
+    DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
+    ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse, ListedConfigResource,
+    ListedGroup, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
+    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
+    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN,
+    CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG,
+    CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
+    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+    QUOTA_MATCH_EXACT, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -3741,7 +3741,8 @@ impl Admin {
     /// Optional at [`Self::new`] (Kafka 2.6+ / KIP-219); a broker that
     /// omits api 48 returns [`Error::Unsupported`]. See
     /// [`Self::describe_client_quotas_all`] for Java
-    /// `ClientQuotaFilter.all()`.
+    /// `ClientQuotaFilter.all()`, or [`Self::describe_client_quotas_with`]
+    /// for [`ClientQuotaFilter::contains`] / [`ClientQuotaFilter::contains_only`].
     pub async fn describe_client_quotas(
         &mut self,
         components: &[ClientQuotaFilterComponent],
@@ -3781,12 +3782,39 @@ impl Admin {
         Ok(resp.entries.unwrap_or_default())
     }
 
+    /// [`Self::describe_client_quotas`] with a Java `ClientQuotaFilter`.
+    ///
+    /// DescribeClientQuotas has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_client_quotas_with_timeout`].
+    pub async fn describe_client_quotas_with(
+        &mut self,
+        filter: &ClientQuotaFilter,
+    ) -> Result<Vec<ClientQuotaEntry>> {
+        self.describe_client_quotas(filter.components(), filter.strict())
+            .await
+    }
+
+    /// [`Self::describe_client_quotas_with`] with a one-shot RPC deadline
+    /// (Java `DescribeClientQuotasOptions.timeoutMs`).
+    ///
+    /// DescribeClientQuotas has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_client_quotas_with_timeout(
+        &mut self,
+        filter: &ClientQuotaFilter,
+        timeout: Duration,
+    ) -> Result<Vec<ClientQuotaEntry>> {
+        self.describe_client_quotas_timeout(filter.components(), filter.strict(), timeout)
+            .await
+    }
+
     /// Describe every client quota (Java `ClientQuotaFilter.all()`).
     ///
-    /// Same wire as [`Self::describe_client_quotas`] with empty components
-    /// and `strict = false`.
+    /// Same wire as [`Self::describe_client_quotas_with`] with
+    /// [`ClientQuotaFilter::all`].
     pub async fn describe_client_quotas_all(&mut self) -> Result<Vec<ClientQuotaEntry>> {
-        self.describe_client_quotas(&[], false).await
+        self.describe_client_quotas_with(&ClientQuotaFilter::all())
+            .await
     }
 
     /// [`Self::describe_client_quotas_all`] with a one-shot RPC deadline
@@ -3795,7 +3823,7 @@ impl Admin {
         &mut self,
         timeout: Duration,
     ) -> Result<Vec<ClientQuotaEntry>> {
-        self.describe_client_quotas_timeout(&[], false, timeout)
+        self.describe_client_quotas_with_timeout(&ClientQuotaFilter::all(), timeout)
             .await
     }
 

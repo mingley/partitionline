@@ -3013,6 +3013,58 @@ impl ClientQuotaFilterComponent {
     }
 }
 
+/// Java `ClientQuotaFilter` for [`crate::Admin::describe_client_quotas`].
+///
+/// [`Self::all`] is empty components and `strict = false`.
+/// [`Self::contains`] is those components and `strict = false`.
+/// [`Self::contains_only`] is those components and `strict = true`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClientQuotaFilter {
+    components: Vec<ClientQuotaFilterComponent>,
+    strict: bool,
+}
+
+impl ClientQuotaFilter {
+    /// Java `ClientQuotaFilter.all()`.
+    #[must_use]
+    pub fn all() -> Self {
+        Self {
+            components: Vec::new(),
+            strict: false,
+        }
+    }
+
+    /// Java `ClientQuotaFilter.contains(Collection)`.
+    #[must_use]
+    pub fn contains(components: impl IntoIterator<Item = ClientQuotaFilterComponent>) -> Self {
+        Self {
+            components: components.into_iter().collect(),
+            strict: false,
+        }
+    }
+
+    /// Java `ClientQuotaFilter.containsOnly(Collection)`.
+    #[must_use]
+    pub fn contains_only(components: impl IntoIterator<Item = ClientQuotaFilterComponent>) -> Self {
+        Self {
+            components: components.into_iter().collect(),
+            strict: true,
+        }
+    }
+
+    /// Filter components (Java `ClientQuotaFilter.components()`).
+    #[must_use]
+    pub fn components(&self) -> &[ClientQuotaFilterComponent] {
+        &self.components
+    }
+
+    /// Strict match (Java `ClientQuotaFilter.strict()`).
+    #[must_use]
+    pub fn strict(&self) -> bool {
+        self.strict
+    }
+}
+
 /// One quota key/value in a DescribeClientQuotas entry.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaValue {
@@ -11505,6 +11557,20 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v2+ is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn client_quota_filter_matches_java_factories() {
+        let all = ClientQuotaFilter::all();
+        assert!(all.components().is_empty());
+        assert!(!all.strict());
+        let c = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+        let contains = ClientQuotaFilter::contains([c.clone()]);
+        assert_eq!(contains.components(), std::slice::from_ref(&c));
+        assert!(!contains.strict());
+        let only = ClientQuotaFilter::contains_only([c.clone()]);
+        assert_eq!(only.components(), std::slice::from_ref(&c));
+        assert!(only.strict());
     }
 
     #[test]

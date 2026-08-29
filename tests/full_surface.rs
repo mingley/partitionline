@@ -30,19 +30,20 @@ use partitionline::{
     AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
-    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
-    Compression, ConfigReplacement, ConfigResource, ConfigResourceType, ConfigResourceUpdate,
-    Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
-    DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
-    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel,
-    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec,
-    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
-    ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState,
-    TransactionTopic, UpgradeType, UserScramCredentialDeletion, UserScramCredentialUpsertion,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent,
+    ClientQuotaOp, Compression, ConfigReplacement, ConfigResource, ConfigResourceType,
+    ConfigResourceUpdate, Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer,
+    CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
+    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
+    FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic,
+    OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
+    ProduceRecord, Producer, ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest,
+    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -7175,6 +7176,36 @@ async fn describe_client_quotas_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_all.len(), 1);
+    let contains_comp =
+        ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let contains = admin
+        .describe_client_quotas_with(&ClientQuotaFilter::contains([contains_comp.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(contains.len(), 1);
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![contains_comp.clone()], false)),
+        "ClientQuotaFilter.contains sends components and strict false"
+    );
+    let only = admin
+        .describe_client_quotas_with(&ClientQuotaFilter::contains_only([contains_comp.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(only.len(), 1);
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![contains_comp.clone()], true)),
+        "ClientQuotaFilter.containsOnly sends strict true"
+    );
+    let timed_with = admin
+        .describe_client_quotas_with_timeout(
+            &ClientQuotaFilter::contains([contains_comp]),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_with.len(), 1);
     admin.close().await.unwrap();
     mock.hide_api(DESCRIBE_CLIENT_QUOTAS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
