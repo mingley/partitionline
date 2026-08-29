@@ -7712,6 +7712,14 @@ async fn describe_features_prefers_api_versions_v4() {
         .expect("metadata.version supported");
     assert_eq!(meta.min_version, 1);
     assert_eq!(meta.max_version, 20);
+    let timed = admin
+        .describe_features_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(timed
+        .supported_features
+        .iter()
+        .any(|f| f.name == "kraft.version"));
 }
 
 #[tokio::test]

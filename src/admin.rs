@@ -2869,14 +2869,28 @@ impl Admin {
     /// on the bootstrap connection and reads KIP-482 tagged fields
     /// (`supportedFeatures`, `finalizedFeaturesEpoch`, `finalizedFeatures`,
     /// `zkMigrationReady`). v4 includes SupportedFeatures with MinVersion 0
-    /// (KAFKA-17011).
+    /// (KAFKA-17011). ApiVersions has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_features_timeout`].
     pub async fn describe_features(&mut self) -> Result<FeatureMetadata> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_features_timeout(timeout).await
+    }
+
+    /// [`Self::describe_features`] with a one-shot RPC deadline (Java
+    /// `DescribeFeaturesOptions.timeoutMs`).
+    ///
+    /// There is no DescribeFeatures api key; this re-issues ApiVersions
+    /// v3–v4. ApiVersions has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_features_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<FeatureMetadata> {
         let version = self
             .versions
             .get(&API_VERSIONS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 3, 4))
             .unwrap_or(3);
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 API_VERSIONS,

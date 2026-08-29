@@ -257,6 +257,9 @@
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
+//! [`Admin::describe_features_timeout`] is Java
+//! `DescribeFeaturesOptions.timeoutMs` (RPC deadline; ApiVersions has no
+//! TimeoutMs).
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /
