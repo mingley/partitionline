@@ -4542,12 +4542,30 @@ impl Admin {
     /// `"t"` partition `0`), not top-level after throttle.
     /// For several partitions in one RPC per leader (Java
     /// `describeProducers(Collection)`), use [`Self::describe_producers_for`].
+    /// DescribeProducers has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_producers_timeout`].
     pub async fn describe_producers(
         &mut self,
         partition: impl Into<crate::TopicPartition>,
     ) -> Result<DescribeProducersPartition> {
-        let tp = partition.into();
-        let topics = self.describe_producers_for([tp.clone()]).await?;
+        let timeout = self.cfg.request_timeout;
+        self.describe_producers_timeout(partition, timeout).await
+    }
+
+    /// [`Self::describe_producers`] with a one-shot RPC deadline (Java
+    /// `DescribeProducersOptions.timeoutMs`).
+    ///
+    /// DescribeProducers has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_LEADER_OR_FOLLOWER` retry budget.
+    pub async fn describe_producers_timeout(
+        &mut self,
+        partition: impl Into<crate::TopicPartition>,
+        timeout: Duration,
+    ) -> Result<DescribeProducersPartition> {
+        let topics = self
+            .describe_producers_for_timeout([partition.into()], timeout)
+            .await?;
         topics
             .into_iter()
             .next()
@@ -4559,10 +4577,27 @@ impl Admin {
     /// `describeProducers(Collection)`; DescribeProducers Topics of N).
     ///
     /// Groups by Metadata leader and sends one RPC per leader. Empty
-    /// `partitions` is a no-op.
+    /// `partitions` is a no-op. DescribeProducers has no TimeoutMs; the
+    /// RPC deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_producers_for_timeout`].
     pub async fn describe_producers_for(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<DescribeProducersTopic>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_producers_for_timeout(partitions, timeout)
+            .await
+    }
+
+    /// [`Self::describe_producers_for`] with a one-shot RPC deadline (Java
+    /// `describeProducers` plus `DescribeProducersOptions.timeoutMs`).
+    ///
+    /// DescribeProducers has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_LEADER_OR_FOLLOWER` retry budget.
+    pub async fn describe_producers_for_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        timeout: Duration,
     ) -> Result<Vec<DescribeProducersTopic>> {
         let partitions: Vec<crate::TopicPartition> =
             partitions.into_iter().map(Into::into).collect();
@@ -4570,7 +4605,6 @@ impl Admin {
             return Ok(Vec::new());
         }
         let version = self.describe_producers_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribeProducersPartition>> = vec![None; partitions.len()];

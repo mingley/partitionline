@@ -4663,6 +4663,12 @@ async fn describe_producers_follows_partition_leader() {
         Some(1),
         "single-partition describe_producers sends Topics array of 1"
     );
+    let timed = admin
+        .describe_producers_timeout(("t", 0), Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
+    assert_eq!(timed.partition_index, 0);
 }
 
 /// Java `describeProducers(Collection<TopicPartition>)` sends DescribeProducers Topics of N
@@ -4706,6 +4712,13 @@ async fn admin_describe_producers_for() {
         Some(2),
         "describe_producers_for sends Topics array of N when partitions share a leader"
     );
+    let timed = admin
+        .describe_producers_for_timeout([("dp-a", 0), ("dp-b", 0)], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 2);
+    assert_eq!(timed[0].name, "dp-a");
+    assert_eq!(timed[1].name, "dp-b");
 }
 
 #[tokio::test]

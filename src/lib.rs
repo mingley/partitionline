@@ -177,6 +177,7 @@
 //! [`ConsumerRecords::next_offsets`] (Java `commitSync(records.nextOffsets())`).
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
 //! [`Admin::describe_producers_for`] /
+//! [`Admin::describe_producers_timeout`] /
 //! [`Admin::list_offsets`] / [`Admin::delete_offsets`] /
 //! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
@@ -197,6 +198,10 @@
 //! `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::describe_producers_for`] is Java `describeProducers(Collection)`
 //! (one DescribeProducers RPC per leader; Topics of N).
+//! [`Admin::describe_producers_timeout`] /
+//! [`Admin::describe_producers_for_timeout`] are Java
+//! `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers
+//! has no TimeoutMs).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
