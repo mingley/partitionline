@@ -5933,6 +5933,77 @@ async fn admin_delete_topics_by_id() {
         .unwrap();
     assert_eq!(timed[0].error_code, 0);
     assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
+
+    let created = admin
+        .create_topics(&[NewTopic::new("dti-q", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let dti_q = created[0].topic_id;
+    mock.delete_topics_quota_once("dti-q");
+    let deleted = admin.delete_topics_by_id(&[dti_q], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[0].topic_id, dti_q);
+    assert_eq!(
+        mock.delete_topics_quota_hits(),
+        1,
+        "delete_topics_by_id retries THROTTLING_QUOTA_EXCEEDED by default"
+    );
+
+    let created = admin
+        .create_topics(&[NewTopic::new("dti-qn", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let dti_qn = created[0].topic_id;
+    mock.delete_topics_quota_once("dti-qn");
+    let deleted = admin
+        .delete_topics_by_id_with_quota_retry(&[dti_qn], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, error::THROTTLING_QUOTA_EXCEEDED);
+    assert_eq!(deleted[0].topic_id, dti_qn);
+    assert_eq!(mock.delete_topics_quota_hits(), 2);
+    let listed = admin.list_topics().await.unwrap();
+    assert!(
+        listed.iter().any(|t| t.name == "dti-qn"),
+        "quota retry disabled must not delete the topic"
+    );
+
+    let created = admin
+        .create_topics(
+            &[
+                NewTopic::new("dti-mix-ok", 1, 1),
+                NewTopic::new("dti-mix-q", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    let dti_mix_ok = created[0].topic_id;
+    let dti_mix_q = created[1].topic_id;
+    mock.delete_topics_quota_once("dti-mix-q");
+    let deleted = admin
+        .delete_topics_by_id_timeout_with_quota_retry(
+            &[dti_mix_ok, dti_mix_q],
+            Duration::from_secs(10),
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[1].error_code, 0);
+    assert_eq!(deleted[0].topic_id, dti_mix_ok);
+    assert_eq!(deleted[1].topic_id, dti_mix_q);
+    assert_eq!(
+        mock.last_delete_topics_ids(),
+        Some(1),
+        "quota retry resends only THROTTLING_QUOTA_EXCEEDED topic ids"
+    );
+    assert_eq!(mock.delete_topics_quota_hits(), 3);
     admin.close().await.unwrap();
 }
 

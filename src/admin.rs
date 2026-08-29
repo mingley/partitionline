@@ -2012,13 +2012,16 @@ impl Admin {
     /// `timeout_ms` is DeleteTopics TimeoutMs. The RPC deadline is
     /// [`AdminConfig::request_timeout`]. See
     /// [`Self::delete_topics_by_id_timeout`].
+    /// Java `DeleteTopicsOptions.retryOnQuotaViolation` defaults to
+    /// `true` (KIP-599); use [`Self::delete_topics_by_id_with_quota_retry`]
+    /// to disable.
     pub async fn delete_topics_by_id(
         &mut self,
         ids: &[[u8; 16]],
         timeout_ms: i32,
     ) -> Result<Vec<TopicResult>> {
         let timeout = self.cfg.request_timeout;
-        self.delete_topics_by_id_with(ids, timeout_ms, timeout)
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout, true)
             .await
     }
 
@@ -2030,7 +2033,40 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<TopicResult>> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.delete_topics_by_id_with(ids, timeout_ms, timeout)
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout, true)
+            .await
+    }
+
+    /// [`Self::delete_topics_by_id`] with Java
+    /// `DeleteTopicsOptions.retryOnQuotaViolation`.
+    ///
+    /// [`Self::delete_topics_by_id`] defaults this to `true` (KIP-599).
+    /// When true, topics that return `THROTTLING_QUOTA_EXCEEDED` (89)
+    /// are retried alone until the RPC deadline.
+    pub async fn delete_topics_by_id_with_quota_retry(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout_ms: i32,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout, retry_on_quota_violation)
+            .await
+    }
+
+    /// [`Self::delete_topics_by_id_with_quota_retry`] with a one-shot
+    /// timeout (Java `DeleteTopicsOptions.timeoutMs` +
+    /// `retryOnQuotaViolation`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteTopics TimeoutMs.
+    pub async fn delete_topics_by_id_timeout_with_quota_retry(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout: Duration,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout, retry_on_quota_violation)
             .await
     }
 
@@ -2039,6 +2075,7 @@ impl Admin {
         ids: &[[u8; 16]],
         timeout_ms: i32,
         timeout: Duration,
+        retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         if ids.is_empty() {
             return Ok(Vec::new());
@@ -2050,7 +2087,7 @@ impl Admin {
         }
         let topics: Vec<DeleteTopicState> =
             ids.iter().copied().map(DeleteTopicState::by_id).collect();
-        self.delete_topics_states_with(topics, timeout_ms, timeout, true)
+        self.delete_topics_states_with(topics, timeout_ms, timeout, retry_on_quota_violation)
             .await
     }
 

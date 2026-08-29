@@ -3558,15 +3558,34 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     st.last_delete_topics_node = Some(node_id);
                     for t in topics {
-                        if let Some(name) = t.name.as_ref().filter(|n| !n.is_empty()) {
-                            if st.delete_topics_quota_once.remove(name) {
+                        let quota_key =
+                            t.name
+                                .as_ref()
+                                .filter(|n| !n.is_empty())
+                                .cloned()
+                                .or_else(|| {
+                                    if t.topic_id == [0u8; 16] {
+                                        None
+                                    } else {
+                                        st.created_topics
+                                            .keys()
+                                            .find(|n| mock_topic_id(n) == t.topic_id)
+                                            .cloned()
+                                    }
+                                });
+                        if let Some(name) = quota_key {
+                            if st.delete_topics_quota_once.remove(&name) {
                                 st.delete_topics_quota_hits =
                                     st.delete_topics_quota_hits.saturating_add(1);
-                                results.push(TopicResult::new(
-                                    name.clone(),
-                                    error::THROTTLING_QUOTA_EXCEEDED,
-                                    Some("Throttling quota exceeded".into()),
-                                ));
+                                results.push(TopicResult {
+                                    name: t.name.clone().unwrap_or(name),
+                                    error_code: error::THROTTLING_QUOTA_EXCEEDED,
+                                    error_message: Some("Throttling quota exceeded".into()),
+                                    topic_id: t.topic_id,
+                                    num_partitions: -1,
+                                    replication_factor: -1,
+                                    configs: Vec::new(),
+                                });
                                 continue;
                             }
                         }
