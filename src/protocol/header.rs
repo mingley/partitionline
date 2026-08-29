@@ -455,7 +455,7 @@ mod tests {
     fn fetch_v12_is_flexible_v11_is_not() {
         // Official JSON: validVersions 4-17, flexibleVersions 12+.
         // Kafka 4.0 removed v0–v3. HeaderVersion is 1 / 0 at v4–11 and
-        // 2 / 1 at v12+. This crate speaks 4–15. v16+ (NodeEndpoints) is
+        // 2 / 1 at v12+. This crate speaks 4–16. v17+ (ReplicaDirectoryId) is
         // not spoken.
         assert_eq!(request_header_version(FETCH, 4), 1);
         assert_eq!(response_header_version(FETCH, 4), 0);
@@ -467,6 +467,8 @@ mod tests {
         assert_eq!(response_header_version(FETCH, 14), 1);
         assert_eq!(request_header_version(FETCH, 15), 2);
         assert_eq!(response_header_version(FETCH, 15), 1);
+        assert_eq!(request_header_version(FETCH, 16), 2);
+        assert_eq!(response_header_version(FETCH, 16), 1);
     }
 
     #[test]

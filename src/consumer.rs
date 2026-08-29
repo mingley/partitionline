@@ -899,8 +899,8 @@ impl Consumer {
         .await?;
         let fetch_version = versions
             .get(&FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 15))
-            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-15".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 16))
+            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-16".into()))?;
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
@@ -1978,9 +1978,21 @@ impl Consumer {
                 if part.error_code != 0 {
                     let e = Error::broker(part.error_code, format!("{}-{}", name, part.partition));
                     if e.is_retriable() {
-                        self.cluster.invalidate_topic(&name);
-                        let _ = self.conns.remove(&node);
-                        retry = retry.merge(FetchRetry::Backoff);
+                        let applied = part.current_leader_id >= 0
+                            && self.cluster.apply_current_leader(
+                                &name,
+                                part.partition,
+                                part.current_leader_id,
+                                part.current_leader_epoch,
+                            );
+                        if applied {
+                            let _ = self.conns.remove(&node);
+                            retry = retry.merge(FetchRetry::Redirect);
+                        } else {
+                            self.cluster.invalidate_topic(&name);
+                            let _ = self.conns.remove(&node);
+                            retry = retry.merge(FetchRetry::Backoff);
+                        }
                         continue;
                     }
                     return Err(e);

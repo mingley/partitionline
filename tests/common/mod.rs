@@ -2086,7 +2086,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
-        (FETCH, 4, 15),
+        (FETCH, 4, 16),
         (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
@@ -3583,6 +3583,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
                                 preferred_read_replica: -1,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3600,6 +3602,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     log_start_offset: 0,
                                     aborted_transactions: Vec::new(),
                                     preferred_read_replica: f.node_id,
+                                    current_leader_id: -1,
+                                    current_leader_epoch: -1,
                                     records: Vec::new(),
                                 });
                                 continue;
@@ -3619,6 +3623,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
                                 preferred_read_replica: -1,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3632,6 +3638,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
                                 preferred_read_replica: -1,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3705,6 +3713,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             log_start_offset: log_start,
                             aborted_transactions,
                             preferred_read_replica: -1,
+                            current_leader_id: -1,
+                            current_leader_epoch: -1,
                             records: batches,
                         });
                     }

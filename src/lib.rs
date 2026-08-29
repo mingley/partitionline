@@ -58,9 +58,10 @@
 //! [`Consumer::seek_to_end_of`] move the
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
-//! every partition leader in parallel. Fetch negotiates v4–v15 (v12+ is
-//! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903).
-//! v16+ (NodeEndpoints) is not spoken. [`ConsumerConfig::max_bytes`] sets
+//! every partition leader in parallel. Fetch negotiates v4–v16 (v12+ is
+//! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
+//! v16 is the same request as v15, KIP-951 CurrentLeader). v17+
+//! (ReplicaDirectoryId) is not spoken. [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
 //! [`ConsumerConfig::max_partition_fetch_bytes`] set them independently.

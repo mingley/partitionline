@@ -1,4 +1,4 @@
-//! Fetch (api key 1). v4–v11 classic; v12–v15 flexible.
+//! Fetch (api key 1). v4–v11 classic; v12–v16 flexible.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -49,6 +49,10 @@ pub struct FetchedPartition {
     pub aborted_transactions: Vec<(i64, i64)>,
     /// Broker id to fetch from next, or `-1`.
     pub preferred_read_replica: i32,
+    /// Fetch v12+ CurrentLeader `LeaderId` (tagged field 1), or `-1`.
+    pub current_leader_id: i32,
+    /// Fetch v12+ CurrentLeader `LeaderEpoch` (tagged field 1), or `-1`.
+    pub current_leader_epoch: i32,
     /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
 }
@@ -64,7 +68,7 @@ pub struct FetchedTopic {
     pub partitions: Vec<FetchedPartition>,
 }
 
-/// Fetch v4–v11 (classic) or v12–v15 (flexible). LastFetchedEpoch is v12+.
+/// Fetch v4–v11 (classic) or v12–v16 (flexible). LastFetchedEpoch is v12+.
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
@@ -130,12 +134,14 @@ pub fn encode_fetch_request(
 /// v0–v3. v13 replaces topic names with topic ids (KIP-516). v14 is the
 /// same layout as v13 (`OffsetMovedToTieredStorageException`). v15 drops
 /// untagged ReplicaId and adds ReplicaState tagged field 1 (KIP-903;
-/// consumers omit it). This crate speaks 4–15. v16+ (NodeEndpoints,
-/// ReplicaDirectoryId) is not spoken.
+/// consumers omit it). v16 is the same request as v15 (KIP-951). This crate
+/// speaks 4–16. Partition CurrentLeader tagged field 1 is decoded (v12+);
+/// top-level NodeEndpoints tagged field 0 is not applied. v17+
+/// (ReplicaDirectoryId) is not spoken.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
         4..=11 => Ok(false),
-        12..=15 => Ok(true),
+        12..=16 => Ok(true),
         other => Err(Error::protocol(format!(
             "Fetch version {other} is not implemented"
         ))),
@@ -170,6 +176,58 @@ fn get_fetch_topic_identity<B: Buf>(
             [0u8; 16],
         ))
     }
+}
+
+/// LeaderIdAndEpoch inside Fetch partition tagged field 1 (9 bytes when
+/// present: INT32 + INT32 + empty nested tagged fields).
+fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
+    let mut inner = BytesMut::new();
+    inner.put_i32(leader_id);
+    inner.put_i32(leader_epoch);
+    buf::put_empty_tagged_fields(&mut inner);
+    inner.freeze()
+}
+
+fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
+    let mut cur = value.as_ref();
+    let leader_id = buf::get_i32(&mut cur)?;
+    let leader_epoch = buf::get_i32(&mut cur)?;
+    buf::skip_tagged_fields(&mut cur)?;
+    if !cur.is_empty() {
+        return Err(Error::protocol("CurrentLeader leftover bytes"));
+    }
+    Ok((leader_id, leader_epoch))
+}
+
+fn encode_fetch_partition_tags(
+    buf: &mut BytesMut,
+    current_leader_id: i32,
+    current_leader_epoch: i32,
+) -> Result<()> {
+    if current_leader_id >= 0 {
+        buf::put_tagged_fields(
+            buf,
+            &[(
+                1,
+                encode_current_leader(current_leader_id, current_leader_epoch),
+            )],
+        )
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
+}
+
+fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut current_leader_id = -1;
+    let mut current_leader_epoch = -1;
+    for (tag, value) in tags {
+        if tag == 1 {
+            (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?;
+        }
+    }
+    Ok((current_leader_id, current_leader_epoch))
 }
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
@@ -248,7 +306,7 @@ pub fn decode_fetch_request<B: Buf>(
     Ok((isolation, max_bytes, topics, rack))
 }
 
-/// Encode a Fetch v4–v11 (classic) or v12–v15 (flexible) response.
+/// Encode a Fetch v4–v11 (classic) or v12–v16 (flexible) response.
 pub fn encode_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -287,7 +345,7 @@ pub fn encode_fetch_response(
                 buf::put_bytes(buf, flexible, Some(&recs))?;
             }
             if flexible {
-                buf::put_empty_tagged_fields(buf);
+                encode_fetch_partition_tags(buf, p.current_leader_id, p.current_leader_epoch)?;
             }
         }
         if flexible {
@@ -300,7 +358,7 @@ pub fn encode_fetch_response(
     Ok(())
 }
 
-/// Decode a Fetch v4–v11 (classic) or v12–v15 (flexible) response.
+/// Decode a Fetch v4–v11 (classic) or v12–v16 (flexible) response.
 pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<FetchedTopic>> {
     let flexible = fetch_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
@@ -340,9 +398,11 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<Fe
                 let mut rec_buf = rec_bytes;
                 records::decode_record_batches(&mut rec_buf)?
             };
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
+            let (current_leader_id, current_leader_epoch) = if flexible {
+                decode_fetch_partition_tags(buf)?
+            } else {
+                (-1, -1)
+            };
             partitions.push(FetchedPartition {
                 partition,
                 error_code,
@@ -351,6 +411,8 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<Fe
                 log_start_offset,
                 aborted_transactions,
                 preferred_read_replica,
+                current_leader_id,
+                current_leader_epoch,
                 records,
             });
         }
@@ -467,6 +529,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: Vec::new(),
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -506,6 +570,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: vec![(1000, 1)],
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![batch],
             }],
         }];
@@ -532,6 +598,8 @@ mod tests {
                 log_start_offset: 10,
                 aborted_transactions: Vec::new(),
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![],
             }],
         }];
@@ -614,6 +682,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: Vec::new(),
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![batch],
             }],
         }];
@@ -679,6 +749,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: vec![(1000, 1)],
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -698,8 +770,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 16, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v16+ (NodeEndpoints) is not spoken"
+            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
         );
     }
 
@@ -789,6 +861,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: vec![(1000, 1)],
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -816,8 +890,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 16, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v16+ (NodeEndpoints) is not spoken"
+            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
         );
     }
 
@@ -924,6 +998,8 @@ mod tests {
                 log_start_offset: 0,
                 aborted_transactions: vec![(1000, 1)],
                 preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -951,8 +1027,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 16, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v16+ (NodeEndpoints) is not spoken"
+            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
         );
     }
 
@@ -982,6 +1058,135 @@ mod tests {
             v15.as_ref(),
             v14.get(4..).unwrap(),
             "Fetch v15 request is v14 without untagged ReplicaId"
+        );
+    }
+
+    #[test]
+    fn fetch_v16_roundtrip_is_leftover_empty() {
+        let req_topics = vec![sample_v13_topic()];
+        let mut v15 = BytesMut::new();
+        encode_fetch_request(&mut v15, 15, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
+        let mut v16 = BytesMut::new();
+        encode_fetch_request(&mut v16, 16, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
+        assert_eq!(
+            &v15[..],
+            &v16[..],
+            "Fetch v16 request layout must match v15"
+        );
+        let mut cur = &v16[..];
+        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 16).unwrap();
+        assert_eq!(iso, 1);
+        assert_eq!(max_bytes, 1024);
+        assert_eq!(decoded[0].topic_id, SAMPLE_TOPIC_ID);
+        assert_eq!(rack, "az1");
+        assert!(
+            cur.is_empty(),
+            "Fetch v16 request must consume compact tagged fields"
+        );
+
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let topics = vec![FetchedTopic {
+            topic: String::new(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 1,
+                last_stable_offset: 1,
+                log_start_offset: 0,
+                aborted_transactions: vec![(1000, 1)],
+                preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        }];
+        let mut resp15 = BytesMut::new();
+        encode_fetch_response(&mut resp15, 15, &topics).unwrap();
+        let mut resp16 = BytesMut::new();
+        encode_fetch_response(&mut resp16, 16, &topics).unwrap();
+        assert_eq!(
+            &resp15[..],
+            &resp16[..],
+            "Fetch v16 empty CurrentLeader / NodeEndpoints must match v15"
+        );
+        let mut cur = &resp16[..];
+        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
+        assert_eq!(got[0].partitions[0].current_leader_id, -1);
+        assert_eq!(got[0].partitions[0].current_leader_epoch, -1);
+        assert_eq!(
+            got[0].partitions[0].records[0].records[0].value.as_deref(),
+            Some(&b"f"[..])
+        );
+        assert!(
+            cur.is_empty(),
+            "Fetch v16 response must consume compact tagged fields"
+        );
+        v16.clear();
+        assert!(
+            encode_fetch_request(&mut v16, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
+        );
+    }
+
+    #[test]
+    fn fetch_v16_current_leader_tagged_is_leftover_empty() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let mut with_leader = FetchedTopic {
+            topic: String::new(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 6,
+                high_watermark: 0,
+                last_stable_offset: 0,
+                log_start_offset: 0,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
+                current_leader_id: 2,
+                current_leader_epoch: 7,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        };
+        let topics = vec![with_leader.clone()];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 16, &topics).unwrap();
+        let mut cur = &buf[..];
+        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        assert_eq!(got[0].partitions[0].current_leader_id, 2);
+        assert_eq!(got[0].partitions[0].current_leader_epoch, 7);
+        assert!(
+            cur.is_empty(),
+            "Fetch CurrentLeader tagged field 1 must consume nested tagged fields"
+        );
+        let mut v15 = BytesMut::new();
+        encode_fetch_response(&mut v15, 15, &topics).unwrap();
+        assert_eq!(
+            &v15[..],
+            &buf[..],
+            "Fetch v12+ CurrentLeader layout is unchanged at v16"
+        );
+        with_leader.partitions[0].current_leader_id = -1;
+        with_leader.partitions[0].current_leader_epoch = -1;
+        let mut omitted = BytesMut::new();
+        encode_fetch_response(&mut omitted, 16, &[with_leader]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &omitted[..],
+            "CurrentLeader tagged field 1 must not equal empty tags"
         );
     }
 }
