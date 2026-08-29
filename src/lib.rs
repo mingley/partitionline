@@ -38,6 +38,7 @@
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
+//! IncrementalAlterConfigs v0–v1 (v1 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),

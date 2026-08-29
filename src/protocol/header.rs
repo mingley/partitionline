@@ -11,12 +11,12 @@ use super::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
     DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
-    RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
-    WRITE_TXN_MARKERS,
+    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
+    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -157,6 +157,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 0-3. This crate speaks 0–3. v3 is the same layout as v2
         // (KIP-599 THROTTLING_QUOTA_EXCEEDED). v4+ is not spoken.
         CREATE_PARTITIONS if api_version >= 2 => 2,
+        // IncrementalAlterConfigs is classic at v0; flexible from v1
+        // (Apache JSON flexibleVersions: "1+"). Kafka 4.0 validVersions
+        // is 0-1. This crate speaks 0–1. v2+ is not spoken.
+        INCREMENTAL_ALTER_CONFIGS if api_version >= 1 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -240,6 +244,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DELETE_TOPICS if api_version >= 4 => 1,
         DESCRIBE_CONFIGS if api_version >= 4 => 1,
         CREATE_PARTITIONS if api_version >= 2 => 1,
+        INCREMENTAL_ALTER_CONFIGS if api_version >= 1 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -589,6 +594,16 @@ mod tests {
         assert_eq!(response_header_version(CREATE_PARTITIONS, 2), 1);
         assert_eq!(request_header_version(CREATE_PARTITIONS, 3), 2);
         assert_eq!(response_header_version(CREATE_PARTITIONS, 3), 1);
+    }
+
+    #[test]
+    fn incremental_alter_configs_v1_is_flexible_v0_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 0-1, flexibleVersions 1+.
+        // HeaderVersion is 1 / 0 at v0 and 2 / 1 at v1. This crate speaks 0–1.
+        assert_eq!(request_header_version(INCREMENTAL_ALTER_CONFIGS, 0), 1);
+        assert_eq!(response_header_version(INCREMENTAL_ALTER_CONFIGS, 0), 0);
+        assert_eq!(request_header_version(INCREMENTAL_ALTER_CONFIGS, 1), 2);
+        assert_eq!(response_header_version(INCREMENTAL_ALTER_CONFIGS, 1), 1);
     }
 
     #[test]

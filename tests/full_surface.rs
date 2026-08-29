@@ -12,7 +12,8 @@ mod common;
 
 use partitionline::protocol::api_keys::{
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
-    HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3816,6 +3817,11 @@ async fn incremental_alter_configs_follows_controller() {
         .unwrap();
     assert_eq!(err, 0);
     assert_eq!(
+        mock.last_incremental_alter_configs_version(),
+        Some(1),
+        "Admin must prefer IncrementalAlterConfigs v1 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_incremental_alter_configs_node(),
         Some(2),
         "IncrementalAlterConfigs must land on the controller, not bootstrap"
@@ -3840,6 +3846,32 @@ async fn incremental_alter_configs_follows_controller() {
         mock.last_incremental_alter_configs_node(),
         Some(1),
         "IncrementalAlterConfigs must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn incremental_alter_configs_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(INCREMENTAL_ALTER_CONFIGS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("iac0", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("iac0"),
+            &[AlterConfig::set("retention.ms", "1000")],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(
+        mock.last_incremental_alter_configs_version(),
+        Some(0),
+        "client must speak IncrementalAlterConfigs v0 when the broker max is 0"
     );
 }
 

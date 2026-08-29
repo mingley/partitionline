@@ -266,6 +266,7 @@ struct State {
     last_create_partitions_version: Option<i16>,
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
+    last_incremental_alter_configs_version: Option<i16>,
     incremental_alter_configs_not_controller: u32,
     last_create_acls_node: Option<i32>,
     create_acls_not_controller: u32,
@@ -532,6 +533,7 @@ fn new_state(
         last_create_partitions_version: None,
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
+        last_incremental_alter_configs_version: None,
         incremental_alter_configs_not_controller: 0,
         last_create_acls_node: None,
         create_acls_not_controller: 0,
@@ -1439,6 +1441,10 @@ impl Mock {
         self.state.lock().last_incremental_alter_configs_node
     }
 
+    pub fn last_incremental_alter_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_incremental_alter_configs_version
+    }
+
     pub fn incremental_alter_configs_not_controller(&self) -> u32 {
         self.state.lock().incremental_alter_configs_not_controller
     }
@@ -2295,7 +2301,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DESCRIBE_ACLS, 0, 1),
         (CREATE_ACLS, 0, 1),
         (DELETE_ACLS, 0, 1),
-        (INCREMENTAL_ALTER_CONFIGS, 0, 0),
+        (INCREMENTAL_ALTER_CONFIGS, 0, 1),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
         (UPDATE_FEATURES, 0, 0),
@@ -2794,10 +2800,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_create_partitions_response(&mut body, version, &results).unwrap();
             }
             INCREMENTAL_ALTER_CONFIGS => {
+                let version = header.api_version;
                 let (rt, name, configs, validate_only) =
-                    decode_incremental_alter_configs_request(&mut frame).unwrap();
+                    decode_incremental_alter_configs_request(&mut frame, version).unwrap();
                 let mut err = 0i16;
                 let mut st = state.lock();
+                st.last_incremental_alter_configs_version = Some(version);
                 if st.controller_node != node_id {
                     st.incremental_alter_configs_not_controller = st
                         .incremental_alter_configs_not_controller
@@ -2821,7 +2829,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         err = 3;
                     }
                 }
-                encode_incremental_alter_configs_response(&mut body, err, &name).unwrap();
+                encode_incremental_alter_configs_response(&mut body, version, err, &name).unwrap();
             }
             ALTER_CONFIGS => {
                 let (rt, name, configs, validate_only) =

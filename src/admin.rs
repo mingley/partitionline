@@ -1064,9 +1064,9 @@ impl Admin {
             })?;
         let alter_version = versions
             .get(&INCREMENTAL_ALTER_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support IncrementalAlterConfigs".into())
+                Error::Unsupported("broker does not support IncrementalAlterConfigs v0-1".into())
             })?;
         let legacy_alter_version = versions
             .get(&ALTER_CONFIGS)
@@ -1691,6 +1691,8 @@ impl Admin {
 
     /// Alter configs incrementally (`IncrementalAlterConfigs`).
     ///
+    /// Negotiates v0–v1 (v0 classic; v1 flexible). Kafka 4.0
+    /// `validVersions` is `0-1`. v2+ is not spoken.
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
     pub async fn incremental_alter_configs(
@@ -1723,6 +1725,7 @@ impl Admin {
                     |buf| {
                         encode_incremental_alter_configs_request(
                             buf,
+                            version,
                             resource_type,
                             &name,
                             &configs,
@@ -1743,7 +1746,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let err = decode_incremental_alter_configs_response(&mut body.clone())?;
+            let err = decode_incremental_alter_configs_response(&mut body.clone(), version)?;
             if err == error::NOT_CONTROLLER {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
