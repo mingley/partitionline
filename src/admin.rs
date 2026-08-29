@@ -118,30 +118,31 @@ pub use crate::protocol::admin::{
     AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
-    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry,
-    ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    CreatableRenewer, CreateDelegationTokenRequest, CreateDelegationTokenResponse,
-    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
-    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
-    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
-    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
-    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
-    DescribeProducersTopic, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
-    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
-    ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse, ListedConfigResource,
-    ListedGroup, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
-    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN,
-    CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG,
-    CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
-    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
-    QUOTA_MATCH_EXACT, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config,
+    ConfigEntry, ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember,
+    ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
+    CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
+    DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic, DescribableLogDirTopic,
+    DescribeClusterBroker, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    DescribeProducersPartition, DescribeProducersTopic, DescribeShareGroupOffsetsGroup,
+    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
+    DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
+    DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
+    DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
+    EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
+    PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
+    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
+    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS,
+    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
@@ -782,6 +783,19 @@ impl ConfigReplacement {
         Self {
             resource,
             configs: configs.into_iter().collect(),
+        }
+    }
+
+    /// Java `alterConfigs(Map)` value: this resource plus [`Config::entries`].
+    #[must_use]
+    pub fn from_config(resource: ConfigResource, config: &Config) -> Self {
+        Self {
+            resource,
+            configs: config
+                .entries()
+                .iter()
+                .map(|e| (e.name.clone(), e.value.clone()))
+                .collect(),
         }
     }
 }
@@ -4707,6 +4721,48 @@ impl Admin {
                     resource.clone(),
                     configs.iter().cloned(),
                 )],
+                timeout,
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
+    /// [`Self::alter_configs`] with a Java `Config` (`alterConfigs(Map)` one
+    /// resource).
+    ///
+    /// AlterConfigs has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_configs_with_timeout`].
+    pub async fn alter_configs_with(
+        &mut self,
+        resource: &ConfigResource,
+        config: &Config,
+        validate_only: bool,
+    ) -> Result<i16> {
+        let results = self
+            .alter_configs_for(
+                &[ConfigReplacement::from_config(resource.clone(), config)],
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
+    /// [`Self::alter_configs_with`] with a one-shot RPC deadline (Java
+    /// `AlterConfigsOptions.timeoutMs`).
+    ///
+    /// AlterConfigs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn alter_configs_with_timeout(
+        &mut self,
+        resource: &ConfigResource,
+        config: &Config,
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<i16> {
+        let results = self
+            .alter_configs_for_timeout(
+                &[ConfigReplacement::from_config(resource.clone(), config)],
                 timeout,
                 validate_only,
             )
@@ -9913,6 +9969,29 @@ mod tests {
     fn records_to_delete_before_offset_converts_to_i64() {
         assert_eq!(i64::from(RecordsToDelete::before_offset(42)), 42);
         assert_eq!(RecordsToDelete::before_offset(7).offset(), 7);
+    }
+
+    #[test]
+    fn config_get_and_replacement_match_java() {
+        let entry = ConfigEntry::new("retention.ms", Some("1000".into()));
+        let config = Config::new([entry.clone()]);
+        assert_eq!(config.entries(), std::slice::from_ref(&entry));
+        assert_eq!(config.get("retention.ms"), Some(&entry));
+        assert_eq!(config.get("missing"), None);
+        let described = DescribeConfigsResult {
+            error_code: 0,
+            error_message: None,
+            resource_type: CONFIG_RESOURCE_TOPIC,
+            name: "t".into(),
+            entries: vec![entry.clone()],
+        };
+        assert_eq!(described.config().get("retention.ms"), Some(&entry));
+        let replacement = ConfigReplacement::from_config(ConfigResource::topic("t"), &config);
+        assert_eq!(replacement.resource.name, "t");
+        assert_eq!(
+            replacement.configs,
+            vec![("retention.ms".into(), Some("1000".into()))]
+        );
     }
 
     #[test]

@@ -203,6 +203,57 @@ pub struct ConfigEntry {
     pub documentation: Option<String>,
 }
 
+impl ConfigEntry {
+    /// Java `ConfigEntry(String, String)` for [`Config`]. `value` `None` is
+    /// Java `null`. Source is unknown (`0`); type is [`CONFIG_TYPE_UNKNOWN`].
+    #[must_use]
+    pub fn new(name: impl Into<String>, value: Option<String>) -> Self {
+        Self {
+            name: name.into(),
+            value,
+            read_only: false,
+            source: 0,
+            is_sensitive: false,
+            synonyms: Vec::new(),
+            config_type: CONFIG_TYPE_UNKNOWN,
+            documentation: None,
+        }
+    }
+}
+
+/// Java `org.apache.kafka.clients.admin.Config`: entries for one resource.
+///
+/// [`Self::new`] is Java `Config(Collection)`. [`Self::entries`] /
+/// [`Self::get`] are Java `entries()` / `get(String)`. Use with
+/// [`crate::Admin::alter_configs_with`] (`alterConfigs(Map)` one resource)
+/// and [`DescribeConfigsResult::config`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Config {
+    entries: Vec<ConfigEntry>,
+}
+
+impl Config {
+    /// Java `Config(Collection)`.
+    #[must_use]
+    pub fn new(entries: impl IntoIterator<Item = ConfigEntry>) -> Self {
+        Self {
+            entries: entries.into_iter().collect(),
+        }
+    }
+
+    /// Java `Config.entries()`.
+    #[must_use]
+    pub fn entries(&self) -> &[ConfigEntry] {
+        &self.entries
+    }
+
+    /// Java `Config.get(String)`.
+    #[must_use]
+    pub fn get(&self, name: &str) -> Option<&ConfigEntry> {
+        self.entries.iter().find(|e| e.name == name)
+    }
+}
+
 /// Per-resource result of DescribeConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResult {
@@ -216,6 +267,14 @@ pub struct DescribeConfigsResult {
     pub name: String,
     /// Config keys on this resource.
     pub entries: Vec<ConfigEntry>,
+}
+
+impl DescribeConfigsResult {
+    /// Java `Config` for this resource (`describeConfigs` result value).
+    #[must_use]
+    pub fn config(&self) -> Config {
+        Config::new(self.entries.iter().cloned())
+    }
 }
 
 fn put_i32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::error::Result<()> {
@@ -11557,6 +11616,25 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v2+ is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn config_new_get_matches_java() {
+        let entry = ConfigEntry::new("cleanup.policy", Some("compact".into()));
+        let config = Config::new([entry.clone()]);
+        assert_eq!(config.entries().len(), 1);
+        assert_eq!(config.get("cleanup.policy"), Some(&entry));
+        assert_eq!(config.get("retention.ms"), None);
+        assert_eq!(entry.source, 0);
+        assert_eq!(entry.config_type, CONFIG_TYPE_UNKNOWN);
+        let result = DescribeConfigsResult {
+            error_code: 0,
+            error_message: None,
+            resource_type: RESOURCE_TOPIC,
+            name: "orders".into(),
+            entries: vec![entry.clone()],
+        };
+        assert_eq!(result.config().get("cleanup.policy"), Some(&entry));
     }
 
     #[test]

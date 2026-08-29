@@ -31,19 +31,19 @@ use partitionline::{
     AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent,
-    ClientQuotaOp, Compression, ConfigReplacement, ConfigResource, ConfigResourceType,
-    ConfigResourceUpdate, Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer,
-    CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
-    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
-    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic,
-    OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
-    ProduceRecord, Producer, ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest,
-    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement, ConfigResource,
+    ConfigResourceType, ConfigResourceUpdate, Consumer, ConsumerConfig, ConsumerGroup,
+    CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
+    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
+    ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec,
+    NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
+    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4525,6 +4525,72 @@ async fn admin_alter_configs_for() {
             .find(|e| e.name == "retention.ms")
             .and_then(|e| e.value.as_deref()),
         Some("2000")
+    );
+    assert_eq!(
+        described[0]
+            .config()
+            .get("retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("1000")
+    );
+    assert_eq!(
+        described[1]
+            .config()
+            .get("retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("2000")
+    );
+
+    let cfg_a = Config::new([ConfigEntry::new("retention.ms", Some("3000".into()))]);
+    let err = admin
+        .alter_configs_with(&ConfigResource::topic("ac-a"), &cfg_a, false)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let err = admin
+        .alter_configs_with_timeout(
+            &ConfigResource::topic("ac-a"),
+            &cfg_a,
+            Duration::from_secs(5),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let via_config = admin
+        .alter_configs_for(
+            &[ConfigReplacement::from_config(
+                ConfigResource::topic("ac-b"),
+                &Config::new([ConfigEntry::new("retention.ms", Some("4000".into()))]),
+            )],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(via_config[0].error_code, 0);
+    let described = admin
+        .describe_configs(
+            &[
+                ConfigResource::topic("ac-a").keys(["retention.ms"]),
+                ConfigResource::topic("ac-b").keys(["retention.ms"]),
+            ],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .config()
+            .get("retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("3000")
+    );
+    assert_eq!(
+        described[1]
+            .config()
+            .get("retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("4000")
     );
     admin.close().await.unwrap();
 }

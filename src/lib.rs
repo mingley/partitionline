@@ -169,6 +169,9 @@
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
 //! [`Admin::alter_configs_for`] is Java `alterConfigs(Map)`
 //! ([`ConfigReplacement`]; Resources of N).
+//! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
+//! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
+//! `describeConfigs` result `Config` (`entries` / `get`).
 //! [`Admin::incremental_alter_configs_timeout`] /
 //! [`Admin::alter_configs_timeout`] are Java `AlterConfigsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
@@ -580,8 +583,8 @@ pub use admin::{
     AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
-    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry,
-    ConfigReplacement, ConfigResource, ConfigResourceType, ConfigResourceUpdate,
+    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config,
+    ConfigEntry, ConfigReplacement, ConfigResource, ConfigResourceType, ConfigResourceUpdate,
     ConsumerGroupAssignment, ConsumerGroupDescription, ConsumerGroupMember,
     ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
     CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
