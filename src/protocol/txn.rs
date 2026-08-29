@@ -159,6 +159,83 @@ pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B, version: i16) 
     Ok(first_err)
 }
 
+/// `true` when AddOffsetsToTxn `version` is flexible (v3+).
+///
+/// v0–v2 are classic. v3–v4 are compact strings plus tagged fields
+/// (Apache JSON `flexibleVersions: "3+"`). v4 is TRANSACTION_ABORTABLE
+/// (KIP-890; same layout as v3). v5+ is not spoken.
+fn add_offsets_to_txn_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "AddOffsetsToTxn version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode AddOffsetsToTxn v0–v2 (classic) or v3–v4 (flexible).
+pub fn encode_add_offsets_to_txn_request(
+    buf: &mut BytesMut,
+    version: i16,
+    transactional_id: &str,
+    producer_id: i64,
+    producer_epoch: i16,
+    group_id: &str,
+) -> crate::error::Result<()> {
+    let flexible = add_offsets_to_txn_flexible(version)?;
+    buf::put_string(buf, flexible, Some(transactional_id))?;
+    buf.put_i64(producer_id);
+    buf.put_i16(producer_epoch);
+    buf::put_string(buf, flexible, Some(group_id))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode AddOffsetsToTxn: `(transactional_id, group_id)`.
+pub fn decode_add_offsets_to_txn_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, String)> {
+    let flexible = add_offsets_to_txn_flexible(version)?;
+    let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let _pid = buf::get_i64(buf)?;
+    let _epoch = buf::get_i16(buf)?;
+    let gid = buf::get_string(buf, flexible)?.unwrap_or_default();
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((tid, gid))
+}
+
+/// Encode AddOffsetsToTxn: throttle `0` plus error code.
+pub fn encode_add_offsets_to_txn_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error: i16,
+) -> Result<()> {
+    let flexible = add_offsets_to_txn_flexible(version)?;
+    buf.put_i32(0);
+    buf.put_i16(error);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode AddOffsetsToTxn: error code.
+pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = add_offsets_to_txn_flexible(version)?;
+    let _th = buf::get_i32(buf)?;
+    let err = buf::get_i16(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(err)
+}
+
 /// Encode EndTxn (`committed` is commit vs abort).
 pub fn encode_end_txn_request(
     buf: &mut BytesMut,
@@ -192,43 +269,6 @@ pub fn encode_end_txn_response(buf: &mut BytesMut, error: i16) -> Result<()> {
 
 /// Decode EndTxn: error code.
 pub fn decode_end_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
-    let _th = buf::get_i32(buf)?;
-    buf::get_i16(buf)
-}
-
-/// Encode AddOffsetsToTxn.
-pub fn encode_add_offsets_to_txn_request(
-    buf: &mut BytesMut,
-    transactional_id: &str,
-    producer_id: i64,
-    producer_epoch: i16,
-    group_id: &str,
-) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(transactional_id))?;
-    buf.put_i64(producer_id);
-    buf.put_i16(producer_epoch);
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
-    Ok(())
-}
-
-/// Decode AddOffsetsToTxn: `(transactional_id, group_id)`.
-pub fn decode_add_offsets_to_txn_request<B: Buf>(buf: &mut B) -> Result<(String, String)> {
-    let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _pid = buf::get_i64(buf)?;
-    let _epoch = buf::get_i16(buf)?;
-    let gid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    Ok((tid, gid))
-}
-
-/// Encode AddOffsetsToTxn: throttle `0` plus error code.
-pub fn encode_add_offsets_to_txn_response(buf: &mut BytesMut, error: i16) -> Result<()> {
-    buf.put_i32(0);
-    buf.put_i16(error);
-    Ok(())
-}
-
-/// Decode AddOffsetsToTxn: error code.
-pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
     let _th = buf::get_i32(buf)?;
     buf::get_i16(buf)
 }
@@ -787,6 +827,61 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_add_partitions_to_txn_response(&mut buf, 3, &topics, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn add_offsets_to_txn_v3_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut req, 3, "tx", 9, 1, "g").unwrap();
+        let mut cur = &req[..];
+        let (tid, gid) = decode_add_offsets_to_txn_request(&mut cur, 3).unwrap();
+        assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+        assert!(
+            cur.is_empty(),
+            "AddOffsetsToTxn v3 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_add_offsets_to_txn_response(&mut resp, 3, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_add_offsets_to_txn_response(&mut cur, 3).unwrap(), 0);
+        assert!(
+            cur.is_empty(),
+            "AddOffsetsToTxn v3 response must consume compact tagged fields"
+        );
+
+        req.clear();
+        encode_add_offsets_to_txn_request(&mut req, 4, "tx", 9, 1, "g").unwrap();
+        let mut cur = &req[..];
+        let (tid, gid) = decode_add_offsets_to_txn_request(&mut cur, 4).unwrap();
+        assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+        assert!(cur.is_empty(), "AddOffsetsToTxn v4 shares the v3 layout");
+        req.clear();
+        assert!(
+            encode_add_offsets_to_txn_request(&mut req, 5, "tx", 9, 1, "g").is_err(),
+            "AddOffsetsToTxn v5+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn add_offsets_to_txn_v3_request_matches_compact_layout() {
+        // Compact "tx", pid 9, epoch 1, compact "g", tagged.
+        const REQ: &[u8] = &[
+            0x03, 0x74, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x01, 0x02,
+            0x67, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_add_offsets_to_txn_request(&mut buf, 3, "tx", 9, 1, "g").unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn add_offsets_to_txn_v3_response_matches_compact_layout() {
+        // Throttle 0, error 0, tagged.
+        const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let mut buf = BytesMut::new();
+        encode_add_offsets_to_txn_response(&mut buf, 3, 0).unwrap();
         assert_eq!(&buf[..], RESP);
     }
 

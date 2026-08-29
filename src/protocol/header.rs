@@ -3,7 +3,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
-    ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
+    ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS, ALTER_SHARE_GROUP_OFFSETS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
     CONSUMER_GROUP_HEARTBEAT, CREATE_DELEGATION_TOKEN, DELETE_GROUPS, DELETE_SHARE_GROUP_OFFSETS,
@@ -85,6 +85,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–3.
         // v4+ (batched transactions) is not spoken.
         ADD_PARTITIONS_TO_TXN if api_version >= 3 => 2,
+        // AddOffsetsToTxn is classic through v2; flexible from v3
+        // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–4.
+        // v4 is TRANSACTION_ABORTABLE (KIP-890; same layout as v3).
+        ADD_OFFSETS_TO_TXN if api_version >= 3 => 2,
         // LeaveGroup is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). This crate speaks 0–5
         // (v5 is KIP-800 Reason).
@@ -161,6 +165,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         LIST_GROUPS if api_version >= 3 => 1,
         DELETE_GROUPS if api_version >= 2 => 1,
         ADD_PARTITIONS_TO_TXN if api_version >= 3 => 1,
+        ADD_OFFSETS_TO_TXN if api_version >= 3 => 1,
         WRITE_TXN_MARKERS if api_version >= 1 => 1,
         LEAVE_GROUP if api_version >= 4 => 1,
         LIST_OFFSETS if api_version >= 6 => 1,
@@ -351,6 +356,21 @@ mod tests {
         assert_eq!(response_header_version(ADD_PARTITIONS_TO_TXN, 2), 0);
         assert_eq!(request_header_version(ADD_PARTITIONS_TO_TXN, 3), 2);
         assert_eq!(response_header_version(ADD_PARTITIONS_TO_TXN, 3), 1);
+    }
+
+    #[test]
+    fn add_offsets_to_txn_v3_is_flexible_v2_is_not() {
+        // Official JSON: validVersions 0-4, flexibleVersions 3+.
+        // HeaderVersion is 1 / 0 at v0–2 and 2 / 1 at v3–4. This crate
+        // speaks 0–4. v5+ is not spoken.
+        assert_eq!(request_header_version(ADD_OFFSETS_TO_TXN, 0), 1);
+        assert_eq!(response_header_version(ADD_OFFSETS_TO_TXN, 0), 0);
+        assert_eq!(request_header_version(ADD_OFFSETS_TO_TXN, 2), 1);
+        assert_eq!(response_header_version(ADD_OFFSETS_TO_TXN, 2), 0);
+        assert_eq!(request_header_version(ADD_OFFSETS_TO_TXN, 3), 2);
+        assert_eq!(response_header_version(ADD_OFFSETS_TO_TXN, 3), 1);
+        assert_eq!(request_header_version(ADD_OFFSETS_TO_TXN, 4), 2);
+        assert_eq!(response_header_version(ADD_OFFSETS_TO_TXN, 4), 1);
     }
 
     #[test]

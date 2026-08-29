@@ -902,6 +902,11 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     );
     assert_eq!(mock.last_txn_offset_commit_partitions(), 3);
     assert_eq!(
+        mock.last_add_offsets_to_txn_version(),
+        Some(4),
+        "Producer must prefer AddOffsetsToTxn v4 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_txn_offset_epochs(),
         vec![e0, e1, e2],
         "TxnOffsetCommit v2 must send Metadata current_leader_epoch"

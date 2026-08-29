@@ -406,6 +406,7 @@ struct State {
     stale_txn_finds: u32,
     last_add_partitions_node: Option<i32>,
     last_add_offsets_node: Option<i32>,
+    last_add_offsets_to_txn_version: Option<i16>,
     last_end_txn_node: Option<i32>,
     last_txn_offset_commit_node: Option<i32>,
     hb_by_node: HashMap<i32, u32>,
@@ -643,6 +644,7 @@ fn new_state(
         stale_txn_finds: 0,
         last_add_partitions_node: None,
         last_add_offsets_node: None,
+        last_add_offsets_to_txn_version: None,
         last_end_txn_node: None,
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
@@ -1846,6 +1848,10 @@ impl Mock {
         self.state.lock().last_add_offsets_node
     }
 
+    pub fn last_add_offsets_to_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_add_offsets_to_txn_version
+    }
+
     pub fn last_end_txn_node(&self) -> Option<i32> {
         self.state.lock().last_end_txn_node
     }
@@ -2094,7 +2100,7 @@ fn versions() -> ApiVersionsResponse {
         (LIST_TRANSACTIONS, 0, 2),
         (INIT_PRODUCER_ID, 0, 5),
         (ADD_PARTITIONS_TO_TXN, 0, 3),
-        (ADD_OFFSETS_TO_TXN, 0, 1),
+        (ADD_OFFSETS_TO_TXN, 0, 4),
         (END_TXN, 0, 1),
         (WRITE_TXN_MARKERS, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
@@ -3271,13 +3277,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ADD_OFFSETS_TO_TXN => {
-                let _ = decode_add_offsets_to_txn_request(&mut frame);
+                let _ = decode_add_offsets_to_txn_request(&mut frame, header.api_version);
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
-                    encode_add_offsets_to_txn_response(&mut body, 16).unwrap();
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, 16).unwrap();
                 } else {
                     st.last_add_offsets_node = Some(node_id);
-                    encode_add_offsets_to_txn_response(&mut body, 0).unwrap();
+                    st.last_add_offsets_to_txn_version = Some(header.api_version);
+                    encode_add_offsets_to_txn_response(&mut body, header.api_version, 0).unwrap();
                 }
             }
             END_TXN => {

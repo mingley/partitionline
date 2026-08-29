@@ -555,6 +555,7 @@ struct Shared {
     metadata_version: i16,
     produce_version: i16,
     add_partitions_version: i16,
+    add_offsets_version: i16,
     txn_offset_version: i16,
     find_coord_version: i16,
     telemetry_version: Option<i16>,
@@ -741,17 +742,21 @@ impl Producer {
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-9".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
-        let (add_partitions_version, txn_offset_version) = if cfg.transactional_id.is_some() {
-            let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 3).ok_or_else(|| {
-                Error::Unsupported("broker does not support AddPartitionsToTxn".into())
-            })?;
-            let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 2).ok_or_else(|| {
-                Error::Unsupported("broker does not support TxnOffsetCommit".into())
-            })?;
-            (add_p, toc)
-        } else {
-            (0, 0)
-        };
+        let (add_partitions_version, add_offsets_version, txn_offset_version) =
+            if cfg.transactional_id.is_some() {
+                let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 3).ok_or_else(|| {
+                    Error::Unsupported("broker does not support AddPartitionsToTxn".into())
+                })?;
+                let add_o = pick(&versions, ADD_OFFSETS_TO_TXN, 0, 4).ok_or_else(|| {
+                    Error::Unsupported("broker does not support AddOffsetsToTxn".into())
+                })?;
+                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 2).ok_or_else(|| {
+                    Error::Unsupported("broker does not support TxnOffsetCommit".into())
+                })?;
+                (add_p, add_o, toc)
+            } else {
+                (0, 0, 0)
+            };
 
         let mut producer_id = -1i64;
         let mut producer_epoch = -1i16;
@@ -800,6 +805,7 @@ impl Producer {
             metadata_version,
             produce_version,
             add_partitions_version,
+            add_offsets_version,
             txn_offset_version,
             find_coord_version,
             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
@@ -1274,16 +1280,26 @@ impl Producer {
         let timeout = self.inner.shared.cfg.request_timeout;
         let pid = self.inner.shared.producer_id;
         let epoch = self.inner.shared.producer_epoch;
+        let add_offsets_version = self.inner.shared.add_offsets_version;
         let body = txn_roundtrip(
             &self.inner.shared,
             ADD_OFFSETS_TO_TXN,
-            0,
-            |buf| encode_add_offsets_to_txn_request(buf, &tid, pid, epoch, group_id),
+            add_offsets_version,
+            |buf| {
+                encode_add_offsets_to_txn_request(
+                    buf,
+                    add_offsets_version,
+                    &tid,
+                    pid,
+                    epoch,
+                    group_id,
+                )
+            },
             timeout,
-            |body| decode_add_offsets_to_txn_response(&mut { body }),
+            |body| decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version),
         )
         .await?;
-        let err = decode_add_offsets_to_txn_response(&mut body.clone())?;
+        let err = decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
         if err != 0 {
             return Err(Error::broker(err, "AddOffsetsToTxn"));
         }
