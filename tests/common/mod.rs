@@ -209,6 +209,9 @@ struct CommittedOffset {
     metadata: String,
 }
 
+/// Topic filter from ListPartitionReassignments: name + partition indexes.
+type ListReassignmentTopicFilter = Vec<(String, Vec<i32>)>;
+
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
@@ -329,7 +332,7 @@ struct State {
     reassignments: HashMap<(String, i32), Vec<i32>>,
     last_list_reassignments_node: Option<i32>,
     last_list_reassignments_timeout: Option<i32>,
-    last_list_reassignments_topics: Option<Option<Vec<(String, Vec<i32>)>>>,
+    last_list_reassignments_topics: Option<Option<ListReassignmentTopicFilter>>,
     list_reassignments_not_controller: u32,
     last_update_features_node: Option<i32>,
     last_update_features_version: Option<i16>,
@@ -2078,7 +2081,7 @@ impl Mock {
         self.state.lock().last_list_reassignments_timeout
     }
 
-    pub fn last_list_reassignments_topics(&self) -> Option<Option<Vec<(String, Vec<i32>)>>> {
+    pub fn last_list_reassignments_topics(&self) -> Option<Option<ListReassignmentTopicFilter>> {
         self.state.lock().last_list_reassignments_topics.clone()
     }
 
