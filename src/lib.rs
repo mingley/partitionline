@@ -233,6 +233,9 @@
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
 //! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`.
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
+//! [`Admin::list_groups_timeout`] / [`Admin::list_consumer_groups_timeout`]
+//! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
+//! (RPC deadline; ListGroups has no TimeoutMs).
 //! [`Admin::delete_consumer_groups`] is Java `deleteConsumerGroups`.
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).

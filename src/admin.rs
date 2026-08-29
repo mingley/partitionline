@@ -5695,16 +5695,32 @@ impl Admin {
     /// `error_code` is the INT16 at bytes 4–5 on v1+ (after throttle) — not a
     /// first-group field. Negotiates v0–v5 (v3 flexible; v4 StatesFilter /
     /// GroupState; v5 TypesFilter / GroupType). Java `listConsumerGroups` is
-    /// [`Self::list_consumer_groups`].
+    /// [`Self::list_consumer_groups`]. ListGroups has no TimeoutMs; the
+    /// RPC deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::list_groups_timeout`].
     pub async fn list_groups(
         &mut self,
         states_filter: &[&str],
         types_filter: &[&str],
     ) -> Result<Vec<ListedGroup>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_groups_timeout(states_filter, types_filter, timeout)
+            .await
+    }
+
+    /// [`Self::list_groups`] with a one-shot RPC deadline (Java
+    /// `ListGroupsOptions.timeoutMs`).
+    ///
+    /// ListGroups has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_groups_timeout(
+        &mut self,
+        states_filter: &[&str],
+        types_filter: &[&str],
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
         let states: Vec<String> = states_filter.iter().map(|s| (*s).to_string()).collect();
         let types: Vec<String> = types_filter.iter().map(|s| (*s).to_string()).collect();
         let version = self.list_groups_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 LIST_GROUPS,
@@ -5724,13 +5740,29 @@ impl Admin {
     ///
     /// Same wire as [`Self::list_groups`]: ListGroups api 16 on the
     /// connected broker. Java's `ListConsumerGroupsHandler` builds a
-    /// ListGroups request.
+    /// ListGroups request. ListGroups has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::list_consumer_groups_timeout`].
     pub async fn list_consumer_groups(
         &mut self,
         states_filter: &[&str],
         types_filter: &[&str],
     ) -> Result<Vec<ListedGroup>> {
         self.list_groups(states_filter, types_filter).await
+    }
+
+    /// [`Self::list_consumer_groups`] with a one-shot RPC deadline (Java
+    /// `ListConsumerGroupsOptions.timeoutMs`).
+    ///
+    /// ListGroups has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_consumer_groups_timeout(
+        &mut self,
+        states_filter: &[&str],
+        types_filter: &[&str],
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
+        self.list_groups_timeout(states_filter, types_filter, timeout)
+            .await
     }
 
     /// Delete consumer groups (DeleteGroups api 42).

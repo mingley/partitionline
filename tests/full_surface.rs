@@ -7124,6 +7124,12 @@ async fn list_groups_follows_broker() {
         None,
         "ListGroups must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .list_groups_timeout(&["Stable"], &["classic"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "g");
 }
 
 #[tokio::test]
@@ -7217,6 +7223,12 @@ async fn list_consumer_groups_follows_broker() {
         None,
         "listConsumerGroups must not hop via DescribeGroups or FindCoordinator"
     );
+    let timed = admin
+        .list_consumer_groups_timeout(&["Stable"], &["classic"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "g");
 }
 
 #[tokio::test]
