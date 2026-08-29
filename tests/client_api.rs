@@ -73,6 +73,11 @@ async fn produce_header_survives_fetch() {
             .unwrap();
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
+    assert_eq!(
+        mock.last_fetch_version(),
+        Some(12),
+        "Consumer must prefer Fetch v12 when the broker advertises it"
+    );
     assert_eq!(recs.len(), 1);
     assert_eq!(recs.count(), 1);
     assert_eq!(recs.partitions(), vec![TopicPartition::new("t", 0)]);

@@ -899,8 +899,8 @@ impl Consumer {
         .await?;
         let fetch_version = versions
             .get(&FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 11))
-            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-11".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 12))
+            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-12".into()))?;
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
@@ -1744,6 +1744,7 @@ impl Consumer {
                                 partition: *part,
                                 current_leader_epoch: self.cluster.leader_epoch(topic, *part),
                                 fetch_offset: *offset,
+                                last_fetched_epoch: -1,
                                 partition_max_bytes: self.cfg.max_partition_fetch_bytes,
                             });
                     }
@@ -1859,6 +1860,7 @@ impl Consumer {
                         |buf| {
                             encode_fetch_request(
                                 buf,
+                                fetch_version,
                                 max_wait,
                                 min_bytes,
                                 max_bytes,
@@ -1894,6 +1896,7 @@ impl Consumer {
                         |buf| {
                             encode_fetch_request(
                                 buf,
+                                fetch_version,
                                 max_wait,
                                 min_bytes,
                                 max_bytes,
@@ -1925,7 +1928,7 @@ impl Consumer {
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
     ) -> Result<FetchRetry> {
-        let fetched = decode_fetch_response(body)?;
+        let fetched = decode_fetch_response(body, self.fetch_version)?;
         let mut retry = FetchRetry::None;
         for topic in fetched {
             for part in topic.partitions {

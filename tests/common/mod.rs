@@ -349,6 +349,7 @@ struct State {
     last_fetch_rack: String,
     last_fetch_max_bytes: i32,
     last_fetch_partition_max_bytes: i32,
+    last_fetch_version: Option<i16>,
     last_group_instance_id: Option<String>,
     last_group_rack: Option<String>,
     in_txn: bool,
@@ -580,6 +581,7 @@ fn new_state(
         last_fetch_rack: String::new(),
         last_fetch_max_bytes: 0,
         last_fetch_partition_max_bytes: 0,
+        last_fetch_version: None,
         last_group_instance_id: None,
         last_group_rack: None,
         in_txn: false,
@@ -1134,6 +1136,10 @@ impl Mock {
 
     pub fn last_fetch_partition_max_bytes(&self) -> i32 {
         self.state.lock().last_fetch_partition_max_bytes
+    }
+
+    pub fn last_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_fetch_version
     }
 
     pub fn last_group_instance_id(&self) -> Option<String> {
@@ -1997,7 +2003,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
-        (FETCH, 4, 11),
+        (FETCH, 4, 12),
         (LIST_OFFSETS, 0, 6),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
@@ -3412,11 +3418,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_produce_response(&mut body, header.api_version, &parts).unwrap();
             }
             FETCH => {
-                let (iso, max_bytes, req, rack) = decode_fetch_request(&mut frame).unwrap();
+                let (iso, max_bytes, req, rack) =
+                    decode_fetch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_fetch_isolation = iso;
                 st.last_fetch_rack = rack.clone();
                 st.last_fetch_max_bytes = max_bytes;
+                st.last_fetch_version = Some(header.api_version);
                 st.last_fetch_partition_max_bytes = req
                     .first()
                     .and_then(|t| t.partitions.first())
@@ -3570,7 +3578,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         partitions: parts,
                     });
                 }
-                encode_fetch_response(&mut body, &topics).unwrap();
+                encode_fetch_response(&mut body, header.api_version, &topics).unwrap();
             }
             OFFSET_FOR_LEADER_EPOCH => {
                 let (topic, partition, current, leader_epoch) =

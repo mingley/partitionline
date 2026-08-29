@@ -9,7 +9,7 @@ use super::api_keys::{
     CREATE_DELEGATION_TOKEN, DELETE_GROUPS, DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_CLIENT_QUOTAS,
     DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN, FETCH,
     GET_TELEMETRY_SUBSCRIPTIONS, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
@@ -43,6 +43,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
     match api_key {
         API_VERSIONS if api_version >= 3 => 2,
         PRODUCE if api_version >= 9 => 2,
+        FETCH if api_version >= 12 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -128,6 +129,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         // correlation id can be read before the body version is known.
         API_VERSIONS => 0,
         PRODUCE if api_version >= 9 => 1,
+        FETCH if api_version >= 12 => 1,
         METADATA if api_version >= 9 => 1,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -349,6 +351,19 @@ mod tests {
         assert_eq!(response_header_version(PRODUCE, 8), 0);
         assert_eq!(request_header_version(PRODUCE, 9), 2);
         assert_eq!(response_header_version(PRODUCE, 9), 1);
+    }
+
+    #[test]
+    fn fetch_v12_is_flexible_v11_is_not() {
+        // Official JSON: validVersions 4-17, flexibleVersions 12+.
+        // Kafka 4.0 removed v0–v3. HeaderVersion is 1 / 0 at v4–11 and
+        // 2 / 1 at v12+. This crate speaks 4–12.
+        assert_eq!(request_header_version(FETCH, 4), 1);
+        assert_eq!(response_header_version(FETCH, 4), 0);
+        assert_eq!(request_header_version(FETCH, 11), 1);
+        assert_eq!(response_header_version(FETCH, 11), 0);
+        assert_eq!(request_header_version(FETCH, 12), 2);
+        assert_eq!(response_header_version(FETCH, 12), 1);
     }
 
     #[test]

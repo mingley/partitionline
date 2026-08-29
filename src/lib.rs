@@ -47,7 +47,8 @@
 //! [`Consumer::seek_to_end_of`] move the
 //! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
-//! every partition leader in parallel. [`ConsumerConfig::max_bytes`] sets
+//! every partition leader in parallel. Fetch negotiates v4–v12 (v12 is
+//! flexible). [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
 //! [`ConsumerConfig::max_partition_fetch_bytes`] set them independently.

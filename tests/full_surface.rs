@@ -1047,6 +1047,11 @@ async fn fetch_sends_split_max_bytes() {
     assert_eq!(recs.len(), 1);
     assert_eq!(mock.last_fetch_max_bytes(), 4096);
     assert_eq!(mock.last_fetch_partition_max_bytes(), 2048);
+    assert_eq!(
+        mock.last_fetch_version(),
+        Some(12),
+        "Consumer must prefer Fetch v12 when the broker advertises it"
+    );
     consumer.close().await.unwrap();
 }
 

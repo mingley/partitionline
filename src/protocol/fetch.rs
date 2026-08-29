@@ -1,10 +1,10 @@
-//! Fetch (api key 1). This crate speaks classic v11.
+//! Fetch (api key 1). v4–v11 classic; v12 flexible.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
 use super::records::{self, RecordBatch};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// One partition in a Fetch request.
 #[derive(Debug, Clone)]
@@ -15,6 +15,8 @@ pub struct FetchPartition {
     pub current_leader_epoch: i32,
     /// Next offset to fetch.
     pub fetch_offset: i64,
+    /// Epoch of the last fetched record (v12+), or `-1`.
+    pub last_fetched_epoch: i32,
     /// Max bytes for this partition.
     pub partition_max_bytes: i32,
 }
@@ -58,9 +60,14 @@ pub struct FetchedTopic {
     pub partitions: Vec<FetchedPartition>,
 }
 
-/// Fetch v11 (classic; last version before flexible v12).
+/// Fetch v4–v11 (classic) or v12 (flexible). LastFetchedEpoch is v12+.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
+)]
 pub fn encode_fetch_request(
     buf: &mut BytesMut,
+    version: i16,
     max_wait_ms: i32,
     min_bytes: i32,
     max_bytes: i32,
@@ -68,6 +75,7 @@ pub fn encode_fetch_request(
     topics: &[FetchTopic],
     rack_id: Option<&str>,
 ) -> crate::error::Result<()> {
+    let flexible = fetch_flexible(version)?;
     buf.put_i32(-1); // replica_id
     buf.put_i32(max_wait_ms);
     buf.put_i32(min_bytes);
@@ -75,28 +83,60 @@ pub fn encode_fetch_request(
     buf.put_i8(isolation_level);
     buf.put_i32(0); // session_id
     buf.put_i32(-1); // session_epoch
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i32(p.current_leader_epoch);
             buf.put_i64(p.fetch_offset);
+            if version >= 12 {
+                buf.put_i32(p.last_fetched_epoch);
+            }
             buf.put_i64(-1); // log_start_offset
             buf.put_i32(p.partition_max_bytes);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_array_len(buf, false, Some(0))?; // forgotten
-
-    // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
-    // 0.18.0). Kafka 3.9.1 rejects a null rackId.
-    buf::put_classic_nullable_string(buf, Some(rack_id.unwrap_or("")))?;
+    buf::put_array_len(buf, flexible, Some(0))?; // forgotten
+                                                 // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
+                                                 // 0.18.0). Kafka 3.9.1 rejects a null rackId. v12 is compact STRING.
+    buf::put_string(buf, flexible, Some(rack_id.unwrap_or("")))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode Fetch v11: `(isolation_level, max_bytes, topics, rack_id)`.
-pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, i32, Vec<FetchTopic>, String)> {
+/// `true` when Fetch `version` is flexible (v12).
+///
+/// v4–v11 are classic. v12 is compact arrays/strings/bytes plus tagged
+/// fields (Apache JSON `flexibleVersions: "12+"`). Kafka 4.0 removed
+/// v0–v3. v13+ (topic IDs, KIP-516) is not spoken.
+fn fetch_flexible(version: i16) -> Result<bool> {
+    match version {
+        4..=11 => Ok(false),
+        12 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "Fetch version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
+///
+/// `last_fetched_epoch` is `-1` below v12.
+pub fn decode_fetch_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i8, i32, Vec<FetchTopic>, String)> {
+    let flexible = fetch_flexible(version)?;
     let _replica = buf::get_i32(buf)?;
     let _max_wait = buf::get_i32(buf)?;
     let _min_bytes = buf::get_i32(buf)?;
@@ -104,58 +144,84 @@ pub fn decode_fetch_request<B: Buf>(buf: &mut B) -> Result<(i8, i32, Vec<FetchTo
     let isolation = buf::get_i8(buf)?;
     let _session_id = buf::get_i32(buf)?;
     let _session_epoch = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let current_leader_epoch = buf::get_i32(buf)?;
             let fetch_offset = buf::get_i64(buf)?;
+            let last_fetched_epoch = if version >= 12 {
+                buf::get_i32(buf)?
+            } else {
+                -1
+            };
             let _log_start = buf::get_i64(buf)?;
             let partition_max_bytes = buf::get_i32(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(FetchPartition {
                 partition,
                 current_leader_epoch,
                 fetch_offset,
+                last_fetched_epoch,
                 partition_max_bytes,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(FetchTopic { topic, partitions });
     }
-    let forgotten = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let forgotten = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     for _ in 0..forgotten {
-        let _t = buf::get_classic_nullable_string(buf)?;
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let _t = buf::get_string(buf, flexible)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let _p = buf::get_i32(buf)?;
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
     }
-    let rack = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let rack = buf::get_string(buf, flexible)?.unwrap_or_default();
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((isolation, max_bytes, topics, rack))
 }
 
-/// Encode a Fetch v11 response (throttle `0`, session `0`).
-pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Result<()> {
+/// Encode a Fetch v4–v11 (classic) or v12 (flexible) response.
+pub fn encode_fetch_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+) -> Result<()> {
+    let flexible = fetch_flexible(version)?;
     buf.put_i32(0); // throttle
     buf.put_i16(0); // top-level error
     buf.put_i32(0); // session_id
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
             buf.put_i64(p.high_watermark);
             buf.put_i64(p.last_stable_offset);
             buf.put_i64(p.log_start_offset);
-            buf::put_array_len(buf, false, Some(p.aborted_transactions.len()))?;
+            buf::put_array_len(buf, flexible, Some(p.aborted_transactions.len()))?;
             for (pid, first) in &p.aborted_transactions {
                 buf.put_i64(*pid);
                 buf.put_i64(*first);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
             }
             buf.put_i32(p.preferred_read_replica);
             let mut recs = BytesMut::new();
@@ -163,25 +229,35 @@ pub fn encode_fetch_response(buf: &mut BytesMut, topics: &[FetchedTopic]) -> Res
                 records::encode_record_batch(&mut recs, batch)?;
             }
             if recs.is_empty() {
-                buf::put_classic_bytes(buf, None)?;
+                buf::put_bytes(buf, flexible, None)?;
             } else {
-                buf::put_classic_bytes(buf, Some(&recs))?;
+                buf::put_bytes(buf, flexible, Some(&recs))?;
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
             }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode a Fetch v11 response into topic/partition bodies.
-pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
+/// Decode a Fetch v4–v11 (classic) or v12 (flexible) response.
+pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<FetchedTopic>> {
+    let flexible = fetch_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let _error = buf::get_i16(buf)?;
     let _session = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
@@ -189,23 +265,31 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
             let high_watermark = buf::get_i64(buf)?;
             let last_stable_offset = buf::get_i64(buf)?;
             let log_start_offset = buf::get_i64(buf)?;
-            let aborted_len = buf::get_i32(buf)?;
-            let mut aborted_transactions = Vec::new();
-            if aborted_len > 0 {
-                for _ in 0..aborted_len {
-                    let pid = buf::get_i64(buf)?;
-                    let first = buf::get_i64(buf)?;
-                    aborted_transactions.push((pid, first));
+            let aborted_len = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            let mut aborted_transactions = Vec::with_capacity(aborted_len);
+            for _ in 0..aborted_len {
+                let pid = buf::get_i64(buf)?;
+                let first = buf::get_i64(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
                 }
+                aborted_transactions.push((pid, first));
             }
             let preferred_read_replica = buf::get_i32(buf)?;
-            let rec_bytes = buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new);
+            let rec_bytes = if flexible {
+                buf::take_compact_bytes(buf)?.unwrap_or_else(Bytes::new)
+            } else {
+                buf::take_classic_bytes(buf)?.unwrap_or_else(Bytes::new)
+            };
             let records = if rec_bytes.is_empty() {
                 Vec::new()
             } else {
                 let mut rec_buf = rec_bytes;
                 records::decode_record_batches(&mut rec_buf)?
             };
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(FetchedPartition {
                 partition,
                 error_code,
@@ -217,7 +301,13 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedTopic>> {
                 records,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(FetchedTopic { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(topics)
 }
@@ -236,18 +326,25 @@ mod tests {
                 partition: 0,
                 current_leader_epoch: 7,
                 fetch_offset: 3,
+                last_fetched_epoch: -1,
                 partition_max_bytes: 1024,
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, None).unwrap();
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
+        encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &topics, None).unwrap();
+        let mut cur = &buf[..];
+        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 11).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
         assert_eq!(decoded[0].partitions[0].partition_max_bytes, 1024);
         assert!(rack.is_empty());
+        assert!(
+            cur.is_empty(),
+            "Fetch v11 request leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]
@@ -258,11 +355,12 @@ mod tests {
                 partition: 0,
                 current_leader_epoch: -1,
                 fetch_offset: 0,
+                last_fetched_epoch: -1,
                 partition_max_bytes: 1024,
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, None).unwrap();
+        encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &topics, None).unwrap();
         let tail = buf.get(buf.len().saturating_sub(2)..).unwrap();
         assert_eq!(
             tail,
@@ -279,12 +377,13 @@ mod tests {
                 partition: 0,
                 current_leader_epoch: -1,
                 fetch_offset: 0,
+                last_fetched_epoch: -1,
                 partition_max_bytes: 1024,
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_request(&mut buf, 10, 1, 1024, 0, &topics, Some("az1")).unwrap();
-        let (_iso, _max_bytes, _decoded, rack) = decode_fetch_request(&mut &buf[..]).unwrap();
+        encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &topics, Some("az1")).unwrap();
+        let (_iso, _max_bytes, _decoded, rack) = decode_fetch_request(&mut &buf[..], 11).unwrap();
         assert_eq!(rack, "az1");
     }
 
@@ -311,8 +410,8 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_response(&mut buf, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..]).unwrap();
+        encode_fetch_response(&mut buf, 11, &topics).unwrap();
+        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(decoded[0].topic, "t");
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -349,8 +448,8 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_response(&mut buf, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..]).unwrap();
+        encode_fetch_response(&mut buf, 11, &topics).unwrap();
+        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].aborted_transactions,
             vec![(1000, 1)]
@@ -374,8 +473,8 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_response(&mut buf, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..]).unwrap();
+        encode_fetch_response(&mut buf, 11, &topics).unwrap();
+        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].error_code,
             crate::error::OFFSET_OUT_OF_RANGE
@@ -414,7 +513,7 @@ mod tests {
         body.put_i32(-1);
         body.put_i32(-1);
         crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs)).unwrap();
-        let decoded = decode_fetch_response(&mut &body[..]).unwrap();
+        let decoded = decode_fetch_response(&mut &body[..], 11).unwrap();
         assert_eq!(decoded[0].partitions[0].records.len(), 2);
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -455,9 +554,9 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_fetch_response(&mut buf, &topics).unwrap();
+        encode_fetch_response(&mut buf, 11, &topics).unwrap();
         let frozen = buf.freeze();
-        let decoded = decode_fetch_response(&mut frozen.clone()).unwrap();
+        let decoded = decode_fetch_response(&mut frozen.clone(), 11).unwrap();
         let got = &decoded[0].partitions[0].records[0].records[0];
         assert_eq!(got.offset, 20);
         assert_eq!(got.value.as_deref(), Some(&b"view-me"[..]));
@@ -468,5 +567,101 @@ mod tests {
             value.as_ptr() >= start && value.as_ptr() < end,
             "fetch record value must be a view into the response frame"
         );
+    }
+
+    #[test]
+    fn fetch_v12_roundtrip_is_leftover_empty() {
+        let req_topics = vec![FetchTopic {
+            topic: "t".into(),
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: 7,
+                fetch_offset: 3,
+                last_fetched_epoch: -1,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut req = BytesMut::new();
+        encode_fetch_request(&mut req, 12, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
+        let mut cur = &req[..];
+        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 12).unwrap();
+        assert_eq!(iso, 1);
+        assert_eq!(max_bytes, 1024);
+        assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
+        assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
+        assert_eq!(decoded[0].partitions[0].last_fetched_epoch, -1);
+        assert_eq!(rack, "az1");
+        assert!(
+            cur.is_empty(),
+            "Fetch v12 request must consume compact tagged fields"
+        );
+
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 1,
+                last_stable_offset: 1,
+                log_start_offset: 0,
+                aborted_transactions: vec![(1000, 1)],
+                preferred_read_replica: -1,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        }];
+        let mut resp = BytesMut::new();
+        encode_fetch_response(&mut resp, 12, &topics).unwrap();
+        let mut cur = &resp[..];
+        let got = decode_fetch_response(&mut cur, 12).unwrap();
+        assert_eq!(got[0].topic, "t");
+        assert_eq!(
+            got[0].partitions[0].records[0].records[0].value.as_deref(),
+            Some(&b"f"[..])
+        );
+        assert_eq!(got[0].partitions[0].aborted_transactions, vec![(1000, 1)]);
+        assert!(
+            cur.is_empty(),
+            "Fetch v12 response must consume compact tagged fields"
+        );
+        req.clear();
+        assert!(
+            encode_fetch_request(&mut req, 13, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v13+ (topic IDs) is not spoken"
+        );
+    }
+
+    #[test]
+    fn fetch_v12_request_matches_compact_layout() {
+        // ReplicaId -1, MaxWait 10, MinBytes 1, MaxBytes 1024, isolation 0,
+        // session 0 / -1, compact Topics {Name "t", compact Partitions
+        // {0, epoch 0, offset 0, lastFetched -1, logStart -1, maxBytes
+        // 1024, tagged}, tagged}, empty forgotten, empty RackId, tagged.
+        const REQ: &[u8] = &[
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x74,
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00,
+        ];
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: 0,
+                fetch_offset: 0,
+                last_fetched_epoch: -1,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_request(&mut buf, 12, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(&buf[..], REQ);
     }
 }
