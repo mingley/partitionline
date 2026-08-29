@@ -1195,8 +1195,8 @@ pub struct Admin {
     metadata_version: i16,
     find_coord_version: i16,
     offset_delete_version: i16,
-    reassign_version: i16,
-    list_reassign_version: i16,
+    reassign_version: Option<i16>,
+    list_reassign_version: Option<i16>,
     update_features_version: Option<i16>,
     alter_user_scram_version: Option<i16>,
     describe_user_scram_version: Option<i16>,
@@ -1424,9 +1424,9 @@ impl Admin {
     /// UpdateFeatures, DescribeClientQuotas, AlterClientQuotas,
     /// AlterUserScramCredentials, DescribeUserScramCredentials,
     /// AlterReplicaLogDirs, DescribeLogDirs, the delegation-token APIs,
-    /// DescribeTransactions, and ListTransactions are optional at
-    /// connect. Missing APIs fail on the method with
-    /// [`Error::Unsupported`].
+    /// DescribeTransactions, ListTransactions, AlterPartitionReassignments,
+    /// and ListPartitionReassignments are optional at connect. Missing
+    /// APIs fail on the method with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1535,16 +1535,10 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support OffsetDelete".into()))?;
         let reassign_version = versions
             .get(&ALTER_PARTITION_REASSIGNMENTS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterPartitionReassignments".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let list_reassign_version = versions
             .get(&LIST_PARTITION_REASSIGNMENTS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support ListPartitionReassignments".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let update_features_version = versions
             .get(&UPDATE_FEATURES)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
@@ -2946,7 +2940,9 @@ impl Admin {
     /// `timeout_ms` is AlterPartitionReassignments TimeoutMs. The RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
     /// timeout that drives both the RPC deadline and TimeoutMs, use
-    /// [`Self::alter_partition_reassignments_timeout`].
+    /// [`Self::alter_partition_reassignments_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 2.4+ / KIP-455); a broker that omits api 45
+    /// returns [`Error::Unsupported`].
     pub async fn alter_partition_reassignments(
         &mut self,
         assignments: &[PartitionReassignment],
@@ -2979,7 +2975,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<ReassignmentResult>> {
         let topics = group_reassignments(assignments);
-        let version = self.reassign_version;
+        let version = self.reassign_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterPartitionReassignments".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -3044,7 +3042,9 @@ impl Admin {
     /// `timeout_ms` is ListPartitionReassignments TimeoutMs. The RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
     /// timeout that drives both the RPC deadline and TimeoutMs, use
-    /// [`Self::list_partition_reassignments_timeout`].
+    /// [`Self::list_partition_reassignments_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 2.4+ / KIP-455); a broker that omits api 46
+    /// returns [`Error::Unsupported`].
     pub async fn list_partition_reassignments(
         &mut self,
         partitions: Option<&[crate::TopicPartition]>,
@@ -3114,7 +3114,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<OngoingReassignment>> {
         let topics = partitions.map(group_list_reassignments);
-        let version = self.list_reassign_version;
+        let version = self.list_reassign_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ListPartitionReassignments".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

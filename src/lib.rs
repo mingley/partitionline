@@ -364,6 +364,7 @@
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 //! DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs,
 //! the delegation-token APIs, DescribeTransactions, ListTransactions,
+//! AlterPartitionReassignments, ListPartitionReassignments,
 //! ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
 //! GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
