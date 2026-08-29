@@ -1,8 +1,11 @@
 //! ListOffsets (api key 2). v1–v5 classic; v6–v10 flexible.
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
 /// Log start (earliest).
@@ -88,6 +91,10 @@ impl From<OffsetSpec> for i64 {
 }
 
 /// One partition in a ListOffsets response.
+///
+/// Getters and [`Display`] match Java `ListOffsetsResult.ListOffsetsResultInfo`.
+/// [`Self::leader_epoch`] is `None` when the wire value is
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ListOffsetsPartition {
     /// Kafka error code (`0` is success).
@@ -110,6 +117,46 @@ impl ListOffsetsPartition {
             offset,
             leader_epoch,
         }
+    }
+
+    /// Java `ListOffsetsResult.ListOffsetsResultInfo.offset`.
+    #[must_use]
+    pub fn offset(self) -> i64 {
+        self.offset
+    }
+
+    /// Java `ListOffsetsResult.ListOffsetsResultInfo.timestamp`.
+    #[must_use]
+    pub fn timestamp(self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `ListOffsetsResult.ListOffsetsResultInfo.leaderEpoch`.
+    ///
+    /// `None` when the wire value is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+    #[must_use]
+    pub fn leader_epoch(self) -> Option<i32> {
+        (self.leader_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH).then_some(self.leader_epoch)
+    }
+}
+
+impl fmt::Display for ListOffsetsPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ListOffsetsResultInfo(offset={}, timestamp={}, leaderEpoch=",
+            self.offset, self.timestamp
+        )?;
+        write_java_optional(f, self.leader_epoch())?;
+        f.write_str(")")
+    }
+}
+
+/// Java `Optional.toString` (`Optional[n]` / `Optional.empty`).
+fn write_java_optional(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "Optional[{n}]"),
+        None => f.write_str("Optional.empty"),
     }
 }
 
@@ -424,8 +471,8 @@ pub fn encode_list_offsets_topics_response(
 
 /// Decode a single-topic, single-partition ListOffsets response.
 ///
-/// Broker `error_code != 0` is [`Error::Broker`]. [`ListOffsetsPartition::leader_epoch`]
-/// is `-1` below v4.
+/// Broker `error_code != 0` is [`Error::Broker`]. Below v4 the leader
+/// epoch field is `-1` ([`ListOffsetsPartition::leader_epoch`] is then `None`).
 pub fn decode_list_offsets_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -512,6 +559,34 @@ mod tests {
         assert_eq!(
             OffsetSpec::for_timestamp(1_700_000_000_000).timestamp(),
             1_700_000_000_000
+        );
+    }
+
+    #[test]
+    fn list_offsets_partition_matches_java_list_offsets_result_info() {
+        let with_epoch = ListOffsetsPartition::ok(1_700_000_000_000, 44, 3);
+        assert_eq!(with_epoch.offset(), 44);
+        assert_eq!(with_epoch.timestamp(), 1_700_000_000_000);
+        assert_eq!(with_epoch.leader_epoch(), Some(3));
+        assert_eq!(
+            with_epoch.to_string(),
+            "ListOffsetsResultInfo(offset=44, timestamp=1700000000000, leaderEpoch=Optional[3])"
+        );
+
+        let epoch_zero = ListOffsetsPartition::ok(1, 2, 0);
+        assert_eq!(epoch_zero.leader_epoch(), Some(0));
+        assert_eq!(
+            epoch_zero.to_string(),
+            "ListOffsetsResultInfo(offset=2, timestamp=1, leaderEpoch=Optional[0])"
+        );
+
+        let unknown = ListOffsetsPartition::ok(-1, -1, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert_eq!(unknown.offset(), -1);
+        assert_eq!(unknown.timestamp(), -1);
+        assert_eq!(unknown.leader_epoch(), None);
+        assert_eq!(
+            unknown.to_string(),
+            "ListOffsetsResultInfo(offset=-1, timestamp=-1, leaderEpoch=Optional.empty)"
         );
     }
 

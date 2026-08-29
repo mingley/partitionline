@@ -317,6 +317,9 @@
 //! the wire value is negative).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
 //! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10).
+//! [`protocol::offsets::ListOffsetsPartition`] getters / `Display` match
+//! Java `ListOffsetsResult.ListOffsetsResultInfo` (`leaderEpoch` is
+//! `Optional.empty` when the wire value is `-1`).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
