@@ -16,8 +16,8 @@ use partitionline::protocol::api_keys::{
     CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN,
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
 };
@@ -2181,6 +2181,45 @@ async fn heartbeat_negotiates_v4_when_broker_advertises() {
         "ConsumerGroup must prefer Heartbeat v4 when the broker advertises it"
     );
     group.leave().await.unwrap();
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(5),
+        "ConsumerGroup must prefer LeaveGroup v5 when the broker advertises it"
+    );
+}
+
+#[tokio::test]
+async fn leave_group_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LEAVE_GROUP, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(ccfg, "lg0", "t").await.unwrap();
+    group.leave().await.unwrap();
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(0),
+        "client must speak LeaveGroup v0 when the broker max is 0"
+    );
+}
+
+#[tokio::test]
+async fn leave_group_negotiates_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LEAVE_GROUP, 3);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-lg3".into());
+    let group = ConsumerGroup::join(ccfg, "lg3", "t").await.unwrap();
+    group.leave().await.unwrap();
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(3),
+        "client must speak LeaveGroup v3 when the broker max is 3"
+    );
+    let members = mock.last_leave_group_members().expect("LeaveGroup members");
+    assert_eq!(members[0].group_instance_id.as_deref(), Some("worker-lg3"));
+    assert_eq!(members[0].reason, None, "v3 omits Reason");
 }
 
 #[tokio::test]

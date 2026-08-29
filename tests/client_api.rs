@@ -480,6 +480,13 @@ async fn classic_join_sends_group_instance_id() {
     .unwrap();
     assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-1"));
     group.leave().await.unwrap();
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(5),
+        "ConsumerGroup must prefer LeaveGroup v5 when the broker advertises it"
+    );
+    let members = mock.last_leave_group_members().expect("LeaveGroup members");
+    assert_eq!(members[0].group_instance_id.as_deref(), Some("worker-1"));
 }
 
 #[tokio::test]

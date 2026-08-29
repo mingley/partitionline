@@ -131,10 +131,9 @@ use partitionline::protocol::fetch::{
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
-    decode_leave_group_request, decode_leave_group_request_version, decode_offset_commit_request,
-    decode_offset_delete_request, decode_offset_fetch_request, decode_sync_group_request,
-    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
-    encode_leave_group_response, encode_leave_group_response_version,
+    decode_leave_group_request_version, decode_offset_commit_request, decode_offset_delete_request,
+    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
+    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response_version,
     encode_offset_commit_response, encode_offset_delete_response, encode_offset_fetch_response,
     encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, LeaveGroupMember,
     LeaveGroupMemberResult, OffsetDeleteResult, OffsetPartition, OffsetTopic,
@@ -4839,62 +4838,47 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_heartbeat_response(&mut body, header.api_version, err).unwrap();
             }
             LEAVE_GROUP => {
-                if header.api_version >= 3 {
-                    let (gid, members) =
-                        decode_leave_group_request_version(&mut frame, header.api_version).unwrap();
-                    let mut st = state.lock();
-                    st.last_leave_group_node = Some(node_id);
-                    st.last_leave_group_members = Some(members.clone());
-                    st.last_leave_group_version = Some(header.api_version);
-                    let results: Vec<LeaveGroupMemberResult> = members
-                        .into_iter()
-                        .map(|m| {
-                            if let Some(g) = st.groups.get_mut(&gid) {
-                                if !m.member_id.is_empty() {
-                                    g.members.remove(&m.member_id);
-                                    g.joined.remove(&m.member_id);
-                                    let _ = g.instances.remove(&m.member_id);
-                                } else if let Some(ref iid) = m.group_instance_id {
-                                    let ids: Vec<String> = g
-                                        .instances
-                                        .iter()
-                                        .filter(|(_, v)| *v == iid)
-                                        .map(|(k, _)| k.clone())
-                                        .collect();
-                                    for id in ids {
-                                        g.members.remove(&id);
-                                        g.joined.remove(&id);
-                                        let _ = g.instances.remove(&id);
-                                    }
+                let version = header.api_version;
+                let (gid, members) =
+                    decode_leave_group_request_version(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_leave_group_version = Some(version);
+                st.last_leave_group_node = Some(node_id);
+                st.last_leave_group_members = Some(members.clone());
+                let results: Vec<LeaveGroupMemberResult> = members
+                    .into_iter()
+                    .map(|m| {
+                        if let Some(g) = st.groups.get_mut(&gid) {
+                            if !m.member_id.is_empty() {
+                                g.members.remove(&m.member_id);
+                                g.joined.remove(&m.member_id);
+                                let _ = g.instances.remove(&m.member_id);
+                            } else if let Some(ref iid) = m.group_instance_id {
+                                let ids: Vec<String> = g
+                                    .instances
+                                    .iter()
+                                    .filter(|(_, v)| *v == iid)
+                                    .map(|(k, _)| k.clone())
+                                    .collect();
+                                for id in ids {
+                                    g.members.remove(&id);
+                                    g.joined.remove(&id);
+                                    let _ = g.instances.remove(&id);
                                 }
-                                g.generation += 1;
-                                g.joined.clear();
-                                g.assignments.clear();
                             }
-                            LeaveGroupMemberResult {
-                                member_id: m.member_id,
-                                group_instance_id: m.group_instance_id,
-                                error_code: 0,
-                            }
-                        })
-                        .collect();
-                    st.assign_notify.notify_waiters();
-                    encode_leave_group_response_version(&mut body, header.api_version, 0, &results)
-                        .unwrap();
-                } else {
-                    let (gid, member_id) = decode_leave_group_request(&mut frame).unwrap();
-                    let mut st = state.lock();
-                    if let Some(g) = st.groups.get_mut(&gid) {
-                        g.members.remove(&member_id);
-                        g.joined.remove(&member_id);
-                        let _ = g.instances.remove(&member_id);
-                        g.generation += 1;
-                        g.joined.clear();
-                        g.assignments.clear();
-                    }
-                    st.assign_notify.notify_waiters();
-                    encode_leave_group_response(&mut body, 0).unwrap();
-                }
+                            g.generation += 1;
+                            g.joined.clear();
+                            g.assignments.clear();
+                        }
+                        LeaveGroupMemberResult {
+                            member_id: m.member_id,
+                            group_instance_id: m.group_instance_id,
+                            error_code: 0,
+                        }
+                    })
+                    .collect();
+                st.assign_notify.notify_waiters();
+                encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
             }
             OFFSET_COMMIT => {
                 let (_g, _m, topics) =

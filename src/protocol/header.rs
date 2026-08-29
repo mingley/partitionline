@@ -726,7 +726,8 @@ mod tests {
     fn leave_group_v4_is_flexible_v3_is_not() {
         // Official JSON: validVersions 0-5, flexibleVersions 4+.
         // HeaderVersion is 1 / 0 at v0–3 and 2 / 1 at v4–5.
-        // This crate speaks 0–5 (classic group leave stays v0).
+        // This crate speaks 0–5. Classic ConsumerGroup leave negotiates
+        // the same range (prefer v5). Admin remove-members stays v3–v5.
         assert_eq!(request_header_version(LEAVE_GROUP, 0), 1);
         assert_eq!(response_header_version(LEAVE_GROUP, 0), 0);
         assert_eq!(request_header_version(LEAVE_GROUP, 3), 1);

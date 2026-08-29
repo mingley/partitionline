@@ -33,6 +33,7 @@
 //! Heartbeat v3–v4 (v4 flexible),
 //! SyncGroup v3–v5 (v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
+//! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id),
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),

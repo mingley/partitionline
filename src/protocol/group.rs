@@ -589,9 +589,16 @@ pub fn encode_leave_group_request(
     group_id: &str,
     member_id: &str,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    Ok(())
+    encode_leave_group_request_members(
+        buf,
+        0,
+        group_id,
+        &[LeaveGroupMember {
+            member_id: member_id.to_string(),
+            group_instance_id: None,
+            reason: None,
+        }],
+    )
 }
 
 /// One member in LeaveGroup v3+ (KIP-345). `reason` is v5+ (KIP-800).
@@ -631,32 +638,39 @@ fn leave_group_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// Encode LeaveGroup v3 (classic), v4 (flexible), or v5 (Reason).
+/// Encode LeaveGroup v0–v5.
+///
+/// Kafka 4.0 JSON: `validVersions: "0-5"`, `flexibleVersions: "4+"`.
+/// v0–v2 are GroupId + MemberId (v1 and v2 match v0). v3 Members +
+/// GroupInstanceId. v4 flexible. v5 Reason (KIP-800). This crate
+/// speaks 0–5. v6+ is not spoken.
 pub fn encode_leave_group_request_members(
     buf: &mut BytesMut,
     version: i16,
     group_id: &str,
     members: &[LeaveGroupMember],
 ) -> crate::error::Result<()> {
-    if !(3..=5).contains(&version) {
-        return Err(Error::protocol("LeaveGroup members require version 3–5"));
-    }
     let flexible = leave_group_flexible(version)?;
     buf::put_string(buf, flexible, Some(group_id))?;
-    buf::put_array_len(buf, flexible, Some(members.len()))?;
-    for m in members {
-        buf::put_string(buf, flexible, Some(&m.member_id))?;
-        buf::put_string(buf, flexible, m.group_instance_id.as_deref())?;
-        if version >= 5 {
-            buf::put_string(buf, flexible, m.reason.as_deref())?;
+    if version >= 3 {
+        buf::put_array_len(buf, flexible, Some(members.len()))?;
+        for m in members {
+            buf::put_string(buf, flexible, Some(&m.member_id))?;
+            buf::put_string(buf, flexible, m.group_instance_id.as_deref())?;
+            if version >= 5 {
+                buf::put_string(buf, flexible, m.reason.as_deref())?;
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
+        return Ok(());
     }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-    }
+    let member_id = members.first().map(|m| m.member_id.as_str()).unwrap_or("");
+    buf::put_string(buf, flexible, Some(member_id))?;
     Ok(())
 }
 
@@ -705,17 +719,14 @@ pub fn decode_leave_group_request_version<B: Buf>(
         }
         return Ok((group_id, members));
     }
-    let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let group_instance_id = if version >= 2 {
-        buf::get_classic_nullable_string(buf)?
-    } else {
-        None
-    };
+    // Official JSON: "Version 1 and 2 are the same as version 0."
+    // MemberId is v0–v2. GroupInstanceId lives on Members (v3+).
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     Ok((
         group_id,
         vec![LeaveGroupMember {
             member_id,
-            group_instance_id,
+            group_instance_id: None,
             reason: None,
         }],
     ))
@@ -2596,6 +2607,69 @@ mod tests {
             !cur.has_remaining(),
             "OffsetDelete v0 NOT_COORDINATOR must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn leave_group_v0_v1_v2_match_and_do_not_speak_v6() {
+        // Official Kafka 4.0 JSON: validVersions 0-5, flexibleVersions 4+.
+        // "Version 1 and 2 are the same as version 0." MemberId is v0–v2.
+        // This crate speaks 0–5. v6+ is not spoken.
+        let members = [LeaveGroupMember {
+            member_id: "m1".into(),
+            group_instance_id: Some("ignored-on-v0".into()),
+            reason: Some("ignored-on-v0".into()),
+        }];
+        let mut v0 = BytesMut::new();
+        encode_leave_group_request_members(&mut v0, 0, "g", &members).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_leave_group_request_members(&mut v1, 1, "g", &members).unwrap();
+        let mut v2 = BytesMut::new();
+        encode_leave_group_request_members(&mut v2, 2, "g", &members).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
+        let mut cur = v0.as_ref();
+        let (gid, got) = decode_leave_group_request_version(&mut cur, 0).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(got[0].member_id, "m1");
+        assert_eq!(got[0].group_instance_id, None);
+        assert!(!cur.has_remaining(), "v0 request leftover-empty");
+        let mut cur = v2.as_ref();
+        let (_gid, got) = decode_leave_group_request_version(&mut cur, 2).unwrap();
+        assert_eq!(got[0].member_id, "m1");
+        assert_eq!(got[0].group_instance_id, None);
+        assert!(!cur.has_remaining(), "v2 request leftover-empty");
+
+        v0.clear();
+        encode_leave_group_response_version(&mut v0, 0, 0, &[]).unwrap();
+        v1.clear();
+        encode_leave_group_response_version(&mut v1, 1, 0, &[]).unwrap();
+        v2.clear();
+        encode_leave_group_response_version(&mut v2, 2, 0, &[]).unwrap();
+        assert_ne!(v0.as_ref(), v1.as_ref(), "v1 response adds ThrottleTimeMs");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 response bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(
+            decode_leave_group_response_version(&mut cur, 0).unwrap().0,
+            0
+        );
+        assert!(!cur.has_remaining(), "v0 response leftover-empty");
+        let mut cur = v1.as_ref();
+        assert_eq!(
+            decode_leave_group_response_version(&mut cur, 1).unwrap().0,
+            0
+        );
+        assert!(!cur.has_remaining(), "v1 response leftover-empty");
+
+        v0.clear();
+        let err = encode_leave_group_request_members(&mut v0, 6, "g", &members).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v6 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 5), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 5, 0, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(3, 5, 0, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(6, 6, 0, 5), None);
     }
 
     #[test]

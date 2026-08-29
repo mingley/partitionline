@@ -26,13 +26,13 @@ use crate::protocol::cgheartbeat::{
 };
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
-    decode_join_group_response, decode_leave_group_response, decode_offset_commit_response,
+    decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
     decode_offset_fetch_response, decode_subscription_owned, decode_sync_group_response,
     encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
-    encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
+    encode_leave_group_request_members, encode_offset_commit_request, encode_offset_fetch_request,
     encode_subscription, encode_subscription_owned, encode_sync_group_request,
-    encode_tp_assignment, FetchedOffsetTopic, JoinGroupRequest, OffsetFetchTopic, OffsetPartition,
-    OffsetTopic, SyncGroupRequest, COORDINATOR_GROUP,
+    encode_tp_assignment, FetchedOffsetTopic, JoinGroupRequest, LeaveGroupMember, OffsetFetchTopic,
+    OffsetPartition, OffsetTopic, SyncGroupRequest, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -1391,20 +1391,31 @@ impl ConsumerGroup {
             }
             return Ok(());
         }
+        let version = spoken_leave_group(self.coord.leave_group_version)?;
+        let members = [LeaveGroupMember {
+            member_id: self.member_id.clone(),
+            group_instance_id: self.cfg.group_instance_id.clone(),
+            reason: None,
+        }];
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             LEAVE_GROUP,
-            0,
-            |buf| encode_leave_group_request(buf, &self.group_id, &self.member_id),
+            version,
+            |buf| encode_leave_group_request_members(buf, version, &self.group_id, &members),
             timeout,
         )
         .await?;
-        let err = decode_leave_group_response(&mut body.clone())?;
+        let (err, results) = decode_leave_group_response_version(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "LeaveGroup"));
+        }
+        if let Some(m) = results.first() {
+            if m.error_code != 0 {
+                return Err(Error::broker(m.error_code, "LeaveGroup"));
+            }
         }
         Ok(())
     }
@@ -1969,14 +1980,18 @@ async fn leave_if_max_poll(
                     .await,
                 );
             }
-        } else {
+        } else if let Ok(version) = spoken_leave_group(c.leave_group_version) {
             let gid = group_id.to_string();
-            let mid = member_id.to_string();
+            let members = [LeaveGroupMember {
+                member_id: member_id.to_string(),
+                group_instance_id: cfg.group_instance_id.clone(),
+                reason: None,
+            }];
             drop(
                 c.roundtrip(
                     LEAVE_GROUP,
-                    0,
-                    |buf| encode_leave_group_request(buf, &gid, &mid),
+                    version,
+                    |buf| encode_leave_group_request_members(buf, version, &gid, &members),
                     timeout,
                 )
                 .await,
@@ -1984,6 +1999,16 @@ async fn leave_if_max_poll(
         }
     }
     true
+}
+
+fn spoken_leave_group(version: i16) -> Result<i16> {
+    if (0..=5).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support LeaveGroup v0-5".into(),
+        ))
+    }
 }
 
 fn spoken_consumer_group_heartbeat(version: i16) -> Result<i16> {
@@ -2279,6 +2304,12 @@ async fn open_coord_with_find_version(
         .find(|k| k.api_key == JOIN_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
         .unwrap_or(0);
+    conn.leave_group_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == LEAVE_GROUP)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
+        .unwrap_or(-1);
     conn.consumer_group_heartbeat_version = resp
         .api_keys
         .iter()
