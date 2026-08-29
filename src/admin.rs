@@ -1037,6 +1037,14 @@ impl AbortTransactionSpec {
 /// Java `KafkaAdminClient.DEFAULT_LEAVE_GROUP_REASON` (KIP-800).
 pub const DEFAULT_LEAVE_GROUP_REASON: &str = "member was removed by an admin";
 
+/// LeaveGroup v5 Reason: empty/null → default; otherwise KIP-800 truncate.
+fn admin_leave_reason(reason: Option<&str>) -> String {
+    match reason {
+        None | Some("") => DEFAULT_LEAVE_GROUP_REASON.to_string(),
+        Some(r) => crate::group::truncate_group_reason(r),
+    }
+}
+
 /// One static member for [`Admin::remove_members_from_consumer_group`].
 ///
 /// Java `MemberToRemove`. Identified by Kafka `group.instance.id` (KIP-345).
@@ -6703,6 +6711,8 @@ impl Admin {
     /// [`DEFAULT_LEAVE_GROUP_REASON`]. Empty `members` returns an empty
     /// list. Coordinator load / move errors refresh and retry. To remove
     /// every member, use [`Self::remove_all_members_from_consumer_group`].
+    /// For a custom LeaveGroup v5 Reason, use
+    /// [`Self::remove_members_from_consumer_group_with_reason`].
     /// LeaveGroup has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::remove_members_from_consumer_group_timeout`].
@@ -6727,6 +6737,46 @@ impl Admin {
         members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
         timeout: Duration,
     ) -> Result<Vec<RemovedMember>> {
+        self.remove_members_from_consumer_group_timeout_with_reason(group_id, members, timeout, "")
+            .await
+    }
+
+    /// [`Self::remove_members_from_consumer_group`] with Java
+    /// `RemoveMembersFromConsumerGroupOptions.reason`.
+    ///
+    /// LeaveGroup v5 sends `reason` (KIP-800). Empty reason uses
+    /// [`DEFAULT_LEAVE_GROUP_REASON`]. The string is truncated to 255
+    /// characters. Kafka 4.0 `KafkaAdminClient` does not wire this
+    /// Options field; later Java and this crate do. For a one-shot
+    /// deadline, use
+    /// [`Self::remove_members_from_consumer_group_timeout_with_reason`].
+    pub async fn remove_members_from_consumer_group_with_reason(
+        &mut self,
+        group_id: &str,
+        members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
+        reason: impl Into<String>,
+    ) -> Result<Vec<RemovedMember>> {
+        let timeout = self.cfg.request_timeout;
+        self.remove_members_from_consumer_group_timeout_with_reason(
+            group_id, members, timeout, reason,
+        )
+        .await
+    }
+
+    /// [`Self::remove_members_from_consumer_group_with_reason`] with a
+    /// one-shot RPC deadline (Java
+    /// `RemoveMembersFromConsumerGroupOptions.timeoutMs` plus `reason`).
+    ///
+    /// LeaveGroup has no TimeoutMs; `timeout` is the RPC deadline and the
+    /// coordinator retry budget. Duration is before `reason`.
+    pub async fn remove_members_from_consumer_group_timeout_with_reason(
+        &mut self,
+        group_id: &str,
+        members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
+        timeout: Duration,
+        reason: impl Into<String>,
+    ) -> Result<Vec<RemovedMember>> {
+        let reason = reason.into();
         let members: Vec<LeaveGroupMember> = members
             .into_iter()
             .map(|m| {
@@ -6734,7 +6784,7 @@ impl Admin {
                 LeaveGroupMember {
                     member_id: String::new(),
                     group_instance_id: Some(m.group_instance_id),
-                    reason: None,
+                    reason: Some(reason.clone()),
                 }
             })
             .collect();
@@ -6752,6 +6802,8 @@ impl Admin {
     /// [`DEFAULT_LEAVE_GROUP_REASON`]. A group with no members is a
     /// no-op (no LeaveGroup). This is not
     /// [`Self::remove_members_from_consumer_group`] with an empty list.
+    /// For a custom LeaveGroup v5 Reason, use
+    /// [`Self::remove_all_members_from_consumer_group_with_reason`].
     /// DescribeGroups and LeaveGroup have no TimeoutMs; the RPC deadline
     /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::remove_all_members_from_consumer_group_timeout`].
@@ -6775,6 +6827,43 @@ impl Admin {
         group_id: &str,
         timeout: Duration,
     ) -> Result<Vec<RemovedMember>> {
+        self.remove_all_members_from_consumer_group_timeout_with_reason(group_id, timeout, "")
+            .await
+    }
+
+    /// [`Self::remove_all_members_from_consumer_group`] with Java
+    /// `RemoveMembersFromConsumerGroupOptions.reason` plus `removeAll`.
+    ///
+    /// LeaveGroup v5 sends `reason` (KIP-800). Empty reason uses
+    /// [`DEFAULT_LEAVE_GROUP_REASON`]. The string is truncated to 255
+    /// characters. Kafka 4.0 `KafkaAdminClient` does not wire this
+    /// Options field; later Java and this crate do. For a one-shot
+    /// deadline, use
+    /// [`Self::remove_all_members_from_consumer_group_timeout_with_reason`].
+    pub async fn remove_all_members_from_consumer_group_with_reason(
+        &mut self,
+        group_id: &str,
+        reason: impl Into<String>,
+    ) -> Result<Vec<RemovedMember>> {
+        let timeout = self.cfg.request_timeout;
+        self.remove_all_members_from_consumer_group_timeout_with_reason(group_id, timeout, reason)
+            .await
+    }
+
+    /// [`Self::remove_all_members_from_consumer_group_with_reason`] with a
+    /// one-shot RPC deadline (Java
+    /// `RemoveMembersFromConsumerGroupOptions.timeoutMs` plus `removeAll`
+    /// and `reason`).
+    ///
+    /// DescribeGroups and LeaveGroup have no TimeoutMs; `timeout` is the
+    /// RPC deadline and the coordinator retry budget for both hops.
+    /// Duration is before `reason`.
+    pub async fn remove_all_members_from_consumer_group_timeout_with_reason(
+        &mut self,
+        group_id: &str,
+        timeout: Duration,
+        reason: impl Into<String>,
+    ) -> Result<Vec<RemovedMember>> {
         let described = self
             .describe_groups_timeout(&[group_id], false, timeout)
             .await?;
@@ -6784,13 +6873,14 @@ impl Admin {
         if g.error_code != 0 {
             return Err(Error::broker(g.error_code, "DescribeGroups"));
         }
+        let reason = reason.into();
         let members: Vec<LeaveGroupMember> = g
             .members
             .iter()
             .map(|m| LeaveGroupMember {
                 member_id: m.member_id.clone(),
                 group_instance_id: m.group_instance_id.clone(),
-                reason: None,
+                reason: Some(reason.clone()),
             })
             .collect();
         if members.is_empty() {
@@ -6813,9 +6903,7 @@ impl Admin {
         let members: Vec<LeaveGroupMember> = members
             .into_iter()
             .map(|mut m| {
-                if m.reason.is_none() {
-                    m.reason = Some(DEFAULT_LEAVE_GROUP_REASON.into());
-                }
+                m.reason = Some(admin_leave_reason(m.reason.as_deref()));
                 m
             })
             .collect();

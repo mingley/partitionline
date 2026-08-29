@@ -58,7 +58,7 @@ pub const LEAVE_GROUP_REASON_UNSUBSCRIBED: &str = "the consumer unsubscribed fro
 pub const LEAVE_GROUP_REASON_POLL_TIMEOUT: &str = "consumer poll timeout has expired.";
 
 /// JoinGroup / LeaveGroup Reason is a STRING truncated to 255 characters (KIP-800).
-fn truncate_group_reason(reason: &str) -> String {
+pub(crate) fn truncate_group_reason(reason: &str) -> String {
     const MAX: usize = 255;
     reason.chars().take(MAX).collect()
 }

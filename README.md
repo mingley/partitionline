@@ -124,7 +124,8 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_consumer_group_offsets` is Java `deleteConsumerGroupOffsets`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
-`RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::remove_members_from_consumer_group_timeout` /
+`RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::remove_members_from_consumer_group_with_reason` /
+`remove_all_members_from_consumer_group_with_reason` are Java `RemoveMembersFromConsumerGroupOptions.reason`. `Admin::remove_members_from_consumer_group_timeout` /
 `remove_all_members_from_consumer_group_timeout` are Java `RemoveMembersFromConsumerGroupOptions.timeoutMs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)`. `Admin::describe_log_dirs_timeout` /
 `describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` are Java

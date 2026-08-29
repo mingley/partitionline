@@ -3356,6 +3356,56 @@ async fn admin_remove_members_from_consumer_group() {
         members[0].reason.as_deref(),
         Some(DEFAULT_LEAVE_GROUP_REASON)
     );
+    let custom = admin
+        .remove_members_from_consumer_group_with_reason(
+            "g-rm",
+            [MemberToRemove::new("worker-custom")],
+            "maintenance",
+        )
+        .await
+        .unwrap();
+    assert_eq!(custom.len(), 1);
+    assert_eq!(
+        mock.last_leave_group_members().expect("LeaveGroup members")[0]
+            .reason
+            .as_deref(),
+        Some("maintenance")
+    );
+    let empty_reason = admin
+        .remove_members_from_consumer_group_with_reason(
+            "g-rm",
+            [MemberToRemove::new("worker-empty")],
+            "",
+        )
+        .await
+        .unwrap();
+    assert_eq!(empty_reason.len(), 1);
+    assert_eq!(
+        mock.last_leave_group_members().expect("LeaveGroup members")[0]
+            .reason
+            .as_deref(),
+        Some(DEFAULT_LEAVE_GROUP_REASON),
+        "empty Options.reason must use the Java default"
+    );
+    let long = "x".repeat(300);
+    let timed_reason = admin
+        .remove_members_from_consumer_group_timeout_with_reason(
+            "g-rm",
+            [MemberToRemove::new("worker-long")],
+            Duration::from_secs(5),
+            long,
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_reason.len(), 1);
+    assert_eq!(
+        mock.last_leave_group_members().expect("LeaveGroup members")[0]
+            .reason
+            .as_deref()
+            .map(str::len),
+        Some(255),
+        "LeaveGroup Reason must truncate to 255 characters"
+    );
     let empty = admin
         .remove_members_from_consumer_group("g-rm", Vec::<MemberToRemove>::new())
         .await
@@ -3426,8 +3476,42 @@ async fn admin_remove_all_members_from_consumer_group() {
         members[0].reason.as_deref(),
         Some(DEFAULT_LEAVE_GROUP_REASON)
     );
+    let group_reason = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .max_wait_ms(10)
+            .group_instance_id("i-reason"),
+        "g-rm-all",
+        "t",
+    )
+    .await
+    .unwrap();
+    let custom = admin
+        .remove_all_members_from_consumer_group_with_reason("g-rm-all", "rolling restart")
+        .await
+        .unwrap();
+    assert_eq!(custom.len(), 1);
+    assert_eq!(custom[0].group_instance_id.as_deref(), Some("i-reason"));
+    assert_eq!(
+        mock.last_leave_group_members().expect("LeaveGroup members")[0]
+            .reason
+            .as_deref(),
+        Some("rolling restart")
+    );
+    let timed_reason = admin
+        .remove_all_members_from_consumer_group_timeout_with_reason(
+            "g-rm-all",
+            Duration::from_secs(5),
+            "already gone",
+        )
+        .await
+        .unwrap();
+    assert!(
+        timed_reason.is_empty(),
+        "timeout_with_reason after removeAll is a no-op when the group is empty"
+    );
     admin.close().await.unwrap();
     group.close().await.unwrap();
+    group_reason.close().await.unwrap();
 }
 
 #[tokio::test]

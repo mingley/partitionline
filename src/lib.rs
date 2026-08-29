@@ -319,6 +319,10 @@
 //! [`DEFAULT_LEAVE_GROUP_REASON`] on v5).
 //! [`Admin::remove_all_members_from_consumer_group`] is Java
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
+//! [`Admin::remove_members_from_consumer_group_with_reason`] /
+//! [`Admin::remove_all_members_from_consumer_group_with_reason`] are Java
+//! `RemoveMembersFromConsumerGroupOptions.reason` (LeaveGroup v5; empty
+//! uses [`DEFAULT_LEAVE_GROUP_REASON`]; truncated to 255 characters).
 //! [`Admin::remove_members_from_consumer_group_timeout`] /
 //! [`Admin::remove_all_members_from_consumer_group_timeout`] are Java
 //! `RemoveMembersFromConsumerGroupOptions.timeoutMs` (RPC deadline;
