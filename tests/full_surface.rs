@@ -34,11 +34,11 @@ use partitionline::{
     ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement, ConfigResource,
     ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig,
     ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
-    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
-    ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType, IsolationLevel,
-    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec,
-    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    DeletedRecords, DescribableLogDirTopic, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
+    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType,
+    IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata,
+    OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
     ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
     ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState,
     TransactionTopic, UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
@@ -4380,12 +4380,12 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         .await
         .unwrap();
     producer.close().await.unwrap();
-    let (low, err) = admin
+    let deleted = admin
         .delete_records(("rest", md0.partition), md0.offset + 1, 10_000)
         .await
         .unwrap();
-    assert_eq!(err, 0);
-    assert_eq!(low, md0.offset + 1);
+    assert_eq!(deleted.error_code(), 0);
+    assert_eq!(deleted.low_watermark(), md0.offset + 1);
     assert_eq!(
         mock.last_delete_records_version(),
         Some(2),
@@ -4393,7 +4393,7 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     );
     assert_eq!(mock.last_delete_records_partitions(), 1);
     assert_eq!(mock.last_delete_records_timeout(), Some(10_000));
-    let (low_t, err_t) = admin
+    let timed_deleted = admin
         .delete_records_timeout(
             ("rest", md0.partition),
             md0.offset + 1,
@@ -4401,8 +4401,8 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         )
         .await
         .unwrap();
-    assert_eq!(err_t, 0);
-    assert_eq!(low_t, md0.offset + 1);
+    assert_eq!(timed_deleted.error_code(), 0);
+    assert_eq!(timed_deleted.low_watermark(), md0.offset + 1);
     assert_eq!(mock.last_delete_records_timeout(), Some(1500));
 
     let cluster = admin.describe_cluster().await.unwrap();
@@ -4612,12 +4612,11 @@ async fn delete_records_follows_partition_leader() {
     producer.close().await.unwrap();
 
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let (low, err) = admin
+    let deleted = admin
         .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
-    assert_eq!(err, 0);
-    assert_eq!(low, md.offset + 1);
+    assert_eq!(deleted, DeletedRecords::with_error_code(md.offset + 1, 0));
     assert_eq!(
         mock.last_delete_records_version(),
         Some(2),
@@ -4631,12 +4630,12 @@ async fn delete_records_follows_partition_leader() {
     assert_eq!(mock.log_len("t", md.partition), 0);
 
     mock.set_partition_leader("t", md.partition, 1);
-    let (again, err) = admin
+    let again = admin
         .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
-    assert_eq!(err, 0);
-    assert_eq!(again, md.offset + 1);
+    assert_eq!(again.error_code(), 0);
+    assert_eq!(again.low_watermark(), md.offset + 1);
     assert_eq!(
         mock.delete_records_not_leader(),
         1,
@@ -4662,12 +4661,12 @@ async fn delete_records_negotiates_v1_when_broker_caps() {
         .unwrap();
     producer.close().await.unwrap();
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let (low, err) = admin
+    let deleted = admin
         .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
-    assert_eq!(err, 0);
-    assert_eq!(low, md.offset + 1);
+    assert_eq!(deleted.error_code(), 0);
+    assert_eq!(deleted.low_watermark(), md.offset + 1);
     assert_eq!(
         mock.last_delete_records_version(),
         Some(1),
@@ -4708,10 +4707,10 @@ async fn admin_delete_records_for_batches_partitions() {
         .await
         .unwrap();
     assert_eq!(listed.len(), 2);
-    assert_eq!(listed[0].2, 0);
-    assert_eq!(listed[1].2, 0);
-    assert_eq!(listed[0].1, md0.offset + 1);
-    assert_eq!(listed[1].1, md1.offset + 1);
+    assert_eq!(listed[0].1.error_code(), 0);
+    assert_eq!(listed[1].1.error_code(), 0);
+    assert_eq!(listed[0].1.low_watermark(), md0.offset + 1);
+    assert_eq!(listed[1].1.low_watermark(), md1.offset + 1);
     assert_eq!(
         mock.last_delete_records_partitions(),
         2,
@@ -4735,7 +4734,7 @@ async fn admin_delete_records_for_batches_partitions() {
         .await
         .unwrap();
     assert_eq!(timed.len(), 1);
-    assert_eq!(timed[0].2, 0);
+    assert_eq!(timed[0].1.error_code(), 0);
     assert_eq!(mock.last_delete_records_timeout(), Some(2_500));
     let specced = admin
         .delete_records(
@@ -4745,8 +4744,8 @@ async fn admin_delete_records_for_batches_partitions() {
         )
         .await
         .unwrap();
-    assert_eq!(specced.1, 0);
-    assert_eq!(specced.0, md0.offset + 1);
+    assert_eq!(specced.error_code(), 0);
+    assert_eq!(specced.low_watermark(), md0.offset + 1);
     let spec_listed = admin
         .delete_records_for([(
             TopicPartition::new("dr2", md1.partition),
@@ -4755,8 +4754,8 @@ async fn admin_delete_records_for_batches_partitions() {
         .await
         .unwrap();
     assert_eq!(spec_listed.len(), 1);
-    assert_eq!(spec_listed[0].2, 0);
-    assert_eq!(spec_listed[0].1, md1.offset + 1);
+    assert_eq!(spec_listed[0].1.error_code(), 0);
+    assert_eq!(spec_listed[0].1.low_watermark(), md1.offset + 1);
     let after_timeout = mock.delete_records_calls();
     let empty = admin
         .delete_records_for(Vec::<(TopicPartition, i64)>::new())

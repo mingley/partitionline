@@ -449,6 +449,66 @@ impl From<RecordsToDelete> for i64 {
     }
 }
 
+/// Java `DeletedRecords` for [`Admin::delete_records`].
+///
+/// `low_watermark` is Java `lowWatermark()`. `error_code` is the
+/// per-partition DeleteRecords ErrorCode (Java surfaces non-zero via
+/// the future).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeletedRecords {
+    /// New log start offset after the delete.
+    pub low_watermark: i64,
+    /// Per-partition ErrorCode (`0` is success).
+    pub error_code: i16,
+}
+
+impl DeletedRecords {
+    /// Java `DeletedRecords(long)` (`error_code` 0).
+    #[must_use]
+    pub const fn new(low_watermark: i64) -> Self {
+        Self {
+            low_watermark,
+            error_code: 0,
+        }
+    }
+
+    /// Low watermark plus per-partition ErrorCode.
+    #[must_use]
+    pub const fn with_error_code(low_watermark: i64, error_code: i16) -> Self {
+        Self {
+            low_watermark,
+            error_code,
+        }
+    }
+
+    /// Java `DeletedRecords.lowWatermark`.
+    #[must_use]
+    pub const fn low_watermark(self) -> i64 {
+        self.low_watermark
+    }
+
+    /// Per-partition DeleteRecords ErrorCode.
+    #[must_use]
+    pub const fn error_code(self) -> i16 {
+        self.error_code
+    }
+}
+
+impl From<(i64, i16)> for DeletedRecords {
+    fn from((low_watermark, error_code): (i64, i16)) -> Self {
+        Self {
+            low_watermark,
+            error_code,
+        }
+    }
+}
+
+impl From<DeletedRecords> for (i64, i16) {
+    fn from(deleted: DeletedRecords) -> Self {
+        (deleted.low_watermark, deleted.error_code)
+    }
+}
+
 /// Kafka `org.apache.kafka.common.Uuid` (16 bytes; `toString` is base64url).
 ///
 /// Wire TopicId / ClientInstanceId stay `[u8; 16]`. [`Self::from_string`] /
@@ -5195,7 +5255,8 @@ impl Admin {
     /// `RecordsToDelete.beforeOffset(long)`). Lands on the Metadata
     /// partition leader. `NOT_LEADER_OR_FOLLOWER` (6) and other
     /// retriable codes refresh Metadata and retry on the new leader.
-    /// Returns `(low_watermark, error_code)`. `timeout_ms` is
+    /// Returns [`DeletedRecords`] (`lowWatermark` plus per-partition
+    /// ErrorCode). `timeout_ms` is
     /// DeleteRecords TimeoutMs. The RPC deadline is
     /// [`AdminConfig::request_timeout`]. For several partitions, use
     /// [`Self::delete_records_for`]. For a one-shot timeout that drives
@@ -5206,10 +5267,11 @@ impl Admin {
         partition: impl Into<crate::TopicPartition>,
         offset: impl Into<i64>,
         timeout_ms: i32,
-    ) -> Result<(i64, i16)> {
+    ) -> Result<DeletedRecords> {
         let timeout = self.cfg.request_timeout;
         self.delete_records_one(partition.into(), offset.into(), timeout_ms, timeout)
             .await
+            .map(DeletedRecords::from)
     }
 
     /// [`Self::delete_records`] with a one-shot timeout (Java
@@ -5221,23 +5283,25 @@ impl Admin {
         partition: impl Into<crate::TopicPartition>,
         offset: impl Into<i64>,
         timeout: Duration,
-    ) -> Result<(i64, i16)> {
+    ) -> Result<DeletedRecords> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         self.delete_records_one(partition.into(), offset.into(), timeout_ms, timeout)
             .await
+            .map(DeletedRecords::from)
     }
 
     /// Delete records on several partitions (Java `deleteRecords(Map)`).
     ///
     /// Each item is a [`crate::TopicPartition`] and an offset
     /// ([`RecordsToDelete`] or INT64). One DeleteRecords RPC per
-    /// Metadata partition leader. Empty input is a no-op. TimeoutMs and
+    /// Metadata partition leader. Empty input is a no-op. Returns
+    /// [`DeletedRecords`] per partition. TimeoutMs and
     /// the RPC deadline are [`AdminConfig::request_timeout`]. For a
     /// one-shot timeout, use [`Self::delete_records_for_timeout`].
     pub async fn delete_records_for<Tp, Off>(
         &mut self,
         records: impl IntoIterator<Item = (Tp, Off)>,
-    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>>
+    ) -> Result<Vec<(crate::TopicPartition, DeletedRecords)>>
     where
         Tp: Into<crate::TopicPartition>,
         Off: Into<i64>,
@@ -5254,14 +5318,19 @@ impl Admin {
         &mut self,
         records: impl IntoIterator<Item = (Tp, Off)>,
         timeout: Duration,
-    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>>
+    ) -> Result<Vec<(crate::TopicPartition, DeletedRecords)>>
     where
         Tp: Into<crate::TopicPartition>,
         Off: Into<i64>,
     {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.delete_records_for_with(records, timeout_ms, timeout)
-            .await
+        let raw = self
+            .delete_records_for_with(records, timeout_ms, timeout)
+            .await?;
+        Ok(raw
+            .into_iter()
+            .map(|(tp, low, err)| (tp, DeletedRecords::with_error_code(low, err)))
+            .collect())
     }
 
     async fn delete_records_one(
@@ -10215,6 +10284,19 @@ mod tests {
     fn records_to_delete_before_offset_converts_to_i64() {
         assert_eq!(i64::from(RecordsToDelete::before_offset(42)), 42);
         assert_eq!(RecordsToDelete::before_offset(7).offset(), 7);
+    }
+
+    #[test]
+    fn deleted_records_matches_java() {
+        let ok = DeletedRecords::new(42);
+        assert_eq!(ok.low_watermark(), 42);
+        assert_eq!(ok.error_code(), 0);
+        let with_err = DeletedRecords::with_error_code(7, 6);
+        assert_eq!(with_err.low_watermark(), 7);
+        assert_eq!(with_err.error_code(), 6);
+        let pair: (i64, i16) = with_err.into();
+        assert_eq!(pair, (7, 6));
+        assert_eq!(DeletedRecords::from((9, 0)).low_watermark(), 9);
     }
 
     #[test]
