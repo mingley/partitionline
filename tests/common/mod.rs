@@ -25,8 +25,8 @@ use partitionline::error;
 use partitionline::group::assign_range_subscribed;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
-    encode_create_acls_response, encode_delete_acls_response, encode_describe_acls_response,
-    AclBinding,
+    encode_create_acls_response, encode_delete_acls_filter_results, encode_describe_acls_response,
+    AclBinding, AclBindingFilter, DeletedAclsFilterResult,
 };
 use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
@@ -288,7 +288,9 @@ struct State {
     last_create_acls_version: Option<i16>,
     create_acls_not_controller: u32,
     last_describe_acls_version: Option<i16>,
+    last_describe_acls_filter: Option<AclBindingFilter>,
     last_delete_acls_version: Option<i16>,
+    last_delete_acls_n: Option<usize>,
     last_alter_reassignments_node: Option<i32>,
     last_alter_reassignments_timeout: Option<i32>,
     alter_reassignments_not_controller: u32,
@@ -618,7 +620,9 @@ fn new_state(
         last_create_acls_version: None,
         create_acls_not_controller: 0,
         last_describe_acls_version: None,
+        last_describe_acls_filter: None,
         last_delete_acls_version: None,
+        last_delete_acls_n: None,
         last_alter_reassignments_node: None,
         last_alter_reassignments_timeout: None,
         alter_reassignments_not_controller: 0,
@@ -1652,8 +1656,16 @@ impl Mock {
         self.state.lock().last_describe_acls_version
     }
 
+    pub fn last_describe_acls_filter(&self) -> Option<AclBindingFilter> {
+        self.state.lock().last_describe_acls_filter.clone()
+    }
+
     pub fn last_delete_acls_version(&self) -> Option<i16> {
         self.state.lock().last_delete_acls_version
+    }
+
+    pub fn last_delete_acls_n(&self) -> Option<usize> {
+        self.state.lock().last_delete_acls_n
     }
 
     pub fn last_alter_reassignments_node(&self) -> Option<i32> {
@@ -3943,30 +3955,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             DESCRIBE_ACLS => {
                 let version = header.api_version;
-                let rt = decode_describe_acls_request(&mut frame, version).unwrap();
+                let filter = decode_describe_acls_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_describe_acls_version = Some(version);
+                st.last_describe_acls_filter = Some(filter.clone());
                 let acls: Vec<AclBinding> = st
                     .acls
                     .iter()
-                    .filter(|a| rt == 1 || a.resource_type == rt)
+                    .filter(|a| filter.matches(a))
                     .cloned()
                     .collect();
                 encode_describe_acls_response(&mut body, version, &acls).unwrap();
             }
             DELETE_ACLS => {
                 let version = header.api_version;
-                let rt = decode_delete_acls_request(&mut frame, version).unwrap();
+                let filters = decode_delete_acls_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_delete_acls_version = Some(version);
-                let removed: Vec<AclBinding> = st
-                    .acls
+                st.last_delete_acls_n = Some(filters.len());
+                let original = st.acls.clone();
+                let results: Vec<DeletedAclsFilterResult> = filters
                     .iter()
-                    .filter(|a| rt == 1 || a.resource_type == rt)
-                    .cloned()
+                    .map(|f| DeletedAclsFilterResult {
+                        error_code: 0,
+                        error_message: None,
+                        matching: original.iter().filter(|a| f.matches(a)).cloned().collect(),
+                    })
                     .collect();
-                st.acls.retain(|a| rt != 1 && a.resource_type != rt);
-                encode_delete_acls_response(&mut body, version, 0, &removed).unwrap();
+                st.acls.retain(|a| !filters.iter().any(|f| f.matches(a)));
+                encode_delete_acls_filter_results(&mut body, version, &results).unwrap();
             }
             LIST_OFFSETS => {
                 let (iso, topics, timeout_ms) =

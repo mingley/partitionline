@@ -98,9 +98,11 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)`. `PartitionReassignment::assign`
 takes `TopicPartition`. `send_offsets_to_transaction` takes
-`TopicPartition`. `AclBinding::allow_topic`, `AclResourceType`,
+`TopicPartition`. `AclBinding::allow_topic`, `AclBindingFilter`, `AclResourceType`,
 `AclOperation`, `AclPermission`, and `AclPatternType` cover CreateAcls /
-DescribeAcls / DeleteAcls (v0–v3; v1 ResourcePatternType; v2+ flexible). `ConsumerConfig.isolation_level` is `IsolationLevel`.
+DescribeAcls / DeleteAcls (v0–v3; v1 ResourcePatternType; v2+ flexible).
+`Admin::describe_acls_with` is Java `describeAcls(AclBindingFilter)`.
+`Admin::delete_acls_with` is Java `deleteAcls(Collection)` (DeleteAcls Filters of N). `ConsumerConfig.isolation_level` is `IsolationLevel`.
 `ConfigResourceType` / `ScramMechanism` type ListConfigResources and
 user SCRAM.
 

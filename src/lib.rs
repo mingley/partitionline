@@ -230,8 +230,10 @@
 //! [`Admin::describe_broker_log_dirs`] is Java
 //! `describeLogDirs(Collection<Integer>)`.
 //! [`Admin::metrics`] is Java `Admin.metrics()` ([`AdminMetrics`]).
-//! [`AclBinding::allow_topic`] / [`AclResourceType`] / [`AclOperation`] /
-//! [`AclPermission`] cover CreateAcls / DescribeAcls / DeleteAcls.
+//! [`AclBinding::allow_topic`] / [`AclBindingFilter`] / [`AclResourceType`] /
+//! [`AclOperation`] / [`AclPermission`] cover CreateAcls / DescribeAcls /
+//! DeleteAcls. [`Admin::describe_acls_with`] is Java `describeAcls(AclBindingFilter)`.
+//! [`Admin::delete_acls_with`] is Java `deleteAcls(Collection)` (DeleteAcls Filters of N).
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
 //! [`Producer::close_timeout`] match Java. [`Consumer::close_timeout`]
 //! drops fetch connections (Java `close(Duration)`; no LeaveGroup).
@@ -371,20 +373,21 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AbortTransactionSpec, AclBinding, AclOperation, AclPatternType, AclPermission, AclResourceType,
-    ActiveProducer, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
-    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
-    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
-    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
-    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
-    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
-    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
-    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConfigResourceType, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
-    CreatableRenewer, CreateDelegationTokenRequest, CreateDelegationTokenResponse,
-    DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
+    AbortTransactionSpec, AclBinding, AclBindingFilter, AclOperation, AclPatternType,
+    AclPermission, AclResourceType, ActiveProducer, Admin, AdminConfig, AlterConfig,
+    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
+    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
+    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
+    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
+    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
+    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaOp,
+    ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource, ConfigResourceType,
+    ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedShareGroupOffsets,
     DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
     DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
@@ -435,8 +438,9 @@ pub use partitioner::{
 };
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::acl::{
-    ACL_OPERATION_ALL, ACL_PATTERN_ANY, ACL_PATTERN_LITERAL, ACL_PATTERN_PREFIXED,
-    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
+    ACL_OPERATION_ALL, ACL_OPERATION_ANY, ACL_PATTERN_ANY, ACL_PATTERN_LITERAL,
+    ACL_PATTERN_PREFIXED, ACL_PERMISSION_ALLOW, ACL_PERMISSION_ANY, ACL_RESOURCE_ANY,
+    ACL_RESOURCE_TOPIC,
 };
 pub use protocol::admin::{CreatedTopicConfig, DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{

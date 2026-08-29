@@ -24,22 +24,22 @@ use partitionline::protocol::api_keys::{
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
-    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic,
-    AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
-    AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
-    ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp, Compression, ConfigResource,
-    ConfigResourceType, Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer,
-    CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
-    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
-    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic,
-    OffsetAndMetadata, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord,
-    Producer, ProducerConfig, RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism,
-    ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
-    UpgradeType, UserScramCredentialDeletion, UserScramCredentialUpsertion,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    error, AbortTransactionSpec, AclBinding, AclBindingFilter, AclResourceType, Admin, AdminConfig,
+    AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
+    AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
+    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
+    Compression, ConfigResource, ConfigResourceType, Consumer, ConsumerConfig, ConsumerGroup,
+    CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
+    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
+    ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec,
+    NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
+    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -3975,6 +3975,52 @@ async fn admin_partitions_alter_configs_and_acls() {
         .await
         .unwrap()
         .is_empty());
+}
+
+#[tokio::test]
+async fn admin_describe_delete_acls_with_filter() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_acls(&[
+            AclBinding::allow_topic("acl-f", "User:alice"),
+            AclBinding::allow_topic("acl-f", "User:bob"),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0, 0]);
+
+    let listed = admin
+        .describe_acls_with(
+            &AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice"),
+        )
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].principal, "User:alice");
+    let filter = mock.last_describe_acls_filter().unwrap();
+    assert_eq!(filter.principal.as_deref(), Some("User:alice"));
+    assert_eq!(filter.operation, partitionline::ACL_OPERATION_ANY);
+    assert_eq!(filter.permission, partitionline::ACL_PERMISSION_ANY);
+
+    let results = admin
+        .delete_acls_with(&[
+            AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice"),
+            AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:bob"),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(results[0].matching.len(), 1);
+    assert_eq!(results[1].matching.len(), 1);
+    assert_eq!(mock.last_delete_acls_n(), Some(2));
+    assert!(admin
+        .describe_acls(AclResourceType::Topic)
+        .await
+        .unwrap()
+        .is_empty());
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

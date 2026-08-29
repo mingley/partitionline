@@ -14,7 +14,7 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::protocol::acl::{
-    decode_create_acls_response, decode_delete_acls_response, decode_describe_acls_response,
+    decode_create_acls_response, decode_delete_acls_filter_results, decode_describe_acls_response,
     encode_create_acls_request, encode_delete_acls_request, encode_describe_acls_request,
 };
 use crate::protocol::admin::{
@@ -104,7 +104,8 @@ use crate::protocol::txn::{
 };
 
 pub use crate::protocol::acl::{
-    AclBinding, AclOperation, AclPatternType, AclPermission, AclResourceType,
+    AclBinding, AclBindingFilter, AclOperation, AclPatternType, AclPermission, AclResourceType,
+    DeletedAclsFilterResult,
 };
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
@@ -3215,20 +3216,30 @@ impl Admin {
     /// Describe ACL bindings (`DescribeAcls`) matching `resource_type`.
     ///
     /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1+ sends
-    /// PatternTypeFilter ANY. Kafka 4.0 `validVersions` is `1-3`. v4+
-    /// is not spoken.
+    /// PatternTypeFilter ANY. Operation and Permission are ANY (Java
+    /// `AccessControlEntryFilter.ANY`). Kafka 4.0 `validVersions` is
+    /// `1-3`. v4+ is not spoken.
     ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`
-    /// (`ACL_RESOURCE_TOPIC`, …).
+    /// (`ACL_RESOURCE_TOPIC`, …). For principal / host / name / operation
+    /// filters, use [`Self::describe_acls_with`].
     pub async fn describe_acls(&mut self, resource_type: impl Into<i8>) -> Result<Vec<AclBinding>> {
-        let resource_type = resource_type.into();
+        self.describe_acls_with(&AclBindingFilter::resource_type(resource_type))
+            .await
+    }
+
+    /// [`Self::describe_acls`] with a Java `AclBindingFilter`.
+    pub async fn describe_acls_with(
+        &mut self,
+        filter: &AclBindingFilter,
+    ) -> Result<Vec<AclBinding>> {
         let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_ACLS,
                 version,
-                |buf| encode_describe_acls_request(buf, version, resource_type),
+                |buf| encode_describe_acls_request(buf, version, filter),
                 timeout,
             )
             .await?;
@@ -4059,23 +4070,41 @@ impl Admin {
     /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.
     ///
     /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1+ sends
-    /// PatternTypeFilter ANY. Kafka 4.0 `validVersions` is `1-3`. v4+
-    /// is not spoken.
+    /// PatternTypeFilter ANY. Operation and Permission are ANY (Java
+    /// `AccessControlEntryFilter.ANY`). Kafka 4.0 `validVersions` is
+    /// `1-3`. v4+ is not spoken.
     ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`.
+    /// Returns the first filter's error code. For principal / host / name
+    /// filters or Filters of N, use [`Self::delete_acls_with`].
     pub async fn delete_acls(&mut self, resource_type: impl Into<i8>) -> Result<i16> {
-        let resource_type = resource_type.into();
+        let results = self
+            .delete_acls_with(&[AclBindingFilter::resource_type(resource_type)])
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
+    /// [`Self::delete_acls`] with Java `deleteAcls(Collection)` Filters of N.
+    ///
+    /// Empty `filters` is a no-op.
+    pub async fn delete_acls_with(
+        &mut self,
+        filters: &[AclBindingFilter],
+    ) -> Result<Vec<DeletedAclsFilterResult>> {
+        if filters.is_empty() {
+            return Ok(Vec::new());
+        }
         let version = self.delete_acls_version;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DELETE_ACLS,
                 version,
-                |buf| encode_delete_acls_request(buf, version, resource_type),
+                |buf| encode_delete_acls_request(buf, version, filters),
                 timeout,
             )
             .await?;
-        decode_delete_acls_response(&mut body.clone(), version)
+        decode_delete_acls_filter_results(&mut body.clone(), version)
     }
 
     /// Delete committed offsets for `group_id` (OffsetDelete api 47).

@@ -11,14 +11,22 @@ use bytes::{Buf, BufMut, BytesMut};
 use super::buf;
 use crate::error::{Error, Result};
 
+/// ACL resource type: any (DescribeAcls / DeleteAcls filters).
+pub const ACL_RESOURCE_ANY: i8 = 1;
 /// ACL resource type: topic.
 pub const ACL_RESOURCE_TOPIC: i8 = 2;
+/// ACL operation: any (DescribeAcls / DeleteAcls filters).
+pub const ACL_OPERATION_ANY: i8 = 1;
 /// ACL operation: all.
 pub const ACL_OPERATION_ALL: i8 = 2;
+/// ACL permission: any (DescribeAcls / DeleteAcls filters).
+pub const ACL_PERMISSION_ANY: i8 = 1;
 /// ACL permission: allow.
 pub const ACL_PERMISSION_ALLOW: i8 = 3;
 /// Resource pattern type: any (DescribeAcls / DeleteAcls filters).
 pub const ACL_PATTERN_ANY: i8 = 1;
+/// Resource pattern type: match (DescribeAcls / DeleteAcls filters).
+pub const ACL_PATTERN_MATCH: i8 = 2;
 /// Resource pattern type: literal (CreateAcls default).
 pub const ACL_PATTERN_LITERAL: i8 = 3;
 /// Resource pattern type: prefixed.
@@ -206,6 +214,146 @@ impl AclBinding {
     }
 }
 
+/// Java `AclBindingFilter` for DescribeAcls / DeleteAcls.
+///
+/// Null name / principal / host match any. [`ACL_RESOURCE_ANY`] /
+/// [`ACL_PATTERN_ANY`] / [`ACL_OPERATION_ANY`] / [`ACL_PERMISSION_ANY`]
+/// match any on those fields.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AclBindingFilter {
+    /// Resource type filter (`AclResourceType::Topic`, [`ACL_RESOURCE_ANY`], …).
+    pub resource_type: i8,
+    /// Resource name, or `None` for any.
+    pub resource_name: Option<String>,
+    /// Pattern type (`AclPatternType::Any`, …). Omitted on the wire at v0.
+    pub pattern_type: i8,
+    /// Principal, or `None` for any.
+    pub principal: Option<String>,
+    /// Host, or `None` for any.
+    pub host: Option<String>,
+    /// Operation (`AclOperation::Any`, …).
+    pub operation: i8,
+    /// Permission (`AclPermission::Any`, …).
+    pub permission: i8,
+}
+
+impl AclBindingFilter {
+    /// Match every binding of this resource type (Java
+    /// `AclBindingFilter` with `ResourcePatternFilter(type, null, ANY)`
+    /// and `AccessControlEntryFilter.ANY`).
+    #[must_use]
+    pub fn resource_type(resource_type: impl Into<i8>) -> Self {
+        Self {
+            resource_type: resource_type.into(),
+            resource_name: None,
+            pattern_type: ACL_PATTERN_ANY,
+            principal: None,
+            host: None,
+            operation: ACL_OPERATION_ANY,
+            permission: ACL_PERMISSION_ANY,
+        }
+    }
+
+    /// Match every binding (Java `AclBindingFilter.ANY`).
+    #[must_use]
+    pub fn any() -> Self {
+        Self::resource_type(ACL_RESOURCE_ANY)
+    }
+
+    /// Resource name filter (`None` is any).
+    #[must_use]
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.resource_name = Some(name.into());
+        self
+    }
+
+    /// Principal filter (`None` is any).
+    #[must_use]
+    pub fn principal(mut self, principal: impl Into<String>) -> Self {
+        self.principal = Some(principal.into());
+        self
+    }
+
+    /// Host filter (`None` is any).
+    #[must_use]
+    pub fn host(mut self, host: impl Into<String>) -> Self {
+        self.host = Some(host.into());
+        self
+    }
+
+    /// Pattern type (`AclPatternType::Literal`, …).
+    #[must_use]
+    pub fn pattern_type(mut self, pattern_type: impl Into<i8>) -> Self {
+        self.pattern_type = pattern_type.into();
+        self
+    }
+
+    /// Operation (`AclOperation::Read`, …).
+    #[must_use]
+    pub fn operation(mut self, operation: impl Into<i8>) -> Self {
+        self.operation = operation.into();
+        self
+    }
+
+    /// Permission (`AclPermission::Deny`, …).
+    #[must_use]
+    pub fn permission(mut self, permission: impl Into<i8>) -> Self {
+        self.permission = permission.into();
+        self
+    }
+
+    /// Whether `acl` matches this filter (Java `AclBindingFilter.matches`).
+    #[must_use]
+    pub fn matches(&self, acl: &AclBinding) -> bool {
+        if self.resource_type != ACL_RESOURCE_ANY && self.resource_type != acl.resource_type {
+            return false;
+        }
+        if self.pattern_type != ACL_PATTERN_ANY
+            && self.pattern_type != ACL_PATTERN_MATCH
+            && self.pattern_type != acl.pattern_type
+        {
+            return false;
+        }
+        if let Some(ref name) = self.resource_name {
+            if self.pattern_type == ACL_PATTERN_PREFIXED {
+                if !acl.resource_name.starts_with(name) {
+                    return false;
+                }
+            } else if &acl.resource_name != name {
+                return false;
+            }
+        }
+        if let Some(ref principal) = self.principal {
+            if &acl.principal != principal {
+                return false;
+            }
+        }
+        if let Some(ref host) = self.host {
+            if &acl.host != host {
+                return false;
+            }
+        }
+        if self.operation != ACL_OPERATION_ANY && self.operation != acl.operation {
+            return false;
+        }
+        if self.permission != ACL_PERMISSION_ANY && self.permission != acl.permission {
+            return false;
+        }
+        true
+    }
+}
+
+/// Per-filter DeleteAcls result (Java `DeleteAclsResult.FilterResults`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletedAclsFilterResult {
+    /// Filter-level error, or `0`.
+    pub error_code: i16,
+    /// Filter-level error message.
+    pub error_message: Option<String>,
+    /// Bindings that matched this filter.
+    pub matching: Vec<AclBinding>,
+}
+
 /// `true` when CreateAcls / DescribeAcls / DeleteAcls `version` is flexible.
 ///
 /// v0–v1 are classic. v2 is the first flexible version. v3 is the same
@@ -219,40 +367,6 @@ fn acl_api_flexible(version: i16) -> Result<bool> {
             "CreateAcls/DescribeAcls/DeleteAcls version {other} is not implemented"
         ))),
     }
-}
-
-fn skip_delete_acl_filter<B: Buf>(buf: &mut B, version: i16, flexible: bool) -> Result<()> {
-    let _ = buf::get_i8(buf)?;
-    let _ = buf::get_string(buf, flexible)?;
-    if version >= 1 {
-        let _ = buf::get_i8(buf)?;
-    }
-    let _ = buf::get_string(buf, flexible)?;
-    let _ = buf::get_string(buf, flexible)?;
-    let _ = buf::get_i8(buf)?;
-    let _ = buf::get_i8(buf)?;
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
-    Ok(())
-}
-
-fn skip_delete_matching_acl<B: Buf>(buf: &mut B, version: i16, flexible: bool) -> Result<()> {
-    let _ = buf::get_i16(buf)?;
-    let _ = buf::get_string(buf, flexible)?;
-    let _ = buf::get_i8(buf)?;
-    let _ = buf::get_string(buf, flexible)?;
-    if version >= 1 {
-        let _ = buf::get_i8(buf)?;
-    }
-    let _ = buf::get_string(buf, flexible)?;
-    let _ = buf::get_string(buf, flexible)?;
-    let _ = buf::get_i8(buf)?;
-    let _ = buf::get_i8(buf)?;
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
-    Ok(())
 }
 
 /// Encode CreateAcls v0–3 (classic through v1; flexible from v2).
@@ -357,46 +471,30 @@ pub fn decode_create_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<
     Ok(out)
 }
 
-/// Encode DescribeAcls filtered by resource type (`Any` is 1).
+/// Encode DescribeAcls with a Java `AclBindingFilter`.
 ///
-/// v1+ sends [`ACL_PATTERN_ANY`] so literal and prefixed bindings match.
+/// v1+ sends [`AclBindingFilter::pattern_type`]. v0 omits it.
 pub fn encode_describe_acls_request(
     buf: &mut BytesMut,
     version: i16,
-    resource_type: i8,
+    filter: &AclBindingFilter,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
-    buf.put_i8(resource_type);
-    buf::put_string(buf, flexible, None)?;
-    if version >= 1 {
-        buf.put_i8(ACL_PATTERN_ANY);
-    }
-    buf::put_string(buf, flexible, None)?;
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i8(ACL_OPERATION_ALL);
-    buf.put_i8(ACL_PERMISSION_ALLOW);
+    put_acl_filter_fields(buf, version, flexible, filter)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode DescribeAcls: resource type filter.
-pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result<i8> {
+/// Decode DescribeAcls: the filter. v0 fills [`ACL_PATTERN_ANY`].
+pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result<AclBindingFilter> {
     let flexible = acl_api_flexible(version)?;
-    let rt = buf::get_i8(buf)?;
-    let _name = buf::get_string(buf, flexible)?;
-    if version >= 1 {
-        let _pattern = buf::get_i8(buf)?;
-    }
-    let _prin = buf::get_string(buf, flexible)?;
-    let _host = buf::get_string(buf, flexible)?;
-    let _op = buf::get_i8(buf)?;
-    let _perm = buf::get_i8(buf)?;
+    let filter = get_acl_filter_fields(buf, version, flexible)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(rt)
+    Ok(filter)
 }
 
 /// Encode DescribeAcls with matching bindings.
@@ -480,58 +578,147 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     Ok(out)
 }
 
-/// Encode DeleteAcls filtered by resource type.
+fn put_acl_filter_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    filter: &AclBindingFilter,
+) -> Result<()> {
+    buf.put_i8(filter.resource_type);
+    buf::put_string(buf, flexible, filter.resource_name.as_deref())?;
+    if version >= 1 {
+        buf.put_i8(filter.pattern_type);
+    }
+    buf::put_string(buf, flexible, filter.principal.as_deref())?;
+    buf::put_string(buf, flexible, filter.host.as_deref())?;
+    buf.put_i8(filter.operation);
+    buf.put_i8(filter.permission);
+    Ok(())
+}
+
+fn get_acl_filter_fields<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+) -> Result<AclBindingFilter> {
+    let resource_type = buf::get_i8(buf)?;
+    let resource_name = buf::get_string(buf, flexible)?;
+    let pattern_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ACL_PATTERN_ANY
+    };
+    let principal = buf::get_string(buf, flexible)?;
+    let host = buf::get_string(buf, flexible)?;
+    let operation = buf::get_i8(buf)?;
+    let permission = buf::get_i8(buf)?;
+    Ok(AclBindingFilter {
+        resource_type,
+        resource_name,
+        pattern_type,
+        principal,
+        host,
+        operation,
+        permission,
+    })
+}
+
+/// Encode DeleteAcls Filters of N (Java `deleteAcls(Collection)`).
 ///
-/// v1+ sends [`ACL_PATTERN_ANY`] so literal and prefixed bindings match.
+/// v1+ sends [`AclBindingFilter::pattern_type`] on each filter. v0 omits it.
 pub fn encode_delete_acls_request(
     buf: &mut BytesMut,
     version: i16,
-    resource_type: i8,
+    filters: &[AclBindingFilter],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i8(resource_type);
-    buf::put_string(buf, flexible, None)?;
-    if version >= 1 {
-        buf.put_i8(ACL_PATTERN_ANY);
+    buf::put_array_len(buf, flexible, Some(filters.len()))?;
+    for filter in filters {
+        put_acl_filter_fields(buf, version, flexible, filter)?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
-    buf::put_string(buf, flexible, None)?;
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i8(ACL_OPERATION_ALL);
-    buf.put_i8(ACL_PERMISSION_ALLOW);
     if flexible {
-        buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode DeleteAcls: first filter resource type.
-pub fn decode_delete_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result<i8> {
+/// Decode DeleteAcls: every filter.
+pub fn decode_delete_acls_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<AclBindingFilter>> {
     let flexible = acl_api_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut rt = 0i8;
-    if n > 0 {
-        rt = buf::get_i8(buf)?;
-        let _name = buf::get_string(buf, flexible)?;
-        if version >= 1 {
-            let _pattern = buf::get_i8(buf)?;
-        }
-        let _prin = buf::get_string(buf, flexible)?;
-        let _host = buf::get_string(buf, flexible)?;
-        let _op = buf::get_i8(buf)?;
-        let _perm = buf::get_i8(buf)?;
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let filter = get_acl_filter_fields(buf, version, flexible)?;
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            skip_delete_acl_filter(buf, version, flexible)?;
-        }
+        out.push(filter);
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(rt)
+    Ok(out)
+}
+
+fn put_delete_matching_acl(
+    buf: &mut BytesMut,
+    version: i16,
+    flexible: bool,
+    acl: &AclBinding,
+) -> Result<()> {
+    buf.put_i16(0);
+    buf::put_string(buf, flexible, None)?;
+    buf.put_i8(acl.resource_type);
+    buf::put_string(buf, flexible, Some(&acl.resource_name))?;
+    if version >= 1 {
+        buf.put_i8(acl.pattern_type);
+    }
+    buf::put_string(buf, flexible, Some(&acl.principal))?;
+    buf::put_string(buf, flexible, Some(&acl.host))?;
+    buf.put_i8(acl.operation);
+    buf.put_i8(acl.permission);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+fn get_delete_matching_acl<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    flexible: bool,
+) -> Result<AclBinding> {
+    let _err = buf::get_i16(buf)?;
+    let _msg = buf::get_string(buf, flexible)?;
+    let resource_type = buf::get_i8(buf)?;
+    let resource_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let pattern_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ACL_PATTERN_LITERAL
+    };
+    let principal = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let host = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let operation = buf::get_i8(buf)?;
+    let permission = buf::get_i8(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(AclBinding {
+        resource_type,
+        resource_name,
+        pattern_type,
+        principal,
+        host,
+        operation,
+        permission,
+    })
 }
 
 /// Encode DeleteAcls: first-filter error plus matching bindings.
@@ -541,30 +728,38 @@ pub fn encode_delete_acls_response(
     error_code: i16,
     matching: &[AclBinding],
 ) -> Result<()> {
+    encode_delete_acls_filter_results(
+        buf,
+        version,
+        &[DeletedAclsFilterResult {
+            error_code,
+            error_message: None,
+            matching: matching.to_vec(),
+        }],
+    )
+}
+
+/// Encode DeleteAcls FilterResults of N.
+pub fn encode_delete_acls_filter_results(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[DeletedAclsFilterResult],
+) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i16(error_code);
-    buf::put_string(buf, flexible, None)?;
-    buf::put_array_len(buf, flexible, Some(matching.len()))?;
-    for a in matching {
-        buf.put_i16(0);
-        buf::put_string(buf, flexible, None)?;
-        buf.put_i8(a.resource_type);
-        buf::put_string(buf, flexible, Some(&a.resource_name))?;
-        if version >= 1 {
-            buf.put_i8(a.pattern_type);
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
+    for r in results {
+        buf.put_i16(r.error_code);
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
+        buf::put_array_len(buf, flexible, Some(r.matching.len()))?;
+        for a in &r.matching {
+            put_delete_matching_acl(buf, version, flexible, a)?;
         }
-        buf::put_string(buf, flexible, Some(&a.principal))?;
-        buf::put_string(buf, flexible, Some(&a.host))?;
-        buf.put_i8(a.operation);
-        buf.put_i8(a.permission);
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
     }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
@@ -572,36 +767,40 @@ pub fn encode_delete_acls_response(
 
 /// Decode DeleteAcls: first filter error code.
 pub fn decode_delete_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let results = decode_delete_acls_filter_results(buf, version)?;
+    Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+}
+
+/// Decode DeleteAcls: every FilterResult.
+pub fn decode_delete_acls_filter_results<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<DeletedAclsFilterResult>> {
     let flexible = acl_api_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut err = 0i16;
-    if n > 0 {
-        err = buf::get_i16(buf)?;
-        let _msg = buf::get_string(buf, flexible)?;
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
         let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut matching = Vec::with_capacity(mn);
         for _ in 0..mn {
-            skip_delete_matching_acl(buf, version, flexible)?;
+            matching.push(get_delete_matching_acl(buf, version, flexible)?);
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            let _ = buf::get_i16(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            for _ in 0..extra {
-                skip_delete_matching_acl(buf, version, flexible)?;
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        out.push(DeletedAclsFilterResult {
+            error_code,
+            error_message,
+            matching,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(err)
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -662,12 +861,18 @@ mod tests {
             );
 
             let mut del = BytesMut::new();
-            encode_delete_acls_request(&mut del, version, ACL_RESOURCE_TOPIC).unwrap();
+            encode_delete_acls_request(
+                &mut del,
+                version,
+                &[AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC)],
+            )
+            .unwrap();
             let mut cur = &del[..];
-            assert_eq!(
-                decode_delete_acls_request(&mut cur, version).unwrap(),
-                ACL_RESOURCE_TOPIC
-            );
+            let got = decode_delete_acls_request(&mut cur, version).unwrap();
+            assert_eq!(got.len(), 1);
+            assert_eq!(got[0].resource_type, ACL_RESOURCE_TOPIC);
+            assert_eq!(got[0].operation, ACL_OPERATION_ANY);
+            assert_eq!(got[0].permission, ACL_PERMISSION_ANY);
             assert!(
                 !cur.has_remaining(),
                 "DeleteAcls v{version} request must be leftover-empty"
@@ -716,16 +921,21 @@ mod tests {
         assert_ne!(&v1[..], &v0[..], "CreateAcls v1 must include pattern type");
 
         // DescribeAcls v2: type=2, null name, ANY pattern, null principal/host,
-        // ALL/ALLOW, empty tagged fields.
-        const DESCRIBE: &[u8] = &[0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x03, 0x00];
+        // ANY/ANY (Java AccessControlEntryFilter.ANY), empty tagged fields.
+        const DESCRIBE: &[u8] = &[0x02, 0x00, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00];
         buf.clear();
-        encode_describe_acls_request(&mut buf, 2, ACL_RESOURCE_TOPIC).unwrap();
+        encode_describe_acls_request(
+            &mut buf,
+            2,
+            &AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
+        )
+        .unwrap();
         assert_eq!(&buf[..], DESCRIBE);
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_describe_acls_request(&mut cur, 2).unwrap(),
-            ACL_RESOURCE_TOPIC
-        );
+        let got = decode_describe_acls_request(&mut cur, 2).unwrap();
+        assert_eq!(got.resource_type, ACL_RESOURCE_TOPIC);
+        assert_eq!(got.operation, ACL_OPERATION_ANY);
+        assert_eq!(got.permission, ACL_PERMISSION_ANY);
         assert!(
             !cur.has_remaining(),
             "DescribeAcls v2 request must be leftover-empty"
@@ -733,15 +943,19 @@ mod tests {
 
         // DeleteAcls v2: compact 1 filter, same fields as Describe plus
         // per-filter and top-level tagged fields.
-        const DELETE: &[u8] = &[0x02, 0x02, 0x00, 0x01, 0x00, 0x00, 0x02, 0x03, 0x00, 0x00];
+        const DELETE: &[u8] = &[0x02, 0x02, 0x00, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00];
         buf.clear();
-        encode_delete_acls_request(&mut buf, 2, ACL_RESOURCE_TOPIC).unwrap();
+        encode_delete_acls_request(
+            &mut buf,
+            2,
+            &[AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC)],
+        )
+        .unwrap();
         assert_eq!(&buf[..], DELETE);
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_delete_acls_request(&mut cur, 2).unwrap(),
-            ACL_RESOURCE_TOPIC
-        );
+        let got = decode_delete_acls_request(&mut cur, 2).unwrap();
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].resource_type, ACL_RESOURCE_TOPIC);
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v2 request must be leftover-empty"
@@ -763,5 +977,47 @@ mod tests {
         assert_eq!(acl.operation, i8::from(AclOperation::All));
         assert_eq!(acl.permission, i8::from(AclPermission::Allow));
         assert_eq!(i8::from(AclResourceType::User), 7);
+    }
+
+    #[test]
+    fn delete_acls_v2_filters_of_two_matches_independent_encode() {
+        // Compact array of 2: topic-any + topic name "t" principal "U".
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x00, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x02, 0x02, 0x74, 0x01, 0x02,
+            0x55, 0x00, 0x01, 0x01, 0x00, 0x00,
+        ];
+        let filters = [
+            AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
+            AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC)
+                .name("t")
+                .principal("U"),
+        ];
+        let mut buf = BytesMut::new();
+        encode_delete_acls_request(&mut buf, 2, &filters).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let got = decode_delete_acls_request(&mut cur, 2).unwrap();
+        assert_eq!(got, filters);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls v2 Filters of 2 must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn acl_binding_filter_matches_principal_and_any() {
+        let alice = AclBinding::allow_topic("t", "User:alice");
+        let bob = AclBinding::allow_topic("t", "User:bob");
+        assert!(AclBindingFilter::resource_type(AclResourceType::Topic).matches(&alice));
+        assert!(AclBindingFilter::any().matches(&bob));
+        let alice_only =
+            AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice");
+        assert!(alice_only.matches(&alice));
+        assert!(!alice_only.matches(&bob));
+        let deny = AclBinding::allow_topic("t", "User:alice").permission(AclPermission::Deny);
+        assert!(AclBindingFilter::resource_type(AclResourceType::Topic).matches(&deny));
+        assert!(!AclBindingFilter::resource_type(AclResourceType::Topic)
+            .permission(AclPermission::Allow)
+            .matches(&deny));
     }
 }
