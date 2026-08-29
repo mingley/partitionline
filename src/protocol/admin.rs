@@ -7281,6 +7281,9 @@ impl ShareGroupTopicPartitions {
 }
 
 /// Current assignment for one described share-group member.
+///
+/// [`Display`] is Java `ShareMemberAssignment.toString` (comma-no-space
+/// `topic-partition` list).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShareGroupAssignment {
     /// Assigned topic partitions.
@@ -7300,12 +7303,32 @@ impl ShareGroupAssignment {
     }
 }
 
+impl fmt::Display for ShareGroupAssignment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("(topicPartitions=")?;
+        let mut first = true;
+        for topic in self.topic_partitions() {
+            for partition in topic.partitions() {
+                if !first {
+                    f.write_str(",")?;
+                }
+                first = false;
+                write!(f, "{}-{}", topic.topic_name(), partition)?;
+            }
+        }
+        f.write_str(")")
+    }
+}
+
 /// One member in a ShareGroupDescribe v0–v1 group.
 ///
 /// Java `ShareMemberDescription`. Official member fields are MemberId,
 /// RackId, MemberEpoch, ClientId, ClientHost, SubscribedTopicNames,
 /// Assignment. There is no InstanceId, SubscribedTopicRegex,
 /// TargetAssignment, or MemberType.
+///
+/// [`Display`] is Java `ShareMemberDescription.toString` (memberId,
+/// clientId, host, assignment; omits rack, epoch, and subscriptions).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupMember {
     /// Group member id.
@@ -7365,6 +7388,20 @@ impl ShareGroupMember {
     #[must_use]
     pub fn assignment(&self) -> &ShareGroupAssignment {
         &self.assignment
+    }
+}
+
+impl fmt::Display for ShareGroupMember {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("(memberId=")?;
+        f.write_str(self.member_id())?;
+        f.write_str(", clientId=")?;
+        f.write_str(self.client_id())?;
+        f.write_str(", host=")?;
+        f.write_str(self.host())?;
+        f.write_str(", assignment=")?;
+        write!(f, "{}", self.assignment())?;
+        f.write_str(")")
     }
 }
 
@@ -14968,12 +15005,25 @@ mod tests {
             assignment.topic_partitions(),
             std::slice::from_ref(&assigned)
         );
+        assert_eq!(assignment.to_string(), "(topicPartitions=t-0,t-1)");
+        assert_eq!(
+            ShareGroupAssignment::default().to_string(),
+            "(topicPartitions=)"
+        );
         let mut member = ShareGroupMember::new("m1", 3, "c", "h");
         member.assignment = assignment.clone();
         assert_eq!(member.member_id(), "m1");
         assert_eq!(member.client_id(), "c");
         assert_eq!(member.host(), "h");
         assert_eq!(member.assignment(), &assignment);
+        assert_eq!(
+            member.to_string(),
+            "(memberId=m1, clientId=c, host=h, assignment=(topicPartitions=t-0,t-1))"
+        );
+        assert_eq!(
+            ShareGroupMember::new("m", 1, "c", "h").to_string(),
+            "(memberId=m, clientId=c, host=h, assignment=(topicPartitions=))"
+        );
         let described = DescribedShareGroup {
             error_code: 0,
             error_message: None,
