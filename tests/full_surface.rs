@@ -9123,6 +9123,22 @@ async fn describe_log_dirs_follows_broker() {
     assert_eq!(first.results.len(), 1);
     assert_eq!(first.results[0].log_dir, "/d");
     assert_eq!(first.results[0].error_code, 0);
+    assert_eq!(first.error_code(), 0);
+    assert_eq!(first.results()[0].log_dir(), "/d");
+    assert_eq!(first.results()[0].error_code(), 0);
+    assert!(first.results()[0].total_bytes().is_none());
+    assert!(first.results()[0].usable_bytes().is_none());
+    assert_eq!(first.results()[0].topics()[0].name(), "t");
+    assert_eq!(
+        first.results()[0].topics()[0].partitions()[0].partition_index(),
+        0
+    );
+    assert_eq!(first.results()[0].topics()[0].partitions()[0].size(), 0);
+    assert_eq!(
+        first.results()[0].topics()[0].partitions()[0].offset_lag(),
+        0
+    );
+    assert!(!first.results()[0].topics()[0].partitions()[0].is_future());
     assert_eq!(first.results[0].topics[0].name, "t");
     assert_eq!(first.results[0].topics[0].partitions[0].partition_index, 0);
     assert_eq!(
@@ -10165,6 +10181,12 @@ async fn describe_consumer_groups_follows_group_coordinator() {
     assert_eq!(described[0].group_id(), "g-cons");
     assert_eq!(described[0].error_code(), 0);
     assert!(described[0].is_consumer_protocol());
+    assert_eq!(described[0].group_state(), "Stable");
+    assert_eq!(described[0].partition_assignor(), "uniform");
+    assert_eq!(described[0].group_type(), GroupType::Consumer);
+    assert_eq!(described[0].group_epoch(), Some(1));
+    assert_eq!(described[0].target_assignment_epoch(), Some(1));
+    assert!(!described[0].is_simple_consumer_group());
     assert_eq!(
         mock.last_consumer_group_describe_node(),
         Some(2),
@@ -10191,6 +10213,11 @@ async fn describe_consumer_groups_follows_group_coordinator() {
     assert_eq!(classic.len(), 1);
     assert!(!classic[0].is_consumer_protocol());
     assert_eq!(classic[0].group_id(), "g-classic-fb");
+    assert_eq!(classic[0].group_type(), GroupType::Classic);
+    assert!(classic[0].group_epoch().is_none());
+    assert!(classic[0].target_assignment_epoch().is_none());
+    assert!(!classic[0].is_simple_consumer_group());
+    assert_eq!(classic[0].partition_assignor(), "");
     assert_eq!(
         mock.last_describe_groups_node(),
         Some(2),

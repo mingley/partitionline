@@ -5171,6 +5171,24 @@ impl ConsumerGroupTopicPartitions {
             partitions,
         }
     }
+
+    /// Topic id (UUID), or zeros.
+    #[must_use]
+    pub fn topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Partition indexes in this assignment.
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
 }
 
 /// Current or target assignment for one described member.
@@ -5185,10 +5203,17 @@ impl ConsumerGroupAssignment {
     pub fn new(topic_partitions: Vec<ConsumerGroupTopicPartitions>) -> Self {
         Self { topic_partitions }
     }
+
+    /// Assigned topic partitions.
+    #[must_use]
+    pub fn topic_partitions(&self) -> &[ConsumerGroupTopicPartitions] {
+        &self.topic_partitions
+    }
 }
 
 /// One member in a ConsumerGroupDescribe group.
 ///
+/// Java `MemberDescription` for a [`GroupType::Consumer`] group.
 /// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
 /// v0 decode fills `-1`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -5239,6 +5264,58 @@ impl ConsumerGroupMember {
             member_type: -1,
         }
     }
+
+    /// Java `MemberDescription.consumerId`.
+    #[must_use]
+    pub fn member_id(&self) -> &str {
+        self.member_id.as_str()
+    }
+
+    /// Java `MemberDescription.groupInstanceId`.
+    #[must_use]
+    pub fn group_instance_id(&self) -> Option<&str> {
+        self.instance_id.as_deref()
+    }
+
+    /// Java `MemberDescription.clientId`.
+    #[must_use]
+    pub fn client_id(&self) -> &str {
+        self.client_id.as_str()
+    }
+
+    /// Java `MemberDescription.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.client_host.as_str()
+    }
+
+    /// Java `MemberDescription.assignment` (api 69 topic partitions).
+    #[must_use]
+    pub fn assignment(&self) -> &ConsumerGroupAssignment {
+        &self.assignment
+    }
+
+    /// Java `MemberDescription.targetAssignment` (always present for api 69).
+    #[must_use]
+    pub fn target_assignment(&self) -> Option<&ConsumerGroupAssignment> {
+        Some(&self.target_assignment)
+    }
+
+    /// Java `MemberDescription.memberEpoch` (always present for api 69).
+    #[must_use]
+    pub fn member_epoch(&self) -> Option<i32> {
+        Some(self.member_epoch)
+    }
+
+    /// Java `MemberDescription.upgraded`.
+    ///
+    /// [`DescribeConsumerGroupsHandler`](https://github.com/apache/kafka/blob/4.0.0/clients/src/main/java/org/apache/kafka/clients/admin/internals/DescribeConsumerGroupsHandler.java)
+    /// maps `MemberType` `-1` to empty, `1` to `true`, and any other
+    /// value to `false`.
+    #[must_use]
+    pub fn upgraded(&self) -> Option<bool> {
+        (self.member_type != -1).then_some(self.member_type == 1)
+    }
 }
 
 /// One described group in ConsumerGroupDescribe (api 69).
@@ -5280,6 +5357,60 @@ impl DescribedConsumerGroup {
             members: Vec::new(),
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Group state name from the broker.
+    #[must_use]
+    pub fn group_state(&self) -> &str {
+        self.group_state.as_str()
+    }
+
+    /// Java `ConsumerGroupDescription.groupEpoch`.
+    #[must_use]
+    pub fn group_epoch(&self) -> i32 {
+        self.group_epoch
+    }
+
+    /// Java `ConsumerGroupDescription.targetAssignmentEpoch`.
+    #[must_use]
+    pub fn assignment_epoch(&self) -> i32 {
+        self.assignment_epoch
+    }
+
+    /// Java `ConsumerGroupDescription.partitionAssignor`.
+    #[must_use]
+    pub fn assignor_name(&self) -> &str {
+        self.assignor_name.as_str()
+    }
+
+    /// Java `ConsumerGroupDescription.members`.
+    #[must_use]
+    pub fn members(&self) -> &[ConsumerGroupMember] {
+        &self.members
+    }
+
+    /// Bitfield of authorized operations, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        self.authorized_operations
     }
 }
 
@@ -5523,8 +5654,10 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
 
 /// One member in a classic DescribeGroups (api 15) group.
 ///
+/// Java `MemberDescription` for a [`GroupType::Classic`] group.
 /// `group_instance_id` is v4+ (nullable). Metadata and assignment are
-/// protocol bytes, not a parsed member store.
+/// protocol bytes, not a parsed member store. Java deserializes
+/// assignment with `ConsumerProtocol.deserializeAssignment`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedGroupMember {
     /// Group member id.
@@ -5556,6 +5689,54 @@ impl DescribedGroupMember {
             member_metadata: Vec::new(),
             member_assignment: Vec::new(),
         }
+    }
+
+    /// Java `MemberDescription.consumerId`.
+    #[must_use]
+    pub fn member_id(&self) -> &str {
+        self.member_id.as_str()
+    }
+
+    /// Java `MemberDescription.groupInstanceId`.
+    #[must_use]
+    pub fn group_instance_id(&self) -> Option<&str> {
+        self.group_instance_id.as_deref()
+    }
+
+    /// Java `MemberDescription.clientId`.
+    #[must_use]
+    pub fn client_id(&self) -> &str {
+        self.client_id.as_str()
+    }
+
+    /// Java `MemberDescription.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.client_host.as_str()
+    }
+
+    /// Classic SyncGroup assignment bytes (Java `MemberDescription.assignment`).
+    #[must_use]
+    pub fn assignment(&self) -> &[u8] {
+        &self.member_assignment
+    }
+
+    /// Java `MemberDescription.targetAssignment` (empty for CLASSIC groups).
+    #[must_use]
+    pub fn target_assignment(&self) -> Option<&[u8]> {
+        None
+    }
+
+    /// Java `MemberDescription.memberEpoch` (empty for CLASSIC groups).
+    #[must_use]
+    pub fn member_epoch(&self) -> Option<i32> {
+        None
+    }
+
+    /// Java `MemberDescription.upgraded` (empty for CLASSIC groups).
+    #[must_use]
+    pub fn upgraded(&self) -> Option<bool> {
+        None
     }
 }
 
@@ -5596,6 +5777,60 @@ impl DescribedGroup {
             members: Vec::new(),
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Group state name from the broker.
+    #[must_use]
+    pub fn group_state(&self) -> &str {
+        self.group_state.as_str()
+    }
+
+    /// Group protocol type (for example `consumer`).
+    #[must_use]
+    pub fn protocol_type(&self) -> &str {
+        self.protocol_type.as_str()
+    }
+
+    /// Java `ConsumerGroupDescription.partitionAssignor` (classic `ProtocolData`).
+    #[must_use]
+    pub fn protocol_data(&self) -> &str {
+        self.protocol_data.as_str()
+    }
+
+    /// Java `ConsumerGroupDescription.members`.
+    #[must_use]
+    pub fn members(&self) -> &[DescribedGroupMember] {
+        &self.members
+    }
+
+    /// Bitfield of authorized operations, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        self.authorized_operations
+    }
+
+    /// Java `ConsumerGroupDescription.isSimpleConsumerGroup` (empty protocol type).
+    #[must_use]
+    pub fn is_simple_consumer_group(&self) -> bool {
+        self.protocol_type.is_empty()
     }
 }
 
@@ -8989,10 +9224,13 @@ impl DescribeLogDirsRequest {
     }
 }
 
+/// Java `DescribeLogDirsResponse.UNKNOWN_VOLUME_BYTES` (`-1`).
+pub const UNKNOWN_VOLUME_BYTES: i64 = -1;
+
 /// One partition in a DescribeLogDirs (api 35) response.
 ///
-/// Official JSON has no partition ErrorCode. Fields are
-/// PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
+/// Java `ReplicaInfo`. Official JSON has no partition ErrorCode. Fields
+/// are PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsPartition {
     /// Partition index.
@@ -9020,6 +9258,30 @@ impl DescribeLogDirsPartition {
             is_future_key,
         }
     }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Java `ReplicaInfo.size`.
+    #[must_use]
+    pub fn size(&self) -> i64 {
+        self.partition_size
+    }
+
+    /// Java `ReplicaInfo.offsetLag`.
+    #[must_use]
+    pub fn offset_lag(&self) -> i64 {
+        self.offset_lag
+    }
+
+    /// Java `ReplicaInfo.isFuture`.
+    #[must_use]
+    pub fn is_future(&self) -> bool {
+        self.is_future_key
+    }
 }
 
 /// One topic in a DescribeLogDirs (api 35) response.
@@ -9039,13 +9301,27 @@ impl DescribeLogDirsTopic {
             partitions,
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Per-partition replica info in this directory.
+    #[must_use]
+    pub fn partitions(&self) -> &[DescribeLogDirsPartition] {
+        &self.partitions
+    }
 }
 
 /// One directory in a DescribeLogDirs (api 35) response.
 ///
-/// First-directory ErrorCode is this struct's `error_code`, not a
-/// first-partition field. `total_bytes` / `usable_bytes` are v4
-/// (official JSON default `-1`; decode fills `-1` on v1–v3).
+/// Java `LogDirDescription`. First-directory ErrorCode is this struct's
+/// `error_code`, not a first-partition field. `total_bytes` /
+/// `usable_bytes` are v4 (official JSON default `-1`; decode fills `-1`
+/// on v1–v3). [`Self::total_bytes`] / [`Self::usable_bytes`] are `None`
+/// when the wire value is [`UNKNOWN_VOLUME_BYTES`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsResult {
     /// Kafka error code (`0` is success).
@@ -9077,6 +9353,36 @@ impl DescribeLogDirsResult {
             usable_bytes,
         }
     }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Log directory path.
+    #[must_use]
+    pub fn log_dir(&self) -> &str {
+        self.log_dir.as_str()
+    }
+
+    /// Topics in this log directory.
+    #[must_use]
+    pub fn topics(&self) -> &[DescribeLogDirsTopic] {
+        &self.topics
+    }
+
+    /// Java `LogDirDescription.totalBytes` (`None` when [`UNKNOWN_VOLUME_BYTES`]).
+    #[must_use]
+    pub fn total_bytes(&self) -> Option<i64> {
+        (self.total_bytes != UNKNOWN_VOLUME_BYTES).then_some(self.total_bytes)
+    }
+
+    /// Java `LogDirDescription.usableBytes` (`None` when [`UNKNOWN_VOLUME_BYTES`]).
+    #[must_use]
+    pub fn usable_bytes(&self) -> Option<i64> {
+        (self.usable_bytes != UNKNOWN_VOLUME_BYTES).then_some(self.usable_bytes)
+    }
 }
 
 /// DescribeLogDirs (api 35) v1–v4 response body.
@@ -9099,6 +9405,18 @@ impl DescribeLogDirsResponse {
             error_code,
             results,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Per-directory results.
+    #[must_use]
+    pub fn results(&self) -> &[DescribeLogDirsResult] {
+        &self.results
     }
 }
 
@@ -12784,6 +13102,110 @@ mod tests {
         assert_eq!(listed.error_code(), 0);
         assert_eq!(listed.unknown_state_filters(), &["Nope".to_string()]);
         assert_eq!(listed.transaction_states(), std::slice::from_ref(&listing));
+    }
+
+    #[test]
+    fn member_and_log_dir_getters_match_java() {
+        let assigned = ConsumerGroupTopicPartitions::new([0; 16], "t", vec![0, 1]);
+        assert_eq!(assigned.topic_id(), [0; 16]);
+        assert_eq!(assigned.topic_name(), "t");
+        assert_eq!(assigned.partitions(), &[0, 1]);
+        let assignment = ConsumerGroupAssignment::new(vec![assigned.clone()]);
+        assert_eq!(
+            assignment.topic_partitions(),
+            std::slice::from_ref(&assigned)
+        );
+        let mut member = ConsumerGroupMember::new("m1", 7, "c", "h");
+        member.instance_id = Some("i1".into());
+        member.assignment = assignment.clone();
+        member.target_assignment = assignment.clone();
+        member.member_type = 1;
+        assert_eq!(member.member_id(), "m1");
+        assert_eq!(member.group_instance_id(), Some("i1"));
+        assert_eq!(member.client_id(), "c");
+        assert_eq!(member.host(), "h");
+        assert_eq!(member.assignment(), &assignment);
+        assert_eq!(member.target_assignment(), Some(&assignment));
+        assert_eq!(member.member_epoch(), Some(7));
+        assert_eq!(member.upgraded(), Some(true));
+        member.member_type = 0;
+        assert_eq!(member.upgraded(), Some(false));
+        member.member_type = -1;
+        assert!(member.upgraded().is_none());
+        let described = DescribedConsumerGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "g".into(),
+            group_state: "Stable".into(),
+            group_epoch: 2,
+            assignment_epoch: 3,
+            assignor_name: "uniform".into(),
+            members: vec![member.clone()],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        assert_eq!(described.error_code(), 0);
+        assert!(described.error_message().is_none());
+        assert_eq!(described.group_id(), "g");
+        assert_eq!(described.group_state(), "Stable");
+        assert_eq!(described.group_epoch(), 2);
+        assert_eq!(described.assignment_epoch(), 3);
+        assert_eq!(described.assignor_name(), "uniform");
+        assert_eq!(described.members(), std::slice::from_ref(&member));
+        assert_eq!(
+            described.authorized_operations(),
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
+        let mut classic_member = DescribedGroupMember::new("m", "c", "h");
+        classic_member.group_instance_id = Some("i1".into());
+        classic_member.member_assignment = vec![1, 2, 3];
+        assert_eq!(classic_member.member_id(), "m");
+        assert_eq!(classic_member.group_instance_id(), Some("i1"));
+        assert_eq!(classic_member.client_id(), "c");
+        assert_eq!(classic_member.host(), "h");
+        assert_eq!(classic_member.assignment(), &[1, 2, 3]);
+        assert!(classic_member.target_assignment().is_none());
+        assert!(classic_member.member_epoch().is_none());
+        assert!(classic_member.upgraded().is_none());
+        let mut classic = DescribedGroup::new("g", 0);
+        classic.group_state = "Stable".into();
+        classic.protocol_type = "consumer".into();
+        classic.protocol_data = "range".into();
+        classic.members = vec![classic_member.clone()];
+        assert_eq!(classic.error_code(), 0);
+        assert_eq!(classic.group_id(), "g");
+        assert_eq!(classic.group_state(), "Stable");
+        assert_eq!(classic.protocol_type(), "consumer");
+        assert_eq!(classic.protocol_data(), "range");
+        assert_eq!(classic.members(), std::slice::from_ref(&classic_member));
+        assert!(!classic.is_simple_consumer_group());
+        let simple = DescribedGroup::new("s", 0);
+        assert!(simple.is_simple_consumer_group());
+        let replica = DescribeLogDirsPartition::new(0, 10, 3, true);
+        assert_eq!(replica.partition_index(), 0);
+        assert_eq!(replica.size(), 10);
+        assert_eq!(replica.offset_lag(), 3);
+        assert!(replica.is_future());
+        let topic = DescribeLogDirsTopic::new("t", vec![replica.clone()]);
+        assert_eq!(topic.name(), "t");
+        assert_eq!(topic.partitions(), std::slice::from_ref(&replica));
+        let dir = DescribeLogDirsResult::new(
+            0,
+            "/d",
+            vec![topic.clone()],
+            UNKNOWN_VOLUME_BYTES,
+            UNKNOWN_VOLUME_BYTES,
+        );
+        assert_eq!(dir.error_code(), 0);
+        assert_eq!(dir.log_dir(), "/d");
+        assert_eq!(dir.topics(), std::slice::from_ref(&topic));
+        assert!(dir.total_bytes().is_none());
+        assert!(dir.usable_bytes().is_none());
+        let sized = DescribeLogDirsResult::new(0, "/d", Vec::new(), 100, 40);
+        assert_eq!(sized.total_bytes(), Some(100));
+        assert_eq!(sized.usable_bytes(), Some(40));
+        let resp = DescribeLogDirsResponse::new(0, vec![dir.clone()]);
+        assert_eq!(resp.error_code(), 0);
+        assert_eq!(resp.results(), std::slice::from_ref(&dir));
     }
 
     #[test]

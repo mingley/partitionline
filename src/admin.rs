@@ -154,7 +154,7 @@ pub use crate::protocol::admin::{
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
-    SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UPGRADE_TYPE_SAFE_DOWNGRADE,
+    SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE,
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use crate::protocol::group::OffsetDeleteResult;
@@ -832,6 +832,54 @@ impl ConsumerGroupDescription {
     #[must_use]
     pub fn is_consumer_protocol(&self) -> bool {
         matches!(self, Self::Consumer(_))
+    }
+
+    /// Java `ConsumerGroupDescription.isSimpleConsumerGroup`.
+    ///
+    /// [`DescribeConsumerGroupsHandler`](https://github.com/apache/kafka/blob/4.0.0/clients/src/main/java/org/apache/kafka/clients/admin/internals/DescribeConsumerGroupsHandler.java)
+    /// is `false` for api 69 and empty classic `ProtocolType` for api 15.
+    #[must_use]
+    pub fn is_simple_consumer_group(&self) -> bool {
+        match self {
+            Self::Consumer(_) => false,
+            Self::Classic(g) => g.is_simple_consumer_group(),
+        }
+    }
+
+    /// Java `ConsumerGroupDescription.partitionAssignor`.
+    #[must_use]
+    pub fn partition_assignor(&self) -> &str {
+        match self {
+            Self::Consumer(g) => g.assignor_name(),
+            Self::Classic(g) => g.protocol_data(),
+        }
+    }
+
+    /// Java `ConsumerGroupDescription.type`.
+    #[must_use]
+    pub fn group_type(&self) -> GroupType {
+        match self {
+            Self::Consumer(_) => GroupType::Consumer,
+            Self::Classic(_) => GroupType::Classic,
+        }
+    }
+
+    /// Java `ConsumerGroupDescription.groupEpoch` (empty for CLASSIC groups).
+    #[must_use]
+    pub fn group_epoch(&self) -> Option<i32> {
+        match self {
+            Self::Consumer(g) => Some(g.group_epoch()),
+            Self::Classic(_) => None,
+        }
+    }
+
+    /// Java `ConsumerGroupDescription.targetAssignmentEpoch` (empty for CLASSIC groups).
+    #[must_use]
+    pub fn target_assignment_epoch(&self) -> Option<i32> {
+        match self {
+            Self::Consumer(g) => Some(g.assignment_epoch()),
+            Self::Classic(_) => None,
+        }
     }
 }
 
@@ -11038,6 +11086,31 @@ mod tests {
         let unknown = ReplicaLogDirInfo::unknown();
         assert!(unknown.current_log_dir().is_none());
         assert_eq!(unknown.current_offset_lag(), -1);
+        let replica_info = DescribeLogDirsPartition::new(0, 10, 3, false);
+        assert_eq!(replica_info.size(), 10);
+        assert_eq!(replica_info.offset_lag(), 3);
+        assert!(!replica_info.is_future());
+        let log_dir = DescribeLogDirsResult::new(
+            0,
+            "/data",
+            vec![DescribeLogDirsTopic::new("t", vec![replica_info])],
+            4096,
+            1024,
+        );
+        assert_eq!(log_dir.log_dir(), "/data");
+        assert_eq!(log_dir.total_bytes(), Some(4096));
+        assert_eq!(log_dir.usable_bytes(), Some(1024));
+        assert_eq!(
+            DescribeLogDirsResult::new(
+                0,
+                "/d",
+                Vec::new(),
+                UNKNOWN_VOLUME_BYTES,
+                UNKNOWN_VOLUME_BYTES
+            )
+            .total_bytes(),
+            None
+        );
     }
 
     #[test]
@@ -11327,6 +11400,38 @@ mod tests {
         };
         assert!(simple.is_simple_consumer_group());
         assert_eq!(simple.protocol(), "");
+        let consumer = ConsumerGroupDescription::Consumer({
+            let mut g = DescribedConsumerGroup::new("g-cons", 0);
+            g.group_state = "Stable".into();
+            g.group_epoch = 4;
+            g.assignment_epoch = 5;
+            g.assignor_name = "uniform".into();
+            g
+        });
+        assert_eq!(consumer.group_id(), "g-cons");
+        assert_eq!(consumer.group_state(), "Stable");
+        assert_eq!(consumer.partition_assignor(), "uniform");
+        assert_eq!(consumer.group_type(), GroupType::Consumer);
+        assert_eq!(consumer.group_epoch(), Some(4));
+        assert_eq!(consumer.target_assignment_epoch(), Some(5));
+        assert!(!consumer.is_simple_consumer_group());
+        assert!(consumer.is_consumer_protocol());
+        let classic = ConsumerGroupDescription::Classic({
+            let mut g = DescribedGroup::new("g-classic", 0);
+            g.group_state = "Stable".into();
+            g.protocol_type = "consumer".into();
+            g.protocol_data = "range".into();
+            g
+        });
+        assert_eq!(classic.partition_assignor(), "range");
+        assert_eq!(classic.group_type(), GroupType::Classic);
+        assert!(classic.group_epoch().is_none());
+        assert!(classic.target_assignment_epoch().is_none());
+        assert!(!classic.is_simple_consumer_group());
+        assert!(!classic.is_consumer_protocol());
+        let simple_desc = ConsumerGroupDescription::Classic(DescribedGroup::new("s", 0));
+        assert!(simple_desc.is_simple_consumer_group());
+        assert_eq!(simple_desc.partition_assignor(), "");
     }
 
     #[test]

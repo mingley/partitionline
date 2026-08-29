@@ -293,7 +293,13 @@
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
 //! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`
 //! ([`ConsumerGroupDescription`]; ConsumerGroupDescribe first, then
-//! DescribeGroups).
+//! DescribeGroups). [`ConsumerGroupDescription`] getters match Java
+//! (`partitionAssignor`, `type`, `groupEpoch` / `targetAssignmentEpoch`
+//! empty for CLASSIC). [`ConsumerGroupMember`] / [`DescribedGroupMember`]
+//! getters match Java `MemberDescription`. [`DescribeLogDirsResult`]
+//! getters match Java `LogDirDescription` (`totalBytes` / `usableBytes`
+//! are `None` when [`UNKNOWN_VOLUME_BYTES`]). [`DescribeLogDirsPartition`]
+//! getters match Java `ReplicaInfo`.
 //! [`Admin::describe_classic_groups_timeout`] /
 //! [`Admin::describe_consumer_groups_timeout`] /
 //! [`Admin::describe_groups_timeout`] are Java
@@ -650,8 +656,8 @@ pub use admin::{
     CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
     CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON,
     ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
-    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UPGRADE_TYPE_SAFE_DOWNGRADE,
-    UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
+    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES,
+    UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
