@@ -3814,6 +3814,16 @@ async fn admin_list_and_describe_topics() {
         listed.iter().any(|t| t.name == "t" && !t.is_internal),
         "seeded topic t"
     );
+    let t = listed.iter().find(|x| x.name() == "t").unwrap();
+    assert_eq!(
+        format!("{t}"),
+        format!(
+            "(name={}, topicId={}, internal={})",
+            t.name(),
+            t.topic_id(),
+            t.is_internal()
+        )
+    );
     assert_eq!(mock.last_metadata_topics(), Some(None));
     assert_eq!(mock.last_metadata_allow_auto(), Some(false));
     let created_internal = admin
@@ -3885,9 +3895,14 @@ async fn admin_describe_replica_log_dirs() {
         .unwrap();
     assert_eq!(described.len(), 1);
     assert_eq!(described[0].0, TopicPartitionReplica::new("t", 0, 1));
+    assert_eq!(format!("{}", described[0].0), "t-0-1");
     assert_eq!(
         described[0].1,
         ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(
+        format!("{}", described[0].1),
+        "ReplicaLogDirInfo(currentReplicaLogDir=/d)"
     );
     assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
     let altered = admin

@@ -542,7 +542,8 @@ impl From<DeletedRecords> for (i64, i16) {
 ///
 /// Wire TopicId / ClientInstanceId stay `[u8; 16]`. [`Self::from_string`] /
 /// [`Display`] match Java `fromString` / `toString` (`URL_SAFE` without
-/// padding). Kafka 4.1 Raft voter APIs are not spoken.
+/// padding). [`Self::random_uuid`] is Java `randomUuid`. Kafka 4.1 Raft
+/// voter APIs are not spoken.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Uuid([u8; 16]);
 
@@ -555,6 +556,11 @@ impl Uuid {
 
     /// Java `Uuid.METADATA_TOPIC_ID` (KRaft metadata topic).
     pub const METADATA_TOPIC_ID: Self = Self::ONE;
+
+    /// Java `Uuid.RESERVED` (`ZERO_UUID`, `ONE_UUID` / `METADATA_TOPIC_ID`).
+    ///
+    /// [`Self::random_uuid`] never returns these.
+    pub const RESERVED: [Self; 2] = [Self::ZERO, Self::ONE];
 
     /// Wrap a 16-byte Kafka UUID (big-endian most then least).
     #[must_use]
@@ -628,6 +634,38 @@ impl Uuid {
             ))
         })?;
         Ok(Self(bytes))
+    }
+
+    /// Java `Uuid.randomUuid` (RFC 4122 variant 2 version 4).
+    ///
+    /// Never returns [`Self::ZERO`], [`Self::ONE`] /
+    /// [`Self::METADATA_TOPIC_ID`], or a UUID whose [`Display`]
+    /// (base64url) starts with `-`.
+    #[must_use]
+    pub fn random_uuid() -> Self {
+        loop {
+            let uuid = Self::new_type4_uuid();
+            if Self::RESERVED.contains(&uuid) || uuid.to_string().starts_with('-') {
+                continue;
+            }
+            return uuid;
+        }
+    }
+
+    fn new_type4_uuid() -> Self {
+        let mut bytes = [0u8; 16];
+        loop {
+            if getrandom::getrandom(&mut bytes).is_ok() {
+                break;
+            }
+        }
+        if let Some(b6) = bytes.get_mut(6) {
+            *b6 = (*b6 & 0x0f) | 0x40;
+        }
+        if let Some(b8) = bytes.get_mut(8) {
+            *b8 = (*b8 & 0x3f) | 0x80;
+        }
+        Self(bytes)
     }
 }
 
@@ -772,6 +810,18 @@ impl TopicListing {
     #[must_use]
     pub fn is_internal(&self) -> bool {
         self.is_internal
+    }
+}
+
+impl fmt::Display for TopicListing {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(name={}, topicId={}, internal={})",
+            self.name,
+            Uuid::from_bytes(self.topic_id),
+            self.is_internal
+        )
     }
 }
 
@@ -1059,6 +1109,12 @@ impl TopicPartitionReplica {
     }
 }
 
+impl fmt::Display for TopicPartitionReplica {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{}-{}", self.topic, self.partition, self.broker_id)
+    }
+}
+
 /// Log directory for one replica (Java `ReplicaLogDirInfo`).
 ///
 /// Missing current or future dirs are [`None`]. Unknown lag is `-1`.
@@ -1119,6 +1175,32 @@ impl ReplicaLogDirInfo {
     #[must_use]
     pub fn future_offset_lag(&self) -> i64 {
         self.future_offset_lag
+    }
+}
+
+impl fmt::Display for ReplicaLogDirInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.future_log_dir.as_deref() {
+            Some(future) => {
+                f.write_str("(currentReplicaLogDir=")?;
+                write_java_nullable_str(f, self.current_log_dir.as_deref())?;
+                f.write_str(", futureReplicaLogDir=")?;
+                f.write_str(future)?;
+                write!(f, ", futureReplicaOffsetLag={})", self.future_offset_lag)
+            }
+            None => {
+                f.write_str("ReplicaLogDirInfo(currentReplicaLogDir=")?;
+                write_java_nullable_str(f, self.current_log_dir.as_deref())?;
+                f.write_str(")")
+            }
+        }
+    }
+}
+
+fn write_java_nullable_str(f: &mut fmt::Formatter<'_>, s: Option<&str>) -> fmt::Result {
+    match s {
+        Some(s) => f.write_str(s),
+        None => f.write_str("null"),
     }
 }
 
@@ -11389,14 +11471,27 @@ mod tests {
         assert_eq!(replica.topic(), "t");
         assert_eq!(replica.partition(), 2);
         assert_eq!(replica.broker_id(), 5);
+        assert_eq!(replica.to_string(), "t-2-5");
         let dirs = ReplicaLogDirInfo::new(Some("/data".into()), 3, Some("/next".into()), 4);
         assert_eq!(dirs.current_log_dir(), Some("/data"));
         assert_eq!(dirs.current_offset_lag(), 3);
         assert_eq!(dirs.future_log_dir(), Some("/next"));
         assert_eq!(dirs.future_offset_lag(), 4);
+        assert_eq!(
+            dirs.to_string(),
+            "(currentReplicaLogDir=/data, futureReplicaLogDir=/next, futureReplicaOffsetLag=4)"
+        );
         let unknown = ReplicaLogDirInfo::unknown();
         assert!(unknown.current_log_dir().is_none());
         assert_eq!(unknown.current_offset_lag(), -1);
+        assert_eq!(
+            unknown.to_string(),
+            "ReplicaLogDirInfo(currentReplicaLogDir=null)"
+        );
+        assert_eq!(
+            ReplicaLogDirInfo::new(None, -1, Some("/next".into()), 7).to_string(),
+            "(currentReplicaLogDir=null, futureReplicaLogDir=/next, futureReplicaOffsetLag=7)"
+        );
         let replica_info = DescribeLogDirsPartition::new(0, 10, 3, false);
         assert_eq!(replica_info.size(), 10);
         assert_eq!(replica_info.offset_lag(), 3);
@@ -12130,6 +12225,37 @@ mod tests {
         assert_eq!(listing.topic_id(), Uuid::ONE);
         assert_eq!(listing.name(), "t");
         assert!(!listing.is_internal());
+        assert_eq!(
+            listing.to_string(),
+            "(name=t, topicId=AAAAAAAAAAAAAAAAAAAAAQ, internal=false)"
+        );
+        assert!(Uuid::RESERVED.contains(&Uuid::ZERO));
+        assert!(Uuid::RESERVED.contains(&Uuid::ONE));
+        assert!(Uuid::RESERVED.contains(&Uuid::METADATA_TOPIC_ID));
+        let samples: Vec<Uuid> = (0..32).map(|_| Uuid::random_uuid()).collect();
+        for (i, u) in samples.iter().enumerate() {
+            assert_ne!(*u, Uuid::ZERO);
+            assert_ne!(*u, Uuid::ONE);
+            assert!(
+                !u.to_string().starts_with('-'),
+                "Java randomUuid skips dash-prefixed base64url"
+            );
+            assert_eq!(
+                u.as_bytes().get(6).map(|b| b >> 4),
+                Some(4),
+                "Java randomUuid is RFC 4122 version 4"
+            );
+            assert_eq!(
+                u.as_bytes().get(8).map(|b| b >> 6),
+                Some(2),
+                "Java randomUuid is RFC 4122 variant 2"
+            );
+            for (j, other) in samples.iter().enumerate() {
+                if i != j {
+                    assert_ne!(*u, *other);
+                }
+            }
+        }
     }
 
     #[test]

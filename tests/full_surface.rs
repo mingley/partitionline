@@ -5125,6 +5125,15 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     assert!(!t.is_internal());
     assert_eq!(t.topic_id().to_bytes(), t.topic_id);
     assert_eq!(
+        format!("{t}"),
+        format!(
+            "(name={}, topicId={}, internal={})",
+            t.name(),
+            t.topic_id(),
+            t.is_internal()
+        )
+    );
+    assert_eq!(
         mock.last_metadata_topics(),
         Some(None),
         "list_topics must send Metadata with a null topic array"
@@ -9535,9 +9544,14 @@ async fn describe_replica_log_dirs_follows_replica_broker() {
         .unwrap();
     assert_eq!(described.len(), 1);
     assert_eq!(described[0].0.broker_id, 2);
+    assert_eq!(format!("{}", described[0].0), "t-0-2");
     assert_eq!(
         described[0].1,
         ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
+    );
+    assert_eq!(
+        format!("{}", described[0].1),
+        "ReplicaLogDirInfo(currentReplicaLogDir=/d)"
     );
     assert_eq!(
         mock.last_describe_log_dirs_node(),

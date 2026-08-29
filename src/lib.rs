@@ -143,7 +143,9 @@
 //! [`FetchedRecord`] / [`ShareRecord`] `Display` is Java `ConsumerRecord.toString`.
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
-//! match Java `toString`.
+//! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
+//! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
+//! is Java `Uuid.randomUuid`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
@@ -480,7 +482,8 @@
 //! `DescribeTopicsOptions.partitionSizeLimitPerResponse` /
 //! `describeTopics(TopicCollection.ofTopicNames)` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
-//! ([`TopicCollection`] / [`TopicListing`] / [`TopicDescription`] / [`Uuid`]).
+//! ([`TopicCollection`] / [`TopicListing`] / [`TopicDescription`] / [`Uuid`];
+//! [`Uuid::random_uuid`] is Java `Uuid.randomUuid`).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`Admin::describe_broker_log_dirs`] is Java
