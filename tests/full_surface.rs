@@ -8040,6 +8040,19 @@ async fn create_delegation_token_follows_broker() {
         None,
         "CreateDelegationToken must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .create_delegation_token_timeout(
+            CreateDelegationTokenRequest::new(
+                None,
+                None,
+                vec![CreatableRenewer::new("User", "r")],
+                -1,
+            ),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]
@@ -8123,6 +8136,14 @@ async fn renew_delegation_token_follows_broker() {
         None,
         "RenewDelegationToken must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .renew_delegation_token_timeout(
+            RenewDelegationTokenRequest::new(vec![0xaa], -1),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]
@@ -8203,6 +8224,14 @@ async fn expire_delegation_token_follows_broker() {
         None,
         "ExpireDelegationToken must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .expire_delegation_token_timeout(
+            ExpireDelegationTokenRequest::new(vec![0xaa], -1),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]
@@ -8290,6 +8319,16 @@ async fn describe_delegation_token_follows_broker() {
         None,
         "DescribeDelegationToken must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .describe_delegation_token_timeout(
+            DescribeDelegationTokenRequest::new(Some(vec![DescribeDelegationTokenOwner::new(
+                "User", "r",
+            )])),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]

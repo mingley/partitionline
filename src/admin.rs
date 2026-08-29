@@ -7106,12 +7106,27 @@ impl Admin {
     /// store. Kafka 4.0 `validVersions` is `1-3`. This crate speaks
     /// 1–3. v0 and v4+ are not spoken. v1–v2 omit owner on the wire
     /// (decode fills `None`) and omit requester (decode fills empty).
+    /// CreateDelegationToken has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::create_delegation_token_timeout`].
     pub async fn create_delegation_token(
         &mut self,
         req: CreateDelegationTokenRequest,
     ) -> Result<CreateDelegationTokenResponse> {
-        let version = self.create_delegation_token_version;
         let timeout = self.cfg.request_timeout;
+        self.create_delegation_token_timeout(req, timeout).await
+    }
+
+    /// [`Self::create_delegation_token`] with a one-shot RPC deadline (Java
+    /// `CreateDelegationTokenOptions.timeoutMs`).
+    ///
+    /// CreateDelegationToken has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn create_delegation_token_timeout(
+        &mut self,
+        req: CreateDelegationTokenRequest,
+        timeout: Duration,
+    ) -> Result<CreateDelegationTokenResponse> {
+        let version = self.create_delegation_token_version;
         let body = self
             .roundtrip_bootstrap(
                 CREATE_DELEGATION_TOKEN,
@@ -7145,13 +7160,27 @@ impl Admin {
     /// only; this is not a token store. Kafka 4.0 `validVersions` is
     /// `1-2`. This crate speaks 1–2. v0 and v3+ are not spoken. Same
     /// fields on v1 and v2. Do not copy CreateDelegationToken just
-    /// because it is the previous slice.
+    /// because it is the previous slice. RenewDelegationToken has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::renew_delegation_token_timeout`].
     pub async fn renew_delegation_token(
         &mut self,
         req: RenewDelegationTokenRequest,
     ) -> Result<RenewDelegationTokenResponse> {
-        let version = self.renew_delegation_token_version;
         let timeout = self.cfg.request_timeout;
+        self.renew_delegation_token_timeout(req, timeout).await
+    }
+
+    /// [`Self::renew_delegation_token`] with a one-shot RPC deadline (Java
+    /// `RenewDelegationTokenOptions.timeoutMs`).
+    ///
+    /// RenewDelegationToken has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn renew_delegation_token_timeout(
+        &mut self,
+        req: RenewDelegationTokenRequest,
+        timeout: Duration,
+    ) -> Result<RenewDelegationTokenResponse> {
+        let version = self.renew_delegation_token_version;
         let body = self
             .roundtrip_bootstrap(
                 RENEW_DELEGATION_TOKEN,
@@ -7185,13 +7214,27 @@ impl Admin {
     /// only; this is not a token store. Kafka 4.0 `validVersions` is
     /// `1-2`. This crate speaks 1–2. v0 and v3+ are not spoken. Same
     /// fields on v1 and v2. Do not copy RenewDelegationToken just
-    /// because it is the previous slice.
+    /// because it is the previous slice. ExpireDelegationToken has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::expire_delegation_token_timeout`].
     pub async fn expire_delegation_token(
         &mut self,
         req: ExpireDelegationTokenRequest,
     ) -> Result<ExpireDelegationTokenResponse> {
-        let version = self.expire_delegation_token_version;
         let timeout = self.cfg.request_timeout;
+        self.expire_delegation_token_timeout(req, timeout).await
+    }
+
+    /// [`Self::expire_delegation_token`] with a one-shot RPC deadline (Java
+    /// `ExpireDelegationTokenOptions.timeoutMs`).
+    ///
+    /// ExpireDelegationToken has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn expire_delegation_token_timeout(
+        &mut self,
+        req: ExpireDelegationTokenRequest,
+        timeout: Duration,
+    ) -> Result<ExpireDelegationTokenResponse> {
+        let version = self.expire_delegation_token_version;
         let body = self
             .roundtrip_bootstrap(
                 EXPIRE_DELEGATION_TOKEN,
@@ -7229,13 +7272,29 @@ impl Admin {
     /// This crate speaks 1–3. v0 and v4+ are not spoken. Request
     /// Owners is the same on v1–v3. v1–v2 omit TokenRequester on each
     /// token (decode fills empty). Do not copy ExpireDelegationToken
-    /// just because it is the previous slice.
+    /// just because it is the previous slice. DescribeDelegationToken
+    /// has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_delegation_token_timeout`].
     pub async fn describe_delegation_token(
         &mut self,
         req: DescribeDelegationTokenRequest,
     ) -> Result<DescribeDelegationTokenResponse> {
-        let version = self.describe_delegation_token_version;
         let timeout = self.cfg.request_timeout;
+        self.describe_delegation_token_timeout(req, timeout).await
+    }
+
+    /// [`Self::describe_delegation_token`] with a one-shot RPC deadline
+    /// (Java `DescribeDelegationTokenOptions.timeoutMs`).
+    ///
+    /// DescribeDelegationToken has no TimeoutMs; `timeout` is the RPC
+    /// deadline.
+    pub async fn describe_delegation_token_timeout(
+        &mut self,
+        req: DescribeDelegationTokenRequest,
+        timeout: Duration,
+    ) -> Result<DescribeDelegationTokenResponse> {
+        let version = self.describe_delegation_token_version;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_DELEGATION_TOKEN,

@@ -269,6 +269,13 @@
 //! `AlterUserScramCredentialsOptions` /
 //! `DescribeUserScramCredentialsOptions.timeoutMs` (RPC deadline; these
 //! RPCs have no TimeoutMs).
+//! [`Admin::create_delegation_token_timeout`] /
+//! [`Admin::renew_delegation_token_timeout`] /
+//! [`Admin::expire_delegation_token_timeout`] /
+//! [`Admin::describe_delegation_token_timeout`] are Java
+//! `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` /
+//! `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`
+//! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /
