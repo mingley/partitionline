@@ -282,6 +282,8 @@
 //! IncludeFencedBrokers).
 //! [`Admin::describe_cluster_timeout`] / [`Admin::describe_cluster_with_timeout`]
 //! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
+//! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
+//! `DescribeClusterResult.nodes` / `controller`.
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).
@@ -655,7 +657,7 @@ pub use admin::{
     ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter, ScramCredentialInfo, ScramMechanism,
     ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
     TopicCollection, TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
-    TransactionListing, TransactionState, TransactionTopic, UpgradeType,
+    TransactionListing, TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType,
     UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,

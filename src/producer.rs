@@ -453,6 +453,12 @@ impl ProduceRecord {
         }
     }
 
+    /// Java `ProducerRecord.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_ref()
+    }
+
     /// Set the key. The default partitioner hashes it with murmur2.
     #[must_use]
     pub fn key(mut self, key: impl Into<Bytes>) -> Self {

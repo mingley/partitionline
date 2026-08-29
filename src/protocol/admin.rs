@@ -2590,10 +2590,35 @@ impl ClusterDescription {
         &self.brokers
     }
 
+    /// Java `DescribeClusterResult.nodes`.
+    #[must_use]
+    pub fn nodes(&self) -> &[DescribeClusterBroker] {
+        self.brokers()
+    }
+
+    /// Java `DescribeClusterResult.controller`. Empty when
+    /// [`Self::controller_id`] is `-1` or the id is not in [`Self::nodes`].
+    #[must_use]
+    pub fn controller(&self) -> Option<&DescribeClusterBroker> {
+        if self.controller_id < 0 {
+            return None;
+        }
+        self.brokers
+            .iter()
+            .find(|b| b.node_id == self.controller_id)
+    }
+
     /// 32-bit authorized-operations bitfield, or [`AUTHORIZED_OPERATIONS_OMITTED`].
     #[must_use]
     pub fn cluster_authorized_operations(&self) -> i32 {
         self.cluster_authorized_operations
+    }
+
+    /// Java `DescribeClusterResult.authorizedOperations` as the
+    /// DescribeCluster bitfield, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        self.cluster_authorized_operations()
     }
 
     /// Endpoint type described (KIP-919).
@@ -5194,6 +5219,28 @@ pub struct UnregisterBrokerResponse {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl UnregisterBrokerResponse {
+    /// Construct [`Self`].
+    pub fn new(error_code: i16, error_message: Option<String>) -> Self {
+        Self {
+            error_code,
+            error_message,
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// Encode an UnregisterBroker request.
@@ -15217,10 +15264,12 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_unregister_broker_request(&mut buf, 7).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = UnregisterBrokerResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-        };
+        let resp = UnregisterBrokerResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+        );
+        assert_eq!(resp.error_code(), crate::error::NOT_CONTROLLER);
+        assert_eq!(resp.error_message(), Some("Not controller"));
         buf.clear();
         encode_unregister_broker_response(&mut buf, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);

@@ -34,7 +34,7 @@ use partitionline::{
     ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement, ConfigResource,
     ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig,
     ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
-    DeletedRecords, DescribableLogDirTopic, DescribeDelegationTokenOwner,
+    DeletedRecords, DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType,
     IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions,
@@ -4423,8 +4423,21 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     assert_eq!(cluster.error_code(), 0);
     assert!(!cluster.brokers.is_empty());
     assert!(!cluster.brokers().is_empty());
+    assert_eq!(cluster.nodes().len(), cluster.brokers().len());
     assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
     assert_eq!(cluster.cluster_id(), Some("mock"));
+    assert_eq!(
+        cluster.controller().map(DescribeClusterBroker::id),
+        Some(cluster.controller_id())
+    );
+    assert_eq!(
+        cluster.authorized_operations(),
+        AUTHORIZED_OPERATIONS_OMITTED
+    );
+    assert_eq!(
+        cluster.cluster_authorized_operations(),
+        AUTHORIZED_OPERATIONS_OMITTED
+    );
     assert_eq!(
         mock.last_describe_cluster_version(),
         Some(2),

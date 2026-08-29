@@ -37,9 +37,11 @@ async fn send_all_queues_then_returns_offsets() {
         Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
             .await
             .unwrap();
+    let rec = ProduceRecord::to("t").value(&b"a"[..]);
+    assert_eq!(rec.topic(), "t");
     let mds = producer
         .send_all([
-            ProduceRecord::to("t").value(&b"a"[..]),
+            rec,
             ProduceRecord::to("t").value(&b"b"[..]),
             ProduceRecord::to("t").value(&b"c"[..]),
         ])

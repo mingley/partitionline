@@ -141,9 +141,9 @@ pub use crate::protocol::admin::{
     PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
     RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
     ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
+    TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType, ALTER_CONFIG_APPEND,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
     CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
     CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
     CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
@@ -11887,6 +11887,32 @@ mod tests {
         assert!(telemetry.delta_temporality());
         assert_eq!(telemetry.requested_metrics(), &["m".to_string()]);
         assert_eq!(PushTelemetryResponse::new(0).error_code(), 0);
+        let cluster = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("c".into()),
+            controller_id: 2,
+            endpoint_type: 1,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![
+                DescribeClusterBroker::new(1, "h1", 9092, None, false),
+                DescribeClusterBroker::new(2, "h2", 9092, Some("r".into()), false),
+            ],
+        };
+        assert_eq!(cluster.nodes().len(), 2);
+        assert_eq!(cluster.controller().map(DescribeClusterBroker::id), Some(2));
+        assert_eq!(
+            cluster.authorized_operations(),
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
+        let no_controller = ClusterDescription {
+            controller_id: -1,
+            ..cluster.clone()
+        };
+        assert!(no_controller.controller().is_none());
+        let unreg = UnregisterBrokerResponse::new(0, None);
+        assert_eq!(unreg.error_code(), 0);
+        assert!(unreg.error_message().is_none());
     }
 
     #[test]
