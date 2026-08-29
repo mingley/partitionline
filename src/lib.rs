@@ -269,6 +269,9 @@
 //! `AlterUserScramCredentialsOptions` /
 //! `DescribeUserScramCredentialsOptions.timeoutMs` (RPC deadline; these
 //! RPCs have no TimeoutMs).
+//! [`Admin::alter_replica_log_dirs_timeout`] is Java
+//! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
+//! AlterReplicaLogDirs has no TimeoutMs).
 //! [`Admin::create_delegation_token_timeout`] /
 //! [`Admin::renew_delegation_token_timeout`] /
 //! [`Admin::expire_delegation_token_timeout`] /

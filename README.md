@@ -95,6 +95,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::describe_features_timeout` is Java `DescribeFeaturesOptions.timeoutMs`.
 `Admin::describe_client_quotas_timeout` / `alter_client_quotas_timeout` are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`.
 `Admin::alter_user_scram_credentials_timeout` / `describe_user_scram_credentials_timeout` are Java `AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`.
+`Admin::alter_replica_log_dirs_timeout` is Java `AlterReplicaLogDirsOptions.timeoutMs`.
 `Admin::create_delegation_token_timeout` / `renew_delegation_token_timeout` / `expire_delegation_token_timeout` / `describe_delegation_token_timeout` are Java `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` / `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.

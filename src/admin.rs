@@ -6849,13 +6849,27 @@ impl Admin {
     /// — not a top-level field after throttle. Classic **v1** places
     /// that ErrorCode later (bytes 19–20 on the same fixture). Fixture
     /// directory path and topic/partition indexes only; this is not a
-    /// log-dir store.
+    /// log-dir store. AlterReplicaLogDirs has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::alter_replica_log_dirs_timeout`].
     pub async fn alter_replica_log_dirs(
         &mut self,
         dirs: Vec<AlterReplicaLogDirsDirectory>,
     ) -> Result<AlterReplicaLogDirsResponse> {
-        let version = self.alter_replica_log_dirs_version;
         let timeout = self.cfg.request_timeout;
+        self.alter_replica_log_dirs_timeout(dirs, timeout).await
+    }
+
+    /// [`Self::alter_replica_log_dirs`] with a one-shot RPC deadline (Java
+    /// `AlterReplicaLogDirsOptions.timeoutMs`).
+    ///
+    /// AlterReplicaLogDirs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn alter_replica_log_dirs_timeout(
+        &mut self,
+        dirs: Vec<AlterReplicaLogDirsDirectory>,
+        timeout: Duration,
+    ) -> Result<AlterReplicaLogDirsResponse> {
+        let version = self.alter_replica_log_dirs_version;
         let req = AlterReplicaLogDirsRequest::new(dirs);
         let body = self
             .roundtrip_bootstrap(

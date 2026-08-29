@@ -7633,6 +7633,14 @@ async fn alter_replica_log_dirs_follows_broker() {
         None,
         "AlterReplicaLogDirs must not hop via Metadata controller_id"
     );
+    let timed_dir =
+        AlterReplicaLogDirsDirectory::new("/d", vec![AlterReplicaLogDirsTopic::new("t", vec![0])]);
+    let timed = admin
+        .alter_replica_log_dirs_timeout(vec![timed_dir], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.results.len(), 1);
+    assert_eq!(timed.results[0].partitions[0].error_code, 0);
 }
 
 #[tokio::test]
