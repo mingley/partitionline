@@ -50,8 +50,11 @@ timestamp; one ListOffsets RPC per partition leader; returns
 `OffsetAndTimestamp`). `Admin::list_offsets_with_isolation` is Java
 `listOffsets` plus `ListOffsetsOptions.isolationLevel`. `Admin::fence_producers` is Java
 `Admin.fenceProducers` (InitProducerId on the transaction coordinator).
+`Admin::fence_producers_timeout` is Java `FenceProducersOptions.timeoutMs`
+(RPC deadline and `transaction.timeout.ms`).
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`
 (same InitProducerId fence for one `transactional.id`).
+`Admin::force_terminate_transaction_timeout` is the same plus timeout.
 `Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
 ABORT on the partition leader).
 `Admin::remove_members_from_consumer_group` is Java

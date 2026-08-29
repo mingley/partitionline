@@ -2708,6 +2708,16 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     );
     let empty = admin.fence_producers(Vec::<String>::new()).await.unwrap();
     assert!(empty.is_empty());
+    let fenced_timeout = admin
+        .fence_producers_timeout(["tid-fence-to"], Duration::from_secs(12))
+        .await
+        .unwrap();
+    assert_eq!(fenced_timeout[0].transactional_id, "tid-fence-to");
+    assert_eq!(
+        mock.last_init_producer_id_timeout(),
+        Some(12_000),
+        "fence_producers_timeout must send transaction.timeout.ms"
+    );
     admin.close().await.unwrap();
 }
 
@@ -2722,6 +2732,16 @@ async fn admin_force_terminate_transaction_fences_one_id() {
     assert_eq!(terminated.producer_id, 1000);
     assert_eq!(terminated.epoch, 0);
     assert_eq!(mock.last_init_producer_id_node(), Some(1));
+    let terminated_to = admin
+        .force_terminate_transaction_timeout("tid-term-to", Duration::from_secs(8))
+        .await
+        .unwrap();
+    assert_eq!(terminated_to.transactional_id, "tid-term-to");
+    assert_eq!(
+        mock.last_init_producer_id_timeout(),
+        Some(8_000),
+        "force_terminate_transaction_timeout must send transaction.timeout.ms"
+    );
     admin.close().await.unwrap();
 }
 

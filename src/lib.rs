@@ -164,7 +164,10 @@
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
+//! [`Admin::fence_producers_timeout`] is Java `fenceProducers` plus
+//! `FenceProducersOptions.timeoutMs`.
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
+//! [`Admin::force_terminate_transaction_timeout`] is the same plus timeout.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
 //! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`.
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.

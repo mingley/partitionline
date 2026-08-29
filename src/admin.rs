@@ -2509,16 +2509,32 @@ impl Admin {
     /// coordinator (`FindCoordinator` `key_type=1`). Empty
     /// `transactional_ids` returns an empty list. Coordinator load /
     /// move errors refresh and retry. [`AdminConfig::request_timeout`]
-    /// is sent as `transaction.timeout.ms`. Java
+    /// is the RPC deadline and is sent as `transaction.timeout.ms`. For
+    /// a one-shot timeout, use [`Self::fence_producers_timeout`]. Java
     /// `forceTerminateTransaction` is [`Self::force_terminate_transaction`].
     pub async fn fence_producers(
         &mut self,
         transactional_ids: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<Vec<FencedProducer>> {
+        let timeout = self.cfg.request_timeout;
+        self.fence_producers_timeout(transactional_ids, timeout)
+            .await
+    }
+
+    /// [`Self::fence_producers`] with a one-shot timeout (Java
+    /// `fenceProducers` plus `FenceProducersOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and InitProducerId
+    /// `transaction.timeout.ms`.
+    pub async fn fence_producers_timeout(
+        &mut self,
+        transactional_ids: impl IntoIterator<Item = impl Into<String>>,
+        timeout: Duration,
+    ) -> Result<Vec<FencedProducer>> {
         let mut out = Vec::new();
         for id in transactional_ids {
             let transactional_id = id.into();
-            let (producer_id, epoch) = self.fence_one(&transactional_id).await?;
+            let (producer_id, epoch) = self.fence_one(&transactional_id, timeout).await?;
             out.push(FencedProducer {
                 transactional_id,
                 producer_id,
@@ -2534,13 +2550,27 @@ impl Admin {
     /// Same wire as [`Self::fence_producers`] for one id: InitProducerId
     /// on the transaction coordinator (`FindCoordinator` `key_type=1`).
     /// Java's `forceTerminateTransaction` calls `fenceProducers` with a
-    /// singleton set.
+    /// singleton set. Waits up to [`AdminConfig::request_timeout`]. For
+    /// a one-shot timeout, use [`Self::force_terminate_transaction_timeout`].
     pub async fn force_terminate_transaction(
         &mut self,
         transactional_id: impl Into<String>,
     ) -> Result<FencedProducer> {
+        let timeout = self.cfg.request_timeout;
+        self.force_terminate_transaction_timeout(transactional_id, timeout)
+            .await
+    }
+
+    /// [`Self::force_terminate_transaction`] with a one-shot timeout
+    /// (Java `forceTerminateTransaction` plus
+    /// `FenceProducersOptions.timeoutMs`).
+    pub async fn force_terminate_transaction_timeout(
+        &mut self,
+        transactional_id: impl Into<String>,
+        timeout: Duration,
+    ) -> Result<FencedProducer> {
         let transactional_id = transactional_id.into();
-        let (producer_id, epoch) = self.fence_one(&transactional_id).await?;
+        let (producer_id, epoch) = self.fence_one(&transactional_id, timeout).await?;
         Ok(FencedProducer {
             transactional_id,
             producer_id,
@@ -2548,13 +2578,12 @@ impl Admin {
         })
     }
 
-    async fn fence_one(&mut self, transactional_id: &str) -> Result<(i64, i16)> {
+    async fn fence_one(&mut self, transactional_id: &str, timeout: Duration) -> Result<(i64, i16)> {
         let version = self
             .versions
             .get(&INIT_PRODUCER_ID)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
             .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
-        let timeout = self.cfg.request_timeout;
         let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
