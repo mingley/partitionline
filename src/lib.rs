@@ -376,11 +376,13 @@
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /
+//! [`Admin::describe_topics_with_partition_limit`] /
 //! [`Admin::describe_topics_by_id`] are Java
 //! `listTopics` / `ListTopicsOptions.listInternal` /
 //! `ListTopicsOptions.timeoutMs` / `describeTopics` (DescribeTopicPartitions api 75, Metadata fallback) /
 //! `DescribeTopicsOptions.includeAuthorizedOperations` /
 //! `DescribeTopicsOptions.timeoutMs` /
+//! `DescribeTopicsOptions.partitionSizeLimitPerResponse` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
 //! ([`TopicListing`] / [`TopicDescription`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`

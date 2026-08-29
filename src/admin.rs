@@ -2338,10 +2338,59 @@ impl Admin {
     ///
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
     /// is the RPC deadline (and the DTP NextCursor loop budget).
+    /// `ResponsePartitionLimit` is 2000 (Java
+    /// `DescribeTopicsOptions.partitionSizeLimitPerResponse` default).
+    /// For a custom limit, use
+    /// [`Self::describe_topics_with_partition_limit_timeout`].
     pub async fn describe_topics_with_timeout(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
         include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_with_partition_limit_timeout(
+            topics,
+            include_authorized_operations,
+            DESCRIBE_TOPIC_PARTITIONS_LIMIT,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::describe_topics_with`] with Java
+    /// `DescribeTopicsOptions.partitionSizeLimitPerResponse`.
+    ///
+    /// `partition_size_limit` is DescribeTopicPartitions
+    /// `ResponsePartitionLimit` (Java default 2000). The broker may cap
+    /// it at `max.request.partition.size.limit`. Ignored on the Metadata
+    /// fallback when api 75 is not advertised. Topic-id describes
+    /// ([`Self::describe_topics_by_id`]) stay on Metadata (KAFKA-19628).
+    pub async fn describe_topics_with_partition_limit(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        include_authorized_operations: bool,
+        partition_size_limit: i32,
+    ) -> Result<Vec<TopicDescription>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_topics_with_partition_limit_timeout(
+            topics,
+            include_authorized_operations,
+            partition_size_limit,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::describe_topics_with_partition_limit`] with Java
+    /// `DescribeTopicsOptions.timeoutMs`.
+    ///
+    /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
+    /// is the RPC deadline (and the DTP NextCursor loop budget).
+    pub async fn describe_topics_with_partition_limit_timeout(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        include_authorized_operations: bool,
+        partition_size_limit: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
         let names: Vec<String> = topics.into_iter().map(|s| s.as_ref().to_string()).collect();
@@ -2349,8 +2398,13 @@ impl Admin {
             return Ok(Vec::new());
         }
         if self.describe_topic_partitions_version.is_some() {
-            self.describe_topics_dtp(&names, include_authorized_operations, timeout)
-                .await
+            self.describe_topics_dtp(
+                &names,
+                include_authorized_operations,
+                partition_size_limit,
+                timeout,
+            )
+            .await
         } else {
             self.describe_topics_metadata(&names, include_authorized_operations, timeout)
                 .await
@@ -7646,6 +7700,7 @@ impl Admin {
         &mut self,
         names: &[String],
         include_authorized_operations: bool,
+        response_partition_limit: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
         let deadline = Instant::now() + timeout;
@@ -7658,7 +7713,7 @@ impl Admin {
             let resp = self
                 .describe_topic_partitions_once(
                     names,
-                    DESCRIBE_TOPIC_PARTITIONS_LIMIT,
+                    response_partition_limit,
                     cursor.as_ref(),
                     timeout,
                 )

@@ -5000,6 +5000,26 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         .await
         .unwrap();
     assert_eq!(timed_ops[0].authorized_operations, 4);
+    let limited = admin
+        .describe_topics_with_partition_limit(["t"], false, 1)
+        .await
+        .unwrap();
+    assert_eq!(limited.len(), 1);
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 1, None)),
+        "describe_topics_with_partition_limit sends ResponsePartitionLimit"
+    );
+    let timed_limit = admin
+        .describe_topics_with_partition_limit_timeout(["t"], true, 7, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_limit[0].authorized_operations, 4);
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 7, None)),
+        "describe_topics_with_partition_limit_timeout sends ResponsePartitionLimit"
+    );
     let created = admin
         .create_topics(
             &[NewTopic::new("dtn-a", 1, 1), NewTopic::new("dtn-b", 1, 1)],
@@ -5090,6 +5110,17 @@ async fn admin_describe_topics_falls_back_to_metadata_without_dtp() {
         mock.last_describe_topic_partitions(),
         dtp,
         "describe_topics_timeout must not send DescribeTopicPartitions when hidden"
+    );
+    let limited = admin
+        .describe_topics_with_partition_limit(["t"], false, 1)
+        .await
+        .unwrap();
+    assert_eq!(limited.len(), 1);
+    assert_eq!(limited[0].name, "t");
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        dtp,
+        "partitionSizeLimitPerResponse is ignored on Metadata fallback"
     );
     let err = admin
         .describe_topic_partitions(&["t"], 2000, None)

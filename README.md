@@ -192,7 +192,7 @@ null header value. `current_lag` is Java `currentLag`. `enforce_rebalance` /
 names starting with `__` are skipped). Share groups have the same
 `subscribe_matching` / `join_matching`.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
-Metadata. `Admin::list_topics_with` is Java `ListTopicsOptions.listInternal`. `Admin::list_topics_timeout` is Java `ListTopicsOptions.timeoutMs`. `describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions; Metadata fallback when api 75 is missing). `describe_topics_timeout` is Java `DescribeTopicsOptions.timeoutMs`. `describe_topics_with` surfaces TopicAuthorizedOperations from that response. `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)`. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
+Metadata. `Admin::list_topics_with` is Java `ListTopicsOptions.listInternal`. `Admin::list_topics_timeout` is Java `ListTopicsOptions.timeoutMs`. `describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions; Metadata fallback when api 75 is missing). `describe_topics_timeout` is Java `DescribeTopicsOptions.timeoutMs`. `describe_topics_with` surfaces TopicAuthorizedOperations from that response. `describe_topics_with_partition_limit` is Java `DescribeTopicsOptions.partitionSizeLimitPerResponse`. `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)`. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
 assignment (`assign_partitions` is Java `assign(Collection)` and uses
 `auto.offset.reset`).
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.
