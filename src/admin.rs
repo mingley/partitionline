@@ -1947,11 +1947,25 @@ impl Admin {
     /// [`AUTHORIZED_OPERATIONS_OMITTED`] unless
     /// [`Self::describe_topics_with`] is used. For TopicId describes
     /// (Java `TopicCollection.ofTopicIds`), use [`Self::describe_topics_by_id`].
+    /// DescribeTopicPartitions and Metadata have no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_topics_timeout`].
     pub async fn describe_topics(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<Vec<TopicDescription>> {
         self.describe_topics_with(topics, false).await
+    }
+
+    /// [`Self::describe_topics`] with a one-shot RPC deadline (Java
+    /// `DescribeTopicsOptions.timeoutMs`).
+    pub async fn describe_topics_timeout(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_with_timeout(topics, false, timeout)
+            .await
     }
 
     /// [`Self::describe_topics`] with Java
@@ -1967,15 +1981,31 @@ impl Admin {
         topics: impl IntoIterator<Item = impl AsRef<str>>,
         include_authorized_operations: bool,
     ) -> Result<Vec<TopicDescription>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_topics_with_timeout(topics, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topics_with`] with Java
+    /// `DescribeTopicsOptions.timeoutMs`.
+    ///
+    /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
+    /// is the RPC deadline (and the DTP NextCursor loop budget).
+    pub async fn describe_topics_with_timeout(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
         let names: Vec<String> = topics.into_iter().map(|s| s.as_ref().to_string()).collect();
         if names.is_empty() {
             return Ok(Vec::new());
         }
         if self.describe_topic_partitions_version.is_some() {
-            self.describe_topics_dtp(&names, include_authorized_operations)
+            self.describe_topics_dtp(&names, include_authorized_operations, timeout)
                 .await
         } else {
-            self.describe_topics_metadata(&names, include_authorized_operations)
+            self.describe_topics_metadata(&names, include_authorized_operations, timeout)
                 .await
         }
     }
@@ -1986,7 +2016,9 @@ impl Admin {
     /// `AllowAutoTopicCreation` is false. Brokers that only speak v1–v9
     /// return [`Error::Unsupported`]. Empty `ids` is a no-op. Unknown
     /// ids return `UNKNOWN_TOPIC_ID` (100) per topic with an empty name.
-    /// See [`Self::describe_topics_by_id_with`].
+    /// See [`Self::describe_topics_by_id_with`]. Metadata has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::describe_topics_by_id_timeout`].
     pub async fn describe_topics_by_id(
         &mut self,
         ids: &[[u8; 16]],
@@ -1998,11 +2030,39 @@ impl Admin {
     /// `DescribeTopicsOptions.includeAuthorizedOperations`.
     ///
     /// Metadata v10+ sends IncludeTopicAuthorizedOperations (the flag
-    /// exists from v8; TopicId requires v10).
+    /// exists from v8; TopicId requires v10). Metadata has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::describe_topics_by_id_with_timeout`].
     pub async fn describe_topics_by_id_with(
         &mut self,
         ids: &[[u8; 16]],
         include_authorized_operations: bool,
+    ) -> Result<Vec<TopicDescription>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_topics_by_id_with_timeout(ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topics_by_id`] with a one-shot RPC deadline (Java
+    /// `DescribeTopicsOptions.timeoutMs`).
+    pub async fn describe_topics_by_id_timeout(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_by_id_with_timeout(ids, false, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topics_by_id_with`] with Java
+    /// `DescribeTopicsOptions.timeoutMs`.
+    ///
+    /// Metadata has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_topics_by_id_with_timeout(
+        &mut self,
+        ids: &[[u8; 16]],
+        include_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
         if ids.is_empty() {
             return Ok(Vec::new());
@@ -2017,7 +2077,6 @@ impl Admin {
             .copied()
             .map(MetadataRequestTopic::by_id)
             .collect();
-        let timeout = self.cfg.request_timeout;
         let md = self
             .fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
@@ -6034,7 +6093,8 @@ impl Admin {
         cursor: Option<&TopicPartitionCursor>,
     ) -> Result<DescribeTopicPartitionsResponse> {
         let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
-        self.describe_topic_partitions_once(&names, response_partition_limit, cursor)
+        let timeout = self.cfg.request_timeout;
+        self.describe_topic_partitions_once(&names, response_partition_limit, cursor, timeout)
             .await
     }
 
@@ -6043,11 +6103,11 @@ impl Admin {
         names: &[String],
         response_partition_limit: i32,
         cursor: Option<&TopicPartitionCursor>,
+        timeout: Duration,
     ) -> Result<DescribeTopicPartitionsResponse> {
         let version = self.describe_topic_partitions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support DescribeTopicPartitions".into())
         })?;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_TOPIC_PARTITIONS,
@@ -6070,8 +6130,9 @@ impl Admin {
         &mut self,
         names: &[String],
         include_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
-        let deadline = Instant::now() + self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
         let mut cursor: Option<TopicPartitionCursor> = None;
         let mut out: Vec<TopicDescription> = Vec::new();
         loop {
@@ -6083,6 +6144,7 @@ impl Admin {
                     names,
                     DESCRIBE_TOPIC_PARTITIONS_LIMIT,
                     cursor.as_ref(),
+                    timeout,
                 )
                 .await?;
             for t in &resp.topics {
@@ -6105,9 +6167,14 @@ impl Admin {
         &mut self,
         names: &[String],
         include_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
+        let owned: Vec<MetadataRequestTopic> = names
+            .iter()
+            .map(|name| MetadataRequestTopic::by_name(name.clone()))
+            .collect();
         let md = self
-            .fetch_metadata_with(Some(names), include_authorized_operations)
+            .fetch_metadata_request_with(Some(&owned), include_authorized_operations, timeout)
             .await?;
         Ok(topic_descriptions_for_names(&md, names))
     }

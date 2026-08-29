@@ -3465,6 +3465,12 @@ async fn admin_list_and_describe_topics() {
     );
     assert_eq!(mock.last_metadata_topics(), Some(None));
     assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    let timed = admin
+        .describe_topics_timeout(["t"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].name, "t");
     let calls = mock.metadata_calls();
     let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();
     assert!(empty.is_empty());

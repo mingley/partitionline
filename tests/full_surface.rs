@@ -4727,6 +4727,22 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         Some((vec!["t".into()], 2000, None)),
         "describe_topics_with(true) still uses DescribeTopicPartitions"
     );
+    let timed = admin
+        .describe_topics_timeout(["t"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].name, "t");
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None)),
+        "describe_topics_timeout still uses DescribeTopicPartitions"
+    );
+    let timed_ops = admin
+        .describe_topics_with_timeout(["t"], true, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_ops[0].authorized_operations, 4);
     let created = admin
         .create_topics(
             &[NewTopic::new("dtn-a", 1, 1), NewTopic::new("dtn-b", 1, 1)],
@@ -4807,6 +4823,17 @@ async fn admin_describe_topics_falls_back_to_metadata_without_dtp() {
         Some(true),
         "Metadata fallback sends IncludeTopicAuthorizedOperations"
     );
+    let timed = admin
+        .describe_topics_timeout(["t"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].name, "t");
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        dtp,
+        "describe_topics_timeout must not send DescribeTopicPartitions when hidden"
+    );
     let err = admin
         .describe_topic_partitions(&["t"], 2000, None)
         .await
@@ -4886,6 +4913,17 @@ async fn admin_describe_topics_by_id() {
         Some(true),
         "describe_topics_by_id_with(true) must send IncludeTopicAuthorizedOperations"
     );
+    let timed = admin
+        .describe_topics_by_id_timeout(&[created[0].topic_id], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].name, "dtid-a");
+    let timed_ops = admin
+        .describe_topics_by_id_with_timeout(&[created[0].topic_id], true, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_ops[0].authorized_operations, 4);
     admin.close().await.unwrap();
 
     let mock = common::Mock::start().await;

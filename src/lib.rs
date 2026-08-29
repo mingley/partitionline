@@ -238,10 +238,12 @@
 //! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
-//! [`Admin::describe_topics_with`] / [`Admin::describe_topics_by_id`] are Java
+//! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /
+//! [`Admin::describe_topics_by_id`] are Java
 //! `listTopics` / `ListTopicsOptions.listInternal` /
 //! `ListTopicsOptions.timeoutMs` / `describeTopics` (DescribeTopicPartitions api 75, Metadata fallback) /
 //! `DescribeTopicsOptions.includeAuthorizedOperations` /
+//! `DescribeTopicsOptions.timeoutMs` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
 //! ([`TopicListing`] / [`TopicDescription`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
