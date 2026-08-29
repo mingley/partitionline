@@ -13,10 +13,11 @@ mod common;
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
-    DescribeLogDirsRequest, Error, FetchedRecord, IsolationLevel, MemberToRemove, NewTopic,
-    OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig,
-    ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition,
-    TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, IsolationLevel,
+    MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
+    Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
+    ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2002,6 +2003,12 @@ async fn producer_partitions_for_returns_leader() {
     assert_eq!(infos[0].topic, "t");
     assert_eq!(infos[0].partition, 0);
     assert!(infos[0].leader >= 0);
+    let timed = producer
+        .partitions_for_timeout("t", Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].partition, 0);
     producer.close().await.unwrap();
 }
 
@@ -2012,6 +2019,15 @@ async fn admin_close_drops_handle() {
         .await
         .unwrap();
     admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_close_timeout_drops_handle() {
+    let mock = common::Mock::start().await;
+    let admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin.close_timeout(Duration::from_secs(1)).await.unwrap();
 }
 
 struct CloseProd(std::sync::Arc<std::sync::atomic::AtomicBool>);
@@ -2615,6 +2631,41 @@ async fn admin_list_client_metrics_resources() {
         Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
     );
     assert_eq!(mock.last_list_config_resources_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_list_share_group_offsets_uses_describe() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = admin
+        .list_share_group_offsets(&[DescribeShareGroupOffsetsGroup::new("sg-off")])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].group_id, "sg-off");
+    assert_eq!(listed[0].error_code, 0);
+    assert_eq!(mock.last_describe_share_group_offsets_node(), Some(1));
+    let empty = admin.list_share_group_offsets(&[]).await.unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_delete_consumer_group_offsets_uses_offset_delete() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let deleted = admin
+        .delete_consumer_group_offsets("g-off", [TopicPartition::new("t", 0)])
+        .await
+        .unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_offset_delete_node(), Some(1));
     admin.close().await.unwrap();
 }
 

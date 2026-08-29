@@ -81,6 +81,7 @@
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java
 //! `committed(Duration)`. [`ConsumerGroup::commit_timeout`] is Java
 //! `commitSync(Duration)`. [`Consumer::partitions_for_timeout`] /
+//! [`Producer::partitions_for_timeout`] /
 //! [`Consumer::list_topics_timeout`] / [`Consumer::beginning_offsets_timeout`] /
 //! [`Consumer::end_offsets_timeout`] / [`Consumer::offsets_for_times_timeout`]
 //! are Java `partitionsFor` / `listTopics` / `beginningOffsets` / `endOffsets` /
@@ -91,6 +92,7 @@
 //! [`ConsumerRecords::next_offsets`] (Java `commitSync(records.nextOffsets())`).
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
 //! [`Admin::list_offsets`] / [`Admin::delete_offsets`] /
+//! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader).
@@ -104,6 +106,8 @@
 //! [`Admin::delete_consumer_groups`] is Java `deleteConsumerGroups`.
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`.
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
+//! [`Admin::list_share_group_offsets`] is Java `listShareGroupOffsets`.
+//! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers).
@@ -157,7 +161,8 @@
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! [`Producer::send_offsets_to_transaction`] takes [`TopicPartition`].
-//! [`Admin::close`] drops the admin connection.
+//! [`Admin::close`] / [`Admin::close_timeout`] drop the admin connection
+//! (Java `close(Duration)`; the duration is unused).
 //!
 //! # Configure
 //!

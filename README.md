@@ -71,6 +71,8 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_consumer_groups` is Java `deleteConsumerGroups`.
 `Admin::describe_share_groups` is Java `describeShareGroups`.
 `Admin::list_client_metrics_resources` is Java `listClientMetricsResources`.
+`Admin::list_share_group_offsets` is Java `listShareGroupOffsets`.
+`Admin::delete_consumer_group_offsets` is Java `deleteConsumerGroupOffsets`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
 `RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::describe_broker_log_dirs` is Java
@@ -133,7 +135,7 @@ not change `request_timeout` for heartbeats).
 group `close` is `leave`.
 `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
 (Java `close(Duration)`).
-`Admin::close` drops the admin connection. Interceptors have `close`;
+`Admin::close` / `Admin::close_timeout` drop the admin connection. Interceptors have `close`;
 consumer interceptors also see `on_commit`.
 `Producer::init_transactions` is a no-op after connect when
 `transactional.id` is set. `flush_timeout` caps `flush`.

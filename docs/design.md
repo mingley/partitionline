@@ -67,7 +67,9 @@ tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `listConsumerGroups` (ListGroups). `Admin::delete_consumer_groups` is Java
 `deleteConsumerGroups` (DeleteGroups). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe). `Admin::list_client_metrics_resources` is Java
-`listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::delete_share_groups` is Java
+`listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
+`listShareGroupOffsets` (DescribeShareGroupOffsets). `Admin::delete_consumer_group_offsets` is Java
+`deleteConsumerGroupOffsets` (OffsetDelete). `Admin::delete_share_groups` is Java
 `deleteShareGroups` (DeleteGroups). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
@@ -133,6 +135,7 @@ manual assignment (`assign_partitions` is Java `assign(Collection)` and uses
 `Consumer::close` / `Consumer::close_timeout` drop fetch connections.
 `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`
 (Java `close(Duration)`).
+`Admin::close_timeout` is Java `close(Duration)` (unused; no LeaveGroup).
 
 `ShareGroup` is KIP-932 queue sharing. `join_topics` subscribes to several
 topics.

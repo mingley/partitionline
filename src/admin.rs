@@ -1351,6 +1351,14 @@ impl Admin {
         Ok(())
     }
 
+    /// [`Self::close`] with a timeout (Java `close(Duration)`).
+    ///
+    /// Admin has no LeaveGroup; the duration is unused, same as
+    /// [`crate::Consumer::close_timeout`].
+    pub async fn close_timeout(self, _timeout: Duration) -> Result<()> {
+        self.close().await
+    }
+
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
     /// The first call sends a zero UUID; the broker assigns one. Later calls
@@ -3289,7 +3297,8 @@ impl Admin {
     /// `NOT_COORDINATOR` refresh the coordinator and retry.
     ///
     /// Each item is a [`crate::TopicPartition`] (or anything that converts
-    /// to one).
+    /// to one). Java `deleteConsumerGroupOffsets` is
+    /// [`Self::delete_consumer_group_offsets`].
     pub async fn delete_offsets(
         &mut self,
         group_id: &str,
@@ -3359,6 +3368,18 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// Delete committed offsets (Java `Admin.deleteConsumerGroupOffsets`).
+    ///
+    /// Same wire as [`Self::delete_offsets`]: OffsetDelete api 47 on the
+    /// group coordinator.
+    pub async fn delete_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<OffsetDeleteResult>> {
+        self.delete_offsets(group_id, partitions).await
     }
 
     /// List committed offsets for `group_id` (Java `listConsumerGroupOffsets`).
@@ -4141,6 +4162,7 @@ impl Admin {
     /// Group-level ErrorCode is per-group after GroupId and Topics
     /// (bytes 8–9 on leftover-empty fixture group `"g"`), not
     /// top-level after throttle and not first-partition.
+    /// Java `listShareGroupOffsets` is [`Self::list_share_group_offsets`].
     pub async fn describe_share_group_offsets(
         &mut self,
         groups: &[DescribeShareGroupOffsetsGroup],
@@ -4203,6 +4225,18 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// List share-group offsets (Java `Admin.listShareGroupOffsets`).
+    ///
+    /// Same wire as [`Self::describe_share_group_offsets`]:
+    /// DescribeShareGroupOffsets api 90 on the group coordinator.
+    /// Java's `ListShareGroupOffsetsHandler` sends that RPC.
+    pub async fn list_share_group_offsets(
+        &mut self,
+        groups: &[DescribeShareGroupOffsetsGroup],
+    ) -> Result<Vec<DescribedShareGroupOffsets>> {
+        self.describe_share_group_offsets(groups).await
     }
 
     /// Alter KIP-932 share-group offsets (AlterShareGroupOffsets

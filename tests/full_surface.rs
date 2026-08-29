@@ -4843,6 +4843,26 @@ async fn describe_share_group_offsets_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn list_share_group_offsets_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin
+        .list_share_group_offsets(&[DescribeShareGroupOffsetsGroup::new("sg-list")])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].group_id, "sg-list");
+    assert_eq!(listed[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_share_group_offsets_node(),
+        Some(2),
+        "listShareGroupOffsets must land on the group coordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn alter_share_group_offsets_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();
@@ -5026,6 +5046,25 @@ async fn offset_delete_follows_group_coordinator() {
         Some(1),
         "OffsetDelete must FindCoordinator after NOT_COORDINATOR"
     );
+}
+
+#[tokio::test]
+async fn delete_consumer_group_offsets_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin
+        .delete_consumer_group_offsets("g-off", [TopicPartition::new("t", 0)])
+        .await
+        .unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_offset_delete_node(),
+        Some(2),
+        "deleteConsumerGroupOffsets must land on the group coordinator"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

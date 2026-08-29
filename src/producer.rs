@@ -1422,15 +1422,27 @@ impl Producer {
     }
 
     /// Partition metadata for `topic` (Java `partitionsFor`: leader, replicas, ISR, offline replicas, leader epoch).
+    ///
+    /// Waits up to [`ProducerConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::partitions_for_timeout`].
     pub async fn partitions_for(
         &self,
         topic: impl Into<String>,
+    ) -> Result<Vec<crate::PartitionInfo>> {
+        let timeout = self.inner.shared.cfg.request_timeout;
+        self.partitions_for_timeout(topic, timeout).await
+    }
+
+    /// [`Self::partitions_for`] with a one-shot timeout (Java `partitionsFor(String, Duration)`).
+    pub async fn partitions_for_timeout(
+        &self,
+        topic: impl Into<String>,
+        timeout: Duration,
     ) -> Result<Vec<crate::PartitionInfo>> {
         let topic = topic.into();
         let mut conn = self.inner.shared.meta.lock().await;
         let version = self.inner.shared.metadata_version;
         let allow = self.inner.shared.cfg.allow_auto_topic_creation;
-        let timeout = self.inner.shared.cfg.request_timeout;
         let topics = [topic.clone()];
         let body = conn
             .roundtrip(
