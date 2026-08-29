@@ -19,6 +19,7 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
+//! The producer negotiates Produce v3–v9 (v3–v8 classic; v9 flexible).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].

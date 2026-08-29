@@ -211,6 +211,7 @@ struct State {
     oauth_principal: Option<String>,
     next_pid: i64,
     last_producer_id: Option<i64>,
+    last_produce_version: Option<i16>,
     expected_seq: HashMap<(i64, String, i32), i32>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
@@ -447,6 +448,7 @@ fn new_state(
         oauth_principal,
         next_pid: 1000,
         last_producer_id: None,
+        last_produce_version: None,
         expected_seq: HashMap::new(),
         produce_error: None,
         produce_error_left: None,
@@ -1049,6 +1051,10 @@ impl Mock {
 
     pub fn last_producer_id(&self) -> Option<i64> {
         self.state.lock().last_producer_id
+    }
+
+    pub fn last_produce_version(&self) -> Option<i16> {
+        self.state.lock().last_produce_version
     }
 
     pub fn set_log_start(&self, topic: &str, partition: i32, offset: i64) {
@@ -3315,6 +3321,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut parts = Vec::new();
                 let mut st = state.lock();
                 st.produce_requests.push(node_id);
+                st.last_produce_version = Some(header.api_version);
                 let forced = match (st.produce_error, st.produce_error_left) {
                     (Some(_), Some(0)) => {
                         st.produce_error = None;

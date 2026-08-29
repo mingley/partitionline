@@ -40,6 +40,11 @@ async fn send_all_queues_then_returns_offsets() {
     assert_eq!(mds[0].offset, 0);
     assert_eq!(mds[1].offset, 1);
     assert_eq!(mds[2].offset, 2);
+    assert_eq!(
+        mock.last_produce_version(),
+        Some(9),
+        "Producer must prefer Produce v9 when the broker advertises it"
+    );
     producer.close().await.unwrap();
 }
 

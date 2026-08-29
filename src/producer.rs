@@ -733,8 +733,8 @@ impl Producer {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
         }
-        let produce_version = pick(&versions, PRODUCE, 3, 8)
-            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-8".into()))?;
+        let produce_version = pick(&versions, PRODUCE, 3, 9)
+            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-9".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, txn_offset_version) = if cfg.transactional_id.is_some() {

@@ -657,7 +657,22 @@ pub struct ProducePartitionResponse {
     pub log_start_offset: i64,
 }
 
-/// Encode Produce v3–8 (classic) or v9+ (flexible).
+/// `true` when Produce `version` is flexible (v9).
+///
+/// v3–v8 are classic. v9 is compact arrays/strings/bytes plus tagged
+/// fields (Apache JSON `flexibleVersions: "9+"`). Kafka 4.0 removed
+/// v0–v2. v10+ (KIP-951 CurrentLeader tagged fields) is not spoken.
+fn produce_flexible(version: i16) -> Result<bool> {
+    match version {
+        3..=8 => Ok(false),
+        9 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "Produce version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode Produce v3–v8 (classic) or v9 (flexible).
 pub fn encode_produce_request(
     buf: &mut BytesMut,
     version: i16,
@@ -666,7 +681,7 @@ pub fn encode_produce_request(
     timeout_ms: i32,
     topics: &[ProduceTopicData],
 ) -> Result<()> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     if version >= 3 {
         buf::put_string(buf, flexible, transactional_id)?;
     }
@@ -710,7 +725,7 @@ pub fn decode_produce_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Option<String>, i16, i32, Vec<ProduceTopicData>)> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     let transactional_id = if version >= 3 {
         buf::get_string(buf, flexible)?
     } else {
@@ -760,7 +775,7 @@ pub fn encode_produce_response(
     version: i16,
     parts: &[ProducePartitionResponse],
 ) -> crate::error::Result<()> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     // Group by topic, preserving first-seen order.
     let mut order: Vec<String> = Vec::new();
     for p in parts {
@@ -814,7 +829,7 @@ pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<ProducePartitionResponse>> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::new();
     for _ in 0..topic_count {
@@ -993,7 +1008,7 @@ mod tests {
     }
 
     #[test]
-    fn produce_v9_roundtrip() {
+    fn produce_v9_roundtrip_is_leftover_empty() {
         let rec = Record {
             offset: 0,
             timestamp: 42,
@@ -1010,7 +1025,8 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_produce_request(&mut buf, 9, None, 1, 1500, &topics).unwrap();
-        let (txn, acks, timeout, decoded) = decode_produce_request(&mut &buf[..], 9).unwrap();
+        let mut cur = &buf[..];
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 9).unwrap();
         assert_eq!(txn, None);
         assert_eq!(acks, 1);
         assert_eq!(timeout, 1500);
@@ -1019,11 +1035,58 @@ mod tests {
             decoded[0].partitions[0].records.records[0].value.as_deref(),
             Some(&b"hi"[..])
         );
+        assert!(
+            cur.is_empty(),
+            "Produce v9 request must consume compact tagged fields"
+        );
 
         let mut txn_buf = BytesMut::new();
         encode_produce_request(&mut txn_buf, 8, Some("tx-1"), 1, 1500, &topics).unwrap();
-        let (txn, _, _, _) = decode_produce_request(&mut &txn_buf[..], 8).unwrap();
+        let mut cur = &txn_buf[..];
+        let (txn, _, _, _) = decode_produce_request(&mut cur, 8).unwrap();
         assert_eq!(txn.as_deref(), Some("tx-1"));
+        assert!(
+            cur.is_empty(),
+            "Produce v8 request leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        assert!(
+            encode_produce_request(&mut buf, 10, None, 1, 1500, &topics).is_err(),
+            "Produce v10+ (KIP-951) is not spoken"
+        );
+    }
+
+    #[test]
+    fn produce_v9_response_matches_compact_layout() {
+        // Compact Topics {Name "t", compact Partitions {0, error 0,
+        // base 0, logAppend -1, logStart 0, empty RecordErrors, null
+        // ErrorMessage, tagged}, tagged}, throttle 0, tagged.
+        const RESP: &[u8] = &[
+            0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: -1,
+            log_start_offset: 0,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 9, &parts).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 9).unwrap();
+        assert_eq!(got, parts);
+        assert!(
+            cur.is_empty(),
+            "Produce v9 response must consume compact tagged fields"
+        );
     }
 
     #[test]

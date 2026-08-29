@@ -339,6 +339,19 @@ mod tests {
     }
 
     #[test]
+    fn produce_v9_is_flexible_v8_is_not() {
+        // Official JSON: validVersions 3-12, flexibleVersions 9+.
+        // Kafka 4.0 removed v0–v2. HeaderVersion is 1 / 0 at v3–8 and
+        // 2 / 1 at v9+. This crate speaks 3–9.
+        assert_eq!(request_header_version(PRODUCE, 3), 1);
+        assert_eq!(response_header_version(PRODUCE, 3), 0);
+        assert_eq!(request_header_version(PRODUCE, 8), 1);
+        assert_eq!(response_header_version(PRODUCE, 8), 0);
+        assert_eq!(request_header_version(PRODUCE, 9), 2);
+        assert_eq!(response_header_version(PRODUCE, 9), 1);
+    }
+
+    #[test]
     fn list_offsets_v6_is_flexible_v5_is_not() {
         // Official JSON: validVersions 1-11, flexibleVersions 6+.
         // Kafka 4.0 removed v0. HeaderVersion is 1 / 0 at v1–5 and
