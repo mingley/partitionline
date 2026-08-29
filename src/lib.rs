@@ -28,6 +28,7 @@
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
+//! OffsetCommit v7–v9 (v8+ flexible; v9 KIP-848 errors),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),

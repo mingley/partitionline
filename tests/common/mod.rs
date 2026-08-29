@@ -389,6 +389,7 @@ struct State {
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
     last_offset_commit_node: Option<i32>,
+    last_offset_commit_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
@@ -638,6 +639,7 @@ fn new_state(
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
         last_offset_commit_node: None,
+        last_offset_commit_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
@@ -1818,6 +1820,10 @@ impl Mock {
         self.state.lock().last_offset_commit_node
     }
 
+    pub fn last_offset_commit_version(&self) -> Option<i16> {
+        self.state.lock().last_offset_commit_version
+    }
+
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
     }
@@ -2174,7 +2180,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (FETCH, 4, 17),
         (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 13),
-        (OFFSET_COMMIT, 2, 7),
+        (OFFSET_COMMIT, 2, 9),
         (OFFSET_FETCH, 1, 5),
         (FIND_COORDINATOR, 0, 6),
         (JOIN_GROUP, 0, 5),
@@ -2279,6 +2285,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         SYNC_GROUP => encode_sync_group_response(body, NC, &[]).unwrap(),
         OFFSET_COMMIT => encode_offset_commit_response(
             body,
+            api_version,
             &[OffsetTopic {
                 topic: "t".into(),
                 partitions: vec![OffsetPartition::new(0, -1)],
@@ -4462,15 +4469,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             OFFSET_COMMIT => {
-                let (_g, _m, topics) = decode_offset_commit_request(&mut frame).unwrap();
+                let (_g, _m, topics) =
+                    decode_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
+                st.last_offset_commit_version = Some(header.api_version);
                 if st.offset_commit_load_left > 0 {
                     st.offset_commit_load_left = st.offset_commit_load_left.saturating_sub(1);
                     st.offset_commit_load_in_progress =
                         st.offset_commit_load_in_progress.saturating_add(1);
                     encode_offset_commit_response(
                         &mut body,
+                        header.api_version,
                         &topics,
                         error::COORDINATOR_LOAD_IN_PROGRESS,
                     )
@@ -4492,7 +4502,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     st.last_offset_commit_partitions = nparts;
                     st.last_offset_commit_node = Some(node_id);
-                    encode_offset_commit_response(&mut body, &topics, 0).unwrap();
+                    encode_offset_commit_response(&mut body, header.api_version, &topics, 0)
+                        .unwrap();
                 }
             }
             OFFSET_FETCH => {

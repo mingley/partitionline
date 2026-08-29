@@ -10,7 +10,7 @@
 
 mod common;
 
-use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR, METADATA};
+use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR, METADATA, OFFSET_COMMIT};
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
@@ -1981,6 +1981,11 @@ async fn consumer_group_join_fetch_commit() {
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
     group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(9),
+        "ConsumerGroup must prefer OffsetCommit v9 when the broker advertises it"
+    );
 }
 
 #[tokio::test]
@@ -2006,6 +2011,35 @@ async fn find_coordinator_negotiates_below_v6_when_broker_caps() {
         Some(3),
         "client must speak FindCoordinator v3 when the broker max is 3"
     );
+}
+
+#[tokio::test]
+async fn offset_commit_negotiates_below_v9_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_COMMIT, 8);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg, "oc8", "t").await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(8),
+        "client must speak OffsetCommit v8 when the broker max is 8"
+    );
+    group.leave().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_COMMIT, 7);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg, "oc7", "t").await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(7),
+        "client must speak OffsetCommit v7 when the broker max is 7"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

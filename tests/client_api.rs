@@ -2419,6 +2419,11 @@ async fn admin_list_and_alter_consumer_group_offsets() {
         )
         .await
         .unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(9),
+        "Admin must prefer OffsetCommit v9 when the broker advertises it"
+    );
     let listed = admin
         .list_consumer_group_offsets("g-off", [TopicPartition::new("t", 0)])
         .await

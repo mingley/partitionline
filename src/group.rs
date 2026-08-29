@@ -1109,26 +1109,34 @@ impl ConsumerGroup {
         if topics.is_empty() {
             return Ok(());
         }
+        let version = self.coord.offset_commit_version;
+        if !(7..=9).contains(&version) {
+            return Err(Error::Unsupported(
+                "broker does not support OffsetCommit v7-9".into(),
+            ));
+        }
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             OFFSET_COMMIT,
-            7,
+            version,
             |buf| {
                 encode_offset_commit_request(
                     buf,
+                    version,
                     &self.group_id,
                     self.generation_id,
                     &self.member_id,
+                    self.cfg.group_instance_id.as_deref(),
                     &topics,
                 )
             },
             timeout,
         )
         .await?;
-        let err = decode_offset_commit_response(&mut body.clone())?;
+        let err = decode_offset_commit_response(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "OffsetCommit"));
         }
@@ -2156,6 +2164,12 @@ async fn open_coord_with_find_version(
         .find(|k| k.api_key == FIND_COORDINATOR)
         .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
         .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))?;
+    conn.offset_commit_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == OFFSET_COMMIT)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 7, 9))
+        .unwrap_or(0);
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),
@@ -2209,7 +2223,7 @@ pub(crate) async fn coord_roundtrip(
         }
         Err(e) => return Err(e),
     };
-    if coordinator_error(api_key, &body).is_some_and(error::coordinator_retriable) {
+    if coordinator_error(api_key, api_version, &body).is_some_and(error::coordinator_retriable) {
         *coord = discover_coord(cfg, group_id, key_type).await?;
         coord
             .roundtrip(
@@ -2227,9 +2241,9 @@ pub(crate) async fn coord_roundtrip(
 /// OffsetCommit / OffsetFetch put coordinator errors on each partition (and
 /// OffsetFetch also at the tail). Bytes 4–5 are the topic-array length, so a
 /// throttle-then-i16 peek misses 14/15/16 and treats a recoverable code as fatal.
-fn coordinator_error(api_key: i16, body: &[u8]) -> Option<i16> {
+fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16> {
     match api_key {
-        OFFSET_COMMIT => match decode_offset_commit_response(&mut { body }) {
+        OFFSET_COMMIT => match decode_offset_commit_response(&mut { body }, api_version) {
             Ok(0) => None,
             Ok(code) => Some(code),
             Err(_) => None,
@@ -2356,7 +2370,7 @@ mod tests {
             partitions: vec![OffsetPartition::new(0, 1)],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_commit_response(&mut buf, &topics, error::COORDINATOR_LOAD_IN_PROGRESS)
+        encode_offset_commit_response(&mut buf, 7, &topics, error::COORDINATOR_LOAD_IN_PROGRESS)
             .unwrap();
         assert_ne!(
             peek_error_code(&buf),
@@ -2364,7 +2378,7 @@ mod tests {
             "throttle + topic-array length must not look like error 14"
         );
         assert_eq!(
-            coordinator_error(OFFSET_COMMIT, &buf),
+            coordinator_error(OFFSET_COMMIT, 7, &buf),
             Some(error::COORDINATOR_LOAD_IN_PROGRESS)
         );
     }
@@ -2378,14 +2392,14 @@ mod tests {
             partitions: vec![OffsetPartition::new(0, 1)],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_commit_response(&mut buf, &topics, error::NOT_COORDINATOR).unwrap();
+        encode_offset_commit_response(&mut buf, 7, &topics, error::NOT_COORDINATOR).unwrap();
         assert_ne!(
             peek_error_code(&buf),
             Some(error::NOT_COORDINATOR),
             "throttle + topic-array length must not look like error 16"
         );
         assert_eq!(
-            coordinator_error(OFFSET_COMMIT, &buf),
+            coordinator_error(OFFSET_COMMIT, 7, &buf),
             Some(error::NOT_COORDINATOR)
         );
     }
@@ -2408,7 +2422,7 @@ mod tests {
             "throttle + topic-array length must not look like error 16"
         );
         assert_eq!(
-            coordinator_error(OFFSET_FETCH, &buf),
+            coordinator_error(OFFSET_FETCH, 5, &buf),
             Some(error::NOT_COORDINATOR)
         );
     }

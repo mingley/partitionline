@@ -591,7 +591,7 @@ pub fn decode_leave_group_response_version<B: Buf>(
     Ok((error_code, members))
 }
 
-/// One partition in OffsetCommit v7 / OffsetFetch v5.
+/// One partition in OffsetCommit v7–v9 / OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetPartition {
     /// Partition index.
@@ -617,7 +617,7 @@ impl OffsetPartition {
     }
 }
 
-/// Topic + partitions for OffsetCommit v7.
+/// Topic + partitions for OffsetCommit v7–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetTopic {
     /// Topic name.
@@ -673,22 +673,48 @@ pub struct FetchedOffsetTopic {
     pub partitions: Vec<FetchedOffset>,
 }
 
-/// Encode OffsetCommit v7 (leader epoch + metadata).
+/// `true` when OffsetCommit `version` is flexible (v8+).
+///
+/// v7 is classic (GroupId / MemberId / GroupInstanceId, leader epoch,
+/// metadata). v8–v9 are compact strings/arrays plus tagged fields on
+/// partitions / topics / top-level (Apache JSON `flexibleVersions: "8+"`).
+/// v9 is KIP-848 error codes (`GROUP_ID_NOT_FOUND`, `STALE_MEMBER_EPOCH`)
+/// with the same layout as v8. Kafka 4.0 `validVersions` is `2-9`. This
+/// crate speaks 7–9. v2–v6 (retention time / no instance id) and v10+
+/// are not spoken.
+fn offset_commit_flexible(version: i16) -> Result<bool> {
+    match version {
+        7 => Ok(false),
+        8..=9 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "OffsetCommit version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode OffsetCommit v7 (classic) or v8–v9 (flexible).
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group identity, and topics together"
+)]
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
+    version: i16,
     group_id: &str,
     generation_id: i32,
     member_id: &str,
+    group_instance_id: Option<&str>,
     topics: &[OffsetTopic],
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    let flexible = offset_commit_flexible(version)?;
+    buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_classic_nullable_string(buf, None)?;
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf::put_string(buf, flexible, group_instance_id)?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
@@ -698,31 +724,45 @@ pub fn encode_offset_commit_request(
             } else {
                 Some(p.metadata.as_str())
             };
-            buf::put_classic_nullable_string(buf, meta)?;
+            buf::put_string(buf, flexible, meta)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode OffsetCommit: `(group_id, generation_id, member_id, topics)`.
+/// Decode OffsetCommit: `(group_id, member_id, topics)`.
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(String, String, Vec<OffsetTopic>)> {
-    let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let flexible = offset_commit_flexible(version)?;
+    let group = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
-    let member = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _inst = buf::get_classic_nullable_string(buf)?;
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let member = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let _inst = buf::get_string(buf, flexible)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
             let leader_epoch = buf::get_i32(buf)?;
-            let metadata = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(OffsetPartition {
                 partition,
                 offset,
@@ -730,7 +770,13 @@ pub fn decode_offset_commit_request<B: Buf>(
                 metadata,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(OffsetTopic { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok((group, member, topics))
 }
@@ -738,37 +784,58 @@ pub fn decode_offset_commit_request<B: Buf>(
 /// Encode OffsetCommit: one error code applied to every partition.
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
+    version: i16,
     topics: &[OffsetTopic],
     error: i16,
 ) -> crate::error::Result<()> {
+    let flexible = offset_commit_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(error);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
 /// Decode OffsetCommit: first non-zero partition error, or `0`.
-pub fn decode_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
+pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = offset_commit_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut first_err = 0i16;
     for _ in 0..n {
-        let _topic = buf::get_classic_nullable_string(buf)?;
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let _topic = buf::get_string(buf, flexible)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let _p = buf::get_i32(buf)?;
             let err = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             if first_err == 0 && err != 0 {
                 first_err = err;
             }
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(first_err)
 }
@@ -1319,9 +1386,8 @@ mod tests {
         assert_eq!(meta, vec![1, 2, 3]);
     }
 
-    #[test]
-    fn offset_commit_v7_batches_partitions_and_consumes_epoch_metadata() {
-        let topics = vec![OffsetTopic {
+    fn offset_commit_topics() -> Vec<OffsetTopic> {
+        vec![OffsetTopic {
             topic: "t".into(),
             partitions: vec![
                 OffsetPartition {
@@ -1332,11 +1398,16 @@ mod tests {
                 },
                 OffsetPartition::new(2, 9),
             ],
-        }];
+        }]
+    }
+
+    #[test]
+    fn offset_commit_v7_batches_partitions_and_consumes_epoch_metadata() {
+        let topics = offset_commit_topics();
         let mut buf = BytesMut::new();
-        encode_offset_commit_request(&mut buf, "g", 7, "m1", &topics).unwrap();
+        encode_offset_commit_request(&mut buf, 7, "g", 7, "m1", None, &topics).unwrap();
         let mut cur = &buf[..];
-        let (gid, mid, got) = decode_offset_commit_request(&mut cur).unwrap();
+        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 7).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got, topics);
         assert!(
@@ -1346,8 +1417,104 @@ mod tests {
         );
 
         buf.clear();
-        encode_offset_commit_response(&mut buf, &topics, 0).unwrap();
-        assert_eq!(decode_offset_commit_response(&mut &buf[..]).unwrap(), 0);
+        encode_offset_commit_response(&mut buf, 7, &topics, 0).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_offset_commit_response(&mut cur, 7).unwrap(), 0);
+        assert!(cur.is_empty(), "v7 response leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn offset_commit_v8_roundtrip_is_leftover_empty() {
+        let topics = offset_commit_topics();
+        let mut req = BytesMut::new();
+        encode_offset_commit_request(&mut req, 8, "g", 7, "m1", Some("i"), &topics).unwrap();
+        let mut cur = &req[..];
+        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 8).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got, topics);
+        assert!(
+            cur.is_empty(),
+            "v8 decoder must consume compact strings and tagged fields; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut resp = BytesMut::new();
+        encode_offset_commit_response(&mut resp, 8, &topics, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_offset_commit_response(&mut cur, 8).unwrap(), 0);
+        assert!(
+            cur.is_empty(),
+            "v8 response must consume tagged fields; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_commit_v9_matches_v8_layout() {
+        let topics = offset_commit_topics();
+        let mut v8 = BytesMut::new();
+        encode_offset_commit_request(&mut v8, 8, "g", 7, "m1", None, &topics).unwrap();
+        let mut v9 = BytesMut::new();
+        encode_offset_commit_request(&mut v9, 9, "g", 7, "m1", None, &topics).unwrap();
+        assert_eq!(&v8[..], &v9[..], "OffsetCommit v9 request matches v8");
+
+        v8.clear();
+        encode_offset_commit_response(&mut v8, 8, &topics, 0).unwrap();
+        v9.clear();
+        encode_offset_commit_response(&mut v9, 9, &topics, 0).unwrap();
+        assert_eq!(&v8[..], &v9[..], "OffsetCommit v9 response matches v8");
+    }
+
+    #[test]
+    fn offset_commit_v8_request_matches_compact_layout() {
+        // Compact "g", generation 7, compact "m1", null instance, one topic
+        // "t" partition 0 offset 3 epoch 4, null metadata, tagged.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x00, 0x07, 0x03, 0x6d, 0x31, 0x00, 0x02, 0x02, 0x74, 0x02,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00,
+            0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 3,
+                leader_epoch: 4,
+                metadata: String::new(),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(&mut buf, 8, "g", 7, "m1", None, &topics).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v7 = BytesMut::new();
+        encode_offset_commit_request(&mut v7, 7, "g", 7, "m1", None, &topics).unwrap();
+        assert_ne!(&buf[..], &v7[..], "OffsetCommit v8 must not be classic v7");
+        assert!(
+            encode_offset_commit_request(&mut BytesMut::new(), 6, "g", 7, "m1", None, &topics)
+                .is_err(),
+            "OffsetCommit v6 is not spoken"
+        );
+        assert!(
+            encode_offset_commit_request(&mut BytesMut::new(), 10, "g", 7, "m1", None, &topics)
+                .is_err(),
+            "OffsetCommit v10+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn offset_commit_v8_response_matches_compact_layout() {
+        // Throttle 0, one topic "t" partition 0 error 0, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,
+        ];
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition::new(0, 3)],
+        }];
+        let mut buf = BytesMut::new();
+        encode_offset_commit_response(&mut buf, 8, &topics, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
     }
 
     #[test]
@@ -1357,8 +1524,11 @@ mod tests {
             partitions: vec![OffsetPartition::new(0, 1), OffsetPartition::new(1, 2)],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_commit_response(&mut buf, &topics, 16).unwrap();
-        assert_eq!(decode_offset_commit_response(&mut &buf[..]).unwrap(), 16);
+        encode_offset_commit_response(&mut buf, 7, &topics, 16).unwrap();
+        assert_eq!(decode_offset_commit_response(&mut &buf[..], 7).unwrap(), 16);
+        buf.clear();
+        encode_offset_commit_response(&mut buf, 8, &topics, 16).unwrap();
+        assert_eq!(decode_offset_commit_response(&mut &buf[..], 8).unwrap(), 16);
     }
 
     #[test]

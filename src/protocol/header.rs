@@ -12,7 +12,7 @@ use super::api_keys::{
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
     FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
     SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, TXN_OFFSET_COMMIT,
     UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
@@ -111,6 +111,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 removed v0;
         // this crate speaks 1–10. v10 TimeoutMs (KIP-1075) follows Topics.
         LIST_OFFSETS if api_version >= 6 => 2,
+        // OffsetCommit is classic through v7; flexible from v8
+        // (Apache JSON flexibleVersions: "8+"). Kafka 4.0 validVersions
+        // is 2-9. This crate speaks 7–9. v9 is KIP-848 errors (same layout).
+        OFFSET_COMMIT if api_version >= 8 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -185,6 +189,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         WRITE_TXN_MARKERS if api_version >= 1 => 1,
         LEAVE_GROUP if api_version >= 4 => 1,
         LIST_OFFSETS if api_version >= 6 => 1,
+        OFFSET_COMMIT if api_version >= 8 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -421,6 +426,19 @@ mod tests {
         assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 4), 1);
         assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 5), 2);
         assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 5), 1);
+    }
+
+    #[test]
+    fn offset_commit_v8_is_flexible_v7_is_not() {
+        // Official JSON: validVersions 2-9, flexibleVersions 8+.
+        // HeaderVersion is 1 / 0 at v7 and 2 / 1 at v8–v9. This crate
+        // speaks 7–9. v9 is KIP-848 errors (same layout as v8).
+        assert_eq!(request_header_version(OFFSET_COMMIT, 7), 1);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 7), 0);
+        assert_eq!(request_header_version(OFFSET_COMMIT, 8), 2);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 8), 1);
+        assert_eq!(request_header_version(OFFSET_COMMIT, 9), 2);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 9), 1);
     }
 
     #[test]

@@ -3503,7 +3503,7 @@ impl Admin {
 
     /// Write committed offsets for `group_id` (Java `alterConsumerGroupOffsets`).
     ///
-    /// OffsetCommit v7 on the group coordinator with generation `-1` and an
+    /// OffsetCommit v7–v9 on the group coordinator with generation `-1` and an
     /// empty member id (admin, not a group member). Empty `offsets` is a
     /// no-op. Coordinator load / move errors refresh and retry.
     pub async fn alter_consumer_group_offsets(
@@ -3522,8 +3522,10 @@ impl Admin {
         let version = self
             .versions
             .get(&OFFSET_COMMIT)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 7, 7))
-            .ok_or_else(|| Error::Unsupported("broker does not support OffsetCommit v7".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 7, 9))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support OffsetCommit v7-9".into())
+            })?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -3551,7 +3553,9 @@ impl Admin {
                 conn.roundtrip(
                     OFFSET_COMMIT,
                     version,
-                    |buf| encode_offset_commit_request(buf, &group_id, -1, "", &topics),
+                    |buf| {
+                        encode_offset_commit_request(buf, version, &group_id, -1, "", None, &topics)
+                    },
                     timeout,
                 )
                 .await
@@ -3566,7 +3570,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let err = decode_offset_commit_response(&mut body.clone())?;
+            let err = decode_offset_commit_response(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);

@@ -253,6 +253,9 @@ pub struct BrokerConn {
     /// Admin-only. Producer and consumer sockets leave this `None` so
     /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
     stats: Option<Arc<crate::metrics::AdminTracker>>,
+    /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
+    /// Classic consumer groups pick 7–9 from ApiVersions.
+    pub(crate) offset_commit_version: i16,
 }
 
 impl BrokerConn {
@@ -306,6 +309,7 @@ impl BrokerConn {
             addr: addr.to_string(),
             last_io: Instant::now(),
             stats: None,
+            offset_commit_version: 0,
         })
     }
 
