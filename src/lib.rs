@@ -242,6 +242,10 @@
 //! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
 //! (RPC deadline; ListGroups has no TimeoutMs).
 //! [`Admin::delete_consumer_groups`] is Java `deleteConsumerGroups`.
+//! [`Admin::delete_groups_timeout`] / [`Admin::delete_consumer_groups_timeout`] /
+//! [`Admin::delete_share_groups_timeout`] are Java
+//! `DeleteConsumerGroupsOptions` / `DeleteShareGroupsOptions.timeoutMs`
+//! (RPC deadline; DeleteGroups has no TimeoutMs).
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.

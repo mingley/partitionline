@@ -3107,6 +3107,11 @@ async fn admin_delete_share_groups_uses_delete_groups() {
     assert_eq!(deleted[0].group_id, "g-share");
     assert_eq!(deleted[0].error_code, 0);
     assert_eq!(mock.last_delete_groups_node(), Some(1));
+    let timed = admin
+        .delete_share_groups_timeout(["g-share"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-share");
     admin.close().await.unwrap();
 }
 
@@ -3195,6 +3200,11 @@ async fn admin_delete_consumer_groups_uses_delete_groups() {
     assert_eq!(deleted[0].group_id, "g-cons");
     assert_eq!(deleted[0].error_code, 0);
     assert_eq!(mock.last_delete_groups_node(), Some(1));
+    let timed = admin
+        .delete_consumer_groups_timeout(["g-cons"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-cons");
     admin.close().await.unwrap();
 }
 

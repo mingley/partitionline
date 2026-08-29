@@ -5952,17 +5952,40 @@ impl Admin {
     /// retry for uncached groups. DeleteGroups is one RPC per
     /// coordinator. Brokers that only speak FindCoordinator v1–v3 get
     /// one FindCoordinator per uncached group. Empty input is a no-op.
+    /// DeleteGroups has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::delete_groups_timeout`].
     pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
-        self.delete_group_ids(group_ids.iter().map(|s| (*s).to_string()).collect())
-            .await
+        let timeout = self.cfg.request_timeout;
+        self.delete_groups_timeout(group_ids, timeout).await
     }
 
-    async fn delete_group_ids(&mut self, ids: Vec<String>) -> Result<Vec<DeletableGroupResult>> {
+    /// [`Self::delete_groups`] with a one-shot RPC deadline (Java
+    /// `DeleteConsumerGroupsOptions` / `DeleteShareGroupsOptions.timeoutMs`).
+    ///
+    /// DeleteGroups has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget.
+    pub async fn delete_groups_timeout(
+        &mut self,
+        group_ids: &[&str],
+        timeout: Duration,
+    ) -> Result<Vec<DeletableGroupResult>> {
+        self.delete_group_ids(
+            group_ids.iter().map(|s| (*s).to_string()).collect(),
+            timeout,
+        )
+        .await
+    }
+
+    async fn delete_group_ids(
+        &mut self,
+        ids: Vec<String>,
+        timeout: Duration,
+    ) -> Result<Vec<DeletableGroupResult>> {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
         let version = self.delete_groups_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
@@ -6012,16 +6035,32 @@ impl Admin {
     /// Same wire as [`Self::delete_groups`]: DeleteGroups api 42 on the
     /// group coordinator (`FindCoordinator` `key_type=0`). Java's
     /// `DeleteShareGroupsHandler` extends `DeleteGroupsHandler`. Empty
-    /// input is a no-op.
+    /// input is a no-op. DeleteGroups has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::delete_share_groups_timeout`].
     pub async fn delete_share_groups(
         &mut self,
         group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<DeletableGroupResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_share_groups_timeout(group_ids, timeout).await
+    }
+
+    /// [`Self::delete_share_groups`] with a one-shot RPC deadline (Java
+    /// `DeleteShareGroupsOptions.timeoutMs`).
+    ///
+    /// DeleteGroups has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget.
+    pub async fn delete_share_groups_timeout(
+        &mut self,
+        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        timeout: Duration,
     ) -> Result<Vec<DeletableGroupResult>> {
         let ids: Vec<String> = group_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
-        self.delete_group_ids(ids).await
+        self.delete_group_ids(ids, timeout).await
     }
 
     /// Delete consumer groups (Java `Admin.deleteConsumerGroups`).
@@ -6029,16 +6068,33 @@ impl Admin {
     /// Same wire as [`Self::delete_groups`]: DeleteGroups api 42 on the
     /// group coordinator (`FindCoordinator` `key_type=0`). Java's
     /// `DeleteConsumerGroupsHandler` sends DeleteGroups. Empty
-    /// input is a no-op.
+    /// input is a no-op. DeleteGroups has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::delete_consumer_groups_timeout`].
     pub async fn delete_consumer_groups(
         &mut self,
         group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<DeletableGroupResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_consumer_groups_timeout(group_ids, timeout)
+            .await
+    }
+
+    /// [`Self::delete_consumer_groups`] with a one-shot RPC deadline (Java
+    /// `DeleteConsumerGroupsOptions.timeoutMs`).
+    ///
+    /// DeleteGroups has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget.
+    pub async fn delete_consumer_groups_timeout(
+        &mut self,
+        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+        timeout: Duration,
     ) -> Result<Vec<DeletableGroupResult>> {
         let ids: Vec<String> = group_ids
             .into_iter()
             .map(|s| s.as_ref().to_string())
             .collect();
-        self.delete_group_ids(ids).await
+        self.delete_group_ids(ids, timeout).await
     }
 
     /// Remove static members from a consumer group (Java

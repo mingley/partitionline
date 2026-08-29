@@ -102,7 +102,11 @@ ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType; FindCoordinator 
 `ListConsumerGroupsOptions.timeoutMs` (RPC deadline; ListGroups has no
 TimeoutMs). `Admin::delete_consumer_groups` is Java
 `deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
-throttle v0+; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_share_groups` is Java
+throttle v0+; FindCoordinator v4+ CoordinatorKeys of N).
+`Admin::delete_groups_timeout` / `Admin::delete_consumer_groups_timeout` /
+`Admin::delete_share_groups_timeout` are Java `DeleteConsumerGroupsOptions` /
+`DeleteShareGroupsOptions.timeoutMs` (RPC deadline; DeleteGroups has no
+TimeoutMs). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N). `Admin::list_client_metrics_resources` is Java
 `listClientMetricsResources` (ListConfigResources v0–v1 CLIENT_METRICS).
 `Admin::list_config_resources_timeout` /

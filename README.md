@@ -103,6 +103,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::abort_transaction_timeout` is Java `AbortTransactionOptions.timeoutMs`.
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
 `Admin::delete_share_groups` is Java `deleteShareGroups`.
+`Admin::delete_groups_timeout` / `delete_consumer_groups_timeout` / `delete_share_groups_timeout` are Java `DeleteConsumerGroupsOptions` / `DeleteShareGroupsOptions.timeoutMs`.
 `Admin::describe_classic_groups` is Java `describeClassicGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::describe_consumer_groups` is Java `describeConsumerGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::describe_classic_groups_timeout` / `describe_consumer_groups_timeout` / `describe_groups_timeout` are Java `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`.

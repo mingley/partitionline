@@ -8437,6 +8437,12 @@ async fn delete_groups_follows_group_coordinator() {
         Some(1),
         "DeleteGroups must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed = admin
+        .delete_groups_timeout(&["g-del"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "g-del");
 }
 
 #[tokio::test]
@@ -8537,6 +8543,11 @@ async fn delete_share_groups_follows_group_coordinator() {
             .contains(&COORDINATOR_GROUP),
         "deleteShareGroups must FindCoordinator key_type=0"
     );
+    let timed = admin
+        .delete_share_groups_timeout(["g-share"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-share");
     admin.close().await.unwrap();
 }
 
@@ -8571,6 +8582,11 @@ async fn delete_consumer_groups_follows_group_coordinator() {
             .contains(&COORDINATOR_GROUP),
         "deleteConsumerGroups must FindCoordinator key_type=0"
     );
+    let timed = admin
+        .delete_consumer_groups_timeout(["g-cons"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-cons");
     admin.close().await.unwrap();
 }
 
