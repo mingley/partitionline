@@ -173,6 +173,10 @@
 //! `AlterConfigOp.OpType.toString` / `AlterConfigOp.toString`.
 //! [`IsolationLevel`] / [`Compression`] `Display` match Java
 //! `IsolationLevel.toString` / `CompressionType.toString`.
+//! [`IsolationLevel::id`] / [`IsolationLevel::from_id`] are Java
+//! `IsolationLevel.id` / `forId`. [`Compression::id`] /
+//! [`Compression::from_id`] are Java `CompressionType.id` / `forId`
+//! (zstd `4` is `None`; this crate does not speak zstd).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are

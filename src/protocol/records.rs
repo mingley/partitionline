@@ -54,6 +54,30 @@ impl Compression {
         }
     }
 
+    /// Java `CompressionType.id`.
+    #[must_use]
+    pub fn id(self) -> i8 {
+        match self {
+            Self::None => 0,
+            Self::Gzip => 1,
+            Self::Snappy => 2,
+            Self::Lz4 => 3,
+        }
+    }
+
+    /// Java `CompressionType.forId`. Unknown ids (including zstd `4`) return
+    /// `None`.
+    #[must_use]
+    pub fn from_id(id: i32) -> Option<Self> {
+        match id {
+            0 => Some(Self::None),
+            1 => Some(Self::Gzip),
+            2 => Some(Self::Snappy),
+            3 => Some(Self::Lz4),
+            _ => None,
+        }
+    }
+
     /// Config name for this codec.
     pub fn as_str(self) -> &'static str {
         match self {
@@ -1170,6 +1194,16 @@ mod tests {
         assert_eq!(Compression::Gzip.to_string(), "gzip");
         assert_eq!(Compression::Snappy.to_string(), "snappy");
         assert_eq!(Compression::Lz4.to_string(), "lz4");
+        assert_eq!(Compression::None.id(), 0);
+        assert_eq!(Compression::Gzip.id(), 1);
+        assert_eq!(Compression::Snappy.id(), 2);
+        assert_eq!(Compression::Lz4.id(), 3);
+        assert_eq!(Compression::from_id(0), Some(Compression::None));
+        assert_eq!(Compression::from_id(1), Some(Compression::Gzip));
+        assert_eq!(Compression::from_id(2), Some(Compression::Snappy));
+        assert_eq!(Compression::from_id(3), Some(Compression::Lz4));
+        assert!(Compression::from_id(4).is_none());
+        assert!(Compression::from_id(-1).is_none());
         assert_eq!(TimestampType::from_id(0), Some(TimestampType::CreateTime));
         assert_eq!(
             TimestampType::from_id(1),

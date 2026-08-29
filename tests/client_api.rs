@@ -261,6 +261,9 @@ fn config_builders_set_typed_knobs() {
         .sasl(Sasl::scram_sha256("alice", "secret"));
     assert_eq!(p.acks, -1);
     assert_eq!(p.compression, Compression::Lz4);
+    assert_eq!(p.compression.id(), 3);
+    assert_eq!(Compression::from_id(3), Some(Compression::Lz4));
+    assert!(Compression::from_id(4).is_none());
     assert!(p.enable_idempotence);
     assert!(p.allow_auto_topic_creation);
     assert_eq!(p.connect_timeout, Duration::from_secs(3));
@@ -299,6 +302,12 @@ fn config_builders_set_typed_knobs() {
         .allow_auto_create_topics(true)
         .connect_timeout(Duration::from_secs(4));
     assert_eq!(c.isolation_level, IsolationLevel::ReadCommitted);
+    assert_eq!(c.isolation_level.id(), 1);
+    assert_eq!(
+        IsolationLevel::from_id(1),
+        Some(IsolationLevel::ReadCommitted)
+    );
+    assert_eq!(IsolationLevel::from_id(9), None);
     assert_eq!(c.max_bytes, 1024);
     assert_eq!(c.max_partition_fetch_bytes, 1024);
     let split = ConsumerConfig::bootstrap(["127.0.0.1:9092"])

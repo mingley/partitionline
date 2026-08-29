@@ -154,10 +154,22 @@ impl IsolationLevel {
         }
     }
 
+    /// Java `IsolationLevel.id` (Fetch / ListOffsets wire byte).
+    #[must_use]
+    pub fn id(self) -> i8 {
+        self.as_i8()
+    }
+
     /// Wire value sent on Fetch and ListOffsets.
     #[must_use]
     pub fn as_i8(self) -> i8 {
         self as i8
+    }
+
+    /// Java `IsolationLevel.forId`. Unknown values return `None`.
+    #[must_use]
+    pub fn from_id(id: i8) -> Option<Self> {
+        Self::from_i8(id)
     }
 
     /// Parse a Kafka isolation byte. Unknown values return `None`.
@@ -339,11 +351,18 @@ mod tests {
     fn isolation_roundtrip() {
         assert_eq!(IsolationLevel::ReadUncommitted.as_i8(), 0);
         assert_eq!(IsolationLevel::ReadCommitted.as_i8(), 1);
+        assert_eq!(IsolationLevel::ReadUncommitted.id(), 0);
+        assert_eq!(IsolationLevel::ReadCommitted.id(), 1);
         assert_eq!(
             IsolationLevel::from_i8(1),
             Some(IsolationLevel::ReadCommitted)
         );
+        assert_eq!(
+            IsolationLevel::from_id(1),
+            Some(IsolationLevel::ReadCommitted)
+        );
         assert_eq!(IsolationLevel::from_i8(9), None);
+        assert_eq!(IsolationLevel::from_id(9), None);
         assert_eq!(
             IsolationLevel::ReadUncommitted.to_string(),
             "read_uncommitted"
