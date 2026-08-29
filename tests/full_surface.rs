@@ -18,8 +18,8 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
     HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
     LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -1932,11 +1932,74 @@ async fn sasl_plain_then_produce() {
     pcfg.linger = Duration::ZERO;
     pcfg.sasl_plain = Some(("alice".into(), "secret".into()));
     let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.last_sasl_handshake_version(),
+        Some(1),
+        "Producer must prefer SaslHandshake v1 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_sasl_authenticate_version(),
+        Some(2),
+        "Producer must prefer SaslAuthenticate v2 when the broker advertises it"
+    );
     let md = producer
         .send(ProduceRecord::to("t").value(&b"sasl-ok"[..]))
         .await
         .unwrap();
     assert_eq!(md.offset, 0);
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_authenticate_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    mock.set_api_max(SASL_AUTHENTICATE, 0);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.last_sasl_handshake_version(),
+        Some(1),
+        "handshake stays v1 when only authenticate is capped"
+    );
+    assert_eq!(
+        mock.last_sasl_authenticate_version(),
+        Some(0),
+        "client must speak SaslAuthenticate v0 when the broker max is 0"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_authenticate_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    mock.set_api_max(SASL_AUTHENTICATE, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.last_sasl_authenticate_version(),
+        Some(1),
+        "client must speak SaslAuthenticate v1 when the broker max is 1"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn sasl_handshake_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start_with_sasl(Some(("alice".into(), "secret".into()))).await;
+    mock.set_api_max(SASL_HANDSHAKE, 0);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.sasl_plain = Some(("alice".into(), "secret".into()));
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.last_sasl_handshake_version(),
+        Some(0),
+        "client must speak SaslHandshake v0 when the broker max is 0"
+    );
     producer.close().await.unwrap();
 }
 

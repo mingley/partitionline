@@ -280,6 +280,14 @@ pub struct BrokerConn {
     /// (`-1` unset). KIP-932 groups pick 0–1 from ApiVersions. `0` is a
     /// spoken version, so it cannot mean unset.
     pub(crate) share_group_heartbeat_version: i16,
+    /// SaslHandshake version negotiated after ApiVersions (`-1` unset).
+    /// This crate picks 0–1. `0` is a spoken version, so it cannot mean
+    /// unset.
+    pub(crate) sasl_handshake_version: i16,
+    /// SaslAuthenticate version negotiated after ApiVersions (`-1` unset).
+    /// This crate picks 0–2. `0` is a spoken version, so it cannot mean
+    /// unset.
+    pub(crate) sasl_authenticate_version: i16,
 }
 
 impl BrokerConn {
@@ -341,6 +349,8 @@ impl BrokerConn {
             leave_group_version: -1,
             consumer_group_heartbeat_version: -1,
             share_group_heartbeat_version: -1,
+            sasl_handshake_version: -1,
+            sasl_authenticate_version: -1,
         })
     }
 

@@ -2322,6 +2322,7 @@ async fn open_coord_with_find_version(
         .find(|k| k.api_key == SHARE_GROUP_HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
+    sasl::apply_api_keys(&mut conn, &resp.api_keys);
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),

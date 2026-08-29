@@ -1049,6 +1049,7 @@ impl Admin {
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ApiVersions"));
         }
+        sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
@@ -3070,7 +3071,7 @@ impl Admin {
         )
         .await?;
         conn.set_stats(Arc::clone(&self.stats));
-        let _versions = conn
+        let versions_body = conn
             .roundtrip(
                 API_VERSIONS,
                 3,
@@ -3078,6 +3079,8 @@ impl Admin {
                 self.cfg.request_timeout,
             )
             .await?;
+        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 3)?;
+        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
             self.cfg.sasl_plain.as_ref(),

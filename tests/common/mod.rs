@@ -338,6 +338,8 @@ struct State {
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
+    last_sasl_handshake_version: Option<i16>,
+    last_sasl_authenticate_version: Option<i16>,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_list_groups_version: Option<i16>,
@@ -633,6 +635,8 @@ fn new_state(
         last_leave_group_node: None,
         last_leave_group_members: None,
         last_leave_group_version: None,
+        last_sasl_handshake_version: None,
+        last_sasl_authenticate_version: None,
         last_list_groups_node: None,
         last_list_groups: None,
         last_list_groups_version: None,
@@ -1798,6 +1802,14 @@ impl Mock {
         self.state.lock().last_leave_group_version
     }
 
+    pub fn last_sasl_handshake_version(&self) -> Option<i16> {
+        self.state.lock().last_sasl_handshake_version
+    }
+
+    pub fn last_sasl_authenticate_version(&self) -> Option<i16> {
+        self.state.lock().last_sasl_authenticate_version
+    }
+
     pub fn last_list_groups_node(&self) -> Option<i32> {
         self.state.lock().last_list_groups_node
     }
@@ -2516,7 +2528,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 4),
         (DESCRIBE_CONFIGS, 0, 4),
-        (SASL_AUTHENTICATE, 0, 1),
+        (SASL_AUTHENTICATE, 0, 2),
     ];
     ApiVersionsResponse {
         error_code: 0,
@@ -4305,29 +4317,34 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             SASL_HANDSHAKE => {
-                let _mech = decode_sasl_handshake_request(&mut frame).unwrap_or_default();
+                let version = header.api_version;
                 let (scram, oauth) = {
-                    let st = state.lock();
+                    let mut st = state.lock();
+                    st.last_sasl_handshake_version = Some(version);
                     (st.scram_user.clone(), st.oauth_principal.clone())
                 };
+                let _mech = decode_sasl_handshake_request(&mut frame, version).unwrap_or_default();
                 if let Some((alg, _, _)) = scram {
-                    encode_sasl_handshake_response(&mut body, 0, &[alg.name()]).unwrap();
+                    encode_sasl_handshake_response(&mut body, version, 0, &[alg.name()]).unwrap();
                 } else if oauth.is_some() {
-                    encode_sasl_handshake_response(&mut body, 0, &["OAUTHBEARER"]).unwrap();
+                    encode_sasl_handshake_response(&mut body, version, 0, &["OAUTHBEARER"])
+                        .unwrap();
                 } else {
-                    encode_sasl_handshake_response(&mut body, 0, &["PLAIN"]).unwrap();
+                    encode_sasl_handshake_response(&mut body, version, 0, &["PLAIN"]).unwrap();
                 }
             }
             SASL_AUTHENTICATE => {
-                let bytes = decode_sasl_authenticate_request(&mut frame).unwrap();
+                let version = header.api_version;
                 let (scram_user, oauth_principal, sasl_user) = {
-                    let st = state.lock();
+                    let mut st = state.lock();
+                    st.last_sasl_authenticate_version = Some(version);
                     (
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),
                         st.sasl_user.clone(),
                     )
                 };
+                let bytes = decode_sasl_authenticate_request(&mut frame, version).unwrap();
                 if let Some((alg, _, pass)) = scram_user {
                     match scram_step.take() {
                         None => {
@@ -4342,6 +4359,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     scram_step = Some((alg, pass, bare, sf.clone()));
                                     encode_sasl_authenticate_response(
                                         &mut body,
+                                        version,
                                         0,
                                         None,
                                         sf.as_bytes(),
@@ -4351,6 +4369,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 Err(_) => {
                                     encode_sasl_authenticate_response(
                                         &mut body,
+                                        version,
                                         58,
                                         Some("bad scram first"),
                                         &[],
@@ -4366,6 +4385,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     authed = true;
                                     encode_sasl_authenticate_response(
                                         &mut body,
+                                        version,
                                         0,
                                         None,
                                         fin.as_bytes(),
@@ -4375,6 +4395,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 Err(_) => {
                                     encode_sasl_authenticate_response(
                                         &mut body,
+                                        version,
                                         58,
                                         Some("bad scram proof"),
                                         &[],
@@ -4392,6 +4413,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     authed = ok;
                     encode_sasl_authenticate_response(
                         &mut body,
+                        version,
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad oauth token") },
                         &[],
@@ -4406,6 +4428,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     authed = ok;
                     encode_sasl_authenticate_response(
                         &mut body,
+                        version,
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad credentials") },
                         &[],

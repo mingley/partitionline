@@ -752,6 +752,7 @@ impl Producer {
         for api in &resp.api_keys {
             let _prev = versions.insert(api.api_key, api.clone());
         }
+        crate::protocol::sasl::apply_api_keys(&mut meta, &resp.api_keys);
         crate::protocol::sasl::authenticate(
             &mut meta,
             cfg.sasl_plain.as_ref(),
@@ -1626,7 +1627,7 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
-    let _versions = conn
+    let versions_body = conn
         .roundtrip(
             API_VERSIONS,
             3,
@@ -1634,6 +1635,8 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
             cfg.request_timeout,
         )
         .await?;
+    let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 3)?;
+    crate::protocol::sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
     crate::protocol::sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),

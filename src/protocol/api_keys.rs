@@ -26,7 +26,7 @@ pub const SYNC_GROUP: i16 = 14;
 pub const DESCRIBE_GROUPS: i16 = 15;
 /// ListGroups (16).
 pub const LIST_GROUPS: i16 = 16;
-/// SaslHandshake (17).
+/// SaslHandshake (17). Kafka 4.0 `validVersions` is `0-1`.
 pub const SASL_HANDSHAKE: i16 = 17;
 /// ApiVersions (18).
 pub const API_VERSIONS: i16 = 18;
@@ -64,7 +64,7 @@ pub const ALTER_CONFIGS: i16 = 33;
 pub const ALTER_REPLICA_LOG_DIRS: i16 = 34;
 /// DescribeLogDirs (35).
 pub const DESCRIBE_LOG_DIRS: i16 = 35;
-/// SaslAuthenticate (36).
+/// SaslAuthenticate (36). Kafka 4.0 `validVersions` is `0-2`.
 pub const SASL_AUTHENTICATE: i16 = 36;
 /// CreatePartitions (37).
 pub const CREATE_PARTITIONS: i16 = 37;

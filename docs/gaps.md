@@ -24,7 +24,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Classic consumer groups (join / sync / heartbeat / commit) | yes (range then sticky over all partitions; several topics via `join_topics`; cooperative-sticky / KIP-429; `group.instance.id`; heartbeat loop; rebalance; LeaveGroup v0–v5, v3 Members / GroupInstanceId, v4 flexible, v5 Reason; FindCoordinator v1–v6, v3+ flexible, v4+ CoordinatorKeys; OffsetCommit v7–v9, v8+ flexible; OffsetFetch v5–v9, v6+ flexible, v7 RequireStable, v8 Groups, v9 MemberId; Heartbeat v3–v4, v4 flexible; SyncGroup v3–v5, v4+ flexible, v5 ProtocolType / ProtocolName; JoinGroup v5–v9, v6+ flexible, v8 Reason, v9 SkipAssignment; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
 | gzip | yes (`flate2` rust backend) | yes | **done** |
 | snappy | yes (`snap`, snappy-java framing on produce; raw snappy on fetch) | yes | **done** |
-| SASL PLAIN | yes | yes | **done** |
+| SASL PLAIN | yes (SaslHandshake v0–v1; SaslAuthenticate v0–v2, v2 flexible) | yes | **done** |
 | SASL SCRAM-SHA-256 | yes (RFC 5802/7677, PBKDF2-HMAC-SHA-256, no C SASL library) | yes | **done** |
 | Java murmur2 partitioner | yes | optional (`murmur2`) | **done** |
 | TLS / SSL | yes (`rustls` + `ring`, no OpenSSL; custom CA PEM or webpki-roots; optional mTLS) | yes (OpenSSL) | **done** |

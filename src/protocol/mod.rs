@@ -39,7 +39,7 @@ pub mod offsets;
 pub mod oidc;
 /// RecordBatch magic-2 codec.
 pub mod records;
-/// SASL handshake and authenticate.
+/// SASL handshake (v0–v1) and authenticate (v0–v2).
 pub mod sasl;
 /// SCRAM-SHA-256 and SCRAM-SHA-512.
 pub mod scram;

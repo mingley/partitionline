@@ -885,6 +885,7 @@ impl Consumer {
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ApiVersions"));
         }
+        sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
             let _prev = versions.insert(api.api_key, api);
@@ -1222,6 +1223,7 @@ impl Consumer {
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ApiVersions"));
         }
+        sasl::apply_api_keys(&mut conn, &resp.api_keys);
         sasl::authenticate(
             &mut conn,
             self.cfg.sasl_plain.as_ref(),
@@ -1417,7 +1419,7 @@ impl Consumer {
             self.cfg.tls.as_ref(),
         )
         .await?;
-        let _versions = conn
+        let versions_body = conn
             .roundtrip(
                 API_VERSIONS,
                 3,
@@ -1425,6 +1427,8 @@ impl Consumer {
                 self.cfg.request_timeout,
             )
             .await?;
+        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 3)?;
+        sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
             self.cfg.sasl_plain.as_ref(),

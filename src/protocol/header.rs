@@ -15,9 +15,9 @@ use super::api_keys::{
     FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
     INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE,
-    SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT,
-    UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    OFFSET_FOR_LEADER_EPOCH, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
+    TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -255,6 +255,12 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
         // This crate speaks 1–3. v0 was removed in Kafka 4.0.
         DESCRIBE_DELEGATION_TOKEN if api_version >= 2 => 2,
+        // SaslAuthenticate is classic through v1; flexible from v2
+        // (Apache JSON flexibleVersions: "2+"). Kafka 4.0 validVersions
+        // is 0-2. This crate speaks 0–2. v0 omits SessionLifetimeMs.
+        // SaslHandshake is classic at v0–v1 (flexibleVersions: "none")
+        // and uses the default header. v3+ is not spoken.
+        SASL_AUTHENTICATE if api_version >= 2 => 2,
         _ => 1,
     }
 }
@@ -326,6 +332,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         RENEW_DELEGATION_TOKEN if api_version >= 2 => 1,
         EXPIRE_DELEGATION_TOKEN if api_version >= 2 => 1,
         DESCRIBE_DELEGATION_TOKEN if api_version >= 2 => 1,
+        SASL_AUTHENTICATE if api_version >= 2 => 1,
         _ => 0,
     }
 }
@@ -1148,6 +1155,31 @@ mod tests {
         assert_eq!(response_header_version(LIST_TRANSACTIONS, 0), 1);
         assert_eq!(request_header_version(LIST_TRANSACTIONS, 1), 2);
         assert_eq!(response_header_version(LIST_TRANSACTIONS, 1), 1);
+    }
+
+    #[test]
+    fn sasl_handshake_v0_and_v1_are_classic() {
+        // Official Kafka 4.0 JSON: validVersions 0-1, flexibleVersions none.
+        // HeaderVersion is 1 / 0 at v0 and v1. This crate speaks 0–1.
+        // v1 enables SaslAuthenticate. v2+ is not spoken (KAFKA-9577).
+        let key = crate::protocol::api_keys::SASL_HANDSHAKE;
+        assert_eq!(request_header_version(key, 0), 1);
+        assert_eq!(response_header_version(key, 0), 0);
+        assert_eq!(request_header_version(key, 1), 1);
+        assert_eq!(response_header_version(key, 1), 0);
+    }
+
+    #[test]
+    fn sasl_authenticate_v2_is_flexible_v1_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 0-2, flexibleVersions 2+.
+        // HeaderVersion is 1 / 0 at v0–v1 and 2 / 1 at v2.
+        // This crate speaks 0–2. v3+ is not spoken.
+        assert_eq!(request_header_version(SASL_AUTHENTICATE, 0), 1);
+        assert_eq!(response_header_version(SASL_AUTHENTICATE, 0), 0);
+        assert_eq!(request_header_version(SASL_AUTHENTICATE, 1), 1);
+        assert_eq!(response_header_version(SASL_AUTHENTICATE, 1), 0);
+        assert_eq!(request_header_version(SASL_AUTHENTICATE, 2), 2);
+        assert_eq!(response_header_version(SASL_AUTHENTICATE, 2), 1);
     }
 
     #[test]
