@@ -493,6 +493,54 @@ impl FetchedRecord {
     pub fn serialized_value_size(&self) -> i32 {
         serialized_bytes_size(self.value.as_ref())
     }
+
+    /// Java `ConsumerRecord.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `ConsumerRecord.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `ConsumerRecord.offset`.
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `ConsumerRecord.timestamp`.
+    #[must_use]
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `ConsumerRecord.key`.
+    #[must_use]
+    pub fn key(&self) -> Option<&[u8]> {
+        self.key.as_deref()
+    }
+
+    /// Java `ConsumerRecord.value`.
+    #[must_use]
+    pub fn value(&self) -> Option<&[u8]> {
+        self.value.as_deref()
+    }
+
+    /// Java `ConsumerRecord.headers`.
+    #[must_use]
+    pub fn headers(&self) -> &[Header] {
+        &self.headers
+    }
+
+    /// Java `ConsumerRecord.leaderEpoch`.
+    #[must_use]
+    pub fn leader_epoch(&self) -> Option<i32> {
+        self.leader_epoch
+    }
 }
 
 fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
@@ -640,6 +688,18 @@ impl TopicPartition {
         }
     }
 
+    /// Java `TopicPartition.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `TopicPartition.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
     pub(crate) fn list_from(pairs: &[(String, i32)]) -> Vec<Self> {
         pairs.iter().map(Self::from).collect()
     }
@@ -748,6 +808,24 @@ impl OffsetAndMetadata {
     pub(crate) fn wire_epoch(&self) -> i32 {
         self.leader_epoch.unwrap_or(-1)
     }
+
+    /// Java `OffsetAndMetadata.offset`.
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `OffsetAndMetadata.leaderEpoch` (`None` is Java empty `Optional`).
+    #[must_use]
+    pub fn leader_epoch(&self) -> Option<i32> {
+        self.leader_epoch
+    }
+
+    /// Java `OffsetAndMetadata.metadata`.
+    #[must_use]
+    pub fn metadata(&self) -> &str {
+        self.metadata.as_str()
+    }
 }
 
 impl From<i64> for OffsetAndMetadata {
@@ -786,6 +864,24 @@ impl OffsetAndTimestamp {
         self.leader_epoch = (epoch >= 0).then_some(epoch);
         self
     }
+
+    /// Java `OffsetAndTimestamp.offset`.
+    #[must_use]
+    pub fn offset(self) -> i64 {
+        self.offset
+    }
+
+    /// Java `OffsetAndTimestamp.timestamp`.
+    #[must_use]
+    pub fn timestamp(self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `OffsetAndTimestamp.getLeaderEpoch`.
+    #[must_use]
+    pub fn leader_epoch(self) -> Option<i32> {
+        self.leader_epoch
+    }
 }
 
 /// One partition from Metadata: leader, replicas, ISR, and offline replicas.
@@ -808,6 +904,50 @@ pub struct PartitionInfo {
     pub isr: Vec<i32>,
     /// Offline replica broker ids (Java `offlineReplicas`).
     pub offline_replicas: Vec<i32>,
+}
+
+impl PartitionInfo {
+    /// Java `PartitionInfo.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `PartitionInfo.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `PartitionInfo.leader` (broker id, or `-1`).
+    #[must_use]
+    pub fn leader(&self) -> i32 {
+        self.leader
+    }
+
+    /// Metadata v7+ leader epoch (`-1` when unknown).
+    #[must_use]
+    pub fn leader_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    /// Java `PartitionInfo.replicas`.
+    #[must_use]
+    pub fn replicas(&self) -> &[i32] {
+        &self.replicas
+    }
+
+    /// Java `PartitionInfo.inSyncReplicas`.
+    #[must_use]
+    pub fn isr(&self) -> &[i32] {
+        &self.isr
+    }
+
+    /// Java `PartitionInfo.offlineReplicas`.
+    #[must_use]
+    pub fn offline_replicas(&self) -> &[i32] {
+        &self.offline_replicas
+    }
 }
 
 /// Manual-assignment fetch client.
@@ -2841,5 +2981,45 @@ mod tests {
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5),),
             ]
         );
+    }
+
+    #[test]
+    fn java_core_type_getters_match_fields() {
+        let tp = TopicPartition::new("events", 3);
+        assert_eq!(tp.topic(), "events");
+        assert_eq!(tp.partition(), 3);
+        let committed = OffsetAndMetadata::with_metadata(9, "meta").with_leader_epoch(2);
+        assert_eq!(committed.offset(), 9);
+        assert_eq!(committed.leader_epoch(), Some(2));
+        assert_eq!(committed.metadata(), "meta");
+        let listed = OffsetAndTimestamp::new(5, 1_700_000_000_000).with_leader_epoch(4);
+        assert_eq!(listed.offset(), 5);
+        assert_eq!(listed.timestamp(), 1_700_000_000_000);
+        assert_eq!(listed.leader_epoch(), Some(4));
+        let info = PartitionInfo {
+            topic: "t".into(),
+            partition: 1,
+            leader: 2,
+            leader_epoch: 8,
+            replicas: vec![2, 3],
+            isr: vec![2],
+            offline_replicas: vec![3],
+        };
+        assert_eq!(info.topic(), "t");
+        assert_eq!(info.partition(), 1);
+        assert_eq!(info.leader(), 2);
+        assert_eq!(info.leader_epoch(), 8);
+        assert_eq!(info.replicas(), &[2, 3]);
+        assert_eq!(info.isr(), &[2]);
+        assert_eq!(info.offline_replicas(), &[3]);
+        let rec = rec("t", 0, 11);
+        assert_eq!(rec.topic(), "t");
+        assert_eq!(rec.partition(), 0);
+        assert_eq!(rec.offset(), 11);
+        assert_eq!(rec.timestamp(), 0);
+        assert!(rec.key().is_none());
+        assert!(rec.value().is_none());
+        assert!(rec.headers().is_empty());
+        assert!(rec.leader_epoch().is_none());
     }
 }

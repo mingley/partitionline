@@ -828,6 +828,24 @@ impl TopicPartitionReplica {
             broker_id,
         }
     }
+
+    /// Java `TopicPartitionReplica.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `TopicPartitionReplica.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `TopicPartitionReplica.brokerId`.
+    #[must_use]
+    pub fn broker_id(&self) -> i32 {
+        self.broker_id
+    }
 }
 
 /// Log directory for one replica (Java `ReplicaLogDirInfo`).
@@ -866,6 +884,30 @@ impl ReplicaLogDirInfo {
     #[must_use]
     pub fn unknown() -> Self {
         Self::new(None, -1, None, -1)
+    }
+
+    /// Java `ReplicaLogDirInfo.currentLogDir`.
+    #[must_use]
+    pub fn current_log_dir(&self) -> Option<&str> {
+        self.current_log_dir.as_deref()
+    }
+
+    /// Java `ReplicaLogDirInfo.currentOffsetLag`.
+    #[must_use]
+    pub fn current_offset_lag(&self) -> i64 {
+        self.current_offset_lag
+    }
+
+    /// Java `ReplicaLogDirInfo.futureLogDir`.
+    #[must_use]
+    pub fn future_log_dir(&self) -> Option<&str> {
+        self.future_log_dir.as_deref()
+    }
+
+    /// Java `ReplicaLogDirInfo.futureOffsetLag`.
+    #[must_use]
+    pub fn future_offset_lag(&self) -> i64 {
+        self.future_offset_lag
     }
 }
 
@@ -10297,6 +10339,22 @@ mod tests {
         let pair: (i64, i16) = with_err.into();
         assert_eq!(pair, (7, 6));
         assert_eq!(DeletedRecords::from((9, 0)).low_watermark(), 9);
+    }
+
+    #[test]
+    fn topic_partition_replica_and_log_dir_getters() {
+        let replica = TopicPartitionReplica::new("t", 2, 5);
+        assert_eq!(replica.topic(), "t");
+        assert_eq!(replica.partition(), 2);
+        assert_eq!(replica.broker_id(), 5);
+        let dirs = ReplicaLogDirInfo::new(Some("/data".into()), 3, Some("/next".into()), 4);
+        assert_eq!(dirs.current_log_dir(), Some("/data"));
+        assert_eq!(dirs.current_offset_lag(), 3);
+        assert_eq!(dirs.future_log_dir(), Some("/next"));
+        assert_eq!(dirs.future_offset_lag(), 4);
+        let unknown = ReplicaLogDirInfo::unknown();
+        assert!(unknown.current_log_dir().is_none());
+        assert_eq!(unknown.current_offset_lag(), -1);
     }
 
     #[test]

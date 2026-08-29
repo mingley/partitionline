@@ -1729,6 +1729,10 @@ async fn admin_list_offsets_batches_by_leader() {
         .unwrap();
     assert_eq!(listed.len(), 3);
     assert_eq!(listed[0].0, TopicPartition::new("t", 0));
+    assert_eq!(listed[0].0.topic(), "t");
+    assert_eq!(listed[0].0.partition(), 0);
+    assert_eq!(listed[0].1.offset(), listed[0].1.offset);
+    assert_eq!(listed[0].1.timestamp(), listed[0].1.timestamp);
     assert_eq!(listed[1].0, TopicPartition::new("u", 0));
     assert_eq!(listed[2].0, TopicPartition::new("u", 1));
     assert_eq!(
