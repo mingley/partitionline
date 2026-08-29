@@ -17,7 +17,7 @@ use partitionline::{
     MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
     Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
     ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2691,6 +2691,16 @@ async fn admin_remove_members_from_consumer_group() {
     assert_eq!(removed.len(), 1);
     assert_eq!(removed[0].group_instance_id.as_deref(), Some("worker-rm"));
     assert_eq!(removed[0].error_code, 0);
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(5),
+        "Admin must prefer LeaveGroup v5 when the broker advertises it"
+    );
+    let members = mock.last_leave_group_members().expect("LeaveGroup members");
+    assert_eq!(
+        members[0].reason.as_deref(),
+        Some(DEFAULT_LEAVE_GROUP_REASON)
+    );
     let empty = admin
         .remove_members_from_consumer_group("g-rm", Vec::<MemberToRemove>::new())
         .await
@@ -2745,6 +2755,15 @@ async fn admin_remove_all_members_from_consumer_group() {
     assert_eq!(members.len(), 1);
     assert_eq!(members[0].group_instance_id.as_deref(), Some("i-all"));
     assert!(!members[0].member_id.is_empty());
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(5),
+        "Admin must prefer LeaveGroup v5 when the broker advertises it"
+    );
+    assert_eq!(
+        members[0].reason.as_deref(),
+        Some(DEFAULT_LEAVE_GROUP_REASON)
+    );
     admin.close().await.unwrap();
     group.close().await.unwrap();
 }

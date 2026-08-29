@@ -112,7 +112,8 @@
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1).
 //! [`Admin::remove_members_from_consumer_group`] is Java
-//! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
+//! `removeMembersFromConsumerGroup` ([`MemberToRemove`]; LeaveGroup v3–v5,
+//! [`DEFAULT_LEAVE_GROUP_REASON`] on v5).
 //! [`Admin::remove_all_members_from_consumer_group`] is Java
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
 //! [`Admin::describe_features`] is Java `describeFeatures`
@@ -290,8 +291,9 @@ pub use admin::{
     TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
-    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, QUOTA_MATCH_ANY,
-    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
+    DEFAULT_LEAVE_GROUP_REASON, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{

@@ -864,6 +864,9 @@ impl AbortTransactionSpec {
     }
 }
 
+/// Java `KafkaAdminClient.DEFAULT_LEAVE_GROUP_REASON` (KIP-800).
+pub const DEFAULT_LEAVE_GROUP_REASON: &str = "member was removed by an admin";
+
 /// One static member for [`Admin::remove_members_from_consumer_group`].
 ///
 /// Java `MemberToRemove`. Identified by Kafka `group.instance.id` (KIP-345).
@@ -3919,12 +3922,13 @@ impl Admin {
     /// Remove static members from a consumer group (Java
     /// `removeMembersFromConsumerGroup`).
     ///
-    /// LeaveGroup v3 on the group coordinator (`FindCoordinator`
-    /// `key_type=0`) with a members array. Each [`MemberToRemove`] is a
-    /// `group.instance.id` (KIP-345); member id on the wire is empty.
-    /// Empty `members` returns an empty list. Coordinator load / move
-    /// errors refresh and retry. To remove every member, use
-    /// [`Self::remove_all_members_from_consumer_group`].
+    /// LeaveGroup v3 (classic), v4 (flexible), or v5 (KIP-800 Reason)
+    /// on the group coordinator (`FindCoordinator` `key_type=0`) with a
+    /// members array. Each [`MemberToRemove`] is a `group.instance.id`
+    /// (KIP-345); member id on the wire is empty. v5 sends
+    /// [`DEFAULT_LEAVE_GROUP_REASON`]. Empty `members` returns an empty
+    /// list. Coordinator load / move errors refresh and retry. To remove
+    /// every member, use [`Self::remove_all_members_from_consumer_group`].
     pub async fn remove_members_from_consumer_group(
         &mut self,
         group_id: &str,
@@ -3937,6 +3941,7 @@ impl Admin {
                 LeaveGroupMember {
                     member_id: String::new(),
                     group_instance_id: Some(m.group_instance_id),
+                    reason: None,
                 }
             })
             .collect();
@@ -3949,9 +3954,10 @@ impl Admin {
     /// Remove every member of a consumer group (Java
     /// `RemoveMembersFromConsumerGroupOptions.removeAll`).
     ///
-    /// DescribeGroups, then LeaveGroup v3 with those members (member id
-    /// plus `group.instance.id` when present). A group with no members
-    /// is a no-op (no LeaveGroup). This is not
+    /// DescribeGroups, then LeaveGroup v3–v5 with those members (member
+    /// id plus `group.instance.id` when present). v5 sends
+    /// [`DEFAULT_LEAVE_GROUP_REASON`]. A group with no members is a
+    /// no-op (no LeaveGroup). This is not
     /// [`Self::remove_members_from_consumer_group`] with an empty list.
     pub async fn remove_all_members_from_consumer_group(
         &mut self,
@@ -3970,6 +3976,7 @@ impl Admin {
             .map(|m| LeaveGroupMember {
                 member_id: m.member_id.clone(),
                 group_instance_id: m.group_instance_id.clone(),
+                reason: None,
             })
             .collect();
         if members.is_empty() {
@@ -3986,8 +3993,17 @@ impl Admin {
         let version = self
             .versions
             .get(&LEAVE_GROUP)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 3))
-            .ok_or_else(|| Error::Unsupported("broker does not support LeaveGroup v3".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support LeaveGroup v3+".into()))?;
+        let members: Vec<LeaveGroupMember> = members
+            .into_iter()
+            .map(|mut m| {
+                if m.reason.is_none() {
+                    m.reason = Some(DEFAULT_LEAVE_GROUP_REASON.into());
+                }
+                m
+            })
+            .collect();
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;

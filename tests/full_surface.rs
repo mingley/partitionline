@@ -25,8 +25,8 @@ use partitionline::{
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
     ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
     TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialUpsertion,
-    CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -3799,6 +3799,15 @@ async fn admin_remove_all_members_from_consumer_group() {
     assert_eq!(members.len(), 1);
     assert_eq!(members[0].group_instance_id.as_deref(), Some("i-all"));
     assert!(!members[0].member_id.is_empty());
+    assert_eq!(
+        mock.last_leave_group_version(),
+        Some(5),
+        "removeAll LeaveGroup must prefer v5 when the broker advertises it"
+    );
+    assert_eq!(
+        members[0].reason.as_deref(),
+        Some(DEFAULT_LEAVE_GROUP_REASON)
+    );
     admin.close().await.unwrap();
     group.close().await.unwrap();
 }

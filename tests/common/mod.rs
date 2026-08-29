@@ -301,6 +301,7 @@ struct State {
     describe_groups_not_coordinator: u32,
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
+    last_leave_group_version: Option<i16>,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_delete_groups_node: Option<i32>,
@@ -529,6 +530,7 @@ fn new_state(
         describe_groups_not_coordinator: 0,
         last_leave_group_node: None,
         last_leave_group_members: None,
+        last_leave_group_version: None,
         last_list_groups_node: None,
         last_list_groups: None,
         last_delete_groups_node: None,
@@ -1458,6 +1460,10 @@ impl Mock {
         self.state.lock().last_leave_group_members.clone()
     }
 
+    pub fn last_leave_group_version(&self) -> Option<i16> {
+        self.state.lock().last_leave_group_version
+    }
+
     pub fn last_list_groups_node(&self) -> Option<i32> {
         self.state.lock().last_list_groups_node
     }
@@ -1988,7 +1994,7 @@ fn versions() -> ApiVersionsResponse {
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
-        (LEAVE_GROUP, 0, 3),
+        (LEAVE_GROUP, 0, 5),
         (CONSUMER_GROUP_HEARTBEAT, 0, 0),
         (CONSUMER_GROUP_DESCRIBE, 0, 1),
         (DESCRIBE_GROUPS, 0, 6),
@@ -4067,6 +4073,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let mut st = state.lock();
                     st.last_leave_group_node = Some(node_id);
                     st.last_leave_group_members = Some(members.clone());
+                    st.last_leave_group_version = Some(header.api_version);
                     let results: Vec<LeaveGroupMemberResult> = members
                         .into_iter()
                         .map(|m| {
