@@ -4663,6 +4663,44 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         Some(None),
         "list_topics must send Metadata with a null topic array"
     );
+    let created_internal = admin
+        .create_topics(&[NewTopic::new("lt-internal", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created_internal[0].error_code, 0);
+    mock.set_topic_internal("lt-internal", true);
+    assert_eq!(mock.topic_is_internal("lt-internal"), Some(true));
+    let listed = admin.list_topics().await.unwrap();
+    assert!(listed
+        .iter()
+        .any(|t| t.name == "lt-internal" && t.is_internal));
+    let listed = admin.list_topics_with(false).await.unwrap();
+    assert!(
+        listed.iter().all(|t| !t.is_internal),
+        "list_topics_with(false) drops IsInternal rows"
+    );
+    assert!(!listed.iter().any(|t| t.name == "lt-internal"));
+    assert!(listed.iter().any(|t| t.name == "t"));
+    assert_eq!(
+        mock.last_metadata_topics(),
+        Some(None),
+        "list_topics_with still sends Metadata with a null topic array"
+    );
+    let listed = admin
+        .list_topics_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(listed
+        .iter()
+        .any(|t| t.name == "lt-internal" && t.is_internal));
+    let listed = admin
+        .list_topics_with_timeout(false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(!listed.iter().any(|t| t.name == "lt-internal"));
+    let described_internal = admin.describe_topics(["lt-internal"]).await.unwrap();
+    assert_eq!(described_internal.len(), 1);
+    assert!(described_internal[0].is_internal);
     let described = admin.describe_topics(["t"]).await.unwrap();
     assert_eq!(described.len(), 1);
     assert_eq!(described[0].partitions.len(), 1);

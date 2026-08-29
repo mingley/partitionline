@@ -236,9 +236,11 @@
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
-//! [`Admin::list_topics`] / [`Admin::describe_topics`] /
+//! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
+//! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_by_id`] are Java
-//! `listTopics` / `describeTopics` (DescribeTopicPartitions api 75) /
+//! `listTopics` / `ListTopicsOptions.listInternal` /
+//! `ListTopicsOptions.timeoutMs` / `describeTopics` (DescribeTopicPartitions api 75) /
 //! `DescribeTopicsOptions.includeAuthorizedOperations` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
 //! ([`TopicListing`] / [`TopicDescription`]).

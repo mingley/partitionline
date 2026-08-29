@@ -199,6 +199,7 @@ pub struct Mock {
 struct CreatedTopic {
     num_partitions: i32,
     configs: HashMap<String, Option<String>>,
+    is_internal: bool,
 }
 
 #[derive(Clone)]
@@ -554,6 +555,7 @@ fn new_state(
         CreatedTopic {
             num_partitions: 1,
             configs: HashMap::new(),
+            is_internal: false,
         },
     );
     State {
@@ -1060,7 +1062,7 @@ fn metadata_topic_for(
         error_code: 0,
         name: Some(name.to_string()),
         topic_id: mock_topic_id(name),
-        is_internal: false,
+        is_internal: spec.is_internal,
         partitions: (0..spec.num_partitions)
             .map(|i| {
                 let leader_id = st
@@ -1544,6 +1546,20 @@ impl Mock {
 
     pub fn last_metadata_include_topic_authorized(&self) -> Option<bool> {
         self.state.lock().last_metadata_include_topic_authorized
+    }
+
+    pub fn set_topic_internal(&self, name: &str, is_internal: bool) {
+        if let Some(topic) = self.state.lock().created_topics.get_mut(name) {
+            topic.is_internal = is_internal;
+        }
+    }
+
+    pub fn topic_is_internal(&self, name: &str) -> Option<bool> {
+        self.state
+            .lock()
+            .created_topics
+            .get(name)
+            .map(|topic| topic.is_internal)
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -3306,6 +3322,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 CreatedTopic {
                                     num_partitions: npart,
                                     configs,
+                                    is_internal: false,
                                 },
                             );
                         }

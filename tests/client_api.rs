@@ -3431,6 +3431,22 @@ async fn admin_list_and_describe_topics() {
     );
     assert_eq!(mock.last_metadata_topics(), Some(None));
     assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    let created_internal = admin
+        .create_topics(&[NewTopic::new("lt-internal", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created_internal[0].error_code, 0);
+    mock.set_topic_internal("lt-internal", true);
+    assert_eq!(mock.topic_is_internal("lt-internal"), Some(true));
+    let listed = admin.list_topics_with(false).await.unwrap();
+    assert!(!listed.iter().any(|t| t.name == "lt-internal"));
+    let listed = admin
+        .list_topics_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(listed
+        .iter()
+        .any(|t| t.name == "lt-internal" && t.is_internal));
     let described = admin.describe_topics(["t"]).await.unwrap();
     assert_eq!(described.len(), 1);
     assert_eq!(described[0].name, "t");

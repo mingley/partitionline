@@ -1893,9 +1893,47 @@ impl Admin {
     /// Sends Metadata with a null topic array (all topics) on the
     /// bootstrap connection. Includes internal topics;
     /// [`TopicListing::is_internal`] is Metadata `IsInternal`.
+    /// Metadata has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For Java
+    /// `ListTopicsOptions.listInternal`, use [`Self::list_topics_with`].
+    /// For a one-shot RPC deadline, use [`Self::list_topics_timeout`].
     pub async fn list_topics(&mut self) -> Result<Vec<TopicListing>> {
-        let md = self.fetch_metadata(None).await?;
-        Ok(topic_listings_from(&md))
+        let timeout = self.cfg.request_timeout;
+        self.list_topics_with_timeout(true, timeout).await
+    }
+
+    /// [`Self::list_topics`] filtered by Java `ListTopicsOptions.listInternal`.
+    ///
+    /// Metadata still returns every topic; this crate drops rows with
+    /// `IsInternal` when `list_internal` is false. [`Self::list_topics`]
+    /// keeps internals (Java's default `listInternal` is false).
+    pub async fn list_topics_with(&mut self, list_internal: bool) -> Result<Vec<TopicListing>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_topics_with_timeout(list_internal, timeout).await
+    }
+
+    /// [`Self::list_topics`] with a one-shot RPC deadline (Java
+    /// `ListTopicsOptions.timeoutMs`).
+    ///
+    /// Metadata has no TimeoutMs. Includes internal topics, matching
+    /// [`Self::list_topics`].
+    pub async fn list_topics_timeout(&mut self, timeout: Duration) -> Result<Vec<TopicListing>> {
+        self.list_topics_with_timeout(true, timeout).await
+    }
+
+    /// [`Self::list_topics`] with Java `ListTopicsOptions.listInternal` and
+    /// `timeoutMs`.
+    ///
+    /// Metadata has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_topics_with_timeout(
+        &mut self,
+        list_internal: bool,
+        timeout: Duration,
+    ) -> Result<Vec<TopicListing>> {
+        let md = self
+            .fetch_metadata_request_with(None, false, timeout)
+            .await?;
+        Ok(topic_listings_from(&md, list_internal))
     }
 
     /// Topic partition layouts (Java `Admin.describeTopics`).
@@ -1975,8 +2013,9 @@ impl Admin {
             .copied()
             .map(MetadataRequestTopic::by_id)
             .collect();
+        let timeout = self.cfg.request_timeout;
         let md = self
-            .fetch_metadata_request_with(Some(&topics), include_authorized_operations)
+            .fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
         Ok(topic_descriptions_including_unnamed(&md))
     }
@@ -3578,17 +3617,22 @@ impl Admin {
                 .map(|name| MetadataRequestTopic::by_name(name.clone()))
                 .collect::<Vec<_>>()
         });
-        self.fetch_metadata_request_with(owned.as_deref(), include_topic_authorized_operations)
-            .await
+        let timeout = self.cfg.request_timeout;
+        self.fetch_metadata_request_with(
+            owned.as_deref(),
+            include_topic_authorized_operations,
+            timeout,
+        )
+        .await
     }
 
     async fn fetch_metadata_request_with(
         &mut self,
         topics: Option<&[MetadataRequestTopic]>,
         include_topic_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<MetadataResponse> {
         let version = self.metadata_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 METADATA,
@@ -7327,10 +7371,11 @@ fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> 
 /// Java DescribeTopicPartitions default ResponsePartitionLimit.
 const DESCRIBE_TOPIC_PARTITIONS_LIMIT: i32 = 2000;
 
-fn topic_listings_from(md: &MetadataResponse) -> Vec<TopicListing> {
+fn topic_listings_from(md: &MetadataResponse, list_internal: bool) -> Vec<TopicListing> {
     md.topics
         .iter()
         .filter(|t| t.error_code == 0)
+        .filter(|t| list_internal || !t.is_internal)
         .filter_map(|t| {
             t.name.as_ref().map(|name| TopicListing {
                 name: name.clone(),
@@ -7593,15 +7638,28 @@ mod tests {
                     partitions: Vec::new(),
                     topic_authorized_operations: i32::MIN,
                 },
+                TopicMetadata {
+                    error_code: 0,
+                    name: Some("__consumer_offsets".into()),
+                    topic_id: [3; 16],
+                    is_internal: true,
+                    partitions: Vec::new(),
+                    topic_authorized_operations: i32::MIN,
+                },
             ],
             error_code: 0,
         };
-        let listed = topic_listings_from(&md);
-        assert_eq!(listed.len(), 1);
+        let listed = topic_listings_from(&md, true);
+        assert_eq!(listed.len(), 2);
         assert_eq!(listed[0].name, "ok");
         assert_eq!(listed[0].topic_id, [1; 16]);
+        assert_eq!(listed[1].name, "__consumer_offsets");
+        assert!(listed[1].is_internal);
+        let listed = topic_listings_from(&md, false);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].name, "ok");
         let described = topic_descriptions_including_unnamed(&md);
-        assert_eq!(described.len(), 3);
+        assert_eq!(described.len(), 4);
         assert_eq!(described[0].name, "ok");
         assert_eq!(described[0].partitions.len(), 1);
         assert_eq!(described[0].partitions[0].leader_epoch, 3);
@@ -7610,6 +7668,8 @@ mod tests {
         assert!(described[1].partitions.is_empty());
         assert!(described[2].name.is_empty());
         assert_eq!(described[2].topic_id, [2; 16]);
+        assert_eq!(described[3].name, "__consumer_offsets");
+        assert!(described[3].is_internal);
     }
 
     #[test]
