@@ -240,6 +240,10 @@
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
+//! [`Admin::list_config_resources_timeout`] /
+//! [`Admin::list_client_metrics_resources_timeout`] are Java
+//! `ListConfigResourcesOptions` / `ListClientMetricsResourcesOptions.timeoutMs`
+//! (RPC deadline; ListConfigResources has no TimeoutMs).
 //! [`Admin::list_share_group_offsets`] is Java `listShareGroupOffsets`
 //! (DescribeShareGroupOffsets; FindCoordinator v4+ CoordinatorKeys of N).
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.

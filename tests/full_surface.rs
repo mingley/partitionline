@@ -7318,6 +7318,12 @@ async fn list_config_resources_follows_broker() {
         None,
         "ListConfigResources must not hop via DescribeTopicPartitions"
     );
+    let timed = admin
+        .list_config_resources_timeout([ConfigResourceType::ClientMetrics], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].resource_name, "r");
 }
 
 #[tokio::test]
@@ -7372,6 +7378,12 @@ async fn list_client_metrics_resources_follows_broker() {
         None,
         "listClientMetricsResources must not hop via DescribeGroups or FindCoordinator"
     );
+    let timed = admin
+        .list_client_metrics_resources_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].resource_name, "r");
 }
 
 #[tokio::test]

@@ -6511,14 +6511,29 @@ impl Admin {
     /// field. Resources have no ErrorCode.
     ///
     /// `resource_types` is [`ConfigResourceType`] or a protocol `i8`
-    /// (`CONFIG_RESOURCE_TOPIC`, …).
+    /// (`CONFIG_RESOURCE_TOPIC`, …). ListConfigResources has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::list_config_resources_timeout`].
     pub async fn list_config_resources(
         &mut self,
         resource_types: impl IntoIterator<Item = impl Into<i8>>,
     ) -> Result<Vec<ListedConfigResource>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_config_resources_timeout(resource_types, timeout)
+            .await
+    }
+
+    /// [`Self::list_config_resources`] with a one-shot RPC deadline (Java
+    /// `ListConfigResourcesOptions.timeoutMs`).
+    ///
+    /// ListConfigResources has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_config_resources_timeout(
+        &mut self,
+        resource_types: impl IntoIterator<Item = impl Into<i8>>,
+        timeout: Duration,
+    ) -> Result<Vec<ListedConfigResource>> {
         let types: Vec<i8> = resource_types.into_iter().map(Into::into).collect();
         let version = self.list_config_resources_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 LIST_CONFIG_RESOURCES,
@@ -6540,9 +6555,23 @@ impl Admin {
     /// Same wire as [`Self::list_config_resources`] with
     /// [`ConfigResourceType::ClientMetrics`]. Java 4.0 implements the
     /// deprecated `listClientMetricsResources` as ListConfigResources
-    /// for that type.
+    /// for that type. ListConfigResources has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::list_client_metrics_resources_timeout`].
     pub async fn list_client_metrics_resources(&mut self) -> Result<Vec<ListedConfigResource>> {
         self.list_config_resources([ConfigResourceType::ClientMetrics])
+            .await
+    }
+
+    /// [`Self::list_client_metrics_resources`] with a one-shot RPC deadline
+    /// (Java `ListClientMetricsResourcesOptions.timeoutMs`).
+    ///
+    /// ListConfigResources has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_client_metrics_resources_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<ListedConfigResource>> {
+        self.list_config_resources_timeout([ConfigResourceType::ClientMetrics], timeout)
             .await
     }
 
