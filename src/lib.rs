@@ -36,7 +36,7 @@
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
-//! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0),
+//! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id),
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
@@ -183,7 +183,7 @@
 //! [`Admin::remove_all_members_from_consumer_group`] is Java
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
 //! [`Admin::describe_features`] is Java `describeFeatures`
-//! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields).
+//! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
 //! [`Admin::list_topics`] / [`Admin::describe_topics`] are Java
 //! `listTopics` / `describeTopics` ([`TopicListing`] / [`TopicDescription`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`

@@ -1037,18 +1037,8 @@ impl Admin {
         )
         .await?;
         conn.set_stats(Arc::clone(&stats));
-        let body = conn
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                cfg.request_timeout,
-            )
-            .await?;
-        let resp = decode_api_versions_response(&mut body.clone(), 4)?;
-        if resp.error_code != 0 {
-            return Err(Error::broker(resp.error_code, "ApiVersions"));
-        }
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -3072,15 +3062,9 @@ impl Admin {
         )
         .await?;
         conn.set_stats(Arc::clone(&self.stats));
-        let versions_body = conn
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                self.cfg.request_timeout,
-            )
-            .await?;
-        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 4)?;
+        let versions_resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
+                .await?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,

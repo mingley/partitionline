@@ -1,10 +1,14 @@
 //! ApiVersions, Metadata, and Produce codecs.
 
+use std::time::Duration;
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
+use super::api_keys::{pick_version, API_VERSIONS};
 use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
+use crate::net::BrokerConn;
 
 /// One key in an ApiVersions response.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -152,6 +156,78 @@ pub fn decode_api_versions_response<B: Buf>(
         finalized_features: tagged.finalized,
         zk_migration_ready: tagged.zk_migration_ready,
     })
+}
+
+/// Parse an ApiVersions body, falling back to v0 when the sent version does
+/// not leftover-empty (KIP-511: brokers 2.4+ answer an unsupported request
+/// with a v0 UNSUPPORTED_VERSION body).
+pub fn decode_api_versions_handshake(bytes: &[u8], version: i16) -> Result<ApiVersionsResponse> {
+    let mut cur = bytes;
+    if let Ok(resp) = decode_api_versions_response(&mut cur, version) {
+        if !cur.has_remaining() {
+            return Ok(resp);
+        }
+    }
+    if version != 0 {
+        let mut cur = bytes;
+        if let Ok(resp) = decode_api_versions_response(&mut cur, 0) {
+            if !cur.has_remaining() {
+                return Ok(resp);
+            }
+        }
+    }
+    let mut cur = bytes;
+    decode_api_versions_response(&mut cur, version)
+}
+
+/// Send ApiVersions at client max (v4) and retry once on
+/// `UNSUPPORTED_VERSION` (KIP-511).
+///
+/// Brokers older than v4 respond with a v0 body listing the supported
+/// ApiVersions range. The client then re-issues at
+/// `pick_version(broker_min, broker_max, 0, 4)`.
+pub async fn negotiate_api_versions(
+    conn: &mut BrokerConn,
+    request_timeout: Duration,
+) -> Result<ApiVersionsResponse> {
+    const SENT: i16 = 4;
+    let body = conn
+        .roundtrip(
+            API_VERSIONS,
+            SENT,
+            |buf| encode_api_versions_request(buf, SENT, "partitionline", "0.1.0"),
+            request_timeout,
+        )
+        .await?;
+    let resp = decode_api_versions_handshake(body.as_ref(), SENT)?;
+    if resp.error_code == 0 {
+        return Ok(resp);
+    }
+    if resp.error_code != crate::error::UNSUPPORTED_VERSION {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    let retry = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == API_VERSIONS)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, SENT))
+        .unwrap_or(0);
+    if retry == SENT {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    let body = conn
+        .roundtrip(
+            API_VERSIONS,
+            retry,
+            |buf| encode_api_versions_request(buf, retry, "partitionline", "0.1.0"),
+            request_timeout,
+        )
+        .await?;
+    let resp = decode_api_versions_handshake(body.as_ref(), retry)?;
+    if resp.error_code != 0 {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    Ok(resp)
 }
 
 /// Encode ApiVersions v0–v4 (used by the mock broker).
@@ -1299,6 +1375,29 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v5 response is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn api_versions_kip511_v0_unsupported_body_parses_when_sent_v4() {
+        // Brokers 2.4+ answer an unsupported ApiVersions version with a
+        // v0 body (KIP-511). Java ApiVersionsResponse.parse falls back
+        // to v0 when the sent version does not leftover-empty.
+        let resp = ApiVersionsResponse {
+            error_code: crate::error::UNSUPPORTED_VERSION,
+            api_keys: vec![ApiVersion {
+                api_key: API_VERSIONS,
+                min_version: 0,
+                max_version: 3,
+            }],
+            ..Default::default()
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 0, &resp).unwrap();
+        let decoded = decode_api_versions_handshake(&buf, 4).unwrap();
+        assert_eq!(decoded.error_code, crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(decoded.api_keys, resp.api_keys);
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 3, 0, 4), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 4), Some(0));
     }
 
     #[test]

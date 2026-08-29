@@ -11,13 +11,11 @@ use crate::error::{self, Error, Result};
 use crate::net::{BrokerConn, TlsConfig};
 use crate::partitioner::{to_positive, Partitioner, PartitionerBox};
 use crate::protocol::api::{
-    decode_api_versions_response, decode_metadata_response, decode_produce_response,
-    encode_api_versions_request, encode_metadata_request, ApiVersion,
+    decode_metadata_response, decode_produce_response, encode_metadata_request, ApiVersion,
 };
 use crate::protocol::api_keys::{
-    pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, API_VERSIONS, END_TXN,
-    FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, METADATA, PRODUCE,
-    TXN_OFFSET_COMMIT,
+    pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
+    GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, encode_find_coordinator_request_typed, COORDINATOR_GROUP,
@@ -736,18 +734,8 @@ impl Producer {
             cfg.tls.as_ref(),
         )
         .await?;
-        let body = meta
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                cfg.request_timeout,
-            )
-            .await?;
-        let resp = decode_api_versions_response(&mut body.clone(), 4)?;
-        if resp.error_code != 0 && resp.error_code != error::UNSUPPORTED_VERSION {
-            return Err(Error::broker(resp.error_code, "ApiVersions"));
-        }
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut meta, cfg.request_timeout).await?;
         let mut versions = HashMap::new();
         for api in &resp.api_keys {
             let _prev = versions.insert(api.api_key, api.clone());
@@ -1627,15 +1615,8 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
-    let versions_body = conn
-        .roundtrip(
-            API_VERSIONS,
-            4,
-            |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-            cfg.request_timeout,
-        )
-        .await?;
-    let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 4)?;
+    let versions_resp =
+        crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
     crate::protocol::sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
     crate::protocol::sasl::authenticate(
         &mut conn,

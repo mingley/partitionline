@@ -84,6 +84,38 @@ async fn try_send_flush_writes_record() {
 }
 
 #[tokio::test]
+async fn api_versions_retries_v3_on_unsupported_version() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(API_VERSIONS, 3);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.api_versions_versions(),
+        vec![4, 3],
+        "KIP-511 retries ApiVersions at the advertised max"
+    );
+    assert_eq!(mock.last_api_versions_version(), Some(3));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn api_versions_retries_v0_on_unsupported_version() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(API_VERSIONS, 0);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.api_versions_versions(),
+        vec![4, 0],
+        "KIP-511 falls back to v0 when the advertised max is 0"
+    );
+    assert_eq!(mock.last_api_versions_version(), Some(0));
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn metadata_negotiates_v13_when_advertised() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
@@ -6102,9 +6134,14 @@ async fn describe_features_negotiates_v3_when_broker_caps() {
         .await
         .unwrap();
     assert_eq!(
+        mock.api_versions_versions(),
+        vec![4, 3],
+        "KIP-511 retries ApiVersions at the advertised max"
+    );
+    assert_eq!(
         mock.last_api_versions_version(),
-        Some(4),
-        "first ApiVersions cannot be negotiated; connect still sends v4"
+        Some(3),
+        "connect must land on v3 after UNSUPPORTED_VERSION"
     );
     let features = admin.describe_features().await.unwrap();
     assert_eq!(

@@ -225,6 +225,7 @@ struct State {
     last_metadata_allow_auto: Option<bool>,
     last_metadata_version: Option<i16>,
     last_api_versions_version: Option<i16>,
+    api_versions_versions: Vec<i16>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -531,6 +532,7 @@ fn new_state(
         last_metadata_allow_auto: None,
         last_metadata_version: None,
         last_api_versions_version: None,
+        api_versions_versions: Vec::new(),
         last_metadata_topics: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
@@ -1281,6 +1283,10 @@ impl Mock {
 
     pub fn last_api_versions_version(&self) -> Option<i16> {
         self.state.lock().last_api_versions_version
+    }
+
+    pub fn api_versions_versions(&self) -> Vec<i16> {
+        self.state.lock().api_versions_versions.clone()
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -2717,7 +2723,35 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             API_VERSIONS => {
                 let mut st = state.lock();
                 st.last_api_versions_version = Some(header.api_version);
-                encode_api_versions_response(&mut body, header.api_version, &versions(&st)).unwrap()
+                st.api_versions_versions.push(header.api_version);
+                let advertised = versions(&st);
+                let (av_min, av_max) = advertised
+                    .api_keys
+                    .iter()
+                    .find(|k| k.api_key == API_VERSIONS)
+                    .map(|k| (k.min_version, k.max_version))
+                    .unwrap_or((0, 4));
+                if header.api_version > av_max {
+                    // KIP-511: unsupported ApiVersions is a v0 body listing
+                    // only the ApiVersions key range.
+                    encode_api_versions_response(
+                        &mut body,
+                        0,
+                        &ApiVersionsResponse {
+                            error_code: error::UNSUPPORTED_VERSION,
+                            api_keys: vec![ApiVersion {
+                                api_key: API_VERSIONS,
+                                min_version: av_min,
+                                max_version: av_max,
+                            }],
+                            ..Default::default()
+                        },
+                    )
+                    .unwrap();
+                } else {
+                    encode_api_versions_response(&mut body, header.api_version, &advertised)
+                        .unwrap();
+                }
             }
             METADATA => {
                 let mut st = state.lock();

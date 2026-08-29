@@ -14,11 +14,10 @@ use crate::cluster::Cluster;
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
-    decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
-    encode_metadata_request, ApiVersion, MetadataResponse,
+    decode_metadata_response, encode_metadata_request, ApiVersion, MetadataResponse,
 };
 use crate::protocol::api_keys::{
-    pick_version, API_VERSIONS, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
+    pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
     OFFSET_FOR_LEADER_EPOCH,
 };
 use crate::protocol::epoch::{
@@ -873,18 +872,8 @@ impl Consumer {
             cfg.tls.as_ref(),
         )
         .await?;
-        let body = conn
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                cfg.request_timeout,
-            )
-            .await?;
-        let resp = decode_api_versions_response(&mut body.clone(), 4)?;
-        if resp.error_code != 0 {
-            return Err(Error::broker(resp.error_code, "ApiVersions"));
-        }
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         let mut versions = HashMap::new();
         for api in resp.api_keys {
@@ -1211,18 +1200,9 @@ impl Consumer {
             self.cfg.tls.as_ref(),
         )
         .await?;
-        let body = conn
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                self.cfg.request_timeout,
-            )
-            .await?;
-        let resp = decode_api_versions_response(&mut body.clone(), 4)?;
-        if resp.error_code != 0 {
-            return Err(Error::broker(resp.error_code, "ApiVersions"));
-        }
+        let resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
+                .await?;
         sasl::apply_api_keys(&mut conn, &resp.api_keys);
         sasl::authenticate(
             &mut conn,
@@ -1419,15 +1399,9 @@ impl Consumer {
             self.cfg.tls.as_ref(),
         )
         .await?;
-        let versions_body = conn
-            .roundtrip(
-                API_VERSIONS,
-                4,
-                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
-                self.cfg.request_timeout,
-            )
-            .await?;
-        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 4)?;
+        let versions_resp =
+            crate::protocol::api::negotiate_api_versions(&mut conn, self.cfg.request_timeout)
+                .await?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,
