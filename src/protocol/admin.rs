@@ -716,6 +716,22 @@ fn write_java_double(f: &mut fmt::Formatter<'_>, v: f64) -> fmt::Result {
     write!(f, "{v:?}")
 }
 
+/// Java `OptionalInt.toString`.
+fn write_java_optional_int(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "OptionalInt[{n}]"),
+        None => f.write_str("OptionalInt.empty"),
+    }
+}
+
+/// Java `OptionalLong.toString`.
+fn write_java_optional_long(f: &mut fmt::Formatter<'_>, v: Option<i64>) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "OptionalLong[{n}]"),
+        None => f.write_str("OptionalLong.empty"),
+    }
+}
+
 /// Java `ClientQuotaEntity.toString` for one or more type/name pairs.
 fn write_java_client_quota_entity(
     f: &mut fmt::Formatter<'_>,
@@ -4678,7 +4694,8 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
 ///
 /// Java `ProducerState`. [`Self::coordinator_epoch`] /
 /// [`Self::current_txn_start_offset`] are `None` when the wire value is
-/// negative (Java `OptionalInt` / `OptionalLong`).
+/// negative (Java `OptionalInt` / `OptionalLong`). [`Display`] is Java
+/// `ProducerState.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveProducer {
     /// Producer id, or `-1`.
@@ -4750,6 +4767,24 @@ impl ActiveProducer {
     #[must_use]
     pub fn current_txn_start_offset(&self) -> Option<i64> {
         (self.current_txn_start_offset >= 0).then_some(self.current_txn_start_offset)
+    }
+}
+
+impl fmt::Display for ActiveProducer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ProducerState(producerId=")?;
+        write!(f, "{}", self.producer_id)?;
+        f.write_str(", producerEpoch=")?;
+        write!(f, "{}", self.producer_epoch)?;
+        f.write_str(", lastSequence=")?;
+        write!(f, "{}", self.last_sequence)?;
+        f.write_str(", lastTimestamp=")?;
+        write!(f, "{}", self.last_timestamp)?;
+        f.write_str(", coordinatorEpoch=")?;
+        write_java_optional_int(f, self.coordinator_epoch())?;
+        f.write_str(", currentTransactionStartOffset=")?;
+        write_java_optional_long(f, self.current_txn_start_offset())?;
+        f.write_str(")")
     }
 }
 
@@ -14658,9 +14693,17 @@ mod tests {
         assert_eq!(active.last_timestamp(), 1_700_000_000_000);
         assert_eq!(active.coordinator_epoch(), Some(0));
         assert!(active.current_txn_start_offset().is_none());
+        assert_eq!(
+            active.to_string(),
+            "ProducerState(producerId=1000, producerEpoch=1, lastSequence=7, lastTimestamp=1700000000000, coordinatorEpoch=OptionalInt[0], currentTransactionStartOffset=OptionalLong.empty)"
+        );
         let unset = ActiveProducer::new(1, 0, 0, 0, -1, 42);
         assert!(unset.coordinator_epoch().is_none());
         assert_eq!(unset.current_txn_start_offset(), Some(42));
+        assert_eq!(
+            unset.to_string(),
+            "ProducerState(producerId=1, producerEpoch=0, lastSequence=0, lastTimestamp=0, coordinatorEpoch=OptionalInt.empty, currentTransactionStartOffset=OptionalLong[42])"
+        );
         let part = DescribeProducersPartition::new(0, 0, None, vec![active.clone()]);
         assert_eq!(part.partition_index(), 0);
         assert_eq!(part.error_code(), 0);

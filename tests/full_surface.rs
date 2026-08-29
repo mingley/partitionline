@@ -4967,6 +4967,10 @@ async fn describe_producers_follows_partition_leader() {
     assert!(first.active_producers()[0]
         .current_txn_start_offset()
         .is_none());
+    assert_eq!(
+        first.active_producers[0].to_string(),
+        "ProducerState(producerId=1000, producerEpoch=1, lastSequence=7, lastTimestamp=1700000000000, coordinatorEpoch=OptionalInt[0], currentTransactionStartOffset=OptionalLong.empty)"
+    );
     assert_eq!(first.error_code(), 0);
     assert_eq!(first.partition_index(), 0);
     assert_eq!(
