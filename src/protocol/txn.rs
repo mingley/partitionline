@@ -236,41 +236,78 @@ pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> 
     Ok(err)
 }
 
-/// Encode EndTxn (`committed` is commit vs abort).
+/// `true` when EndTxn `version` is flexible (v3+).
+///
+/// v0–v2 are classic. v3–v4 are compact strings plus tagged fields
+/// (Apache JSON `flexibleVersions: "3+"`). v4 is TRANSACTION_ABORTABLE
+/// (KIP-890; same layout as v3). v5 adds ProducerId / ProducerEpoch on
+/// the response (KIP-890 Part 2 epoch bump) and is not spoken.
+fn end_txn_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "EndTxn version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode EndTxn v0–v2 (classic) or v3–v4 (flexible).
 pub fn encode_end_txn_request(
     buf: &mut BytesMut,
+    version: i16,
     transactional_id: &str,
     producer_id: i64,
     producer_epoch: i16,
     committed: bool,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(transactional_id))?;
+    let flexible = end_txn_flexible(version)?;
+    buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
     buf.put_u8(u8::from(committed));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode EndTxn: `(transactional_id, producer_id, producer_epoch, committed)`.
-pub fn decode_end_txn_request<B: Buf>(buf: &mut B) -> Result<(String, i64, i16, bool)> {
-    let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+pub fn decode_end_txn_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, i64, i16, bool)> {
+    let flexible = end_txn_flexible(version)?;
+    let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let pid = buf::get_i64(buf)?;
     let epoch = buf::get_i16(buf)?;
-    let committed = buf.get_u8() != 0;
+    let committed = buf::get_bool(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((tid, pid, epoch, committed))
 }
 
 /// Encode EndTxn: throttle `0` plus error code.
-pub fn encode_end_txn_response(buf: &mut BytesMut, error: i16) -> Result<()> {
+pub fn encode_end_txn_response(buf: &mut BytesMut, version: i16, error: i16) -> Result<()> {
+    let flexible = end_txn_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode EndTxn: error code.
-pub fn decode_end_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
+pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = end_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    buf::get_i16(buf)
+    let err = buf::get_i16(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(err)
 }
 
 /// One partition in TxnOffsetCommit v0–2 (classic).
@@ -660,12 +697,71 @@ mod tests {
     #[test]
     fn end_txn_roundtrip() {
         let mut buf = BytesMut::new();
-        encode_end_txn_request(&mut buf, "tx", 9, 1, true).unwrap();
-        let (tid, pid, epoch, committed) = decode_end_txn_request(&mut &buf[..]).unwrap();
+        encode_end_txn_request(&mut buf, 0, "tx", 9, 1, true).unwrap();
+        let mut cur = &buf[..];
+        let (tid, pid, epoch, committed) = decode_end_txn_request(&mut cur, 0).unwrap();
         assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, true));
+        assert!(cur.is_empty());
         let mut resp = BytesMut::new();
-        encode_end_txn_response(&mut resp, 0).unwrap();
-        assert_eq!(decode_end_txn_response(&mut &resp[..]).unwrap(), 0);
+        encode_end_txn_response(&mut resp, 0, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_end_txn_response(&mut cur, 0).unwrap(), 0);
+        assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn end_txn_v3_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_end_txn_request(&mut req, 3, "tx", 9, 1, true).unwrap();
+        let mut cur = &req[..];
+        let (tid, pid, epoch, committed) = decode_end_txn_request(&mut cur, 3).unwrap();
+        assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, true));
+        assert!(
+            cur.is_empty(),
+            "EndTxn v3 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_end_txn_response(&mut resp, 3, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_end_txn_response(&mut cur, 3).unwrap(), 0);
+        assert!(
+            cur.is_empty(),
+            "EndTxn v3 response must consume compact tagged fields"
+        );
+
+        req.clear();
+        encode_end_txn_request(&mut req, 4, "tx", 9, 1, false).unwrap();
+        let mut cur = &req[..];
+        let (tid, pid, epoch, committed) = decode_end_txn_request(&mut cur, 4).unwrap();
+        assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, false));
+        assert!(cur.is_empty(), "EndTxn v4 shares the v3 layout");
+        req.clear();
+        assert!(
+            encode_end_txn_request(&mut req, 5, "tx", 9, 1, true).is_err(),
+            "EndTxn v5 ProducerId/ProducerEpoch on the response is not spoken"
+        );
+    }
+
+    #[test]
+    fn end_txn_v3_request_matches_compact_layout() {
+        // Compact "tx", pid 9, epoch 1, committed true, tagged.
+        const REQ: &[u8] = &[
+            0x03, 0x74, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x01, 0x01,
+            0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_end_txn_request(&mut buf, 3, "tx", 9, 1, true).unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn end_txn_v3_response_matches_compact_layout() {
+        // Throttle 0, error 0, tagged.
+        const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let mut buf = BytesMut::new();
+        encode_end_txn_response(&mut buf, 3, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
     }
 
     #[test]

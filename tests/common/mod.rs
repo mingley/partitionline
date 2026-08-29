@@ -408,6 +408,7 @@ struct State {
     last_add_offsets_node: Option<i32>,
     last_add_offsets_to_txn_version: Option<i16>,
     last_end_txn_node: Option<i32>,
+    last_end_txn_version: Option<i16>,
     last_txn_offset_commit_node: Option<i32>,
     hb_by_node: HashMap<i32, u32>,
     kip848_groups: HashMap<String, Kip848Reg>,
@@ -646,6 +647,7 @@ fn new_state(
         last_add_offsets_node: None,
         last_add_offsets_to_txn_version: None,
         last_end_txn_node: None,
+        last_end_txn_version: None,
         last_txn_offset_commit_node: None,
         hb_by_node: HashMap::new(),
         kip848_groups: HashMap::new(),
@@ -1856,6 +1858,10 @@ impl Mock {
         self.state.lock().last_end_txn_node
     }
 
+    pub fn last_end_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_end_txn_version
+    }
+
     pub fn last_txn_offset_commit_node(&self) -> Option<i32> {
         self.state.lock().last_txn_offset_commit_node
     }
@@ -2101,7 +2107,7 @@ fn versions() -> ApiVersionsResponse {
         (INIT_PRODUCER_ID, 0, 5),
         (ADD_PARTITIONS_TO_TXN, 0, 3),
         (ADD_OFFSETS_TO_TXN, 0, 4),
-        (END_TXN, 0, 1),
+        (END_TXN, 0, 4),
         (WRITE_TXN_MARKERS, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
         (OFFSET_DELETE, 0, 0),
@@ -3288,10 +3294,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             END_TXN => {
-                let (_tid, _pid, _epoch, committed) = decode_end_txn_request(&mut frame).unwrap();
+                let (_tid, _pid, _epoch, committed) =
+                    decode_end_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
-                    encode_end_txn_response(&mut body, 16).unwrap();
+                    encode_end_txn_response(&mut body, header.api_version, 16).unwrap();
                 } else {
                     if !committed {
                         let pending = std::mem::take(&mut st.txn_pending);
@@ -3303,7 +3310,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     st.in_txn = false;
                     st.last_end_txn_node = Some(node_id);
-                    encode_end_txn_response(&mut body, 0).unwrap();
+                    st.last_end_txn_version = Some(header.api_version);
+                    encode_end_txn_response(&mut body, header.api_version, 0).unwrap();
                 }
             }
             WRITE_TXN_MARKERS => {

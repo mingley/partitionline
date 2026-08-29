@@ -912,6 +912,11 @@ async fn transactional_offsets_and_partitions_one_rpc() {
         "TxnOffsetCommit v2 must send Metadata current_leader_epoch"
     );
     producer.commit_transaction().await.unwrap();
+    assert_eq!(
+        mock.last_end_txn_version(),
+        Some(4),
+        "Producer must prefer EndTxn v4 when the broker advertises it"
+    );
     producer.close().await.unwrap();
 }
 
@@ -969,6 +974,11 @@ async fn transactional_producer_finds_txn_coordinator() {
     );
     producer.commit_transaction().await.unwrap();
     assert_eq!(mock.last_end_txn_node(), Some(2));
+    assert_eq!(
+        mock.last_end_txn_version(),
+        Some(4),
+        "Producer must prefer EndTxn v4 when the broker advertises it"
+    );
 
     mock.move_txn_coordinator();
     producer.begin_transaction().await.unwrap();
