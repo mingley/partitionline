@@ -146,7 +146,9 @@
 //! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
 //! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`]
-//! `Display` match Java `toString`.
+//! `Display` match Java `toString`. [`AclBinding`] / [`ResourcePattern`] /
+//! [`AccessControlEntry`] / [`AclBindingFilter`] `Display` match Java
+//! `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
@@ -501,7 +503,7 @@
 //! [`AclBinding::allow_topic`] / [`AclBinding::new`] / [`AclBindingFilter`] /
 //! [`ResourcePattern`] / [`AccessControlEntry`] / [`AclResourceType`] /
 //! [`AclOperation`] / [`AclPermission`] cover CreateAcls / DescribeAcls /
-//! DeleteAcls. [`Admin::describe_acls_with`] is Java `describeAcls(AclBindingFilter)`.
+//! DeleteAcls. [`AclBinding`] `Display` is Java `AclBinding.toString`. [`Admin::describe_acls_with`] is Java `describeAcls(AclBindingFilter)`.
 //! [`Admin::describe_acls_any`] is Java `describeAcls(AclBindingFilter.ANY)`.
 //! [`Admin::delete_acls_with`] is Java `deleteAcls(Collection)` (DeleteAcls Filters of N).
 //! [`Admin::create_acls_timeout`] / [`Admin::describe_acls_timeout`] /

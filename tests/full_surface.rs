@@ -4247,6 +4247,14 @@ async fn admin_partitions_alter_configs_and_acls() {
     assert_eq!(listed[0].pattern().name(), "acl-t");
     assert_eq!(listed[0].pattern().resource_type(), AclResourceType::Topic);
     assert!(!listed[0].is_unknown());
+    assert_eq!(
+        format!("{}", listed[0]),
+        "(pattern=ResourcePattern(resourceType=TOPIC, name=acl-t, patternType=LITERAL), entry=(principal=User:alice, host=*, operation=ALL, permissionType=ALLOW))"
+    );
+    assert_eq!(
+        format!("{}", AclBindingFilter::any()),
+        "(patternFilter=ResourcePattern(resourceType=ANY, name= , patternType=ANY), entryFilter=(principal= , host= , operation=ANY, permissionType=ANY))"
+    );
     assert!(listed[0].to_filter().matches(&listed[0]));
     assert_eq!(listed[0].pattern_type, partitionline::ACL_PATTERN_LITERAL);
     assert_eq!(

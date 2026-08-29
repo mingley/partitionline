@@ -6,6 +6,8 @@
 //! (user resource type). Kafka 4.0 `validVersions` is `1-3` (v0 removed).
 //! This crate speaks 0–3. v4+ is not spoken.
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -114,6 +116,21 @@ impl AclResourceType {
     }
 }
 
+impl fmt::Display for AclResourceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Any => "ANY",
+            Self::Topic => "TOPIC",
+            Self::Group => "GROUP",
+            Self::Cluster => "CLUSTER",
+            Self::TransactionalId => "TRANSACTIONAL_ID",
+            Self::DelegationToken => "DELEGATION_TOKEN",
+            Self::User => "USER",
+        })
+    }
+}
+
 /// Kafka ACL resource pattern type (`ResourcePatternType` on the wire).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -176,6 +193,18 @@ impl AclPatternType {
     #[must_use]
     pub const fn is_specific(self) -> bool {
         matches!(self, Self::Literal | Self::Prefixed)
+    }
+}
+
+impl fmt::Display for AclPatternType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Any => "ANY",
+            Self::Match => "MATCH",
+            Self::Literal => "LITERAL",
+            Self::Prefixed => "PREFIXED",
+        })
     }
 }
 
@@ -290,6 +319,28 @@ impl AclOperation {
     }
 }
 
+impl fmt::Display for AclOperation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Any => "ANY",
+            Self::All => "ALL",
+            Self::Read => "READ",
+            Self::Write => "WRITE",
+            Self::Create => "CREATE",
+            Self::Delete => "DELETE",
+            Self::Alter => "ALTER",
+            Self::Describe => "DESCRIBE",
+            Self::ClusterAction => "CLUSTER_ACTION",
+            Self::DescribeConfigs => "DESCRIBE_CONFIGS",
+            Self::AlterConfigs => "ALTER_CONFIGS",
+            Self::IdempotentWrite => "IDEMPOTENT_WRITE",
+            Self::CreateTokens => "CREATE_TOKENS",
+            Self::DescribeTokens => "DESCRIBE_TOKENS",
+        })
+    }
+}
+
 /// Kafka ACL permission type (`AclPermissionType` on the wire).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -343,6 +394,17 @@ impl AclPermission {
     #[must_use]
     pub const fn is_unknown(self) -> bool {
         matches!(self, Self::Unknown)
+    }
+}
+
+impl fmt::Display for AclPermission {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Any => "ANY",
+            Self::Deny => "DENY",
+            Self::Allow => "ALLOW",
+        })
     }
 }
 
@@ -409,6 +471,18 @@ impl ResourcePattern {
             name: Some(self.name.clone()),
             pattern_type: self.pattern_type,
         }
+    }
+}
+
+impl fmt::Display for ResourcePattern {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ResourcePattern(resourceType={}, name={}, patternType={})",
+            self.resource_type(),
+            self.name,
+            self.pattern_type()
+        )
     }
 }
 
@@ -486,6 +560,39 @@ impl AccessControlEntry {
             permission: self.permission,
         }
     }
+}
+
+impl fmt::Display for AccessControlEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_java_access_control_entry(
+            f,
+            Some(self.principal.as_str()),
+            Some(self.host.as_str()),
+            self.operation(),
+            self.permission_type(),
+        )
+    }
+}
+
+fn write_java_acl_space_or(f: &mut fmt::Formatter<'_>, s: Option<&str>) -> fmt::Result {
+    match s {
+        Some(s) => f.write_str(s),
+        None => f.write_str(" "),
+    }
+}
+
+fn write_java_access_control_entry(
+    f: &mut fmt::Formatter<'_>,
+    principal: Option<&str>,
+    host: Option<&str>,
+    operation: AclOperation,
+    permission: AclPermission,
+) -> fmt::Result {
+    f.write_str("(principal=")?;
+    write_java_acl_space_or(f, principal)?;
+    f.write_str(", host=")?;
+    write_java_acl_space_or(f, host)?;
+    write!(f, ", operation={operation}, permissionType={permission})")
 }
 
 /// Java `ResourcePatternFilter`.
@@ -593,6 +700,17 @@ impl ResourcePatternFilter {
             AclPatternType::Unknown => Some("Resource pattern type is UNKNOWN."),
             _ => None,
         }
+    }
+}
+
+impl fmt::Display for ResourcePatternFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Java `ResourcePatternFilter.toString` uses the `ResourcePattern(` prefix.
+        f.write_str("ResourcePattern(resourceType=")?;
+        write!(f, "{}", self.resource_type())?;
+        f.write_str(", name=")?;
+        write_java_acl_space_or(f, self.name.as_deref())?;
+        write!(f, ", patternType={})", self.pattern_type())
     }
 }
 
@@ -706,6 +824,18 @@ impl AccessControlEntryFilter {
             AclPermission::Unknown => Some("Permission type is UNKNOWN"),
             _ => None,
         }
+    }
+}
+
+impl fmt::Display for AccessControlEntryFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_java_access_control_entry(
+            f,
+            self.principal.as_deref(),
+            self.host.as_deref(),
+            self.operation(),
+            self.permission_type(),
+        )
     }
 }
 
@@ -830,6 +960,12 @@ impl AclBinding {
     #[must_use]
     pub fn to_filter(&self) -> AclBindingFilter {
         AclBindingFilter::new(self.pattern().to_filter(), self.entry().to_filter())
+    }
+}
+
+impl fmt::Display for AclBinding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(pattern={}, entry={})", self.pattern(), self.entry())
     }
 }
 
@@ -1020,6 +1156,17 @@ impl AclBindingFilter {
         self.pattern_filter()
             .find_indefinite_field()
             .or_else(|| self.entry_filter().find_indefinite_field())
+    }
+}
+
+impl fmt::Display for AclBindingFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(patternFilter={}, entryFilter={})",
+            self.pattern_filter(),
+            self.entry_filter()
+        )
     }
 }
 
@@ -1685,6 +1832,18 @@ mod tests {
         assert_eq!(acl.entry().operation(), AclOperation::All);
         assert_eq!(acl.entry().permission_type(), AclPermission::Allow);
         assert!(!acl.is_unknown());
+        assert_eq!(
+            acl.to_string(),
+            "(pattern=ResourcePattern(resourceType=TOPIC, name=events, patternType=LITERAL), entry=(principal=User:alice, host=*, operation=ALL, permissionType=ALLOW))"
+        );
+        assert_eq!(
+            acl.pattern().to_string(),
+            "ResourcePattern(resourceType=TOPIC, name=events, patternType=LITERAL)"
+        );
+        assert_eq!(
+            acl.entry().to_string(),
+            "(principal=User:alice, host=*, operation=ALL, permissionType=ALLOW)"
+        );
         let filter = acl.to_filter();
         assert!(filter.matches(&acl));
         assert!(filter.matches_at_most_one());
@@ -1732,6 +1891,27 @@ mod tests {
         assert_eq!(AclOperation::from_id(99), AclOperation::Unknown);
         assert_eq!(AclPermission::from_string("deny"), AclPermission::Deny);
         assert_eq!(AclPermission::from_id(99), AclPermission::Unknown);
+        assert_eq!(AclResourceType::Topic.to_string(), "TOPIC");
+        assert_eq!(
+            AclResourceType::TransactionalId.to_string(),
+            "TRANSACTIONAL_ID"
+        );
+        assert_eq!(AclPatternType::Literal.to_string(), "LITERAL");
+        assert_eq!(AclOperation::ClusterAction.to_string(), "CLUSTER_ACTION");
+        assert_eq!(AclOperation::CreateTokens.to_string(), "CREATE_TOKENS");
+        assert_eq!(AclPermission::Allow.to_string(), "ALLOW");
+        assert_eq!(
+            ResourcePatternFilter::any().to_string(),
+            "ResourcePattern(resourceType=ANY, name= , patternType=ANY)"
+        );
+        assert_eq!(
+            AccessControlEntryFilter::any().to_string(),
+            "(principal= , host= , operation=ANY, permissionType=ANY)"
+        );
+        assert_eq!(
+            AclBindingFilter::any().to_string(),
+            "(patternFilter=ResourcePattern(resourceType=ANY, name= , patternType=ANY), entryFilter=(principal= , host= , operation=ANY, permissionType=ANY))"
+        );
 
         let pattern =
             ResourcePattern::new(AclResourceType::Topic, "events", AclPatternType::Literal);
