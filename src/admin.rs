@@ -1044,9 +1044,9 @@ impl Admin {
             })?;
         let delete_version = versions
             .get(&DELETE_TOPICS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support DeleteTopics v0-3".into())
+                Error::Unsupported("broker does not support DeleteTopics v0-6".into())
             })?;
         let describe_version = versions
             .get(&DESCRIBE_CONFIGS)
@@ -1465,6 +1465,11 @@ impl Admin {
 
     /// Delete topics (`DeleteTopics`).
     ///
+    /// Negotiates v0–v6 (v4+ flexible; v5 ErrorMessage, KIP-599; v6
+    /// Topics of Name + TopicId, KIP-516). Name-based deletes send a
+    /// zero UUID at v6 (Java `deleteTopics(Collection<String>)`).
+    /// Kafka 4.0 `validVersions` is `1-6`. v7+ is not spoken.
+    ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
     pub async fn delete_topics(
@@ -1491,7 +1496,7 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_TOPICS,
                     version,
-                    |buf| encode_delete_topics_request(buf, &names, timeout_ms),
+                    |buf| encode_delete_topics_request(buf, version, &names, timeout_ms),
                     timeout,
                 )
                 .await

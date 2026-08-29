@@ -257,6 +257,7 @@ struct State {
     last_create_topics_version: Option<i16>,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
+    last_delete_topics_version: Option<i16>,
     delete_topics_not_controller: u32,
     last_create_partitions_node: Option<i32>,
     create_partitions_not_controller: u32,
@@ -519,6 +520,7 @@ fn new_state(
         last_create_topics_version: None,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
+        last_delete_topics_version: None,
         delete_topics_not_controller: 0,
         last_create_partitions_node: None,
         create_partitions_not_controller: 0,
@@ -1398,6 +1400,10 @@ impl Mock {
         self.state.lock().last_delete_topics_node
     }
 
+    pub fn last_delete_topics_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_topics_version
+    }
+
     pub fn delete_topics_not_controller(&self) -> u32 {
         self.state.lock().delete_topics_not_controller
     }
@@ -2261,7 +2267,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 7),
-        (DELETE_TOPICS, 0, 3),
+        (DELETE_TOPICS, 0, 6),
         (CREATE_PARTITIONS, 0, 1),
         (DELETE_RECORDS, 0, 1),
         (ALTER_CONFIGS, 0, 1),
@@ -2576,9 +2582,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_create_topics_response(&mut body, version, &results).unwrap();
             }
             DELETE_TOPICS => {
-                let (names, _timeout) = decode_delete_topics_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (names, _timeout) = decode_delete_topics_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
+                st.last_delete_topics_version = Some(version);
                 if st.controller_node != node_id {
                     st.delete_topics_not_controller =
                         st.delete_topics_not_controller.saturating_add(1);
@@ -2597,10 +2605,23 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         } else {
                             3
                         };
-                        results.push(TopicResult::new(name, error_code, None));
+                        let topic_id = if version >= 6 && error_code == 0 {
+                            mock_topic_id(&name)
+                        } else {
+                            [0; 16]
+                        };
+                        results.push(TopicResult {
+                            name,
+                            error_code,
+                            error_message: None,
+                            topic_id,
+                            num_partitions: -1,
+                            replication_factor: -1,
+                            configs: Vec::new(),
+                        });
                     }
                 }
-                encode_delete_topics_response(&mut body, header.api_version, &results).unwrap();
+                encode_delete_topics_response(&mut body, version, &results).unwrap();
             }
             DESCRIBE_CONFIGS => {
                 let (resources, _syn) =

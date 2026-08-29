@@ -35,6 +35,7 @@
 //! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
+//! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),

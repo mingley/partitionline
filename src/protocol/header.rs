@@ -7,7 +7,7 @@ use super::api_keys::{
     ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS, ALTER_SHARE_GROUP_OFFSETS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
     CONSUMER_GROUP_HEARTBEAT, CREATE_DELEGATION_TOKEN, CREATE_TOPICS, DELETE_GROUPS,
-    DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
+    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
     DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
     DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
     DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR,
@@ -142,6 +142,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 2-7. This crate speaks 0–7. v5 returns configs (KIP-525);
         // v7 TopicId (KIP-516). v8+ is not spoken.
         CREATE_TOPICS if api_version >= 5 => 2,
+        // DeleteTopics is classic through v3; flexible from v4
+        // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
+        // is 1-6 (v0 removed). This crate speaks 0–6. v5 ErrorMessage
+        // (KIP-599); v6 Topics + TopicId (KIP-516). v7+ is not spoken.
+        DELETE_TOPICS if api_version >= 4 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -222,6 +227,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         SYNC_GROUP if api_version >= 4 => 1,
         JOIN_GROUP if api_version >= 6 => 1,
         CREATE_TOPICS if api_version >= 5 => 1,
+        DELETE_TOPICS if api_version >= 4 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -534,6 +540,19 @@ mod tests {
         assert_eq!(response_header_version(CREATE_TOPICS, 5), 1);
         assert_eq!(request_header_version(CREATE_TOPICS, 7), 2);
         assert_eq!(response_header_version(CREATE_TOPICS, 7), 1);
+    }
+
+    #[test]
+    fn delete_topics_v4_is_flexible_v3_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 1-6, flexibleVersions 4+.
+        // HeaderVersion is 1 / 0 at v0–3 and 2 / 1 at v4–v6. This crate
+        // speaks 0–6. v5 ErrorMessage; v6 Topics + TopicId.
+        assert_eq!(request_header_version(DELETE_TOPICS, 3), 1);
+        assert_eq!(response_header_version(DELETE_TOPICS, 3), 0);
+        assert_eq!(request_header_version(DELETE_TOPICS, 4), 2);
+        assert_eq!(response_header_version(DELETE_TOPICS, 4), 1);
+        assert_eq!(request_header_version(DELETE_TOPICS, 6), 2);
+        assert_eq!(response_header_version(DELETE_TOPICS, 6), 1);
     }
 
     #[test]

@@ -99,7 +99,7 @@ pub struct TopicResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
-    /// Topic UUID from CreateTopics v7. Zero when the version has no TopicId.
+    /// Topic UUID from CreateTopics v7 / DeleteTopics v6. Zero when omitted.
     pub topic_id: [u8; 16],
     /// Partition count from CreateTopics v5+, or `-1` when omitted.
     pub num_partitions: i32,
@@ -466,24 +466,85 @@ pub fn decode_create_topics_response<B: Buf>(
     Ok(out)
 }
 
-/// DeleteTopics v0–3 (classic; flexible from v4).
+/// `true` when DeleteTopics `version` is flexible.
+///
+/// v0–v3 are classic TopicNames. v4 is the first flexible version.
+/// v5 is the same request (ErrorMessage on the response, KIP-599).
+/// v6 replaces TopicNames with Topics of Name + TopicId (KIP-516).
+/// Kafka 4.0 `validVersions` is `1-6` (v0 removed). This crate speaks
+/// 0–6. v7+ is not spoken.
+fn delete_topics_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=3 => Ok(false),
+        4..=6 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DeleteTopics version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DeleteTopics v0–6 (classic through v3; flexible from v4).
 pub fn encode_delete_topics_request(
     buf: &mut BytesMut,
+    version: i16,
     names: &[String],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(names.len()))?;
-    for name in names {
-        buf::put_classic_nullable_string(buf, Some(name))?;
+    let flexible = delete_topics_flexible(version)?;
+    if version >= 6 {
+        buf::put_array_len(buf, true, Some(names.len()))?;
+        for name in names {
+            buf::put_compact_string(buf, Some(name))?;
+            buf.extend_from_slice(&[0u8; 16]);
+            buf::put_empty_tagged_fields(buf);
+        }
+    } else {
+        buf::put_array_len(buf, flexible, Some(names.len()))?;
+        for name in names {
+            buf::put_string(buf, flexible, Some(name))?;
+        }
     }
     buf.put_i32(timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a DeleteTopics request.
-pub fn decode_delete_topics_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, i32)> {
-    let names = get_string_array(buf)?.unwrap_or_default();
+/// Decode a DeleteTopics request: `(names, timeout_ms)`.
+///
+/// v6 Topics entries with a null Name are skipped (this crate deletes
+/// by name and sends TopicId as zero).
+pub fn decode_delete_topics_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, i32)> {
+    let flexible = delete_topics_flexible(version)?;
+    let mut names = Vec::new();
+    if version >= 6 {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        names.reserve(n);
+        for _ in 0..n {
+            let name = buf::get_compact_string(buf)?;
+            let _id = buf::get_uuid(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            if let Some(name) = name {
+                if !name.is_empty() {
+                    names.push(name);
+                }
+            }
+        }
+    } else {
+        let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        names.reserve(n);
+        for _ in 0..n {
+            names.push(buf::get_string(buf, flexible)?.unwrap_or_default());
+        }
+    }
     let timeout_ms = buf::get_i32(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((names, timeout_ms))
 }
 
@@ -493,13 +554,28 @@ pub fn encode_delete_topics_response(
     version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    let flexible = delete_topics_flexible(version)?;
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
-        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        if version >= 6 {
+            buf::put_compact_string(buf, Some(&r.name))?;
+            buf.extend_from_slice(&r.topic_id);
+        } else {
+            buf::put_string(buf, flexible, Some(&r.name))?;
+        }
         buf.put_i16(r.error_code);
+        if version >= 5 {
+            buf::put_string(buf, true, r.error_message.as_deref())?;
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -509,15 +585,44 @@ pub fn decode_delete_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<TopicResult>> {
+    let flexible = delete_topics_flexible(version)?;
     if version >= 1 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let (name, topic_id) = if version >= 6 {
+            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topic_id = buf::get_uuid(buf)?;
+            (name, topic_id)
+        } else {
+            (
+                buf::get_string(buf, flexible)?.unwrap_or_default(),
+                [0u8; 16],
+            )
+        };
         let error_code = buf::get_i16(buf)?;
-        out.push(TopicResult::new(name, error_code, None));
+        let error_message = if version >= 5 {
+            buf::get_string(buf, true)?
+        } else {
+            None
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        out.push(TopicResult {
+            name,
+            error_code,
+            error_message,
+            topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(out)
 }
@@ -7568,10 +7673,15 @@ mod tests {
     fn delete_topics_v3_roundtrip() {
         let names = vec!["orders".into(), "t".into()];
         let mut buf = BytesMut::new();
-        encode_delete_topics_request(&mut buf, &names, 5000).unwrap();
-        let (decoded, timeout) = decode_delete_topics_request(&mut &buf[..]).unwrap();
+        encode_delete_topics_request(&mut buf, 3, &names, 5000).unwrap();
+        let mut cur = &buf[..];
+        let (decoded, timeout) = decode_delete_topics_request(&mut cur, 3).unwrap();
         assert_eq!(decoded, names);
         assert_eq!(timeout, 5000);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v3 request must be leftover-empty"
+        );
 
         let results = vec![
             TopicResult::new("orders", 0, None),
@@ -7579,10 +7689,172 @@ mod tests {
         ];
         buf.clear();
         encode_delete_topics_response(&mut buf, 3, &results).unwrap();
-        assert_eq!(
-            decode_delete_topics_response(&mut &buf[..], 3).unwrap(),
-            results
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_topics_response(&mut cur, 3).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v3 response must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn delete_topics_v4_roundtrip_is_leftover_empty() {
+        let names = vec!["orders".into()];
+        let mut buf = BytesMut::new();
+        encode_delete_topics_request(&mut buf, 4, &names, 5000).unwrap();
+        let mut cur = &buf[..];
+        let (decoded, timeout) = decode_delete_topics_request(&mut cur, 4).unwrap();
+        assert_eq!(decoded, names);
+        assert_eq!(timeout, 5000);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v4 request must consume compact fields and tagged fields"
+        );
+        let mut v3 = BytesMut::new();
+        encode_delete_topics_request(&mut v3, 3, &names, 5000).unwrap();
+        assert_ne!(&buf[..], &v3[..], "DeleteTopics v4 must not be classic v3");
+
+        let results = vec![TopicResult::new("orders", 0, None)];
+        buf.clear();
+        encode_delete_topics_response(&mut buf, 4, &results).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_topics_response(&mut cur, 4).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v4 response must be leftover-empty"
+        );
+        assert!(
+            encode_delete_topics_request(&mut BytesMut::new(), 7, &names, 5000).is_err(),
+            "DeleteTopics v7+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn delete_topics_v4_compact_layout_matches_independent_encode() {
+        // Compact 1 topic "t", timeout 5000, empty tagged fields.
+        const REQ: &[u8] = &[0x02, 0x02, 0x74, 0x00, 0x00, 0x13, 0x88, 0x00];
+        let names = vec!["t".into()];
+        let mut buf = BytesMut::new();
+        encode_delete_topics_request(&mut buf, 4, &names, 5_000).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v5 = BytesMut::new();
+        encode_delete_topics_request(&mut v5, 5, &names, 5_000).unwrap();
+        assert_eq!(&buf[..], &v5[..], "DeleteTopics v5 request matches v4");
+        let mut cur = &v5[..];
+        let (decoded5, timeout5) = decode_delete_topics_request(&mut cur, 5).unwrap();
+        assert_eq!(decoded5, names);
+        assert_eq!(timeout5, 5_000);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v5 request must be leftover-empty"
+        );
+        let mut v6 = BytesMut::new();
+        encode_delete_topics_request(&mut v6, 6, &names, 5_000).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v6[..],
+            "DeleteTopics v6 request is Topics + TopicId"
+        );
+        // Compact Topics[1] { Name "t", TopicId 16 zeros, tagged } + timeout + tagged.
+        const V6: &[u8] = &[
+            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00,
+        ];
+        assert_eq!(&v6[..], V6);
+        let mut cur = &v6[..];
+        let (decoded, timeout) = decode_delete_topics_request(&mut cur, 6).unwrap();
+        assert_eq!(decoded, names);
+        assert_eq!(timeout, 5_000);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_topics_v5_response_includes_error_message() {
+        let results = vec![TopicResult::new("t", 3, Some("Unknown topic.".into()))];
+        let mut v4 = BytesMut::new();
+        encode_delete_topics_response(&mut v4, 4, &results).unwrap();
+        let mut v5 = BytesMut::new();
+        encode_delete_topics_response(&mut v5, 5, &results).unwrap();
+        assert_ne!(
+            &v4[..],
+            &v5[..],
+            "DeleteTopics v5 response must include ErrorMessage"
+        );
+        let mut cur = &v5[..];
+        assert_eq!(decode_delete_topics_response(&mut cur, 5).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v5 response must be leftover-empty"
+        );
+        let mut cur = &v4[..];
+        let got4 = decode_delete_topics_response(&mut cur, 4).unwrap();
+        assert_eq!(got4[0].error_code, 3);
+        assert_eq!(got4[0].error_message, None);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v4 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_topics_v6_response_includes_topic_id() {
+        let mut id = [0u8; 16];
+        id[15] = 6;
+        let results = vec![TopicResult {
+            name: "t".into(),
+            error_code: 0,
+            error_message: None,
+            topic_id: id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        }];
+        let mut v5 = BytesMut::new();
+        encode_delete_topics_response(&mut v5, 5, &results).unwrap();
+        let mut v6 = BytesMut::new();
+        encode_delete_topics_response(&mut v6, 6, &results).unwrap();
+        assert_ne!(
+            &v5[..],
+            &v6[..],
+            "DeleteTopics v6 response must include TopicId"
+        );
+        let mut cur = &v6[..];
+        assert_eq!(decode_delete_topics_response(&mut cur, 6).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 response must be leftover-empty"
+        );
+        let mut v5_again = BytesMut::new();
+        encode_delete_topics_response(&mut v5_again, 5, &results).unwrap();
+        assert_eq!(&v5[..], &v5_again[..], "DeleteTopics v5 omits TopicId");
+    }
+
+    #[test]
+    fn delete_topics_flexible_not_controller_is_leftover_empty() {
+        let results = vec![TopicResult::new(
+            "t",
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+        )];
+        for version in [4i16, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_delete_topics_response(&mut buf, version, &results).unwrap();
+            let mut cur = &buf[..];
+            let got = decode_delete_topics_response(&mut cur, version).unwrap();
+            assert_eq!(got[0].error_code, crate::error::NOT_CONTROLLER);
+            if version >= 5 {
+                assert_eq!(got[0].error_message.as_deref(), Some("Not controller"));
+            } else {
+                assert_eq!(got[0].error_message, None);
+            }
+            assert!(
+                !cur.has_remaining(),
+                "DeleteTopics v{version} NOT_CONTROLLER must be leftover-empty"
+            );
+        }
     }
 
     #[test]

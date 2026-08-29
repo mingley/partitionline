@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    CREATE_TOPICS, END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA,
-    OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    CREATE_TOPICS, DELETE_TOPICS, END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3544,6 +3544,15 @@ async fn delete_topics_follows_controller() {
     let deleted = admin.delete_topics(&["del2"], 10_000).await.unwrap();
     assert_eq!(deleted[0].error_code, 0);
     assert_eq!(
+        mock.last_delete_topics_version(),
+        Some(6),
+        "Admin must prefer DeleteTopics v6 when the broker advertises it"
+    );
+    assert_ne!(
+        deleted[0].topic_id, [0u8; 16],
+        "DeleteTopics v6 must return TopicId"
+    );
+    assert_eq!(
         mock.last_delete_topics_node(),
         Some(2),
         "DeleteTopics must land on the controller, not bootstrap"
@@ -3561,6 +3570,61 @@ async fn delete_topics_follows_controller() {
         mock.last_delete_topics_node(),
         Some(1),
         "DeleteTopics must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn delete_topics_negotiates_below_v6_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_TOPICS, 5);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("dt5", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let deleted = admin.delete_topics(&["dt5"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_delete_topics_version(),
+        Some(5),
+        "client must speak DeleteTopics v5 when the broker max is 5"
+    );
+    assert_eq!(
+        deleted[0].topic_id, [0u8; 16],
+        "DeleteTopics v5 has no TopicId"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_TOPICS, 4);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("dt4", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let deleted = admin.delete_topics(&["dt4"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_delete_topics_version(),
+        Some(4),
+        "client must speak DeleteTopics v4 when the broker max is 4"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_TOPICS, 3);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("dt3", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let deleted = admin.delete_topics(&["dt3"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.last_delete_topics_version(),
+        Some(3),
+        "client must speak DeleteTopics v3 when the broker max is 3"
     );
 }
 
