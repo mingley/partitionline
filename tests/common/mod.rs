@@ -386,6 +386,7 @@ struct State {
     add_partitions_to_txn_calls: u32,
     last_add_partitions_to_txn: usize,
     last_add_partitions_to_txn_version: Option<i16>,
+    last_add_partitions_producer_epoch: Option<i16>,
     txn_offset_commit_calls: u32,
     last_txn_offset_commit_partitions: usize,
     last_txn_offset_commit_version: Option<i16>,
@@ -628,6 +629,7 @@ fn new_state(
         add_partitions_to_txn_calls: 0,
         last_add_partitions_to_txn: 0,
         last_add_partitions_to_txn_version: None,
+        last_add_partitions_producer_epoch: None,
         txn_offset_commit_calls: 0,
         last_txn_offset_commit_partitions: 0,
         last_txn_offset_commit_version: None,
@@ -1744,6 +1746,10 @@ impl Mock {
         self.state.lock().last_add_partitions_to_txn_version
     }
 
+    pub fn last_add_partitions_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_add_partitions_producer_epoch
+    }
+
     pub fn txn_offset_commit_calls(&self) -> u32 {
         self.state.lock().txn_offset_commit_calls
     }
@@ -2125,7 +2131,7 @@ fn versions() -> ApiVersionsResponse {
         (INIT_PRODUCER_ID, 0, 5),
         (ADD_PARTITIONS_TO_TXN, 0, 3),
         (ADD_OFFSETS_TO_TXN, 0, 4),
-        (END_TXN, 0, 4),
+        (END_TXN, 0, 5),
         (WRITE_TXN_MARKERS, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 4),
         (OFFSET_DELETE, 0, 0),
@@ -3272,7 +3278,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ADD_PARTITIONS_TO_TXN => {
-                let (_tid, _pid, _epoch, topics) =
+                let (_tid, _pid, epoch, topics) =
                     decode_add_partitions_to_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
@@ -3290,6 +3296,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.add_partitions_to_txn_calls.saturating_add(1);
                     st.last_add_partitions_to_txn = n;
                     st.last_add_partitions_to_txn_version = Some(header.api_version);
+                    st.last_add_partitions_producer_epoch = Some(epoch);
                     st.last_add_partitions_node = Some(node_id);
                     encode_add_partitions_to_txn_response(
                         &mut body,
@@ -3312,11 +3319,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             END_TXN => {
-                let (_tid, _pid, _epoch, committed) =
+                let (_tid, pid, epoch, committed) =
                     decode_end_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
-                    encode_end_txn_response(&mut body, header.api_version, 16).unwrap();
+                    encode_end_txn_response(&mut body, header.api_version, 16, -1, -1).unwrap();
                 } else {
                     if !committed {
                         let pending = std::mem::take(&mut st.txn_pending);
@@ -3329,7 +3336,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.in_txn = false;
                     st.last_end_txn_node = Some(node_id);
                     st.last_end_txn_version = Some(header.api_version);
-                    encode_end_txn_response(&mut body, header.api_version, 0).unwrap();
+                    let (out_pid, out_epoch) = if header.api_version >= 5 {
+                        (pid, epoch.saturating_add(1))
+                    } else {
+                        (-1, -1)
+                    };
+                    encode_end_txn_response(&mut body, header.api_version, 0, out_pid, out_epoch)
+                        .unwrap();
                 }
             }
             WRITE_TXN_MARKERS => {

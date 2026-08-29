@@ -23,8 +23,9 @@
 //! and InitProducerId v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
 //! Groups and transactions negotiate FindCoordinator v1–v3 (v3 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), and TxnOffsetCommit v0–v4
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
+//! and TxnOffsetCommit v0–v4
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),

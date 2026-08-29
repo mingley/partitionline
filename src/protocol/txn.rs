@@ -238,21 +238,22 @@ pub fn decode_add_offsets_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> 
 
 /// `true` when EndTxn `version` is flexible (v3+).
 ///
-/// v0–v2 are classic. v3–v4 are compact strings plus tagged fields
+/// v0–v2 are classic. v3–v5 are compact strings plus tagged fields
 /// (Apache JSON `flexibleVersions: "3+"`). v4 is TRANSACTION_ABORTABLE
-/// (KIP-890; same layout as v3). v5 adds ProducerId / ProducerEpoch on
-/// the response (KIP-890 Part 2 epoch bump) and is not spoken.
+/// (KIP-890; same request layout as v3). v5 adds ProducerId /
+/// ProducerEpoch on the response (KIP-890 Part 2 epoch bump). v6+ is
+/// not spoken.
 fn end_txn_flexible(version: i16) -> Result<bool> {
     match version {
         0..=2 => Ok(false),
-        3..=4 => Ok(true),
+        3..=5 => Ok(true),
         other => Err(Error::protocol(format!(
             "EndTxn version {other} is not implemented"
         ))),
     }
 }
 
-/// Encode EndTxn v0–v2 (classic) or v3–v4 (flexible).
+/// Encode EndTxn v0–v2 (classic) or v3–v5 (flexible).
 pub fn encode_end_txn_request(
     buf: &mut BytesMut,
     version: i16,
@@ -288,26 +289,43 @@ pub fn decode_end_txn_request<B: Buf>(
     Ok((tid, pid, epoch, committed))
 }
 
-/// Encode EndTxn: throttle `0` plus error code.
-pub fn encode_end_txn_response(buf: &mut BytesMut, version: i16, error: i16) -> Result<()> {
+/// Encode EndTxn: throttle `0`, error code, and v5+ producer id / epoch.
+pub fn encode_end_txn_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error: i16,
+    producer_id: i64,
+    producer_epoch: i16,
+) -> Result<()> {
     let flexible = end_txn_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error);
+    if version >= 5 {
+        buf.put_i64(producer_id);
+        buf.put_i16(producer_epoch);
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode EndTxn: error code.
-pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+/// Decode EndTxn: `(error, producer_id, producer_epoch)`.
+///
+/// Below v5, producer id and epoch are `-1`.
+pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i64, i16)> {
     let flexible = end_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
+    let (producer_id, producer_epoch) = if version >= 5 {
+        (buf::get_i64(buf)?, buf::get_i16(buf)?)
+    } else {
+        (-1, -1)
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(err)
+    Ok((err, producer_id, producer_epoch))
 }
 
 /// One partition in TxnOffsetCommit v0–4.
@@ -807,9 +825,9 @@ mod tests {
         assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, true));
         assert!(cur.is_empty());
         let mut resp = BytesMut::new();
-        encode_end_txn_response(&mut resp, 0, 0).unwrap();
+        encode_end_txn_response(&mut resp, 0, 0, -1, -1).unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_end_txn_response(&mut cur, 0).unwrap(), 0);
+        assert_eq!(decode_end_txn_response(&mut cur, 0).unwrap(), (0, -1, -1));
         assert!(cur.is_empty());
     }
 
@@ -826,9 +844,9 @@ mod tests {
         );
 
         let mut resp = BytesMut::new();
-        encode_end_txn_response(&mut resp, 3, 0).unwrap();
+        encode_end_txn_response(&mut resp, 3, 0, -1, -1).unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_end_txn_response(&mut cur, 3).unwrap(), 0);
+        assert_eq!(decode_end_txn_response(&mut cur, 3).unwrap(), (0, -1, -1));
         assert!(
             cur.is_empty(),
             "EndTxn v3 response must consume compact tagged fields"
@@ -840,10 +858,26 @@ mod tests {
         let (tid, pid, epoch, committed) = decode_end_txn_request(&mut cur, 4).unwrap();
         assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, false));
         assert!(cur.is_empty(), "EndTxn v4 shares the v3 layout");
+
+        req.clear();
+        encode_end_txn_request(&mut req, 5, "tx", 9, 1, true).unwrap();
+        let mut cur = &req[..];
+        let (tid, pid, epoch, committed) = decode_end_txn_request(&mut cur, 5).unwrap();
+        assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, true));
+        assert!(cur.is_empty(), "EndTxn v5 request shares the v3 layout");
+
+        let mut resp = BytesMut::new();
+        encode_end_txn_response(&mut resp, 5, 0, 9, 2).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_end_txn_response(&mut cur, 5).unwrap(), (0, 9, 2));
+        assert!(
+            cur.is_empty(),
+            "EndTxn v5 response must consume ProducerId, ProducerEpoch, and tagged fields"
+        );
         req.clear();
         assert!(
-            encode_end_txn_request(&mut req, 5, "tx", 9, 1, true).is_err(),
-            "EndTxn v5 ProducerId/ProducerEpoch on the response is not spoken"
+            encode_end_txn_request(&mut req, 6, "tx", 9, 1, true).is_err(),
+            "EndTxn v6+ is not spoken"
         );
     }
 
@@ -864,7 +898,19 @@ mod tests {
         // Throttle 0, error 0, tagged.
         const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         let mut buf = BytesMut::new();
-        encode_end_txn_response(&mut buf, 3, 0).unwrap();
+        encode_end_txn_response(&mut buf, 3, 0, -1, -1).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn end_txn_v5_response_matches_compact_layout() {
+        // Throttle 0, error 0, pid 9, epoch 2, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09,
+            0x00, 0x02, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_end_txn_response(&mut buf, 5, 0, 9, 2).unwrap();
         assert_eq!(&buf[..], RESP);
     }
 

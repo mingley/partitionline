@@ -929,8 +929,23 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     producer.commit_transaction().await.unwrap();
     assert_eq!(
         mock.last_end_txn_version(),
-        Some(4),
-        "Producer must prefer EndTxn v4 when the broker advertises it"
+        Some(5),
+        "Producer must prefer EndTxn v5 when the broker advertises it"
+    );
+    producer.begin_transaction().await.unwrap();
+    producer
+        .send(
+            ProduceRecord::to("txn3")
+                .partition(0)
+                .value(&b"after-v5"[..]),
+        )
+        .await
+        .unwrap();
+    producer.flush().await.unwrap();
+    assert_eq!(
+        mock.last_add_partitions_producer_epoch(),
+        Some(1),
+        "EndTxn v5 must apply the bumped producer epoch on the next AddPartitionsToTxn"
     );
     producer.close().await.unwrap();
 }
@@ -991,8 +1006,8 @@ async fn transactional_producer_finds_txn_coordinator() {
     assert_eq!(mock.last_end_txn_node(), Some(2));
     assert_eq!(
         mock.last_end_txn_version(),
-        Some(4),
-        "Producer must prefer EndTxn v4 when the broker advertises it"
+        Some(5),
+        "Producer must prefer EndTxn v5 when the broker advertises it"
     );
 
     mock.move_txn_coordinator();

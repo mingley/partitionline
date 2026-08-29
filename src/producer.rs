@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -562,8 +562,8 @@ struct Shared {
     telemetry_version: Option<i16>,
     client_instance_id: parking_lot::Mutex<Option<[u8; 16]>>,
     partitioner: Arc<dyn Partitioner>,
-    producer_id: i64,
-    producer_epoch: i16,
+    producer_id: AtomicI64,
+    producer_epoch: AtomicI16,
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
     buffer_nudge: Notify,
@@ -606,6 +606,22 @@ impl Shared {
         map.entry(Arc::clone(topic))
             .or_insert_with(|| Arc::new(crate::metrics::ProduceTopicTracker::new()))
             .clone()
+    }
+
+    /// Apply EndTxn v5 ProducerId / ProducerEpoch. Ignores `-1` (JSON
+    /// default / NOT_COORDINATOR). Clears per-partition sequences when
+    /// the identity changes (Java resets sequences on epoch bump).
+    fn apply_end_txn_identity(&self, version: i16, producer_id: i64, producer_epoch: i16) {
+        if version < 5 || producer_id < 0 {
+            return;
+        }
+        let old_pid = self.producer_id.load(Ordering::SeqCst);
+        let old_epoch = self.producer_epoch.load(Ordering::SeqCst);
+        if producer_id != old_pid || producer_epoch != old_epoch {
+            self.seqs.lock().clear();
+        }
+        self.producer_id.store(producer_id, Ordering::SeqCst);
+        self.producer_epoch.store(producer_epoch, Ordering::SeqCst);
     }
 
     fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
@@ -751,7 +767,7 @@ impl Producer {
                 let add_o = pick(&versions, ADD_OFFSETS_TO_TXN, 0, 4).ok_or_else(|| {
                     Error::Unsupported("broker does not support AddOffsetsToTxn".into())
                 })?;
-                let end = pick(&versions, END_TXN, 0, 4)
+                let end = pick(&versions, END_TXN, 0, 5)
                     .ok_or_else(|| Error::Unsupported("broker does not support EndTxn".into()))?;
                 let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 4).ok_or_else(|| {
                     Error::Unsupported("broker does not support TxnOffsetCommit".into())
@@ -815,8 +831,8 @@ impl Producer {
             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
-            producer_id,
-            producer_epoch,
+            producer_id: AtomicI64::new(producer_id),
+            producer_epoch: AtomicI16::new(producer_epoch),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
             buffer_nudge: Notify::new(),
@@ -1213,7 +1229,7 @@ impl Producer {
         if self.inner.shared.cfg.transactional_id.is_none() {
             return Err(Error::protocol("transactional.id is not set"));
         }
-        if self.inner.shared.producer_id < 0 {
+        if self.inner.shared.producer_id.load(Ordering::SeqCst) < 0 {
             return Err(Error::protocol("InitProducerId did not run"));
         }
         Ok(())
@@ -1319,8 +1335,8 @@ impl Producer {
             return Err(Error::protocol("no transaction in progress"));
         }
         let timeout = self.inner.shared.cfg.request_timeout;
-        let pid = self.inner.shared.producer_id;
-        let epoch = self.inner.shared.producer_epoch;
+        let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
+        let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
         let add_offsets_version = self.inner.shared.add_offsets_version;
         let body = txn_roundtrip(
             &self.inner.shared,
@@ -1388,8 +1404,8 @@ impl Producer {
             return Err(Error::protocol("transactional.id is not set"));
         };
         let timeout = self.inner.shared.cfg.request_timeout;
-        let pid = self.inner.shared.producer_id;
-        let epoch = self.inner.shared.producer_epoch;
+        let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
+        let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
         let end_txn_version = self.inner.shared.end_txn_version;
         let body = txn_roundtrip(
             &self.inner.shared,
@@ -1397,13 +1413,17 @@ impl Producer {
             end_txn_version,
             |buf| encode_end_txn_request(buf, end_txn_version, &tid, pid, epoch, committed),
             timeout,
-            |body| decode_end_txn_response(&mut { body }, end_txn_version),
+            |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
         )
         .await?;
-        let err = decode_end_txn_response(&mut body.clone(), end_txn_version)?;
+        let (err, new_pid, new_epoch) =
+            decode_end_txn_response(&mut body.clone(), end_txn_version)?;
         if err != 0 {
             return Err(Error::broker(err, "EndTxn"));
         }
+        self.inner
+            .shared
+            .apply_end_txn_identity(end_txn_version, new_pid, new_epoch);
         self.inner.shared.in_txn.store(false, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
         self.inner.shared.txn_added.lock().clear();
@@ -2211,7 +2231,9 @@ impl Worker {
         if groups.is_empty() {
             return Ok(());
         }
-        assign_sequences(&mut groups, self.shared.producer_id, &self.shared.seqs);
+        let producer_id = self.shared.producer_id.load(Ordering::SeqCst);
+        let producer_epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
+        assign_sequences(&mut groups, producer_id, &self.shared.seqs);
         self.add_txn_partitions(&groups).await?;
         let transactional_id = if self.shared.in_txn.load(Ordering::SeqCst) {
             self.shared.cfg.transactional_id.as_deref()
@@ -2242,8 +2264,8 @@ impl Worker {
             &groups,
             compression,
             now,
-            self.shared.producer_id,
-            self.shared.producer_epoch,
+            producer_id,
+            producer_epoch,
             transactional_id,
         )?;
         let size = crate::protocol::buf::i32_from_usize(self.write_buf.len().saturating_sub(4))?;
@@ -2378,8 +2400,8 @@ impl Worker {
             }
         }
         let timeout = self.shared.cfg.request_timeout;
-        let pid = self.shared.producer_id;
-        let epoch = self.shared.producer_epoch;
+        let pid = self.shared.producer_id.load(Ordering::SeqCst);
+        let epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
         let version = self.shared.add_partitions_version;
         let added: Vec<(Arc<str>, i32)> = {
             let wanted = self.shared.txn_partitions.lock();
