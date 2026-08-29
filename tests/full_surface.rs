@@ -40,11 +40,11 @@ use partitionline::{
     IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata,
     OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
     ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
-    ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState,
-    TransactionTopic, UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    ScramMechanism, ShareGroup, TopicCollection, TopicPartition, TopicPartitionReplica,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -5162,6 +5162,29 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         Some((vec!["t".into()], 2000, None)),
         "describe_topics_timeout still uses DescribeTopicPartitions"
     );
+    let named = admin
+        .describe_topics_for(&TopicCollection::of_topic_names(["t"]))
+        .await
+        .unwrap();
+    assert_eq!(named[0].name(), "t");
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None)),
+        "describeTopics(TopicCollection.ofTopicNames) uses DescribeTopicPartitions"
+    );
+    let named_ops = admin
+        .describe_topics_for_with(&TopicCollection::of_topic_names(["t"]), true)
+        .await
+        .unwrap();
+    assert_eq!(named_ops[0].authorized_operations, 4);
+    let named_timed = admin
+        .describe_topics_for_timeout(
+            &TopicCollection::of_topic_names(["t"]),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(named_timed[0].name(), "t");
     let timed_ops = admin
         .describe_topics_with_timeout(["t"], true, Duration::from_secs(5))
         .await
@@ -5352,6 +5375,42 @@ async fn admin_describe_topics_by_id() {
         Some(false),
         "describeTopics sets AllowAutoTopicCreation false"
     );
+    let via = admin
+        .describe_topics_for(&TopicCollection::of_topic_ids([
+            Uuid::from(created[0].topic_id),
+            Uuid::from(created[1].topic_id),
+        ]))
+        .await
+        .unwrap();
+    assert_eq!(via.len(), 2);
+    assert_eq!(via[0].topic_id, created[0].topic_id);
+    assert_eq!(via[1].topic_id, created[1].topic_id);
+    assert_eq!(
+        mock.last_metadata_topic_ids(),
+        Some(2),
+        "describeTopics(TopicCollection.ofTopicIds) sends Topics of null Name + TopicId"
+    );
+    let via_ops = admin
+        .describe_topics_for_with(
+            &TopicCollection::of_topic_ids([Uuid::from(created[0].topic_id)]),
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(via_ops[0].authorized_operations, 4);
+    let via_timed = admin
+        .describe_topics_for_timeout(
+            &TopicCollection::of_topic_ids([Uuid::from(created[0].topic_id)]),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(via_timed[0].name, "dtid-a");
+    let empty_ids = admin
+        .describe_topics_for(&TopicCollection::of_topic_ids(Vec::<Uuid>::new()))
+        .await
+        .unwrap();
+    assert!(empty_ids.is_empty());
     let missing = admin.describe_topics_by_id(&[[0xff; 16]]).await.unwrap();
     assert_eq!(missing.len(), 1);
     assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_ID);
@@ -6114,6 +6173,49 @@ async fn admin_delete_topics_by_id() {
             .any(|t| t.name == "dti-a" || t.name == "dti-b"),
         "TopicId deletes must remove the topics"
     );
+    let created_col = admin
+        .create_topics(&[NewTopic::new("dti-col", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created_col[0].error_code, 0);
+    let deleted_col = admin
+        .delete_topics_for(
+            &TopicCollection::of_topic_ids([Uuid::from(created_col[0].topic_id)]),
+            10_000,
+        )
+        .await
+        .unwrap();
+    assert_eq!(deleted_col[0].error_code, 0);
+    assert_eq!(
+        mock.last_delete_topics_ids(),
+        Some(1),
+        "deleteTopics(TopicCollection.ofTopicIds) sends Topics of null Name + TopicId"
+    );
+    let created_name = admin
+        .create_topics(&[NewTopic::new("dti-col-n", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created_name[0].error_code, 0);
+    let deleted_name = admin
+        .delete_topics_for(&TopicCollection::of_topic_names(["dti-col-n"]), 10_000)
+        .await
+        .unwrap();
+    assert_eq!(deleted_name[0].error_code, 0);
+    assert_eq!(deleted_name[0].name, "dti-col-n");
+    let created_to = admin
+        .create_topics(&[NewTopic::new("dti-col-t", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created_to[0].error_code, 0);
+    let timed_col = admin
+        .delete_topics_for_timeout(
+            &TopicCollection::of_topic_ids([Uuid::from(created_to[0].topic_id)]),
+            Duration::from_millis(1_500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_col[0].error_code, 0);
+    assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
     let missing = admin
         .delete_topics_by_id(&[[0xff; 16]], 10_000)
         .await

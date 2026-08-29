@@ -678,6 +678,62 @@ impl Ord for Uuid {
     }
 }
 
+/// Java `org.apache.kafka.common.TopicCollection` (`ofTopicNames` /
+/// `ofTopicIds`).
+///
+/// [`Admin::describe_topics_for`] / [`Admin::delete_topics_for`] dispatch
+/// names to DescribeTopicPartitions (Metadata fallback) and ids to
+/// Metadata v10+ / DeleteTopics v6. Existing
+/// [`Admin::describe_topics_by_id`] / [`Admin::delete_topics_by_id`] keep
+/// `&[[u8; 16]]` so `describe_topics_by_id(&[])` still infers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TopicCollection {
+    /// Java `TopicCollection.TopicNameCollection`.
+    Names(Vec<String>),
+    /// Java `TopicCollection.TopicIdCollection`.
+    Ids(Vec<Uuid>),
+}
+
+impl TopicCollection {
+    /// Java `TopicCollection.ofTopicNames`.
+    #[must_use]
+    pub fn of_topic_names(names: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        Self::Names(names.into_iter().map(Into::into).collect())
+    }
+
+    /// Java `TopicCollection.ofTopicIds`.
+    ///
+    /// `ids` items are [`Uuid`] or `[u8; 16]` ([`From`]). Empty `&[]`
+    /// does not infer; use [`Self::Ids`] with `Vec::new` or
+    /// `Vec::<Uuid>::new()`.
+    #[must_use]
+    pub fn of_topic_ids<I, Id>(ids: I) -> Self
+    where
+        I: IntoIterator<Item = Id>,
+        Id: Into<Uuid>,
+    {
+        Self::Ids(ids.into_iter().map(Into::into).collect())
+    }
+
+    /// Java `TopicNameCollection.topicNames` (`None` when this is ids).
+    #[must_use]
+    pub fn topic_names(&self) -> Option<&[String]> {
+        match self {
+            Self::Names(names) => Some(names.as_slice()),
+            Self::Ids(_) => None,
+        }
+    }
+
+    /// Java `TopicIdCollection.topicIds` (`None` when this is names).
+    #[must_use]
+    pub fn topic_ids(&self) -> Option<&[Uuid]> {
+        match self {
+            Self::Ids(ids) => Some(ids.as_slice()),
+            Self::Names(_) => None,
+        }
+    }
+}
+
 /// One topic from [`Admin::list_topics`] (Java `TopicListing`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicListing {
@@ -2698,6 +2754,91 @@ impl Admin {
             .await
     }
 
+    /// Java `deleteTopics(TopicCollection)`.
+    ///
+    /// [`TopicCollection::Names`] is [`Self::delete_topics`].
+    /// [`TopicCollection::Ids`] is [`Self::delete_topics_by_id`].
+    /// Empty collections are a no-op. `timeout_ms` is DeleteTopics
+    /// TimeoutMs. The RPC deadline is [`AdminConfig::request_timeout`].
+    /// Java `DeleteTopicsOptions.retryOnQuotaViolation` defaults to
+    /// `true` (KIP-599); use [`Self::delete_topics_for_with_quota_retry`]
+    /// to disable.
+    pub async fn delete_topics_for(
+        &mut self,
+        topics: &TopicCollection,
+        timeout_ms: i32,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_topics_for_inner(topics, timeout_ms, timeout, true)
+            .await
+    }
+
+    /// [`Self::delete_topics_for`] with a one-shot timeout (Java
+    /// `DeleteTopicsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteTopics TimeoutMs.
+    pub async fn delete_topics_for_timeout(
+        &mut self,
+        topics: &TopicCollection,
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_for_inner(topics, timeout_ms, timeout, true)
+            .await
+    }
+
+    /// [`Self::delete_topics_for`] with Java
+    /// `DeleteTopicsOptions.retryOnQuotaViolation`.
+    pub async fn delete_topics_for_with_quota_retry(
+        &mut self,
+        topics: &TopicCollection,
+        timeout_ms: i32,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_topics_for_inner(topics, timeout_ms, timeout, retry_on_quota_violation)
+            .await
+    }
+
+    /// [`Self::delete_topics_for_with_quota_retry`] with a one-shot
+    /// timeout (Java `DeleteTopicsOptions.timeoutMs` +
+    /// `retryOnQuotaViolation`).
+    pub async fn delete_topics_for_timeout_with_quota_retry(
+        &mut self,
+        topics: &TopicCollection,
+        timeout: Duration,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_for_inner(topics, timeout_ms, timeout, retry_on_quota_violation)
+            .await
+    }
+
+    async fn delete_topics_for_inner(
+        &mut self,
+        topics: &TopicCollection,
+        timeout_ms: i32,
+        timeout: Duration,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        match topics {
+            TopicCollection::Names(names) => {
+                self.delete_topics_with(
+                    names.clone(),
+                    timeout_ms,
+                    timeout,
+                    retry_on_quota_violation,
+                )
+                .await
+            }
+            TopicCollection::Ids(ids) => {
+                let ids: Vec<[u8; 16]> = ids.iter().copied().map(Uuid::to_bytes).collect();
+                self.delete_topics_by_id_with(&ids, timeout_ms, timeout, retry_on_quota_violation)
+                    .await
+            }
+        }
+    }
+
     async fn delete_topics_by_id_with(
         &mut self,
         ids: &[[u8; 16]],
@@ -3075,6 +3216,73 @@ impl Admin {
             .fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
         Ok(topic_descriptions_including_unnamed(&md))
+    }
+
+    /// Java `describeTopics(TopicCollection)`.
+    ///
+    /// [`TopicCollection::Names`] is [`Self::describe_topics`]
+    /// (DescribeTopicPartitions, Metadata fallback).
+    /// [`TopicCollection::Ids`] is [`Self::describe_topics_by_id`]
+    /// (Metadata v10+). Empty collections are a no-op.
+    /// DescribeTopicPartitions and Metadata have no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_topics_for_timeout`].
+    pub async fn describe_topics_for(
+        &mut self,
+        topics: &TopicCollection,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_for_with(topics, false).await
+    }
+
+    /// [`Self::describe_topics_for`] with a one-shot RPC deadline (Java
+    /// `DescribeTopicsOptions.timeoutMs`).
+    pub async fn describe_topics_for_timeout(
+        &mut self,
+        topics: &TopicCollection,
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_for_with_timeout(topics, false, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topics_for`] with Java
+    /// `DescribeTopicsOptions.includeAuthorizedOperations`.
+    pub async fn describe_topics_for_with(
+        &mut self,
+        topics: &TopicCollection,
+        include_authorized_operations: bool,
+    ) -> Result<Vec<TopicDescription>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_topics_for_with_timeout(topics, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topics_for_with`] with Java
+    /// `DescribeTopicsOptions.timeoutMs`.
+    ///
+    /// DescribeTopicPartitions and Metadata have no TimeoutMs; `timeout`
+    /// is the RPC deadline (and the DTP NextCursor loop budget).
+    pub async fn describe_topics_for_with_timeout(
+        &mut self,
+        topics: &TopicCollection,
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<TopicDescription>> {
+        match topics {
+            TopicCollection::Names(names) => {
+                self.describe_topics_with_timeout(names, include_authorized_operations, timeout)
+                    .await
+            }
+            TopicCollection::Ids(ids) => {
+                let ids: Vec<[u8; 16]> = ids.iter().copied().map(Uuid::to_bytes).collect();
+                self.describe_topics_by_id_with_timeout(
+                    &ids,
+                    include_authorized_operations,
+                    timeout,
+                )
+                .await
+            }
+        }
     }
 
     /// Describe broker or topic configs (`DescribeConfigs`).
@@ -10923,6 +11131,24 @@ mod tests {
         assert_eq!(listing.topic_id(), Uuid::ONE);
         assert_eq!(listing.name(), "t");
         assert!(!listing.is_internal());
+    }
+
+    #[test]
+    fn topic_collection_matches_java() {
+        let names = TopicCollection::of_topic_names(["orders", "events"]);
+        assert_eq!(names.topic_names().map(<[String]>::len), Some(2));
+        assert!(names.topic_ids().is_none());
+        let ids = TopicCollection::of_topic_ids([Uuid::ONE, Uuid::ZERO]);
+        assert_eq!(ids.topic_ids(), Some(&[Uuid::ONE, Uuid::ZERO][..]));
+        assert!(ids.topic_names().is_none());
+        let from_bytes = TopicCollection::of_topic_ids([[1u8; 16]]);
+        assert_eq!(
+            from_bytes.topic_ids().and_then(|ids| ids.first().copied()),
+            Some(Uuid::from_bytes([1u8; 16]))
+        );
+        let empty = TopicCollection::of_topic_ids(Vec::<Uuid>::new());
+        assert_eq!(empty, TopicCollection::Ids(Vec::new()));
+        assert!(empty.topic_ids().unwrap().is_empty());
     }
 
     #[test]

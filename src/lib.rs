@@ -148,6 +148,8 @@
 //! `DeleteTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`
 //! (DeleteTopics v6 null Name + TopicId).
+//! [`Admin::delete_topics_for`] is Java `deleteTopics(TopicCollection)`
+//! ([`TopicCollection::of_topic_names`] / [`TopicCollection::of_topic_ids`]).
 //! [`Admin::delete_topics_by_id_with_quota_retry`] is Java
 //! `DeleteTopicsOptions.retryOnQuotaViolation` on TopicId deletes.
 //! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.
@@ -419,8 +421,9 @@
 //! `DescribeTopicsOptions.includeAuthorizedOperations` /
 //! `DescribeTopicsOptions.timeoutMs` /
 //! `DescribeTopicsOptions.partitionSizeLimitPerResponse` /
+//! `describeTopics(TopicCollection.ofTopicNames)` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
-//! ([`TopicListing`] / [`TopicDescription`] / [`Uuid`]).
+//! ([`TopicCollection`] / [`TopicListing`] / [`TopicDescription`] / [`Uuid`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`Admin::describe_broker_log_dirs`] is Java
@@ -617,21 +620,21 @@ pub use admin::{
     ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
     RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern,
     ResourcePatternFilter, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription,
-    TopicListing, TopicPartitionCursor, TopicPartitionReplica, TransactionListing,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
-    UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion, Uuid,
-    ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
-    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
-    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
-    CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
-    CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
-    CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
-    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
-    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
-    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UPGRADE_TYPE_SAFE_DOWNGRADE,
+    ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection,
+    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
+    TransactionListing, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialResult,
+    UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
+    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
+    CONFIG_RESOURCE_TOPIC, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER,
+    CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER, CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS,
+    CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER, CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC,
+    CONFIG_SOURCE_STATIC_BROKER, CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
+    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
+    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON,
+    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UPGRADE_TYPE_SAFE_DOWNGRADE,
     UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
