@@ -420,7 +420,7 @@
 //! `DescribeTopicsOptions.timeoutMs` /
 //! `DescribeTopicsOptions.partitionSizeLimitPerResponse` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
-//! ([`TopicListing`] / [`TopicDescription`]).
+//! ([`TopicListing`] / [`TopicDescription`] / [`Uuid`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`Admin::describe_broker_log_dirs`] is Java
@@ -618,7 +618,7 @@ pub use admin::{
     ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
     TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
     TransactionTopic, UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
-    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_APPEND,
+    UserScramCredentialResult, UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND,
     ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED,
     CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS,
     CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, CONFIG_SOURCE_DEFAULT,

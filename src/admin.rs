@@ -4,7 +4,9 @@
 //! must land on the controller retry on `NOT_CONTROLLER`. Group and
 //! transaction methods retry on coordinator errors.
 
+use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
+use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -447,6 +449,146 @@ impl From<RecordsToDelete> for i64 {
     }
 }
 
+/// Kafka `org.apache.kafka.common.Uuid` (16 bytes; `toString` is base64url).
+///
+/// Wire TopicId / ClientInstanceId stay `[u8; 16]`. [`Self::from_string`] /
+/// [`Display`] match Java `fromString` / `toString` (`URL_SAFE` without
+/// padding). Kafka 4.1 Raft voter APIs are not spoken.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Uuid([u8; 16]);
+
+impl Uuid {
+    /// Java `Uuid.ZERO_UUID` (`0, 0`).
+    pub const ZERO: Self = Self([0; 16]);
+
+    /// Java `Uuid.ONE_UUID` (`0, 1`). Also [`Self::METADATA_TOPIC_ID`].
+    pub const ONE: Self = Self([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+
+    /// Java `Uuid.METADATA_TOPIC_ID` (KRaft metadata topic).
+    pub const METADATA_TOPIC_ID: Self = Self::ONE;
+
+    /// Wrap a 16-byte Kafka UUID (big-endian most then least).
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; 16]) -> Self {
+        Self(bytes)
+    }
+
+    /// 16-byte Kafka UUID.
+    #[must_use]
+    pub const fn to_bytes(self) -> [u8; 16] {
+        self.0
+    }
+
+    /// 16-byte Kafka UUID.
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
+    }
+
+    /// Java `Uuid(long, long)` (`mostSignificantBits`, `leastSignificantBits`).
+    #[must_use]
+    pub fn from_parts(most: i64, least: i64) -> Self {
+        let mut bytes = [0u8; 16];
+        if let Some(hi) = bytes.first_chunk_mut::<8>() {
+            *hi = most.to_be_bytes();
+        }
+        if let Some(lo) = bytes.last_chunk_mut::<8>() {
+            *lo = least.to_be_bytes();
+        }
+        Self(bytes)
+    }
+
+    /// Java `getMostSignificantBits`.
+    #[must_use]
+    pub fn most_significant_bits(self) -> i64 {
+        match self.0.first_chunk::<8>() {
+            Some(hi) => i64::from_be_bytes(*hi),
+            None => 0,
+        }
+    }
+
+    /// Java `getLeastSignificantBits`.
+    #[must_use]
+    pub fn least_significant_bits(self) -> i64 {
+        match self.0.last_chunk::<8>() {
+            Some(lo) => i64::from_be_bytes(*lo),
+            None => 0,
+        }
+    }
+
+    /// Java `Uuid.fromString` (base64url; optional padding).
+    pub fn from_string(s: &str) -> Result<Self> {
+        if s.len() > 24 {
+            let prefix = s.get(..24).unwrap_or(s);
+            return Err(Error::protocol(format!(
+                "Uuid string with prefix `{prefix}` is too long to be decoded as a base64 UUID"
+            )));
+        }
+        let decoded =
+            match base64::Engine::decode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, s) {
+                Ok(b) => b,
+                Err(_) => base64::Engine::decode(&base64::engine::general_purpose::URL_SAFE, s)
+                    .map_err(|_| {
+                        Error::protocol(format!("Uuid string `{s}` is not a base64url UUID"))
+                    })?,
+            };
+        let n = decoded.len();
+        let bytes = <[u8; 16]>::try_from(decoded).map_err(|_| {
+            Error::protocol(format!(
+                "Uuid string `{s}` decoded as {n} bytes, which is not equal to the expected 16 bytes of a base64-encoded UUID"
+            ))
+        })?;
+        Ok(Self(bytes))
+    }
+}
+
+impl fmt::Display for Uuid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&base64::Engine::encode(
+            &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+            self.0.as_slice(),
+        ))
+    }
+}
+
+impl From<[u8; 16]> for Uuid {
+    fn from(bytes: [u8; 16]) -> Self {
+        Self(bytes)
+    }
+}
+
+impl From<Uuid> for [u8; 16] {
+    fn from(id: Uuid) -> Self {
+        id.0
+    }
+}
+
+impl std::str::FromStr for Uuid {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Self::from_string(s)
+    }
+}
+
+impl PartialOrd for Uuid {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Uuid {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Java `Uuid.compareTo` compares the two longs as signed values.
+        self.most_significant_bits()
+            .cmp(&other.most_significant_bits())
+            .then(
+                self.least_significant_bits()
+                    .cmp(&other.least_significant_bits()),
+            )
+    }
+}
+
 /// One topic from [`Admin::list_topics`] (Java `TopicListing`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicListing {
@@ -461,12 +603,30 @@ pub struct TopicListing {
 impl TopicListing {
     /// Topic `name` with optional id and internal flag.
     #[must_use]
-    pub fn new(name: impl Into<String>, topic_id: [u8; 16], is_internal: bool) -> Self {
+    pub fn new(name: impl Into<String>, topic_id: impl Into<[u8; 16]>, is_internal: bool) -> Self {
         Self {
             name: name.into(),
-            topic_id,
+            topic_id: topic_id.into(),
             is_internal,
         }
+    }
+
+    /// Java `TopicListing.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `TopicListing.topicId`.
+    #[must_use]
+    pub fn topic_id(&self) -> Uuid {
+        Uuid::from_bytes(self.topic_id)
+    }
+
+    /// Java `TopicListing.isInternal`.
+    #[must_use]
+    pub fn is_internal(&self) -> bool {
+        self.is_internal
     }
 }
 
@@ -553,19 +713,37 @@ impl TopicDescription {
     #[must_use]
     pub fn new(
         name: impl Into<String>,
-        topic_id: [u8; 16],
+        topic_id: impl Into<[u8; 16]>,
         is_internal: bool,
         error_code: i16,
         partitions: Vec<crate::PartitionInfo>,
     ) -> Self {
         Self {
             name: name.into(),
-            topic_id,
+            topic_id: topic_id.into(),
             is_internal,
             error_code,
             partitions,
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }
+    }
+
+    /// Java `TopicDescription.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `TopicDescription.topicId`.
+    #[must_use]
+    pub fn topic_id(&self) -> Uuid {
+        Uuid::from_bytes(self.topic_id)
+    }
+
+    /// Java `TopicDescription.isInternal`.
+    #[must_use]
+    pub fn is_internal(&self) -> bool {
+        self.is_internal
     }
 }
 
@@ -10190,6 +10368,41 @@ mod tests {
     }
 
     #[test]
+    fn uuid_matches_java() {
+        assert_eq!(Uuid::ZERO.to_string(), "AAAAAAAAAAAAAAAAAAAAAA");
+        assert_eq!(Uuid::ONE.to_string(), "AAAAAAAAAAAAAAAAAAAAAQ");
+        assert_eq!(Uuid::METADATA_TOPIC_ID, Uuid::ONE);
+        assert_eq!(Uuid::ZERO.most_significant_bits(), 0);
+        assert_eq!(Uuid::ZERO.least_significant_bits(), 0);
+        assert_eq!(Uuid::ONE.most_significant_bits(), 0);
+        assert_eq!(Uuid::ONE.least_significant_bits(), 1);
+        assert_eq!(
+            Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAA").unwrap(),
+            Uuid::ZERO
+        );
+        assert_eq!(
+            Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAQ").unwrap(),
+            Uuid::ONE
+        );
+        assert_eq!(
+            Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAQ==").unwrap(),
+            Uuid::ONE,
+            "Java fromString accepts URL-safe padding"
+        );
+        assert!(Uuid::from_string("not-a-uuid").is_err());
+        assert!(Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAAAAA").is_err());
+        let parsed: Uuid = "AAAAAAAAAAAAAAAAAAAAAA".parse().unwrap();
+        assert_eq!(parsed, Uuid::ZERO);
+        assert_eq!(<[u8; 16]>::from(Uuid::ONE), Uuid::ONE.to_bytes());
+        let neg = Uuid::from_parts(i64::MIN, 0);
+        assert!(neg < Uuid::ZERO, "Java compareTo uses signed longs");
+        let listing = TopicListing::new("t", Uuid::ONE, false);
+        assert_eq!(listing.topic_id(), Uuid::ONE);
+        assert_eq!(listing.name(), "t");
+        assert!(!listing.is_internal());
+    }
+
+    #[test]
     fn scram_mechanism_matches_protocol_consts() {
         assert_eq!(i8::from(ScramMechanism::Sha256), SCRAM_SHA_256);
         assert_eq!(i8::from(ScramMechanism::Sha512), SCRAM_SHA_512);
@@ -10259,9 +10472,13 @@ mod tests {
         let listed = topic_listings_from(&md, true);
         assert_eq!(listed.len(), 2);
         assert_eq!(listed[0].name, "ok");
+        assert_eq!(listed[0].name(), "ok");
         assert_eq!(listed[0].topic_id, [1; 16]);
+        assert_eq!(listed[0].topic_id(), Uuid::from_bytes([1; 16]));
+        assert!(!listed[0].is_internal());
         assert_eq!(listed[1].name, "__consumer_offsets");
         assert!(listed[1].is_internal);
+        assert!(listed[1].is_internal());
         let listed = topic_listings_from(&md, false);
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].name, "ok");
@@ -10275,8 +10492,11 @@ mod tests {
         assert!(described[1].partitions.is_empty());
         assert!(described[2].name.is_empty());
         assert_eq!(described[2].topic_id, [2; 16]);
+        assert_eq!(described[2].topic_id(), Uuid::from_bytes([2; 16]));
         assert_eq!(described[3].name, "__consumer_offsets");
+        assert_eq!(described[3].name(), "__consumer_offsets");
         assert!(described[3].is_internal);
+        assert!(described[3].is_internal());
         let named =
             topic_descriptions_for_names(&md, &["ok".into(), "gone".into(), "missing".into()]);
         assert_eq!(named.len(), 3);

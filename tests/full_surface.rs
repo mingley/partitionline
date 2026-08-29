@@ -5060,6 +5060,10 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let listed = admin.list_topics().await.unwrap();
     assert!(listed.iter().any(|t| t.name == "t" && !t.is_internal));
+    let t = listed.iter().find(|x| x.name() == "t").unwrap();
+    assert_eq!(t.name(), "t");
+    assert!(!t.is_internal());
+    assert_eq!(t.topic_id().to_bytes(), t.topic_id);
     assert_eq!(
         mock.last_metadata_topics(),
         Some(None),
@@ -5103,8 +5107,13 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     let described_internal = admin.describe_topics(["lt-internal"]).await.unwrap();
     assert_eq!(described_internal.len(), 1);
     assert!(described_internal[0].is_internal);
+    assert!(described_internal[0].is_internal());
+    assert_eq!(described_internal[0].name(), "lt-internal");
     let described = admin.describe_topics(["t"]).await.unwrap();
     assert_eq!(described.len(), 1);
+    assert_eq!(described[0].name(), "t");
+    assert!(!described[0].is_internal());
+    assert_eq!(described[0].topic_id().to_bytes(), described[0].topic_id);
     assert_eq!(described[0].partitions.len(), 1);
     assert_eq!(described[0].partitions[0].leader, 1);
     assert_eq!(
