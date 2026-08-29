@@ -140,6 +140,8 @@
 //! [`FetchedRecord::last_header`] / [`FetchedRecord::headers_for_key`] are Java
 //! `Headers.lastHeader` / `headers(String)`.
 //! [`Header`] `Display` is Java `RecordHeader.toString`.
+//! [`FetchedRecord`] / [`ShareRecord`] `Display` is Java `ConsumerRecord.toString`.
+//! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are

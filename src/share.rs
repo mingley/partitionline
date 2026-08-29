@@ -1,6 +1,7 @@
 //! Share groups (KIP-932): queue-style consumption with per-record ack.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fmt;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicI16, AtomicI32, Ordering};
 use std::sync::Arc;
@@ -19,7 +20,10 @@ use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
 };
 use crate::protocol::group::COORDINATOR_SHARE;
-use crate::protocol::records::{Header, TimestampType};
+use crate::protocol::records::{
+    write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
+    TimestampType,
+};
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
     decode_share_group_heartbeat_response, encode_share_acknowledge_request,
@@ -153,6 +157,33 @@ impl ShareRecord {
             .as_ref()
             .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
             .unwrap_or(-1)
+    }
+}
+
+impl fmt::Display for ShareRecord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ConsumerRecord(topic = {}, partition = {}, leaderEpoch = ",
+            self.topic, self.partition
+        )?;
+        write_java_optional(f, self.leader_epoch)?;
+        write!(
+            f,
+            ", offset = {}, {} = {}, deliveryCount = {}, serialized key size = {}, serialized value size = {}, headers = ",
+            self.offset,
+            self.timestamp_type,
+            self.timestamp,
+            self.delivery_count,
+            self.serialized_key_size(),
+            self.serialized_value_size()
+        )?;
+        write_java_record_headers(f, &self.headers, true)?;
+        f.write_str(", key = ")?;
+        write_java_optional_bytes(f, self.key.as_deref())?;
+        f.write_str(", value = ")?;
+        write_java_optional_bytes(f, self.value.as_deref())?;
+        f.write_str(")")
     }
 }
 
@@ -1372,5 +1403,9 @@ mod tests {
         assert!(first.leader_epoch().is_none());
         assert_eq!(first.serialized_key_size(), -1);
         assert_eq!(first.serialized_value_size(), -1);
+        assert_eq!(
+            first.to_string(),
+            "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
+        );
     }
 }

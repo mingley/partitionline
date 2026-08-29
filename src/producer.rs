@@ -25,7 +25,8 @@ use crate::protocol::group::{
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
-    write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch,
+    write_java_optional, write_java_optional_bytes, write_java_record_headers, write_record_batch,
+    BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch,
 };
 use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
@@ -523,6 +524,22 @@ impl ProduceRecord {
     pub fn headers(mut self, headers: Vec<RecordHeader>) -> Self {
         self.headers = headers;
         self
+    }
+}
+
+impl fmt::Display for ProduceRecord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ProducerRecord(topic={}, partition=", self.topic)?;
+        write_java_optional(f, self.partition)?;
+        f.write_str(", headers=")?;
+        write_java_record_headers(f, &self.headers, false)?;
+        f.write_str(", key=")?;
+        write_java_optional_bytes(f, self.key.as_deref())?;
+        f.write_str(", value=")?;
+        write_java_optional_bytes(f, self.value.as_deref())?;
+        f.write_str(", timestamp=")?;
+        write_java_optional(f, self.timestamp)?;
+        f.write_str(")")
     }
 }
 
@@ -3185,5 +3202,9 @@ mod tests {
         assert!(!acks0.has_offset());
         assert!(!acks0.has_timestamp());
         assert_eq!(acks0.to_string(), "events-0@-1");
+        assert_eq!(
+            ProduceRecord::to("t").to_string(),
+            "ProducerRecord(topic=t, partition=null, headers=RecordHeaders(headers = [], isReadOnly = false), key=null, value=null, timestamp=null)"
+        );
     }
 }

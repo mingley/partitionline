@@ -29,7 +29,10 @@ use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
 };
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
-use crate::protocol::records::{Header, TimestampType};
+use crate::protocol::records::{
+    write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
+    TimestampType,
+};
 use crate::protocol::sasl;
 
 type RebalanceFn = dyn Fn(&[TopicPartition], &[TopicPartition]) + Send + Sync;
@@ -478,6 +481,11 @@ pub struct FetchedRecord {
 }
 
 impl FetchedRecord {
+    /// Java `ConsumerRecord.NO_TIMESTAMP`.
+    pub const NO_TIMESTAMP: i64 = crate::RecordBatch::NO_TIMESTAMP;
+    /// Java `ConsumerRecord.NULL_SIZE`.
+    pub const NULL_SIZE: i32 = -1;
+
     /// Topic and partition of this record.
     #[must_use]
     pub fn topic_partition(&self) -> TopicPartition {
@@ -559,6 +567,32 @@ impl FetchedRecord {
     #[must_use]
     pub fn leader_epoch(&self) -> Option<i32> {
         self.leader_epoch
+    }
+}
+
+impl fmt::Display for FetchedRecord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ConsumerRecord(topic = {}, partition = {}, leaderEpoch = ",
+            self.topic, self.partition
+        )?;
+        write_java_optional(f, self.leader_epoch)?;
+        write!(
+            f,
+            ", offset = {}, {} = {}, deliveryCount = null, serialized key size = {}, serialized value size = {}, headers = ",
+            self.offset,
+            self.timestamp_type,
+            self.timestamp,
+            self.serialized_key_size(),
+            self.serialized_value_size()
+        )?;
+        write_java_record_headers(f, &self.headers, true)?;
+        f.write_str(", key = ")?;
+        write_java_optional_bytes(f, self.key.as_deref())?;
+        f.write_str(", value = ")?;
+        write_java_optional_bytes(f, self.value.as_deref())?;
+        f.write_str(")")
     }
 }
 
@@ -3136,5 +3170,14 @@ mod tests {
         assert!(rec.last_header("k").is_none());
         assert_eq!(rec.headers_for_key("k").count(), 0);
         assert!(rec.leader_epoch().is_none());
+        assert_eq!(
+            FetchedRecord::NO_TIMESTAMP,
+            crate::RecordBatch::NO_TIMESTAMP
+        );
+        assert_eq!(FetchedRecord::NULL_SIZE, -1);
+        assert_eq!(
+            rec.to_string(),
+            "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 11, CreateTime = 0, deliveryCount = null, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
+        );
     }
 }

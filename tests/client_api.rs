@@ -80,6 +80,10 @@ async fn produce_header_survives_fetch() {
     assert_eq!(rec.last_header("k").map(|h| h.key()), Some("k"));
     assert!(rec.last_header("empty").unwrap().value().is_none());
     assert_eq!(rec.headers_for_key("k").count(), 1);
+    assert_eq!(
+        rec.to_string(),
+        "ProducerRecord(topic=t, partition=null, headers=RecordHeaders(headers = [RecordHeader(key = k, value = [118]), RecordHeader(key = empty, value = null)], isReadOnly = false), key=null, value=with-header, timestamp=1700000000000)"
+    );
     let md = producer.send(rec).await.unwrap();
     assert_eq!(md.timestamp(), 1_700_000_000_000);
     assert_eq!(md.timestamp, 1_700_000_000_000);
@@ -141,6 +145,10 @@ async fn produce_header_survives_fetch() {
     assert!(recs[0].last_header("empty").unwrap().value().is_none());
     assert!(recs[0].last_header("missing").is_none());
     assert_eq!(recs[0].headers_for_key("k").count(), 1);
+    assert_eq!(
+        recs[0].to_string(),
+        "ConsumerRecord(topic = t, partition = 0, leaderEpoch = 0, offset = 0, CreateTime = 1700000000000, deliveryCount = null, serialized key size = -1, serialized value size = 11, headers = RecordHeaders(headers = [RecordHeader(key = k, value = [118]), RecordHeader(key = empty, value = null)], isReadOnly = true), key = null, value = with-header)"
+    );
 }
 
 #[tokio::test]

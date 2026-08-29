@@ -3345,6 +3345,7 @@ async fn share_fetch_accept_then_release() {
     assert!(recs[0].headers().is_empty());
     assert!(recs[0].headers.is_empty());
     assert!(recs[0].last_header("k").is_none());
+    assert!(recs[0].to_string().starts_with("ConsumerRecord(topic = t"));
     let off = recs[0].offset;
     g.accept(&recs).await.unwrap();
     assert_eq!(

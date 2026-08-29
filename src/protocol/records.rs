@@ -136,6 +136,44 @@ fn write_java_byte_array(f: &mut fmt::Formatter<'_>, value: Option<&[u8]>) -> fm
     f.write_str("]")
 }
 
+pub(crate) fn write_java_optional_bytes(
+    f: &mut fmt::Formatter<'_>,
+    bytes: Option<&[u8]>,
+) -> fmt::Result {
+    match bytes {
+        None => f.write_str("null"),
+        Some(b) => match std::str::from_utf8(b) {
+            Ok(s) => f.write_str(s),
+            Err(_) => write_java_byte_array(f, Some(b)),
+        },
+    }
+}
+
+pub(crate) fn write_java_record_headers(
+    f: &mut fmt::Formatter<'_>,
+    headers: &[Header],
+    read_only: bool,
+) -> fmt::Result {
+    f.write_str("RecordHeaders(headers = [")?;
+    for (i, h) in headers.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{h}")?;
+    }
+    write!(f, "], isReadOnly = {read_only})")
+}
+
+pub(crate) fn write_java_optional<T: fmt::Display>(
+    f: &mut fmt::Formatter<'_>,
+    v: Option<T>,
+) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "{n}"),
+        None => f.write_str("null"),
+    }
+}
+
 /// One record inside a magic-v2 batch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
