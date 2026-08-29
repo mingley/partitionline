@@ -2251,25 +2251,75 @@ impl Admin {
     /// the request when the top-level error is `0`. Kafka 4.0
     /// `validVersions` is `0-2`. v3+ is not spoken. Lands on the
     /// Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata
-    /// and retries. See [`Self::update_features_with`] for Java
+    /// and retries. `timeout_ms` is UpdateFeatures TimeoutMs. The RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout that drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::update_features_timeout`]. See
+    /// [`Self::update_features_with`] for Java
     /// `UpdateFeaturesOptions.validateOnly`.
     pub async fn update_features(
         &mut self,
         updates: &[FeatureUpdate],
         timeout_ms: i32,
     ) -> Result<Vec<FeatureUpdateResult>> {
-        self.update_features_with(updates, timeout_ms, false).await
+        let timeout = self.cfg.request_timeout;
+        self.update_features_inner(updates, timeout_ms, false, timeout)
+            .await
+    }
+
+    /// [`Self::update_features`] with a one-shot timeout (Java
+    /// `UpdateFeaturesOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and UpdateFeatures TimeoutMs.
+    pub async fn update_features_timeout(
+        &mut self,
+        updates: &[FeatureUpdate],
+        timeout: Duration,
+    ) -> Result<Vec<FeatureUpdateResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.update_features_inner(updates, timeout_ms, false, timeout)
+            .await
     }
 
     /// UpdateFeatures with validate-only (Java `updateFeatures` plus
     /// `UpdateFeaturesOptions.validateOnly`).
     ///
     /// v1+ sends `ValidateOnly`. v0 omits the field even when set.
+    /// `timeout_ms` is UpdateFeatures TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
+    /// drives both, use [`Self::update_features_with_timeout`].
     pub async fn update_features_with(
         &mut self,
         updates: &[FeatureUpdate],
         timeout_ms: i32,
         validate_only: bool,
+    ) -> Result<Vec<FeatureUpdateResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.update_features_inner(updates, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    /// [`Self::update_features_with`] with a one-shot timeout (Java
+    /// `UpdateFeaturesOptions.timeoutMs` plus `validateOnly`).
+    ///
+    /// `timeout` is the RPC deadline and UpdateFeatures TimeoutMs.
+    pub async fn update_features_with_timeout(
+        &mut self,
+        updates: &[FeatureUpdate],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<Vec<FeatureUpdateResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.update_features_inner(updates, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    async fn update_features_inner(
+        &mut self,
+        updates: &[FeatureUpdate],
+        timeout_ms: i32,
+        validate_only: bool,
+        timeout: Duration,
     ) -> Result<Vec<FeatureUpdateResult>> {
         let keys: Vec<FeatureUpdateKey> = updates
             .iter()
@@ -2281,7 +2331,6 @@ impl Admin {
             })
             .collect();
         let version = self.update_features_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

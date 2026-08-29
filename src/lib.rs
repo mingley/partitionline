@@ -196,6 +196,8 @@
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).
+//! [`Admin::update_features_timeout`] / [`Admin::update_features_with_timeout`]
+//! are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::fence_producers_timeout`] is Java `fenceProducers` plus
 //! `FenceProducersOptions.timeoutMs`.

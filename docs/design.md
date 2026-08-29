@@ -71,6 +71,8 @@ v5 sends `DEFAULT_LEAVE_GROUP_REASON`).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3–v4
 tagged fields; v4 SupportedFeatures.MinVersion 0, KAFKA-17011;
 [`FeatureMetadata`](../src/admin.rs)).
+`Admin::update_features_timeout` / `Admin::update_features_with_timeout` are
+Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
 `describeTopics`. `Admin::describe_classic_groups` is Java
 `describeClassicGroups` (DescribeGroups v0–v6; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_consumer_groups` is Java
@@ -211,6 +213,7 @@ topics.
 - CreatePartitions v0–v1 are classic. v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 is the same layout (KIP-599 THROTTLING_QUOTA_EXCEEDED). `create_partitions_timeout` is Java `CreatePartitionsOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `0-3`. This crate speaks 0–3. v4+ is not spoken.
 - AlterPartitionReassignments v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). `alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `"0"`. This crate speaks 0. v1+ is not spoken.
 - ListPartitionReassignments v0 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). `topics = None` lists every ongoing reassignment. `list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `"0"`. This crate speaks 0. v1+ is not spoken.
+- UpdateFeatures v0–v2 are flexible from v0 (compact strings/arrays plus tagged fields; request header 2, response header 1). v0 AllowDowngrade. v1 UpgradeType / ValidateOnly. v2 omits Results. `update_features_timeout` / `update_features_with_timeout` are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 - IncrementalAlterConfigs v0 is classic. v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
 - AlterReplicaLogDirs v1 is classic. v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Same fields. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken.
 - DescribeLogDirs v1 is classic. v2–v4 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 top-level ErrorCode (KIP-784). v4 TotalBytes / UsableBytes (KIP-827; decode fills `-1` on v1–v3). Kafka 4.0 `validVersions` is `1-4` (v0 removed). This crate speaks 1–4. v0 and v5+ are not spoken. v5 is a named STATUS hole.

@@ -299,6 +299,7 @@ struct State {
     list_reassignments_not_controller: u32,
     last_update_features_node: Option<i32>,
     last_update_features_version: Option<i16>,
+    last_update_features_timeout: Option<i32>,
     last_update_features_validate_only: Option<bool>,
     last_update_features_upgrade_type: Option<i8>,
     update_features_not_controller: u32,
@@ -628,6 +629,7 @@ fn new_state(
         list_reassignments_not_controller: 0,
         last_update_features_node: None,
         last_update_features_version: None,
+        last_update_features_timeout: None,
         last_update_features_validate_only: None,
         last_update_features_upgrade_type: None,
         update_features_not_controller: 0,
@@ -1688,6 +1690,10 @@ impl Mock {
 
     pub fn last_update_features_version(&self) -> Option<i16> {
         self.state.lock().last_update_features_version
+    }
+
+    pub fn last_update_features_timeout(&self) -> Option<i32> {
+        self.state.lock().last_update_features_timeout
     }
 
     pub fn last_update_features_validate_only(&self) -> Option<bool> {
@@ -3546,10 +3552,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             UPDATE_FEATURES => {
                 let version = header.api_version;
-                let (_timeout, updates, validate_only) =
+                let (timeout_ms, updates, validate_only) =
                     decode_update_features_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_update_features_version = Some(version);
+                st.last_update_features_timeout = Some(timeout_ms);
                 st.last_update_features_validate_only = Some(validate_only);
                 if st.controller_node != node_id {
                     st.update_features_not_controller =

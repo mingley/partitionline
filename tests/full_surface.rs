@@ -5302,6 +5302,43 @@ async fn update_features_with_sends_validate_only_and_upgrade_type() {
 }
 
 #[tokio::test]
+async fn admin_update_features_timeout() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let results = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(mock.last_update_features_timeout(), Some(10_000));
+    let results = admin
+        .update_features_timeout(
+            &[FeatureUpdate::new("group.version", 1)],
+            Duration::from_millis(1_500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(mock.last_update_features_timeout(), Some(1_500));
+    let results = admin
+        .update_features_with_timeout(
+            &[FeatureUpdate::new("transaction.version", 2)],
+            Duration::from_millis(2_500),
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(mock.last_update_features_timeout(), Some(2_500));
+    assert_eq!(mock.last_update_features_validate_only(), Some(true));
+    assert_eq!(
+        mock.feature_level("transaction.version"),
+        None,
+        "update_features_with_timeout validate_only must not apply the mutation"
+    );
+}
+
+#[tokio::test]
 async fn alter_user_scram_credentials_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);
