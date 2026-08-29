@@ -866,7 +866,7 @@ mod tests {
     fn consumer_group_describe_v1_is_flexible() {
         // Official JSON: validVersions 0-1, flexibleVersions 0+.
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at every version.
-        // This crate speaks v1.
+        // This crate speaks 0–1.
         assert_eq!(request_header_version(CONSUMER_GROUP_DESCRIBE, 0), 2);
         assert_eq!(response_header_version(CONSUMER_GROUP_DESCRIBE, 0), 1);
         assert_eq!(request_header_version(CONSUMER_GROUP_DESCRIBE, 1), 2);

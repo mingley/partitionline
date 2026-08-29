@@ -64,7 +64,8 @@ tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
 `describeTopics`. `Admin::describe_classic_groups` is Java
 `describeClassicGroups` (DescribeGroups v0–v6). `Admin::describe_consumer_groups` is Java
-`describeConsumerGroups` (DescribeGroups v0–v6). `Admin::list_consumer_groups` is Java
+`describeConsumerGroups` (DescribeGroups v0–v6). `Admin::consumer_group_describe` is
+ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType). `Admin::list_consumer_groups` is Java
 `listConsumerGroups` (ListGroups v0–v5). `Admin::delete_consumer_groups` is Java
 `deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
 throttle v0+). `Admin::describe_share_groups` is Java

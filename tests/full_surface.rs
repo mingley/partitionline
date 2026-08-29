@@ -11,11 +11,11 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER,
-    DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    ALTER_CONFIGS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
+    DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_GROUPS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5017,6 +5017,11 @@ async fn consumer_group_describe_follows_group_coordinator() {
         Some(2),
         "ConsumerGroupDescribe must land on the group coordinator, not bootstrap"
     );
+    assert_eq!(
+        mock.last_consumer_group_describe_version(),
+        Some(1),
+        "Admin must prefer ConsumerGroupDescribe v1 when the broker advertises it"
+    );
     assert!(
         mock.find_coordinator_key_types()
             .contains(&COORDINATOR_GROUP),
@@ -5044,6 +5049,25 @@ async fn consumer_group_describe_follows_group_coordinator() {
         mock.last_consumer_group_describe_node(),
         Some(1),
         "ConsumerGroupDescribe must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
+async fn consumer_group_describe_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CONSUMER_GROUP_DESCRIBE, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin
+        .consumer_group_describe(&["cg-v0"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[0].group_id, "cg-v0");
+    assert_eq!(
+        mock.last_consumer_group_describe_version(),
+        Some(0),
+        "client must speak ConsumerGroupDescribe v0 when the broker max is 0"
     );
 }
 

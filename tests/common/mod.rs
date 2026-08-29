@@ -329,6 +329,7 @@ struct State {
     last_offset_delete_node: Option<i32>,
     offset_delete_not_coordinator: u32,
     last_consumer_group_describe_node: Option<i32>,
+    last_consumer_group_describe_version: Option<i16>,
     consumer_group_describe_not_coordinator: u32,
     last_describe_groups_node: Option<i32>,
     last_describe_groups_version: Option<i16>,
@@ -610,6 +611,7 @@ fn new_state(
         last_offset_delete_node: None,
         offset_delete_not_coordinator: 0,
         last_consumer_group_describe_node: None,
+        last_consumer_group_describe_version: None,
         consumer_group_describe_not_coordinator: 0,
         last_describe_groups_node: None,
         last_describe_groups_version: None,
@@ -1726,6 +1728,10 @@ impl Mock {
 
     pub fn last_consumer_group_describe_node(&self) -> Option<i32> {
         self.state.lock().last_consumer_group_describe_node
+    }
+
+    pub fn last_consumer_group_describe_version(&self) -> Option<i16> {
+        self.state.lock().last_consumer_group_describe_version
     }
 
     pub fn consumer_group_describe_not_coordinator(&self) -> u32 {
@@ -4886,8 +4892,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_offset_delete_response(&mut body, 0, &results).unwrap();
             }
             CONSUMER_GROUP_DESCRIBE => {
-                let (ids, _include) = decode_consumer_group_describe_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (ids, _include) =
+                    decode_consumer_group_describe_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_consumer_group_describe_version = Some(version);
                 if st.coord_node != node_id {
                     st.consumer_group_describe_not_coordinator =
                         st.consumer_group_describe_not_coordinator.saturating_add(1);
@@ -4899,7 +4908,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             DescribedConsumerGroup::new(group_id, error::NOT_COORDINATOR)
                         })
                         .collect();
-                    encode_consumer_group_describe_response(&mut body, &results).unwrap();
+                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
                 } else {
                     st.last_consumer_group_describe_node = Some(node_id);
                     let results: Vec<DescribedConsumerGroup> = ids
@@ -4913,7 +4922,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             g
                         })
                         .collect();
-                    encode_consumer_group_describe_response(&mut body, &results).unwrap();
+                    encode_consumer_group_describe_response(&mut body, version, &results).unwrap();
                 }
             }
             DESCRIBE_GROUPS => {

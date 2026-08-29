@@ -1209,9 +1209,9 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
         let consumer_group_describe_version = versions
             .get(&CONSUMER_GROUP_DESCRIBE)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support ConsumerGroupDescribe".into())
+                Error::Unsupported("broker does not support ConsumerGroupDescribe v0-1".into())
             })?;
         let describe_groups_version = versions
             .get(&DESCRIBE_GROUPS)
@@ -3801,6 +3801,10 @@ impl Admin {
     /// Describe KIP-848 consumer groups (ConsumerGroupDescribe api 69).
     ///
     /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
+    /// Negotiates ConsumerGroupDescribe v0–v1 (Kafka 4.0 `validVersions`
+    /// `0-1`; flexible from v0). Request layout is the same on both
+    /// versions. v1 adds MemberType INT8 (KIP-1099; `-1` unknown, `0`
+    /// classic, `1` consumer). v0 omits MemberType; decode fills `-1`.
     /// Official Apache JSON listeners are `broker` only; the official
     /// response lists `NOT_COORDINATOR` among supported errors. This is
     /// not a controller hop and not a partition-leader hop: there is no
@@ -3848,6 +3852,7 @@ impl Admin {
                     |buf| {
                         encode_consumer_group_describe_request(
                             buf,
+                            version,
                             &ids,
                             include_authorized_operations,
                         )
@@ -3866,7 +3871,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_consumer_group_describe_response(&mut body.clone())?;
+            let results = decode_consumer_group_describe_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))

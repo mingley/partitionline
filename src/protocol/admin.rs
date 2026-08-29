@@ -3754,9 +3754,10 @@ impl ConsumerGroupAssignment {
     }
 }
 
-/// One member in a ConsumerGroupDescribe v1 group.
+/// One member in a ConsumerGroupDescribe group.
 ///
 /// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
+/// v0 decode fills `-1`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMember {
     /// Group member id.
@@ -3807,7 +3808,7 @@ impl ConsumerGroupMember {
     }
 }
 
-/// One described group in ConsumerGroupDescribe (api 69) v1.
+/// One described group in ConsumerGroupDescribe (api 69).
 ///
 /// ErrorCode sits here, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -3849,15 +3850,28 @@ impl DescribedConsumerGroup {
     }
 }
 
-/// ConsumerGroupDescribe v1 (flexible from v0; KIP-848 / KIP-1099).
+/// Reject ConsumerGroupDescribe versions this crate does not speak.
+///
+/// Flexible from v0. Kafka 4.0 `validVersions` is `0-1`. This crate
+/// speaks 0–1. Request layout is the same on v0 and v1. Response v1
+/// adds `MemberType` INT8 (KIP-1099). v2+ is not spoken.
+fn consumer_group_describe_spoken(version: i16) -> Result<()> {
+    match version {
+        0..=1 => Ok(()),
+        other => Err(Error::protocol(format!(
+            "ConsumerGroupDescribe version {other} is not implemented"
+        ))),
+    }
+}
+
+/// ConsumerGroupDescribe v0–1 (flexible from v0; KIP-848 / KIP-1099).
 ///
 /// Official Apache JSON (`apiKey: 69`, `validVersions: "0-1"`,
 /// `flexibleVersions: "0+"`, request listeners `broker`) and
 /// kafka-protocol 0.18.0 (`ConsumerGroupDescribeRequest` /
-/// `ConsumerGroupDescribeResponse`, `VERSIONS` min=0 max=1). This crate
-/// targets v1, the version a client encodes (`VERSIONS.max`). v0 is the
-/// same layout minus `MemberType`. Request encode used
-/// `features = ["client"]`; response encode used `broker`.
+/// `ConsumerGroupDescribeResponse`, `VERSIONS` min=0 max=1). Request
+/// encode used `features = ["client"]`; response encode used `broker`.
+/// v0 is the same request as v1. Response v1 adds `MemberType`.
 /// Request: compact `GroupIds`, `IncludeAuthorizedOperations` BOOLEAN,
 /// tagged. Response: `ThrottleTimeMs` INT32, compact `Groups` of
 /// `{ErrorCode INT16, compact nullable ErrorMessage, GroupId, GroupState,
@@ -3879,9 +3893,11 @@ impl DescribedConsumerGroup {
 /// partition-leader hop.
 pub fn encode_consumer_group_describe_request(
     buf: &mut BytesMut,
+    version: i16,
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    consumer_group_describe_spoken(version)?;
     buf::put_array_len(buf, true, Some(group_ids.len()))?;
     for id in group_ids {
         buf::put_compact_string(buf, Some(id))?;
@@ -3892,7 +3908,11 @@ pub fn encode_consumer_group_describe_request(
 }
 
 /// Decode a ConsumerGroupDescribe request.
-pub fn decode_consumer_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
+pub fn decode_consumer_group_describe_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, bool)> {
+    consumer_group_describe_spoken(version)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
     for _ in 0..n {
@@ -3945,6 +3965,7 @@ fn decode_consumer_group_assignment<B: Buf>(buf: &mut B) -> Result<ConsumerGroup
 
 fn encode_consumer_group_member(
     buf: &mut BytesMut,
+    version: i16,
     member: &ConsumerGroupMember,
 ) -> crate::error::Result<()> {
     buf::put_compact_string(buf, Some(&member.member_id))?;
@@ -3960,12 +3981,14 @@ fn encode_consumer_group_member(
     buf::put_compact_string(buf, member.subscribed_topic_regex.as_deref())?;
     encode_consumer_group_assignment(buf, &member.assignment)?;
     encode_consumer_group_assignment(buf, &member.target_assignment)?;
-    buf.put_i8(member.member_type);
+    if version >= 1 {
+        buf.put_i8(member.member_type);
+    }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-fn decode_consumer_group_member<B: Buf>(buf: &mut B) -> Result<ConsumerGroupMember> {
+fn decode_consumer_group_member<B: Buf>(buf: &mut B, version: i16) -> Result<ConsumerGroupMember> {
     let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let instance_id = buf::get_compact_string(buf)?;
     let rack_id = buf::get_compact_string(buf)?;
@@ -3980,7 +4003,7 @@ fn decode_consumer_group_member<B: Buf>(buf: &mut B) -> Result<ConsumerGroupMemb
     let subscribed_topic_regex = buf::get_compact_string(buf)?;
     let assignment = decode_consumer_group_assignment(buf)?;
     let target_assignment = decode_consumer_group_assignment(buf)?;
-    let member_type = buf::get_i8(buf)?;
+    let member_type = if version >= 1 { buf::get_i8(buf)? } else { -1 };
     buf::skip_tagged_fields(buf)?;
     Ok(ConsumerGroupMember {
         member_id,
@@ -3997,11 +4020,13 @@ fn decode_consumer_group_member<B: Buf>(buf: &mut B) -> Result<ConsumerGroupMemb
     })
 }
 
-/// Encode a ConsumerGroupDescribe response.
+/// Encode a ConsumerGroupDescribe response (v0–1). MemberType is v1+.
 pub fn encode_consumer_group_describe_response(
     buf: &mut BytesMut,
+    version: i16,
     groups: &[DescribedConsumerGroup],
 ) -> crate::error::Result<()> {
+    consumer_group_describe_spoken(version)?;
     buf.put_i32(0);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
@@ -4014,7 +4039,7 @@ pub fn encode_consumer_group_describe_response(
         buf::put_compact_string(buf, Some(&g.assignor_name))?;
         buf::put_array_len(buf, true, Some(g.members.len()))?;
         for m in &g.members {
-            encode_consumer_group_member(buf, m)?;
+            encode_consumer_group_member(buf, version, m)?;
         }
         buf.put_i32(g.authorized_operations);
         buf::put_empty_tagged_fields(buf);
@@ -4026,7 +4051,9 @@ pub fn encode_consumer_group_describe_response(
 /// Decode a ConsumerGroupDescribe response.
 pub fn decode_consumer_group_describe_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<Vec<DescribedConsumerGroup>> {
+    consumer_group_describe_spoken(version)?;
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
@@ -4041,7 +4068,7 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
         let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
         let mut members = Vec::with_capacity(mn);
         for _ in 0..mn {
-            members.push(decode_consumer_group_member(buf)?);
+            members.push(decode_consumer_group_member(buf, version)?);
         }
         let authorized_operations = buf::get_i32(buf)?;
         buf::skip_tagged_fields(buf)?;
@@ -10991,7 +11018,7 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 69
         // validVersions 0-1, flexibleVersions 0+, listeners broker only.
-        // This crate targets v1. Not copied from DescribeClientQuotas
+        // This crate speaks 0–1; this fixture is v1. Not copied from DescribeClientQuotas
         // (top-level ErrorCode at bytes 4-5) or DescribeProducers
         // (first-partition ErrorCode at bytes 12-13).
         const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
@@ -11001,14 +11028,14 @@ mod tests {
         ];
         let ids = vec!["g".to_string()];
         let mut buf = BytesMut::new();
-        encode_consumer_group_describe_request(&mut buf, &ids, false).unwrap();
+        encode_consumer_group_describe_request(&mut buf, 1, &ids, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DescribedConsumerGroup::new(
             "g",
             crate::error::NOT_COORDINATOR,
         )];
         buf.clear();
-        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        encode_consumer_group_describe_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
     }
 
@@ -11016,9 +11043,9 @@ mod tests {
     fn consumer_group_describe_v1_roundtrip_is_leftover_empty() {
         let ids = vec!["g".to_string(), "g2".to_string()];
         let mut buf = BytesMut::new();
-        encode_consumer_group_describe_request(&mut buf, &ids, true).unwrap();
+        encode_consumer_group_describe_request(&mut buf, 1, &ids, true).unwrap();
         let mut cur = &buf[..];
-        let (got, include) = decode_consumer_group_describe_request(&mut cur).unwrap();
+        let (got, include) = decode_consumer_group_describe_request(&mut cur, 1).unwrap();
         assert_eq!(got, ids);
         assert!(include);
         assert!(
@@ -11047,10 +11074,10 @@ mod tests {
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }];
         buf.clear();
-        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        encode_consumer_group_describe_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_consumer_group_describe_response(&mut cur).unwrap(),
+            decode_consumer_group_describe_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
@@ -11072,7 +11099,7 @@ mod tests {
             crate::error::NOT_COORDINATOR,
         )];
         let mut buf = BytesMut::new();
-        encode_consumer_group_describe_response(&mut buf, &resp).unwrap();
+        encode_consumer_group_describe_response(&mut buf, 1, &resp).unwrap();
         let b5 = buf.get(5).copied().unwrap();
         let b6 = buf.get(6).copied().unwrap();
         assert_eq!(
@@ -11096,12 +11123,87 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_consumer_group_describe_response(&mut cur).unwrap(),
+            decode_consumer_group_describe_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
             !cur.has_remaining(),
             "ConsumerGroupDescribe v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn consumer_group_describe_v0_matches_v1_request_and_empty_member_response() {
+        // Official JSON: request v1 is the same as v0. Empty-member
+        // responses are also the same: MemberType lives on each member.
+        const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
+        const RESP_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let resp = vec![DescribedConsumerGroup::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_consumer_group_describe_request(&mut buf, 0, &ids, false).unwrap();
+        assert_eq!(&buf[..], REQ, "v0 request matches v1");
+        buf.clear();
+        encode_consumer_group_describe_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_16, "v0 empty-member response matches v1");
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+    }
+
+    #[test]
+    fn consumer_group_describe_v0_omits_member_type() {
+        let mut member = ConsumerGroupMember::new("m1", 1, "c", "h");
+        member.member_type = 1;
+        let resp = vec![DescribedConsumerGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "g".into(),
+            group_state: "Stable".into(),
+            group_epoch: 1,
+            assignment_epoch: 1,
+            assignor_name: "uniform".into(),
+            members: vec![member],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        let mut v0 = BytesMut::new();
+        encode_consumer_group_describe_response(&mut v0, 0, &resp).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_consumer_group_describe_response(&mut v1, 1, &resp).unwrap();
+        assert_eq!(
+            v1.len(),
+            v0.len() + 1,
+            "v1 adds MemberType INT8 after TargetAssignment"
+        );
+        let mut cur = &v0[..];
+        let got = decode_consumer_group_describe_response(&mut cur, 0).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupDescribe v0 response must be leftover-empty"
+        );
+        assert_eq!(
+            got[0].members[0].member_type, -1,
+            "v0 has no MemberType; decode fills -1"
+        );
+        let mut cur = &v1[..];
+        let got = decode_consumer_group_describe_response(&mut cur, 1).unwrap();
+        assert_eq!(got[0].members[0].member_type, 1);
+        assert!(!cur.has_remaining());
+    }
+
+    #[test]
+    fn consumer_group_describe_v2_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_consumer_group_describe_request(&mut buf, 2, &[], false).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2+ is not spoken, got {err}"
         );
     }
 
