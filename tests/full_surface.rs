@@ -3986,6 +3986,16 @@ async fn admin_delete_and_describe() {
     assert_eq!(entry.config_type, partitionline::CONFIG_TYPE_STRING);
     assert_eq!(entry.documentation, None);
 
+    let timed = admin
+        .describe_configs_timeout(
+            &[ConfigResource::topic("orders").keys(["cleanup.policy"])],
+            false,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
+
     let missing = admin
         .describe_configs(&[ConfigResource::topic("nope")], false)
         .await
@@ -4531,6 +4541,24 @@ async fn describe_cluster_with_sends_endpoint_type_and_fenced() {
         mock.last_describe_cluster_include_fenced(),
         Some(true),
         "describe_cluster_with must send IncludeFencedBrokers on v2"
+    );
+    let timed = admin
+        .describe_cluster_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
+    let timed_with = admin
+        .describe_cluster_with_timeout(
+            true,
+            EndpointType::Controllers,
+            true,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        timed_with.endpoint_type,
+        i8::from(EndpointType::Controllers)
     );
 }
 
@@ -5171,6 +5199,16 @@ async fn describe_configs_negotiates_below_v4_when_broker_caps() {
         described[0].entries[0].documentation.is_some(),
         "DescribeConfigs v3 with documentation must fill Documentation"
     );
+    let timed = admin
+        .describe_configs_with_documentation_timeout(
+            &[ConfigResource::topic("dc3")],
+            false,
+            true,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
 
     let mock = common::Mock::start().await;
     mock.set_api_max(DESCRIBE_CONFIGS, 1);

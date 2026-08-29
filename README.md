@@ -86,7 +86,9 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java `ListOffsetsOptions.timeoutMs`.
 `Admin::list_transactions_with_duration` is Java `ListTransactionsOptions.filterOnDuration`.
 `Admin::describe_configs_with_documentation` is Java `DescribeConfigsOptions.includeDocumentation`.
+`Admin::describe_configs_timeout` is Java `DescribeConfigsOptions.timeoutMs`.
 `Admin::describe_cluster_with` is Java `DescribeClusterOptions` (EndpointType / fenced brokers).
+`Admin::describe_cluster_timeout` is Java `DescribeClusterOptions.timeoutMs`.
 `Admin::update_features_with` is Java `UpdateFeaturesOptions.validateOnly` (UpgradeType).
 `Admin::update_features_timeout` / `update_features_with_timeout` are Java `UpdateFeaturesOptions.timeoutMs`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).

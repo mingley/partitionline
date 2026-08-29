@@ -203,9 +203,15 @@
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
 //! [`Admin::describe_configs_with_documentation`] is Java `describeConfigs`
 //! plus `DescribeConfigsOptions.includeDocumentation` (DescribeConfigs v3).
+//! [`Admin::describe_configs_timeout`] /
+//! [`Admin::describe_configs_with_documentation_timeout`] are Java
+//! `DescribeConfigsOptions.timeoutMs` (RPC deadline; DescribeConfigs has
+//! no TimeoutMs).
 //! [`Admin::describe_cluster_with`] is Java `describeCluster` plus
 //! `DescribeClusterOptions` (DescribeCluster v0–v2; v1 EndpointType, v2
 //! IncludeFencedBrokers).
+//! [`Admin::describe_cluster_timeout`] / [`Admin::describe_cluster_with_timeout`]
+//! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).

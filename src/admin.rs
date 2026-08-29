@@ -2089,7 +2089,9 @@ impl Admin {
     /// v3 IncludeDocumentation / ConfigType, KIP-226; v4 flexible).
     /// Kafka 4.0 `validVersions` is `1-4`. v5+ is not spoken.
     /// Documentation is omitted (`false`); see
-    /// [`Self::describe_configs_with_documentation`].
+    /// [`Self::describe_configs_with_documentation`]. DescribeConfigs has
+    /// no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::describe_configs_timeout`].
     pub async fn describe_configs(
         &mut self,
         resources: &[ConfigResource],
@@ -2099,16 +2101,59 @@ impl Admin {
             .await
     }
 
+    /// [`Self::describe_configs`] with a one-shot RPC deadline (Java
+    /// `DescribeConfigsOptions.timeoutMs`).
+    ///
+    /// DescribeConfigs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_configs_timeout(
+        &mut self,
+        resources: &[ConfigResource],
+        include_synonyms: bool,
+        timeout: Duration,
+    ) -> Result<Vec<DescribeConfigsResult>> {
+        self.describe_configs_with_documentation_timeout(
+            resources,
+            include_synonyms,
+            false,
+            timeout,
+        )
+        .await
+    }
+
     /// DescribeConfigs with documentation (Java `describeConfigs` plus
     /// `DescribeConfigsOptions.includeDocumentation`).
     ///
     /// v3+ sends IncludeDocumentation. v0–v2 omit the field even when
-    /// `include_documentation` is set.
+    /// `include_documentation` is set. DescribeConfigs has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use
+    /// [`Self::describe_configs_with_documentation_timeout`].
     pub async fn describe_configs_with_documentation(
         &mut self,
         resources: &[ConfigResource],
         include_synonyms: bool,
         include_documentation: bool,
+    ) -> Result<Vec<DescribeConfigsResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_configs_with_documentation_timeout(
+            resources,
+            include_synonyms,
+            include_documentation,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::describe_configs_with_documentation`] with Java
+    /// `DescribeConfigsOptions.timeoutMs`.
+    ///
+    /// DescribeConfigs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_configs_with_documentation_timeout(
+        &mut self,
+        resources: &[ConfigResource],
+        include_synonyms: bool,
+        include_documentation: bool,
+        timeout: Duration,
     ) -> Result<Vec<DescribeConfigsResult>> {
         let req: Vec<DescribeConfigsResource> = resources
             .iter()
@@ -2119,7 +2164,6 @@ impl Admin {
             })
             .collect();
         let version = self.describe_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CONFIGS,
@@ -4560,8 +4604,23 @@ impl Admin {
     /// (KIP-919). v2 omits fenced brokers (`IncludeFencedBrokers` false).
     /// Kafka 4.0 `validVersions` is `0-2`. v3+ is not spoken. See
     /// [`Self::describe_cluster_with`] for Java `DescribeClusterOptions`.
+    /// DescribeCluster has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_cluster_timeout`].
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
         self.describe_cluster_with(false, ENDPOINT_TYPE_BROKERS, false)
+            .await
+    }
+
+    /// [`Self::describe_cluster`] with a one-shot RPC deadline (Java
+    /// `DescribeClusterOptions.timeoutMs`).
+    ///
+    /// DescribeCluster has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_cluster_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<ClusterDescription> {
+        self.describe_cluster_with_timeout(false, ENDPOINT_TYPE_BROKERS, false, timeout)
             .await
     }
 
@@ -4571,16 +4630,39 @@ impl Admin {
     ///
     /// `endpoint_type` is [`EndpointType`] or a protocol `i8` (`1` brokers,
     /// `2` controllers). v1+ sends EndpointType. v2 sends
-    /// IncludeFencedBrokers. v0 omits both even when set.
+    /// IncludeFencedBrokers. v0 omits both even when set. DescribeCluster
+    /// has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_cluster_with_timeout`].
     pub async fn describe_cluster_with(
         &mut self,
         include_authorized_operations: bool,
         endpoint_type: impl Into<i8>,
         include_fenced_brokers: bool,
     ) -> Result<ClusterDescription> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_cluster_with_timeout(
+            include_authorized_operations,
+            endpoint_type,
+            include_fenced_brokers,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::describe_cluster_with`] with Java
+    /// `DescribeClusterOptions.timeoutMs`.
+    ///
+    /// DescribeCluster has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_cluster_with_timeout(
+        &mut self,
+        include_authorized_operations: bool,
+        endpoint_type: impl Into<i8>,
+        include_fenced_brokers: bool,
+        timeout: Duration,
+    ) -> Result<ClusterDescription> {
         let endpoint_type = endpoint_type.into();
         let version = self.describe_cluster_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLUSTER,
