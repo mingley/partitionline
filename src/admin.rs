@@ -1198,8 +1198,8 @@ pub struct Admin {
     reassign_version: i16,
     list_reassign_version: i16,
     update_features_version: Option<i16>,
-    alter_user_scram_version: i16,
-    describe_user_scram_version: i16,
+    alter_user_scram_version: Option<i16>,
+    describe_user_scram_version: Option<i16>,
     unregister_broker_version: Option<i16>,
     describe_client_quotas_version: Option<i16>,
     alter_client_quotas_version: Option<i16>,
@@ -1421,7 +1421,8 @@ impl Admin {
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
     /// UnregisterBroker, DescribeProducers, DescribeCluster,
-    /// UpdateFeatures, DescribeClientQuotas, and AlterClientQuotas are
+    /// UpdateFeatures, DescribeClientQuotas, AlterClientQuotas,
+    /// AlterUserScramCredentials, and DescribeUserScramCredentials are
     /// optional at connect. Missing APIs fail on the method with
     /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
@@ -1547,16 +1548,10 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let alter_user_scram_version = versions
             .get(&ALTER_USER_SCRAM_CREDENTIALS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterUserScramCredentials".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_user_scram_version = versions
             .get(&DESCRIBE_USER_SCRAM_CREDENTIALS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeUserScramCredentials".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let unregister_broker_version = versions
             .get(&UNREGISTER_BROKER)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3432,7 +3427,9 @@ impl Admin {
     /// Metadata and retries on the new controller. AlterUserScramCredentials
     /// has no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use
-    /// [`Self::alter_user_scram_credentials_timeout`].
+    /// [`Self::alter_user_scram_credentials_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 2.7+ / KIP-554); a broker that omits api 51
+    /// returns [`Error::Unsupported`].
     pub async fn alter_user_scram_credentials(
         &mut self,
         deletions: &[UserScramCredentialDeletion],
@@ -3471,7 +3468,9 @@ impl Admin {
                 salted_password: u.salted_password.clone(),
             })
             .collect();
-        let version = self.alter_user_scram_version;
+        let version = self.alter_user_scram_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterUserScramCredentials".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -3536,7 +3535,9 @@ impl Admin {
     /// and describes every user. DescribeUserScramCredentials has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use
-    /// [`Self::describe_user_scram_credentials_timeout`].
+    /// [`Self::describe_user_scram_credentials_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 2.7+ / KIP-554); a broker that omits api 50
+    /// returns [`Error::Unsupported`].
     pub async fn describe_user_scram_credentials(
         &mut self,
         users: &[&str],
@@ -3562,7 +3563,9 @@ impl Admin {
         } else {
             Some(users.as_slice())
         };
-        let version = self.describe_user_scram_version;
+        let version = self.describe_user_scram_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeUserScramCredentials".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

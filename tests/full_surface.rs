@@ -11,16 +11,17 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, API_VERSIONS,
-    CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
-    DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
-    DESCRIBE_TOPIC_PARTITIONS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
-    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, ALTER_USER_SCRAM_CREDENTIALS,
+    API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS,
+    CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS,
+    DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
+    DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
+    DESCRIBE_PRODUCERS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6829,6 +6830,30 @@ async fn alter_user_scram_credentials_follows_controller() {
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].error_code, 0);
     assert!(mock.has_scram_credential("dave", SCRAM_SHA_256));
+    admin.close().await.unwrap();
+    mock.hide_api(ALTER_USER_SCRAM_CREDENTIALS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let eve = UserScramCredentialUpsertion::new(
+        "eve",
+        ScramMechanism::Sha256,
+        4096,
+        b"dummy-salt-e".to_vec(),
+        b"dummy-salted-e".to_vec(),
+    );
+    let err = admin
+        .alter_user_scram_credentials(&[], &[eve])
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "AlterUserScramCredentials is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -6902,6 +6927,23 @@ async fn describe_user_scram_credentials_follows_controller() {
         .await
         .unwrap();
     assert_eq!(timed_all.len(), 2);
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_USER_SCRAM_CREDENTIALS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .describe_user_scram_credentials(&["alice"])
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeUserScramCredentials is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

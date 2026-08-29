@@ -170,7 +170,8 @@ TimeoutMs; caps `NOT_CONTROLLER`).
 (AllocateProducerIds has no TimeoutMs; caps `NOT_CONTROLLER`). Java `Admin`
 has no `allocateProducerIds`. `Admin::new` does not require AllocateProducerIds,
 UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
-DescribeClientQuotas, AlterClientQuotas, ShareGroupDescribe, the share-offset RPCs,
+DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
+DescribeUserScramCredentials, ShareGroupDescribe, the share-offset RPCs,
 ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs;
 those methods
 return `Error::Unsupported` when the broker omits them.

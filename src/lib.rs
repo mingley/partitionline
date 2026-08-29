@@ -361,7 +361,8 @@
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
 //! `allocateProducerIds`. [`Admin::new`] does not require that API,
 //! UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
-//! DescribeClientQuotas, AlterClientQuotas, ShareGroupDescribe, the
+//! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
+//! DescribeUserScramCredentials, ShareGroupDescribe, the
 //! share-offset RPCs, ListConfigResources, GetTelemetrySubscriptions,
 //! PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
