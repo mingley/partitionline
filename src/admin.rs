@@ -412,6 +412,35 @@ impl NewTopic {
     }
 }
 
+/// Java `RecordsToDelete` for [`Admin::delete_records`].
+///
+/// Converts to the DeleteRecords Offset INT64: records strictly before
+/// this offset are deleted; records at or after it are kept.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RecordsToDelete {
+    offset: i64,
+}
+
+impl RecordsToDelete {
+    /// Java `RecordsToDelete.beforeOffset(long)`.
+    #[must_use]
+    pub const fn before_offset(offset: i64) -> Self {
+        Self { offset }
+    }
+
+    /// DeleteRecords Offset INT64 (Java `RecordsToDelete.beforeOffset()`).
+    #[must_use]
+    pub const fn offset(self) -> i64 {
+        self.offset
+    }
+}
+
+impl From<RecordsToDelete> for i64 {
+    fn from(records: RecordsToDelete) -> Self {
+        records.offset
+    }
+}
+
 /// One topic from [`Admin::list_topics`] (Java `TopicListing`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicListing {
@@ -4791,9 +4820,11 @@ impl Admin {
     /// ThrottleTimeMs (KIP-219). Kafka 4.0 `validVersions` is `0-2`.
     /// v3+ is not spoken.
     ///
-    /// Lands on the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` (6)
-    /// and other retriable codes refresh Metadata and retry on the new
-    /// leader. Returns `(low_watermark, error_code)`. `timeout_ms` is
+    /// `offset` is [`RecordsToDelete`] or INT64 (Java
+    /// `RecordsToDelete.beforeOffset(long)`). Lands on the Metadata
+    /// partition leader. `NOT_LEADER_OR_FOLLOWER` (6) and other
+    /// retriable codes refresh Metadata and retry on the new leader.
+    /// Returns `(low_watermark, error_code)`. `timeout_ms` is
     /// DeleteRecords TimeoutMs. The RPC deadline is
     /// [`AdminConfig::request_timeout`]. For several partitions, use
     /// [`Self::delete_records_for`]. For a one-shot timeout that drives
@@ -4802,11 +4833,11 @@ impl Admin {
     pub async fn delete_records(
         &mut self,
         partition: impl Into<crate::TopicPartition>,
-        offset: i64,
+        offset: impl Into<i64>,
         timeout_ms: i32,
     ) -> Result<(i64, i16)> {
         let timeout = self.cfg.request_timeout;
-        self.delete_records_one(partition.into(), offset, timeout_ms, timeout)
+        self.delete_records_one(partition.into(), offset.into(), timeout_ms, timeout)
             .await
     }
 
@@ -4817,24 +4848,29 @@ impl Admin {
     pub async fn delete_records_timeout(
         &mut self,
         partition: impl Into<crate::TopicPartition>,
-        offset: i64,
+        offset: impl Into<i64>,
         timeout: Duration,
     ) -> Result<(i64, i16)> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.delete_records_one(partition.into(), offset, timeout_ms, timeout)
+        self.delete_records_one(partition.into(), offset.into(), timeout_ms, timeout)
             .await
     }
 
     /// Delete records on several partitions (Java `deleteRecords(Map)`).
     ///
-    /// One DeleteRecords RPC per Metadata partition leader. Empty input
-    /// is a no-op. TimeoutMs and the RPC deadline are
-    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
-    /// [`Self::delete_records_for_timeout`].
-    pub async fn delete_records_for(
+    /// Each item is a [`crate::TopicPartition`] and an offset
+    /// ([`RecordsToDelete`] or INT64). One DeleteRecords RPC per
+    /// Metadata partition leader. Empty input is a no-op. TimeoutMs and
+    /// the RPC deadline are [`AdminConfig::request_timeout`]. For a
+    /// one-shot timeout, use [`Self::delete_records_for_timeout`].
+    pub async fn delete_records_for<Tp, Off>(
         &mut self,
-        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
-    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+        records: impl IntoIterator<Item = (Tp, Off)>,
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Off: Into<i64>,
+    {
         let timeout = self.cfg.request_timeout;
         self.delete_records_for_timeout(records, timeout).await
     }
@@ -4843,11 +4879,15 @@ impl Admin {
     /// `deleteRecords` plus `DeleteRecordsOptions.timeoutMs`).
     ///
     /// `timeout` is the RPC deadline and DeleteRecords TimeoutMs.
-    pub async fn delete_records_for_timeout(
+    pub async fn delete_records_for_timeout<Tp, Off>(
         &mut self,
-        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        records: impl IntoIterator<Item = (Tp, Off)>,
         timeout: Duration,
-    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Off: Into<i64>,
+    {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         self.delete_records_for_with(records, timeout_ms, timeout)
             .await
@@ -4869,15 +4909,19 @@ impl Admin {
         }
     }
 
-    async fn delete_records_for_with(
+    async fn delete_records_for_with<Tp, Off>(
         &mut self,
-        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        records: impl IntoIterator<Item = (Tp, Off)>,
         timeout_ms: i32,
         timeout: Duration,
-    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Off: Into<i64>,
+    {
         let records: Vec<(crate::TopicPartition, i64)> = records
             .into_iter()
-            .map(|(tp, off)| (tp.into(), off))
+            .map(|(tp, off)| (tp.into(), off.into()))
             .collect();
         if records.is_empty() {
             return Ok(Vec::new());
@@ -9710,6 +9754,12 @@ fn replica_log_dir_info_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn records_to_delete_before_offset_converts_to_i64() {
+        assert_eq!(i64::from(RecordsToDelete::before_offset(42)), 42);
+        assert_eq!(RecordsToDelete::before_offset(7).offset(), 7);
+    }
 
     #[test]
     fn config_resource_type_matches_protocol_consts() {

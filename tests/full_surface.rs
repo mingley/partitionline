@@ -38,11 +38,11 @@ use partitionline::{
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel,
     ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec,
     OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup,
-    TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
+    ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState,
+    TransactionTopic, UpgradeType, UserScramCredentialDeletion, UserScramCredentialUpsertion,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4653,6 +4653,26 @@ async fn admin_delete_records_for_batches_partitions() {
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].2, 0);
     assert_eq!(mock.last_delete_records_timeout(), Some(2_500));
+    let specced = admin
+        .delete_records(
+            ("dr2", md0.partition),
+            RecordsToDelete::before_offset(md0.offset + 1),
+            10_000,
+        )
+        .await
+        .unwrap();
+    assert_eq!(specced.1, 0);
+    assert_eq!(specced.0, md0.offset + 1);
+    let spec_listed = admin
+        .delete_records_for([(
+            TopicPartition::new("dr2", md1.partition),
+            RecordsToDelete::before_offset(md1.offset + 1),
+        )])
+        .await
+        .unwrap();
+    assert_eq!(spec_listed.len(), 1);
+    assert_eq!(spec_listed[0].2, 0);
+    assert_eq!(spec_listed[0].1, md1.offset + 1);
     let after_timeout = mock.delete_records_calls();
     let empty = admin
         .delete_records_for(Vec::<(TopicPartition, i64)>::new())
