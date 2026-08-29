@@ -159,6 +159,7 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 (`OffsetAndTimestamp::leader_epoch` is Java `getLeaderEpoch`).
 `FetchedRecord::leader_epoch` is the record-batch partition leader epoch.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
+`NewPartitions::with_assignments` is Java `increaseTo(int, List<List<Integer>>)`.
 `incremental_alter_configs` / `incremental_alter_configs_for` / `alter_configs` /
 `alter_configs_for` take `ConfigResource` / `ConfigResourceUpdate` /
 `ConfigReplacement` (Java `incrementalAlterConfigs(Map)` / `alterConfigs(Map)`).

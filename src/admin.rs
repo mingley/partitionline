@@ -57,12 +57,12 @@ use crate::protocol::admin::{
     encode_list_transactions_request, encode_push_telemetry_request,
     encode_renew_delegation_token_request, encode_share_group_describe_request,
     encode_unregister_broker_request, encode_update_features_request, AlterConfigsResource,
-    AlterableResource, CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteRecordsTopic, DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
-    DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
-    RESOURCE_TOPIC,
+    AlterableResource, CreatableTopic, CreatePartitionsTopic, CreateTopicsRequest,
+    DeleteRecordsPartition, DeleteRecordsTopic, DeleteTopicState, DescribeConfigsResource,
+    DescribeConfigsResult, DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic,
+    ReassignablePartition, ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion,
+    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
+    RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -482,16 +482,42 @@ pub struct NewPartitions {
     pub name: String,
     /// Total partition count after the increase (not a delta).
     pub total_count: i32,
+    /// Replica assignments for the new partitions (Java
+    /// `NewPartitions.increaseTo(int, List<List<Integer>>)`).
+    ///
+    /// `None` is a null Assignments array: the broker assigns replicas
+    /// (Java `increaseTo(int)`).
+    pub assignments: Option<Vec<Vec<i32>>>,
 }
 
 impl NewPartitions {
     /// Set `name` to `total_count` partitions (Java `NewPartitions.increaseTo`).
+    ///
+    /// Assignments are null; the broker picks replicas.
     #[must_use]
     pub fn increase_to(name: impl Into<String>, total_count: i32) -> Self {
         Self {
             name: name.into(),
             total_count,
+            assignments: None,
         }
+    }
+
+    /// Java `NewPartitions.increaseTo(int, List<List<Integer>>)`.
+    ///
+    /// Each inner list is the replica broker ids for one new partition.
+    #[must_use]
+    pub fn with_assignments(
+        mut self,
+        assignments: impl IntoIterator<Item = impl IntoIterator<Item = i32>>,
+    ) -> Self {
+        self.assignments = Some(
+            assignments
+                .into_iter()
+                .map(|brokers| brokers.into_iter().collect())
+                .collect(),
+        );
+        self
     }
 }
 
@@ -2227,9 +2253,13 @@ impl Admin {
         validate_only: bool,
         timeout: Duration,
     ) -> Result<Vec<TopicResult>> {
-        let topics: Vec<(String, i32)> = topics
+        let topics: Vec<CreatePartitionsTopic> = topics
             .iter()
-            .map(|t| (t.name.clone(), t.total_count))
+            .map(|t| CreatePartitionsTopic {
+                name: t.name.clone(),
+                count: t.total_count,
+                assignments: t.assignments.clone(),
+            })
             .collect();
         let version = self.partitions_version;
         let deadline = Instant::now() + timeout;

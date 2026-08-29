@@ -975,20 +975,61 @@ fn create_partitions_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One CreatePartitions topic (name, new total count, replica assignments).
+///
+/// `assignments = None` is a null Assignments array: the broker assigns
+/// replicas (Java `NewPartitions.increaseTo(int)`). `Some` is Java
+/// `increaseTo(int, List<List<Integer>>)`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreatePartitionsTopic {
+    /// Topic name.
+    pub name: String,
+    /// New total partition count (not a delta).
+    pub count: i32,
+    /// Replica assignments for the new partitions, or `None` (null).
+    pub assignments: Option<Vec<Vec<i32>>>,
+}
+
+impl CreatePartitionsTopic {
+    /// Topic `name` at `count` partitions; broker assigns replicas.
+    #[must_use]
+    pub fn new(name: impl Into<String>, count: i32) -> Self {
+        Self {
+            name: name.into(),
+            count,
+            assignments: None,
+        }
+    }
+}
+
+/// Topics, TimeoutMs, and ValidateOnly from a CreatePartitions request.
+type CreatePartitionsDecoded = (Vec<CreatePartitionsTopic>, i32, bool);
+
 /// CreatePartitions v0–3 (classic through v1; flexible from v2).
 pub fn encode_create_partitions_request(
     buf: &mut BytesMut,
     version: i16,
-    topics: &[(String, i32)],
+    topics: &[CreatePartitionsTopic],
     timeout_ms: i32,
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let flexible = create_partitions_flexible(version)?;
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for (name, count) in topics {
-        buf::put_string(buf, flexible, Some(name))?;
-        buf.put_i32(*count);
-        buf::put_array_len(buf, flexible, Some(0))?;
+    for t in topics {
+        buf::put_string(buf, flexible, Some(&t.name))?;
+        buf.put_i32(t.count);
+        match &t.assignments {
+            None => buf::put_array_len(buf, flexible, None)?,
+            Some(assignments) => {
+                buf::put_array_len(buf, flexible, Some(assignments.len()))?;
+                for brokers in assignments {
+                    put_i32_array(buf, flexible, brokers)?;
+                    if flexible {
+                        buf::put_empty_tagged_fields(buf);
+                    }
+                }
+            }
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
@@ -1001,10 +1042,7 @@ pub fn encode_create_partitions_request(
     Ok(())
 }
 
-/// Topics, TimeoutMs, and ValidateOnly from a CreatePartitions request.
-type CreatePartitionsDecoded = (Vec<(String, i32)>, i32, bool);
-
-/// Decode a CreatePartitions request: `(name, count)`, TimeoutMs, and
+/// Decode a CreatePartitions request: topics, TimeoutMs, and
 /// `validate_only`.
 pub fn decode_create_partitions_request<B: Buf>(
     buf: &mut B,
@@ -1016,17 +1054,28 @@ pub fn decode_create_partitions_request<B: Buf>(
     for _ in 0..n {
         let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let count = buf::get_i32(buf)?;
-        let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        for _ in 0..an {
-            let _brokers = get_i32_array(buf, flexible)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
+        let assignments = match buf::get_array_len(buf, flexible)? {
+            None => None,
+            Some(an) => {
+                let mut assignments = Vec::with_capacity(an);
+                for _ in 0..an {
+                    let brokers = get_i32_array(buf, flexible)?;
+                    if flexible {
+                        buf::skip_tagged_fields(buf)?;
+                    }
+                    assignments.push(brokers);
+                }
+                Some(assignments)
             }
-        }
+        };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        topics.push((name, count));
+        topics.push(CreatePartitionsTopic {
+            name,
+            count,
+            assignments,
+        });
     }
     let timeout_ms = buf::get_i32(buf)?;
     let validate_only = buf::get_bool(buf)?;
@@ -9652,7 +9701,7 @@ mod tests {
 
     #[test]
     fn create_partitions_v1_request_matches_v0() {
-        let topics = vec![("t".into(), 3)];
+        let topics = vec![CreatePartitionsTopic::new("t", 3)];
         let mut v0 = BytesMut::new();
         encode_create_partitions_request(&mut v0, 0, &topics, 5_000, false).unwrap();
         let mut v1 = BytesMut::new();
@@ -9672,13 +9721,13 @@ mod tests {
 
     #[test]
     fn create_partitions_v2_compact_layout_matches_independent_encode() {
-        // Compact 1 topic "t", count 3, empty assignments, timeout 5000,
+        // Compact 1 topic "t", count 3, null assignments, timeout 5000,
         // validateOnly false, empty tagged fields.
         const REQ: &[u8] = &[
-            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x03, 0x01, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00,
+            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00,
             0x00,
         ];
-        let topics = vec![("t".into(), 3)];
+        let topics = vec![CreatePartitionsTopic::new("t", 3)];
         let mut buf = BytesMut::new();
         encode_create_partitions_request(&mut buf, 2, &topics, 5_000, false).unwrap();
         assert_eq!(&buf[..], REQ);
@@ -9733,6 +9782,41 @@ mod tests {
             &buf[..],
             &v1r[..],
             "CreatePartitions v2 response must not be classic v1"
+        );
+    }
+
+    #[test]
+    fn create_partitions_assignments_roundtrip() {
+        let topics = vec![CreatePartitionsTopic {
+            name: "t".into(),
+            count: 3,
+            assignments: Some(vec![vec![1, 2]]),
+        }];
+        const V2: &[u8] = &[
+            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x03, 0x02, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_create_partitions_request(&mut buf, 2, &topics, 5_000, false).unwrap();
+        assert_eq!(&buf[..], V2);
+        let mut cur = &buf[..];
+        let (decoded, timeout_ms, validate) =
+            decode_create_partitions_request(&mut cur, 2).unwrap();
+        assert_eq!(decoded, topics);
+        assert_eq!(timeout_ms, 5_000);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v2 assignments request must be leftover-empty"
+        );
+        buf.clear();
+        encode_create_partitions_request(&mut buf, 0, &topics, 5_000, false).unwrap();
+        let mut cur = &buf[..];
+        let (decoded0, _, _) = decode_create_partitions_request(&mut cur, 0).unwrap();
+        assert_eq!(decoded0, topics);
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v0 assignments request must be leftover-empty"
         );
     }
 

@@ -131,6 +131,9 @@
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
+//! [`NewPartitions::with_assignments`] is Java
+//! `NewPartitions.increaseTo(int, List<List<Integer>>)` (null Assignments
+//! means the broker assigns replicas).
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`

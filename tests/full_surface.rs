@@ -5441,6 +5441,11 @@ async fn create_partitions_follows_controller() {
         Some(2),
         "CreatePartitions must land on the controller, not bootstrap"
     );
+    assert_eq!(
+        mock.last_create_partitions_null_assignments(),
+        Some(true),
+        "increaseTo(int) sends a null Assignments array"
+    );
 
     mock.set_controller(1);
     let again = admin
@@ -5457,6 +5462,24 @@ async fn create_partitions_follows_controller() {
         mock.last_create_partitions_node(),
         Some(1),
         "CreatePartitions must follow Metadata after NOT_CONTROLLER"
+    );
+    let assigned = admin
+        .create_partitions(
+            &[NewPartitions::increase_to("parts2", 4).with_assignments([[1, 2]])],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_partitions_null_assignments(),
+        Some(false),
+        "increaseTo(int, List) sends Assignments"
+    );
+    assert_eq!(
+        mock.last_create_partitions_replica_assignments(),
+        Some(vec![vec![1, 2]])
     );
 }
 
