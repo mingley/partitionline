@@ -1162,8 +1162,8 @@ async fn list_offsets_sends_current_leader_epoch() {
     assert_eq!(got.1, 0);
     assert_eq!(
         mock.last_list_offsets_version(),
-        Some(9),
-        "Consumer must prefer ListOffsets v9 when the broker advertises it"
+        Some(10),
+        "Consumer must prefer ListOffsets v10 when the broker advertises it"
     );
     assert_eq!(got.2, bumped);
     assert!(

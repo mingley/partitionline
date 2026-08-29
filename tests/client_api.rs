@@ -2467,8 +2467,8 @@ async fn admin_list_offsets_earliest_and_latest() {
     assert_eq!(mock.last_list_offsets_isolation(), Some(0));
     assert_eq!(
         mock.last_list_offsets_version(),
-        Some(9),
-        "Admin must prefer ListOffsets v9 when the broker advertises it"
+        Some(10),
+        "Admin must prefer ListOffsets v10 when the broker advertises it"
     );
     let sentinels = admin
         .list_offsets([

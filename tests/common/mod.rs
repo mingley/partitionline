@@ -2087,7 +2087,7 @@ fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
         (FETCH, 4, 12),
-        (LIST_OFFSETS, 0, 9),
+        (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),

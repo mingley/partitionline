@@ -108,7 +108,7 @@
 //! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
-//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v9).
+//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
