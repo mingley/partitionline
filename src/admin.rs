@@ -3628,6 +3628,7 @@ impl Admin {
     /// coordinator and retry. ErrorCode is per-group (bytes 5–6 on
     /// leftover-empty fixture group `"g"`), not top-level after throttle.
     /// Java `describeClassicGroups` is [`Self::describe_classic_groups`].
+    /// Java `describeConsumerGroups` is [`Self::describe_consumer_groups`].
     pub async fn describe_groups(
         &mut self,
         group_ids: &[&str],
@@ -3708,6 +3709,20 @@ impl Admin {
             .await
     }
 
+    /// Describe consumer groups (Java `Admin.describeConsumerGroups`).
+    ///
+    /// Same wire as [`Self::describe_groups`]: DescribeGroups api 15 on
+    /// the group coordinator. Java's `DescribeConsumerGroupsHandler`
+    /// builds a DescribeGroups request. Empty input is a no-op.
+    pub async fn describe_consumer_groups(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedGroup>> {
+        self.describe_groups(group_ids, include_authorized_operations)
+            .await
+    }
+
     /// List consumer groups (ListGroups api 16).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official Apache
@@ -3719,7 +3734,8 @@ impl Admin {
     /// no Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41)
     /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
     /// `error_code` is the INT16 at bytes 4–5, after throttle — not a
-    /// first-group field.
+    /// first-group field. Java `listConsumerGroups` is
+    /// [`Self::list_consumer_groups`].
     pub async fn list_groups(
         &mut self,
         states_filter: &[&str],
@@ -3744,6 +3760,19 @@ impl Admin {
         Ok(resp.groups)
     }
 
+    /// List consumer groups (Java `Admin.listConsumerGroups`).
+    ///
+    /// Same wire as [`Self::list_groups`]: ListGroups api 16 on the
+    /// connected broker. Java's `ListConsumerGroupsHandler` builds a
+    /// ListGroups request.
+    pub async fn list_consumer_groups(
+        &mut self,
+        states_filter: &[&str],
+        types_filter: &[&str],
+    ) -> Result<Vec<ListedGroup>> {
+        self.list_groups(states_filter, types_filter).await
+    }
+
     /// Delete consumer groups (DeleteGroups api 42).
     ///
     /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
@@ -3756,7 +3785,8 @@ impl Admin {
     /// coordinator and retry. ErrorCode is per-group after GroupId
     /// (bytes 7–8 on leftover-empty fixture group `"g"`), not top-level
     /// after throttle. Java `deleteShareGroups` is
-    /// [`Self::delete_share_groups`].
+    /// [`Self::delete_share_groups`]. Java `deleteConsumerGroups` is
+    /// [`Self::delete_consumer_groups`].
     pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
         self.delete_group_ids(group_ids.iter().map(|s| (*s).to_string()).collect())
             .await
@@ -3830,6 +3860,23 @@ impl Admin {
     /// `DeleteShareGroupsHandler` extends `DeleteGroupsHandler`. Empty
     /// input is a no-op.
     pub async fn delete_share_groups(
+        &mut self,
+        group_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<DeletableGroupResult>> {
+        let ids: Vec<String> = group_ids
+            .into_iter()
+            .map(|s| s.as_ref().to_string())
+            .collect();
+        self.delete_group_ids(ids).await
+    }
+
+    /// Delete consumer groups (Java `Admin.deleteConsumerGroups`).
+    ///
+    /// Same wire as [`Self::delete_groups`]: DeleteGroups api 42 on the
+    /// group coordinator (`FindCoordinator` `key_type=0`). Java's
+    /// `DeleteConsumerGroupsHandler` sends DeleteGroups. Empty
+    /// input is a no-op.
+    pub async fn delete_consumer_groups(
         &mut self,
         group_ids: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<Vec<DeletableGroupResult>> {
@@ -3989,6 +4036,7 @@ impl Admin {
     /// `NOT_COORDINATOR` (16) refresh the coordinator and retry.
     /// ErrorCode is per-group (bytes 5–6 on leftover-empty fixture
     /// group `"g"`), not top-level after throttle.
+    /// Java `describeShareGroups` is [`Self::describe_share_groups`].
     pub async fn share_group_describe(
         &mut self,
         group_ids: &[&str],
@@ -4059,6 +4107,20 @@ impl Admin {
             }
             return Ok(results);
         }
+    }
+
+    /// Describe share groups (Java `Admin.describeShareGroups`).
+    ///
+    /// Same wire as [`Self::share_group_describe`]: ShareGroupDescribe
+    /// api 77 on the group coordinator. Java's `DescribeShareGroupsHandler`
+    /// uses `CoordinatorType.GROUP`. Empty input is a no-op.
+    pub async fn describe_share_groups(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedShareGroup>> {
+        self.share_group_describe(group_ids, include_authorized_operations)
+            .await
     }
 
     /// Describe KIP-932 share-group offsets (DescribeShareGroupOffsets
@@ -4346,6 +4408,9 @@ impl Admin {
     /// List configuration resources (ListConfigResources api 74,
     /// KIP-1142; formerly ListClientMetricsResources).
     ///
+    /// Java `listClientMetricsResources` is
+    /// [`Self::list_client_metrics_resources`] (CLIENT_METRICS only).
+    ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` only. Official JSON lists no
     /// `errorCodes`. Official Java `KafkaApis.handleListConfigResources`
@@ -4383,6 +4448,18 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "ListConfigResources"));
         }
         Ok(resp.config_resources)
+    }
+
+    /// List client-metrics resources (Java
+    /// `Admin.listClientMetricsResources`).
+    ///
+    /// Same wire as [`Self::list_config_resources`] with
+    /// [`ConfigResourceType::ClientMetrics`]. Java 4.0 implements the
+    /// deprecated `listClientMetricsResources` as ListConfigResources
+    /// for that type.
+    pub async fn list_client_metrics_resources(&mut self) -> Result<Vec<ListedConfigResource>> {
+        self.list_config_resources([ConfigResourceType::ClientMetrics])
+            .await
     }
 
     /// Get client telemetry subscriptions (GetTelemetrySubscriptions

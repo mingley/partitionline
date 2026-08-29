@@ -65,6 +65,12 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
 `Admin::delete_share_groups` is Java `deleteShareGroups`.
+`Admin::describe_classic_groups` is Java `describeClassicGroups`.
+`Admin::describe_consumer_groups` is Java `describeConsumerGroups`.
+`Admin::list_consumer_groups` is Java `listConsumerGroups`.
+`Admin::delete_consumer_groups` is Java `deleteConsumerGroups`.
+`Admin::describe_share_groups` is Java `describeShareGroups`.
+`Admin::list_client_metrics_resources` is Java `listClientMetricsResources`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
 `RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::describe_broker_log_dirs` is Java

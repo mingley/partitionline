@@ -3833,6 +3833,35 @@ async fn list_groups_follows_broker() {
 }
 
 #[tokio::test]
+async fn list_consumer_groups_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin
+        .list_consumer_groups(&["Stable"], &["classic"])
+        .await
+        .unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].group_id, "g");
+    assert_eq!(
+        mock.last_list_groups_node(),
+        Some(1),
+        "listConsumerGroups must land on the connected broker"
+    );
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Stable".into()], vec!["classic".into()]))
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "listConsumerGroups must not hop via DescribeGroups or FindCoordinator"
+    );
+}
+
+#[tokio::test]
 async fn describe_topic_partitions_follows_broker() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();
@@ -3913,6 +3942,33 @@ async fn list_config_resources_follows_broker() {
         mock.last_describe_topic_partitions_node(),
         None,
         "ListConfigResources must not hop via DescribeTopicPartitions"
+    );
+}
+
+#[tokio::test]
+async fn list_client_metrics_resources_follows_broker() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    mock.set_controller(2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let first = admin.list_client_metrics_resources().await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].resource_name, "r");
+    assert_eq!(first[0].resource_type, CONFIG_RESOURCE_CLIENT_METRICS);
+    assert_eq!(
+        mock.last_list_config_resources_node(),
+        Some(1),
+        "listClientMetricsResources must land on the connected broker"
+    );
+    assert_eq!(
+        mock.last_list_config_resources(),
+        Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "listClientMetricsResources must not hop via DescribeGroups or FindCoordinator"
     );
 }
 
@@ -4577,6 +4633,40 @@ async fn delete_share_groups_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn delete_consumer_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+
+    let empty = admin
+        .delete_consumer_groups(Vec::<String>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        None,
+        "empty delete_consumer_groups is a no-op"
+    );
+
+    let first = admin.delete_consumer_groups(["g-cons"]).await.unwrap();
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].error_code, 0);
+    assert_eq!(first[0].group_id, "g-cons");
+    assert_eq!(
+        mock.last_delete_groups_node(),
+        Some(2),
+        "deleteConsumerGroups must land on the group coordinator"
+    );
+    assert!(
+        mock.find_coordinator_key_types()
+            .contains(&COORDINATOR_GROUP),
+        "deleteConsumerGroups must FindCoordinator key_type=0"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn describe_classic_groups_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();
@@ -4592,6 +4682,26 @@ async fn describe_classic_groups_follows_group_coordinator() {
         mock.last_describe_groups_node(),
         Some(2),
         "describeClassicGroups must land on the group coordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn describe_consumer_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin
+        .describe_consumer_groups(&["g-cons"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "g-cons");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        Some(2),
+        "describeConsumerGroups must land on the group coordinator"
     );
     admin.close().await.unwrap();
 }
@@ -4661,6 +4771,26 @@ async fn share_group_describe_follows_group_coordinator() {
         Some(1),
         "ShareGroupDescribe must FindCoordinator after NOT_COORDINATOR"
     );
+}
+
+#[tokio::test]
+async fn describe_share_groups_follows_group_coordinator() {
+    let mock = common::Mock::start_two_node().await;
+    mock.move_coordinator();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin
+        .describe_share_groups(&["sg-java"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "sg-java");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_share_group_describe_node(),
+        Some(2),
+        "describeShareGroups must land on the group coordinator"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

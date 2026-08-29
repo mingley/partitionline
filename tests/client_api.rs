@@ -16,7 +16,7 @@ use partitionline::{
     DescribeLogDirsRequest, Error, FetchedRecord, IsolationLevel, MemberToRemove, NewTopic,
     OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig,
     ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition,
-    TopicPartitionReplica, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2520,6 +2520,101 @@ async fn admin_describe_classic_groups_uses_describe_groups() {
     assert_eq!(mock.last_describe_groups_node(), Some(1));
     let empty = admin.describe_classic_groups(&[], false).await.unwrap();
     assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_describe_consumer_groups_uses_describe_groups() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let described = admin
+        .describe_consumer_groups(&["g-cons"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "g-cons");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
+    let empty = admin.describe_consumer_groups(&[], false).await.unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_list_consumer_groups_uses_list_groups() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = admin
+        .list_consumer_groups(&["Stable"], &["classic"])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].group_id, "g");
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Stable".into()], vec!["classic".into()]))
+    );
+    assert_eq!(mock.last_list_groups_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_delete_consumer_groups_uses_delete_groups() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let empty = admin
+        .delete_consumer_groups(Vec::<String>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(mock.last_delete_groups_node(), None);
+    let deleted = admin.delete_consumer_groups(["g-cons"]).await.unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].group_id, "g-cons");
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_delete_groups_node(), Some(1));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_describe_share_groups_uses_share_group_describe() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let described = admin
+        .describe_share_groups(&["g-share"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].group_id, "g-share");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(mock.last_share_group_describe_node(), Some(1));
+    let empty = admin.describe_share_groups(&[], false).await.unwrap();
+    assert!(empty.is_empty());
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn admin_list_client_metrics_resources() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let listed = admin.list_client_metrics_resources().await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].resource_type, CONFIG_RESOURCE_CLIENT_METRICS);
+    assert_eq!(
+        mock.last_list_config_resources(),
+        Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
+    );
+    assert_eq!(mock.last_list_config_resources_node(), Some(1));
     admin.close().await.unwrap();
 }
 

@@ -62,7 +62,12 @@ ABORT on the partition leader).
 tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
 `describeTopics`. `Admin::describe_classic_groups` is Java
-`describeClassicGroups` (DescribeGroups). `Admin::delete_share_groups` is Java
+`describeClassicGroups` (DescribeGroups). `Admin::describe_consumer_groups` is Java
+`describeConsumerGroups` (DescribeGroups). `Admin::list_consumer_groups` is Java
+`listConsumerGroups` (ListGroups). `Admin::delete_consumer_groups` is Java
+`deleteConsumerGroups` (DeleteGroups). `Admin::describe_share_groups` is Java
+`describeShareGroups` (ShareGroupDescribe). `Admin::list_client_metrics_resources` is Java
+`listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::delete_share_groups` is Java
 `deleteShareGroups` (DeleteGroups). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
