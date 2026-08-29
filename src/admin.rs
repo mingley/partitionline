@@ -3197,13 +3197,32 @@ impl Admin {
     ///
     /// Isolation is read-uncommitted. See
     /// [`Self::list_offsets_with_isolation`] for Java
-    /// `ListOffsetsOptions.isolationLevel`.
+    /// `ListOffsetsOptions.isolationLevel`. Waits up to
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::list_offsets_timeout`].
     pub async fn list_offsets(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
-        self.list_offsets_with_isolation(queries, crate::IsolationLevel::ReadUncommitted)
-            .await
+        let timeout = self.cfg.request_timeout;
+        self.list_offsets_timeout(queries, timeout).await
+    }
+
+    /// [`Self::list_offsets`] with a one-shot timeout (Java `listOffsets`
+    /// plus `ListOffsetsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and ListOffsets v10 `TimeoutMs`.
+    pub async fn list_offsets_timeout(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+        self.list_offsets_with_isolation_timeout(
+            queries,
+            crate::IsolationLevel::ReadUncommitted,
+            timeout,
+        )
+        .await
     }
 
     /// ListOffsets with isolation (Java `listOffsets` +
@@ -3219,12 +3238,29 @@ impl Admin {
     /// separate timestamps). `NOT_LEADER_OR_FOLLOWER` refreshes
     /// Metadata and retries.
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
-    /// v1–v5 are classic; v6–v10 are flexible. v10 `TimeoutMs` is `request_timeout`.
-    /// Empty input is a no-op.
+    /// v1–v5 are classic; v6–v10 are flexible. v10 `TimeoutMs` is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::list_offsets_with_isolation_timeout`]. Empty input is a no-op.
     pub async fn list_offsets_with_isolation(
         &mut self,
         queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
         isolation: crate::IsolationLevel,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_offsets_with_isolation_timeout(queries, isolation, timeout)
+            .await
+    }
+
+    /// [`Self::list_offsets_with_isolation`] with a one-shot timeout (Java
+    /// `listOffsets` plus `ListOffsetsOptions.isolationLevel` and
+    /// `timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and ListOffsets v10 `TimeoutMs`.
+    pub async fn list_offsets_with_isolation_timeout(
+        &mut self,
+        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        isolation: crate::IsolationLevel,
+        timeout: Duration,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
         let queries: Vec<(crate::TopicPartition, i64)> = queries
             .into_iter()
@@ -3238,7 +3274,6 @@ impl Admin {
             .get(&LIST_OFFSETS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 10))
             .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let isolation = isolation.as_i8();

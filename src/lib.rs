@@ -163,6 +163,8 @@
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
+//! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
+//! are Java `ListOffsetsOptions.timeoutMs` (RPC deadline and ListOffsets v10 TimeoutMs).
 //! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
 //! [`Admin::describe_configs_with_documentation`] is Java `describeConfigs`

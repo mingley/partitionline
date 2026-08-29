@@ -2829,6 +2829,11 @@ async fn admin_list_offsets_earliest_and_latest() {
     assert_eq!(mock.last_list_offsets_n(), Some(2));
     assert_eq!(mock.last_list_offsets_isolation(), Some(0));
     assert_eq!(
+        mock.last_list_offsets_timeout(),
+        Some(30_000),
+        "list_offsets must send request_timeout as ListOffsets v10 TimeoutMs"
+    );
+    assert_eq!(
         mock.last_list_offsets_version(),
         Some(10),
         "Admin must prefer ListOffsets v10 when the broker advertises it"
@@ -2874,6 +2879,23 @@ async fn admin_list_offsets_earliest_and_latest() {
         .await
         .unwrap();
     assert!(empty.is_empty());
+    let timed = admin
+        .list_offsets_timeout([(("t", 0), LATEST_TIMESTAMP)], Duration::from_secs(12))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(mock.last_list_offsets_timeout(), Some(12_000));
+    let timed_iso = admin
+        .list_offsets_with_isolation_timeout(
+            [(("t", 0), LATEST_TIMESTAMP)],
+            IsolationLevel::ReadCommitted,
+            Duration::from_secs(8),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_iso.len(), 1);
+    assert_eq!(mock.last_list_offsets_isolation(), Some(1));
+    assert_eq!(mock.last_list_offsets_timeout(), Some(8_000));
     admin.close().await.unwrap();
 }
 

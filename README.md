@@ -66,6 +66,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `alter_consumer_group_offsets` take `TopicPartition`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
 `Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
+`Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java `ListOffsetsOptions.timeoutMs`.
 `Admin::list_transactions_with_duration` is Java `ListTransactionsOptions.filterOnDuration`.
 `Admin::describe_configs_with_documentation` is Java `DescribeConfigsOptions.includeDocumentation`.
 `Admin::describe_cluster_with` is Java `DescribeClusterOptions` (EndpointType / fenced brokers).

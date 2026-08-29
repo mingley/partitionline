@@ -234,7 +234,7 @@ pub fn decode_list_offsets_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, String, i32, i32, i64)> {
-    let (isolation, topics) = decode_list_offsets_topics_request(buf, version)?;
+    let (isolation, topics, _timeout_ms) = decode_list_offsets_topics_request(buf, version)?;
     let t = topics
         .first()
         .ok_or_else(|| Error::protocol("empty ListOffsets topics"))?;
@@ -252,10 +252,13 @@ pub fn decode_list_offsets_request<B: Buf>(
 }
 
 /// Decode ListOffsets topics (v1–v5 classic, v6–v10 flexible).
+///
+/// Returns `(isolation_level, topics, timeout_ms)`. Isolation is `0`
+/// below v2. `timeout_ms` is `Some` at v10+ (KIP-1075) and `None` below.
 pub fn decode_list_offsets_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i8, Vec<ListOffsetsTopicRequest>)> {
+) -> Result<(i8, Vec<ListOffsetsTopicRequest>, Option<i32>)> {
     let flexible = list_offsets_flexible(version)?;
     let _replica = buf::get_i32(buf)?;
     let isolation = if version >= 2 { buf::get_i8(buf)? } else { 0 };
@@ -283,13 +286,15 @@ pub fn decode_list_offsets_topics_request<B: Buf>(
         }
         topics.push(ListOffsetsTopicRequest { name, partitions });
     }
-    if version >= 10 {
-        let _timeout_ms = buf::get_i32(buf)?;
-    }
+    let timeout_ms = if version >= 10 {
+        Some(buf::get_i32(buf)?)
+    } else {
+        None
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((isolation, topics))
+    Ok((isolation, topics, timeout_ms))
 }
 
 /// Encode a single-topic, single-partition ListOffsets response.
@@ -506,9 +511,10 @@ mod tests {
         let mut req = BytesMut::new();
         encode_list_offsets_topics_request(&mut req, 4, 0, &req_topics, 0).unwrap();
         let mut cur = &req[..];
-        let (iso, got) = decode_list_offsets_topics_request(&mut cur, 4).unwrap();
+        let (iso, got, timeout) = decode_list_offsets_topics_request(&mut cur, 4).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(got, req_topics);
+        assert_eq!(timeout, None);
         assert!(
             cur.is_empty(),
             "v4 multi request leftover {} bytes",
@@ -574,6 +580,9 @@ mod tests {
             cur.is_empty(),
             "ListOffsets v10 request must consume TimeoutMs before tagged fields"
         );
+        let mut cur = &req[..];
+        let (_, _, timeout) = decode_list_offsets_topics_request(&mut cur, 10).unwrap();
+        assert_eq!(timeout, Some(1500));
         req.clear();
         assert!(
             encode_list_offsets_request(&mut req, 11, 0, "t", 0, 0, LATEST_TIMESTAMP, 0).is_err(),

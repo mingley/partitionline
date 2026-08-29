@@ -1691,6 +1691,11 @@ async fn admin_list_offsets_batches_by_leader() {
         Some(0),
         "list_offsets defaults to read-uncommitted"
     );
+    assert_eq!(
+        mock.last_list_offsets_timeout(),
+        Some(30_000),
+        "list_offsets must send request_timeout as ListOffsets v10 TimeoutMs"
+    );
 
     let committed = admin
         .list_offsets_with_isolation(
@@ -1704,6 +1709,31 @@ async fn admin_list_offsets_batches_by_leader() {
         mock.last_list_offsets_isolation(),
         Some(1),
         "list_offsets_with_isolation must send isolation=1"
+    );
+    let timed = admin
+        .list_offsets_timeout([(("t", 0), LATEST_TIMESTAMP)], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(
+        mock.last_list_offsets_timeout(),
+        Some(5_000),
+        "list_offsets_timeout must send ListOffsets v10 TimeoutMs"
+    );
+    let timed_iso = admin
+        .list_offsets_with_isolation_timeout(
+            [(("t", 0), LATEST_TIMESTAMP)],
+            IsolationLevel::ReadCommitted,
+            Duration::from_secs(8),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_iso.len(), 1);
+    assert_eq!(mock.last_list_offsets_isolation(), Some(1));
+    assert_eq!(
+        mock.last_list_offsets_timeout(),
+        Some(8_000),
+        "list_offsets_with_isolation_timeout must send isolation and TimeoutMs"
     );
 }
 

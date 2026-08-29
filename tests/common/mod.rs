@@ -244,6 +244,7 @@ struct State {
     last_list_offsets_node: Option<i32>,
     last_list_offsets_n: Option<usize>,
     last_list_offsets_isolation: Option<i8>,
+    last_list_offsets_timeout: Option<i32>,
     list_offsets_calls: u32,
     list_offsets_not_leader: u32,
     last_list_offsets_version: Option<i16>,
@@ -548,6 +549,7 @@ fn new_state(
         last_list_offsets_node: None,
         last_list_offsets_n: None,
         last_list_offsets_isolation: None,
+        last_list_offsets_timeout: None,
         list_offsets_calls: 0,
         list_offsets_not_leader: 0,
         last_list_offsets_version: None,
@@ -1428,6 +1430,10 @@ impl Mock {
 
     pub fn last_list_offsets_isolation(&self) -> Option<i8> {
         self.state.lock().last_list_offsets_isolation
+    }
+
+    pub fn last_list_offsets_timeout(&self) -> Option<i32> {
+        self.state.lock().last_list_offsets_timeout
     }
 
     pub fn list_offsets_calls(&self) -> u32 {
@@ -3782,10 +3788,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_delete_acls_response(&mut body, version, 0, &removed).unwrap();
             }
             LIST_OFFSETS => {
-                let (iso, topics) =
+                let (iso, topics, timeout_ms) =
                     decode_list_offsets_topics_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_list_offsets_isolation = Some(iso);
+                st.last_list_offsets_timeout = timeout_ms;
                 st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
                 st.last_list_offsets_version = Some(header.api_version);
                 let mut n = 0usize;
