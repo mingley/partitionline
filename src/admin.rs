@@ -1072,8 +1072,10 @@ impl Admin {
             })?;
         let legacy_alter_version = versions
             .get(&ALTER_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| Error::Unsupported("broker does not support AlterConfigs".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support AlterConfigs v0-2".into())
+            })?;
         let delete_records_version = versions
             .get(&DELETE_RECORDS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
@@ -2827,6 +2829,10 @@ impl Admin {
     }
 
     /// Replace configs (`AlterConfigs`, legacy api 33).
+    ///
+    /// Negotiates v0–v2 (v0–v1 classic; v2 flexible). v1 response adds
+    /// ThrottleTimeMs (KIP-219). Kafka 4.0 `validVersions` is `0-2`.
+    /// v3+ is not spoken.
     ///
     /// Prefer [`Self::incremental_alter_configs`] on modern brokers.
     pub async fn alter_configs(

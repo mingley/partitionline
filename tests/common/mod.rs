@@ -268,6 +268,7 @@ struct State {
     last_incremental_alter_configs_node: Option<i32>,
     last_incremental_alter_configs_version: Option<i16>,
     incremental_alter_configs_not_controller: u32,
+    last_alter_configs_version: Option<i16>,
     last_create_acls_node: Option<i32>,
     last_create_acls_version: Option<i16>,
     create_acls_not_controller: u32,
@@ -538,6 +539,7 @@ fn new_state(
         last_incremental_alter_configs_node: None,
         last_incremental_alter_configs_version: None,
         incremental_alter_configs_not_controller: 0,
+        last_alter_configs_version: None,
         last_create_acls_node: None,
         last_create_acls_version: None,
         create_acls_not_controller: 0,
@@ -1455,6 +1457,10 @@ impl Mock {
         self.state.lock().incremental_alter_configs_not_controller
     }
 
+    pub fn last_alter_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_configs_version
+    }
+
     pub fn last_create_acls_node(&self) -> Option<i32> {
         self.state.lock().last_create_acls_node
     }
@@ -2313,7 +2319,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DELETE_TOPICS, 0, 6),
         (CREATE_PARTITIONS, 0, 3),
         (DELETE_RECORDS, 0, 1),
-        (ALTER_CONFIGS, 0, 1),
+        (ALTER_CONFIGS, 0, 2),
         (DESCRIBE_CLUSTER, 0, 0),
         (DESCRIBE_PRODUCERS, 0, 0),
         (DESCRIBE_ACLS, 0, 3),
@@ -2850,10 +2856,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_incremental_alter_configs_response(&mut body, version, err, &name).unwrap();
             }
             ALTER_CONFIGS => {
+                let version = header.api_version;
                 let (rt, name, configs, validate_only) =
-                    decode_alter_configs_request(&mut frame).unwrap();
+                    decode_alter_configs_request(&mut frame, version).unwrap();
                 let mut err = 0i16;
                 let mut st = state.lock();
+                st.last_alter_configs_version = Some(version);
                 if rt != RESOURCE_TOPIC {
                     err = 3;
                 } else if let Some(spec) = st.created_topics.get_mut(&name) {
@@ -2869,7 +2877,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     err = 3;
                 }
-                encode_alter_configs_response(&mut body, header.api_version, err, &name).unwrap();
+                encode_alter_configs_response(&mut body, version, err, &name).unwrap();
             }
             DELETE_RECORDS => {
                 let (topic, partition, offset, _timeout) =

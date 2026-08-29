@@ -1187,70 +1187,157 @@ pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B, version: i
     Ok(error_code)
 }
 
-/// Encode an AlterConfigs request.
+/// `true` when AlterConfigs `version` is flexible.
+///
+/// v0–v1 are classic (v1 response adds ThrottleTimeMs). v2 is the first
+/// flexible version. Kafka 4.0 `validVersions` is `0-2`. This crate
+/// speaks 0–2. v3+ is not spoken.
+fn alter_configs_flexible(version: i16) -> Result<bool> {
+    match version {
+        0 | 1 => Ok(false),
+        2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "AlterConfigs version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode an AlterConfigs request (v0–2; classic through v1; flexible from v2).
 pub fn encode_alter_configs_request(
     buf: &mut BytesMut,
-    _version: i16,
+    version: i16,
     resource_type: i8,
     name: &str,
     configs: &[TopicConfig],
     validate_only: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(1))?;
+    let flexible = alter_configs_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i8(resource_type);
-    buf::put_classic_nullable_string(buf, Some(name))?;
-    buf::put_array_len(buf, false, Some(configs.len()))?;
+    buf::put_string(buf, flexible, Some(name))?;
+    buf::put_array_len(buf, flexible, Some(configs.len()))?;
     for c in configs {
-        buf::put_classic_nullable_string(buf, Some(&c.name))?;
-        buf::put_classic_nullable_string(buf, c.value.as_deref())?;
+        buf::put_string(buf, flexible, Some(&c.name))?;
+        buf::put_string(buf, flexible, c.value.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode an AlterConfigs request.
+/// Decode an AlterConfigs request (first resource).
 pub fn decode_alter_configs_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(i8, String, Vec<TopicConfig>, bool)> {
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let resource_type = buf::get_i8(buf)?;
-    let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let cn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let mut configs = Vec::with_capacity(cn);
-    for _ in 0..cn {
-        let cname = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let value = buf::get_classic_nullable_string(buf)?;
-        configs.push(TopicConfig { name: cname, value });
+    let flexible = alter_configs_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut resource_type = 0i8;
+    let mut name = String::new();
+    let mut configs = Vec::new();
+    if n > 0 {
+        resource_type = buf::get_i8(buf)?;
+        name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        configs.reserve(cn);
+        for _ in 0..cn {
+            let cname = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let value = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            configs.push(TopicConfig { name: cname, value });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        for _ in 1..n {
+            let _ = buf::get_i8(buf)?;
+            let _ = buf::get_string(buf, flexible)?;
+            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            for _ in 0..extra {
+                let _ = buf::get_string(buf, flexible)?;
+                let _ = buf::get_string(buf, flexible)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+            }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
     }
-    let validate_only = buf.get_u8() != 0;
+    let validate_only = buf::get_bool(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((resource_type, name, configs, validate_only))
 }
 
-/// Encode an AlterConfigs response.
+/// Encode an AlterConfigs response (one resource).
+///
+/// ThrottleTimeMs is encoded from v1 (KIP-219). v2 adds compact arrays/
+/// strings plus tagged fields.
 pub fn encode_alter_configs_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
     name: &str,
 ) -> crate::error::Result<()> {
+    let flexible = alter_configs_flexible(version)?;
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i16(error_code);
-    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_string(buf, flexible, None)?;
     buf.put_i8(RESOURCE_TOPIC);
-    buf::put_classic_nullable_string(buf, Some(name))?;
+    buf::put_string(buf, flexible, Some(name))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode an AlterConfigs response.
+/// Decode an AlterConfigs response (first resource error).
 pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = alter_configs_flexible(version)?;
     if version >= 1 {
         let _th = buf::get_i32(buf)?;
     }
-    let _n = buf::get_array_len(buf, false)?.unwrap_or(0);
-    buf::get_i16(buf)
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut error_code = 0i16;
+    if n > 0 {
+        error_code = buf::get_i16(buf)?;
+        let _msg = buf::get_string(buf, flexible)?;
+        let _rt = buf::get_i8(buf)?;
+        let _name = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        for _ in 1..n {
+            let _ = buf::get_i16(buf)?;
+            let _ = buf::get_string(buf, flexible)?;
+            let _ = buf::get_i8(buf)?;
+            let _ = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(error_code)
 }
 
 /// Encode a DeleteRecords request.
@@ -8577,33 +8664,100 @@ mod tests {
 
     #[test]
     fn alter_configs_v1_roundtrip() {
+        let configs = [TopicConfig {
+            name: "retention.ms".into(),
+            value: Some("1".into()),
+        }];
         let mut buf = BytesMut::new();
-        encode_alter_configs_request(
-            &mut buf,
-            1,
-            RESOURCE_TOPIC,
-            "t",
-            &[TopicConfig {
-                name: "retention.ms".into(),
-                value: Some("1".into()),
-            }],
-            false,
-        )
-        .unwrap();
-        let (rt, name, configs, validate) = decode_alter_configs_request(&mut &buf[..]).unwrap();
+        encode_alter_configs_request(&mut buf, 1, RESOURCE_TOPIC, "t", &configs, false).unwrap();
+        let mut cur = &buf[..];
+        let (rt, name, decoded, validate) = decode_alter_configs_request(&mut cur, 1).unwrap();
         assert_eq!(rt, RESOURCE_TOPIC);
         assert_eq!(name, "t");
-        assert_eq!(
-            configs,
-            vec![TopicConfig {
-                name: "retention.ms".into(),
-                value: Some("1".into()),
-            }]
-        );
+        assert_eq!(decoded, configs);
         assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v1 request must be leftover-empty"
+        );
         buf.clear();
         encode_alter_configs_response(&mut buf, 1, 0, "t").unwrap();
-        assert_eq!(decode_alter_configs_response(&mut &buf[..], 1).unwrap(), 0);
+        let mut cur = &buf[..];
+        assert_eq!(decode_alter_configs_response(&mut cur, 1).unwrap(), 0);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_configs_v2_compact_layout_matches_independent_encode() {
+        // Compact 1 resource type=2 name "t", 1 config "k"="v",
+        // validateOnly false, empty tagged fields.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x02, 0x74, 0x02, 0x02, 0x6b, 0x02, 0x76, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let configs = [TopicConfig {
+            name: "k".into(),
+            value: Some("v".into()),
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_configs_request(&mut buf, 2, RESOURCE_TOPIC, "t", &configs, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (rt, name, decoded, validate) = decode_alter_configs_request(&mut cur, 2).unwrap();
+        assert_eq!(rt, RESOURCE_TOPIC);
+        assert_eq!(name, "t");
+        assert_eq!(decoded, configs);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v2 request must consume compact fields and tagged fields"
+        );
+        let mut v1 = BytesMut::new();
+        encode_alter_configs_request(&mut v1, 1, RESOURCE_TOPIC, "t", &configs, false).unwrap();
+        assert_ne!(&buf[..], &v1[..], "AlterConfigs v2 must not be classic v1");
+        assert!(
+            encode_alter_configs_request(
+                &mut BytesMut::new(),
+                3,
+                RESOURCE_TOPIC,
+                "t",
+                &configs,
+                false
+            )
+            .is_err(),
+            "AlterConfigs v3+ is not spoken"
+        );
+
+        buf.clear();
+        encode_alter_configs_response(&mut buf, 2, 0, "t").unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_alter_configs_response(&mut cur, 2).unwrap(), 0);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v2 response must be leftover-empty"
+        );
+        let mut v1r = BytesMut::new();
+        encode_alter_configs_response(&mut v1r, 1, 0, "t").unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1r[..],
+            "AlterConfigs v2 response must not be classic v1"
+        );
+        let mut v0r = BytesMut::new();
+        encode_alter_configs_response(&mut v0r, 0, 0, "t").unwrap();
+        assert_ne!(
+            &v1r[..],
+            &v0r[..],
+            "AlterConfigs v1 response must include ThrottleTimeMs"
+        );
+        let mut cur = &v0r[..];
+        assert_eq!(decode_alter_configs_response(&mut cur, 0).unwrap(), 0);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v0 response must be leftover-empty"
+        );
     }
 
     #[test]

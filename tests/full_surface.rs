@@ -11,9 +11,10 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS,
+    DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3278,6 +3279,11 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         .await
         .unwrap();
     assert_eq!(err, 0);
+    assert_eq!(
+        mock.last_alter_configs_version(),
+        Some(2),
+        "Admin must prefer AlterConfigs v2 when the broker advertises it"
+    );
     let described = admin
         .describe_configs(
             &[ConfigResource::topic("rest").keys(["retention.ms"])],
@@ -3317,6 +3323,35 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     assert_eq!(cluster.error_code, 0);
     assert!(!cluster.brokers.is_empty());
     assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
+}
+
+#[tokio::test]
+async fn alter_configs_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(ALTER_CONFIGS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("ac1", 1, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let err = admin
+        .alter_configs(
+            &ConfigResource::topic("ac1"),
+            &[("retention.ms".into(), Some("2000".into()))],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(
+        mock.last_alter_configs_version(),
+        Some(1),
+        "client must speak AlterConfigs v1 when the broker max is 1"
+    );
 }
 
 #[tokio::test]
