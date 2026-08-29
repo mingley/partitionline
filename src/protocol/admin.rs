@@ -1615,7 +1615,7 @@ pub struct ClusterDescription {
 /// is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 fn describe_cluster_spoken(version: i16) -> Result<i16> {
     match version {
-        0 | 1 | 2 => Ok(version),
+        0..=2 => Ok(version),
         other => Err(Error::protocol(format!(
             "DescribeCluster version {other} is not implemented"
         ))),
