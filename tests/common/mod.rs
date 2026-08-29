@@ -377,6 +377,7 @@ struct State {
     last_create_delegation_token_version: Option<i16>,
     last_create_delegation_token: Option<CreateDelegationTokenRequest>,
     last_renew_delegation_token_node: Option<i32>,
+    last_renew_delegation_token_version: Option<i16>,
     last_renew_delegation_token: Option<RenewDelegationTokenRequest>,
     last_expire_delegation_token_node: Option<i32>,
     last_expire_delegation_token: Option<ExpireDelegationTokenRequest>,
@@ -665,6 +666,7 @@ fn new_state(
         last_create_delegation_token_version: None,
         last_create_delegation_token: None,
         last_renew_delegation_token_node: None,
+        last_renew_delegation_token_version: None,
         last_renew_delegation_token: None,
         last_expire_delegation_token_node: None,
         last_expire_delegation_token: None,
@@ -1936,6 +1938,10 @@ impl Mock {
 
     pub fn last_renew_delegation_token_node(&self) -> Option<i32> {
         self.state.lock().last_renew_delegation_token_node
+    }
+
+    pub fn last_renew_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_renew_delegation_token_version
     }
 
     pub fn last_renew_delegation_token(&self) -> Option<RenewDelegationTokenRequest> {
@@ -5424,7 +5430,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             RENEW_DELEGATION_TOKEN => {
-                let req = decode_renew_delegation_token_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_renew_delegation_token_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture ack only; not
                 // a token store, not a coordinator hop, not a 41/6
@@ -5435,9 +5442,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // NOT_CONTROLLER (41) are not listed, so the wrong
                 // node does not return 16 or 41.
                 st.last_renew_delegation_token_node = Some(node_id);
+                st.last_renew_delegation_token_version = Some(version);
                 st.last_renew_delegation_token = Some(req);
                 encode_renew_delegation_token_response(
                     &mut body,
+                    version,
                     &RenewDelegationTokenResponse::new(0, 0),
                 )
                 .unwrap();

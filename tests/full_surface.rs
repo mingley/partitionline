@@ -17,7 +17,7 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
     END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6135,6 +6135,11 @@ async fn renew_delegation_token_follows_broker() {
         Some(1),
         "RenewDelegationToken must land on the connected broker, not the coordinator or controller"
     );
+    assert_eq!(
+        mock.last_renew_delegation_token_version(),
+        Some(2),
+        "Admin must prefer RenewDelegationToken v2 when the broker advertises it"
+    );
     assert_eq!(mock.last_renew_delegation_token(), Some(req));
     assert_eq!(
         mock.last_create_delegation_token_node(),
@@ -6165,6 +6170,27 @@ async fn renew_delegation_token_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "RenewDelegationToken must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn renew_delegation_token_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(RENEW_DELEGATION_TOKEN, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let req = RenewDelegationTokenRequest::new(vec![0xaa], -1);
+    let resp = admin.renew_delegation_token(req.clone()).await.unwrap();
+    assert_eq!(resp.error_code, 0);
+    assert_eq!(resp.expiry_timestamp_ms, 0);
+    assert_eq!(
+        mock.last_renew_delegation_token_version(),
+        Some(1),
+        "client must speak RenewDelegationToken v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_renew_delegation_token(),
+        Some(req),
+        "v1 request fields match v2"
     );
 }
 

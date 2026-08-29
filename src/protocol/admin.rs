@@ -8084,15 +8084,13 @@ pub fn decode_create_delegation_token_response<B: Buf>(
     })
 }
 
-/// RenewDelegationToken (api 39) v2 request body.
+/// RenewDelegationToken (api 39) v1–v2 request body.
 ///
 /// Official Apache JSON (`apiKey: 39`, request `listeners: ["broker",
-/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
-/// the 3.9.1 JSON kafka-protocol 0.18.0 was generated against,
-/// `validVersions: "1-2"` on trunk / `"0-2"` on 3.9.1,
-/// `flexibleVersions: "2+"`). Official JSON lists no `errorCodes`.
-/// Request has no ErrorCode field. `Hmac` is the token HMAC (non-null
-/// compact BYTES at v2). `RenewPeriodMs` `-1` uses the server default.
+/// "controller"]`, `validVersions: "1-2"`, `flexibleVersions: "2+"`).
+/// Official JSON lists no `errorCodes`. Request has no ErrorCode
+/// field. `Hmac` is the token HMAC (non-null BYTES). `RenewPeriodMs`
+/// `-1` uses the server default.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenewDelegationTokenRequest {
     /// Token HMAC bytes.
@@ -8111,7 +8109,7 @@ impl RenewDelegationTokenRequest {
     }
 }
 
-/// RenewDelegationToken (api 39) v2 response body.
+/// RenewDelegationToken (api 39) v1–v2 response body.
 ///
 /// **ErrorCode is top-level**, first field — not after throttle.
 /// Official JSON places `ThrottleTimeMs` last. This is a single token
@@ -8134,44 +8132,60 @@ impl RenewDelegationTokenResponse {
     }
 }
 
-/// RenewDelegationToken v2 (flexible from v2; KIP-48 / KIP-373).
+/// `true` when RenewDelegationToken `version` is flexible.
+///
+/// v1 is classic. v2 is flexible. Kafka 4.0 `validVersions` is `1-2`
+/// (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken.
+fn renew_delegation_token_flexible(version: i16) -> Result<bool> {
+    match version {
+        1 => Ok(false),
+        2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "RenewDelegationToken version {other} is not implemented"
+        ))),
+    }
+}
+
+/// RenewDelegationToken v1–2 (classic at v1; flexible from v2;
+/// KIP-48 / KIP-373).
 ///
 /// Official Apache JSON (`apiKey: 39`, request `listeners: ["broker",
-/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
-/// 3.9.1, trunk `validVersions: "1-2"`, 3.9.1 `validVersions: "0-2"`,
-/// `flexibleVersions: "2+"`). Official JSON lists **no** `errorCodes`.
-/// Official Java `KafkaApis.handleRenewTokenRequest` validates the
-/// connection (`allowTokenRequests` →
-/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64)), then
-/// `forwardToController` — broker-side envelope forwarding, not a
-/// client hop. Official Java `RenewDelegationTokenResponseData`
-/// writes `Errors.forException` / handler `setErrorCode` onto the
-/// **top-level** ErrorCode. Official Java
-/// `KafkaAdminClient.renewDelegationToken` uses
+/// "controller"]`, `validVersions: "1-2"`, `flexibleVersions: "2+"`).
+/// Official JSON lists **no** `errorCodes`. Official Java
+/// `KafkaApis.handleRenewTokenRequest` validates the connection
+/// (`allowTokenRequests` → `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED`
+/// (64)), then `forwardToController` — broker-side envelope
+/// forwarding, not a client hop. Official Java
+/// `RenewDelegationTokenResponseData` writes `Errors.forException` /
+/// handler `setErrorCode` onto the **top-level** ErrorCode. Official
+/// Java `KafkaAdminClient.renewDelegationToken` uses
 /// `LeastLoadedNodeProvider` (any broker). `NOT_COORDINATOR` (16) is
 /// **not** listed. `NOT_CONTROLLER` (41) is **not** listed.
 /// `NOT_LEADER_OR_FOLLOWER` (6) is **not** a client hop.
 /// kafka-protocol 0.18.0 (`RenewDelegationTokenRequest` /
-/// `RenewDelegationTokenResponse`, `VERSIONS` min=1 max=2). This
-/// crate targets v2, the version a client encodes (`VERSIONS.max`).
-/// Official 3.9.1 lists a deprecated v0; that version is not encoded.
-/// Request encode used `features = ["client"]`; response encode used
-/// `broker`. Request: compact `Hmac` BYTES, `RenewPeriodMs` INT64,
-/// tagged. Response: **top-level `ErrorCode` INT16 first**,
-/// `ExpiryTimestampMs` INT64, `ThrottleTimeMs` INT32 last, tagged.
-/// **ErrorCode is top-level**, first field — not after throttle and
-/// not a first-token field. Measured independently from
-/// kafka-protocol 0.18.0 (`broker` encodes the response) on
-/// leftover-empty fixture throttle `0`, expiry `0`, error
-/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64): the leftover-empty
-/// body is **15 bytes** and the top-level ErrorCode is the INT16 at
-/// **bytes 0–1**. i16=64 hits only at byte 0. There is no first-token
-/// ErrorCode. Do not assume bytes 4–5 from DescribeLogDirs /
-/// AssignReplicasToDirs / PushTelemetry / GetTelemetrySubscriptions /
-/// ListConfigResources: this offset was measured on this API's
-/// official first field. Not bytes 5–6 (DescribeTopicPartitions /
-/// ShareGroupDescribe), 7–8 (DeleteGroups after GroupId;
-/// DescribeLogDirs first-directory), 8–9
+/// `RenewDelegationTokenResponse`, `VERSIONS` min=1 max=2). Kafka
+/// 4.0 max is 2; this crate speaks 1–2. v0 was removed in Kafka 4.0.
+/// v3+ is not spoken. Same fields on v1 and v2. Request encode used
+/// `features = ["client"]`; response encode used `broker`. Request:
+/// `Hmac` BYTES, `RenewPeriodMs` INT64, tagged (v2+). Response:
+/// **top-level `ErrorCode` INT16 first**, `ExpiryTimestampMs` INT64,
+/// `ThrottleTimeMs` INT32 last, tagged (v2+). **ErrorCode is
+/// top-level**, first field — not after throttle and not a
+/// first-token field. Measured independently from kafka-protocol
+/// 0.18.0 (`broker` encodes the response) on leftover-empty fixture
+/// throttle `0`, expiry `0`, error
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64) at **v2**: the
+/// leftover-empty body is **15 bytes** and the top-level ErrorCode is
+/// the INT16 at **bytes 0–1**. i16=64 hits only at byte 0. Classic
+/// **v1** leftover-empty is **14 bytes**. There is no first-token
+/// ErrorCode. Do not assume bytes 0–1 from CreateDelegationToken
+/// (different response, 37-byte empty-token body at v3): this offset
+/// was measured on this API's official first field. Not bytes 4–5
+/// from DescribeLogDirs / AssignReplicasToDirs / PushTelemetry /
+/// GetTelemetrySubscriptions / ListConfigResources: this offset was
+/// measured on this API's official first field. Not bytes 5–6
+/// (DescribeTopicPartitions / ShareGroupDescribe), 7–8 (DeleteGroups
+/// after GroupId; DescribeLogDirs first-directory), 8–9
 /// (DescribeShareGroupOffsets), 12–13 (AlterReplicaLogDirs /
 /// DescribeProducers first-partition), 27–28, or 45–46. Because 41
 /// is not listed, 16 is not listed, and 6 is not a client hop, this
@@ -8180,47 +8194,63 @@ impl RenewDelegationTokenResponse {
 /// copy CreateDelegationToken just because it is the previous slice.
 pub fn encode_renew_delegation_token_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &RenewDelegationTokenRequest,
 ) -> crate::error::Result<()> {
-    buf::put_compact_bytes(buf, Some(&req.hmac))?;
+    let flexible = renew_delegation_token_flexible(version)?;
+    buf::put_bytes(buf, flexible, Some(&req.hmac))?;
     buf.put_i64(req.renew_period_ms);
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a RenewDelegationToken request.
 pub fn decode_renew_delegation_token_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<RenewDelegationTokenRequest> {
-    let hmac = buf::get_compact_bytes(buf)?.unwrap_or_default();
+    let flexible = renew_delegation_token_flexible(version)?;
+    let hmac = buf::get_bytes(buf, flexible)?.unwrap_or_default();
     let renew_period_ms = buf::get_i64(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(RenewDelegationTokenRequest {
         hmac,
         renew_period_ms,
     })
 }
 
-/// Encode a RenewDelegationToken response.
+/// Encode a RenewDelegationToken response (v1–2).
 pub fn encode_renew_delegation_token_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &RenewDelegationTokenResponse,
 ) -> crate::error::Result<()> {
+    let flexible = renew_delegation_token_flexible(version)?;
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
     buf.put_i32(0);
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a RenewDelegationToken response.
 pub fn decode_renew_delegation_token_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<RenewDelegationTokenResponse> {
+    let flexible = renew_delegation_token_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let expiry_timestamp_ms = buf::get_i64(buf)?;
     let _th = buf::get_i32(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(RenewDelegationTokenResponse {
         error_code,
         expiry_timestamp_ms,
@@ -14990,8 +15020,8 @@ mod tests {
     fn renew_delegation_token_v2_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 39
-        // listeners broker + controller. This crate targets v2
-        // (VERSIONS.max). Not copied from CreateDelegationToken
+        // listeners broker + controller. This crate speaks 1–2.
+        // Not copied from CreateDelegationToken
         // (top-level ErrorCode at bytes 0-1 on a 37-byte empty-token
         // body), DescribeLogDirs / AssignReplicasToDirs / PushTelemetry
         // / GetTelemetrySubscriptions / ListConfigResources / ListGroups
@@ -15022,6 +15052,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_renew_delegation_token_request(
             &mut buf,
+            2,
             &RenewDelegationTokenRequest::new(vec![], 0),
         )
         .unwrap();
@@ -15029,6 +15060,7 @@ mod tests {
         buf.clear();
         encode_renew_delegation_token_request(
             &mut buf,
+            2,
             &RenewDelegationTokenRequest::new(vec![], -1),
         )
         .unwrap();
@@ -15036,6 +15068,7 @@ mod tests {
         buf.clear();
         encode_renew_delegation_token_request(
             &mut buf,
+            2,
             &RenewDelegationTokenRequest::new(vec![0xaa], -1),
         )
         .unwrap();
@@ -15045,11 +15078,15 @@ mod tests {
             0,
         );
         buf.clear();
-        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_renew_delegation_token_response(&mut buf, 2, &resp).unwrap();
         assert_eq!(&buf[..], RESP_64);
         buf.clear();
-        encode_renew_delegation_token_response(&mut buf, &RenewDelegationTokenResponse::new(0, 0))
-            .unwrap();
+        encode_renew_delegation_token_response(
+            &mut buf,
+            2,
+            &RenewDelegationTokenResponse::new(0, 0),
+        )
+        .unwrap();
         assert_eq!(&buf[..], RESP_OK);
     }
 
@@ -15057,10 +15094,10 @@ mod tests {
     fn renew_delegation_token_v2_roundtrip_is_leftover_empty() {
         let req = RenewDelegationTokenRequest::new(vec![0xaa, 0xbb], -1);
         let mut buf = BytesMut::new();
-        encode_renew_delegation_token_request(&mut buf, &req).unwrap();
+        encode_renew_delegation_token_request(&mut buf, 2, &req).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            decode_renew_delegation_token_request(&mut cur, 2).unwrap(),
             req
         );
         assert!(
@@ -15070,10 +15107,10 @@ mod tests {
 
         let resp = RenewDelegationTokenResponse::new(0, 1_700_000_000_000);
         buf.clear();
-        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_renew_delegation_token_response(&mut buf, 2, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            decode_renew_delegation_token_response(&mut cur, 2).unwrap(),
             resp
         );
         assert!(
@@ -15084,12 +15121,13 @@ mod tests {
         buf.clear();
         encode_renew_delegation_token_request(
             &mut buf,
+            2,
             &RenewDelegationTokenRequest::new(vec![], -1),
         )
         .unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            decode_renew_delegation_token_request(&mut cur, 2).unwrap(),
             RenewDelegationTokenRequest::new(vec![], -1)
         );
         assert!(
@@ -15125,7 +15163,7 @@ mod tests {
             0,
         );
         let mut buf = BytesMut::new();
-        encode_renew_delegation_token_response(&mut buf, &empty).unwrap();
+        encode_renew_delegation_token_response(&mut buf, 2, &empty).unwrap();
         assert_eq!(
             buf.len(),
             15,
@@ -15200,7 +15238,7 @@ mod tests {
         assert_eq!(hits, 1, "i16=64 hits only at byte 0");
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            decode_renew_delegation_token_response(&mut cur, 2).unwrap(),
             empty
         );
         assert!(
@@ -15213,7 +15251,7 @@ mod tests {
             1_700_000_000_000,
         );
         buf.clear();
-        encode_renew_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_renew_delegation_token_response(&mut buf, 2, &resp).unwrap();
         assert_eq!(
             buf.len(),
             15,
@@ -15252,7 +15290,7 @@ mod tests {
         assert_eq!(hits, 1, "i16=64 hits only at byte 0");
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_response(&mut cur).unwrap(),
+            decode_renew_delegation_token_response(&mut cur, 2).unwrap(),
             resp
         );
         assert!(
@@ -15262,16 +15300,104 @@ mod tests {
     }
 
     #[test]
+    fn renew_delegation_token_v1_is_classic() {
+        const REQ_V1: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ];
+        const REQ_V1_ONE: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0xaa, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        ];
+        const REQ_V2: &[u8] = &[0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00];
+        const RESP_V1_64: &[u8] = &[
+            0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let req = RenewDelegationTokenRequest::new(vec![], -1);
+        let one = RenewDelegationTokenRequest::new(vec![0xaa], -1);
+        let mut buf = BytesMut::new();
+        encode_renew_delegation_token_request(&mut buf, 1, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V1);
+        assert_eq!(buf.len(), 12, "v1 leftover-empty empty-hmac is 12 bytes");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_request(&mut cur, 1).unwrap(),
+            req
+        );
+        assert!(!cur.has_remaining(), "v1 request leftover-empty");
+        buf.clear();
+        encode_renew_delegation_token_request(&mut buf, 1, &one).unwrap();
+        assert_eq!(&buf[..], REQ_V1_ONE);
+        buf.clear();
+        encode_renew_delegation_token_request(&mut buf, 2, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V2, "v2 must use compact bytes");
+        assert_eq!(buf.len(), 10, "v2 leftover-empty empty-hmac is 10 bytes");
+        let resp = RenewDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            0,
+        );
+        buf.clear();
+        encode_renew_delegation_token_response(&mut buf, 1, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V1_64);
+        assert_eq!(buf.len(), 14, "v1 leftover-empty is 14 bytes");
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v1 top-level ErrorCode is the INT16 at bytes 0-1"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "v1 i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "v1 i16=64 hits only at byte 0");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_renew_delegation_token_response(&mut cur, 1).unwrap(),
+            resp
+        );
+        assert!(!cur.has_remaining(), "v1 response leftover-empty");
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 1, 2), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 1, 2), Some(1));
+        assert_ne!(REQ_V1, REQ_V2, "v2 must use compact bytes");
+    }
+
+    #[test]
     fn renew_delegation_token_does_not_speak_v0() {
         // kafka-protocol 0.18.0 VERSIONS.min = 1, VERSIONS.max = 2.
-        // This crate negotiates 2 only. Official 3.9.1 lists deprecated
-        // v0; that version is not encoded. Official trunk removed v0.
-        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 2, 2), Some(2));
-        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 2, 2), None);
-        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 2, 2), None);
+        // Kafka 4.0 validVersions is 1-2. This crate speaks 1–2.
+        // Official 3.9.1 lists deprecated v0; that version is not
+        // encoded. Official trunk removed v0. v3+ is not spoken.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 1, 2), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 1, 2), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 1, 2), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(3, 3, 1, 2), None);
         let req = RenewDelegationTokenRequest::new(vec![], -1);
         let mut buf = BytesMut::new();
-        encode_renew_delegation_token_request(&mut buf, &req).unwrap();
+        let err = encode_renew_delegation_token_request(&mut buf, 0, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v0 is not spoken, got {err}"
+        );
+        buf.clear();
+        let err = encode_renew_delegation_token_request(&mut buf, 3, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v3 is not spoken, got {err}"
+        );
+        buf.clear();
+        encode_renew_delegation_token_request(&mut buf, 2, &req).unwrap();
         assert_eq!(
             buf.len(),
             10,
@@ -15279,7 +15405,7 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_renew_delegation_token_request(&mut cur).unwrap(),
+            decode_renew_delegation_token_request(&mut cur, 2).unwrap(),
             req
         );
         assert!(
