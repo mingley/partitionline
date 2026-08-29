@@ -4485,9 +4485,9 @@ async fn admin_describe_producers_for() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     admin
         .create_topics(
-            [NewTopic::new("dp-a", 1, 1), NewTopic::new("dp-b", 1, 1)],
+            &[NewTopic::new("dp-a", 1, 1), NewTopic::new("dp-b", 1, 1)],
+            10_000,
             false,
-            5_000,
         )
         .await
         .unwrap();
