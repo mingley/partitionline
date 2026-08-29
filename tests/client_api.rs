@@ -1101,10 +1101,10 @@ async fn commit_async_with_callback_and_leave_flushes() {
     .unwrap();
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
-    let got = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let got = std::sync::Arc::new(parking_lot::Mutex::new(None));
     let got_cb = std::sync::Arc::clone(&got);
     group.commit_async_with(move |result| {
-        *got_cb.lock().expect("callback lock") = Some(result.map(|o| o.len()));
+        *got_cb.lock() = Some(result.map(|o| o.len()));
     });
     let before = mock.offset_commit_calls();
     group.leave().await.unwrap();
@@ -1115,7 +1115,6 @@ async fn commit_async_with_callback_and_leave_flushes() {
     );
     let n = got
         .lock()
-        .expect("callback lock")
         .clone()
         .expect("commitAsync callback")
         .expect("OffsetCommit ok");
@@ -1157,7 +1156,7 @@ async fn commit_with_metadata_async_sends_on_poll() {
     .await
     .unwrap();
     group.poll().await.unwrap();
-    let got = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let got = std::sync::Arc::new(parking_lot::Mutex::new(None));
     let got_cb = std::sync::Arc::clone(&got);
     group.commit_with_metadata_async_with(
         [(
@@ -1165,13 +1164,12 @@ async fn commit_with_metadata_async_sends_on_poll() {
             OffsetAndMetadata::with_metadata(1, "async"),
         )],
         move |result| {
-            *got_cb.lock().expect("callback lock") = Some(result.map(|o| o[0].1.metadata.clone()));
+            *got_cb.lock() = Some(result.map(|o| o[0].1.metadata.clone()));
         },
     );
     group.poll().await.unwrap();
     let meta = got
         .lock()
-        .expect("callback lock")
         .clone()
         .expect("commitAsync callback")
         .expect("OffsetCommit ok");

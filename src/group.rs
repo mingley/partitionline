@@ -39,6 +39,10 @@ pub(crate) type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 type AsyncOffsetCommitCallback =
     Box<dyn FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send>;
+type PendingAsyncCommit = (
+    Vec<(TopicPartition, OffsetAndMetadata)>,
+    Option<AsyncOffsetCommitCallback>,
+);
 
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
@@ -337,10 +341,7 @@ pub struct ConsumerGroup {
     /// Next [`poll`](Self::poll) must rejoin (Java `enforceRebalance`).
     rebalance_needed: bool,
     /// Java `commitAsync`: OffsetCommit sent on the next poll / leave.
-    pending_async_commits: Vec<(
-        Vec<(TopicPartition, OffsetAndMetadata)>,
-        Option<AsyncOffsetCommitCallback>,
-    )>,
+    pending_async_commits: Vec<PendingAsyncCommit>,
 }
 
 impl ConsumerGroup {
