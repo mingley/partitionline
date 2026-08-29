@@ -11,7 +11,7 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    END_TXN, FIND_COORDINATOR, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -2091,6 +2091,37 @@ async fn offset_fetch_read_committed_sets_require_stable() {
         Some(true),
         "ReadCommitted OffsetFetch must send RequireStable true"
     );
+}
+
+#[tokio::test]
+async fn heartbeat_negotiates_v4_when_broker_advertises() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(ccfg, "hb4", "t").await.unwrap();
+    common::wait_pred("classic Heartbeat v4", || mock.heartbeat_total("hb4") >= 1).await;
+    assert_eq!(
+        mock.last_heartbeat_version(),
+        Some(4),
+        "ConsumerGroup must prefer Heartbeat v4 when the broker advertises it"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn heartbeat_negotiates_below_v4_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(HEARTBEAT, 3);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(ccfg, "hb3", "t").await.unwrap();
+    common::wait_pred("classic Heartbeat v3", || mock.heartbeat_total("hb3") >= 1).await;
+    assert_eq!(
+        mock.last_heartbeat_version(),
+        Some(3),
+        "client must speak Heartbeat v3 when the broker max is 3"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

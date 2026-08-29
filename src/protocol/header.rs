@@ -10,7 +10,7 @@ use super::api_keys::{
     DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
     DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP,
+    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, LEAVE_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
@@ -121,6 +121,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 1-9. This crate speaks 5–9. v7 RequireStable; v8 Groups;
         // v9 MemberId / MemberEpoch (same header as v6).
         OFFSET_FETCH if api_version >= 6 => 2,
+        // Heartbeat is classic through v3; flexible from v4
+        // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
+        // is 0-4. This crate speaks 3–4. v0–v2 (no instance id) are
+        // not spoken.
+        HEARTBEAT if api_version >= 4 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -197,6 +202,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         LIST_OFFSETS if api_version >= 6 => 1,
         OFFSET_COMMIT if api_version >= 8 => 1,
         OFFSET_FETCH if api_version >= 6 => 1,
+        HEARTBEAT if api_version >= 4 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -459,6 +465,17 @@ mod tests {
         assert_eq!(response_header_version(OFFSET_FETCH, 6), 1);
         assert_eq!(request_header_version(OFFSET_FETCH, 9), 2);
         assert_eq!(response_header_version(OFFSET_FETCH, 9), 1);
+    }
+
+    #[test]
+    fn heartbeat_v4_is_flexible_v3_is_not() {
+        // Official JSON: validVersions 0-4, flexibleVersions 4+.
+        // HeaderVersion is 1 / 0 at v3 and 2 / 1 at v4. This crate
+        // speaks 3–4. v0–v2 (no instance id) are not spoken.
+        assert_eq!(request_header_version(HEARTBEAT, 3), 1);
+        assert_eq!(response_header_version(HEARTBEAT, 3), 0);
+        assert_eq!(request_header_version(HEARTBEAT, 4), 2);
+        assert_eq!(response_header_version(HEARTBEAT, 4), 1);
     }
 
     #[test]

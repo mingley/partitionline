@@ -341,40 +341,82 @@ pub fn decode_sync_group_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<u8>)>
     Ok((error, assignment))
 }
 
-/// Encode Heartbeat.
+/// `true` when Heartbeat `version` is flexible (v4+).
+///
+/// v3 is classic (GroupId, GenerationId, MemberId, GroupInstanceId).
+/// v4 is compact strings plus tagged fields (Apache JSON
+/// `flexibleVersions: "4+"`). Kafka 4.0 `validVersions` is `0-4`. This
+/// crate speaks 3–4. v0–v2 (no instance id) and v5+ are not spoken.
+fn heartbeat_flexible(version: i16) -> Result<bool> {
+    match version {
+        3 => Ok(false),
+        4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "Heartbeat version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode Heartbeat v3 (classic) or v4 (flexible).
 pub fn encode_heartbeat_request(
     buf: &mut BytesMut,
+    version: i16,
     group_id: &str,
     generation_id: i32,
     member_id: &str,
     group_instance_id: Option<&str>,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    let flexible = heartbeat_flexible(version)?;
+    buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_classic_nullable_string(buf, group_instance_id)?;
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf::put_string(buf, flexible, group_instance_id)?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode Heartbeat: `(group_id, generation_id, member_id)`.
-pub fn decode_heartbeat_request<B: Buf>(buf: &mut B) -> Result<(String, i32, String)> {
-    let g = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+pub fn decode_heartbeat_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, i32, String)> {
+    let flexible = heartbeat_flexible(version)?;
+    let g = buf::get_string(buf, flexible)?.unwrap_or_default();
     let gen = buf::get_i32(buf)?;
-    let m = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let m = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let _inst = buf::get_string(buf, flexible)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((g, gen, m))
 }
 
 /// Encode Heartbeat: throttle `0` plus error code.
-pub fn encode_heartbeat_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
+pub fn encode_heartbeat_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+) -> crate::error::Result<()> {
+    let flexible = heartbeat_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode Heartbeat: error code.
-pub fn decode_heartbeat_response<B: Buf>(buf: &mut B) -> Result<i16> {
+pub fn decode_heartbeat_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = heartbeat_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
-    buf::get_i16(buf)
+    let err = buf::get_i16(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok(err)
 }
 
 /// Encode LeaveGroup v0 (group id + one member id).
@@ -1884,6 +1926,88 @@ mod tests {
         let mut r9 = BytesMut::new();
         encode_offset_fetch_response(&mut r9, 9, "g", &resp, 0).unwrap();
         assert_eq!(&r8[..], &r9[..], "OffsetFetch v9 response matches v8");
+    }
+
+    #[test]
+    fn heartbeat_v3_roundtrip_is_leftover_empty() {
+        let mut buf = BytesMut::new();
+        encode_heartbeat_request(&mut buf, 3, "g", 7, "m1", Some("i")).unwrap();
+        let mut cur = &buf[..];
+        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 3).unwrap();
+        assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+        assert!(
+            cur.is_empty(),
+            "v3 decoder must consume instance id; leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        encode_heartbeat_response(&mut buf, 3, 0).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_heartbeat_response(&mut cur, 3).unwrap(), 0);
+        assert!(cur.is_empty(), "v3 response leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn heartbeat_v4_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_heartbeat_request(&mut req, 4, "g", 7, "m1", Some("i")).unwrap();
+        let mut cur = &req[..];
+        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 4).unwrap();
+        assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+        assert!(
+            cur.is_empty(),
+            "v4 decoder must consume compact strings and tagged fields; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut resp = BytesMut::new();
+        encode_heartbeat_response(&mut resp, 4, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_heartbeat_response(&mut cur, 4).unwrap(), 0);
+        assert!(
+            cur.is_empty(),
+            "v4 response must consume tagged fields; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn heartbeat_v4_request_matches_compact_layout() {
+        // Compact "g", generation 7, compact "m1", null instance, tagged.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x00, 0x07, 0x03, 0x6d, 0x31, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_heartbeat_request(&mut buf, 4, "g", 7, "m1", None).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v3 = BytesMut::new();
+        encode_heartbeat_request(&mut v3, 3, "g", 7, "m1", None).unwrap();
+        assert_ne!(&buf[..], &v3[..], "Heartbeat v4 must not be classic v3");
+        assert!(
+            encode_heartbeat_request(&mut BytesMut::new(), 2, "g", 7, "m1", None).is_err(),
+            "Heartbeat v2 is not spoken"
+        );
+        assert!(
+            encode_heartbeat_request(&mut BytesMut::new(), 5, "g", 7, "m1", None).is_err(),
+            "Heartbeat v5+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn heartbeat_v4_response_matches_compact_layout() {
+        // Throttle 0, error 0, tagged.
+        const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let mut buf = BytesMut::new();
+        encode_heartbeat_response(&mut buf, 4, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut v3 = BytesMut::new();
+        encode_heartbeat_response(&mut v3, 3, 0).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v3[..],
+            "Heartbeat v4 response must include tagged fields"
+        );
     }
 
     #[test]

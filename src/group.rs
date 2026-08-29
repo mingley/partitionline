@@ -1843,13 +1843,15 @@ impl ConsumerGroup {
                         let mid = member_id.clone();
                         let instance = cfg.group_instance_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
+                        let version = c.heartbeat_version;
                         let res = c
                             .roundtrip(
                                 HEARTBEAT,
-                                3,
+                                version,
                                 |buf| {
                                     encode_heartbeat_request(
                                         buf,
+                                        version,
                                         &gid,
                                         generation,
                                         &mid,
@@ -1861,7 +1863,9 @@ impl ConsumerGroup {
                             .await;
                         match res {
                             Ok(body) => {
-                                if let Ok(err) = decode_heartbeat_response(&mut body.clone()) {
+                                if let Ok(err) =
+                                    decode_heartbeat_response(&mut body.clone(), version)
+                                {
                                     if error::coordinator_retriable(err) {
                                         conn = None;
                                     } else {
@@ -2194,6 +2198,12 @@ async fn open_coord_with_find_version(
         .iter()
         .find(|k| k.api_key == OFFSET_FETCH)
         .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
+        .unwrap_or(0);
+    conn.heartbeat_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == HEARTBEAT)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 4))
         .unwrap_or(0);
     sasl::authenticate(
         &mut conn,
