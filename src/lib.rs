@@ -150,6 +150,9 @@
 //! [`AccessControlEntry`] / [`AclBindingFilter`] `Display` match Java
 //! `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
+//! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
+//! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
+//! match Java `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

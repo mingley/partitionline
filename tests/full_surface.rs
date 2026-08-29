@@ -7555,6 +7555,10 @@ async fn describe_client_quotas_follows_broker() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
     let filter = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
+    assert_eq!(
+        filter.to_string(),
+        "ClientQuotaFilterComponent(entityType=user, match=Optional[alice])"
+    );
     let entries = admin
         .describe_client_quotas(std::slice::from_ref(&filter), false)
         .await
@@ -7566,6 +7570,10 @@ async fn describe_client_quotas_follows_broker() {
             ClientQuotaEntity::USER,
             Some("alice".into())
         )]
+    );
+    assert_eq!(
+        entries[0].entity()[0].to_string(),
+        "ClientQuotaEntity(entries={user=alice})"
     );
     assert_eq!(entries[0].values().len(), 1);
     assert_eq!(entries[0].values()[0].key(), "producer_byte_rate");
@@ -7602,6 +7610,10 @@ async fn describe_client_quotas_follows_broker() {
     assert_eq!(timed[0].values()[0].key(), "producer_byte_rate");
     let all = admin.describe_client_quotas_all().await.unwrap();
     assert_eq!(all.len(), 1);
+    assert_eq!(
+        ClientQuotaFilter::all().to_string(),
+        "ClientQuotaFilter(components=[], strict=false)"
+    );
     assert_eq!(
         mock.last_describe_client_quotas(),
         Some((vec![], false)),

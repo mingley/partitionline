@@ -683,6 +683,39 @@ fn write_java_bracket_list<T: fmt::Display>(
     f.write_str("]")
 }
 
+/// Java `Double.toString` for quota `toString` values.
+fn write_java_double(f: &mut fmt::Formatter<'_>, v: f64) -> fmt::Result {
+    if v.is_nan() {
+        return f.write_str("NaN");
+    }
+    if v == f64::INFINITY {
+        return f.write_str("Infinity");
+    }
+    if v == f64::NEG_INFINITY {
+        return f.write_str("-Infinity");
+    }
+    write!(f, "{v:?}")
+}
+
+/// Java `ClientQuotaEntity.toString` for one or more type/name pairs.
+fn write_java_client_quota_entity(
+    f: &mut fmt::Formatter<'_>,
+    entities: &[ClientQuotaEntity],
+) -> fmt::Result {
+    f.write_str("ClientQuotaEntity(entries={")?;
+    for (i, entity) in entities.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{}=", entity.entity_type)?;
+        match entity.name.as_deref() {
+            Some(name) => f.write_str(name)?,
+            None => f.write_str("null")?,
+        }
+    }
+    f.write_str("})")
+}
+
 /// Java `org.apache.kafka.clients.admin.Config`: entries for one resource.
 ///
 /// [`Self::new`] is Java `Config(Collection)`. [`Self::entries`] /
@@ -3812,7 +3845,8 @@ pub fn decode_describe_user_scram_credentials_response<B: Buf>(
 ///
 /// Java `ClientQuotaEntity` is a type-to-name map; this is one map entry.
 /// [`Self::USER`] / [`Self::CLIENT_ID`] / [`Self::IP`] match the Java
-/// constants.
+/// constants. [`Display`] is Java `ClientQuotaEntity.toString` for this
+/// one pair (`entries={user=alice}`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaEntity {
     /// Quota entity type (for example `client-id`).
@@ -3857,6 +3891,12 @@ impl ClientQuotaEntity {
     }
 }
 
+impl fmt::Display for ClientQuotaEntity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_java_client_quota_entity(f, std::slice::from_ref(self))
+    }
+}
+
 /// MatchType 0: exact entity name (DescribeClientQuotas, KIP-219).
 pub const QUOTA_MATCH_EXACT: i8 = 0;
 /// MatchType 1: default entity (DescribeClientQuotas, KIP-219).
@@ -3867,7 +3907,9 @@ pub const QUOTA_MATCH_ANY: i8 = 2;
 /// One filter component in DescribeClientQuotas (api 48).
 ///
 /// [`Self::of_entity`] / [`Self::of_default_entity`] / [`Self::of_entity_type`]
-/// are Java `ClientQuotaFilterComponent` factories.
+/// are Java `ClientQuotaFilterComponent` factories. [`Display`] is Java
+/// `ClientQuotaFilterComponent.toString` (`match` is `Optional[name]`,
+/// `Optional.empty`, or `null`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaFilterComponent {
     /// Quota entity type (for example `client-id`).
@@ -3932,11 +3974,28 @@ impl ClientQuotaFilterComponent {
     }
 }
 
+impl fmt::Display for ClientQuotaFilterComponent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ClientQuotaFilterComponent(entityType={}, match=",
+            self.entity_type
+        )?;
+        match self.matched() {
+            Some(Some(name)) => write!(f, "Optional[{name}]")?,
+            Some(None) => f.write_str("Optional.empty")?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(")")
+    }
+}
+
 /// Java `ClientQuotaFilter` for [`crate::Admin::describe_client_quotas`].
 ///
 /// [`Self::all`] is empty components and `strict = false`.
 /// [`Self::contains`] is those components and `strict = false`.
 /// [`Self::contains_only`] is those components and `strict = true`.
+/// [`Display`] is Java `ClientQuotaFilter.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaFilter {
     components: Vec<ClientQuotaFilterComponent>,
@@ -3981,6 +4040,14 @@ impl ClientQuotaFilter {
     #[must_use]
     pub fn strict(&self) -> bool {
         self.strict
+    }
+}
+
+impl fmt::Display for ClientQuotaFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ClientQuotaFilter(components=")?;
+        write_java_bracket_list(f, &self.components)?;
+        write!(f, ", strict={})", self.strict)
     }
 }
 
@@ -4058,8 +4125,8 @@ pub struct DescribeClientQuotasResponse {
 
 /// One quota key to set or remove (AlterClientQuotas).
 ///
-/// `value` is ignored when `remove` is true. This is a fixture op, not a
-/// live cluster quota store.
+/// `value` is ignored when `remove` is true. [`Display`] is Java
+/// `ClientQuotaAlteration.Op.toString`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaOp {
     /// Quota or config key.
@@ -4108,7 +4175,21 @@ impl ClientQuotaOp {
     }
 }
 
+impl fmt::Display for ClientQuotaOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ClientQuotaAlteration.Op(key={}, value=", self.key)?;
+        match self.value() {
+            Some(v) => write_java_double(f, v)?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(")")
+    }
+}
+
 /// One entity plus its ops in AlterClientQuotas.
+///
+/// [`Display`] is Java `ClientQuotaAlteration.toString`. The entity list
+/// prints as one `ClientQuotaEntity(entries={...})` map.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaAlteration {
     /// Quota entity entries.
@@ -4134,6 +4215,16 @@ impl ClientQuotaAlteration {
     #[must_use]
     pub fn ops(&self) -> &[ClientQuotaOp] {
         &self.ops
+    }
+}
+
+impl fmt::Display for ClientQuotaAlteration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ClientQuotaAlteration(entity=")?;
+        write_java_client_quota_entity(f, &self.entity)?;
+        f.write_str(", ops=")?;
+        write_java_bracket_list(f, &self.ops)?;
+        f.write_str(")")
     }
 }
 
@@ -14418,15 +14509,59 @@ mod tests {
         let entity = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into()));
         assert_eq!(entity.entity_type(), ClientQuotaEntity::USER);
         assert_eq!(entity.name(), Some("alice"));
+        assert_eq!(
+            entity.to_string(),
+            "ClientQuotaEntity(entries={user=alice})"
+        );
+        assert_eq!(
+            ClientQuotaEntity::new(ClientQuotaEntity::USER, None).to_string(),
+            "ClientQuotaEntity(entries={user=null})"
+        );
         let set = ClientQuotaOp::set("producer_byte_rate", 1024.0);
         assert_eq!(set.key(), "producer_byte_rate");
         assert_eq!(set.value(), Some(1024.0));
+        assert_eq!(
+            set.to_string(),
+            "ClientQuotaAlteration.Op(key=producer_byte_rate, value=1024.0)"
+        );
         let del = ClientQuotaOp::remove("producer_byte_rate");
         assert_eq!(del.key(), "producer_byte_rate");
         assert!(del.value().is_none());
+        assert_eq!(
+            del.to_string(),
+            "ClientQuotaAlteration.Op(key=producer_byte_rate, value=null)"
+        );
         let alteration = ClientQuotaAlteration::new(vec![entity.clone()], vec![set.clone()]);
         assert_eq!(alteration.entity(), std::slice::from_ref(&entity));
         assert_eq!(alteration.ops(), std::slice::from_ref(&set));
+        assert_eq!(
+            alteration.to_string(),
+            "ClientQuotaAlteration(entity=ClientQuotaEntity(entries={user=alice}), ops=[ClientQuotaAlteration.Op(key=producer_byte_rate, value=1024.0)])"
+        );
+        assert_eq!(
+            c.to_string(),
+            "ClientQuotaFilterComponent(entityType=user, match=Optional[alice])"
+        );
+        assert_eq!(
+            default.to_string(),
+            "ClientQuotaFilterComponent(entityType=client-id, match=Optional.empty)"
+        );
+        assert_eq!(
+            any.to_string(),
+            "ClientQuotaFilterComponent(entityType=ip, match=null)"
+        );
+        assert_eq!(
+            all.to_string(),
+            "ClientQuotaFilter(components=[], strict=false)"
+        );
+        assert_eq!(
+            contains.to_string(),
+            "ClientQuotaFilter(components=[ClientQuotaFilterComponent(entityType=user, match=Optional[alice])], strict=false)"
+        );
+        assert_eq!(
+            only.to_string(),
+            "ClientQuotaFilter(components=[ClientQuotaFilterComponent(entityType=user, match=Optional[alice])], strict=true)"
+        );
         let value = ClientQuotaValue::new("producer_byte_rate", 1024.0);
         assert_eq!(value.key(), "producer_byte_rate");
         assert_eq!(value.value(), 1024.0);
