@@ -15,6 +15,8 @@ const _BATCH_OVERHEAD: usize = 61;
 /// Kafka record-batch compression codec.
 ///
 /// zstd is not implemented (the usual ecosystem codec is C).
+///
+/// [`Display`] is Java `CompressionType.toString` (`gzip`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i16)]
 pub enum Compression {
@@ -60,6 +62,12 @@ impl Compression {
             Self::Snappy => "snappy",
             Self::Lz4 => "lz4",
         }
+    }
+}
+
+impl fmt::Display for Compression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -1130,6 +1138,11 @@ mod tests {
         assert_eq!(TimestampType::CreateTime.as_str(), "CreateTime");
         assert_eq!(TimestampType::LogAppendTime.as_str(), "LogAppendTime");
         assert_eq!(TimestampType::NoTimestampType.as_str(), "NoTimestampType");
+        assert_eq!(TimestampType::CreateTime.to_string(), "CreateTime");
+        assert_eq!(Compression::None.to_string(), "none");
+        assert_eq!(Compression::Gzip.to_string(), "gzip");
+        assert_eq!(Compression::Snappy.to_string(), "snappy");
+        assert_eq!(Compression::Lz4.to_string(), "lz4");
         assert_eq!(TimestampType::from_id(0), Some(TimestampType::CreateTime));
         assert_eq!(
             TimestampType::from_id(1),

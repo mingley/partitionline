@@ -5,6 +5,7 @@
 //! the shorter path.
 
 use std::collections::HashMap;
+use std::fmt;
 use std::time::{Duration, Instant};
 
 use crate::net::TlsConfig;
@@ -131,6 +132,8 @@ impl From<Acks> for i16 {
 }
 
 /// Fetch isolation. Matches Kafka `isolation.level`.
+///
+/// [`Display`] is Java `IsolationLevel.toString` (`read_uncommitted`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[repr(i8)]
 pub enum IsolationLevel {
@@ -142,6 +145,15 @@ pub enum IsolationLevel {
 }
 
 impl IsolationLevel {
+    /// Java `IsolationLevel.toString` (`read_uncommitted`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ReadUncommitted => "read_uncommitted",
+            Self::ReadCommitted => "read_committed",
+        }
+    }
+
     /// Wire value sent on Fetch and ListOffsets.
     #[must_use]
     pub fn as_i8(self) -> i8 {
@@ -156,6 +168,12 @@ impl IsolationLevel {
             1 => Some(Self::ReadCommitted),
             _ => None,
         }
+    }
+}
+
+impl fmt::Display for IsolationLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -306,6 +324,12 @@ mod tests {
             Some(IsolationLevel::ReadCommitted)
         );
         assert_eq!(IsolationLevel::from_i8(9), None);
+        assert_eq!(
+            IsolationLevel::ReadUncommitted.to_string(),
+            "read_uncommitted"
+        );
+        assert_eq!(IsolationLevel::ReadCommitted.to_string(), "read_committed");
+        assert_eq!(IsolationLevel::ReadUncommitted.as_str(), "read_uncommitted");
     }
 
     #[test]
