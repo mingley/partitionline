@@ -292,6 +292,82 @@ pub struct Broker {
     pub rack: Option<String>,
 }
 
+/// Produce v10+ / Fetch v16+ `NodeEndpoint` (KIP-951).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeEndpoint {
+    /// Broker id.
+    pub node_id: i32,
+    /// Hostname or IP.
+    pub host: String,
+    /// Port.
+    pub port: i32,
+    /// Rack id, or `None`.
+    pub rack: Option<String>,
+}
+
+/// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
+pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes> {
+    let mut inner = BytesMut::new();
+    buf::put_array_len(&mut inner, true, Some(endpoints.len()))?;
+    for e in endpoints {
+        inner.put_i32(e.node_id);
+        buf::put_string(&mut inner, true, Some(e.host.as_str()))?;
+        inner.put_i32(e.port);
+        buf::put_string(&mut inner, true, e.rack.as_deref())?;
+        buf::put_empty_tagged_fields(&mut inner);
+    }
+    Ok(inner.freeze())
+}
+
+/// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
+pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> {
+    let mut cur = value.as_ref();
+    let n = buf::get_array_len(&mut cur, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let node_id = buf::get_i32(&mut cur)?;
+        let host = buf::get_string(&mut cur, true)?.unwrap_or_default();
+        let port = buf::get_i32(&mut cur)?;
+        let rack = buf::get_string(&mut cur, true)?;
+        buf::skip_tagged_fields(&mut cur)?;
+        out.push(NodeEndpoint {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+    }
+    leftover_empty(&cur, "NodeEndpoints")?;
+    Ok(out)
+}
+
+pub(crate) fn encode_top_level_node_endpoints(
+    buf: &mut BytesMut,
+    include: bool,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    if include && !endpoints.is_empty() {
+        buf::put_tagged_fields(buf, &[(0, encode_node_endpoints(endpoints)?)])
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
+}
+
+pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
+    buf: &mut B,
+    include: bool,
+) -> Result<Vec<NodeEndpoint>> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut endpoints = Vec::new();
+    for (tag, value) in tags {
+        if include && tag == 0 {
+            endpoints = decode_node_endpoints(&value)?;
+        }
+    }
+    Ok(endpoints)
+}
+
 /// One partition in a Metadata response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionMetadata {
@@ -665,7 +741,8 @@ pub struct ProducePartitionResponse {
 ///
 /// v3–v8 are classic. v9–v12 are compact arrays/strings/bytes plus tagged
 /// fields (Apache JSON `flexibleVersions: "9+"`). v10+ adds partition
-/// CurrentLeader tagged field 0 (KIP-951). v11 is TRANSACTION_ABORTABLE
+/// CurrentLeader tagged field 0 and top-level NodeEndpoints tagged field 0
+/// (KIP-951). v11 is TRANSACTION_ABORTABLE
 /// (same layout as v10). v12 is the same layout (KIP-890 Part 2
 /// transaction V2: Produce also does AddPartitionsToTxn). Kafka 4.0
 /// removed v0–v2. This crate speaks 3–12. v13+ (topic IDs) are not spoken.
@@ -833,6 +910,16 @@ pub fn encode_produce_response(
     version: i16,
     parts: &[ProducePartitionResponse],
 ) -> crate::error::Result<()> {
+    encode_produce_response_with_endpoints(buf, version, parts, &[])
+}
+
+/// Encode Produce plus top-level NodeEndpoints (v10+ tagged field 0).
+pub fn encode_produce_response_with_endpoints(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+) -> crate::error::Result<()> {
     let flexible = produce_flexible(version)?;
     // Group by topic, preserving first-seen order.
     let mut order: Vec<String> = Vec::new();
@@ -882,16 +969,16 @@ pub fn encode_produce_response(
         buf.put_i32(0);
     }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
+        encode_top_level_node_endpoints(buf, version >= 10, endpoints)?;
     }
     Ok(())
 }
 
-/// Decode Produce into per-partition results.
+/// Decode Produce into per-partition results and v10+ NodeEndpoints.
 pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<ProducePartitionResponse>> {
+) -> Result<(Vec<ProducePartitionResponse>, Vec<NodeEndpoint>)> {
     let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::new();
@@ -943,10 +1030,12 @@ pub fn decode_produce_response<B: Buf>(
     if version >= 1 {
         let _throttle = buf::get_i32(buf)?;
     }
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
-    Ok(out)
+    let endpoints = if flexible {
+        decode_top_level_node_endpoints(buf, version >= 10)?
+    } else {
+        Vec::new()
+    };
+    Ok((out, endpoints))
 }
 
 #[cfg(test)]
@@ -1164,7 +1253,8 @@ mod tests {
         assert_eq!(&buf[..], RESP);
         let mut cur = &buf[..];
         let got = decode_produce_response(&mut cur, 9).unwrap();
-        assert_eq!(got, parts);
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
         assert!(
             cur.is_empty(),
             "Produce v9 response must consume compact tagged fields"
@@ -1179,7 +1269,8 @@ mod tests {
         );
         let mut cur = &buf[..];
         let got = decode_produce_response(&mut cur, 12).unwrap();
-        assert_eq!(got, parts);
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
         assert!(
             cur.is_empty(),
             "Produce v12 empty CurrentLeader must consume compact tagged fields"
@@ -1211,7 +1302,8 @@ mod tests {
         assert_eq!(&buf[..], RESP);
         let mut cur = &buf[..];
         let got = decode_produce_response(&mut cur, 11).unwrap();
-        assert_eq!(got, parts);
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
         assert!(
             cur.is_empty(),
             "Produce v11 CurrentLeader must consume nested tagged fields"
@@ -1227,6 +1319,48 @@ mod tests {
             encode_produce_response(&mut buf, 13, &parts).is_err(),
             "Produce v13+ (topic IDs) is not spoken"
         );
+    }
+
+    #[test]
+    fn produce_v10_node_endpoints_tagged_is_leftover_empty() {
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 6,
+            base_offset: -1,
+            log_append_time_ms: -1,
+            log_start_offset: 0,
+            current_leader_id: 3,
+            current_leader_epoch: 1,
+        }];
+        let endpoints = [NodeEndpoint {
+            node_id: 3,
+            host: "h".into(),
+            port: 1,
+            rack: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response_with_endpoints(&mut buf, 10, &parts, &endpoints).unwrap();
+        let mut cur = &buf[..];
+        let (got, eps) = decode_produce_response(&mut cur, 10).unwrap();
+        assert_eq!(got[0].current_leader_id, 3);
+        assert_eq!(eps, endpoints);
+        assert!(
+            cur.is_empty(),
+            "Produce NodeEndpoints tagged field 0 must consume nested tagged fields"
+        );
+        let mut omitted = BytesMut::new();
+        encode_produce_response(&mut omitted, 10, &parts).unwrap();
+        assert_ne!(
+            &buf[..],
+            &omitted[..],
+            "NodeEndpoints tagged field 0 must not equal empty tags"
+        );
+        let mut v9 = BytesMut::new();
+        encode_produce_response_with_endpoints(&mut v9, 9, &parts, &endpoints).unwrap();
+        let mut empty = BytesMut::new();
+        encode_produce_response(&mut empty, 9, &parts).unwrap();
+        assert_eq!(&v9[..], &empty[..], "Produce v9 must omit NodeEndpoints");
     }
 
     #[test]

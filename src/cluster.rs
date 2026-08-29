@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
-use crate::protocol::api::MetadataResponse;
+use crate::protocol::api::{MetadataResponse, NodeEndpoint};
 
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
@@ -140,10 +140,26 @@ impl Cluster {
         let _prev = self.leader_epochs.insert(topic.to_string(), v);
     }
 
-    /// Apply Produce v10+ CurrentLeader when `leader_id` is a known broker.
+    /// Insert Produce v10+ / Fetch v16+ NodeEndpoints into the broker map.
     ///
-    /// Unknown brokers need NodeEndpoints (not applied here). Returns `true`
-    /// when the partition leader cache was updated.
+    /// Call this before [`Self::apply_current_leader`] so an unknown
+    /// CurrentLeader id can patch the partition cache (KIP-951).
+    pub(crate) fn apply_node_endpoints(&mut self, endpoints: &[NodeEndpoint]) {
+        for e in endpoints {
+            if e.node_id < 0 || e.host.is_empty() || e.port <= 0 {
+                continue;
+            }
+            let _prev = self
+                .brokers
+                .insert(e.node_id, format!("{}:{}", e.host, e.port));
+        }
+    }
+
+    /// Apply Produce v10+ / Fetch v12+ CurrentLeader when `leader_id` is a
+    /// known broker.
+    ///
+    /// Unknown brokers need [`Self::apply_node_endpoints`] first. Returns
+    /// `true` when the partition leader cache was updated.
     pub(crate) fn apply_current_leader(
         &mut self,
         topic: &str,
@@ -291,7 +307,7 @@ mod tests {
 
     #[test]
     fn apply_current_leader_updates_known_broker() {
-        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        use crate::protocol::api::{NodeEndpoint, PartitionMetadata, TopicMetadata};
 
         let mut cluster = Cluster::default();
         cluster.apply(&MetadataResponse {
@@ -338,7 +354,19 @@ mod tests {
             "unknown broker must not patch without NodeEndpoints"
         );
         assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        cluster.apply_node_endpoints(&[NodeEndpoint {
+            node_id: 99,
+            host: "127.0.0.1".into(),
+            port: 9094,
+            rack: None,
+        }]);
+        assert!(cluster.apply_current_leader("t", 0, 99, 8));
+        assert_eq!(
+            cluster.leader("t", 0).unwrap(),
+            (99, "127.0.0.1:9094".into())
+        );
+        assert_eq!(cluster.leader_epoch("t", 0), 8);
         assert!(!cluster.apply_current_leader("t", 0, -1, 8));
-        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
     }
 }

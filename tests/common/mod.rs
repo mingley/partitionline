@@ -95,9 +95,9 @@ use partitionline::protocol::admin::{
 };
 use partitionline::protocol::api::{
     decode_metadata_request, decode_produce_request, encode_api_versions_response,
-    encode_metadata_response, encode_produce_response, ApiVersion, ApiVersionsResponse, Broker,
-    FinalizedFeatureKey, MetadataResponse, PartitionMetadata, ProducePartitionResponse,
-    SupportedFeatureKey, TopicMetadata,
+    encode_metadata_response, encode_produce_response_with_endpoints, ApiVersion,
+    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataResponse, NodeEndpoint,
+    PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -126,7 +126,7 @@ use partitionline::protocol::epoch::{
     decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
 };
 use partitionline::protocol::fetch::{
-    decode_fetch_request, encode_fetch_response, FetchedPartition, FetchedTopic,
+    decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
@@ -227,6 +227,8 @@ struct State {
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
     brokers: Vec<Broker>,
+    /// Broker ids omitted from Metadata (still reachable via NodeEndpoints).
+    hidden_brokers: HashSet<i32>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
@@ -477,6 +479,7 @@ fn new_state(
         last_metadata_allow_auto: None,
         last_metadata_topics: None,
         brokers: Vec::new(),
+        hidden_brokers: HashSet::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
@@ -760,7 +763,11 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
             rack: None,
         }]
     } else {
-        st.brokers.clone()
+        st.brokers
+            .iter()
+            .filter(|b| !st.hidden_brokers.contains(&b.node_id))
+            .cloned()
+            .collect()
     };
     let replica_nodes: Vec<i32> = brokers.iter().map(|b| b.node_id).collect();
     let default_leader = brokers.first().map(|b| b.node_id).unwrap_or(1);
@@ -918,6 +925,44 @@ fn broker_host_port(st: &State, node_id: i32) -> (String, i32) {
         .find(|b| b.node_id == node_id)
         .map(|b| (b.host.clone(), b.port))
         .unwrap_or_else(|| ("127.0.0.1".into(), 0))
+}
+
+/// CurrentLeader id/epoch when this node is not the partition leader.
+fn kip951_current_leader(
+    st: &State,
+    topic: &str,
+    partition: i32,
+    leader: i32,
+    serving_node: i32,
+) -> (i32, i32) {
+    if leader == serving_node {
+        return (-1, -1);
+    }
+    let epoch = st
+        .partition_epochs
+        .get(&(topic.to_string(), partition))
+        .copied()
+        .unwrap_or(0);
+    (leader, epoch)
+}
+
+fn node_endpoints_for(st: &State, leader_ids: impl IntoIterator<Item = i32>) -> Vec<NodeEndpoint> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for id in leader_ids {
+        if id < 0 || !seen.insert(id) {
+            continue;
+        }
+        if let Some(b) = st.brokers.iter().find(|b| b.node_id == id) {
+            out.push(NodeEndpoint {
+                node_id: b.node_id,
+                host: b.host.clone(),
+                port: b.port,
+                rack: b.rack.clone(),
+            });
+        }
+    }
+    out
 }
 
 impl Mock {
@@ -1159,6 +1204,10 @@ impl Mock {
             .entry((topic.to_string(), partition))
             .or_insert(0);
         *slot += 1;
+    }
+
+    pub fn hide_broker_from_metadata(&self, node_id: i32) {
+        let _ = self.state.lock().hidden_brokers.insert(node_id);
     }
 
     pub fn fetch_nodes(&self) -> Vec<i32> {
@@ -3545,6 +3594,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 current_leader_epoch: -1,
                             });
                         } else {
+                            let (current_leader_id, current_leader_epoch) =
+                                kip951_current_leader(&st, &topic.topic, p.index, leader, node_id);
                             parts.push(ProducePartitionResponse {
                                 topic: topic.topic.clone(),
                                 partition: p.index,
@@ -3552,13 +3603,20 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 base_offset: -1,
                                 log_append_time_ms: -1,
                                 log_start_offset: 0,
-                                current_leader_id: -1,
-                                current_leader_epoch: -1,
+                                current_leader_id,
+                                current_leader_epoch,
                             });
                         }
                     }
                 }
-                encode_produce_response(&mut body, header.api_version, &parts).unwrap();
+                let endpoints = node_endpoints_for(&st, parts.iter().map(|p| p.current_leader_id));
+                encode_produce_response_with_endpoints(
+                    &mut body,
+                    header.api_version,
+                    &parts,
+                    &endpoints,
+                )
+                .unwrap();
             }
             FETCH => {
                 let (iso, max_bytes, req, rack) =
@@ -3620,6 +3678,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             continue;
                         }
                         if leader != node_id && rack.is_empty() {
+                            let (current_leader_id, current_leader_epoch) =
+                                kip951_current_leader(&st, &topic, p.partition, leader, node_id);
                             parts.push(FetchedPartition {
                                 partition: p.partition,
                                 error_code: 6,
@@ -3628,8 +3688,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
                                 preferred_read_replica: -1,
-                                current_leader_id: -1,
-                                current_leader_epoch: -1,
+                                current_leader_id,
+                                current_leader_epoch,
                                 diverging_epoch: -1,
                                 diverging_end_offset: -1,
                                 records: Vec::new(),
@@ -3779,7 +3839,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         partitions: parts,
                     });
                 }
-                encode_fetch_response(&mut body, header.api_version, &topics).unwrap();
+                let endpoints = node_endpoints_for(
+                    &st,
+                    topics
+                        .iter()
+                        .flat_map(|t| t.partitions.iter().map(|p| p.current_leader_id)),
+                );
+                encode_fetch_response_with_endpoints(
+                    &mut body,
+                    header.api_version,
+                    &topics,
+                    &endpoints,
+                )
+                .unwrap();
             }
             OFFSET_FOR_LEADER_EPOCH => {
                 let (topic, partition, current, leader_epoch) =

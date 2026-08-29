@@ -144,7 +144,8 @@ pub fn encode_fetch_request(
 /// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
 /// follower-only and omitted). This crate speaks 4–17. Partition
 /// CurrentLeader tagged field 1 and DivergingEpoch tagged field 0 are
-/// decoded (v12+); top-level NodeEndpoints tagged field 0 is not applied.
+/// decoded (v12+). Top-level NodeEndpoints tagged field 0 is decoded at
+/// v16+ so unknown CurrentLeader brokers can be inserted before apply.
 /// v18+ (KIP-1166 HighWatermark) is not spoken.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
@@ -359,6 +360,16 @@ pub fn encode_fetch_response(
     version: i16,
     topics: &[FetchedTopic],
 ) -> Result<()> {
+    encode_fetch_response_with_endpoints(buf, version, topics, &[])
+}
+
+/// Encode Fetch plus top-level NodeEndpoints (v16+ tagged field 0).
+pub fn encode_fetch_response_with_endpoints(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+    endpoints: &[super::api::NodeEndpoint],
+) -> Result<()> {
     let flexible = fetch_flexible(version)?;
     buf.put_i32(0); // throttle
     buf.put_i16(0); // top-level error
@@ -406,13 +417,16 @@ pub fn encode_fetch_response(
         }
     }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
+        super::api::encode_top_level_node_endpoints(buf, version >= 16, endpoints)?;
     }
     Ok(())
 }
 
 /// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
-pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<FetchedTopic>> {
+pub fn decode_fetch_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<FetchedTopic>, Vec<super::api::NodeEndpoint>)> {
     let flexible = fetch_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let _error = buf::get_i16(buf)?;
@@ -481,10 +495,12 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<Fe
             partitions,
         });
     }
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
-    Ok(topics)
+    let endpoints = if flexible {
+        super::api::decode_top_level_node_endpoints(buf, version >= 16)?
+    } else {
+        Vec::new()
+    };
+    Ok((topics, endpoints))
 }
 
 #[cfg(test)]
@@ -594,7 +610,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(decoded[0].topic, "t");
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -637,7 +653,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].aborted_transactions,
             vec![(1000, 1)]
@@ -667,7 +683,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
-        let decoded = decode_fetch_response(&mut &buf[..], 11).unwrap();
+        let (decoded, _endpoints) = decode_fetch_response(&mut &buf[..], 11).unwrap();
         assert_eq!(
             decoded[0].partitions[0].error_code,
             crate::error::OFFSET_OUT_OF_RANGE
@@ -706,7 +722,7 @@ mod tests {
         body.put_i32(-1);
         body.put_i32(-1);
         crate::protocol::buf::put_classic_bytes(&mut body, Some(&recs)).unwrap();
-        let decoded = decode_fetch_response(&mut &body[..], 11).unwrap();
+        let (decoded, _endpoints) = decode_fetch_response(&mut &body[..], 11).unwrap();
         assert_eq!(decoded[0].partitions[0].records.len(), 2);
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -754,7 +770,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 11, &topics).unwrap();
         let frozen = buf.freeze();
-        let decoded = decode_fetch_response(&mut frozen.clone(), 11).unwrap();
+        let (decoded, _endpoints) = decode_fetch_response(&mut frozen.clone(), 11).unwrap();
         let got = &decoded[0].partitions[0].records[0].records[0];
         assert_eq!(got.offset, 20);
         assert_eq!(got.value.as_deref(), Some(&b"view-me"[..]));
@@ -823,7 +839,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 12, &topics).unwrap();
         let mut cur = &resp[..];
-        let got = decode_fetch_response(&mut cur, 12).unwrap();
+        let (got, _endpoints) = decode_fetch_response(&mut cur, 12).unwrap();
         assert_eq!(got[0].topic, "t");
         assert_eq!(
             got[0].partitions[0].records[0].records[0].value.as_deref(),
@@ -937,7 +953,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 14, &topics).unwrap();
         let mut cur = &resp[..];
-        let got = decode_fetch_response(&mut cur, 14).unwrap();
+        let (got, _endpoints) = decode_fetch_response(&mut cur, 14).unwrap();
         assert!(got[0].topic.is_empty());
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(
@@ -1076,7 +1092,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_fetch_response(&mut resp, 15, &topics).unwrap();
         let mut cur = &resp[..];
-        let got = decode_fetch_response(&mut cur, 15).unwrap();
+        let (got, _endpoints) = decode_fetch_response(&mut cur, 15).unwrap();
         assert!(got[0].topic.is_empty());
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(
@@ -1189,10 +1205,11 @@ mod tests {
             "Fetch v16 empty CurrentLeader / NodeEndpoints must match v15"
         );
         let mut cur = &resp16[..];
-        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
         assert_eq!(got[0].partitions[0].current_leader_id, -1);
         assert_eq!(got[0].partitions[0].current_leader_epoch, -1);
+        assert!(endpoints.is_empty());
         assert_eq!(
             got[0].partitions[0].records[0].records[0].value.as_deref(),
             Some(&b"f"[..])
@@ -1239,11 +1256,12 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 16, &topics).unwrap();
         let mut cur = &buf[..];
-        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].current_leader_id, 2);
         assert_eq!(got[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(got[0].partitions[0].diverging_epoch, -1);
         assert_eq!(got[0].partitions[0].diverging_end_offset, -1);
+        assert!(endpoints.is_empty());
         assert!(
             cur.is_empty(),
             "Fetch CurrentLeader tagged field 1 must consume nested tagged fields"
@@ -1297,10 +1315,11 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response(&mut buf, 16, &topics).unwrap();
         let mut cur = &buf[..];
-        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].diverging_epoch, 3);
         assert_eq!(got[0].partitions[0].diverging_end_offset, 12);
         assert_eq!(got[0].partitions[0].current_leader_id, -1);
+        assert!(endpoints.is_empty());
         assert!(
             cur.is_empty(),
             "Fetch DivergingEpoch tagged field 0 must consume nested tagged fields"
@@ -1321,6 +1340,63 @@ mod tests {
             &omitted[..],
             "DivergingEpoch tagged field 0 must not equal empty tags"
         );
+    }
+
+    #[test]
+    fn fetch_v16_node_endpoints_tagged_is_leftover_empty() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let topics = vec![FetchedTopic {
+            topic: String::new(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 6,
+                high_watermark: 0,
+                last_stable_offset: 0,
+                log_start_offset: 0,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
+                current_leader_id: 3,
+                current_leader_epoch: 1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        }];
+        let endpoints = [crate::protocol::api::NodeEndpoint {
+            node_id: 3,
+            host: "h".into(),
+            port: 1,
+            rack: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut buf, 16, &topics, &endpoints).unwrap();
+        let mut cur = &buf[..];
+        let (got, eps) = decode_fetch_response(&mut cur, 16).unwrap();
+        assert_eq!(got[0].partitions[0].current_leader_id, 3);
+        assert_eq!(eps, endpoints);
+        assert!(
+            cur.is_empty(),
+            "Fetch NodeEndpoints tagged field 0 must consume nested tagged fields"
+        );
+        let mut omitted = BytesMut::new();
+        encode_fetch_response(&mut omitted, 16, &topics).unwrap();
+        assert_ne!(
+            &buf[..],
+            &omitted[..],
+            "NodeEndpoints tagged field 0 must not equal empty tags"
+        );
+        let mut v15 = BytesMut::new();
+        encode_fetch_response_with_endpoints(&mut v15, 15, &topics, &endpoints).unwrap();
+        let mut empty = BytesMut::new();
+        encode_fetch_response(&mut empty, 15, &topics).unwrap();
+        assert_eq!(&v15[..], &empty[..], "Fetch v15 must omit NodeEndpoints");
     }
 
     #[test]
@@ -1381,8 +1457,9 @@ mod tests {
             "Fetch v17 response layout must match v16"
         );
         let mut cur = &resp17[..];
-        let got = decode_fetch_response(&mut cur, 17).unwrap();
+        let (got, endpoints) = decode_fetch_response(&mut cur, 17).unwrap();
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
+        assert!(endpoints.is_empty());
         assert_eq!(
             got[0].partitions[0].records[0].records[0].value.as_deref(),
             Some(&b"f"[..])

@@ -2347,13 +2347,14 @@ impl Worker {
             }
         };
         let mut body = body;
-        let responses = match decode_produce_response(&mut body, version) {
+        let (responses, endpoints) = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
                 fail_groups(&self.shared, inf.groups, clone_err(&e));
                 return Err(e);
             }
         };
+        self.shared.cluster.lock().apply_node_endpoints(&endpoints);
         let mut first_err: Option<Error> = None;
         for (topic, part, pendings) in inf.groups {
             let found = responses

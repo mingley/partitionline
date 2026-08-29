@@ -174,6 +174,83 @@ async fn try_send_follows_moved_leader() {
 }
 
 #[tokio::test]
+async fn produce_follows_node_endpoints_without_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.hide_broker_from_metadata(1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    assert!(
+        mock.produce_nodes().contains(&2),
+        "first produce must land on Metadata leader node 2, got {:?}",
+        mock.produce_nodes()
+    );
+    let after_first = mock.metadata_calls();
+
+    mock.set_partition_leader("t", 0, 1);
+    producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    assert!(
+        mock.produce_nodes().contains(&1),
+        "NodeEndpoints must route produce to hidden broker 1, got {:?}",
+        mock.produce_nodes()
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_first,
+        "unknown CurrentLeader plus NodeEndpoints must skip Metadata"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_follows_node_endpoints_without_metadata() {
+    let mock = common::Mock::start_two_node().await;
+    mock.hide_broker_from_metadata(1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"ne"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ne"[..]));
+    assert!(
+        mock.fetch_nodes().contains(&2),
+        "first fetch must hit Metadata leader node 2, got {:?}",
+        mock.fetch_nodes()
+    );
+    let after_first = mock.metadata_calls();
+
+    mock.set_partition_leader("t", 0, 1);
+    let _ = consumer.fetch().await.unwrap();
+    assert!(
+        mock.fetch_nodes().contains(&1),
+        "NodeEndpoints must route fetch to hidden broker 1, got {:?}",
+        mock.fetch_nodes()
+    );
+    assert_eq!(
+        mock.metadata_calls(),
+        after_first,
+        "unknown CurrentLeader plus NodeEndpoints must skip Metadata"
+    );
+}
+
+#[tokio::test]
 async fn idempotent_produce_gets_pid_and_offset() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

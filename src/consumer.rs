@@ -1834,9 +1834,10 @@ impl Consumer {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
+                    let topics: Vec<String> =
+                        self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
+                    self.refresh_metadata(Some(&topics)).await?;
                 }
-                let topics: Vec<String> = self.assigned.iter().map(|(t, _, _)| t.clone()).collect();
-                self.refresh_metadata(Some(&topics)).await?;
                 continue;
             }
             return Ok(self.finish_fetch(out));
@@ -1968,7 +1969,8 @@ impl Consumer {
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
     ) -> Result<FetchRetry> {
-        let fetched = decode_fetch_response(body, self.fetch_version)?;
+        let (fetched, endpoints) = decode_fetch_response(body, self.fetch_version)?;
+        self.cluster.apply_node_endpoints(&endpoints);
         let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
         for topic in fetched {
@@ -2573,7 +2575,8 @@ impl Consumer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FetchRetry {
     None,
-    /// Preferred replica (KIP-392) or DivergingEpoch seek. Retry Fetch immediately.
+    /// Preferred replica (KIP-392), applied CurrentLeader, or DivergingEpoch
+    /// seek. Retry Fetch immediately without Metadata.
     Redirect,
     /// Retriable broker / IO error. Wait `retry.backoff.ms`.
     Backoff,
