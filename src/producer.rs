@@ -742,7 +742,7 @@ impl Producer {
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, txn_offset_version) = if cfg.transactional_id.is_some() {
-            let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 1).ok_or_else(|| {
+            let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 3).ok_or_else(|| {
                 Error::Unsupported("broker does not support AddPartitionsToTxn".into())
             })?;
             let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 2).ok_or_else(|| {
@@ -2353,12 +2353,12 @@ impl Worker {
             &self.shared,
             ADD_PARTITIONS_TO_TXN,
             version,
-            |buf| encode_add_partitions_to_txn_request(buf, &tid, pid, epoch, &topics),
+            |buf| encode_add_partitions_to_txn_request(buf, version, &tid, pid, epoch, &topics),
             timeout,
-            |body| decode_add_partitions_to_txn_response(&mut { body }),
+            |body| decode_add_partitions_to_txn_response(&mut { body }, version),
         )
         .await?;
-        let err = decode_add_partitions_to_txn_response(&mut body.clone())?;
+        let err = decode_add_partitions_to_txn_response(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "AddPartitionsToTxn"));
         }

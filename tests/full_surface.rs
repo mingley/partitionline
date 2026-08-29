@@ -877,6 +877,11 @@ async fn transactional_offsets_and_partitions_one_rpc() {
         mock.add_partitions_to_txn_calls()
     );
     assert_eq!(mock.last_add_partitions_to_txn(), 3);
+    assert_eq!(
+        mock.last_add_partitions_to_txn_version(),
+        Some(3),
+        "Producer must prefer AddPartitionsToTxn v3 when the broker advertises it"
+    );
 
     producer
         .send_offsets_to_transaction(

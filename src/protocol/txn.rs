@@ -17,7 +17,7 @@ pub const WRITE_TXN_MARKERS: i16 = 27;
 /// TxnOffsetCommit (28).
 pub const TXN_OFFSET_COMMIT: i16 = 28;
 
-/// One topic in AddPartitionsToTxn v0–1 (classic).
+/// One topic in AddPartitionsToTxn v0–v3.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnPartitionsTopic {
     /// Topic name.
@@ -26,24 +26,47 @@ pub struct TxnPartitionsTopic {
     pub partitions: Vec<i32>,
 }
 
-/// Encode AddPartitionsToTxn v0–1.
+/// `true` when AddPartitionsToTxn `version` is flexible (v3).
+///
+/// v0–v2 are classic. v3 is compact strings/arrays plus tagged fields
+/// (Apache JSON `flexibleVersions: "3+"`). v4+ (batched transactions,
+/// broker-only layout) is not spoken.
+fn add_partitions_to_txn_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "AddPartitionsToTxn version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode AddPartitionsToTxn v0–v2 (classic) or v3 (flexible).
 pub fn encode_add_partitions_to_txn_request(
     buf: &mut BytesMut,
+    version: i16,
     transactional_id: &str,
     producer_id: i64,
     producer_epoch: i16,
     topics: &[TxnPartitionsTopic],
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(transactional_id))?;
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    buf::put_string(buf, flexible, Some(transactional_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(*p);
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -51,20 +74,28 @@ pub fn encode_add_partitions_to_txn_request(
 /// Decode AddPartitionsToTxn: `(transactional_id, producer_id, producer_epoch, topics)`.
 pub fn decode_add_partitions_to_txn_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(String, i64, i16, Vec<TxnPartitionsTopic>)> {
-    let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let flexible = add_partitions_to_txn_flexible(version)?;
+    let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let pid = buf::get_i64(buf)?;
     let epoch = buf::get_i16(buf)?;
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             partitions.push(buf::get_i32(buf)?);
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(TxnPartitionsTopic { topic, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok((tid, pid, epoch, topics))
 }
@@ -72,37 +103,58 @@ pub fn decode_add_partitions_to_txn_request<B: Buf>(
 /// Encode AddPartitionsToTxn: one error code applied to every partition.
 pub fn encode_add_partitions_to_txn_response(
     buf: &mut BytesMut,
+    version: i16,
     topics: &[TxnPartitionsTopic],
     error: i16,
 ) -> Result<()> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(*p);
             buf.put_i16(error);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
 /// Decode AddPartitionsToTxn: first non-zero partition error, or `0`.
-pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B) -> Result<i16> {
+pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = add_partitions_to_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut first_err = 0i16;
     for _ in 0..tn {
-        let _topic = buf::get_classic_nullable_string(buf)?;
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let _topic = buf::get_string(buf, flexible)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let _p = buf::get_i32(buf)?;
             let err = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             if first_err == 0 && err != 0 {
                 first_err = err;
             }
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(first_err)
 }
@@ -654,18 +706,88 @@ mod tests {
             partitions: vec![0, 1, 2],
         }];
         let mut buf = BytesMut::new();
-        encode_add_partitions_to_txn_request(&mut buf, "tx", 9, 1, &topics).unwrap();
+        encode_add_partitions_to_txn_request(&mut buf, 1, "tx", 9, 1, &topics).unwrap();
         let mut cur = &buf[..];
-        let (tid, pid, epoch, got) = decode_add_partitions_to_txn_request(&mut cur).unwrap();
+        let (tid, pid, epoch, got) = decode_add_partitions_to_txn_request(&mut cur, 1).unwrap();
         assert_eq!((tid.as_str(), pid, epoch), ("tx", 9, 1));
         assert_eq!(got, topics);
         assert!(cur.is_empty());
 
         buf.clear();
-        encode_add_partitions_to_txn_response(&mut buf, &topics, 0).unwrap();
+        encode_add_partitions_to_txn_response(&mut buf, 1, &topics, 0).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_add_partitions_to_txn_response(&mut cur).unwrap(), 0);
+        assert_eq!(
+            decode_add_partitions_to_txn_response(&mut cur, 1).unwrap(),
+            0
+        );
         assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn add_partitions_to_txn_v3_roundtrip_is_leftover_empty() {
+        let topics = vec![TxnPartitionsTopic {
+            topic: "t".into(),
+            partitions: vec![0, 1],
+        }];
+        let mut req = BytesMut::new();
+        encode_add_partitions_to_txn_request(&mut req, 3, "tx", 9, 1, &topics).unwrap();
+        let mut cur = &req[..];
+        let (tid, pid, epoch, got) = decode_add_partitions_to_txn_request(&mut cur, 3).unwrap();
+        assert_eq!((tid.as_str(), pid, epoch), ("tx", 9, 1));
+        assert_eq!(got, topics);
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v3 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_add_partitions_to_txn_response(&mut resp, 3, &topics, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(
+            decode_add_partitions_to_txn_response(&mut cur, 3).unwrap(),
+            0
+        );
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v3 response must consume compact tagged fields"
+        );
+        req.clear();
+        assert!(
+            encode_add_partitions_to_txn_request(&mut req, 4, "tx", 9, 1, &topics).is_err(),
+            "AddPartitionsToTxn v4+ (batched transactions) is not spoken"
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_v3_request_matches_compact_layout() {
+        // Compact "tx", pid 9, epoch 1, one topic "t" partition 0, tagged.
+        const REQ: &[u8] = &[
+            0x03, 0x74, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x01, 0x02,
+            0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let topics = [TxnPartitionsTopic {
+            topic: "t".into(),
+            partitions: vec![0],
+        }];
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_request(&mut buf, 3, "tx", 9, 1, &topics).unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn add_partitions_to_txn_v3_response_matches_compact_layout() {
+        // Throttle 0, one topic "t" partition 0 error 0, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,
+        ];
+        let topics = [TxnPartitionsTopic {
+            topic: "t".into(),
+            partitions: vec![0],
+        }];
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_response(&mut buf, 3, &topics, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
     }
 
     #[test]

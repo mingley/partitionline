@@ -385,6 +385,7 @@ struct State {
     offset_commit_load_in_progress: u32,
     add_partitions_to_txn_calls: u32,
     last_add_partitions_to_txn: usize,
+    last_add_partitions_to_txn_version: Option<i16>,
     txn_offset_commit_calls: u32,
     last_txn_offset_commit_partitions: usize,
     last_txn_offset_epochs: Vec<i32>,
@@ -621,6 +622,7 @@ fn new_state(
         offset_commit_load_in_progress: 0,
         add_partitions_to_txn_calls: 0,
         last_add_partitions_to_txn: 0,
+        last_add_partitions_to_txn_version: None,
         txn_offset_commit_calls: 0,
         last_txn_offset_commit_partitions: 0,
         last_txn_offset_epochs: Vec::new(),
@@ -1728,6 +1730,10 @@ impl Mock {
         self.state.lock().last_add_partitions_to_txn
     }
 
+    pub fn last_add_partitions_to_txn_version(&self) -> Option<i16> {
+        self.state.lock().last_add_partitions_to_txn_version
+    }
+
     pub fn txn_offset_commit_calls(&self) -> u32 {
         self.state.lock().txn_offset_commit_calls
     }
@@ -2087,7 +2093,7 @@ fn versions() -> ApiVersionsResponse {
         (DESCRIBE_TRANSACTIONS, 0, 0),
         (LIST_TRANSACTIONS, 0, 2),
         (INIT_PRODUCER_ID, 0, 5),
-        (ADD_PARTITIONS_TO_TXN, 0, 1),
+        (ADD_PARTITIONS_TO_TXN, 0, 3),
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
         (WRITE_TXN_MARKERS, 0, 1),
@@ -3237,18 +3243,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             ADD_PARTITIONS_TO_TXN => {
                 let (_tid, _pid, _epoch, topics) =
-                    decode_add_partitions_to_txn_request(&mut frame).unwrap();
+                    decode_add_partitions_to_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
-                    encode_add_partitions_to_txn_response(&mut body, &topics, 16).unwrap();
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        16,
+                    )
+                    .unwrap();
                 } else {
                     let n = topics.iter().map(|t| t.partitions.len()).sum();
                     st.in_txn = true;
                     st.add_partitions_to_txn_calls =
                         st.add_partitions_to_txn_calls.saturating_add(1);
                     st.last_add_partitions_to_txn = n;
+                    st.last_add_partitions_to_txn_version = Some(header.api_version);
                     st.last_add_partitions_node = Some(node_id);
-                    encode_add_partitions_to_txn_response(&mut body, &topics, 0).unwrap();
+                    encode_add_partitions_to_txn_response(
+                        &mut body,
+                        header.api_version,
+                        &topics,
+                        0,
+                    )
+                    .unwrap();
                 }
             }
             ADD_OFFSETS_TO_TXN => {
