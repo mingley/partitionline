@@ -260,6 +260,10 @@
 //! [`Admin::describe_features_timeout`] is Java
 //! `DescribeFeaturesOptions.timeoutMs` (RPC deadline; ApiVersions has no
 //! TimeoutMs).
+//! [`Admin::describe_client_quotas_timeout`] /
+//! [`Admin::alter_client_quotas_timeout`] are Java
+//! `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
+//! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /

@@ -6346,6 +6346,18 @@ async fn describe_client_quotas_follows_broker() {
         None,
         "DescribeClientQuotas must not hop via AlterClientQuotas or Metadata controller_id"
     );
+    let timed_filter =
+        ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let timed = admin
+        .describe_client_quotas_timeout(
+            std::slice::from_ref(&timed_filter),
+            false,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].values[0].key, "producer_byte_rate");
 }
 
 #[tokio::test]
@@ -6453,6 +6465,17 @@ async fn alter_client_quotas_follows_controller() {
     );
     assert!(mock.has_quota_fixture("user", Some("bob"), "consumer_byte_rate"));
     assert!(!mock.has_quota_fixture("user", Some("carol"), "producer_byte_rate"));
+    let dave = ClientQuotaAlteration::new(
+        vec![ClientQuotaEntity::new("user", Some("dave".into()))],
+        vec![ClientQuotaOp::set("producer_byte_rate", 4096.0)],
+    );
+    let timed = admin
+        .alter_client_quotas_timeout(&[dave], Duration::from_secs(5), false)
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].error_code, 0);
+    assert!(mock.has_quota_fixture("user", Some("dave"), "producer_byte_rate"));
 }
 
 #[tokio::test]

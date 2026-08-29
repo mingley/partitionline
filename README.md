@@ -93,6 +93,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::update_features_with` is Java `UpdateFeaturesOptions.validateOnly` (UpgradeType).
 `Admin::update_features_timeout` / `update_features_with_timeout` are Java `UpdateFeaturesOptions.timeoutMs`.
 `Admin::describe_features_timeout` is Java `DescribeFeaturesOptions.timeoutMs`.
+`Admin::describe_client_quotas_timeout` / `alter_client_quotas_timeout` are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
 `Admin::delete_share_groups` is Java `deleteShareGroups`.

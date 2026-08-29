@@ -3137,15 +3137,31 @@ impl Admin {
     /// JSON listeners are `broker` only. This is not a controller hop:
     /// there is no Metadata `controller_id` lookup and no
     /// `NOT_CONTROLLER` (41) retry. Top-level `error_code` is the INT16
-    /// at bytes 4–5, after throttle.
+    /// at bytes 4–5, after throttle. DescribeClientQuotas has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::describe_client_quotas_timeout`].
     pub async fn describe_client_quotas(
         &mut self,
         components: &[ClientQuotaFilterComponent],
         strict: bool,
     ) -> Result<Vec<ClientQuotaEntry>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_client_quotas_timeout(components, strict, timeout)
+            .await
+    }
+
+    /// [`Self::describe_client_quotas`] with a one-shot RPC deadline (Java
+    /// `DescribeClientQuotasOptions.timeoutMs`).
+    ///
+    /// DescribeClientQuotas has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_client_quotas_timeout(
+        &mut self,
+        components: &[ClientQuotaFilterComponent],
+        strict: bool,
+        timeout: Duration,
+    ) -> Result<Vec<ClientQuotaEntry>> {
         let components = components.to_vec();
         let version = self.describe_client_quotas_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
@@ -3166,15 +3182,32 @@ impl Admin {
     /// Lands on the Metadata controller. Negotiates AlterClientQuotas
     /// v0–v1 (Kafka 4.0 `validVersions` `0-1`; v0 classic, v1 flexible).
     /// `NOT_CONTROLLER` (41) refreshes Metadata and retries on the new
-    /// controller.
+    /// controller. AlterClientQuotas has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_client_quotas_timeout`].
     pub async fn alter_client_quotas(
         &mut self,
         entries: &[ClientQuotaAlteration],
         validate_only: bool,
     ) -> Result<Vec<ClientQuotaAlterationResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_client_quotas_timeout(entries, timeout, validate_only)
+            .await
+    }
+
+    /// [`Self::alter_client_quotas`] with a one-shot RPC deadline (Java
+    /// `AlterClientQuotasOptions.timeoutMs`).
+    ///
+    /// AlterClientQuotas has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_CONTROLLER` retry budget.
+    pub async fn alter_client_quotas_timeout(
+        &mut self,
+        entries: &[ClientQuotaAlteration],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<Vec<ClientQuotaAlterationResult>> {
         let entries = entries.to_vec();
         let version = self.alter_client_quotas_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
