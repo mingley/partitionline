@@ -2931,11 +2931,30 @@ impl Admin {
     /// api 51).
     ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
-    /// Metadata and retries on the new controller.
+    /// Metadata and retries on the new controller. AlterUserScramCredentials
+    /// has no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use
+    /// [`Self::alter_user_scram_credentials_timeout`].
     pub async fn alter_user_scram_credentials(
         &mut self,
         deletions: &[UserScramCredentialDeletion],
         upsertions: &[UserScramCredentialUpsertion],
+    ) -> Result<Vec<UserScramCredentialResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_user_scram_credentials_timeout(deletions, upsertions, timeout)
+            .await
+    }
+
+    /// [`Self::alter_user_scram_credentials`] with a one-shot RPC deadline
+    /// (Java `AlterUserScramCredentialsOptions.timeoutMs`).
+    ///
+    /// AlterUserScramCredentials has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the `NOT_CONTROLLER` retry budget.
+    pub async fn alter_user_scram_credentials_timeout(
+        &mut self,
+        deletions: &[UserScramCredentialDeletion],
+        upsertions: &[UserScramCredentialUpsertion],
+        timeout: Duration,
     ) -> Result<Vec<UserScramCredentialResult>> {
         let deletions: Vec<ScramCredentialDeletion> = deletions
             .iter()
@@ -2955,7 +2974,6 @@ impl Admin {
             })
             .collect();
         let version = self.alter_user_scram_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -3016,14 +3034,30 @@ impl Admin {
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. Top-level `error_code`
     /// (bytes 4–5), not a first-result field. Empty `users` describes all
-    /// fixture users.
+    /// fixture users. DescribeUserScramCredentials has no TimeoutMs; the
+    /// RPC deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_user_scram_credentials_timeout`].
     pub async fn describe_user_scram_credentials(
         &mut self,
         users: &[&str],
     ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_user_scram_credentials_timeout(users, timeout)
+            .await
+    }
+
+    /// [`Self::describe_user_scram_credentials`] with a one-shot RPC
+    /// deadline (Java `DescribeUserScramCredentialsOptions.timeoutMs`).
+    ///
+    /// DescribeUserScramCredentials has no TimeoutMs; `timeout` is the
+    /// RPC deadline and the `NOT_CONTROLLER` retry budget.
+    pub async fn describe_user_scram_credentials_timeout(
+        &mut self,
+        users: &[&str],
+        timeout: Duration,
+    ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
         let users: Vec<String> = users.iter().map(|s| (*s).to_string()).collect();
         let version = self.describe_user_scram_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

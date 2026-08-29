@@ -6218,6 +6218,20 @@ async fn alter_user_scram_credentials_follows_controller() {
     );
     assert!(mock.has_scram_credential("bob", SCRAM_SHA_512));
     assert!(!mock.has_scram_credential("carol", SCRAM_SHA_256));
+    let dave = UserScramCredentialUpsertion::new(
+        "dave",
+        ScramMechanism::Sha256,
+        4096,
+        b"dummy-salt-d".to_vec(),
+        b"dummy-salted-d".to_vec(),
+    );
+    let timed = admin
+        .alter_user_scram_credentials_timeout(&[], &[dave], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].error_code, 0);
+    assert!(mock.has_scram_credential("dave", SCRAM_SHA_256));
 }
 
 #[tokio::test]
@@ -6265,6 +6279,13 @@ async fn describe_user_scram_credentials_follows_controller() {
         Some(1),
         "DescribeUserScramCredentials must follow Metadata after NOT_CONTROLLER"
     );
+    let timed = admin
+        .describe_user_scram_credentials_timeout(&["alice"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].user, "alice");
+    assert_eq!(timed[0].error_code, 0);
 }
 
 #[tokio::test]

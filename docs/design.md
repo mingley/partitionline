@@ -107,6 +107,10 @@ throttle v0+; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_share_
 `Admin::describe_client_quotas_timeout` / `Admin::alter_client_quotas_timeout`
 are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
 (RPC deadline; these RPCs have no TimeoutMs; alter also caps `NOT_CONTROLLER`).
+`Admin::alter_user_scram_credentials_timeout` /
+`Admin::describe_user_scram_credentials_timeout` are Java
+`AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`
+(RPC deadline; these RPCs have no TimeoutMs; both cap `NOT_CONTROLLER`).
 `Admin::alter_replica_log_dirs` is Java
 `alterReplicaLogDirs` (v1–v2; classic v1, flexible v2). `Admin::create_delegation_token` is Java
 `createDelegationToken` (v1–v3; classic v1, flexible v2, owner/requester v3). `Admin::renew_delegation_token` is Java
