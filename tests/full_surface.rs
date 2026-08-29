@@ -37,14 +37,14 @@ use partitionline::{
     DeletedRecords, DescribableLogDirTopic, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType,
-    IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata,
-    OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
-    ScramMechanism, ShareGroup, TopicCollection, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
+    IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions,
+    NewTopic, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicCollection,
+    TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -6675,6 +6675,31 @@ async fn alter_partition_reassignments_follows_controller() {
         Some(("re1".into(), 0, Some(vec![1, 2]))),
         "retry on the new controller must store the replica list"
     );
+    let mapped = NewPartitionReassignment::new([1, 2]).unwrap();
+    assert_eq!(mapped.target_replicas(), &[1, 2]);
+    let from_map = admin
+        .alter_partition_reassignments_for([(TopicPartition::new("re1", 0), Some(mapped))], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(from_map.len(), 1);
+    assert_eq!(from_map[0].error_code(), 0);
+    assert_eq!(from_map[0].topic(), "re1");
+    assert_eq!(from_map[0].partition(), 0);
+    assert_eq!(
+        mock.last_reassignment(),
+        Some(("re1".into(), 0, Some(vec![1, 2]))),
+        "alterPartitionReassignments(Map) must send the target replicas"
+    );
+    let cancelled = admin
+        .alter_partition_reassignments_for([(TopicPartition::new("re1", 0), None)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(cancelled[0].error_code(), 0);
+    assert_eq!(
+        mock.last_reassignment(),
+        Some(("re1".into(), 0, None)),
+        "Optional.empty() cancels the reassignment"
+    );
     admin.close().await.unwrap();
     mock.hide_api(ALTER_PARTITION_REASSIGNMENTS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
@@ -6737,6 +6762,11 @@ async fn list_partition_reassignments_follows_controller() {
             removing_replicas: vec![],
         }]
     );
+    assert_eq!(listed[0].topic(), "lr2");
+    assert_eq!(listed[0].partition(), 0);
+    assert_eq!(listed[0].replicas(), &[2, 1]);
+    assert!(listed[0].adding_replicas().is_empty());
+    assert!(listed[0].removing_replicas().is_empty());
     assert_eq!(
         mock.last_list_reassignments_node(),
         Some(2),
@@ -6851,6 +6881,18 @@ async fn admin_alter_list_partition_reassignments_timeout() {
         .unwrap();
     assert_eq!(assigned[0].error_code, 0);
     assert_eq!(mock.last_alter_reassignments_timeout(), Some(1_500));
+    let assigned = admin
+        .alter_partition_reassignments_for_timeout(
+            [(
+                TopicPartition::new("re-to", 0),
+                Some(NewPartitionReassignment::new([1]).unwrap()),
+            )],
+            Duration::from_millis(1_750),
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code(), 0);
+    assert_eq!(mock.last_alter_reassignments_timeout(), Some(1_750));
 
     let listed = admin
         .list_partition_reassignments(Some(&[TopicPartition::new("re-to", 0)]), 10_000)

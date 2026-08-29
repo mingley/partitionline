@@ -1215,6 +1215,36 @@ impl ConfigReplacement {
     }
 }
 
+/// Java `NewPartitionReassignment` for
+/// [`Admin::alter_partition_reassignments_for`].
+///
+/// [`Self::new`] rejects an empty replica list (Java throws
+/// `IllegalArgumentException`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewPartitionReassignment {
+    /// Target replica broker ids (Java `targetReplicas`).
+    pub target_replicas: Vec<i32>,
+}
+
+impl NewPartitionReassignment {
+    /// Java `NewPartitionReassignment(List)`. Empty replicas is an error.
+    pub fn new(target_replicas: impl IntoIterator<Item = i32>) -> Result<Self> {
+        let target_replicas: Vec<i32> = target_replicas.into_iter().collect();
+        if target_replicas.is_empty() {
+            return Err(Error::protocol(
+                "Cannot create a new partition reassignment without any replicas",
+            ));
+        }
+        Ok(Self { target_replicas })
+    }
+
+    /// Java `NewPartitionReassignment.targetReplicas`.
+    #[must_use]
+    pub fn target_replicas(&self) -> &[i32] {
+        &self.target_replicas
+    }
+}
+
 /// One partition in `Admin::alter_partition_reassignments`.
 ///
 /// `replicas = None` cancels a pending reassignment (KIP-455).
@@ -1253,6 +1283,37 @@ impl PartitionReassignment {
             replicas: None,
         }
     }
+
+    /// Java `alterPartitionReassignments(Map)` value: `Some` assigns,
+    /// `None` cancels (Java `Optional.empty()`).
+    #[must_use]
+    pub fn from_new(
+        partition: impl Into<crate::TopicPartition>,
+        assignment: Option<NewPartitionReassignment>,
+    ) -> Self {
+        match assignment {
+            Some(n) => Self::assign(partition, n.target_replicas),
+            None => Self::cancel(partition),
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Target replicas, or `None` to cancel.
+    #[must_use]
+    pub fn replicas(&self) -> Option<&[i32]> {
+        self.replicas.as_deref()
+    }
 }
 
 /// Flattened per-partition result of AlterPartitionReassignments.
@@ -1268,7 +1329,34 @@ pub struct ReassignmentResult {
     pub error_message: Option<String>,
 }
 
-/// Flattened ongoing reassignment from ListPartitionReassignments.
+impl ReassignmentResult {
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Per-partition error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+}
+
+/// Flattened ongoing reassignment from ListPartitionReassignments
+/// (Java `PartitionReassignment`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingReassignment {
     /// Topic name.
@@ -1281,6 +1369,38 @@ pub struct OngoingReassignment {
     pub adding_replicas: Vec<i32>,
     /// Brokers being removed.
     pub removing_replicas: Vec<i32>,
+}
+
+impl OngoingReassignment {
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `PartitionReassignment.replicas`.
+    #[must_use]
+    pub fn replicas(&self) -> &[i32] {
+        &self.replicas
+    }
+
+    /// Java `PartitionReassignment.addingReplicas`.
+    #[must_use]
+    pub fn adding_replicas(&self) -> &[i32] {
+        &self.adding_replicas
+    }
+
+    /// Java `PartitionReassignment.removingReplicas`.
+    #[must_use]
+    pub fn removing_replicas(&self) -> &[i32] {
+        &self.removing_replicas
+    }
 }
 
 /// One finalized-feature update for `Admin::update_features`.
@@ -3847,6 +3967,53 @@ impl Admin {
     ) -> Result<Vec<ReassignmentResult>> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
         self.alter_partition_reassignments_with(assignments, timeout_ms, timeout)
+            .await
+    }
+
+    /// Java `alterPartitionReassignments(Map)` ([`NewPartitionReassignment`];
+    /// `None` cancels).
+    ///
+    /// `timeout_ms` is AlterPartitionReassignments TimeoutMs. The RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout that drives both, use
+    /// [`Self::alter_partition_reassignments_for_timeout`].
+    pub async fn alter_partition_reassignments_for<I, Tp>(
+        &mut self,
+        assignments: I,
+        timeout_ms: i32,
+    ) -> Result<Vec<ReassignmentResult>>
+    where
+        I: IntoIterator<Item = (Tp, Option<NewPartitionReassignment>)>,
+        Tp: Into<crate::TopicPartition>,
+    {
+        let collected: Vec<PartitionReassignment> = assignments
+            .into_iter()
+            .map(|(tp, assignment)| PartitionReassignment::from_new(tp, assignment))
+            .collect();
+        self.alter_partition_reassignments(&collected, timeout_ms)
+            .await
+    }
+
+    /// [`Self::alter_partition_reassignments_for`] with a one-shot timeout
+    /// (Java `AlterPartitionReassignmentsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and AlterPartitionReassignments
+    /// TimeoutMs.
+    pub async fn alter_partition_reassignments_for_timeout<I, Tp>(
+        &mut self,
+        assignments: I,
+        timeout: Duration,
+    ) -> Result<Vec<ReassignmentResult>>
+    where
+        I: IntoIterator<Item = (Tp, Option<NewPartitionReassignment>)>,
+        Tp: Into<crate::TopicPartition>,
+    {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        let collected: Vec<PartitionReassignment> = assignments
+            .into_iter()
+            .map(|(tp, assignment)| PartitionReassignment::from_new(tp, assignment))
+            .collect();
+        self.alter_partition_reassignments_with(&collected, timeout_ms, timeout)
             .await
     }
 
@@ -11195,6 +11362,45 @@ mod tests {
         assert_eq!(altered.error_code(), 0);
         assert_eq!(altered.name(), "t");
         assert!(altered.error_message().is_none());
+    }
+
+    #[test]
+    fn new_partition_reassignment_matches_java() {
+        let neu = NewPartitionReassignment::new([2, 1]).unwrap();
+        assert_eq!(neu.target_replicas(), &[2, 1]);
+        let err = NewPartitionReassignment::new(Vec::<i32>::new()).unwrap_err();
+        assert!(
+            err.to_string().contains("without any replicas"),
+            "Java NewPartitionReassignment rejects an empty replica list: {err}"
+        );
+        let assigned = PartitionReassignment::from_new(("t", 0), Some(neu));
+        assert_eq!(assigned.topic(), "t");
+        assert_eq!(assigned.partition(), 0);
+        assert_eq!(assigned.replicas(), Some(&[2, 1][..]));
+        let cancelled = PartitionReassignment::from_new(("t", 0), None);
+        assert!(cancelled.replicas().is_none());
+        let ongoing = OngoingReassignment {
+            topic: "t".into(),
+            partition: 0,
+            replicas: vec![2, 1],
+            adding_replicas: vec![2],
+            removing_replicas: vec![3],
+        };
+        assert_eq!(ongoing.topic(), "t");
+        assert_eq!(ongoing.partition(), 0);
+        assert_eq!(ongoing.replicas(), &[2, 1]);
+        assert_eq!(ongoing.adding_replicas(), &[2]);
+        assert_eq!(ongoing.removing_replicas(), &[3]);
+        let result = ReassignmentResult {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(result.topic(), "t");
+        assert_eq!(result.partition(), 0);
+        assert_eq!(result.error_code(), 0);
+        assert!(result.error_message().is_none());
     }
 
     #[test]

@@ -157,6 +157,9 @@
 //! `CreatePartitionsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::alter_partition_reassignments_timeout`] is Java
 //! `AlterPartitionReassignmentsOptions.timeoutMs`.
+//! [`Admin::alter_partition_reassignments_for`] is Java
+//! `alterPartitionReassignments(Map)` ([`NewPartitionReassignment`];
+//! `None` cancels).
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
@@ -622,12 +625,12 @@ pub use admin::{
     ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
     FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, GroupState,
     GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove,
-    NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern,
-    ResourcePatternFilter, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection,
-    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
+    NewPartitionReassignment, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
+    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
+    RecordsToDelete, RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter, ScramCredentialInfo, ScramMechanism,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
+    TopicCollection, TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
     TransactionListing, TransactionState, TransactionTopic, UpgradeType,
     UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
