@@ -4470,6 +4470,54 @@ async fn describe_producers_follows_partition_leader() {
         Some(1),
         "DescribeProducers must follow Metadata after NOT_LEADER"
     );
+    assert_eq!(
+        mock.last_describe_producers_topics(),
+        Some(1),
+        "single-partition describe_producers sends Topics array of 1"
+    );
+}
+
+/// Java `describeProducers(Collection<TopicPartition>)` sends DescribeProducers Topics of N
+/// grouped by partition leader (same class as `deleteRecords`).
+#[tokio::test]
+async fn admin_describe_producers_for() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    admin
+        .create_topics(
+            [NewTopic::new("dp-a", 1, 1), NewTopic::new("dp-b", 1, 1)],
+            false,
+            5_000,
+        )
+        .await
+        .unwrap();
+    let empty = admin
+        .describe_producers_for(Vec::<TopicPartition>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_describe_producers_topics(),
+        None,
+        "empty describe_producers_for is a no-op"
+    );
+    let topics = admin
+        .describe_producers_for([("dp-a", 0), ("dp-b", 0)])
+        .await
+        .unwrap();
+    assert_eq!(topics.len(), 2);
+    assert_eq!(topics[0].name, "dp-a");
+    assert_eq!(topics[0].partitions.len(), 1);
+    assert_eq!(topics[0].partitions[0].partition_index, 0);
+    assert_eq!(topics[0].partitions[0].error_code, 0);
+    assert_eq!(topics[1].name, "dp-b");
+    assert_eq!(topics[1].partitions.len(), 1);
+    assert_eq!(topics[1].partitions[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_producers_topics(),
+        Some(2),
+        "describe_producers_for sends Topics array of N when partitions share a leader"
+    );
 }
 
 #[tokio::test]

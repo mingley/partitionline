@@ -3421,6 +3421,15 @@ impl DescribeProducersResponse {
     }
 }
 
+/// One topic in a DescribeProducers request (Topics array element).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeProducersTopicRequest {
+    /// Topic name.
+    pub name: String,
+    /// Partition indexes to describe.
+    pub partition_indexes: Vec<i32>,
+}
+
 /// DescribeProducers v0 (flexible from v0; KIP-360).
 ///
 /// Official Apache JSON (`apiKey: 61`, `validVersions: "0"`,
@@ -3448,37 +3457,63 @@ pub fn encode_describe_producers_request(
     topic: &str,
     partitions: &[i32],
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(1))?;
-    buf::put_compact_string(buf, Some(topic))?;
-    buf::put_array_len(buf, true, Some(partitions.len()))?;
-    for p in partitions {
-        buf.put_i32(*p);
+    encode_describe_producers_topics_request(
+        buf,
+        &[DescribeProducersTopicRequest {
+            name: topic.to_string(),
+            partition_indexes: partitions.to_vec(),
+        }],
+    )
+}
+
+/// DescribeProducers Topics of N (Java `describeProducers(Collection)`).
+pub fn encode_describe_producers_topics_request(
+    buf: &mut BytesMut,
+    topics: &[DescribeProducersTopicRequest],
+) -> crate::error::Result<()> {
+    buf::put_array_len(buf, true, Some(topics.len()))?;
+    for t in topics {
+        buf::put_compact_string(buf, Some(&t.name))?;
+        buf::put_array_len(buf, true, Some(t.partition_indexes.len()))?;
+        for p in &t.partition_indexes {
+            buf.put_i32(*p);
+        }
+        buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-/// Decode a DescribeProducers request.
+/// Decode a DescribeProducers request (first topic).
 pub fn decode_describe_producers_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<i32>)> {
+    let topics = decode_describe_producers_topics_request(buf)?;
+    match topics.into_iter().next() {
+        Some(t) => Ok((t.name, t.partition_indexes)),
+        None => Ok((String::new(), Vec::new())),
+    }
+}
+
+/// Decode DescribeProducers: every topic plus partition indexes.
+pub fn decode_describe_producers_topics_request<B: Buf>(
+    buf: &mut B,
+) -> Result<Vec<DescribeProducersTopicRequest>> {
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut topic = String::new();
-    let mut partitions = Vec::new();
-    for i in 0..n {
+    let mut topics = Vec::with_capacity(n);
+    for _ in 0..n {
         let name = buf::get_compact_string(buf)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut idxs = Vec::with_capacity(pn);
+        let mut partition_indexes = Vec::with_capacity(pn);
         for _ in 0..pn {
-            idxs.push(buf::get_i32(buf)?);
+            partition_indexes.push(buf::get_i32(buf)?);
         }
         buf::skip_tagged_fields(buf)?;
-        if i == 0 {
-            topic = name;
-            partitions = idxs;
-        }
+        topics.push(DescribeProducersTopicRequest {
+            name,
+            partition_indexes,
+        });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok((topic, partitions))
+    Ok(topics)
 }
 
 /// Encode a DescribeProducers response.
@@ -11948,6 +11983,34 @@ mod tests {
         buf.clear();
         encode_describe_producers_response(&mut buf, &resp).unwrap();
         assert_eq!(&buf[..], RESP_6);
+    }
+
+    #[test]
+    fn describe_producers_v0_topics_of_two_matches_independent_encode() {
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x61, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x62, 0x02, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+        let topics = [
+            DescribeProducersTopicRequest {
+                name: "a".into(),
+                partition_indexes: vec![0],
+            },
+            DescribeProducersTopicRequest {
+                name: "b".into(),
+                partition_indexes: vec![0],
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_producers_topics_request(&mut buf, &topics).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let got = decode_describe_producers_topics_request(&mut cur).unwrap();
+        assert_eq!(got, topics);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeProducers v0 Topics of 2 must be leftover-empty"
+        );
     }
 
     #[test]

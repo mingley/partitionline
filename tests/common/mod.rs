@@ -39,7 +39,7 @@ use partitionline::protocol::admin::{
     decode_delete_topics_request, decode_describe_client_quotas_request,
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_delegation_token_request, decode_describe_groups_request,
-    decode_describe_log_dirs_request, decode_describe_producers_request,
+    decode_describe_log_dirs_request, decode_describe_producers_topics_request,
     decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
     decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
     decode_expire_delegation_token_request, decode_get_telemetry_subscriptions_request,
@@ -261,6 +261,7 @@ struct State {
     last_describe_cluster_endpoint_type: Option<i8>,
     last_describe_cluster_include_fenced: Option<bool>,
     last_describe_producers_node: Option<i32>,
+    last_describe_producers_topics: Option<usize>,
     describe_producers_not_leader: u32,
     last_write_txn_markers_node: Option<i32>,
     write_txn_markers_not_leader: u32,
@@ -596,6 +597,7 @@ fn new_state(
         last_describe_cluster_endpoint_type: None,
         last_describe_cluster_include_fenced: None,
         last_describe_producers_node: None,
+        last_describe_producers_topics: None,
         describe_producers_not_leader: 0,
         last_write_txn_markers_node: None,
         write_txn_markers_not_leader: 0,
@@ -1562,6 +1564,10 @@ impl Mock {
 
     pub fn last_describe_producers_node(&self) -> Option<i32> {
         self.state.lock().last_describe_producers_node
+    }
+
+    pub fn last_describe_producers_topics(&self) -> Option<usize> {
+        self.state.lock().last_describe_producers_topics
     }
 
     pub fn describe_producers_not_leader(&self) -> u32 {
@@ -3405,45 +3411,42 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_delete_records_topics_response(&mut body, version, &out).unwrap();
             }
             DESCRIBE_PRODUCERS => {
-                let (topic, partitions) = decode_describe_producers_request(&mut frame).unwrap();
-                let partition = partitions.first().copied().unwrap_or(0);
+                let topics = decode_describe_producers_topics_request(&mut frame).unwrap();
                 let mut st = state.lock();
-                let key = (topic.clone(), partition);
-                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
-                if leader != node_id {
-                    st.describe_producers_not_leader =
-                        st.describe_producers_not_leader.saturating_add(1);
-                    // Per-partition 6 only. Do not invent a producer store,
-                    // a 41 path, or a 16 path.
-                    encode_describe_producers_response(
-                        &mut body,
-                        &DescribeProducersResponse::new(vec![DescribeProducersTopic::new(
-                            topic,
-                            vec![DescribeProducersPartition::new(
+                st.last_describe_producers_topics = Some(topics.len());
+                let mut out = Vec::with_capacity(topics.len());
+                let mut any_leader = false;
+                for t in topics {
+                    let mut parts = Vec::with_capacity(t.partition_indexes.len());
+                    for partition in t.partition_indexes {
+                        let key = (t.name.clone(), partition);
+                        let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                        if leader != node_id {
+                            st.describe_producers_not_leader =
+                                st.describe_producers_not_leader.saturating_add(1);
+                            parts.push(DescribeProducersPartition::new(
                                 partition,
                                 error::NOT_LEADER_OR_FOLLOWER,
                                 None,
                                 vec![],
-                            )],
-                        )]),
-                    )
-                    .unwrap();
-                } else {
-                    st.last_describe_producers_node = Some(node_id);
-                    encode_describe_producers_response(
-                        &mut body,
-                        &DescribeProducersResponse::new(vec![DescribeProducersTopic::new(
-                            topic,
-                            vec![DescribeProducersPartition::new(
+                            ));
+                        } else {
+                            any_leader = true;
+                            parts.push(DescribeProducersPartition::new(
                                 partition,
                                 0,
                                 None,
                                 vec![ActiveProducer::new(1000, 1, 7, 1_700_000_000_000, 0, -1)],
-                            )],
-                        )]),
-                    )
-                    .unwrap();
+                            ));
+                        }
+                    }
+                    out.push(DescribeProducersTopic::new(t.name, parts));
                 }
+                if any_leader {
+                    st.last_describe_producers_node = Some(node_id);
+                }
+                encode_describe_producers_response(&mut body, &DescribeProducersResponse::new(out))
+                    .unwrap();
             }
             DESCRIBE_CLUSTER => {
                 let version = header.api_version;

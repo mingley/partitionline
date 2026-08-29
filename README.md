@@ -62,8 +62,9 @@ returns Metadata (leader, replicas, ISR, offline replicas, leader epoch) on both
 `commit_offsets` takes `TopicPartition` (or anything that converts to one)
 plus the next fetch offset. `assignment` is Java `assignment` (`positions`
 is next fetch offset). `Admin::delete_records` / `describe_producers` /
-`list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
+`describe_producers_for` / `list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
 `alter_consumer_group_offsets` take `TopicPartition`.
+`Admin::describe_producers_for` is Java `describeProducers(Collection)` (Topics of N per leader).
 `Admin::list_all_consumer_group_offsets` is Java `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
 `Admin::list_consumer_group_offsets_with` is Java `ListConsumerGroupOffsetsOptions.requireStable` / `timeoutMs`.
 `Admin::list_consumer_group_offsets_for_groups` is Java `listConsumerGroupOffsets(Map)` (`ListConsumerGroupOffsetsSpec`; OffsetFetch v8+ Groups array of N; FindCoordinator v4+ CoordinatorKeys array of N).

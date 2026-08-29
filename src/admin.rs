@@ -48,7 +48,7 @@ use crate::protocol::admin::{
     encode_delete_topics_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_delegation_token_request, encode_describe_groups_request,
-    encode_describe_log_dirs_request, encode_describe_producers_request,
+    encode_describe_log_dirs_request, encode_describe_producers_topics_request,
     encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
     encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
@@ -58,10 +58,11 @@ use crate::protocol::admin::{
     encode_renew_delegation_token_request, encode_share_group_describe_request,
     encode_unregister_broker_request, encode_update_features_request, AlterConfigsResource,
     AlterableResource, CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteRecordsTopic, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
-    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
+    DeleteRecordsTopic, DescribeConfigsResource, DescribeConfigsResult,
+    DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
+    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
+    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
+    RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -124,17 +125,18 @@ pub use crate::protocol::admin::{
     DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
     DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
-    DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
-    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
-    ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse, ListedConfigResource,
-    ListedGroup, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
-    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    DescribeProducersPartition, DescribeProducersTopic, DescribeShareGroupOffsetsGroup,
+    DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
+    DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
+    DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
+    DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
+    EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
+    PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
+    TransactionTopic, UpgradeType, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
     CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
     CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
@@ -1171,6 +1173,41 @@ fn delete_records_topics(
         })
         .collect()
 }
+
+fn describe_producers_topics(
+    partitions: &[crate::TopicPartition],
+    idxs: &[usize],
+) -> Vec<DescribeProducersTopicRequest> {
+    let mut by_topic: HashMap<String, Vec<i32>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for &i in idxs {
+        let Some(tp) = partitions.get(i) else {
+            continue;
+        };
+        match by_topic.entry(tp.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(tp.topic.clone());
+                let _ = slot.insert(vec![tp.partition]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(tp.partition);
+            }
+        }
+    }
+    order
+        .into_iter()
+        .filter_map(|name| {
+            by_topic
+                .remove(&name)
+                .map(|partition_indexes| DescribeProducersTopicRequest {
+                    name,
+                    partition_indexes,
+                })
+        })
+        .collect()
+}
+
+type DescribeProducersNodeOutcome = (Vec<(usize, DescribeProducersPartition)>, Vec<usize>);
 
 impl Admin {
     /// Connect with default config to one bootstrap server.
@@ -4099,68 +4136,190 @@ impl Admin {
     /// codes refresh Metadata and retry on the new leader. ErrorCode
     /// is per-partition (bytes 12–13 on leftover-empty fixture topic
     /// `"t"` partition `0`), not top-level after throttle.
+    /// For several partitions in one RPC per leader (Java
+    /// `describeProducers(Collection)`), use [`Self::describe_producers_for`].
     pub async fn describe_producers(
         &mut self,
         partition: impl Into<crate::TopicPartition>,
     ) -> Result<DescribeProducersPartition> {
         let tp = partition.into();
-        let topic = tp.topic;
-        let partition = tp.partition;
+        let topics = self.describe_producers_for([tp.clone()]).await?;
+        topics
+            .into_iter()
+            .next()
+            .and_then(|t| t.partitions.into_iter().next())
+            .ok_or_else(|| Error::protocol("empty DescribeProducers response"))
+    }
+
+    /// [`Self::describe_producers`] for several partitions (Java
+    /// `describeProducers(Collection)`; DescribeProducers Topics of N).
+    ///
+    /// Groups by Metadata leader and sends one RPC per leader. Empty
+    /// `partitions` is a no-op.
+    pub async fn describe_producers_for(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<DescribeProducersTopic>> {
+        let partitions: Vec<crate::TopicPartition> =
+            partitions.into_iter().map(Into::into).collect();
+        if partitions.is_empty() {
+            return Ok(Vec::new());
+        }
         let version = self.describe_producers_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribeProducersPartition>> = vec![None; partitions.len()];
+        let mut pending: Vec<usize> = (0..partitions.len()).collect();
         loop {
-            if self.cluster.leader(&topic, partition).is_err() {
-                let topics = [topic.clone()];
-                self.refresh_metadata(Some(&topics)).await?;
+            if pending.is_empty() {
+                break;
             }
-            let (node, _) = self.cluster.leader(&topic, partition)?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing describe_producers conn"))?;
-                conn.roundtrip(
-                    DESCRIBE_PRODUCERS,
-                    version,
-                    |buf| encode_describe_producers_request(buf, &topic, &[partition]),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
+            let mut need: Vec<String> = Vec::new();
+            for &i in &pending {
+                let Some(tp) = partitions.get(i) else {
                     continue;
+                };
+                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                    && !need.iter().any(|t| t == &tp.topic)
+                {
+                    need.push(tp.topic.clone());
                 }
-                Err(e) => return Err(e),
-            };
-            let resp = decode_describe_producers_response(&mut body.clone())?;
-            let part = resp
-                .topics
-                .into_iter()
-                .next()
-                .and_then(|t| t.partitions.into_iter().next())
-                .ok_or_else(|| Error::protocol("empty DescribeProducers response"))?;
-            if part.error_code == 0 {
-                return Ok(part);
             }
-            let e = Error::broker(part.error_code, format!("{topic}-{partition}"));
-            if e.is_retriable() {
-                // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                self.cluster.invalidate_topic(&topic);
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                let topics = [topic.clone()];
+            if !need.is_empty() {
+                self.refresh_metadata(Some(&need)).await?;
+            }
+            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+            let mut nodes: Vec<i32> = Vec::new();
+            for &i in &pending {
+                let tp = partitions
+                    .get(i)
+                    .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
+                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                match by_node.entry(node) {
+                    std::collections::hash_map::Entry::Vacant(slot) => {
+                        nodes.push(node);
+                        let _ = slot.insert(vec![i]);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut slot) => {
+                        slot.get_mut().push(i);
+                    }
+                }
+            }
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.remove(&node).unwrap_or_default();
+                match self
+                    .describe_producers_on_node(node, version, &partitions, &idxs, timeout)
+                    .await
+                {
+                    Ok((done, retry)) => {
+                        for (i, part) in done {
+                            if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(part);
+                            }
+                        }
+                        still.extend(retry);
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
+            for &i in &pending {
+                if let Some(tp) = partitions.get(i) {
+                    self.cluster.invalidate_topic(&tp.topic);
+                }
+            }
+            let topics: Vec<String> = {
+                let mut t = Vec::new();
+                for &i in &pending {
+                    if let Some(tp) = partitions.get(i) {
+                        if !t.iter().any(|n| n == &tp.topic) {
+                            t.push(tp.topic.clone());
+                        }
+                    }
+                }
+                t
+            };
+            if !topics.is_empty() {
                 self.refresh_metadata(Some(&topics)).await?;
+            }
+        }
+        let mut grouped: Vec<DescribeProducersTopic> = Vec::new();
+        for (tp, part) in partitions.into_iter().zip(out) {
+            let part = part.ok_or_else(|| Error::protocol("DescribeProducers missing result"))?;
+            match grouped.last_mut() {
+                Some(topic) if topic.name == tp.topic => topic.partitions.push(part),
+                _ => grouped.push(DescribeProducersTopic::new(tp.topic, vec![part])),
+            }
+        }
+        Ok(grouped)
+    }
+
+    async fn describe_producers_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        partitions: &[crate::TopicPartition],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<DescribeProducersNodeOutcome> {
+        let topics = describe_producers_topics(partitions, idxs);
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing describe_producers conn"))?;
+            conn.roundtrip(
+                DESCRIBE_PRODUCERS,
+                version,
+                |buf| encode_describe_producers_topics_request(buf, &topics),
+                timeout,
+            )
+            .await
+        }?;
+        let resp = decode_describe_producers_response(&mut body.clone())?;
+        let mut by_tp: HashMap<(String, i32), DescribeProducersPartition> = HashMap::new();
+        for topic in resp.topics {
+            for part in topic.partitions {
+                let _ = by_tp.insert((topic.name.clone(), part.partition_index), part);
+            }
+        }
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        for &i in idxs {
+            let tp = partitions
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
+            let part = by_tp
+                .remove(&(tp.topic.clone(), tp.partition))
+                .ok_or_else(|| {
+                    Error::protocol(format!(
+                        "DescribeProducers missing {}-{}",
+                        tp.topic, tp.partition
+                    ))
+                })?;
+            if part.error_code == 0 {
+                done.push((i, part));
                 continue;
             }
-            return Ok(part);
+            let e = Error::broker(part.error_code, format!("{}-{}", tp.topic, tp.partition));
+            if e.is_retriable() {
+                retry.push(i);
+            } else {
+                done.push((i, part));
+            }
         }
+        Ok((done, retry))
     }
 
     /// Brokers, controller, and cluster id (`DescribeCluster`).

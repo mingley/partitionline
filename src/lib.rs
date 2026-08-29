@@ -168,6 +168,7 @@
 //! [`ConsumerGroup::commit_with_metadata`] takes
 //! [`ConsumerRecords::next_offsets`] (Java `commitSync(records.nextOffsets())`).
 //! [`Admin::delete_records`] / [`Admin::describe_producers`] /
+//! [`Admin::describe_producers_for`] /
 //! [`Admin::list_offsets`] / [`Admin::delete_offsets`] /
 //! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
@@ -186,6 +187,8 @@
 //! DeleteRecords RPC per leader). [`Admin::delete_records_timeout`] /
 //! [`Admin::delete_records_for_timeout`] are Java
 //! `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
+//! [`Admin::describe_producers_for`] is Java `describeProducers(Collection)`
+//! (one DescribeProducers RPC per leader; Topics of N).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
@@ -400,7 +403,7 @@ pub use admin::{
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
     DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
     DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
-    DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    DescribeProducersTopic, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
