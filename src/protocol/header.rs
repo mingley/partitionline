@@ -938,7 +938,7 @@ mod tests {
     fn list_config_resources_v1_is_flexible() {
         // Official JSON: validVersions 0-1, flexibleVersions 0+.
         // kafka-protocol 0.18.0 VERSIONS min=0 max=1; HeaderVersion is
-        // 2 / 1 at v0 and v1. This crate speaks v1 (VERSIONS.max).
+        // 2 / 1 at v0 and v1. This crate speaks 0–1.
         assert_eq!(request_header_version(LIST_CONFIG_RESOURCES, 0), 2);
         assert_eq!(response_header_version(LIST_CONFIG_RESOURCES, 0), 1);
         assert_eq!(request_header_version(LIST_CONFIG_RESOURCES, 1), 2);

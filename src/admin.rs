@@ -1261,9 +1261,9 @@ impl Admin {
             })?;
         let list_config_resources_version = versions
             .get(&LIST_CONFIG_RESOURCES)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support ListConfigResources".into())
+                Error::Unsupported("broker does not support ListConfigResources v0-1".into())
             })?;
         let get_telemetry_subscriptions_version = versions
             .get(&GET_TELEMETRY_SUBSCRIPTIONS)
@@ -4724,7 +4724,11 @@ impl Admin {
     /// Java `listClientMetricsResources` is
     /// [`Self::list_client_metrics_resources`] (CLIENT_METRICS only).
     ///
-    /// Lands on the connected broker (bootstrap is fine). Official
+    /// Lands on the connected broker (bootstrap is fine). Negotiates
+    /// ListConfigResources v0–v1 (flexible from v0). Kafka 4.0 api 74
+    /// is ListClientMetricsResources v0 only (empty request; response
+    /// names, ResourceType decode-fills `CLIENT_METRICS`). v1 adds
+    /// ResourceTypes / ResourceType (KIP-1142). Official
     /// Apache JSON listeners are `broker` only. Official JSON lists no
     /// `errorCodes`. Official Java `KafkaApis.handleListConfigResources`
     /// answers from the connected broker. Official Java
@@ -4752,11 +4756,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 LIST_CONFIG_RESOURCES,
                 version,
-                |buf| encode_list_config_resources_request(buf, &types),
+                |buf| encode_list_config_resources_request(buf, version, &types),
                 timeout,
             )
             .await?;
-        let resp = decode_list_config_resources_response(&mut body.clone())?;
+        let resp = decode_list_config_resources_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ListConfigResources"));
         }

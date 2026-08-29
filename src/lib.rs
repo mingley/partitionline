@@ -42,6 +42,7 @@
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType),
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible),
+//! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible),

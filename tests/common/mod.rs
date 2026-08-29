@@ -357,6 +357,7 @@ struct State {
     last_describe_topic_partitions_node: Option<i32>,
     last_describe_topic_partitions: Option<(Vec<String>, i32, Option<TopicPartitionCursor>)>,
     last_list_config_resources_node: Option<i32>,
+    last_list_config_resources_version: Option<i16>,
     last_list_config_resources: Option<Vec<i8>>,
     last_get_telemetry_subscriptions_node: Option<i32>,
     last_get_telemetry_subscriptions: Option<[u8; 16]>,
@@ -641,6 +642,7 @@ fn new_state(
         last_describe_topic_partitions_node: None,
         last_describe_topic_partitions: None,
         last_list_config_resources_node: None,
+        last_list_config_resources_version: None,
         last_list_config_resources: None,
         last_get_telemetry_subscriptions_node: None,
         last_get_telemetry_subscriptions: None,
@@ -1848,6 +1850,10 @@ impl Mock {
 
     pub fn last_list_config_resources_node(&self) -> Option<i32> {
         self.state.lock().last_list_config_resources_node
+    }
+
+    pub fn last_list_config_resources_version(&self) -> Option<i16> {
+        self.state.lock().last_list_config_resources_version
     }
 
     pub fn last_list_config_resources(&self) -> Option<Vec<i8>> {
@@ -5166,7 +5172,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             LIST_CONFIG_RESOURCES => {
-                let types = decode_list_config_resources_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let types = decode_list_config_resources_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture resource only;
                 // not a config store, not a coordinator hop, not a
@@ -5174,9 +5181,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // official handler does not use NOT_COORDINATOR (16),
                 // so the wrong node does not return 16.
                 st.last_list_config_resources_node = Some(node_id);
+                st.last_list_config_resources_version = Some(version);
                 st.last_list_config_resources = Some(types);
                 encode_list_config_resources_response(
                     &mut body,
+                    version,
                     &ListConfigResourcesResponse::new(
                         0,
                         vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],

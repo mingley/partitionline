@@ -15,8 +15,8 @@ use partitionline::protocol::api_keys::{
     CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
     DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
     DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    SYNC_GROUP, UPDATE_FEATURES,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5502,6 +5502,11 @@ async fn list_config_resources_follows_broker() {
         "ListConfigResources must land on the connected broker, not the coordinator or controller"
     );
     assert_eq!(
+        mock.last_list_config_resources_version(),
+        Some(1),
+        "Admin must prefer ListConfigResources v1 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_list_config_resources(),
         Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
     );
@@ -5519,6 +5524,33 @@ async fn list_config_resources_follows_broker() {
         mock.last_describe_topic_partitions_node(),
         None,
         "ListConfigResources must not hop via DescribeTopicPartitions"
+    );
+}
+
+#[tokio::test]
+async fn list_config_resources_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LIST_CONFIG_RESOURCES, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin
+        .list_config_resources([ConfigResourceType::Topic])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].resource_name, "r");
+    assert_eq!(
+        listed[0].resource_type, CONFIG_RESOURCE_CLIENT_METRICS,
+        "v0 has no ResourceType; decode fills CLIENT_METRICS"
+    );
+    assert_eq!(
+        mock.last_list_config_resources_version(),
+        Some(0),
+        "client must speak ListConfigResources v0 when the broker max is 0"
+    );
+    assert_eq!(
+        mock.last_list_config_resources(),
+        Some(vec![]),
+        "v0 omits ResourceTypes even when the caller passed types"
     );
 }
 

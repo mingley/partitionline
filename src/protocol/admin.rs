@@ -6224,10 +6224,11 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
     })
 }
 
-/// One listed resource in ListConfigResources (api 74) v1.
+/// One listed resource in ListConfigResources (api 74).
 ///
 /// There is no per-resource ErrorCode. The response error sits at the
-/// top of the body, after throttle.
+/// top of the body, after throttle. `resource_type` is v1+; v0 decode
+/// fills `RESOURCE_CLIENT_METRICS` (16).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedConfigResource {
     /// Config resource name.
@@ -6246,7 +6247,7 @@ impl ListedConfigResource {
     }
 }
 
-/// ListConfigResources (api 74) v1 response body.
+/// ListConfigResources (api 74) response body.
 ///
 /// **ErrorCode is top-level**, after throttle — not a first-resource
 /// field and not a first-config field. Resources have no ErrorCode.
@@ -6268,7 +6269,22 @@ impl ListConfigResourcesResponse {
     }
 }
 
-/// ListConfigResources v1 (flexible from v0; KIP-1142, formerly
+/// Reject ListConfigResources versions this crate does not speak.
+///
+/// Flexible from v0. Kafka 4.0 api 74 is ListClientMetricsResources
+/// `validVersions` `0`. Kafka 4.1 renames the key and adds v1
+/// ResourceTypes / ResourceType (KIP-1142). This crate speaks 0–1.
+/// v2+ is not spoken.
+fn list_config_resources_spoken(version: i16) -> Result<()> {
+    match version {
+        0..=1 => Ok(()),
+        other => Err(Error::protocol(format!(
+            "ListConfigResources version {other} is not implemented"
+        ))),
+    }
+}
+
+/// ListConfigResources v0–1 (flexible from v0; KIP-1142, formerly
 /// ListClientMetricsResources).
 ///
 /// Official Apache JSON (`apiKey: 74`, request `listeners: ["broker"]`,
@@ -6283,13 +6299,13 @@ impl ListConfigResourcesResponse {
 /// (35). `NOT_COORDINATOR` (16) is **not** listed. kafka-protocol
 /// 0.18.0 (`ListConfigResourcesRequest` /
 /// `ListConfigResourcesResponse`, `VERSIONS` min=0 max=1). This crate
-/// targets v1, the version a client encodes (`VERSIONS.max`). Version
-/// 0 is the legacy ListClientMetricsResources body (no ResourceTypes
-/// / ResourceType) and is not spoken here. Request encode used
-/// `features = ["client"]`; response encode used `broker`. Request:
-/// compact `ResourceTypes` of INT8, tagged. Response: `ThrottleTimeMs`
-/// INT32, top-level `ErrorCode` INT16, compact `ConfigResources` of
-/// `{compact ResourceName, ResourceType INT8, tagged}`, tagged.
+/// speaks 0–1. v0 is Kafka 4.0 ListClientMetricsResources (empty
+/// request; response names only). v1 adds ResourceTypes / ResourceType.
+/// Request encode used `features = ["client"]`; response encode used
+/// `broker`. Request: compact `ResourceTypes` of INT8 (v1+), tagged.
+/// Response: `ThrottleTimeMs` INT32, top-level `ErrorCode` INT16,
+/// compact `ConfigResources` of `{compact ResourceName, ResourceType
+/// INT8 (v1+), tagged}`, tagged.
 /// **ErrorCode is top-level**, after throttle — not a first-resource
 /// field. Resources have no ErrorCode. Measured independently from
 /// kafka-protocol 0.18.0 (`broker` encodes the response) on leftover-
@@ -6307,38 +6323,52 @@ impl ListConfigResourcesResponse {
 /// no controller hop, no partition-leader hop.
 pub fn encode_list_config_resources_request(
     buf: &mut BytesMut,
+    version: i16,
     resource_types: &[i8],
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(resource_types.len()))?;
-    for ty in resource_types {
-        buf.put_i8(*ty);
+    list_config_resources_spoken(version)?;
+    if version >= 1 {
+        buf::put_array_len(buf, true, Some(resource_types.len()))?;
+        for ty in resource_types {
+            buf.put_i8(*ty);
+        }
     }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a ListConfigResources request.
-pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B) -> Result<Vec<i8>> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut resource_types = Vec::with_capacity(n);
-    for _ in 0..n {
-        resource_types.push(buf::get_i8(buf)?);
-    }
+pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<i8>> {
+    list_config_resources_spoken(version)?;
+    let resource_types = if version >= 1 {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut resource_types = Vec::with_capacity(n);
+        for _ in 0..n {
+            resource_types.push(buf::get_i8(buf)?);
+        }
+        resource_types
+    } else {
+        Vec::new()
+    };
     buf::skip_tagged_fields(buf)?;
     Ok(resource_types)
 }
 
-/// Encode a ListConfigResources response.
+/// Encode a ListConfigResources response (v0–1). ResourceType is v1+.
 pub fn encode_list_config_resources_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &ListConfigResourcesResponse,
 ) -> crate::error::Result<()> {
+    list_config_resources_spoken(version)?;
     buf.put_i32(0);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.config_resources.len()))?;
     for r in &resp.config_resources {
         buf::put_compact_string(buf, Some(&r.resource_name))?;
-        buf.put_i8(r.resource_type);
+        if version >= 1 {
+            buf.put_i8(r.resource_type);
+        }
         buf::put_empty_tagged_fields(buf);
     }
     buf::put_empty_tagged_fields(buf);
@@ -6348,14 +6378,20 @@ pub fn encode_list_config_resources_response(
 /// Decode a ListConfigResources response.
 pub fn decode_list_config_resources_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ListConfigResourcesResponse> {
+    list_config_resources_spoken(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut config_resources = Vec::with_capacity(n);
     for _ in 0..n {
         let resource_name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let resource_type = buf::get_i8(buf)?;
+        let resource_type = if version >= 1 {
+            buf::get_i8(buf)?
+        } else {
+            RESOURCE_CLIENT_METRICS
+        };
         buf::skip_tagged_fields(buf)?;
         config_resources.push(ListedConfigResource {
             resource_name,
@@ -12770,7 +12806,7 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 74
         // validVersions 0-1, flexibleVersions 0+, listeners broker only.
-        // This crate targets v1 (VERSIONS.max). Not copied from
+        // This crate speaks 0–1; this fixture is v1. Not copied from
         // DeleteShareGroupOffsets / AlterShareGroupOffsets / ListGroups
         // (top-level ErrorCode at bytes 4-5, different fields after),
         // DescribeTopicPartitions / ShareGroupDescribe / DescribeGroups
@@ -12784,14 +12820,14 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x02, 0x02, 0x72, 0x10, 0x00, 0x00,
         ];
         let mut buf = BytesMut::new();
-        encode_list_config_resources_request(&mut buf, &[RESOURCE_CLIENT_METRICS]).unwrap();
+        encode_list_config_resources_request(&mut buf, 1, &[RESOURCE_CLIENT_METRICS]).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = ListConfigResourcesResponse::new(
             crate::error::CLUSTER_AUTHORIZATION_FAILED,
             vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
         );
         buf.clear();
-        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        encode_list_config_resources_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_31);
     }
 
@@ -12799,10 +12835,10 @@ mod tests {
     fn list_config_resources_v1_roundtrip_is_leftover_empty() {
         let types = vec![RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC];
         let mut buf = BytesMut::new();
-        encode_list_config_resources_request(&mut buf, &types).unwrap();
+        encode_list_config_resources_request(&mut buf, 1, &types).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_list_config_resources_request(&mut cur).unwrap(),
+            decode_list_config_resources_request(&mut cur, 1).unwrap(),
             types
         );
         assert!(
@@ -12818,10 +12854,10 @@ mod tests {
             ],
         );
         buf.clear();
-        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        encode_list_config_resources_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_list_config_resources_response(&mut cur).unwrap(),
+            decode_list_config_resources_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
@@ -12853,7 +12889,7 @@ mod tests {
             vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)],
         );
         let mut buf = BytesMut::new();
-        encode_list_config_resources_response(&mut buf, &resp).unwrap();
+        encode_list_config_resources_response(&mut buf, 1, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_eq!(
@@ -12888,12 +12924,59 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_list_config_resources_response(&mut cur).unwrap(),
+            decode_list_config_resources_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
             !cur.has_remaining(),
             "ListConfigResources v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_config_resources_v0_omits_resource_types() {
+        const REQ_V0: &[u8] = &[0x00];
+        const RESP_V0_31: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x02, 0x02, 0x72, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_list_config_resources_request(&mut buf, 0, &[RESOURCE_TOPIC]).unwrap();
+        assert_eq!(&buf[..], REQ_V0, "v0 request is tagged fields only");
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_list_config_resources_request(&mut cur, 0).unwrap(),
+            Vec::<i8>::new(),
+            "v0 has no ResourceTypes; decode fills empty"
+        );
+        assert!(!cur.has_remaining());
+        let resp = ListConfigResourcesResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            vec![ListedConfigResource::new("r", RESOURCE_TOPIC)],
+        );
+        buf.clear();
+        encode_list_config_resources_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_31);
+        let mut cur = &buf[..];
+        let got = decode_list_config_resources_response(&mut cur, 0).unwrap();
+        assert!(!cur.has_remaining());
+        assert_eq!(got.error_code, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(got.config_resources[0].resource_name, "r");
+        assert_eq!(
+            got.config_resources[0].resource_type, RESOURCE_CLIENT_METRICS,
+            "v0 has no ResourceType; decode fills CLIENT_METRICS (16)"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+    }
+
+    #[test]
+    fn list_config_resources_v2_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_list_config_resources_request(&mut buf, 2, &[]).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2+ is not spoken, got {err}"
         );
     }
 

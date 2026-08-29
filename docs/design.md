@@ -70,7 +70,7 @@ ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType). `Admin::list_co
 `deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
 throttle v0+). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe). `Admin::list_client_metrics_resources` is Java
-`listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
+`listClientMetricsResources` (ListConfigResources v0–v1 CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
 `listShareGroupOffsets` (DescribeShareGroupOffsets). `Admin::delete_consumer_group_offsets` is Java
 `deleteConsumerGroupOffsets` (OffsetDelete). `Admin::delete_share_groups` is Java
 `deleteShareGroups` (DeleteGroups v0–v2). `Admin::describe_client_quotas` /
