@@ -321,6 +321,10 @@
 //! (RPC deadline; DeleteGroups has no TimeoutMs).
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
+//! [`ShareGroupMember`] getters match Java `ShareMemberDescription`.
+//! [`DescribedShareGroup`] getters match Java `ShareGroupDescription`
+//! (without `coordinator`). [`ConfigEntry`] `Debug` redacts sensitive
+//! values (Java `ConfigEntry.toString`).
 //! [`Admin::share_group_describe_timeout`] /
 //! [`Admin::describe_share_groups_timeout`] are Java
 //! `DescribeShareGroupsOptions.timeoutMs` (RPC deadline;

@@ -360,7 +360,10 @@ impl ConfigSynonym {
 }
 
 /// One key from DescribeConfigs.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`] is set
+/// (Java `ConfigEntry.toString`).
+#[derive(Clone, PartialEq, Eq)]
 pub struct ConfigEntry {
     /// Config key.
     pub name: String,
@@ -450,6 +453,27 @@ impl ConfigEntry {
     #[must_use]
     pub fn documentation(&self) -> Option<&str> {
         self.documentation.as_deref()
+    }
+}
+
+impl fmt::Debug for ConfigEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Java `ConfigEntry.toString` prints `Redacted` when `isSensitive`.
+        let value = if self.is_sensitive {
+            Some("Redacted")
+        } else {
+            self.value.as_deref()
+        };
+        f.debug_struct("ConfigEntry")
+            .field("name", &self.name)
+            .field("value", &value)
+            .field("read_only", &self.read_only)
+            .field("source", &self.source)
+            .field("is_sensitive", &self.is_sensitive)
+            .field("synonyms", &self.synonyms)
+            .field("config_type", &self.config_type)
+            .field("documentation", &self.documentation)
+            .finish()
     }
 }
 
@@ -6617,6 +6641,24 @@ impl ShareGroupTopicPartitions {
             partitions,
         }
     }
+
+    /// Topic id (UUID), or zeros.
+    #[must_use]
+    pub fn topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Partition indexes in this assignment.
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
 }
 
 /// Current assignment for one described share-group member.
@@ -6631,13 +6673,20 @@ impl ShareGroupAssignment {
     pub fn new(topic_partitions: Vec<ShareGroupTopicPartitions>) -> Self {
         Self { topic_partitions }
     }
+
+    /// Java `ShareMemberAssignment.topicPartitions`.
+    #[must_use]
+    pub fn topic_partitions(&self) -> &[ShareGroupTopicPartitions] {
+        &self.topic_partitions
+    }
 }
 
 /// One member in a ShareGroupDescribe v0–v1 group.
 ///
-/// Official member fields are MemberId, RackId, MemberEpoch, ClientId,
-/// ClientHost, SubscribedTopicNames, Assignment. There is no InstanceId,
-/// SubscribedTopicRegex, TargetAssignment, or MemberType.
+/// Java `ShareMemberDescription`. Official member fields are MemberId,
+/// RackId, MemberEpoch, ClientId, ClientHost, SubscribedTopicNames,
+/// Assignment. There is no InstanceId, SubscribedTopicRegex,
+/// TargetAssignment, or MemberType.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupMember {
     /// Group member id.
@@ -6674,11 +6723,37 @@ impl ShareGroupMember {
             assignment: ShareGroupAssignment::default(),
         }
     }
+
+    /// Java `ShareMemberDescription.consumerId`.
+    #[must_use]
+    pub fn member_id(&self) -> &str {
+        self.member_id.as_str()
+    }
+
+    /// Java `ShareMemberDescription.clientId`.
+    #[must_use]
+    pub fn client_id(&self) -> &str {
+        self.client_id.as_str()
+    }
+
+    /// Java `ShareMemberDescription.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.client_host.as_str()
+    }
+
+    /// Java `ShareMemberDescription.assignment`.
+    #[must_use]
+    pub fn assignment(&self) -> &ShareGroupAssignment {
+        &self.assignment
+    }
 }
 
 /// One described group in ShareGroupDescribe (api 77) v0–v1.
 ///
-/// ErrorCode sits here, not at the top of the response body.
+/// Java `ShareGroupDescription` (without `coordinator`, which Java fills
+/// from the hop node). ErrorCode sits here, not at the top of the
+/// response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroup {
     /// Kafka error code (`0` is success).
@@ -6715,6 +6790,60 @@ impl DescribedShareGroup {
             members: Vec::new(),
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `ShareGroupDescription.groupId`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Group state name from the broker.
+    #[must_use]
+    pub fn group_state(&self) -> &str {
+        self.group_state.as_str()
+    }
+
+    /// Group epoch.
+    #[must_use]
+    pub fn group_epoch(&self) -> i32 {
+        self.group_epoch
+    }
+
+    /// Assignment epoch.
+    #[must_use]
+    pub fn assignment_epoch(&self) -> i32 {
+        self.assignment_epoch
+    }
+
+    /// Assignor name.
+    #[must_use]
+    pub fn assignor_name(&self) -> &str {
+        self.assignor_name.as_str()
+    }
+
+    /// Java `ShareGroupDescription.members`.
+    #[must_use]
+    pub fn members(&self) -> &[ShareGroupMember] {
+        &self.members
+    }
+
+    /// Java `ShareGroupDescription.authorizedOperations`.
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        self.authorized_operations
     }
 }
 
@@ -12954,6 +13083,18 @@ mod tests {
         assert_eq!(result.name(), "orders");
         assert_eq!(result.error_code(), 0);
         assert_eq!(result.entries().len(), 1);
+        let mut secret = ConfigEntry::new("ssl.keystore.password", Some("s3cret".into()));
+        secret.is_sensitive = true;
+        let debug = format!("{secret:?}");
+        assert!(
+            debug.contains("Redacted"),
+            "sensitive ConfigEntry Debug must match Java toString redaction: {debug}"
+        );
+        assert!(
+            !debug.contains("s3cret"),
+            "sensitive ConfigEntry Debug must not leak the value: {debug}"
+        );
+        assert_eq!(secret.value(), Some("s3cret"));
     }
 
     #[test]
@@ -13206,6 +13347,48 @@ mod tests {
         let resp = DescribeLogDirsResponse::new(0, vec![dir.clone()]);
         assert_eq!(resp.error_code(), 0);
         assert_eq!(resp.results(), std::slice::from_ref(&dir));
+    }
+
+    #[test]
+    fn share_member_and_group_getters_match_java() {
+        let assigned = ShareGroupTopicPartitions::new([0; 16], "t", vec![0, 1]);
+        assert_eq!(assigned.topic_id(), [0; 16]);
+        assert_eq!(assigned.topic_name(), "t");
+        assert_eq!(assigned.partitions(), &[0, 1]);
+        let assignment = ShareGroupAssignment::new(vec![assigned.clone()]);
+        assert_eq!(
+            assignment.topic_partitions(),
+            std::slice::from_ref(&assigned)
+        );
+        let mut member = ShareGroupMember::new("m1", 3, "c", "h");
+        member.assignment = assignment.clone();
+        assert_eq!(member.member_id(), "m1");
+        assert_eq!(member.client_id(), "c");
+        assert_eq!(member.host(), "h");
+        assert_eq!(member.assignment(), &assignment);
+        let described = DescribedShareGroup {
+            error_code: 0,
+            error_message: None,
+            group_id: "sg".into(),
+            group_state: "Stable".into(),
+            group_epoch: 2,
+            assignment_epoch: 3,
+            assignor_name: "uniform".into(),
+            members: vec![member.clone()],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        assert_eq!(described.error_code(), 0);
+        assert!(described.error_message().is_none());
+        assert_eq!(described.group_id(), "sg");
+        assert_eq!(described.group_state(), "Stable");
+        assert_eq!(described.group_epoch(), 2);
+        assert_eq!(described.assignment_epoch(), 3);
+        assert_eq!(described.assignor_name(), "uniform");
+        assert_eq!(described.members(), std::slice::from_ref(&member));
+        assert_eq!(
+            described.authorized_operations(),
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
     }
 
     #[test]

@@ -10391,8 +10391,13 @@ async fn describe_share_groups_follows_group_coordinator() {
         .await
         .unwrap();
     assert_eq!(described.len(), 1);
-    assert_eq!(described[0].group_id, "sg-java");
-    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[0].group_id(), "sg-java");
+    assert_eq!(described[0].error_code(), 0);
+    assert_eq!(described[0].group_state(), "Stable");
+    assert_eq!(described[0].group_epoch(), 1);
+    assert_eq!(described[0].assignment_epoch(), 1);
+    assert_eq!(described[0].assignor_name(), "uniform");
+    assert!(described[0].members().is_empty());
     assert_eq!(
         mock.last_share_group_describe_node(),
         Some(2),
