@@ -899,8 +899,8 @@ impl Consumer {
         .await?;
         let fetch_version = versions
             .get(&FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 12))
-            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-12".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 14))
+            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-14".into()))?;
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
@@ -1287,6 +1287,19 @@ impl Consumer {
             }
             if let Some(name) = &t.name {
                 let _ = out.insert(t.topic_id, name.clone());
+            }
+        }
+        out
+    }
+
+    pub(crate) fn topic_name_ids(&self) -> HashMap<String, [u8; 16]> {
+        let mut out = HashMap::new();
+        let Some(md) = &self.metadata else {
+            return out;
+        };
+        for t in &md.topics {
+            if let Some(name) = &t.name {
+                let _ = out.insert(name.clone(), t.topic_id);
             }
         }
         out
@@ -1842,13 +1855,14 @@ impl Consumer {
         let timeout = self.cfg.request_timeout;
         let fetch_version = self.fetch_version;
         let rack = self.cfg.rack.clone();
+        let name_ids = self.topic_name_ids();
         if nodes.len() <= 1 {
             let mut out = Vec::with_capacity(nodes.len());
             for node in nodes {
                 let Some(by_topic) = by_leader.remove(&node) else {
                     continue;
                 };
-                let topics = fetch_topics(by_topic);
+                let topics = fetch_topics(by_topic, &name_ids);
                 let body = {
                     let conn = self
                         .conns
@@ -1882,7 +1896,7 @@ impl Consumer {
             let Some(by_topic) = by_leader.remove(&node) else {
                 continue;
             };
-            let topics = fetch_topics(by_topic);
+            let topics = fetch_topics(by_topic, &name_ids);
             let mut conn = self
                 .conns
                 .remove(&node)
@@ -1929,39 +1943,42 @@ impl Consumer {
         out: &mut Vec<FetchedRecord>,
     ) -> Result<FetchRetry> {
         let fetched = decode_fetch_response(body, self.fetch_version)?;
+        let id_names = self.topic_id_names();
         let mut retry = FetchRetry::None;
         for topic in fetched {
+            let name = if !topic.topic.is_empty() {
+                topic.topic
+            } else if let Some(n) = id_names.get(&topic.topic_id) {
+                n.clone()
+            } else {
+                continue;
+            };
             for part in topic.partitions {
                 if part.preferred_read_replica >= 0
                     && self.cfg.rack.is_some()
                     && part.preferred_read_replica != node
                 {
-                    let _prev = self.preferred.insert(
-                        (topic.topic.clone(), part.partition),
-                        part.preferred_read_replica,
-                    );
+                    let _prev = self
+                        .preferred
+                        .insert((name.clone(), part.partition), part.preferred_read_replica);
                     retry = retry.merge(FetchRetry::Redirect);
                     continue;
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
-                    self.advance(&topic.topic, part.partition, part.log_start_offset);
+                    self.advance(&name, part.partition, part.log_start_offset);
                     continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
                 {
-                    self.recover_leader_epoch(&topic.topic, part.partition)
-                        .await?;
+                    self.recover_leader_epoch(&name, part.partition).await?;
                     retry = retry.merge(FetchRetry::Backoff);
                     continue;
                 }
                 if part.error_code != 0 {
-                    let e = Error::broker(
-                        part.error_code,
-                        format!("{}-{}", topic.topic, part.partition),
-                    );
+                    let e = Error::broker(part.error_code, format!("{}-{}", name, part.partition));
                     if e.is_retriable() {
-                        self.cluster.invalidate_topic(&topic.topic);
+                        self.cluster.invalidate_topic(&name);
                         let _ = self.conns.remove(&node);
                         retry = retry.merge(FetchRetry::Backoff);
                         continue;
@@ -1995,7 +2012,7 @@ impl Consumer {
                             }
                         }
                         out.push(FetchedRecord {
-                            topic: topic.topic.clone(),
+                            topic: name.clone(),
                             partition: part.partition,
                             offset,
                             timestamp: rec.timestamp,
@@ -2008,7 +2025,7 @@ impl Consumer {
                     }
                 }
                 if let Some(n) = next {
-                    self.advance(&topic.topic, part.partition, n);
+                    self.advance(&name, part.partition, n);
                 }
             }
         }
@@ -2529,10 +2546,17 @@ impl FetchRetry {
     }
 }
 
-fn fetch_topics(by_topic: HashMap<String, Vec<FetchPartition>>) -> Vec<FetchTopic> {
+fn fetch_topics(
+    by_topic: HashMap<String, Vec<FetchPartition>>,
+    name_ids: &HashMap<String, [u8; 16]>,
+) -> Vec<FetchTopic> {
     by_topic
         .into_iter()
-        .map(|(topic, partitions)| FetchTopic { topic, partitions })
+        .map(|(topic, partitions)| FetchTopic {
+            topic_id: name_ids.get(&topic).copied().unwrap_or([0u8; 16]),
+            topic,
+            partitions,
+        })
         .collect()
 }
 

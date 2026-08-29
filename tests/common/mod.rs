@@ -2086,7 +2086,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
-        (FETCH, 4, 12),
+        (FETCH, 4, 14),
         (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
@@ -3553,11 +3553,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .unwrap_or(0);
                 let mut topics = Vec::new();
                 for t in req {
+                    let topic = if t.topic.is_empty() {
+                        topic_name_for_id(&st, t.topic_id)
+                    } else {
+                        t.topic.clone()
+                    };
+                    let topic_id = if header.api_version >= 13 {
+                        if t.topic_id == [0u8; 16] {
+                            mock_topic_id(&topic)
+                        } else {
+                            t.topic_id
+                        }
+                    } else {
+                        [0u8; 16]
+                    };
                     let mut parts = Vec::new();
                     for p in t.partitions {
                         let leader = st
                             .partition_leaders
-                            .get(&(t.topic.clone(), p.partition))
+                            .get(&(topic.clone(), p.partition))
                             .copied()
                             .unwrap_or(node_id);
                         if leader != node_id && rack.is_empty() {
@@ -3593,7 +3607,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                         let current_epoch = st
                             .partition_epochs
-                            .get(&(t.topic.clone(), p.partition))
+                            .get(&(topic.clone(), p.partition))
                             .copied()
                             .unwrap_or(0);
                         if p.current_leader_epoch != -1 && p.current_leader_epoch < current_epoch {
@@ -3623,7 +3637,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             continue;
                         }
                         st.accepted_fetch.push(node_id);
-                        let key = (t.topic.clone(), p.partition);
+                        let key = (topic.clone(), p.partition);
                         let recs = st
                             .log
                             .get(&key)
@@ -3639,7 +3653,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         let lso = if iso == 1 {
                             st.txn_pending
                                 .iter()
-                                .filter(|(tn, pn, _)| tn == &t.topic && *pn == p.partition)
+                                .filter(|(tn, pn, _)| tn == &topic && *pn == p.partition)
                                 .map(|(_, _, o)| *o)
                                 .min()
                                 .unwrap_or(hw)
@@ -3650,7 +3664,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if iso == 1 {
                             let mut first_off: HashMap<i64, i64> = HashMap::new();
                             for (tn, pn, off) in &st.txn_aborted {
-                                if tn == &t.topic && *pn == p.partition {
+                                if tn == &topic && *pn == p.partition {
                                     if let Some(pid) =
                                         st.log_producer.get(&(tn.clone(), *pn, *off)).copied()
                                     {
@@ -3670,7 +3684,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             let first = recs[0].offset;
                             let pid = st
                                 .log_producer
-                                .get(&(t.topic.clone(), p.partition, first))
+                                .get(&(topic.clone(), p.partition, first))
                                 .copied()
                                 .unwrap_or(-1);
                             let mut batch = RecordBatch::from_records(recs);
@@ -3678,7 +3692,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             batch.producer_id = pid;
                             batch.partition_leader_epoch = st
                                 .partition_epochs
-                                .get(&(t.topic.clone(), p.partition))
+                                .get(&(topic.clone(), p.partition))
                                 .copied()
                                 .unwrap_or(0);
                             vec![batch]
@@ -3695,7 +3709,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         });
                     }
                     topics.push(FetchedTopic {
-                        topic: t.topic,
+                        topic,
+                        topic_id,
                         partitions: parts,
                     });
                 }
