@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    SYNC_GROUP,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -4249,6 +4249,16 @@ async fn list_transactions_follows_coordinator() {
         Some(2),
         "ListTransactions must land on the transaction coordinator, not bootstrap"
     );
+    assert_eq!(
+        mock.last_list_transactions_version(),
+        Some(1),
+        "Admin must prefer ListTransactions v1 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(-1),
+        "list_transactions must send DurationFilter -1 (no filter)"
+    );
     assert!(
         mock.find_coordinator_key_types()
             .contains(&COORDINATOR_TRANSACTION),
@@ -4273,6 +4283,59 @@ async fn list_transactions_follows_coordinator() {
         mock.last_list_transactions_node(),
         Some(1),
         "ListTransactions must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
+async fn list_transactions_negotiates_v1_duration_filter() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin.list_transactions(&[], &[]).await.unwrap();
+    assert!(listed.is_empty());
+    assert_eq!(
+        mock.last_list_transactions_version(),
+        Some(1),
+        "Admin must prefer ListTransactions v1 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(-1),
+        "list_transactions must send DurationFilter -1 (no filter)"
+    );
+
+    let filtered = admin
+        .list_transactions_with_duration(&[], &[], 5000)
+        .await
+        .unwrap();
+    assert!(filtered.is_empty());
+    assert_eq!(
+        mock.last_list_transactions_version(),
+        Some(1),
+        "list_transactions_with_duration must keep ListTransactions v1"
+    );
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(5000),
+        "list_transactions_with_duration must send DurationFilter on v1"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LIST_TRANSACTIONS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let capped = admin
+        .list_transactions_with_duration(&[], &[], 5000)
+        .await
+        .unwrap();
+    assert!(capped.is_empty());
+    assert_eq!(
+        mock.last_list_transactions_version(),
+        Some(0),
+        "client must speak ListTransactions v0 when the broker max is 0"
+    );
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(-1),
+        "v0 omits DurationFilter even when the caller passed a duration"
     );
 }
 

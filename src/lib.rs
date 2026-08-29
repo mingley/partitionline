@@ -33,6 +33,7 @@
 //! Heartbeat v3–v4 (v4 flexible),
 //! SyncGroup v3–v5 (v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
+//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
@@ -122,6 +123,8 @@
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
+//! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
+//! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.

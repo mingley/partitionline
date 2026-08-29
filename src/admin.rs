@@ -1166,7 +1166,7 @@ impl Admin {
             })?;
         let list_transactions_version = versions
             .get(&LIST_TRANSACTIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
         let consumer_group_describe_version = versions
             .get(&CONSUMER_GROUP_DESCRIBE)
@@ -2653,10 +2653,31 @@ impl Admin {
     /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. This is not `NOT_CONTROLLER` (41). Top-level
     /// `error_code` (bytes 4–5), not a first-result field.
+    /// Duration is unfiltered (`-1`). See
+    /// [`Self::list_transactions_with_duration`] for Java
+    /// `ListTransactionsOptions.filterOnDuration`.
     pub async fn list_transactions(
         &mut self,
         state_filters: &[&str],
         producer_id_filters: &[i64],
+    ) -> Result<Vec<TransactionListing>> {
+        self.list_transactions_with_duration(state_filters, producer_id_filters, -1)
+            .await
+    }
+
+    /// ListTransactions with a duration filter (Java `listTransactions`
+    /// plus `ListTransactionsOptions.filterOnDuration`).
+    ///
+    /// `duration_ms < 0` means no duration filter (Java default `-1`).
+    /// v1 sends `DurationFilter` INT64 (KIP-994). v0 omits the field
+    /// even when `duration_ms` is set. Kafka 4.0 `validVersions` is
+    /// `0-1`. This crate speaks 0–1. v2 TransactionalIdPattern is not
+    /// spoken.
+    pub async fn list_transactions_with_duration(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
     ) -> Result<Vec<TransactionListing>> {
         let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();
         let pids = producer_id_filters.to_vec();
@@ -2687,7 +2708,9 @@ impl Admin {
                 conn.roundtrip(
                     LIST_TRANSACTIONS,
                     version,
-                    |buf| encode_list_transactions_request(buf, &states, &pids),
+                    |buf| {
+                        encode_list_transactions_request(buf, version, &states, &pids, duration_ms)
+                    },
                     timeout,
                 )
                 .await
@@ -2702,7 +2725,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let resp = decode_list_transactions_response(&mut body.clone())?;
+            let resp = decode_list_transactions_response(&mut body.clone(), version)?;
             if error::coordinator_retriable(resp.error_code) {
                 // 14/15/16: FindCoordinator, then the new txn coordinator.
                 self.txn_coord = None;

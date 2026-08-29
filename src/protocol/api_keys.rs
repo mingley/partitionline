@@ -104,7 +104,7 @@ pub const DESCRIBE_PRODUCERS: i16 = 61;
 pub const UNREGISTER_BROKER: i16 = 64;
 /// DescribeTransactions (65).
 pub const DESCRIBE_TRANSACTIONS: i16 = 65;
-/// ListTransactions (66).
+/// ListTransactions (66). Kafka 4.0 `validVersions` is `0-1`.
 pub const LIST_TRANSACTIONS: i16 = 66;
 /// AllocateProducerIds (67).
 pub const ALLOCATE_PRODUCER_IDS: i16 = 67;

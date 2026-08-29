@@ -301,6 +301,8 @@ struct State {
     last_describe_transactions_node: Option<i32>,
     describe_transactions_not_coordinator: u32,
     last_list_transactions_node: Option<i32>,
+    last_list_transactions_version: Option<i16>,
+    last_list_transactions_duration: Option<i64>,
     list_transactions_not_coordinator: u32,
     // Fixture transactional ids only. Not a live txn coordinator store.
     txn_fixtures: HashMap<String, TransactionState>,
@@ -557,6 +559,8 @@ fn new_state(
         last_describe_transactions_node: None,
         describe_transactions_not_coordinator: 0,
         last_list_transactions_node: None,
+        last_list_transactions_version: None,
+        last_list_transactions_duration: None,
         list_transactions_not_coordinator: 0,
         txn_fixtures: HashMap::new(),
         last_offset_delete_node: None,
@@ -1555,6 +1559,14 @@ impl Mock {
         self.state.lock().last_list_transactions_node
     }
 
+    pub fn last_list_transactions_version(&self) -> Option<i16> {
+        self.state.lock().last_list_transactions_version
+    }
+
+    pub fn last_list_transactions_duration(&self) -> Option<i64> {
+        self.state.lock().last_list_transactions_duration
+    }
+
     pub fn list_transactions_not_coordinator(&self) -> u32 {
         self.state.lock().list_transactions_not_coordinator
     }
@@ -2263,7 +2275,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (ALTER_CLIENT_QUOTAS, 0, 1),
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
-        (LIST_TRANSACTIONS, 0, 2),
+        (LIST_TRANSACTIONS, 0, 1),
         (INIT_PRODUCER_ID, 0, 5),
         (ADD_PARTITIONS_TO_TXN, 0, 3),
         (ADD_OFFSETS_TO_TXN, 0, 4),
@@ -3313,14 +3325,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             LIST_TRANSACTIONS => {
-                let _filters = decode_list_transactions_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (_states, _pids, duration_ms) =
+                    decode_list_transactions_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_list_transactions_version = Some(version);
+                st.last_list_transactions_duration = Some(duration_ms);
                 if st.txn_coord_node != node_id {
                     st.list_transactions_not_coordinator =
                         st.list_transactions_not_coordinator.saturating_add(1);
                     // 16 only. Do not disclose fixture txn ids on the wrong node.
                     encode_list_transactions_response(
                         &mut body,
+                        version,
                         &ListTransactionsResponse {
                             error_code: error::NOT_COORDINATOR,
                             unknown_state_filters: Vec::new(),
@@ -3342,6 +3359,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .collect();
                     encode_list_transactions_response(
                         &mut body,
+                        version,
                         &ListTransactionsResponse {
                             error_code: 0,
                             unknown_state_filters: Vec::new(),
