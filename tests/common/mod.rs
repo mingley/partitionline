@@ -240,6 +240,7 @@ struct State {
     last_write_txn_markers_node: Option<i32>,
     write_txn_markers_not_leader: u32,
     last_write_txn_markers: Option<WritableTxnMarker>,
+    last_write_txn_markers_version: Option<i16>,
     controller_node: i32,
     last_create_topics_node: Option<i32>,
     create_topics_not_controller: u32,
@@ -471,6 +472,7 @@ fn new_state(
         last_write_txn_markers_node: None,
         write_txn_markers_not_leader: 0,
         last_write_txn_markers: None,
+        last_write_txn_markers_version: None,
         controller_node: 1,
         last_create_topics_node: None,
         create_topics_not_controller: 0,
@@ -1208,6 +1210,10 @@ impl Mock {
 
     pub fn last_write_txn_markers(&self) -> Option<WritableTxnMarker> {
         self.state.lock().last_write_txn_markers.clone()
+    }
+
+    pub fn last_write_txn_markers_version(&self) -> Option<i16> {
+        self.state.lock().last_write_txn_markers_version
     }
 
     pub fn set_controller(&self, node_id: i32) {
@@ -2034,7 +2040,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
-        (WRITE_TXN_MARKERS, 0, 0),
+        (WRITE_TXN_MARKERS, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 2),
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
@@ -3225,9 +3231,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             WRITE_TXN_MARKERS => {
-                let markers = decode_write_txn_markers_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let markers = decode_write_txn_markers_request(&mut frame, version).unwrap();
                 let marker = markers.into_iter().next();
                 let mut st = state.lock();
+                st.last_write_txn_markers_version = Some(version);
                 let (topic, partition) = marker
                     .as_ref()
                     .and_then(|m| {
@@ -3246,7 +3254,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .map(|m| m.result(error::NOT_LEADER_OR_FOLLOWER))
                         .into_iter()
                         .collect::<Vec<_>>();
-                    encode_write_txn_markers_response(&mut body, &resp).unwrap();
+                    encode_write_txn_markers_response(&mut body, version, &resp).unwrap();
                 } else {
                     st.last_write_txn_markers_node = Some(node_id);
                     st.last_write_txn_markers = marker.clone();
@@ -3255,7 +3263,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .map(|m| m.result(0))
                         .into_iter()
                         .collect::<Vec<_>>();
-                    encode_write_txn_markers_response(&mut body, &resp).unwrap();
+                    encode_write_txn_markers_response(&mut body, version, &resp).unwrap();
                 }
             }
             TXN_OFFSET_COMMIT => {

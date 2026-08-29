@@ -13,7 +13,7 @@ use super::api_keys::{
     GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
     SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER,
-    UPDATE_FEATURES,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -68,6 +68,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // DeleteGroups is classic through v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
         DELETE_GROUPS if api_version >= 2 => 2,
+        // WriteTxnMarkers is classic at v0; flexible from v1
+        // (Apache JSON flexibleVersions: "1+"). Kafka 4.0 removed v0;
+        // this crate speaks 0–1.
+        WRITE_TXN_MARKERS if api_version >= 1 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -132,6 +136,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_GROUPS if api_version >= 5 => 1,
         LIST_GROUPS if api_version >= 3 => 1,
         DELETE_GROUPS if api_version >= 2 => 1,
+        WRITE_TXN_MARKERS if api_version >= 1 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -298,16 +303,14 @@ mod tests {
     }
 
     #[test]
-    fn write_txn_markers_v0_is_classic() {
-        // Official JSON: validVersions 0-1, flexibleVersions 1+.
-        assert_eq!(
-            request_header_version(crate::protocol::api_keys::WRITE_TXN_MARKERS, 0),
-            1
-        );
-        assert_eq!(
-            response_header_version(crate::protocol::api_keys::WRITE_TXN_MARKERS, 0),
-            0
-        );
+    fn write_txn_markers_v1_is_flexible_v0_is_not() {
+        // Kafka 3.9 JSON: validVersions 0-1, flexibleVersions 1+.
+        // Kafka 4.0 removed v0 (trunk validVersions 1-2). HeaderVersion
+        // is 1 / 0 at v0 and 2 / 1 at v1. This crate speaks 0–1.
+        assert_eq!(request_header_version(WRITE_TXN_MARKERS, 0), 1);
+        assert_eq!(response_header_version(WRITE_TXN_MARKERS, 0), 0);
+        assert_eq!(request_header_version(WRITE_TXN_MARKERS, 1), 2);
+        assert_eq!(response_header_version(WRITE_TXN_MARKERS, 1), 1);
     }
 
     #[test]

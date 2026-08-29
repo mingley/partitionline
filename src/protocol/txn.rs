@@ -4,7 +4,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// AddPartitionsToTxn (24).
 pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
@@ -308,7 +308,7 @@ pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
     Ok(first_err)
 }
 
-/// One topic in a WriteTxnMarkers marker (api 27 v0, classic).
+/// One topic in a WriteTxnMarkers marker (api 27 v0–1).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarkerTopic {
     /// Topic name.
@@ -317,7 +317,10 @@ pub struct WritableTxnMarkerTopic {
     pub partitions: Vec<i32>,
 }
 
-/// One transaction marker in WriteTxnMarkers v0 (classic).
+/// One transaction marker in WriteTxnMarkers v0–1.
+///
+/// v0 is classic. v1 is flexible (Kafka 4.0 baseline). v2
+/// `TransactionVersion` (KIP-1228) is not spoken.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarker {
     /// Producer id.
@@ -384,49 +387,85 @@ pub struct WritableTxnMarkerResult {
     pub topics: Vec<WritableTxnMarkerTopicResult>,
 }
 
-/// WriteTxnMarkers v0 (classic). v1 is flexible and is not implemented.
+/// `true` when WriteTxnMarkers `version` is flexible (v1).
+///
+/// v0 is classic. v1 is compact arrays/strings plus tagged fields
+/// (Apache JSON `flexibleVersions: "1+"`). v2 adds `TransactionVersion`
+/// (KIP-1228) and is not implemented.
+fn write_txn_markers_flexible(version: i16) -> Result<bool> {
+    match version {
+        0 => Ok(false),
+        1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "WriteTxnMarkers version {other} is not implemented"
+        ))),
+    }
+}
+
+/// WriteTxnMarkers v0 (classic) or v1 (flexible). v2 is not implemented.
 pub fn encode_write_txn_markers_request(
     buf: &mut BytesMut,
+    version: i16,
     markers: &[WritableTxnMarker],
 ) -> Result<()> {
-    buf::put_array_len(buf, false, Some(markers.len()))?;
+    let flexible = write_txn_markers_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for m in markers {
         buf.put_i64(m.producer_id);
         buf.put_i16(m.producer_epoch);
         buf.put_u8(u8::from(m.transaction_result));
-        buf::put_array_len(buf, false, Some(m.topics.len()))?;
+        buf::put_array_len(buf, flexible, Some(m.topics.len()))?;
         for t in &m.topics {
-            buf::put_classic_nullable_string(buf, Some(&t.name))?;
-            buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+            buf::put_string(buf, flexible, Some(&t.name))?;
+            buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
             for p in &t.partitions {
                 buf.put_i32(*p);
             }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
         buf.put_i32(m.coordinator_epoch);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode WriteTxnMarkers v0.
-pub fn decode_write_txn_markers_request<B: Buf>(buf: &mut B) -> Result<Vec<WritableTxnMarker>> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+/// Decode WriteTxnMarkers v0 (classic) or v1 (flexible).
+pub fn decode_write_txn_markers_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<WritableTxnMarker>> {
+    let flexible = write_txn_markers_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
         let producer_epoch = buf::get_i16(buf)?;
         let transaction_result = buf::get_bool(buf)?;
-        let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
-            let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-            let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+            let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
                 partitions.push(buf::get_i32(buf)?);
             }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             topics.push(WritableTxnMarkerTopic { name, partitions });
         }
         let coordinator_epoch = buf::get_i32(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         markers.push(WritableTxnMarker {
             producer_id,
             producer_epoch,
@@ -435,58 +474,89 @@ pub fn decode_write_txn_markers_request<B: Buf>(buf: &mut B) -> Result<Vec<Writa
             coordinator_epoch,
         });
     }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(markers)
 }
 
-/// Encode WriteTxnMarkers v0.
+/// Encode WriteTxnMarkers v0 (classic) or v1 (flexible).
 pub fn encode_write_txn_markers_response(
     buf: &mut BytesMut,
+    version: i16,
     markers: &[WritableTxnMarkerResult],
 ) -> Result<()> {
-    buf::put_array_len(buf, false, Some(markers.len()))?;
+    let flexible = write_txn_markers_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(markers.len()))?;
     for m in markers {
         buf.put_i64(m.producer_id);
-        buf::put_array_len(buf, false, Some(m.topics.len()))?;
+        buf::put_array_len(buf, flexible, Some(m.topics.len()))?;
         for t in &m.topics {
-            buf::put_classic_nullable_string(buf, Some(&t.name))?;
-            buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+            buf::put_string(buf, flexible, Some(&t.name))?;
+            buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
             for p in &t.partitions {
                 buf.put_i32(p.partition_index);
                 buf.put_i16(p.error_code);
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
             }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode WriteTxnMarkers v0.
+/// Decode WriteTxnMarkers v0 (classic) or v1 (flexible).
 pub fn decode_write_txn_markers_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<Vec<WritableTxnMarkerResult>> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let flexible = write_txn_markers_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
-        let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
-            let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-            let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+            let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
                 let partition_index = buf::get_i32(buf)?;
                 let error_code = buf::get_i16(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
                 partitions.push(WritableTxnMarkerPartitionResult {
                     partition_index,
                     error_code,
                 });
             }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             topics.push(WritableTxnMarkerTopicResult { name, partitions });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
         }
         markers.push(WritableTxnMarkerResult {
             producer_id,
             topics,
         });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(markers)
 }
@@ -611,9 +681,12 @@ mod tests {
             coordinator_epoch: 1,
         }];
         let mut buf = BytesMut::new();
-        encode_write_txn_markers_request(&mut buf, &markers).unwrap();
+        encode_write_txn_markers_request(&mut buf, 0, &markers).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_write_txn_markers_request(&mut cur).unwrap(), markers);
+        assert_eq!(
+            decode_write_txn_markers_request(&mut cur, 0).unwrap(),
+            markers
+        );
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v0 request must be leftover-empty"
@@ -621,12 +694,53 @@ mod tests {
 
         let resp = vec![markers[0].result(0)];
         buf.clear();
-        encode_write_txn_markers_response(&mut buf, &resp).unwrap();
+        encode_write_txn_markers_response(&mut buf, 0, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_write_txn_markers_response(&mut cur).unwrap(), resp);
+        assert_eq!(
+            decode_write_txn_markers_response(&mut cur, 0).unwrap(),
+            resp
+        );
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_v1_roundtrip_is_leftover_empty() {
+        let markers = vec![WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0],
+            }],
+            coordinator_epoch: 1,
+        }];
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, 1, &markers).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_write_txn_markers_request(&mut cur, 1).unwrap(),
+            markers
+        );
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 request must consume compact tagged fields"
+        );
+
+        let resp = vec![markers[0].result(0)];
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, 1, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_write_txn_markers_response(&mut cur, 1).unwrap(),
+            resp
+        );
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 response must consume compact tagged fields"
         );
     }
 
@@ -658,11 +772,12 @@ mod tests {
             coordinator_epoch: 1,
         }];
         let mut buf = BytesMut::new();
-        encode_write_txn_markers_request(&mut buf, &markers).unwrap();
+        encode_write_txn_markers_request(&mut buf, 0, &markers).unwrap();
         assert_eq!(&buf[..], REQ);
         buf.clear();
         encode_write_txn_markers_response(
             &mut buf,
+            0,
             &[markers[0].result(crate::error::NOT_LEADER_OR_FOLLOWER)],
         )
         .unwrap();
@@ -670,6 +785,53 @@ mod tests {
         assert_eq!(
             &RESP_6[27..29],
             &crate::error::NOT_LEADER_OR_FOLLOWER.to_be_bytes()
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_v1_abort_matches_compact_layout() {
+        // Compact: Markers uvarint n+1, {ProducerId, ProducerEpoch,
+        // TransactionResult, Topics compact {Name COMPACT_STRING,
+        // PartitionIndexes compact INT32 array, tagged}, CoordinatorEpoch,
+        // tagged}, tagged. Response: same plus per-partition ErrorCode
+        // and tagged fields on partition / topic / marker / top-level.
+        const REQ: &[u8] = &[
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00, 0x00, 0x00, 0x02, 0x02,
+            0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        ];
+        const RESP_6: &[u8] = &[
+            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x02, 0x02, 0x74, 0x02, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let markers = vec![WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: false,
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0],
+            }],
+            coordinator_epoch: 1,
+        }];
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_request(&mut buf, 1, &markers).unwrap();
+        assert_eq!(&buf[..], REQ);
+        buf.clear();
+        encode_write_txn_markers_response(
+            &mut buf,
+            1,
+            &[markers[0].result(crate::error::NOT_LEADER_OR_FOLLOWER)],
+        )
+        .unwrap();
+        assert_eq!(&buf[..], RESP_6);
+        assert_eq!(
+            &RESP_6[17..19],
+            &crate::error::NOT_LEADER_OR_FOLLOWER.to_be_bytes()
+        );
+        buf.clear();
+        assert!(
+            encode_write_txn_markers_request(&mut buf, 2, &markers).is_err(),
+            "WriteTxnMarkers v2 TransactionVersion is not spoken"
         );
     }
 }

@@ -110,7 +110,7 @@
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
-//! ([`AbortTransactionSpec`]; WriteTxnMarkers).
+//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1).
 //! [`Admin::remove_members_from_consumer_group`] is Java
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]).
 //! [`Admin::remove_all_members_from_consumer_group`] is Java

@@ -2485,15 +2485,17 @@ impl Admin {
 
     /// Force-abort an open transaction on a partition (Java `abortTransaction`).
     ///
-    /// Sends WriteTxnMarkers (api 27) v0 with `transactionResult=false`
-    /// to the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` and
+    /// Sends WriteTxnMarkers (api 27) v0 (classic) or v1 (flexible;
+    /// Kafka 4.0 baseline) with `transactionResult=false` to the
+    /// Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` and
     /// fenced/unknown leader epochs refresh Metadata and retry. This is
     /// not a controller hop and not a transaction-coordinator hop.
+    /// v2 `TransactionVersion` (KIP-1228) is not spoken.
     pub async fn abort_transaction(&mut self, spec: AbortTransactionSpec) -> Result<()> {
         let version = self
             .versions
             .get(&WRITE_TXN_MARKERS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| Error::Unsupported("broker does not support WriteTxnMarkers".into()))?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
@@ -2523,7 +2525,13 @@ impl Admin {
                 conn.roundtrip(
                     WRITE_TXN_MARKERS,
                     version,
-                    |buf| encode_write_txn_markers_request(buf, std::slice::from_ref(&marker)),
+                    |buf| {
+                        encode_write_txn_markers_request(
+                            buf,
+                            version,
+                            std::slice::from_ref(&marker),
+                        )
+                    },
                     timeout,
                 )
                 .await
@@ -2537,7 +2545,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let resp = decode_write_txn_markers_response(&mut body.clone())?;
+            let resp = decode_write_txn_markers_response(&mut body.clone(), version)?;
             let error_code = resp
                 .iter()
                 .flat_map(|m| m.topics.iter())

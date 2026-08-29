@@ -2786,6 +2786,11 @@ async fn admin_abort_transaction_writes_abort_marker() {
         .await
         .unwrap();
     assert_eq!(mock.last_write_txn_markers_node(), Some(1));
+    assert_eq!(
+        mock.last_write_txn_markers_version(),
+        Some(1),
+        "Admin must prefer WriteTxnMarkers v1 when the broker advertises it"
+    );
     let marker = mock.last_write_txn_markers().expect("WriteTxnMarkers sent");
     assert_eq!(marker.producer_id, 1000);
     assert_eq!(marker.producer_epoch, 0);

@@ -2775,6 +2775,11 @@ async fn abort_transaction_follows_partition_leader() {
     assert_eq!(marker.producer_id, 1000);
     assert!(!marker.transaction_result);
     assert_eq!(
+        mock.last_write_txn_markers_version(),
+        Some(1),
+        "Admin must prefer WriteTxnMarkers v1 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_write_txn_markers_node(),
         Some(2),
         "WriteTxnMarkers must land on the partition leader, not a follower"
