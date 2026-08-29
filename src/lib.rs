@@ -153,7 +153,9 @@
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
 //! match Java `toString`. [`FeatureUpdate`] / [`UpgradeType`] /
-//! [`RecordsToDelete`] `Display` match Java `toString`.
+//! [`RecordsToDelete`] / [`SupportedVersionRange`] /
+//! [`FinalizedVersionRange`] / [`FeatureMetadata`] `Display` match Java
+//! `toString`.
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on

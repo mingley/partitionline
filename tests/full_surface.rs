@@ -9481,6 +9481,10 @@ async fn describe_features_prefers_api_versions_v4() {
         .expect("kraft.version supported on v4");
     assert_eq!(kraft.min_version, 0);
     assert_eq!(kraft.max_version, 1);
+    assert_eq!(
+        kraft.to_string(),
+        "SupportedVersionRange[min_version:0, max_version:1]"
+    );
     let meta = features
         .supported_features
         .iter()
@@ -9488,6 +9492,10 @@ async fn describe_features_prefers_api_versions_v4() {
         .expect("metadata.version supported");
     assert_eq!(meta.min_version, 1);
     assert_eq!(meta.max_version, 20);
+    assert_eq!(
+        meta.to_string(),
+        "SupportedVersionRange[min_version:1, max_version:20]"
+    );
     let timed = admin
         .describe_features_timeout(Duration::from_secs(5))
         .await

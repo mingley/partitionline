@@ -1276,6 +1276,26 @@ fn write_java_int_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result {
     f.write_str("]")
 }
 
+/// Java `FeatureMetadata.mapToString`: `{(name -> range), ...}`.
+fn write_java_feature_map<T, N>(f: &mut fmt::Formatter<'_>, items: &[T], name: N) -> fmt::Result
+where
+    T: fmt::Display,
+    N: Fn(&T) -> &str,
+{
+    f.write_str("{")?;
+    for (i, item) in items.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        f.write_str("(")?;
+        f.write_str(name(item))?;
+        f.write_str(" -> ")?;
+        write!(f, "{item}")?;
+        f.write_str(")")?;
+    }
+    f.write_str("}")
+}
+
 /// Increase a topic's partition count (`CreatePartitions`). Java `NewPartitions`.
 ///
 /// [`Display`] is Java `NewPartitions.toString` (no topic name; `None`
@@ -1899,6 +1919,9 @@ impl FeatureUpdateResult {
 }
 
 /// Supported version range from [`Admin::describe_features`] (Java `SupportedVersionRange`).
+///
+/// [`Display`] is Java `SupportedVersionRange.toString` (no feature name;
+/// that is the `supportedFeatures` map key).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupportedVersionRange {
     /// Feature name (for example `metadata.version`).
@@ -1939,7 +1962,20 @@ impl SupportedVersionRange {
     }
 }
 
+impl fmt::Display for SupportedVersionRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SupportedVersionRange[min_version:")?;
+        write!(f, "{}", self.min_version())?;
+        f.write_str(", max_version:")?;
+        write!(f, "{}", self.max_version())?;
+        f.write_str("]")
+    }
+}
+
 /// Finalized version range from [`Admin::describe_features`] (Java `FinalizedVersionRange`).
+///
+/// [`Display`] is Java `FinalizedVersionRange.toString` (no feature name;
+/// that is the `finalizedFeatures` map key).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FinalizedVersionRange {
     /// Feature name (for example `metadata.version`).
@@ -1980,10 +2016,23 @@ impl FinalizedVersionRange {
     }
 }
 
+impl fmt::Display for FinalizedVersionRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("FinalizedVersionRange[min_version_level:")?;
+        write!(f, "{}", self.min_version_level())?;
+        f.write_str(", max_version_level:")?;
+        write!(f, "{}", self.max_version_level())?;
+        f.write_str("]")
+    }
+}
+
 /// Cluster feature metadata from [`Admin::describe_features`] (Java `FeatureMetadata`).
 ///
 /// There is no DescribeFeatures api key. Java and this client re-issue
 /// ApiVersions v3–v4 and read KIP-482 tagged fields.
+///
+/// [`Display`] is Java `FeatureMetadata.toString` (crate vec order;
+/// empty epoch prints a space; omits `zk_migration_ready`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureMetadata {
     /// Features the broker supports (`supportedFeatures`).
@@ -2019,6 +2068,21 @@ impl FeatureMetadata {
     #[must_use]
     pub fn zk_migration_ready(&self) -> bool {
         self.zk_migration_ready
+    }
+}
+
+impl fmt::Display for FeatureMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("FeatureMetadata{finalizedFeatures:")?;
+        write_java_feature_map(f, self.finalized_features(), FinalizedVersionRange::name)?;
+        f.write_str(", finalizedFeaturesEpoch:")?;
+        match self.finalized_features_epoch() {
+            Some(epoch) => write!(f, "{epoch}")?,
+            None => f.write_str(" ")?,
+        }
+        f.write_str(", supportedFeatures:")?;
+        write_java_feature_map(f, self.supported_features(), SupportedVersionRange::name)?;
+        f.write_str("}")
     }
 }
 
@@ -11834,9 +11898,17 @@ mod tests {
         let range = SupportedVersionRange::new("metadata.version", 1, 20);
         assert_eq!(range.min_version(), 1);
         assert_eq!(range.max_version(), 20);
+        assert_eq!(
+            range.to_string(),
+            "SupportedVersionRange[min_version:1, max_version:20]"
+        );
         let fin = FinalizedVersionRange::new("metadata.version", 1, 17);
         assert_eq!(fin.min_version_level(), 1);
         assert_eq!(fin.max_version_level(), 17);
+        assert_eq!(
+            fin.to_string(),
+            "FinalizedVersionRange[min_version_level:1, max_version_level:17]"
+        );
         let md = FeatureMetadata {
             supported_features: vec![range],
             finalized_features: vec![fin],
@@ -11847,6 +11919,20 @@ mod tests {
         assert_eq!(md.finalized_features().len(), 1);
         assert_eq!(md.finalized_features_epoch(), Some(8));
         assert!(md.zk_migration_ready());
+        assert_eq!(
+            md.to_string(),
+            "FeatureMetadata{finalizedFeatures:{(metadata.version -> FinalizedVersionRange[min_version_level:1, max_version_level:17])}, finalizedFeaturesEpoch:8, supportedFeatures:{(metadata.version -> SupportedVersionRange[min_version:1, max_version:20])}}"
+        );
+        let empty_epoch = FeatureMetadata {
+            finalized_features_epoch: None,
+            supported_features: Vec::new(),
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        assert_eq!(
+            empty_epoch.to_string(),
+            "FeatureMetadata{finalizedFeatures:{}, finalizedFeaturesEpoch: , supportedFeatures:{}}"
+        );
         let cluster = ClusterDescription {
             error_code: 0,
             error_message: None,
