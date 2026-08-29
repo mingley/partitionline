@@ -8453,16 +8453,14 @@ impl DescribeDelegationTokenOwner {
     }
 }
 
-/// DescribeDelegationToken (api 41) v3 request body.
+/// DescribeDelegationToken (api 41) v1–v3 request body.
 ///
 /// Official Apache JSON (`apiKey: 41`, request `listeners: ["broker",
-/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
-/// the 3.9.1 JSON kafka-protocol 0.18.0 was generated against,
-/// `validVersions: "1-3"` on trunk / `"0-3"` on 3.9.1,
-/// `flexibleVersions: "2+"`). Official JSON lists no `errorCodes`.
-/// Request has no ErrorCode field. `Owners` is a nullable compact
-/// array: null describes all tokens the caller may see; empty
-/// describes none.
+/// "controller"]`, `validVersions: "1-3"`, `flexibleVersions: "2+"`).
+/// Official JSON lists no `errorCodes`. Request has no ErrorCode
+/// field. `Owners` is a nullable array: null describes all tokens the
+/// caller may see; empty describes none. Request layout is the same
+/// on v1–v3 (classic at v1; compact plus tagged from v2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenRequest {
     /// Owner filter, or `None` for every token.
@@ -8498,19 +8496,20 @@ impl DescribedDelegationTokenRenewer {
     }
 }
 
-/// One token in a DescribeDelegationToken (api 41) v3 response.
+/// One token in a DescribeDelegationToken (api 41) v1–v3 response.
 ///
 /// Official JSON `Tokens` has no per-token ErrorCode. v3 adds
-/// TokenRequesterPrincipalType / TokenRequesterPrincipalName.
+/// TokenRequesterPrincipalType / TokenRequesterPrincipalName
+/// (decode fills empty on v1–v2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedDelegationToken {
     /// Principal type (for example `User`).
     pub principal_type: String,
     /// Principal name.
     pub principal_name: String,
-    /// Token requester principal type.
+    /// Token requester principal type (v3+; decode fills empty on v1–v2).
     pub token_requester_principal_type: String,
-    /// Token requester principal name.
+    /// Token requester principal name (v3+; decode fills empty on v1–v2).
     pub token_requester_principal_name: String,
     /// Issue time in milliseconds since the Unix epoch.
     pub issue_timestamp: i64,
@@ -8559,7 +8558,7 @@ impl DescribedDelegationToken {
     }
 }
 
-/// DescribeDelegationToken (api 41) v3 response body.
+/// DescribeDelegationToken (api 41) v1–v3 response body.
 ///
 /// **ErrorCode is top-level**, first field — not after throttle and
 /// not a first-token field. Official JSON places `Tokens` next and
@@ -8579,14 +8578,29 @@ impl DescribeDelegationTokenResponse {
     }
 }
 
-/// DescribeDelegationToken v3 (flexible from v2; KIP-48 / KIP-373).
+/// `true` when DescribeDelegationToken `version` is flexible.
+///
+/// v1 is classic. v2–v3 are flexible. Kafka 4.0 `validVersions` is
+/// `1-3` (v0 removed). This crate speaks 1–3. v0 and v4+ are not
+/// spoken.
+fn describe_delegation_token_flexible(version: i16) -> Result<bool> {
+    match version {
+        1 => Ok(false),
+        2..=3 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DescribeDelegationToken version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DescribeDelegationToken v1–3 (classic at v1; flexible from v2;
+/// TokenRequester v3; KIP-48 / KIP-373).
 ///
 /// Official Apache JSON (`apiKey: 41`, request `listeners: ["broker",
-/// "controller"]` on trunk / `["zkBroker", "broker", "controller"]` on
-/// 3.9.1, trunk `validVersions: "1-3"`, 3.9.1 `validVersions: "0-3"`,
-/// `flexibleVersions: "2+"`). Official JSON lists **no** `errorCodes`.
-/// Official Java `KafkaApis.handleDescribeTokensRequest` answers on
-/// the connected broker: `allowTokenRequests` →
+/// "controller"]`, `validVersions: "1-3"`, `flexibleVersions: "2+"`).
+/// Official JSON lists **no** `errorCodes`. Official Java
+/// `KafkaApis.handleDescribeTokensRequest` answers on the connected
+/// broker: `allowTokenRequests` →
 /// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64), disabled manager →
 /// `DELEGATION_TOKEN_AUTH_DISABLED`, empty owners → empty Tokens,
 /// otherwise `tokenManager.getTokens`. It does **not** call
@@ -8601,27 +8615,28 @@ impl DescribeDelegationTokenResponse {
 /// 41 collide numerically; the apiKey is not a hop.
 /// `NOT_LEADER_OR_FOLLOWER` (6) is **not** a client hop.
 /// kafka-protocol 0.18.0 (`DescribeDelegationTokenRequest` /
-/// `DescribeDelegationTokenResponse`, `VERSIONS` min=1 max=3). This
-/// crate targets v3, the version a client encodes (`VERSIONS.max`).
-/// Official 3.9.1 lists a deprecated v0; that version is not encoded.
-/// Request encode used `features = ["client"]`; response encode used
-/// `broker`. Request: compact nullable `Owners` of `{PrincipalType
-/// compact STRING, PrincipalName compact STRING, tagged}`, tagged.
-/// Response: **top-level `ErrorCode` INT16 first**, compact `Tokens`
-/// of principals / requester (v3+) / timestamps / TokenId / Hmac /
-/// Renewers, `ThrottleTimeMs` INT32 last, tagged. **ErrorCode is
-/// top-level**, first field — not after throttle and not a
-/// first-token field. Measured independently from kafka-protocol
-/// 0.18.0 (`broker` encodes the response) on leftover-empty fixture
-/// throttle `0`, empty Tokens, error
-/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64): the leftover-empty
-/// body is **8 bytes** and the top-level ErrorCode is the INT16 at
-/// **bytes 0–1**. i16=64 hits only at byte 0. There is no first-token
-/// ErrorCode. Do not assume bytes 0–1 from CreateDelegationToken
-/// (37-byte empty-token body), RenewDelegationToken, or
-/// ExpireDelegationToken (15-byte leftover-empty body): this offset
-/// was measured on this API's official first field. Not bytes 4–5
-/// from DescribeLogDirs / AssignReplicasToDirs / PushTelemetry /
+/// `DescribeDelegationTokenResponse`, `VERSIONS` min=1 max=3). Kafka
+/// 4.0 max is 3; this crate speaks 1–3. v0 was removed in Kafka 4.0.
+/// v4+ is not spoken. Request encode used `features = ["client"]`;
+/// response encode used `broker`. Request: nullable `Owners` of
+/// `{PrincipalType STRING, PrincipalName STRING, tagged (v2+)}`,
+/// tagged (v2+). Response: **top-level `ErrorCode` INT16 first**,
+/// `Tokens` of principals / requester (v3+) / timestamps / TokenId /
+/// Hmac / Renewers, `ThrottleTimeMs` INT32 last, tagged (v2+).
+/// **ErrorCode is top-level**, first field — not after throttle and
+/// not a first-token field. Measured independently from
+/// kafka-protocol 0.18.0 (`broker` encodes the response) on
+/// leftover-empty fixture throttle `0`, empty Tokens, error
+/// `DELEGATION_TOKEN_REQUEST_NOT_ALLOWED` (64) at **v3**: the
+/// leftover-empty body is **8 bytes** and the top-level ErrorCode is
+/// the INT16 at **bytes 0–1**. i16=64 hits only at byte 0. v2
+/// leftover-empty empty-Tokens is also **8 bytes**. Classic **v1**
+/// leftover-empty is **10 bytes**. There is no first-token ErrorCode.
+/// Do not assume bytes 0–1 from CreateDelegationToken (37-byte
+/// empty-token body), RenewDelegationToken, or ExpireDelegationToken
+/// (15-byte leftover-empty body): this offset was measured on this
+/// API's official first field. Not bytes 4–5 from DescribeLogDirs /
+/// AssignReplicasToDirs / PushTelemetry /
 /// GetTelemetrySubscriptions / ListConfigResources: this offset was
 /// measured on this API's official first field. Not bytes 5–6
 /// (DescribeTopicPartitions / ShareGroupDescribe), 7–8 (DeleteGroups
@@ -8634,32 +8649,42 @@ impl DescribeDelegationTokenResponse {
 /// copy ExpireDelegationToken just because it is the previous slice.
 pub fn encode_describe_delegation_token_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &DescribeDelegationTokenRequest,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, req.owners.as_ref().map(Vec::len))?;
+    let flexible = describe_delegation_token_flexible(version)?;
+    buf::put_array_len(buf, flexible, req.owners.as_ref().map(Vec::len))?;
     if let Some(owners) = &req.owners {
         for owner in owners {
-            buf::put_compact_string(buf, Some(&owner.principal_type))?;
-            buf::put_compact_string(buf, Some(&owner.principal_name))?;
-            buf::put_empty_tagged_fields(buf);
+            buf::put_string(buf, flexible, Some(&owner.principal_type))?;
+            buf::put_string(buf, flexible, Some(&owner.principal_name))?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DescribeDelegationToken request.
 pub fn decode_describe_delegation_token_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<DescribeDelegationTokenRequest> {
-    let owners = match buf::get_array_len(buf, true)? {
+    let flexible = describe_delegation_token_flexible(version)?;
+    let owners = match buf::get_array_len(buf, flexible)? {
         None => None,
         Some(n) => {
             let mut owners = Vec::with_capacity(n);
             for _ in 0..n {
-                let principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
-                let principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
-                buf::skip_tagged_fields(buf)?;
+                let principal_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+                let principal_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
                 owners.push(DescribeDelegationTokenOwner {
                     principal_type,
                     principal_name,
@@ -8668,69 +8693,94 @@ pub fn decode_describe_delegation_token_request<B: Buf>(
             Some(owners)
         }
     };
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(DescribeDelegationTokenRequest { owners })
 }
 
-/// Encode a DescribeDelegationToken response.
+/// Encode a DescribeDelegationToken response (v1–3). Requester
+/// principal fields are v3+.
 pub fn encode_describe_delegation_token_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &DescribeDelegationTokenResponse,
 ) -> crate::error::Result<()> {
+    let flexible = describe_delegation_token_flexible(version)?;
     buf.put_i16(resp.error_code);
-    buf::put_array_len(buf, true, Some(resp.tokens.len()))?;
+    buf::put_array_len(buf, flexible, Some(resp.tokens.len()))?;
     for token in &resp.tokens {
-        buf::put_compact_string(buf, Some(&token.principal_type))?;
-        buf::put_compact_string(buf, Some(&token.principal_name))?;
-        buf::put_compact_string(buf, Some(&token.token_requester_principal_type))?;
-        buf::put_compact_string(buf, Some(&token.token_requester_principal_name))?;
+        buf::put_string(buf, flexible, Some(&token.principal_type))?;
+        buf::put_string(buf, flexible, Some(&token.principal_name))?;
+        if version >= 3 {
+            buf::put_string(buf, flexible, Some(&token.token_requester_principal_type))?;
+            buf::put_string(buf, flexible, Some(&token.token_requester_principal_name))?;
+        }
         buf.put_i64(token.issue_timestamp);
         buf.put_i64(token.expiry_timestamp);
         buf.put_i64(token.max_timestamp);
-        buf::put_compact_string(buf, Some(&token.token_id))?;
-        buf::put_compact_bytes(buf, Some(&token.hmac))?;
-        buf::put_array_len(buf, true, Some(token.renewers.len()))?;
+        buf::put_string(buf, flexible, Some(&token.token_id))?;
+        buf::put_bytes(buf, flexible, Some(&token.hmac))?;
+        buf::put_array_len(buf, flexible, Some(token.renewers.len()))?;
         for renewer in &token.renewers {
-            buf::put_compact_string(buf, Some(&renewer.principal_type))?;
-            buf::put_compact_string(buf, Some(&renewer.principal_name))?;
+            buf::put_string(buf, flexible, Some(&renewer.principal_type))?;
+            buf::put_string(buf, flexible, Some(&renewer.principal_name))?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
             buf::put_empty_tagged_fields(buf);
         }
-        buf::put_empty_tagged_fields(buf);
     }
     buf.put_i32(0);
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DescribeDelegationToken response.
 pub fn decode_describe_delegation_token_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<DescribeDelegationTokenResponse> {
+    let flexible = describe_delegation_token_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut tokens = Vec::with_capacity(n);
     for _ in 0..n {
-        let principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
-        let principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let token_requester_principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
-        let token_requester_principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let principal_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let principal_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let (token_requester_principal_type, token_requester_principal_name) = if version >= 3 {
+            (
+                buf::get_string(buf, flexible)?.unwrap_or_default(),
+                buf::get_string(buf, flexible)?.unwrap_or_default(),
+            )
+        } else {
+            (String::new(), String::new())
+        };
         let issue_timestamp = buf::get_i64(buf)?;
         let expiry_timestamp = buf::get_i64(buf)?;
         let max_timestamp = buf::get_i64(buf)?;
-        let token_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let hmac = buf::get_compact_bytes(buf)?.unwrap_or_default();
-        let rn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let token_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let hmac = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        let rn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut renewers = Vec::with_capacity(rn);
         for _ in 0..rn {
-            let principal_type = buf::get_compact_string(buf)?.unwrap_or_default();
-            let principal_name = buf::get_compact_string(buf)?.unwrap_or_default();
-            buf::skip_tagged_fields(buf)?;
+            let principal_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let principal_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             renewers.push(DescribedDelegationTokenRenewer {
                 principal_type,
                 principal_name,
             });
         }
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         tokens.push(DescribedDelegationToken {
             principal_type,
             principal_name,
@@ -8745,7 +8795,9 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
         });
     }
     let _th = buf::get_i32(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(DescribeDelegationTokenResponse { error_code, tokens })
 }
 
@@ -15849,8 +15901,8 @@ mod tests {
     fn describe_delegation_token_v3_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 41
-        // listeners broker + controller. This crate targets v3
-        // (VERSIONS.max). Not copied from ExpireDelegationToken
+        // listeners broker + controller. This crate speaks 1–3.
+        // Not copied from ExpireDelegationToken
         // (sibling API; independently measured leftover-empty 15-byte
         // body), RenewDelegationToken, or CreateDelegationToken
         // (top-level ErrorCode at bytes 0-1 on a 37-byte empty-token
@@ -15875,11 +15927,12 @@ mod tests {
         const RESP_OK: &[u8] = &[0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00];
         let req_default = DescribeDelegationTokenRequest::new(Some(vec![]));
         let mut buf = BytesMut::new();
-        encode_describe_delegation_token_request(&mut buf, &req_default).unwrap();
+        encode_describe_delegation_token_request(&mut buf, 3, &req_default).unwrap();
         assert_eq!(&buf[..], REQ_DEFAULT);
         buf.clear();
         encode_describe_delegation_token_request(
             &mut buf,
+            3,
             &DescribeDelegationTokenRequest::new(None),
         )
         .unwrap();
@@ -15887,6 +15940,7 @@ mod tests {
         buf.clear();
         encode_describe_delegation_token_request(
             &mut buf,
+            3,
             &DescribeDelegationTokenRequest::new(Some(vec![DescribeDelegationTokenOwner::new(
                 "User", "r",
             )])),
@@ -15898,11 +15952,12 @@ mod tests {
             vec![],
         );
         buf.clear();
-        encode_describe_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_describe_delegation_token_response(&mut buf, 3, &resp).unwrap();
         assert_eq!(&buf[..], RESP_64);
         buf.clear();
         encode_describe_delegation_token_response(
             &mut buf,
+            3,
             &DescribeDelegationTokenResponse::new(0, vec![]),
         )
         .unwrap();
@@ -15916,10 +15971,10 @@ mod tests {
                 "User", "alice",
             )]));
         let mut buf = BytesMut::new();
-        encode_describe_delegation_token_request(&mut buf, &req).unwrap();
+        encode_describe_delegation_token_request(&mut buf, 3, &req).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_delegation_token_request(&mut cur).unwrap(),
+            decode_describe_delegation_token_request(&mut cur, 3).unwrap(),
             req
         );
         assert!(
@@ -15943,10 +15998,10 @@ mod tests {
             )],
         );
         buf.clear();
-        encode_describe_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_describe_delegation_token_response(&mut buf, 3, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_delegation_token_response(&mut cur).unwrap(),
+            decode_describe_delegation_token_response(&mut cur, 3).unwrap(),
             resp
         );
         assert!(
@@ -15957,12 +16012,13 @@ mod tests {
         buf.clear();
         encode_describe_delegation_token_request(
             &mut buf,
+            3,
             &DescribeDelegationTokenRequest::new(None),
         )
         .unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_delegation_token_request(&mut cur).unwrap(),
+            decode_describe_delegation_token_request(&mut cur, 3).unwrap(),
             DescribeDelegationTokenRequest::new(None)
         );
         assert!(
@@ -16001,7 +16057,7 @@ mod tests {
             vec![],
         );
         let mut buf = BytesMut::new();
-        encode_describe_delegation_token_response(&mut buf, &empty).unwrap();
+        encode_describe_delegation_token_response(&mut buf, 3, &empty).unwrap();
         assert_eq!(
             buf.len(),
             8,
@@ -16063,7 +16119,7 @@ mod tests {
         assert_eq!(hits, 1, "i16=64 hits only at byte 0");
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_delegation_token_response(&mut cur).unwrap(),
+            decode_describe_delegation_token_response(&mut cur, 3).unwrap(),
             empty
         );
         assert!(
@@ -16087,7 +16143,7 @@ mod tests {
             )],
         );
         buf.clear();
-        encode_describe_delegation_token_response(&mut buf, &resp).unwrap();
+        encode_describe_delegation_token_response(&mut buf, 3, &resp).unwrap();
         assert_eq!(
             buf.len(),
             40,
@@ -16126,7 +16182,7 @@ mod tests {
         assert_eq!(hits, 1, "i16=64 hits only at byte 0");
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_delegation_token_response(&mut cur).unwrap(),
+            decode_describe_delegation_token_response(&mut cur, 3).unwrap(),
             resp
         );
         assert!(
@@ -16136,24 +16192,255 @@ mod tests {
     }
 
     #[test]
+    fn describe_delegation_token_v1_is_classic_v2_omits_requester() {
+        const REQ_V1_EMPTY: &[u8] = &[0x00, 0x00, 0x00, 0x00];
+        const REQ_V1_NULL: &[u8] = &[0xff, 0xff, 0xff, 0xff];
+        const REQ_V1_ONE: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x55, 0x73, 0x65, 0x72, 0x00, 0x01, 0x72,
+        ];
+        const REQ_V2_EMPTY: &[u8] = &[0x01, 0x00];
+        const REQ_V2_NULL: &[u8] = &[0x00, 0x00];
+        const REQ_V2_ONE: &[u8] = &[0x02, 0x05, 0x55, 0x73, 0x65, 0x72, 0x02, 0x72, 0x00, 0x00];
+        const RESP_V1_64: &[u8] = &[0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const RESP_V2_64: &[u8] = &[0x00, 0x40, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let empty = DescribeDelegationTokenRequest::new(Some(vec![]));
+        let null = DescribeDelegationTokenRequest::new(None);
+        let one =
+            DescribeDelegationTokenRequest::new(Some(vec![DescribeDelegationTokenOwner::new(
+                "User", "r",
+            )]));
+        let mut buf = BytesMut::new();
+        encode_describe_delegation_token_request(&mut buf, 1, &empty).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V1_EMPTY);
+        assert_eq!(buf.len(), 4, "v1 leftover-empty empty-owners is 4 bytes");
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 1).unwrap(),
+            empty
+        );
+        assert!(!cur.has_remaining(), "v1 empty-owners leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 1, &null).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V1_NULL);
+        assert_eq!(buf.len(), 4, "v1 leftover-empty null-owners is 4 bytes");
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 1).unwrap(),
+            null
+        );
+        assert!(!cur.has_remaining(), "v1 null-owners leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 1, &one).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V1_ONE);
+        assert_eq!(buf.len(), 13, "v1 leftover-empty one-owner is 13 bytes");
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 1).unwrap(),
+            one
+        );
+        assert!(!cur.has_remaining(), "v1 one-owner leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 2, &empty).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V2_EMPTY);
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 2).unwrap(),
+            empty
+        );
+        assert!(!cur.has_remaining(), "v2 empty-owners leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 2, &null).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V2_NULL);
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 2).unwrap(),
+            null
+        );
+        assert!(!cur.has_remaining(), "v2 null-owners leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 2, &one).unwrap();
+        assert_eq!(buf.as_ref(), REQ_V2_ONE);
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_request(&mut cur, 2).unwrap(),
+            one
+        );
+        assert!(!cur.has_remaining(), "v2 one-owner leftover-empty");
+
+        let empty_resp = DescribeDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            vec![],
+        );
+        buf.clear();
+        encode_describe_delegation_token_response(&mut buf, 1, &empty_resp).unwrap();
+        assert_eq!(buf.as_ref(), RESP_V1_64);
+        assert_eq!(
+            buf.len(),
+            10,
+            "v1 leftover-empty empty-Tokens error 64 is 10 bytes"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v1 top-level ErrorCode is the INT16 at bytes 0-1"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "v1 i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "v1 i16=64 hits only at byte 0");
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_response(&mut cur, 1).unwrap(),
+            empty_resp
+        );
+        assert!(!cur.has_remaining(), "v1 empty-Tokens leftover-empty");
+        buf.clear();
+        encode_describe_delegation_token_response(&mut buf, 2, &empty_resp).unwrap();
+        assert_eq!(buf.as_ref(), RESP_V2_64);
+        assert_eq!(
+            buf.len(),
+            8,
+            "v2 leftover-empty empty-Tokens error 64 is 8 bytes"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 top-level ErrorCode is the INT16 at bytes 0-1"
+        );
+        let mut hits = 0u32;
+        if buf.len() >= 2 {
+            let end = buf.len().saturating_sub(1);
+            let mut i = 0usize;
+            while i < end {
+                let lo = buf.get(i).copied().unwrap();
+                let hi = buf.get(i.saturating_add(1)).copied().unwrap();
+                if i16::from_be_bytes([lo, hi])
+                    == crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+                {
+                    hits = hits.saturating_add(1);
+                    assert_eq!(i, 0, "v2 i16=64 must hit only at byte 0");
+                }
+                i = i.saturating_add(1);
+            }
+        }
+        assert_eq!(hits, 1, "v2 i16=64 hits only at byte 0");
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_delegation_token_response(&mut cur, 2).unwrap(),
+            empty_resp
+        );
+        assert!(!cur.has_remaining(), "v2 empty-Tokens leftover-empty");
+
+        let token =
+            DescribedDelegationToken::new("", "", "User", "alice", 0, 0, 0, "", vec![], vec![]);
+        let resp = DescribeDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            vec![token],
+        );
+        buf.clear();
+        encode_describe_delegation_token_response(&mut buf, 1, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            48,
+            "v1 leftover-empty one-default-token is 48 bytes"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v1 top-level ErrorCode stays at bytes 0-1 when a token is present"
+        );
+        let mut cur = buf.as_ref();
+        let got = decode_describe_delegation_token_response(&mut cur, 1).unwrap();
+        assert!(!cur.has_remaining(), "v1 one-token leftover-empty");
+        assert_eq!(
+            got.tokens[0].token_requester_principal_type, "",
+            "v1 decode fills requester empty"
+        );
+        assert_eq!(got.tokens[0].token_requester_principal_name, "");
+        buf.clear();
+        encode_describe_delegation_token_response(&mut buf, 2, &resp).unwrap();
+        assert_eq!(
+            buf.len(),
+            38,
+            "v2 leftover-empty one-default-token is 38 bytes"
+        );
+        let b0 = buf.first().copied().unwrap();
+        let b1 = buf.get(1).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b0, b1]),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            "v2 top-level ErrorCode stays at bytes 0-1 when a token is present"
+        );
+        let mut cur = buf.as_ref();
+        let got = decode_describe_delegation_token_response(&mut cur, 2).unwrap();
+        assert!(!cur.has_remaining(), "v2 one-token leftover-empty");
+        assert_eq!(
+            got.tokens[0].token_requester_principal_type, "",
+            "v2 decode fills requester empty"
+        );
+        assert_eq!(got.tokens[0].token_requester_principal_name, "");
+        buf.clear();
+        encode_describe_delegation_token_response(&mut buf, 3, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_describe_delegation_token_response(&mut cur, 3).unwrap();
+        assert!(!cur.has_remaining(), "v3 one-token leftover-empty");
+        assert_eq!(got.tokens[0].token_requester_principal_type, "User");
+        assert_eq!(got.tokens[0].token_requester_principal_name, "alice");
+    }
+
+    #[test]
     fn describe_delegation_token_does_not_speak_v0() {
         // kafka-protocol 0.18.0 VERSIONS.min = 1, VERSIONS.max = 3.
-        // This crate negotiates 3 only. Official 3.9.1 lists deprecated
-        // v0; that version is not encoded. Official trunk removed v0.
-        assert_eq!(crate::protocol::api_keys::pick_version(1, 3, 3, 3), Some(3));
-        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 3, 3), None);
-        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 3, 3), None);
+        // Kafka 4.0 validVersions is 1-3. This crate speaks 1–3.
+        // Official 3.9.1 lists deprecated v0; that version is not
+        // encoded. Official trunk removed v0. v4+ is not spoken.
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 3, 1, 3), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 1, 3), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 1, 3), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 1, 3), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(4, 4, 1, 3), None);
         let req = DescribeDelegationTokenRequest::new(None);
         let mut buf = BytesMut::new();
-        encode_describe_delegation_token_request(&mut buf, &req).unwrap();
+        let err = encode_describe_delegation_token_request(&mut buf, 0, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v0 is not spoken, got {err}"
+        );
+        buf.clear();
+        let err = encode_describe_delegation_token_request(&mut buf, 4, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v4 is not spoken, got {err}"
+        );
+        buf.clear();
+        encode_describe_delegation_token_request(&mut buf, 3, &req).unwrap();
         assert_eq!(
             buf.len(),
             2,
             "v3 leftover-empty null-owners request has no extra field after Owners"
         );
-        let mut cur = &buf[..];
+        let mut cur = buf.as_ref();
         assert_eq!(
-            decode_describe_delegation_token_request(&mut cur).unwrap(),
+            decode_describe_delegation_token_request(&mut cur, 3).unwrap(),
             req
         );
         assert!(

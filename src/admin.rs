@@ -1311,7 +1311,7 @@ impl Admin {
             })?;
         let describe_delegation_token_version = versions
             .get(&DESCRIBE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 3))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support DescribeDelegationToken".into())
             })?;
@@ -5275,7 +5275,8 @@ impl Admin {
     }
 
     /// Describe delegation tokens (DescribeDelegationToken api 41,
-    /// KIP-48 / KIP-373).
+    /// KIP-48 / KIP-373; v1–v3, classic at v1, flexible from v2,
+    /// TokenRequester v3).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` and `controller`. Official
@@ -5295,9 +5296,11 @@ impl Admin {
     /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
     /// `error_code` is the INT16 at bytes 0–1, first field — not after
     /// throttle and not a first-token field. Fixture owners only;
-    /// this is not a token store. Speaks v3 only
-    /// (`VERSIONS.max`). Do not copy ExpireDelegationToken just
-    /// because it is the previous slice.
+    /// this is not a token store. Kafka 4.0 `validVersions` is `1-3`.
+    /// This crate speaks 1–3. v0 and v4+ are not spoken. Request
+    /// Owners is the same on v1–v3. v1–v2 omit TokenRequester on each
+    /// token (decode fills empty). Do not copy ExpireDelegationToken
+    /// just because it is the previous slice.
     pub async fn describe_delegation_token(
         &mut self,
         req: DescribeDelegationTokenRequest,
@@ -5308,11 +5311,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_DELEGATION_TOKEN,
                 version,
-                |buf| encode_describe_delegation_token_request(buf, &req),
+                |buf| encode_describe_delegation_token_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        decode_describe_delegation_token_response(&mut body.clone())
+        decode_describe_delegation_token_response(&mut body.clone(), version)
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

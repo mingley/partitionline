@@ -48,6 +48,7 @@
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester),
 //! RenewDelegationToken v1–v2 (v1 classic; v2 flexible),
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible),
+//! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible),

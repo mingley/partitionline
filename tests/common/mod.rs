@@ -383,6 +383,7 @@ struct State {
     last_expire_delegation_token_version: Option<i16>,
     last_expire_delegation_token: Option<ExpireDelegationTokenRequest>,
     last_describe_delegation_token_node: Option<i32>,
+    last_describe_delegation_token_version: Option<i16>,
     last_describe_delegation_token: Option<DescribeDelegationTokenRequest>,
     accepted_produce: Vec<i32>,
     produce_requests: Vec<i32>,
@@ -673,6 +674,7 @@ fn new_state(
         last_expire_delegation_token_version: None,
         last_expire_delegation_token: None,
         last_describe_delegation_token_node: None,
+        last_describe_delegation_token_version: None,
         last_describe_delegation_token: None,
         accepted_produce: Vec::new(),
         produce_requests: Vec::new(),
@@ -1964,6 +1966,10 @@ impl Mock {
 
     pub fn last_describe_delegation_token_node(&self) -> Option<i32> {
         self.state.lock().last_describe_delegation_token_node
+    }
+
+    pub fn last_describe_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_delegation_token_version
     }
 
     pub fn last_describe_delegation_token(&self) -> Option<DescribeDelegationTokenRequest> {
@@ -5480,7 +5486,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             DESCRIBE_DELEGATION_TOKEN => {
-                let req = decode_describe_delegation_token_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_describe_delegation_token_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture ack only; not
                 // a token store, not a coordinator hop, not a 41/6
@@ -5492,9 +5499,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // node does not return 16 or 41. apiKey 41 is not
                 // error code 41.
                 st.last_describe_delegation_token_node = Some(node_id);
+                st.last_describe_delegation_token_version = Some(version);
                 st.last_describe_delegation_token = Some(req);
                 encode_describe_delegation_token_response(
                     &mut body,
+                    version,
                     &DescribeDelegationTokenResponse::new(0, vec![]),
                 )
                 .unwrap();

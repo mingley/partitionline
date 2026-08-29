@@ -239,7 +239,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         EXPIRE_DELEGATION_TOKEN if api_version >= 2 => 2,
         // DescribeDelegationToken is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
-        // This crate speaks v3 only (VERSIONS.max).
+        // This crate speaks 1–3. v0 was removed in Kafka 4.0.
         DESCRIBE_DELEGATION_TOKEN if api_version >= 2 => 2,
         _ => 1,
     }
@@ -1038,7 +1038,7 @@ mod tests {
     fn describe_delegation_token_v3_is_flexible() {
         // Official JSON: flexibleVersions 2+. kafka-protocol 0.18.0
         // VERSIONS min=1 max=3; HeaderVersion is 2 / 1 at v2–3; 1 / 0
-        // at v1. This crate speaks v3 (VERSIONS.max).
+        // at v1. This crate speaks 1–3.
         assert_eq!(request_header_version(DESCRIBE_DELEGATION_TOKEN, 1), 1);
         assert_eq!(response_header_version(DESCRIBE_DELEGATION_TOKEN, 1), 0);
         assert_eq!(request_header_version(DESCRIBE_DELEGATION_TOKEN, 2), 2);
