@@ -146,7 +146,8 @@ use partitionline::protocol::idem::{
 use partitionline::protocol::oauth;
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
-    ListOffsetsResponsePartition, ListOffsetsTopicResponse, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    ListOffsetsResponsePartition, ListOffsetsTopicResponse, EARLIEST_LOCAL_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 use partitionline::protocol::records::{Record, RecordBatch};
 use partitionline::protocol::sasl::{
@@ -840,10 +841,18 @@ fn list_offsets_partition_result(
     let hw = *st.next_offset.get(&key).unwrap_or(&0);
     let (resp_ts, offset) = if error_code != 0 {
         (-1, -1)
-    } else if timestamp == EARLIEST_TIMESTAMP {
+    } else if timestamp == EARLIEST_TIMESTAMP || timestamp == EARLIEST_LOCAL_TIMESTAMP {
         (timestamp, log_start)
     } else if timestamp == LATEST_TIMESTAMP {
         (timestamp, hw)
+    } else if timestamp == MAX_TIMESTAMP {
+        st.log
+            .get(&key)
+            .and_then(|recs| recs.iter().max_by_key(|r| (r.timestamp, r.offset)))
+            .map(|r| (r.timestamp, r.offset))
+            .unwrap_or((-1, -1))
+    } else if timestamp == LATEST_TIERED_TIMESTAMP {
+        (-1, -1)
     } else {
         st.log
             .get(&key)
@@ -2072,7 +2081,7 @@ fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
         (FETCH, 4, 12),
-        (LIST_OFFSETS, 0, 6),
+        (LIST_OFFSETS, 0, 9),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),

@@ -105,7 +105,7 @@
 //! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
-//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v6).
+//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v9).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
@@ -326,7 +326,10 @@ pub use partitioner::{
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::acl::{ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC};
 pub use protocol::admin::{DescribeConfigsResult, TopicResult};
-pub use protocol::offsets::{EARLIEST_TIMESTAMP, LATEST_TIMESTAMP};
+pub use protocol::offsets::{
+    EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,
+    MAX_TIMESTAMP,
+};
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};
 pub use share::{

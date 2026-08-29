@@ -3002,12 +3002,15 @@ impl Admin {
     ///
     /// Each item is a [`crate::TopicPartition`] and a timestamp:
     /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
-    /// (`-1`), or milliseconds since the Unix epoch. One ListOffsets
+    /// (`-1`), [`crate::MAX_TIMESTAMP`] (`-3`),
+    /// [`crate::EARLIEST_LOCAL_TIMESTAMP`] (`-4`),
+    /// [`crate::LATEST_TIERED_TIMESTAMP`] (`-5`), or milliseconds since
+    /// the Unix epoch. One ListOffsets
     /// RPC per Metadata partition leader (duplicate partitions keep
     /// separate timestamps). `NOT_LEADER_OR_FOLLOWER` refreshes
     /// Metadata and retries.
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
-    /// v1–v5 are classic; v6 is flexible.
+    /// v1–v5 are classic; v6–v9 are flexible. v10 `TimeoutMs` is not spoken.
     /// Empty input is a no-op.
     pub async fn list_offsets_with_isolation(
         &mut self,
@@ -3024,7 +3027,7 @@ impl Admin {
         let version = self
             .versions
             .get(&LIST_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
             .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;

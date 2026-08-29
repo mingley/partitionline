@@ -933,7 +933,9 @@ impl ConsumerGroup {
         self.consumer.end_offsets_timeout(partitions, timeout).await
     }
 
-    /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
+    /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1),
+    /// `MAX_TIMESTAMP` (-3), `EARLIEST_LOCAL_TIMESTAMP` (-4),
+    /// `LATEST_TIERED_TIMESTAMP` (-5), or ms.
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::list_offsets_timeout`].

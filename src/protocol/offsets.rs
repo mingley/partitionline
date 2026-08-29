@@ -1,4 +1,4 @@
-//! ListOffsets (api key 2). v1–v5 classic; v6 flexible.
+//! ListOffsets (api key 2). v1–v5 classic; v6–v9 flexible.
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -9,6 +9,12 @@ use crate::error::{Error, Result};
 pub const EARLIEST_TIMESTAMP: i64 = -2;
 /// High watermark (latest).
 pub const LATEST_TIMESTAMP: i64 = -1;
+/// Offset of the record with the largest timestamp (KIP-734). ListOffsets v7+.
+pub const MAX_TIMESTAMP: i64 = -3;
+/// Earliest offset still in local storage (KIP-405). ListOffsets v8+.
+pub const EARLIEST_LOCAL_TIMESTAMP: i64 = -4;
+/// Last offset in tiered/remote storage (KIP-1005). ListOffsets v9+.
+pub const LATEST_TIERED_TIMESTAMP: i64 = -5;
 
 /// One partition in a ListOffsets response.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,7 +49,8 @@ pub struct ListOffsetsPartitionRequest {
     pub partition: i32,
     /// Current leader epoch (v4+), or `-1`.
     pub current_leader_epoch: i32,
-    /// Timestamp to search (`-2` earliest, `-1` latest, or milliseconds).
+    /// Timestamp to search (`-2` earliest, `-1` latest, `-3` max
+    /// timestamp, `-4` earliest local, `-5` latest tiered, or milliseconds).
     pub timestamp: i64,
 }
 
@@ -128,8 +135,8 @@ impl ListOffsetsTopicResponse {
     }
 }
 
-/// ListOffsets v1–v5 (classic) or v6 (flexible). Isolation is v2+.
-/// `current_leader_epoch` is v4+. v7+ (max timestamp, KIP-734) is not spoken.
+/// ListOffsets v1–v5 (classic) or v6–v9 (flexible). Isolation is v2+.
+/// `current_leader_epoch` is v4+. v10 `TimeoutMs` is not spoken.
 pub fn encode_list_offsets_request(
     buf: &mut BytesMut,
     version: i16,
@@ -154,22 +161,24 @@ pub fn encode_list_offsets_request(
     )
 }
 
-/// `true` when ListOffsets `version` is flexible (v6).
+/// `true` when ListOffsets `version` is flexible (v6+).
 ///
-/// v0–v5 are classic. v6 is compact arrays/strings plus tagged fields
-/// (Apache JSON `flexibleVersions: "6+"`). Kafka 4.0 removed v0.
-/// v7+ timestamp sentinels and v10 `TimeoutMs` are not spoken.
+/// v0–v5 are classic. v6–v9 are compact arrays/strings plus tagged
+/// fields (Apache JSON `flexibleVersions: "6+"`). v7 is MAX_TIMESTAMP
+/// (KIP-734). v8 is EARLIEST_LOCAL (KIP-405). v9 is LATEST_TIERED
+/// (KIP-1005). Kafka 4.0 `validVersions` is `1-10`. v10 `TimeoutMs`
+/// (KIP-1075) is not spoken.
 fn list_offsets_flexible(version: i16) -> Result<bool> {
     match version {
         0..=5 => Ok(false),
-        6 => Ok(true),
+        6..=9 => Ok(true),
         other => Err(Error::protocol(format!(
             "ListOffsets version {other} is not implemented"
         ))),
     }
 }
 
-/// Encode ListOffsets with one or more topics (v1–v5 classic, v6 flexible).
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v9 flexible).
 pub fn encode_list_offsets_topics_request(
     buf: &mut BytesMut,
     version: i16,
@@ -231,7 +240,7 @@ pub fn decode_list_offsets_request<B: Buf>(
     ))
 }
 
-/// Decode ListOffsets topics (v1–v5 classic, v6 flexible).
+/// Decode ListOffsets topics (v1–v5 classic, v6–v9 flexible).
 pub fn decode_list_offsets_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -287,7 +296,7 @@ pub fn encode_list_offsets_response(
     )
 }
 
-/// Encode ListOffsets with one or more topics (v1–v5 classic, v6 flexible).
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v9 flexible).
 pub fn encode_list_offsets_topics_response(
     buf: &mut BytesMut,
     version: i16,
@@ -350,7 +359,7 @@ pub fn decode_list_offsets_response<B: Buf>(
     })
 }
 
-/// Decode ListOffsets topics (v1–v5 classic, v6 flexible). Partition errors stay on the row.
+/// Decode ListOffsets topics (v1–v5 classic, v6–v9 flexible). Partition errors stay on the row.
 pub fn decode_list_offsets_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -534,9 +543,18 @@ mod tests {
             "ListOffsets v6 response must consume compact tagged fields"
         );
         req.clear();
+        encode_list_offsets_request(&mut req, 9, 1, "t", 0, 7, MAX_TIMESTAMP).unwrap();
+        let mut cur = &req[..];
+        let (iso, topic, part, epoch, ts) = decode_list_offsets_request(&mut cur, 9).unwrap();
+        assert_eq!(
+            (iso, topic.as_str(), part, epoch, ts),
+            (1, "t", 0, 7, MAX_TIMESTAMP)
+        );
+        assert!(cur.is_empty(), "ListOffsets v9 shares the v6 layout");
+        req.clear();
         assert!(
-            encode_list_offsets_request(&mut req, 7, 0, "t", 0, 0, LATEST_TIMESTAMP).is_err(),
-            "ListOffsets v7+ is not spoken"
+            encode_list_offsets_request(&mut req, 10, 0, "t", 0, 0, LATEST_TIMESTAMP).is_err(),
+            "ListOffsets v10 TimeoutMs is not spoken"
         );
     }
 
@@ -552,5 +570,8 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_list_offsets_request(&mut buf, 6, 0, "t", 0, 0, LATEST_TIMESTAMP).unwrap();
         assert_eq!(&buf[..], REQ);
+        buf.clear();
+        encode_list_offsets_request(&mut buf, 9, 0, "t", 0, 0, LATEST_TIMESTAMP).unwrap();
+        assert_eq!(&buf[..], REQ, "ListOffsets v9 request shares the v6 layout");
     }
 }

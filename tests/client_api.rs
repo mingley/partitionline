@@ -17,7 +17,8 @@ use partitionline::{
     MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
     Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
     ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP,
+    LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2466,8 +2467,26 @@ async fn admin_list_offsets_earliest_and_latest() {
     assert_eq!(mock.last_list_offsets_isolation(), Some(0));
     assert_eq!(
         mock.last_list_offsets_version(),
-        Some(6),
-        "Admin must prefer ListOffsets v6 when the broker advertises it"
+        Some(9),
+        "Admin must prefer ListOffsets v9 when the broker advertises it"
+    );
+    let sentinels = admin
+        .list_offsets([
+            (("t", 0), MAX_TIMESTAMP),
+            (("t", 0), EARLIEST_LOCAL_TIMESTAMP),
+            (("t", 0), LATEST_TIERED_TIMESTAMP),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(sentinels.len(), 3);
+    assert_eq!(sentinels[0].1.offset, 0, "MAX_TIMESTAMP on one record");
+    assert_eq!(
+        sentinels[1].1.offset, 0,
+        "EARLIEST_LOCAL matches local log start"
+    );
+    assert_eq!(
+        sentinels[2].1.offset, -1,
+        "LATEST_TIERED is -1 when the mock has no remote log"
     );
     let committed = admin
         .list_offsets_with_isolation(
