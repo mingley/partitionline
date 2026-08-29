@@ -144,6 +144,8 @@
 //! [`Admin::create_topics_with_quota_retry`] is Java
 //! `CreateTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
+//! [`Admin::delete_topics_with_quota_retry`] is Java
+//! `DeleteTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`
 //! (DeleteTopics v6 null Name + TopicId).
 //! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.

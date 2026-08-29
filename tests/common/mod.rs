@@ -294,6 +294,9 @@ struct State {
     last_delete_topics_version: Option<i16>,
     last_delete_topics_timeout: Option<i32>,
     last_delete_topics_ids: Option<usize>,
+    last_delete_topics_names: Option<Vec<String>>,
+    delete_topics_quota_once: HashSet<String>,
+    delete_topics_quota_hits: u32,
     delete_topics_not_controller: u32,
     last_describe_configs_version: Option<i16>,
     last_describe_configs_documentation: Option<bool>,
@@ -645,6 +648,9 @@ fn new_state(
         last_delete_topics_version: None,
         last_delete_topics_timeout: None,
         last_delete_topics_ids: None,
+        last_delete_topics_names: None,
+        delete_topics_quota_once: HashSet::new(),
+        delete_topics_quota_hits: 0,
         delete_topics_not_controller: 0,
         last_describe_configs_version: None,
         last_describe_configs_documentation: None,
@@ -1911,6 +1917,22 @@ impl Mock {
 
     pub fn last_delete_topics_ids(&self) -> Option<usize> {
         self.state.lock().last_delete_topics_ids
+    }
+
+    pub fn last_delete_topics_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_delete_topics_names.clone()
+    }
+
+    pub fn delete_topics_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .delete_topics_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn delete_topics_quota_hits(&self) -> u32 {
+        self.state.lock().delete_topics_quota_hits
     }
 
     pub fn delete_topics_not_controller(&self) -> u32 {
@@ -3489,6 +3511,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_delete_topics_version = Some(version);
                 st.last_delete_topics_timeout = Some(timeout_ms);
+                st.last_delete_topics_names =
+                    Some(topics.iter().filter_map(|t| t.name.clone()).collect());
                 st.last_delete_topics_ids = Some(
                     topics
                         .iter()
@@ -3512,6 +3536,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     st.last_delete_topics_node = Some(node_id);
                     for t in topics {
+                        if let Some(name) = t.name.as_ref().filter(|n| !n.is_empty()) {
+                            if st.delete_topics_quota_once.remove(name) {
+                                st.delete_topics_quota_hits =
+                                    st.delete_topics_quota_hits.saturating_add(1);
+                                results.push(TopicResult::new(
+                                    name.clone(),
+                                    error::THROTTLING_QUOTA_EXCEEDED,
+                                    Some("Throttling quota exceeded".into()),
+                                ));
+                                continue;
+                            }
+                        }
                         results.push(delete_topic_result(&mut st, version, t));
                     }
                 }

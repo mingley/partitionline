@@ -79,6 +79,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::create_topics_timeout` is Java `CreateTopicsOptions.timeoutMs`.
 `Admin::create_topics_with_quota_retry` is Java `CreateTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 `Admin::delete_topics_timeout` is Java `DeleteTopicsOptions.timeoutMs`.
+`Admin::delete_topics_with_quota_retry` is Java `DeleteTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 `Admin::delete_topics_by_id` is Java `deleteTopics(TopicCollection.ofTopicIds)` (DeleteTopics v6 null Name + TopicId).
 `Admin::describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+ null Name + TopicId).
 `Admin::describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions api 75; Metadata fallback when the broker omits api 75).

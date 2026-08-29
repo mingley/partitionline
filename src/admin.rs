@@ -1323,6 +1323,13 @@ fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
         .collect()
 }
 
+fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool {
+    match &topic.name {
+        Some(name) => name == &result.name,
+        None => topic.topic_id != [0; 16] && topic.topic_id == result.topic_id,
+    }
+}
+
 impl Admin {
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
@@ -1916,6 +1923,9 @@ impl Admin {
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
     /// drives both the RPC deadline and TimeoutMs, use
     /// [`Self::delete_topics_timeout`].
+    /// Java `DeleteTopicsOptions.retryOnQuotaViolation` defaults to
+    /// `true` (KIP-599); use [`Self::delete_topics_with_quota_retry`]
+    /// to disable.
     pub async fn delete_topics(
         &mut self,
         names: &[impl AsRef<str>],
@@ -1923,7 +1933,8 @@ impl Admin {
     ) -> Result<Vec<TopicResult>> {
         let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout = self.cfg.request_timeout;
-        self.delete_topics_with(names, timeout_ms, timeout).await
+        self.delete_topics_with(names, timeout_ms, timeout, true)
+            .await
     }
 
     /// [`Self::delete_topics`] with a one-shot timeout (Java
@@ -1937,7 +1948,41 @@ impl Admin {
     ) -> Result<Vec<TopicResult>> {
         let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.delete_topics_with(names, timeout_ms, timeout).await
+        self.delete_topics_with(names, timeout_ms, timeout, true)
+            .await
+    }
+
+    /// [`Self::delete_topics`] with Java `DeleteTopicsOptions.retryOnQuotaViolation`.
+    ///
+    /// [`Self::delete_topics`] defaults this to `true` (KIP-599). When
+    /// true, topics that return `THROTTLING_QUOTA_EXCEEDED` (89) are
+    /// retried alone until the RPC deadline.
+    pub async fn delete_topics_with_quota_retry(
+        &mut self,
+        names: &[impl AsRef<str>],
+        timeout_ms: i32,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+        let timeout = self.cfg.request_timeout;
+        self.delete_topics_with(names, timeout_ms, timeout, retry_on_quota_violation)
+            .await
+    }
+
+    /// [`Self::delete_topics_with_quota_retry`] with a one-shot timeout
+    /// (Java `DeleteTopicsOptions.timeoutMs` + `retryOnQuotaViolation`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteTopics TimeoutMs.
+    pub async fn delete_topics_timeout_with_quota_retry(
+        &mut self,
+        names: &[impl AsRef<str>],
+        timeout: Duration,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_with(names, timeout_ms, timeout, retry_on_quota_violation)
+            .await
     }
 
     /// Delete topics by TopicId (Java `deleteTopics(TopicCollection.ofTopicIds)`).
@@ -1986,7 +2031,7 @@ impl Admin {
         }
         let topics: Vec<DeleteTopicState> =
             ids.iter().copied().map(DeleteTopicState::by_id).collect();
-        self.delete_topics_states_with(topics, timeout_ms, timeout)
+        self.delete_topics_states_with(topics, timeout_ms, timeout, true)
             .await
     }
 
@@ -1995,10 +2040,11 @@ impl Admin {
         names: Vec<String>,
         timeout_ms: i32,
         timeout: Duration,
+        retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
         let topics: Vec<DeleteTopicState> =
             names.into_iter().map(DeleteTopicState::by_name).collect();
-        self.delete_topics_states_with(topics, timeout_ms, timeout)
+        self.delete_topics_states_with(topics, timeout_ms, timeout, retry_on_quota_violation)
             .await
     }
 
@@ -2007,7 +2053,12 @@ impl Admin {
         topics: Vec<DeleteTopicState>,
         timeout_ms: i32,
         timeout: Duration,
+        retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
+        let original = topics;
+        let mut pending = original.clone();
+        let mut finished_names: HashMap<String, TopicResult> = HashMap::new();
+        let mut finished_ids: HashMap<[u8; 16], TopicResult> = HashMap::new();
         let version = self.delete_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -2025,7 +2076,7 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_TOPICS,
                     version,
-                    |buf| encode_delete_topics_states_request(buf, version, &topics, timeout_ms),
+                    |buf| encode_delete_topics_states_request(buf, version, &pending, timeout_ms),
                     timeout,
                 )
                 .await
@@ -2052,7 +2103,41 @@ impl Admin {
                 self.refresh_metadata(None).await?;
                 continue;
             }
-            return Ok(results);
+            let mut next_pending = Vec::new();
+            for r in results {
+                let matched = pending.iter().find(|t| delete_state_matches(t, &r));
+                if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
+                    if let Some(t) = matched {
+                        next_pending.push(t.clone());
+                    }
+                } else if let Some(t) = matched {
+                    if let Some(n) = &t.name {
+                        let _prev = finished_names.insert(n.clone(), r);
+                    } else {
+                        let _prev = finished_ids.insert(t.topic_id, r);
+                    }
+                }
+            }
+            if next_pending.is_empty() {
+                let mut out = Vec::with_capacity(original.len());
+                for t in &original {
+                    let r = if let Some(n) = &t.name {
+                        finished_names.remove(n)
+                    } else {
+                        finished_ids.remove(&t.topic_id)
+                    }
+                    .ok_or_else(|| {
+                        Error::protocol(format!(
+                            "missing delete_topics result for {}",
+                            t.name.as_deref().unwrap_or("topic id")
+                        ))
+                    })?;
+                    out.push(r);
+                }
+                return Ok(out);
+            }
+            pending = next_pending;
+            self.wait_retry(&mut attempt, deadline).await?;
         }
     }
 

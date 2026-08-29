@@ -5694,6 +5694,71 @@ async fn admin_create_delete_topics_partitions_timeout() {
         "quota retry resends only THROTTLING_QUOTA_EXCEEDED topics"
     );
     assert_eq!(mock.create_topics_quota_hits(), 3);
+
+    let created = admin
+        .create_topics(&[NewTopic::new("dto-q", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.delete_topics_quota_once("dto-q");
+    let deleted = admin.delete_topics(&["dto-q"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(
+        mock.delete_topics_quota_hits(),
+        1,
+        "delete_topics retries THROTTLING_QUOTA_EXCEEDED by default"
+    );
+
+    let created = admin
+        .create_topics(&[NewTopic::new("dto-qn", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.delete_topics_quota_once("dto-qn");
+    let deleted = admin
+        .delete_topics_with_quota_retry(&["dto-qn"], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, error::THROTTLING_QUOTA_EXCEEDED);
+    assert_eq!(mock.delete_topics_quota_hits(), 2);
+    let listed = admin.list_topics().await.unwrap();
+    assert!(
+        listed.iter().any(|t| t.name == "dto-qn"),
+        "quota retry disabled must not delete the topic"
+    );
+
+    let created = admin
+        .create_topics(
+            &[
+                NewTopic::new("dto-mix-ok", 1, 1),
+                NewTopic::new("dto-mix-q", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    mock.delete_topics_quota_once("dto-mix-q");
+    let deleted = admin
+        .delete_topics_timeout_with_quota_retry(
+            &["dto-mix-ok", "dto-mix-q"],
+            Duration::from_secs(10),
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[1].error_code, 0);
+    assert_eq!(deleted[0].name, "dto-mix-ok");
+    assert_eq!(deleted[1].name, "dto-mix-q");
+    assert_eq!(
+        mock.last_delete_topics_names(),
+        Some(vec!["dto-mix-q".to_string()]),
+        "quota retry resends only THROTTLING_QUOTA_EXCEEDED topics"
+    );
+    assert_eq!(mock.delete_topics_quota_hits(), 3);
     admin.close().await.unwrap();
 }
 
