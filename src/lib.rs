@@ -365,6 +365,10 @@
 //! `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` /
 //! `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
+//! [`Admin::create_delegation_token_default`] is Java `createDelegationToken()`.
+//! [`Admin::renew_delegation_token_hmac`] / [`Admin::expire_delegation_token_hmac`]
+//! are Java `renewDelegationToken(byte[])` / `expireDelegationToken(byte[])`.
+//! [`Admin::describe_delegation_tokens`] is Java `describeDelegationToken()`.
 //! [`Admin::describe_topic_partitions_timeout`] is the crate-first
 //! DescribeTopicPartitions (api 75) RPC deadline; Java `describeTopics`
 //! is [`Admin::describe_topics_timeout`].
@@ -419,7 +423,8 @@
 //! [`ConsumerConfig::auto_offset_reset`] is used when OffsetFetch has no
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
-//! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`]).
+//! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
+//! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`]).
 //! [`Consumer::seek_with_metadata`] / [`ConsumerGroup::seek_with_metadata`]
 //! are Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch
 //! `LastFetchedEpoch` from the leader epoch; metadata string ignored).

@@ -557,7 +557,7 @@ impl ShareGroup {
         self.acknowledge(recs, ACK_RELEASE).await
     }
 
-    /// Reject records (`REJECT`).
+    /// Reject records (`REJECT`, KIP-932).
     pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, ACK_REJECT).await
     }

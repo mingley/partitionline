@@ -8310,6 +8310,29 @@ impl Admin {
         decode_create_delegation_token_response(&mut body.clone(), version)
     }
 
+    /// Create a delegation token with default options (Java
+    /// `Admin.createDelegationToken()`).
+    ///
+    /// Same wire as [`Self::create_delegation_token`] with
+    /// [`CreateDelegationTokenRequest::default`] (request principal,
+    /// empty renewers, `max_lifetime_ms = -1`).
+    pub async fn create_delegation_token_default(
+        &mut self,
+    ) -> Result<CreateDelegationTokenResponse> {
+        let timeout = self.cfg.request_timeout;
+        self.create_delegation_token_default_timeout(timeout).await
+    }
+
+    /// [`Self::create_delegation_token_default`] with a one-shot RPC
+    /// deadline (Java `CreateDelegationTokenOptions.timeoutMs`).
+    pub async fn create_delegation_token_default_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<CreateDelegationTokenResponse> {
+        self.create_delegation_token_timeout(CreateDelegationTokenRequest::default(), timeout)
+            .await
+    }
+
     /// Renew a delegation token (RenewDelegationToken api 39, KIP-48 /
     /// KIP-373; v1–v2, classic at v1, flexible from v2).
     ///
@@ -8364,6 +8387,34 @@ impl Admin {
         decode_renew_delegation_token_response(&mut body.clone(), version)
     }
 
+    /// Renew a delegation token by HMAC (Java
+    /// `Admin.renewDelegationToken(byte[])`).
+    ///
+    /// `renew_period_ms` is `-1` (Java `RenewDelegationTokenOptions`
+    /// default: broker default period).
+    pub async fn renew_delegation_token_hmac(
+        &mut self,
+        hmac: impl AsRef<[u8]>,
+    ) -> Result<RenewDelegationTokenResponse> {
+        let timeout = self.cfg.request_timeout;
+        self.renew_delegation_token_hmac_timeout(hmac, timeout)
+            .await
+    }
+
+    /// [`Self::renew_delegation_token_hmac`] with a one-shot RPC deadline
+    /// (Java `RenewDelegationTokenOptions.timeoutMs`).
+    pub async fn renew_delegation_token_hmac_timeout(
+        &mut self,
+        hmac: impl AsRef<[u8]>,
+        timeout: Duration,
+    ) -> Result<RenewDelegationTokenResponse> {
+        self.renew_delegation_token_timeout(
+            RenewDelegationTokenRequest::new(hmac.as_ref().to_vec(), -1),
+            timeout,
+        )
+        .await
+    }
+
     /// Expire a delegation token (ExpireDelegationToken api 40, KIP-48 /
     /// KIP-373; v1–v2, classic at v1, flexible from v2).
     ///
@@ -8416,6 +8467,33 @@ impl Admin {
             )
             .await?;
         decode_expire_delegation_token_response(&mut body.clone(), version)
+    }
+
+    /// Expire a delegation token by HMAC (Java
+    /// `Admin.expireDelegationToken(byte[])`).
+    ///
+    /// `expiry_time_period_ms` is `-1` (Java default: expire immediately).
+    pub async fn expire_delegation_token_hmac(
+        &mut self,
+        hmac: impl AsRef<[u8]>,
+    ) -> Result<ExpireDelegationTokenResponse> {
+        let timeout = self.cfg.request_timeout;
+        self.expire_delegation_token_hmac_timeout(hmac, timeout)
+            .await
+    }
+
+    /// [`Self::expire_delegation_token_hmac`] with a one-shot RPC deadline
+    /// (Java `ExpireDelegationTokenOptions.timeoutMs`).
+    pub async fn expire_delegation_token_hmac_timeout(
+        &mut self,
+        hmac: impl AsRef<[u8]>,
+        timeout: Duration,
+    ) -> Result<ExpireDelegationTokenResponse> {
+        self.expire_delegation_token_timeout(
+            ExpireDelegationTokenRequest::new(hmac.as_ref().to_vec(), -1),
+            timeout,
+        )
+        .await
     }
 
     /// Describe delegation tokens (DescribeDelegationToken api 41,
@@ -8476,6 +8554,26 @@ impl Admin {
             )
             .await?;
         decode_describe_delegation_token_response(&mut body.clone(), version)
+    }
+
+    /// Describe visible delegation tokens (Java
+    /// `Admin.describeDelegationToken()`).
+    ///
+    /// Same wire as [`Self::describe_delegation_token`] with owners
+    /// `None` (Java `DescribeDelegationTokenOptions` default).
+    pub async fn describe_delegation_tokens(&mut self) -> Result<DescribeDelegationTokenResponse> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_delegation_tokens_timeout(timeout).await
+    }
+
+    /// [`Self::describe_delegation_tokens`] with a one-shot RPC deadline
+    /// (Java `DescribeDelegationTokenOptions.timeoutMs`).
+    pub async fn describe_delegation_tokens_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<DescribeDelegationTokenResponse> {
+        self.describe_delegation_token_timeout(DescribeDelegationTokenRequest::default(), timeout)
+            .await
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {

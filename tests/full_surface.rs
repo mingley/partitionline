@@ -8625,6 +8625,18 @@ async fn create_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed.error_code, 0);
+    let defaulted = admin.create_delegation_token_default().await.unwrap();
+    assert_eq!(defaulted.error_code, 0);
+    assert_eq!(
+        mock.last_create_delegation_token(),
+        Some(CreateDelegationTokenRequest::default()),
+        "createDelegationToken() sends default owner / renewers / maxLifetimeMs -1"
+    );
+    let timed_default = admin
+        .create_delegation_token_default_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_default.error_code, 0);
 }
 
 #[tokio::test]
@@ -8716,6 +8728,18 @@ async fn renew_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed.error_code, 0);
+    let hmac = admin.renew_delegation_token_hmac([0xbb]).await.unwrap();
+    assert_eq!(hmac.error_code, 0);
+    assert_eq!(
+        mock.last_renew_delegation_token(),
+        Some(RenewDelegationTokenRequest::new(vec![0xbb], -1)),
+        "renewDelegationToken(byte[]) sends hmac and renew_period_ms -1"
+    );
+    let timed_hmac = admin
+        .renew_delegation_token_hmac_timeout([0xcc], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_hmac.error_code, 0);
 }
 
 #[tokio::test]
@@ -8804,6 +8828,18 @@ async fn expire_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed.error_code, 0);
+    let hmac = admin.expire_delegation_token_hmac([0xbb]).await.unwrap();
+    assert_eq!(hmac.error_code, 0);
+    assert_eq!(
+        mock.last_expire_delegation_token(),
+        Some(ExpireDelegationTokenRequest::new(vec![0xbb], -1)),
+        "expireDelegationToken(byte[]) sends hmac and expiry_time_period_ms -1"
+    );
+    let timed_hmac = admin
+        .expire_delegation_token_hmac_timeout([0xcc], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_hmac.error_code, 0);
 }
 
 #[tokio::test]
@@ -8901,6 +8937,18 @@ async fn describe_delegation_token_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed.error_code, 0);
+    let all = admin.describe_delegation_tokens().await.unwrap();
+    assert_eq!(all.error_code, 0);
+    assert_eq!(
+        mock.last_describe_delegation_token(),
+        Some(DescribeDelegationTokenRequest::default()),
+        "describeDelegationToken() sends owners None"
+    );
+    let timed_all = admin
+        .describe_delegation_tokens_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.error_code, 0);
 }
 
 #[tokio::test]

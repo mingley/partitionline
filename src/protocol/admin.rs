@@ -8299,6 +8299,14 @@ impl CreateDelegationTokenRequest {
     }
 }
 
+impl Default for CreateDelegationTokenRequest {
+    /// Java `CreateDelegationTokenOptions`: request principal, empty
+    /// renewers, `max_lifetime_ms = -1` (broker default).
+    fn default() -> Self {
+        Self::new(None, None, Vec::new(), -1)
+    }
+}
+
 /// CreateDelegationToken (api 38) v1–v3 response body.
 ///
 /// **ErrorCode is top-level**, first field — not after throttle.
@@ -8947,6 +8955,14 @@ impl DescribeDelegationTokenRequest {
     /// Construct [`Self`].
     pub fn new(owners: Option<Vec<DescribeDelegationTokenOwner>>) -> Self {
         Self { owners }
+    }
+}
+
+impl Default for DescribeDelegationTokenRequest {
+    /// Java `DescribeDelegationTokenOptions`: `owners` null (every
+    /// visible token).
+    fn default() -> Self {
+        Self::new(None)
     }
 }
 

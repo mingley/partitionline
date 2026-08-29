@@ -175,10 +175,14 @@ TimeoutMs; caps `NOT_CONTROLLER`).
 `alterReplicaLogDirs` (v1–v2; classic v1, flexible v2).
 `Admin::alter_replica_log_dirs_timeout` is Java
 `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline; AlterReplicaLogDirs has no TimeoutMs). `Admin::create_delegation_token` is Java
-`createDelegationToken` (v1–v3; classic v1, flexible v2, owner/requester v3). `Admin::renew_delegation_token` is Java
-`renewDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::expire_delegation_token` is Java
-`expireDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::describe_delegation_token` is Java
+`createDelegationToken` (v1–v3; classic v1, flexible v2, owner/requester v3). `Admin::create_delegation_token_default` is Java
+`createDelegationToken()`. `Admin::renew_delegation_token` is Java
+`renewDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::renew_delegation_token_hmac` is Java
+`renewDelegationToken(byte[])`. `Admin::expire_delegation_token` is Java
+`expireDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::expire_delegation_token_hmac` is Java
+`expireDelegationToken(byte[])`. `Admin::describe_delegation_token` is Java
 `describeDelegationToken` (v1–v3; classic v1, flexible v2, TokenRequester v3).
+`Admin::describe_delegation_tokens` is Java `describeDelegationToken()`.
 `Admin::create_delegation_token_timeout` / `Admin::renew_delegation_token_timeout` /
 `Admin::expire_delegation_token_timeout` / `Admin::describe_delegation_token_timeout`
 are Java `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` /

@@ -107,6 +107,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::assign_replicas_to_dirs_timeout` is Java `AssignReplicasToDirsOptions.timeoutMs`.
 `Admin::alter_replica_log_dirs_timeout` is Java `AlterReplicaLogDirsOptions.timeoutMs`.
 `Admin::create_delegation_token_timeout` / `renew_delegation_token_timeout` / `expire_delegation_token_timeout` / `describe_delegation_token_timeout` are Java `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` / `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`.
+`Admin::create_delegation_token_default` is Java `createDelegationToken()`. `Admin::renew_delegation_token_hmac` / `expire_delegation_token_hmac` are Java `renewDelegationToken(byte[])` / `expireDelegationToken(byte[])`. `Admin::describe_delegation_tokens` is Java `describeDelegationToken()`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
 `Admin::abort_transaction_timeout` is Java `AbortTransactionOptions.timeoutMs`.
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
@@ -145,7 +146,7 @@ user SCRAM.
 ## Groups
 
 Classic range, sticky, cooperative-sticky (KIP-429), KIP-848 (`join_consumer`), and KIP-932 share groups
-(`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `unsubscribe`).
+(`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `unsubscribe` / `poll` / `accept` / `release` / `reject`).
 `join_topics` / `join_sticky_topics` / `join_cooperative_sticky_topics` /
 `join_with_assignors` / `join_with_assignors_topics` /
 `join_consumer_topics` subscribe to
