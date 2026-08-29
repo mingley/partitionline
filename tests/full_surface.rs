@@ -4250,6 +4250,19 @@ async fn admin_describe_delete_acls_with_filter() {
         .unwrap();
     assert_eq!(created, vec![0, 0]);
 
+    let all = admin.describe_acls_any().await.unwrap();
+    assert_eq!(all.len(), 2);
+    assert_eq!(
+        mock.last_describe_acls_filter(),
+        Some(AclBindingFilter::any()),
+        "describeAcls(AclBindingFilter.ANY) sends ResourceType ANY"
+    );
+    let timed_any = admin
+        .describe_acls_any_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_any.len(), 2);
+
     let listed = admin
         .describe_acls_with(
             &AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice"),

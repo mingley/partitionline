@@ -4528,6 +4528,28 @@ impl Admin {
         decode_describe_acls_response(&mut body.clone(), version)
     }
 
+    /// Describe every ACL (Java `describeAcls(AclBindingFilter.ANY)`).
+    ///
+    /// Same wire as [`Self::describe_acls_with`] with
+    /// [`AclBindingFilter::any`]. DescribeAcls has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_acls_any_timeout`].
+    pub async fn describe_acls_any(&mut self) -> Result<Vec<AclBinding>> {
+        self.describe_acls_with(&AclBindingFilter::any()).await
+    }
+
+    /// [`Self::describe_acls_any`] with a one-shot RPC deadline (Java
+    /// `DescribeAclsOptions.timeoutMs`).
+    ///
+    /// DescribeAcls has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_acls_any_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<AclBinding>> {
+        self.describe_acls_with_timeout(&AclBindingFilter::any(), timeout)
+            .await
+    }
+
     /// Replace configs (`AlterConfigs`, legacy api 33).
     ///
     /// Negotiates v0–v2 (v0–v1 classic; v2 flexible). v1 response adds

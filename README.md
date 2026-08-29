@@ -143,6 +143,7 @@ takes `TopicPartition`. `send_offsets_to_transaction` takes
 `AclOperation`, `AclPermission`, and `AclPatternType` cover CreateAcls /
 DescribeAcls / DeleteAcls (v0–v3; v1 ResourcePatternType; v2+ flexible).
 `Admin::describe_acls_with` is Java `describeAcls(AclBindingFilter)`.
+`Admin::describe_acls_any` is Java `describeAcls(AclBindingFilter.ANY)`.
 `Admin::delete_acls_with` is Java `deleteAcls(Collection)` (DeleteAcls Filters of N).
 `Admin::create_acls_timeout` / `Admin::describe_acls_timeout` / `Admin::delete_acls_timeout` are Java `CreateAclsOptions` / `DescribeAclsOptions` / `DeleteAclsOptions.timeoutMs`.
 `ConsumerConfig.isolation_level` is `IsolationLevel`.
