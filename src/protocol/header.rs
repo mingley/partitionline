@@ -203,6 +203,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // flexibleVersions: "0+"). Kafka 4.0 validVersions is 0-1.
         // This crate speaks 0–1. v1 SubscribedTopicRegex (KIP-848) and
         // client-generated MemberId (KIP-1082). v2+ is not spoken.
+        // ShareGroupHeartbeat is flexible from v0. Kafka 4.0
+        // validVersions is "0" (unstable). Kafka 4.1 validVersions is
+        // "1" (v0 removed). This crate speaks 0–1. Same fields. v2+
+        // is not spoken.
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -886,6 +890,18 @@ mod tests {
                 response_header_version(CONSUMER_GROUP_HEARTBEAT, version),
                 1
             );
+        }
+    }
+
+    #[test]
+    fn share_group_heartbeat_v0_and_v1_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
+        // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
+        // HeaderVersion is 2 / 1 at every spoken version. This crate
+        // speaks 0–1.
+        for version in 0..=1 {
+            assert_eq!(request_header_version(SHARE_GROUP_HEARTBEAT, version), 2);
+            assert_eq!(response_header_version(SHARE_GROUP_HEARTBEAT, version), 1);
         }
     }
 

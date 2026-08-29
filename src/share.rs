@@ -157,7 +157,7 @@ impl<'a> IntoIterator for &'a ShareRecords {
     }
 }
 
-/// KIP-932 share group member (`ShareGroupHeartbeat` / ShareFetch / ShareAcknowledge).
+/// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch / ShareAcknowledge).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -199,6 +199,16 @@ fn new_member_id() -> Result<String> {
         }
     }
     Ok(format!("s-{hex}"))
+}
+
+fn spoken_share_group_heartbeat(version: i16) -> Result<i16> {
+    if (0..=1).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support ShareGroupHeartbeat v0-1".into(),
+        ))
+    }
 }
 
 impl ShareGroup {
@@ -371,6 +381,7 @@ impl ShareGroup {
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
+        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -381,12 +392,12 @@ impl ShareGroup {
             .coord
             .roundtrip(
                 SHARE_GROUP_HEARTBEAT,
-                1,
-                |buf| encode_share_group_heartbeat_request(buf, &req),
+                version,
+                |buf| encode_share_group_heartbeat_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        let resp = decode_share_group_heartbeat_response(&mut body.clone())?;
+        let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat"));
         }
@@ -928,6 +939,7 @@ impl ShareGroup {
 
     async fn leave_coordinator(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
+        let version = spoken_share_group_heartbeat(self.coord.share_group_heartbeat_version)?;
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -940,12 +952,12 @@ impl ShareGroup {
             &self.group_id,
             COORDINATOR_SHARE,
             SHARE_GROUP_HEARTBEAT,
-            1,
-            |buf| encode_share_group_heartbeat_request(buf, &req),
+            version,
+            |buf| encode_share_group_heartbeat_request(buf, version, &req),
             timeout,
         )
         .await?;
-        let resp = decode_share_group_heartbeat_response(&mut body.clone())?;
+        let resp = decode_share_group_heartbeat_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ShareGroupHeartbeat leave"));
         }
@@ -1000,6 +1012,11 @@ impl ShareGroup {
                             continue;
                         };
                         let epoch = hb_epoch.load(Ordering::SeqCst);
+                        let Ok(version) =
+                            spoken_share_group_heartbeat(c.share_group_heartbeat_version)
+                        else {
+                            continue;
+                        };
                         let req = ShareGroupHeartbeatRequest {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
@@ -1009,16 +1026,17 @@ impl ShareGroup {
                         let res = c
                             .roundtrip(
                                 SHARE_GROUP_HEARTBEAT,
-                                1,
-                                |buf| encode_share_group_heartbeat_request(buf, &req),
+                                version,
+                                |buf| encode_share_group_heartbeat_request(buf, version, &req),
                                 cfg.request_timeout,
                             )
                             .await;
                         match res {
                             Ok(body) => {
-                                if let Ok(resp) =
-                                    decode_share_group_heartbeat_response(&mut body.clone())
-                                {
+                                if let Ok(resp) = decode_share_group_heartbeat_response(
+                                    &mut body.clone(),
+                                    version,
+                                ) {
                                     if crate::error::coordinator_retriable(resp.error_code) {
                                         conn = None;
                                     } else {

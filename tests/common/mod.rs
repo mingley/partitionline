@@ -433,6 +433,7 @@ struct State {
     last_join_group_version: Option<i16>,
     last_consumer_group_heartbeat_version: Option<i16>,
     last_consumer_group_heartbeat_join_member_id: Option<String>,
+    last_share_group_heartbeat_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
@@ -724,6 +725,7 @@ fn new_state(
         last_join_group_version: None,
         last_consumer_group_heartbeat_version: None,
         last_consumer_group_heartbeat_join_member_id: None,
+        last_share_group_heartbeat_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
@@ -2067,6 +2069,10 @@ impl Mock {
             .clone()
     }
 
+    pub fn last_share_group_heartbeat_version(&self) -> Option<i16> {
+        self.state.lock().last_share_group_heartbeat_version
+    }
+
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
     }
@@ -2458,7 +2464,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (RENEW_DELEGATION_TOKEN, 1, 2),
         (EXPIRE_DELEGATION_TOKEN, 1, 2),
         (DESCRIBE_DELEGATION_TOKEN, 1, 3),
-        (SHARE_GROUP_HEARTBEAT, 1, 1),
+        (SHARE_GROUP_HEARTBEAT, 0, 1),
         (SHARE_FETCH, 1, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
         (SASL_HANDSHAKE, 0, 1),
@@ -2572,6 +2578,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         .unwrap(),
         SHARE_GROUP_HEARTBEAT => encode_share_group_heartbeat_response(
             body,
+            api_version,
             &ShareGroupHeartbeatResponse {
                 error_code: NC,
                 error_message: None,
@@ -2662,6 +2669,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 if header.api_key == OFFSET_DELETE {
                     st.offset_delete_not_coordinator =
                         st.offset_delete_not_coordinator.saturating_add(1);
+                }
+                if header.api_key == SHARE_GROUP_HEARTBEAT {
+                    st.last_share_group_heartbeat_version = Some(header.api_version);
                 }
             }
             encode_not_coordinator(header.api_key, header.api_version, &mut body);
@@ -4427,8 +4437,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             SHARE_GROUP_HEARTBEAT => {
-                let req = decode_share_group_heartbeat_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_share_group_heartbeat_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_share_group_heartbeat_version = Some(version);
                 st.share_heartbeat_calls = st.share_heartbeat_calls.saturating_add(1);
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
                 *n = n.saturating_add(1);
@@ -4460,6 +4472,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 };
                 encode_share_group_heartbeat_response(
                     &mut body,
+                    version,
                     &ShareGroupHeartbeatResponse {
                         error_code: 0,
                         error_message: None,

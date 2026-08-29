@@ -18,7 +18,7 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
     HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    RENEW_DELEGATION_TOKEN, SYNC_GROUP, UPDATE_FEATURES,
+    RENEW_DELEGATION_TOKEN, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -2593,6 +2593,26 @@ async fn share_group_join_leave_without_classic_or_kip848() {
     assert_eq!(mock.join_group_calls(), 0);
     assert_eq!(mock.sync_group_calls(), 0);
     assert_eq!(mock.cg_heartbeat_calls(), 0);
+    assert_eq!(
+        mock.last_share_group_heartbeat_version(),
+        Some(1),
+        "ShareGroup must prefer ShareGroupHeartbeat v1 when the broker advertises it"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_group_heartbeat_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SHARE_GROUP_HEARTBEAT, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ShareGroup::join(ccfg, "sg0", "t").await.unwrap();
+    assert_eq!(
+        mock.last_share_group_heartbeat_version(),
+        Some(0),
+        "client must speak ShareGroupHeartbeat v0 when the broker max is 0"
+    );
     group.leave().await.unwrap();
 }
 

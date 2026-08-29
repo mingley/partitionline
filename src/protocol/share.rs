@@ -1,11 +1,13 @@
 //! Share groups (KIP-932): ShareGroupHeartbeat (76), ShareFetch (78),
-//! ShareAcknowledge (79). Flexible v1 (Kafka 4.1 stable).
+//! ShareAcknowledge (79). ShareGroupHeartbeat is flexible from v0
+//! (Kafka 4.0 early access v0; Kafka 4.1 stable v1). This crate
+//! speaks 0–1. Same fields. v2+ is not spoken.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
 use super::records::{self, RecordBatch};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Gap in an acknowledgement batch.
 pub const ACK_GAP: i8 = 0;
@@ -117,50 +119,73 @@ pub struct ShareFetchedTopic {
     pub partitions: Vec<ShareFetchedPartition>,
 }
 
-/// Encode a flexible v1 ShareGroupHeartbeat request.
+/// `true` when ShareGroupHeartbeat `version` is flexible.
+///
+/// v0 and v1 are both flexible (`flexibleVersions: "0+"`). Kafka 4.0
+/// `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1
+/// `validVersions` is `"1"` (v0 removed). This crate speaks 0–1.
+/// Same fields. v2+ is not spoken.
+fn share_group_heartbeat_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ShareGroupHeartbeat version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a flexible ShareGroupHeartbeat request (v0–v1). Same fields.
 pub fn encode_share_group_heartbeat_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &ShareGroupHeartbeatRequest,
 ) -> crate::error::Result<()> {
-    buf::put_compact_string(buf, Some(&req.group_id))?;
-    buf::put_compact_string(buf, Some(&req.member_id))?;
+    let flexible = share_group_heartbeat_flexible(version)?;
+    buf::put_string(buf, flexible, Some(&req.group_id))?;
+    buf::put_string(buf, flexible, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
-    buf::put_compact_string(buf, None)?;
+    buf::put_string(buf, flexible, None)?;
     match &req.subscribed_topic_names {
-        None => buf::put_array_len(buf, true, None)?,
+        None => buf::put_array_len(buf, flexible, None)?,
         Some(names) => {
-            buf::put_array_len(buf, true, Some(names.len()))?;
+            buf::put_array_len(buf, flexible, Some(names.len()))?;
             for n in names {
-                buf::put_compact_string(buf, Some(n))?;
+                buf::put_string(buf, flexible, Some(n))?;
             }
         }
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a flexible v1 ShareGroupHeartbeat request.
+/// Decode a flexible ShareGroupHeartbeat request (v0–v1).
 pub fn decode_share_group_heartbeat_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ShareGroupHeartbeatRequest> {
-    let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let flexible = share_group_heartbeat_flexible(version)?;
+    let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
-    let _rack = buf::get_compact_string(buf)?;
+    let _rack = buf::get_string(buf, flexible)?;
     let subscribed_topic_names = {
-        let n = buf::get_array_len(buf, true)?;
+        let n = buf::get_array_len(buf, flexible)?;
         match n {
             None => None,
             Some(n) => {
                 let mut names = Vec::with_capacity(n);
                 for _ in 0..n {
-                    names.push(buf::get_compact_string(buf)?.unwrap_or_default());
+                    names.push(buf::get_string(buf, flexible)?.unwrap_or_default());
                 }
                 Some(names)
             }
         }
     };
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ShareGroupHeartbeatRequest {
         group_id,
         member_id,
@@ -169,70 +194,86 @@ pub fn decode_share_group_heartbeat_request<B: Buf>(
     })
 }
 
-/// Encode a flexible v1 ShareGroupHeartbeat response.
+/// Encode a flexible ShareGroupHeartbeat response (v0–v1). Same fields.
 pub fn encode_share_group_heartbeat_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &ShareGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
+    let flexible = share_group_heartbeat_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(resp.error_code);
-    buf::put_compact_string(buf, resp.error_message.as_deref())?;
-    buf::put_compact_string(buf, resp.member_id.as_deref())?;
+    buf::put_string(buf, flexible, resp.error_message.as_deref())?;
+    buf::put_string(buf, flexible, resp.member_id.as_deref())?;
     buf.put_i32(resp.member_epoch);
     buf.put_i32(resp.heartbeat_interval_ms);
     match &resp.assignment {
         None => buf::put_unsigned_varint(buf, 0),
         Some(parts) => {
             buf::put_unsigned_varint(buf, 1);
-            buf::put_array_len(buf, true, Some(parts.len()))?;
+            buf::put_array_len(buf, flexible, Some(parts.len()))?;
             for t in parts {
                 buf.extend_from_slice(&t.topic_id);
-                buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+                buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
                 for p in &t.partitions {
                     buf.put_i32(*p);
                 }
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
-            buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a flexible v1 ShareGroupHeartbeat response.
+/// Decode a flexible ShareGroupHeartbeat response (v0–v1).
 pub fn decode_share_group_heartbeat_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ShareGroupHeartbeatResponse> {
+    let flexible = share_group_heartbeat_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let error_message = buf::get_compact_string(buf)?;
-    let member_id = buf::get_compact_string(buf)?;
+    let error_message = buf::get_string(buf, flexible)?;
+    let member_id = buf::get_string(buf, flexible)?;
     let member_epoch = buf::get_i32(buf)?;
     let heartbeat_interval_ms = buf::get_i32(buf)?;
     let present = buf::get_unsigned_varint(buf)?;
     let assignment = if present == 0 {
         None
     } else {
-        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut parts = Vec::with_capacity(n);
         for _ in 0..n {
             let topic_id = buf::get_uuid(buf)?;
-            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
                 partitions.push(buf::get_i32(buf)?);
             }
-            buf::skip_tagged_fields(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             parts.push(ShareTopicPartitions {
                 topic_id,
                 partitions,
             });
         }
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         Some(parts)
     };
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ShareGroupHeartbeatResponse {
         error_code,
         error_message,
@@ -653,8 +694,10 @@ mod tests {
             subscribed_topic_names: Some(vec!["t".into()]),
         };
         let mut buf = BytesMut::new();
-        encode_share_group_heartbeat_request(&mut buf, &req).unwrap();
-        let decoded = decode_share_group_heartbeat_request(&mut &buf[..]).unwrap();
+        encode_share_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_share_group_heartbeat_request(&mut cur, 1).unwrap();
+        assert!(!cur.has_remaining(), "v1 request leftover-empty");
         assert_eq!(decoded.member_epoch, 0);
         assert_eq!(decoded.member_id, "m1");
         assert_eq!(decoded.subscribed_topic_names, Some(vec!["t".into()]));
@@ -671,11 +714,13 @@ mod tests {
             }]),
         };
         buf.clear();
-        encode_share_group_heartbeat_response(&mut buf, &resp).unwrap();
+        encode_share_group_heartbeat_response(&mut buf, 1, &resp).unwrap();
+        let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_heartbeat_response(&mut &buf[..]).unwrap(),
+            decode_share_group_heartbeat_response(&mut cur, 1).unwrap(),
             resp
         );
+        assert!(!cur.has_remaining(), "v1 response leftover-empty");
 
         let leave = ShareGroupHeartbeatRequest {
             group_id: "sg".into(),
@@ -684,12 +729,79 @@ mod tests {
             subscribed_topic_names: None,
         };
         buf.clear();
-        encode_share_group_heartbeat_request(&mut buf, &leave).unwrap();
+        encode_share_group_heartbeat_request(&mut buf, 1, &leave).unwrap();
+        let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_heartbeat_request(&mut &buf[..])
+            decode_share_group_heartbeat_request(&mut cur, 1)
                 .unwrap()
                 .member_epoch,
             -1
+        );
+        assert!(!cur.has_remaining(), "v1 leave leftover-empty");
+    }
+
+    #[test]
+    fn share_group_heartbeat_v0_matches_v1_and_does_not_speak_v2() {
+        // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+",
+        // latestVersionUnstable. Official Kafka 4.1 JSON: validVersions "1"
+        // (v0 removed). Same request/response fields. This crate speaks 0–1.
+        let req = ShareGroupHeartbeatRequest {
+            group_id: "sg".into(),
+            member_id: "m1".into(),
+            member_epoch: 0,
+            subscribed_topic_names: Some(vec!["t".into()]),
+        };
+        let mut v0 = BytesMut::new();
+        encode_share_group_heartbeat_request(&mut v0, 0, &req).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_share_group_heartbeat_request(&mut v1, 1, &req).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(
+            decode_share_group_heartbeat_request(&mut cur, 0).unwrap(),
+            req
+        );
+        assert!(!cur.has_remaining(), "v0 request leftover-empty");
+        let err = encode_share_group_heartbeat_request(&mut BytesMut::new(), 2, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 is not spoken, got {err}"
+        );
+        let mut empty: &[u8] = &[];
+        let err = decode_share_group_heartbeat_request(&mut empty, 2).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 decode is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+
+        let resp = ShareGroupHeartbeatResponse {
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        v0.clear();
+        encode_share_group_heartbeat_response(&mut v0, 0, &resp).unwrap();
+        v1.clear();
+        encode_share_group_heartbeat_response(&mut v1, 1, &resp).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 response bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(
+            decode_share_group_heartbeat_response(&mut cur, 0).unwrap(),
+            resp
+        );
+        assert!(!cur.has_remaining(), "v0 response leftover-empty");
+        v0.clear();
+        let err = encode_share_group_heartbeat_response(&mut v0, 2, &resp).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 response is not spoken, got {err}"
         );
     }
 

@@ -18,7 +18,7 @@ use crate::net::BrokerConn;
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request};
 use crate::protocol::api_keys::{
     pick_version, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP,
-    LEAVE_GROUP, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    LEAVE_GROUP, OFFSET_COMMIT, OFFSET_FETCH, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
 };
 use crate::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_request,
@@ -2283,6 +2283,12 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == CONSUMER_GROUP_HEARTBEAT)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+        .unwrap_or(-1);
+    conn.share_group_heartbeat_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == SHARE_GROUP_HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
     sasl::authenticate(
