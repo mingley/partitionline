@@ -146,6 +146,9 @@
 //! `incrementalAlterConfigs(Map)` ([`ConfigResourceUpdate`]; Resources of N).
 //! [`Admin::alter_configs_for`] is Java `alterConfigs(Map)`
 //! ([`ConfigReplacement`]; Resources of N).
+//! [`Admin::incremental_alter_configs_timeout`] /
+//! [`Admin::alter_configs_timeout`] are Java `AlterConfigsOptions.timeoutMs`
+//! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::assign_partitions`] / [`Consumer::unassign`] replace or

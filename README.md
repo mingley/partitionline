@@ -146,6 +146,7 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `incremental_alter_configs` / `incremental_alter_configs_for` / `alter_configs` /
 `alter_configs_for` take `ConfigResource` / `ConfigResourceUpdate` /
 `ConfigReplacement` (Java `incrementalAlterConfigs(Map)` / `alterConfigs(Map)`).
+`incremental_alter_configs_timeout` / `alter_configs_timeout` are Java `AlterConfigsOptions.timeoutMs`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `seek_with_metadata` is Java
 `seek(TopicPartition, OffsetAndMetadata)` (Fetch `LastFetchedEpoch`;

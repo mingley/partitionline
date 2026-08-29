@@ -2295,7 +2295,10 @@ impl Admin {
     /// Metadata and retries on the new controller.
     /// Returns the first resource's error code. For several resources in
     /// one RPC (Java `incrementalAlterConfigs(Map)`), use
-    /// [`Self::incremental_alter_configs_for`].
+    /// [`Self::incremental_alter_configs_for`]. IncrementalAlterConfigs
+    /// has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::incremental_alter_configs_timeout`].
     pub async fn incremental_alter_configs(
         &mut self,
         resource: &ConfigResource,
@@ -2314,6 +2317,31 @@ impl Admin {
         Ok(results.first().map(|r| r.error_code).unwrap_or(0))
     }
 
+    /// [`Self::incremental_alter_configs`] with a one-shot RPC deadline
+    /// (Java `AlterConfigsOptions.timeoutMs`).
+    ///
+    /// IncrementalAlterConfigs has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the `NOT_CONTROLLER` retry budget.
+    pub async fn incremental_alter_configs_timeout(
+        &mut self,
+        resource: &ConfigResource,
+        configs: &[AlterConfig],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<i16> {
+        let results = self
+            .incremental_alter_configs_for_timeout(
+                &[ConfigResourceUpdate::new(
+                    resource.clone(),
+                    configs.iter().cloned(),
+                )],
+                timeout,
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
     /// [`Self::incremental_alter_configs`] for several resources (Java
     /// `incrementalAlterConfigs(Map)`; IncrementalAlterConfigs Resources of N).
     ///
@@ -2321,6 +2349,23 @@ impl Admin {
     pub async fn incremental_alter_configs_for(
         &mut self,
         updates: &[ConfigResourceUpdate],
+        validate_only: bool,
+    ) -> Result<Vec<AlterConfigsResourceResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.incremental_alter_configs_for_timeout(updates, timeout, validate_only)
+            .await
+    }
+
+    /// [`Self::incremental_alter_configs_for`] with Java
+    /// `AlterConfigsOptions.timeoutMs`.
+    ///
+    /// Empty `updates` is a no-op. IncrementalAlterConfigs has no
+    /// TimeoutMs; `timeout` is the RPC deadline and the `NOT_CONTROLLER`
+    /// retry budget.
+    pub async fn incremental_alter_configs_for_timeout(
+        &mut self,
+        updates: &[ConfigResourceUpdate],
+        timeout: Duration,
         validate_only: bool,
     ) -> Result<Vec<AlterConfigsResourceResult>> {
         if updates.is_empty() {
@@ -2335,7 +2380,6 @@ impl Admin {
             })
             .collect();
         let version = self.alter_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -3692,6 +3736,9 @@ impl Admin {
     /// Prefer [`Self::incremental_alter_configs`] on modern brokers.
     /// Returns the first resource's error code. For several resources in
     /// one RPC (Java `alterConfigs(Map)`), use [`Self::alter_configs_for`].
+    /// AlterConfigs has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_configs_timeout`].
     pub async fn alter_configs(
         &mut self,
         resource: &ConfigResource,
@@ -3710,6 +3757,30 @@ impl Admin {
         Ok(results.first().map(|r| r.error_code).unwrap_or(0))
     }
 
+    /// [`Self::alter_configs`] with a one-shot RPC deadline (Java
+    /// `AlterConfigsOptions.timeoutMs`).
+    ///
+    /// AlterConfigs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn alter_configs_timeout(
+        &mut self,
+        resource: &ConfigResource,
+        configs: &[(String, Option<String>)],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<i16> {
+        let results = self
+            .alter_configs_for_timeout(
+                &[ConfigReplacement::new(
+                    resource.clone(),
+                    configs.iter().cloned(),
+                )],
+                timeout,
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
     /// [`Self::alter_configs`] for several resources (Java `alterConfigs(Map)`;
     /// AlterConfigs Resources of N).
     ///
@@ -3717,6 +3788,21 @@ impl Admin {
     pub async fn alter_configs_for(
         &mut self,
         updates: &[ConfigReplacement],
+        validate_only: bool,
+    ) -> Result<Vec<AlterConfigsResourceResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_configs_for_timeout(updates, timeout, validate_only)
+            .await
+    }
+
+    /// [`Self::alter_configs_for`] with Java `AlterConfigsOptions.timeoutMs`.
+    ///
+    /// Empty `updates` is a no-op. AlterConfigs has no TimeoutMs;
+    /// `timeout` is the RPC deadline.
+    pub async fn alter_configs_for_timeout(
+        &mut self,
+        updates: &[ConfigReplacement],
+        timeout: Duration,
         validate_only: bool,
     ) -> Result<Vec<AlterConfigsResourceResult>> {
         if updates.is_empty() {
@@ -3738,7 +3824,6 @@ impl Admin {
             })
             .collect();
         let version = self.legacy_alter_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 ALTER_CONFIGS,

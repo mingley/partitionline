@@ -4034,6 +4034,16 @@ async fn admin_partitions_alter_configs_and_acls() {
         .await
         .unwrap();
     assert_eq!(err, 0);
+    let err = admin
+        .incremental_alter_configs_timeout(
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::set("retention.ms", "1000")],
+            Duration::from_secs(5),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
     let described = admin
         .describe_configs(
             &[ConfigResource::topic("acl-t").keys(["retention.ms"])],
@@ -4183,6 +4193,16 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         .await
         .unwrap();
     assert_eq!(err, 0);
+    let err = admin
+        .alter_configs_timeout(
+            &ConfigResource::topic("rest"),
+            &[("retention.ms".into(), Some("2000".into()))],
+            Duration::from_secs(5),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
     assert_eq!(
         mock.last_alter_configs_version(),
         Some(2),
@@ -4327,6 +4347,18 @@ async fn admin_alter_configs_for() {
         Some(2),
         "alterConfigs(Map) must send Resources of 2 in one RPC"
     );
+    let timed = admin
+        .alter_configs_for_timeout(
+            &[ConfigReplacement::new(
+                ConfigResource::topic("ac-a"),
+                [("retention.ms".into(), Some("1000".into()))],
+            )],
+            Duration::from_secs(5),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
 
     let described = admin
         .describe_configs(
@@ -5616,6 +5648,18 @@ async fn admin_incremental_alter_configs_for() {
         Some(2),
         "incrementalAlterConfigs(Map) must send Resources of 2 in one RPC"
     );
+    let timed = admin
+        .incremental_alter_configs_for_timeout(
+            &[ConfigResourceUpdate::new(
+                ConfigResource::topic("iac-a"),
+                [AlterConfig::set("retention.ms", "1000")],
+            )],
+            Duration::from_secs(5),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
 
     let described = admin
         .describe_configs(
