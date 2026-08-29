@@ -1,4 +1,4 @@
-//! ListOffsets (api key 2). Classic v1–v5.
+//! ListOffsets (api key 2). v1–v5 classic; v6 flexible.
 
 use bytes::{Buf, BufMut, BytesMut};
 
@@ -128,7 +128,8 @@ impl ListOffsetsTopicResponse {
     }
 }
 
-/// ListOffsets v1–v5 (classic). Isolation is v2+. `current_leader_epoch` is v4+.
+/// ListOffsets v1–v5 (classic) or v6 (flexible). Isolation is v2+.
+/// `current_leader_epoch` is v4+. v7+ (max timestamp, KIP-734) is not spoken.
 pub fn encode_list_offsets_request(
     buf: &mut BytesMut,
     version: i16,
@@ -153,28 +154,53 @@ pub fn encode_list_offsets_request(
     )
 }
 
-/// Encode ListOffsets with one or more topics (classic v1–v5).
+/// `true` when ListOffsets `version` is flexible (v6).
+///
+/// v0–v5 are classic. v6 is compact arrays/strings plus tagged fields
+/// (Apache JSON `flexibleVersions: "6+"`). Kafka 4.0 removed v0.
+/// v7+ timestamp sentinels and v10 `TimeoutMs` are not spoken.
+fn list_offsets_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=5 => Ok(false),
+        6 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ListOffsets version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6 flexible).
 pub fn encode_list_offsets_topics_request(
     buf: &mut BytesMut,
     version: i16,
     isolation_level: i8,
     topics: &[ListOffsetsTopicRequest],
 ) -> crate::error::Result<()> {
+    let flexible = list_offsets_flexible(version)?;
     buf.put_i32(-1); // replica_id
     if version >= 2 {
         buf.put_i8(isolation_level);
     }
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.name))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.name))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             if version >= 4 {
                 buf.put_i32(p.current_leader_epoch);
             }
             buf.put_i64(p.timestamp);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -205,30 +231,40 @@ pub fn decode_list_offsets_request<B: Buf>(
     ))
 }
 
-/// Decode ListOffsets topics (classic v1–v5).
+/// Decode ListOffsets topics (v1–v5 classic, v6 flexible).
 pub fn decode_list_offsets_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, Vec<ListOffsetsTopicRequest>)> {
+    let flexible = list_offsets_flexible(version)?;
     let _replica = buf::get_i32(buf)?;
     let isolation = if version >= 2 { buf::get_i8(buf)? } else { 0 };
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let current_leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
             let timestamp = buf::get_i64(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(ListOffsetsPartitionRequest {
                 partition,
                 current_leader_epoch,
                 timestamp,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(ListOffsetsTopicRequest { name, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok((isolation, topics))
 }
@@ -251,19 +287,20 @@ pub fn encode_list_offsets_response(
     )
 }
 
-/// Encode ListOffsets with one or more topics (classic v1–v5).
+/// Encode ListOffsets with one or more topics (v1–v5 classic, v6 flexible).
 pub fn encode_list_offsets_topics_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[ListOffsetsTopicResponse],
 ) -> crate::error::Result<()> {
+    let flexible = list_offsets_flexible(version)?;
     if version >= 2 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.name))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.name))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition_index);
             buf.put_i16(p.error_code);
@@ -272,7 +309,16 @@ pub fn encode_list_offsets_topics_response(
             if version >= 4 {
                 buf.put_i32(p.leader_epoch);
             }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -304,19 +350,20 @@ pub fn decode_list_offsets_response<B: Buf>(
     })
 }
 
-/// Decode ListOffsets topics (classic v1–v5). Partition errors stay on the row.
+/// Decode ListOffsets topics (v1–v5 classic, v6 flexible). Partition errors stay on the row.
 pub fn decode_list_offsets_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<ListOffsetsTopicResponse>> {
+    let flexible = list_offsets_flexible(version)?;
     if version >= 2 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition_index = buf::get_i32(buf)?;
@@ -324,6 +371,9 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
             let timestamp = buf::get_i64(buf)?;
             let offset = buf::get_i64(buf)?;
             let leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(ListOffsetsResponsePartition {
                 partition_index,
                 error_code,
@@ -332,7 +382,13 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
                 leader_epoch,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(ListOffsetsTopicResponse { name, partitions });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(topics)
 }
@@ -453,5 +509,48 @@ mod tests {
             "v4 multi response leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn list_offsets_v6_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_list_offsets_request(&mut req, 6, 1, "t", 0, 7, LATEST_TIMESTAMP).unwrap();
+        let mut cur = &req[..];
+        let (iso, topic, part, epoch, ts) = decode_list_offsets_request(&mut cur, 6).unwrap();
+        assert_eq!((iso, topic.as_str(), part, epoch, ts), (1, "t", 0, 7, -1));
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v6 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_list_offsets_response(&mut resp, 6, "t", 0, ListOffsetsPartition::ok(-1, 12, 3))
+            .unwrap();
+        let mut cur = &resp[..];
+        let got = decode_list_offsets_response(&mut cur, 6).unwrap();
+        assert_eq!(got, ListOffsetsPartition::ok(-1, 12, 3));
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v6 response must consume compact tagged fields"
+        );
+        req.clear();
+        assert!(
+            encode_list_offsets_request(&mut req, 7, 0, "t", 0, 0, LATEST_TIMESTAMP).is_err(),
+            "ListOffsets v7+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn list_offsets_v6_latest_matches_compact_layout() {
+        // ReplicaId INT32 -1, IsolationLevel 0, compact Topics {Name
+        // "t", compact Partitions {0, epoch 0, timestamp -1, tagged},
+        // tagged}, tagged.
+        const REQ: &[u8] = &[
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_list_offsets_request(&mut buf, 6, 0, "t", 0, 0, LATEST_TIMESTAMP).unwrap();
+        assert_eq!(&buf[..], REQ);
     }
 }

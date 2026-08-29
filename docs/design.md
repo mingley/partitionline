@@ -151,7 +151,7 @@ topics.
 - Without `InitProducerId`, producer id / epoch / sequence must be `-1`. Zero is a real id.
 - `acks=0` means the broker sends no Produce response. Do not read one.
 - This client uses Produce versions 3–8 (classic record bytes). Version 9+ is compact.
-- ListOffsets v4+ has `current_leader_epoch` before timestamp. The v4+ response has `leader_epoch` after offset.
+- ListOffsets v4+ has `current_leader_epoch` before timestamp. The v4+ response has `leader_epoch` after offset. v1–v5 are classic; v6 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 removed v0. v7+ (max timestamp, KIP-734) is not spoken.
 - WriteTxnMarkers v0 is classic (no throttle). v1 is flexible (compact arrays/strings plus tagged fields on Markers / Topics / Partitions / top-level; request header 2, response header 1). Kafka 4.0 removed v0; this crate speaks 0–1. `TransactionResult` false is ABORT. Coordinator epoch is after the topic array. v2 `TransactionVersion` (KIP-1228) is not spoken.
 - LeaveGroup v0–v3 are classic (v3 is the members array). v4 is flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v5 adds per-member `Reason` (KIP-800). Classic `ConsumerGroup` leave still sends v0. Admin remove-members negotiates 3–5.
 - ApiVersions v3+ response tagged fields (KIP-482): 0 `supportedFeatures` (name, min, max), 1 `finalizedFeaturesEpoch` INT64 (`-1` omitted), 2 `finalizedFeatures` (name, **max** then min), 3 `zkMigrationReady`. Empty/default tags are omitted.

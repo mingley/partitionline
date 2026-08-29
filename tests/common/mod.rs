@@ -233,6 +233,7 @@ struct State {
     last_list_offsets_isolation: Option<i8>,
     list_offsets_calls: u32,
     list_offsets_not_leader: u32,
+    last_list_offsets_version: Option<i16>,
     last_delete_records_node: Option<i32>,
     delete_records_not_leader: u32,
     last_describe_producers_node: Option<i32>,
@@ -466,6 +467,7 @@ fn new_state(
         last_list_offsets_isolation: None,
         list_offsets_calls: 0,
         list_offsets_not_leader: 0,
+        last_list_offsets_version: None,
         last_delete_records_node: None,
         delete_records_not_leader: 0,
         last_describe_producers_node: None,
@@ -1184,6 +1186,10 @@ impl Mock {
 
     pub fn list_offsets_not_leader(&self) -> u32 {
         self.state.lock().list_offsets_not_leader
+    }
+
+    pub fn last_list_offsets_version(&self) -> Option<i16> {
+        self.state.lock().last_list_offsets_version
     }
 
     pub fn last_delete_records_node(&self) -> Option<i32> {
@@ -1986,7 +1992,7 @@ fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 9),
         (FETCH, 4, 11),
-        (LIST_OFFSETS, 0, 5),
+        (LIST_OFFSETS, 0, 6),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
@@ -3141,6 +3147,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_list_offsets_isolation = Some(iso);
                 st.list_offsets_calls = st.list_offsets_calls.saturating_add(1);
+                st.last_list_offsets_version = Some(header.api_version);
                 let mut n = 0usize;
                 let mut any_leader = false;
                 let mut resp_topics = Vec::with_capacity(topics.len());

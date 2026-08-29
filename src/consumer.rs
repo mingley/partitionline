@@ -2027,8 +2027,9 @@ impl Consumer {
 
     /// ListOffsets timestamp: `EARLIEST_TIMESTAMP` (-2), `LATEST_TIMESTAMP` (-1), or ms.
     ///
-    /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
-    /// timeout, use [`Self::list_offsets_timeout`].
+    /// Negotiates ListOffsets v1–v6 (v6 is flexible). Waits up to
+    /// [`ConsumerConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::list_offsets_timeout`].
     pub async fn list_offsets(
         &mut self,
         topic: impl Into<String>,
@@ -2097,7 +2098,7 @@ impl Consumer {
             let version = self
                 .versions
                 .get(&LIST_OFFSETS)
-                .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
+                .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
                 .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
             let isolation = self.cfg.isolation_level.as_i8();
             let current_leader_epoch = self.cluster.leader_epoch(topic, partition);

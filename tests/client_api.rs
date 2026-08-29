@@ -2442,6 +2442,11 @@ async fn admin_list_offsets_earliest_and_latest() {
     );
     assert_eq!(mock.last_list_offsets_n(), Some(2));
     assert_eq!(mock.last_list_offsets_isolation(), Some(0));
+    assert_eq!(
+        mock.last_list_offsets_version(),
+        Some(6),
+        "Admin must prefer ListOffsets v6 when the broker advertises it"
+    );
     let committed = admin
         .list_offsets_with_isolation(
             [(("t", 0), LATEST_TIMESTAMP)],

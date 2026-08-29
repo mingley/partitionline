@@ -1062,6 +1062,11 @@ async fn list_offsets_sends_current_leader_epoch() {
         .expect("ListOffsets must send current_leader_epoch");
     assert_eq!(got.0, "t");
     assert_eq!(got.1, 0);
+    assert_eq!(
+        mock.last_list_offsets_version(),
+        Some(6),
+        "Consumer must prefer ListOffsets v6 when the broker advertises it"
+    );
     assert_eq!(got.2, bumped);
     assert!(
         mock.last_offset_for_leader_epoch().is_none(),

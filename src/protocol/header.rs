@@ -10,7 +10,7 @@ use super::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN,
-    GET_TELEMETRY_SUBSCRIPTIONS, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
+    GET_TELEMETRY_SUBSCRIPTIONS, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
@@ -76,6 +76,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "4+"). This crate speaks 0–5
         // (v5 is KIP-800 Reason).
         LEAVE_GROUP if api_version >= 4 => 2,
+        // ListOffsets is classic through v5; flexible from v6
+        // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 removed v0;
+        // this crate speaks 1–6.
+        LIST_OFFSETS if api_version >= 6 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -142,6 +146,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         DELETE_GROUPS if api_version >= 2 => 1,
         WRITE_TXN_MARKERS if api_version >= 1 => 1,
         LEAVE_GROUP if api_version >= 4 => 1,
+        LIST_OFFSETS if api_version >= 6 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -331,6 +336,19 @@ mod tests {
         assert_eq!(response_header_version(LEAVE_GROUP, 4), 1);
         assert_eq!(request_header_version(LEAVE_GROUP, 5), 2);
         assert_eq!(response_header_version(LEAVE_GROUP, 5), 1);
+    }
+
+    #[test]
+    fn list_offsets_v6_is_flexible_v5_is_not() {
+        // Official JSON: validVersions 1-11, flexibleVersions 6+.
+        // Kafka 4.0 removed v0. HeaderVersion is 1 / 0 at v1–5 and
+        // 2 / 1 at v6+. This crate speaks 1–6.
+        assert_eq!(request_header_version(LIST_OFFSETS, 1), 1);
+        assert_eq!(response_header_version(LIST_OFFSETS, 1), 0);
+        assert_eq!(request_header_version(LIST_OFFSETS, 5), 1);
+        assert_eq!(response_header_version(LIST_OFFSETS, 5), 0);
+        assert_eq!(request_header_version(LIST_OFFSETS, 6), 2);
+        assert_eq!(response_header_version(LIST_OFFSETS, 6), 1);
     }
 
     #[test]

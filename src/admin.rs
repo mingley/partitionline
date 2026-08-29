@@ -3005,6 +3005,7 @@ impl Admin {
     /// separate timestamps). `NOT_LEADER_OR_FOLLOWER` refreshes
     /// Metadata and retries.
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is ListOffsets v4+.
+    /// v1–v5 are classic; v6 is flexible.
     /// Empty input is a no-op.
     pub async fn list_offsets_with_isolation(
         &mut self,
@@ -3021,7 +3022,7 @@ impl Admin {
         let version = self
             .versions
             .get(&LIST_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 5))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
             .ok_or_else(|| Error::Unsupported("broker does not support ListOffsets".into()))?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
