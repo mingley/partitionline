@@ -369,6 +369,12 @@
 //! [`Admin::describe_client_quotas_with`] is Java
 //! `describeClientQuotas(ClientQuotaFilter)`
 //! ([`ClientQuotaFilter::contains`] / [`ClientQuotaFilter::contains_only`]).
+//! [`ClientQuotaFilterComponent::of_entity`] /
+//! [`ClientQuotaFilterComponent::of_default_entity`] /
+//! [`ClientQuotaFilterComponent::of_entity_type`] are Java
+//! `ClientQuotaFilterComponent` factories.
+//! [`ClientQuotaEntity::USER`] / [`ClientQuotaEntity::CLIENT_ID`] /
+//! [`ClientQuotaEntity::IP`] match Java `ClientQuotaEntity` constants.
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`Admin::alter_user_scram_credentials_timeout`] /

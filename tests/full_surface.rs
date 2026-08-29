@@ -44,7 +44,7 @@ use partitionline::{
     TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
     UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
     CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -7397,19 +7397,22 @@ async fn describe_client_quotas_follows_broker() {
     mock.set_controller(2);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
-    let filter = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let filter = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
     let entries = admin
         .describe_client_quotas(std::slice::from_ref(&filter), false)
         .await
         .unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(
-        entries[0].entity,
-        vec![ClientQuotaEntity::new("user", Some("alice".into()))]
+        entries[0].entity(),
+        [ClientQuotaEntity::new(
+            ClientQuotaEntity::USER,
+            Some("alice".into())
+        )]
     );
-    assert_eq!(entries[0].values.len(), 1);
-    assert_eq!(entries[0].values[0].key, "producer_byte_rate");
-    assert_eq!(entries[0].values[0].value, 1024.0);
+    assert_eq!(entries[0].values().len(), 1);
+    assert_eq!(entries[0].values()[0].key(), "producer_byte_rate");
+    assert_eq!(entries[0].values()[0].value(), 1024.0);
     assert_eq!(
         mock.last_describe_client_quotas_node(),
         Some(1),
@@ -7429,8 +7432,7 @@ async fn describe_client_quotas_follows_broker() {
         None,
         "DescribeClientQuotas must not hop via AlterClientQuotas or Metadata controller_id"
     );
-    let timed_filter =
-        ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let timed_filter = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
     let timed = admin
         .describe_client_quotas_timeout(
             std::slice::from_ref(&timed_filter),
@@ -7440,7 +7442,7 @@ async fn describe_client_quotas_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed.len(), 1);
-    assert_eq!(timed[0].values[0].key, "producer_byte_rate");
+    assert_eq!(timed[0].values()[0].key(), "producer_byte_rate");
     let all = admin.describe_client_quotas_all().await.unwrap();
     assert_eq!(all.len(), 1);
     assert_eq!(
@@ -7453,8 +7455,7 @@ async fn describe_client_quotas_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_all.len(), 1);
-    let contains_comp =
-        ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let contains_comp = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
     let contains = admin
         .describe_client_quotas_with(&ClientQuotaFilter::contains([contains_comp.clone()]))
         .await
@@ -7483,10 +7484,32 @@ async fn describe_client_quotas_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_with.len(), 1);
+    let default = ClientQuotaFilterComponent::of_default_entity(ClientQuotaEntity::USER);
+    let defaulted = admin
+        .describe_client_quotas_with(&ClientQuotaFilter::contains([default.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(defaulted.len(), 1);
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![default], false)),
+        "ofDefaultEntity sends MatchType default and a null match"
+    );
+    let any = ClientQuotaFilterComponent::of_entity_type(ClientQuotaEntity::CLIENT_ID);
+    let any_listed = admin
+        .describe_client_quotas_with(&ClientQuotaFilter::contains([any.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(any_listed.len(), 1);
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![any], false)),
+        "ofEntityType sends MatchType any and a null match"
+    );
     admin.close().await.unwrap();
     mock.hide_api(DESCRIBE_CLIENT_QUOTAS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let hidden = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let hidden = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
     let err = admin
         .describe_client_quotas(std::slice::from_ref(&hidden), false)
         .await
@@ -7508,13 +7531,13 @@ async fn describe_client_quotas_negotiates_v0_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(DESCRIBE_CLIENT_QUOTAS, 0);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let filter = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let filter = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
     let entries = admin
         .describe_client_quotas(std::slice::from_ref(&filter), false)
         .await
         .unwrap();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].values[0].key, "producer_byte_rate");
+    assert_eq!(entries[0].values()[0].key(), "producer_byte_rate");
     assert_eq!(
         mock.last_describe_client_quotas_version(),
         Some(0),
@@ -7529,12 +7552,18 @@ async fn alter_client_quotas_follows_controller() {
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
     let alice = ClientQuotaAlteration::new(
-        vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+        vec![ClientQuotaEntity::new(
+            ClientQuotaEntity::USER,
+            Some("alice".into()),
+        )],
         vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
     );
+    assert_eq!(alice.entity()[0].entity_type(), ClientQuotaEntity::USER);
+    assert_eq!(alice.ops()[0].key(), "producer_byte_rate");
+    assert_eq!(alice.ops()[0].value(), Some(1024.0));
     let results = admin.alter_client_quotas(&[alice], false).await.unwrap();
     assert_eq!(results.len(), 1);
-    assert_eq!(results[0].error_code, 0);
+    assert_eq!(results[0].error_code(), 0);
     assert_eq!(
         mock.last_alter_client_quotas_node(),
         Some(2),
@@ -7566,13 +7595,14 @@ async fn alter_client_quotas_follows_controller() {
         vec![ClientQuotaEntity::new("user", Some("carol".into()))],
         vec![ClientQuotaOp::remove("producer_byte_rate")],
     );
+    assert!(delete_carol.ops()[0].value().is_none());
     let again = admin
         .alter_client_quotas(&[bob, delete_carol], false)
         .await
         .unwrap();
     assert_eq!(again.len(), 2);
-    assert_eq!(again[0].error_code, 0);
-    assert_eq!(again[1].error_code, 0);
+    assert_eq!(again[0].error_code(), 0);
+    assert_eq!(again[1].error_code(), 0);
     assert_eq!(
         mock.alter_client_quotas_not_controller(),
         1,

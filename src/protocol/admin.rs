@@ -3479,6 +3479,10 @@ pub fn decode_describe_user_scram_credentials_response<B: Buf>(
 }
 
 /// One quota entity component (type + optional name). Null name is the default.
+///
+/// Java `ClientQuotaEntity` is a type-to-name map; this is one map entry.
+/// [`Self::USER`] / [`Self::CLIENT_ID`] / [`Self::IP`] match the Java
+/// constants.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaEntity {
     /// Quota entity type (for example `client-id`).
@@ -3488,12 +3492,38 @@ pub struct ClientQuotaEntity {
 }
 
 impl ClientQuotaEntity {
+    /// Java `ClientQuotaEntity.USER`.
+    pub const USER: &'static str = "user";
+    /// Java `ClientQuotaEntity.CLIENT_ID`.
+    pub const CLIENT_ID: &'static str = "client-id";
+    /// Java `ClientQuotaEntity.IP`.
+    pub const IP: &'static str = "ip";
+
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(entity_type: impl Into<String>, name: Option<String>) -> Self {
         Self {
             entity_type: entity_type.into(),
             name,
         }
+    }
+
+    /// Java `ClientQuotaEntity.isValidEntityType`.
+    #[must_use]
+    pub fn is_valid_entity_type(entity_type: &str) -> bool {
+        entity_type == Self::USER || entity_type == Self::CLIENT_ID || entity_type == Self::IP
+    }
+
+    /// Entity type string (Java map key in `ClientQuotaEntity.entries`).
+    #[must_use]
+    pub fn entity_type(&self) -> &str {
+        self.entity_type.as_str()
+    }
+
+    /// Entity name, or `None` for the built-in default (Java null map value).
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
     }
 }
 
@@ -3505,6 +3535,9 @@ pub const QUOTA_MATCH_DEFAULT: i8 = 1;
 pub const QUOTA_MATCH_ANY: i8 = 2;
 
 /// One filter component in DescribeClientQuotas (api 48).
+///
+/// [`Self::of_entity`] / [`Self::of_default_entity`] / [`Self::of_entity_type`]
+/// are Java `ClientQuotaFilterComponent` factories.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaFilterComponent {
     /// Quota entity type (for example `client-id`).
@@ -3517,6 +3550,7 @@ pub struct ClientQuotaFilterComponent {
 
 impl ClientQuotaFilterComponent {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(
         entity_type: impl Into<String>,
         match_type: i8,
@@ -3526,6 +3560,44 @@ impl ClientQuotaFilterComponent {
             entity_type: entity_type.into(),
             match_type,
             match_value,
+        }
+    }
+
+    /// Java `ClientQuotaFilterComponent.ofEntity`.
+    #[must_use]
+    pub fn of_entity(entity_type: impl Into<String>, entity_name: impl Into<String>) -> Self {
+        Self::new(entity_type, QUOTA_MATCH_EXACT, Some(entity_name.into()))
+    }
+
+    /// Java `ClientQuotaFilterComponent.ofDefaultEntity`.
+    #[must_use]
+    pub fn of_default_entity(entity_type: impl Into<String>) -> Self {
+        Self::new(entity_type, QUOTA_MATCH_DEFAULT, None)
+    }
+
+    /// Java `ClientQuotaFilterComponent.ofEntityType` (any specified name).
+    #[must_use]
+    pub fn of_entity_type(entity_type: impl Into<String>) -> Self {
+        Self::new(entity_type, QUOTA_MATCH_ANY, None)
+    }
+
+    /// Java `ClientQuotaFilterComponent.entityType`.
+    #[must_use]
+    pub fn entity_type(&self) -> &str {
+        self.entity_type.as_str()
+    }
+
+    /// Java `ClientQuotaFilterComponent.match`.
+    ///
+    /// Present inner is an exact name ([`Self::of_entity`]). Empty inner is
+    /// the default entity ([`Self::of_default_entity`]). Outer `None` is any
+    /// specified name ([`Self::of_entity_type`]).
+    #[must_use]
+    pub fn matched(&self) -> Option<Option<&str>> {
+        match self.match_type {
+            QUOTA_MATCH_EXACT => Some(self.match_value.as_deref()),
+            QUOTA_MATCH_DEFAULT => Some(None),
+            _ => None,
         }
     }
 }
@@ -3593,11 +3665,24 @@ pub struct ClientQuotaValue {
 
 impl ClientQuotaValue {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(key: impl Into<String>, value: f64) -> Self {
         Self {
             key: key.into(),
             value,
         }
+    }
+
+    /// Quota key.
+    #[must_use]
+    pub fn key(&self) -> &str {
+        self.key.as_str()
+    }
+
+    /// Quota value.
+    #[must_use]
+    pub fn value(&self) -> f64 {
+        self.value
     }
 }
 
@@ -3612,8 +3697,21 @@ pub struct ClientQuotaEntry {
 
 impl ClientQuotaEntry {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(entity: Vec<ClientQuotaEntity>, values: Vec<ClientQuotaValue>) -> Self {
         Self { entity, values }
+    }
+
+    /// Entity type/name pairs (Java `ClientQuotaEntity.entries` as a list).
+    #[must_use]
+    pub fn entity(&self) -> &[ClientQuotaEntity] {
+        &self.entity
+    }
+
+    /// Quota key/value pairs.
+    #[must_use]
+    pub fn values(&self) -> &[ClientQuotaValue] {
+        &self.values
     }
 }
 
@@ -3644,6 +3742,7 @@ pub struct ClientQuotaOp {
 
 impl ClientQuotaOp {
     /// Quota op that sets `key` to `value`.
+    #[must_use]
     pub fn set(key: impl Into<String>, value: f64) -> Self {
         Self {
             key: key.into(),
@@ -3653,11 +3752,28 @@ impl ClientQuotaOp {
     }
 
     /// Quota op that deletes `key`.
+    #[must_use]
     pub fn remove(key: impl Into<String>) -> Self {
         Self {
             key: key.into(),
             value: 0.0,
             remove: true,
+        }
+    }
+
+    /// Java `ClientQuotaAlteration.Op.key`.
+    #[must_use]
+    pub fn key(&self) -> &str {
+        self.key.as_str()
+    }
+
+    /// Java `ClientQuotaAlteration.Op.value` (`None` clears the key).
+    #[must_use]
+    pub fn value(&self) -> Option<f64> {
+        if self.remove {
+            None
+        } else {
+            Some(self.value)
         }
     }
 }
@@ -3673,8 +3789,21 @@ pub struct ClientQuotaAlteration {
 
 impl ClientQuotaAlteration {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(entity: Vec<ClientQuotaEntity>, ops: Vec<ClientQuotaOp>) -> Self {
         Self { entity, ops }
+    }
+
+    /// Java `ClientQuotaAlteration.entity` (one type/name pair per entry).
+    #[must_use]
+    pub fn entity(&self) -> &[ClientQuotaEntity] {
+        &self.entity
+    }
+
+    /// Java `ClientQuotaAlteration.ops`.
+    #[must_use]
+    pub fn ops(&self) -> &[ClientQuotaOp] {
+        &self.ops
     }
 }
 
@@ -3688,6 +3817,26 @@ pub struct ClientQuotaAlterationResult {
     pub error_message: Option<String>,
     /// Quota entity entries.
     pub entity: Vec<ClientQuotaEntity>,
+}
+
+impl ClientQuotaAlterationResult {
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Quota entity entries.
+    #[must_use]
+    pub fn entity(&self) -> &[ClientQuotaEntity] {
+        &self.entity
+    }
 }
 
 /// `true` when AlterClientQuotas `version` is flexible.
@@ -12296,13 +12445,75 @@ mod tests {
         let all = ClientQuotaFilter::all();
         assert!(all.components().is_empty());
         assert!(!all.strict());
-        let c = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+        let c = ClientQuotaFilterComponent::of_entity(ClientQuotaEntity::USER, "alice");
+        assert_eq!(
+            c,
+            ClientQuotaFilterComponent::new(
+                ClientQuotaEntity::USER,
+                QUOTA_MATCH_EXACT,
+                Some("alice".into())
+            )
+        );
+        assert_eq!(c.entity_type(), ClientQuotaEntity::USER);
+        assert_eq!(c.matched(), Some(Some("alice")));
         let contains = ClientQuotaFilter::contains([c.clone()]);
         assert_eq!(contains.components(), std::slice::from_ref(&c));
         assert!(!contains.strict());
         let only = ClientQuotaFilter::contains_only([c.clone()]);
         assert_eq!(only.components(), std::slice::from_ref(&c));
         assert!(only.strict());
+        let default = ClientQuotaFilterComponent::of_default_entity(ClientQuotaEntity::CLIENT_ID);
+        assert_eq!(default.match_type, QUOTA_MATCH_DEFAULT);
+        assert!(default.match_value.is_none());
+        assert_eq!(default.matched(), Some(None));
+        let any = ClientQuotaFilterComponent::of_entity_type(ClientQuotaEntity::IP);
+        assert_eq!(any.match_type, QUOTA_MATCH_ANY);
+        assert!(any.match_value.is_none());
+        assert_eq!(any.matched(), None);
+        assert!(ClientQuotaEntity::is_valid_entity_type(
+            ClientQuotaEntity::USER
+        ));
+        assert!(ClientQuotaEntity::is_valid_entity_type(
+            ClientQuotaEntity::CLIENT_ID
+        ));
+        assert!(ClientQuotaEntity::is_valid_entity_type(
+            ClientQuotaEntity::IP
+        ));
+        assert!(!ClientQuotaEntity::is_valid_entity_type("group"));
+        let entity = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into()));
+        assert_eq!(entity.entity_type(), ClientQuotaEntity::USER);
+        assert_eq!(entity.name(), Some("alice"));
+        let set = ClientQuotaOp::set("producer_byte_rate", 1024.0);
+        assert_eq!(set.key(), "producer_byte_rate");
+        assert_eq!(set.value(), Some(1024.0));
+        let del = ClientQuotaOp::remove("producer_byte_rate");
+        assert_eq!(del.key(), "producer_byte_rate");
+        assert!(del.value().is_none());
+        let alteration = ClientQuotaAlteration::new(vec![entity.clone()], vec![set.clone()]);
+        assert_eq!(alteration.entity(), std::slice::from_ref(&entity));
+        assert_eq!(alteration.ops(), std::slice::from_ref(&set));
+        let value = ClientQuotaValue::new("producer_byte_rate", 1024.0);
+        assert_eq!(value.key(), "producer_byte_rate");
+        assert_eq!(value.value(), 1024.0);
+        let entry = ClientQuotaEntry::new(vec![entity.clone()], vec![value.clone()]);
+        assert_eq!(entry.entity(), std::slice::from_ref(&entity));
+        assert_eq!(entry.values(), std::slice::from_ref(&value));
+        let result = ClientQuotaAlterationResult {
+            error_code: 0,
+            error_message: None,
+            entity: vec![entity.clone()],
+        };
+        assert_eq!(result.error_code(), 0);
+        assert!(result.error_message().is_none());
+        assert_eq!(result.entity(), std::slice::from_ref(&entity));
+        const REQ: &[u8] = &[
+            0x02, 0x05, 0x75, 0x73, 0x65, 0x72, 0x00, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00,
+            0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_describe_client_quotas_request(&mut buf, 1, std::slice::from_ref(&c), false)
+            .unwrap();
+        assert_eq!(&buf[..], REQ, "ofEntity must encode MatchType exact");
     }
 
     #[test]
