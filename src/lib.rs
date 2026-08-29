@@ -350,7 +350,8 @@
 //! no TimeoutMs; caps `NOT_CONTROLLER`).
 //! [`Admin::allocate_producer_ids_timeout`] is the crate-first
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
-//! `allocateProducerIds`.
+//! `allocateProducerIds`. [`Admin::new`] does not require that API,
+//! ShareGroupDescribe, or the share-offset RPCs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
 //! `AssignReplicasToDirsOptions.timeoutMs` (RPC deadline;
 //! AssignReplicasToDirs has no TimeoutMs; caps `NOT_CONTROLLER`).

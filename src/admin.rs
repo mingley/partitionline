@@ -1203,17 +1203,17 @@ pub struct Admin {
     unregister_broker_version: i16,
     describe_client_quotas_version: i16,
     alter_client_quotas_version: i16,
-    allocate_producer_ids_version: i16,
+    allocate_producer_ids_version: Option<i16>,
     describe_transactions_version: i16,
     list_transactions_version: i16,
     consumer_group_describe_version: Option<i16>,
     describe_groups_version: i16,
     list_groups_version: i16,
     delete_groups_version: i16,
-    share_group_describe_version: i16,
-    describe_share_group_offsets_version: i16,
-    alter_share_group_offsets_version: i16,
-    delete_share_group_offsets_version: i16,
+    share_group_describe_version: Option<i16>,
+    describe_share_group_offsets_version: Option<i16>,
+    alter_share_group_offsets_version: Option<i16>,
+    delete_share_group_offsets_version: Option<i16>,
     describe_topic_partitions_version: Option<i16>,
     list_config_resources_version: i16,
     get_telemetry_subscriptions_version: i16,
@@ -1416,6 +1416,10 @@ impl Admin {
     }
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
+    ///
+    /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
+    /// the share-offset RPCs, and AllocateProducerIds are optional at
+    /// connect. Missing APIs fail on the method with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1576,10 +1580,7 @@ impl Admin {
             })?;
         let allocate_producer_ids_version = versions
             .get(&ALLOCATE_PRODUCER_IDS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AllocateProducerIds".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_transactions_version = versions
             .get(&DESCRIBE_TRANSACTIONS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -1611,28 +1612,16 @@ impl Admin {
             })?;
         let share_group_describe_version = versions
             .get(&SHARE_GROUP_DESCRIBE)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support ShareGroupDescribe v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let describe_share_group_offsets_version = versions
             .get(&DESCRIBE_SHARE_GROUP_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeShareGroupOffsets".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let alter_share_group_offsets_version = versions
             .get(&ALTER_SHARE_GROUP_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterShareGroupOffsets".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let delete_share_group_offsets_version = versions
             .get(&DELETE_SHARE_GROUP_OFFSETS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DeleteShareGroupOffsets".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_topic_partitions_version = versions
             .get(&DESCRIBE_TOPIC_PARTITIONS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3772,7 +3761,9 @@ impl Admin {
         broker_epoch: i64,
         timeout: Duration,
     ) -> Result<ProducerIdBlock> {
-        let version = self.allocate_producer_ids_version;
+        let version = self.allocate_producer_ids_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AllocateProducerIds".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -7171,7 +7162,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.share_group_describe_version;
+        let version = self.share_group_describe_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ShareGroupDescribe v0-1".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
@@ -7307,7 +7300,9 @@ impl Admin {
             return Ok(Vec::new());
         }
         let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
-        let version = self.describe_share_group_offsets_version;
+        let version = self.describe_share_group_offsets_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeShareGroupOffsets".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedShareGroupOffsets>> = vec![None; groups.len()];
@@ -7427,7 +7422,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<AlteredShareGroupOffsets> {
         let coord_key = group_id.to_string();
-        let version = self.alter_share_group_offsets_version;
+        let version = self.alter_share_group_offsets_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterShareGroupOffsets".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -7524,7 +7521,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<DeletedShareGroupOffsets> {
         let coord_key = group_id.to_string();
-        let version = self.delete_share_group_offsets_version;
+        let version = self.delete_share_group_offsets_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DeleteShareGroupOffsets".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

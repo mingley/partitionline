@@ -11,7 +11,10 @@
 mod common;
 
 use partitionline::error;
-use partitionline::protocol::api_keys::CONSUMER_GROUP_DESCRIBE;
+use partitionline::protocol::api_keys::{
+    ALLOCATE_PRODUCER_IDS, ALTER_SHARE_GROUP_OFFSETS, CONSUMER_GROUP_DESCRIBE,
+    DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_SHARE_GROUP_OFFSETS, SHARE_GROUP_DESCRIBE,
+};
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
@@ -3327,6 +3330,57 @@ async fn admin_describe_share_groups_uses_share_group_describe() {
         .await
         .unwrap();
     assert_eq!(timed[0].group_id, "g-share");
+    admin.close().await.unwrap();
+    mock.hide_api(SHARE_GROUP_DESCRIBE);
+    mock.hide_api(ALLOCATE_PRODUCER_IDS);
+    mock.hide_api(DESCRIBE_SHARE_GROUP_OFFSETS);
+    mock.hide_api(ALTER_SHARE_GROUP_OFFSETS);
+    mock.hide_api(DELETE_SHARE_GROUP_OFFSETS);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let share_err = admin
+        .describe_share_groups(&["g-share"], false)
+        .await
+        .unwrap_err();
+    assert!(
+        share_err.to_string().contains("unsupported"),
+        "ShareGroupDescribe is optional at connect: {share_err}"
+    );
+    let pid_err = admin.allocate_producer_ids(7, 42).await.unwrap_err();
+    assert!(
+        pid_err.to_string().contains("unsupported"),
+        "AllocateProducerIds is optional at connect: {pid_err}"
+    );
+    let off_err = admin
+        .list_share_group_offsets(&[DescribeShareGroupOffsetsGroup::new("sg-off")])
+        .await
+        .unwrap_err();
+    assert!(
+        off_err.to_string().contains("unsupported"),
+        "DescribeShareGroupOffsets is optional at connect: {off_err}"
+    );
+    let alter_err = admin
+        .alter_share_group_offsets("sg-alt", &[])
+        .await
+        .unwrap_err();
+    assert!(
+        alter_err.to_string().contains("unsupported"),
+        "AlterShareGroupOffsets is optional at connect: {alter_err}"
+    );
+    let del_err = admin
+        .delete_share_group_offsets("sg-del", &[])
+        .await
+        .unwrap_err();
+    assert!(
+        del_err.to_string().contains("unsupported"),
+        "DeleteShareGroupOffsets is optional at connect: {del_err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
     admin.close().await.unwrap();
 }
 
