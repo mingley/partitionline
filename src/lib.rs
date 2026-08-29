@@ -290,6 +290,9 @@
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
 //! [`Admin::list_groups_all`] / [`Admin::list_consumer_groups_all`] are Java
 //! `listGroups()` / `listConsumerGroups()`.
+//! [`Admin::list_groups_with`] / [`Admin::list_consumer_groups_with`] are Java
+//! `listGroups` / `listConsumerGroups` plus `ListGroupsOptions.inGroupStates`
+//! / `withTypes` ([`GroupState`] / [`GroupType`]).
 //! [`Admin::list_groups_timeout`] / [`Admin::list_consumer_groups_timeout`]
 //! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
 //! (RPC deadline; ListGroups has no TimeoutMs).
@@ -606,10 +609,10 @@ pub use admin::{
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
     ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
-    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse,
-    ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove, NewPartitions,
-    NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
-    PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
+    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, GroupState,
+    GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove,
+    NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
+    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RecordsToDelete, RemovedMember,
     RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo,
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,

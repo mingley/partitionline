@@ -36,14 +36,15 @@ use partitionline::{
     ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
     DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
-    ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec,
-    NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
-    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType, IsolationLevel,
+    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec,
+    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
+    ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState,
+    TransactionTopic, UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -8407,6 +8408,46 @@ async fn list_consumer_groups_follows_broker() {
         .await
         .unwrap();
     assert_eq!(timed_all.len(), 1);
+
+    assert_eq!(first[0].group_state(), GroupState::Stable);
+    assert_eq!(first[0].group_type(), GroupType::Classic);
+    let typed = admin
+        .list_groups_with([GroupState::Stable], [GroupType::Classic])
+        .await
+        .unwrap();
+    assert_eq!(typed.len(), 1);
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Stable".into()], vec!["Classic".into()])),
+        "listGroups(inGroupStates, withTypes) must send Java toString values"
+    );
+    let timed_typed = admin
+        .list_groups_with_timeout(
+            [GroupState::Stable],
+            [GroupType::Classic],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_typed.len(), 1);
+    let cg_typed = admin
+        .list_consumer_groups_with([GroupState::Empty], [GroupType::Consumer])
+        .await
+        .unwrap();
+    assert_eq!(cg_typed.len(), 1);
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Empty".into()], vec!["Consumer".into()]))
+    );
+    let cg_timed = admin
+        .list_consumer_groups_with_timeout(
+            [GroupState::Empty],
+            [GroupType::Share],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(cg_timed.len(), 1);
 }
 
 #[tokio::test]

@@ -5226,6 +5226,162 @@ pub fn decode_describe_groups_response<B: Buf>(
     Ok(groups)
 }
 
+/// Java `org.apache.kafka.common.GroupType` (ListGroups TypesFilter).
+///
+/// Wire strings match Java `toString` (`Classic`, `Consumer`, `Share`).
+/// [`Self::parse`] is case-insensitive. Kafka 4.1 `Streams` is not spoken.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GroupType {
+    /// Java `UNKNOWN`.
+    Unknown,
+    /// Java `CONSUMER` (KIP-848).
+    Consumer,
+    /// Java `CLASSIC`.
+    Classic,
+    /// Java `SHARE` (KIP-932).
+    Share,
+}
+
+impl GroupType {
+    /// Java `GroupType.toString()`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "Unknown",
+            Self::Consumer => "Consumer",
+            Self::Classic => "Classic",
+            Self::Share => "Share",
+        }
+    }
+
+    /// Java `GroupType.parse` (case-insensitive; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn parse(name: &str) -> Self {
+        if name.eq_ignore_ascii_case("consumer") {
+            Self::Consumer
+        } else if name.eq_ignore_ascii_case("classic") {
+            Self::Classic
+        } else if name.eq_ignore_ascii_case("share") {
+            Self::Share
+        } else {
+            Self::Unknown
+        }
+    }
+}
+
+impl fmt::Display for GroupType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<GroupType> for String {
+    fn from(ty: GroupType) -> Self {
+        ty.as_str().to_string()
+    }
+}
+
+/// Java `org.apache.kafka.common.GroupState` (ListGroups StatesFilter).
+///
+/// Wire strings match Java `toString` (`Stable`, `PreparingRebalance`, …).
+/// [`Self::parse`] is case-insensitive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GroupState {
+    /// Java `UNKNOWN`.
+    Unknown,
+    /// Java `PREPARING_REBALANCE`.
+    PreparingRebalance,
+    /// Java `COMPLETING_REBALANCE`.
+    CompletingRebalance,
+    /// Java `STABLE`.
+    Stable,
+    /// Java `DEAD`.
+    Dead,
+    /// Java `EMPTY`.
+    Empty,
+    /// Java `ASSIGNING` (KIP-848 consumer groups).
+    Assigning,
+    /// Java `RECONCILING` (KIP-848 consumer groups).
+    Reconciling,
+}
+
+impl GroupState {
+    /// Java `GroupState.toString()`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "Unknown",
+            Self::PreparingRebalance => "PreparingRebalance",
+            Self::CompletingRebalance => "CompletingRebalance",
+            Self::Stable => "Stable",
+            Self::Dead => "Dead",
+            Self::Empty => "Empty",
+            Self::Assigning => "Assigning",
+            Self::Reconciling => "Reconciling",
+        }
+    }
+
+    /// Java `GroupState.parse` (case-insensitive; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn parse(name: &str) -> Self {
+        if name.eq_ignore_ascii_case("preparingrebalance") {
+            Self::PreparingRebalance
+        } else if name.eq_ignore_ascii_case("completingrebalance") {
+            Self::CompletingRebalance
+        } else if name.eq_ignore_ascii_case("stable") {
+            Self::Stable
+        } else if name.eq_ignore_ascii_case("dead") {
+            Self::Dead
+        } else if name.eq_ignore_ascii_case("empty") {
+            Self::Empty
+        } else if name.eq_ignore_ascii_case("assigning") {
+            Self::Assigning
+        } else if name.eq_ignore_ascii_case("reconciling") {
+            Self::Reconciling
+        } else {
+            Self::Unknown
+        }
+    }
+
+    /// Java `GroupState.groupStatesForType`. [`GroupType::Unknown`] is empty
+    /// (Java throws).
+    #[must_use]
+    pub fn group_states_for_type(ty: GroupType) -> &'static [Self] {
+        match ty {
+            GroupType::Classic => &[
+                Self::PreparingRebalance,
+                Self::CompletingRebalance,
+                Self::Stable,
+                Self::Dead,
+                Self::Empty,
+            ],
+            GroupType::Consumer => &[
+                Self::PreparingRebalance,
+                Self::CompletingRebalance,
+                Self::Stable,
+                Self::Dead,
+                Self::Empty,
+                Self::Assigning,
+                Self::Reconciling,
+            ],
+            GroupType::Share => &[Self::Stable, Self::Dead, Self::Empty],
+            GroupType::Unknown => &[],
+        }
+    }
+}
+
+impl fmt::Display for GroupState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<GroupState> for String {
+    fn from(state: GroupState) -> Self {
+        state.as_str().to_string()
+    }
+}
+
 /// One listed group in ListGroups (api 16).
 ///
 /// There is no per-group ErrorCode. The response error sits at the top
@@ -5252,6 +5408,18 @@ impl ListedGroup {
             group_state: String::new(),
             group_type: String::new(),
         }
+    }
+
+    /// Java `ListedGroup.groupType` as [`GroupType`].
+    #[must_use]
+    pub fn group_type(&self) -> GroupType {
+        GroupType::parse(&self.group_type)
+    }
+
+    /// Java `ListedGroup.groupState` as [`GroupState`].
+    #[must_use]
+    pub fn group_state(&self) -> GroupState {
+        GroupState::parse(&self.group_state)
     }
 }
 

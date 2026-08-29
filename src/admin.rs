@@ -134,12 +134,12 @@ pub use crate::protocol::admin::{
     DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
     DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
     EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
-    PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
+    GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListedConfigResource, ListedGroup,
+    PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
+    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
+    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
     CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
     CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
     CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
@@ -7049,6 +7049,15 @@ impl Admin {
     ) -> Result<Vec<ListedGroup>> {
         let states: Vec<String> = states_filter.iter().map(|s| (*s).to_string()).collect();
         let types: Vec<String> = types_filter.iter().map(|s| (*s).to_string()).collect();
+        self.list_groups_owned(states, types, timeout).await
+    }
+
+    async fn list_groups_owned(
+        &mut self,
+        states: Vec<String>,
+        types: Vec<String>,
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
         let version = self.list_groups_version;
         let body = self
             .roundtrip_bootstrap(
@@ -7063,6 +7072,37 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "ListGroups"));
         }
         Ok(resp.groups)
+    }
+
+    /// [`Self::list_groups`] with Java `GroupState` / `GroupType`
+    /// (`ListGroupsOptions.inGroupStates` / `withTypes`).
+    ///
+    /// TypesFilter strings are Java `GroupType.toString` (`Classic`, not
+    /// `classic`). ListGroups has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::list_groups_with_timeout`].
+    pub async fn list_groups_with(
+        &mut self,
+        states: impl IntoIterator<Item = GroupState>,
+        types: impl IntoIterator<Item = GroupType>,
+    ) -> Result<Vec<ListedGroup>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_groups_with_timeout(states, types, timeout).await
+    }
+
+    /// [`Self::list_groups_with`] with a one-shot RPC deadline (Java
+    /// `ListGroupsOptions.timeoutMs`).
+    ///
+    /// ListGroups has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_groups_with_timeout(
+        &mut self,
+        states: impl IntoIterator<Item = GroupState>,
+        types: impl IntoIterator<Item = GroupType>,
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
+        let states: Vec<String> = states.into_iter().map(String::from).collect();
+        let types: Vec<String> = types.into_iter().map(String::from).collect();
+        self.list_groups_owned(states, types, timeout).await
     }
 
     /// List every group (Java `Admin.listGroups()`).
@@ -7106,6 +7146,29 @@ impl Admin {
     ) -> Result<Vec<ListedGroup>> {
         self.list_groups_timeout(states_filter, types_filter, timeout)
             .await
+    }
+
+    /// [`Self::list_consumer_groups`] with Java `GroupState` / `GroupType`
+    /// (`ListConsumerGroupsOptions.inGroupStates` / `withTypes`).
+    ///
+    /// Same wire as [`Self::list_groups_with`].
+    pub async fn list_consumer_groups_with(
+        &mut self,
+        states: impl IntoIterator<Item = GroupState>,
+        types: impl IntoIterator<Item = GroupType>,
+    ) -> Result<Vec<ListedGroup>> {
+        self.list_groups_with(states, types).await
+    }
+
+    /// [`Self::list_consumer_groups_with`] with a one-shot RPC deadline
+    /// (Java `ListConsumerGroupsOptions.timeoutMs`).
+    pub async fn list_consumer_groups_with_timeout(
+        &mut self,
+        states: impl IntoIterator<Item = GroupState>,
+        types: impl IntoIterator<Item = GroupType>,
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
+        self.list_groups_with_timeout(states, types, timeout).await
     }
 
     /// List every consumer group (Java `Admin.listConsumerGroups()`).
@@ -10087,6 +10150,43 @@ mod tests {
         assert_eq!(op.config_entry().name, "retention.ms");
         assert_eq!(op.config_entry().value.as_deref(), Some("1000"));
         assert_eq!(AlterConfigOp::set("k", "v").op, ALTER_CONFIG_SET);
+    }
+
+    #[test]
+    fn group_type_and_state_match_java() {
+        assert_eq!(GroupType::Classic.as_str(), "Classic");
+        assert_eq!(GroupType::parse("classic"), GroupType::Classic);
+        assert_eq!(GroupType::parse("CONSUMER"), GroupType::Consumer);
+        assert_eq!(GroupType::parse("Unknown"), GroupType::Unknown);
+        assert_eq!(GroupType::parse("Streams"), GroupType::Unknown);
+        assert_eq!(GroupType::parse("nope"), GroupType::Unknown);
+        assert_eq!(GroupState::Stable.as_str(), "Stable");
+        assert_eq!(GroupState::parse("stable"), GroupState::Stable);
+        assert_eq!(
+            GroupState::parse("PreparingRebalance"),
+            GroupState::PreparingRebalance
+        );
+        // Java keys `toString().toUpperCase()`, not the enum name: underscore
+        // form is UNKNOWN, same as `GroupState.parse("PREPARING_REBALANCE")`.
+        assert_eq!(
+            GroupState::parse("PREPARING_REBALANCE"),
+            GroupState::Unknown
+        );
+        assert_eq!(GroupState::parse("Unknown"), GroupState::Unknown);
+        assert_eq!(GroupState::parse("nope"), GroupState::Unknown);
+        assert_eq!(
+            GroupState::group_states_for_type(GroupType::Share),
+            &[GroupState::Stable, GroupState::Dead, GroupState::Empty]
+        );
+        assert!(GroupState::group_states_for_type(GroupType::Unknown).is_empty());
+        let listed = ListedGroup {
+            group_id: "g".into(),
+            protocol_type: "consumer".into(),
+            group_state: "Stable".into(),
+            group_type: "classic".into(),
+        };
+        assert_eq!(listed.group_state(), GroupState::Stable);
+        assert_eq!(listed.group_type(), GroupType::Classic);
     }
 
     #[test]
