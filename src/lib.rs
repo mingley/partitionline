@@ -148,7 +148,8 @@
 //! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`]
 //! `Display` match Java `toString`. [`AclBinding`] / [`ResourcePattern`] /
 //! [`AccessControlEntry`] / [`AclBindingFilter`] `Display` match Java
-//! `toString`.
+//! `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

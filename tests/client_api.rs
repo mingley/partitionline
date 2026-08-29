@@ -3328,6 +3328,10 @@ async fn admin_list_consumer_groups_uses_list_groups() {
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].group_id, "g");
     assert_eq!(
+        listed[0].to_string(),
+        "(groupId='g', type=Classic, protocol='consumer', groupState=Stable)"
+    );
+    assert_eq!(
         mock.last_list_groups(),
         Some((vec!["Stable".into()], vec!["classic".into()]))
     );

@@ -6573,6 +6573,8 @@ impl From<GroupState> for String {
 /// Java `GroupListing`. There is no per-group ErrorCode. The response
 /// error sits at the top of the body (after throttle on v1+).
 /// `group_state` is v4+; `group_type` is v5+.
+/// [`Display`] is Java `GroupListing.toString`. Empty `group_type` /
+/// `group_state` (pre-v5 / pre-v4) print `none`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedGroup {
     /// Kafka `group.id`.
@@ -6624,6 +6626,26 @@ impl ListedGroup {
     #[must_use]
     pub fn is_simple_consumer_group(&self) -> bool {
         self.group_type() == GroupType::Classic && self.protocol_type.is_empty()
+    }
+}
+
+impl fmt::Display for ListedGroup {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ty = if self.group_type.is_empty() {
+            "none"
+        } else {
+            self.group_type().as_str()
+        };
+        let st = if self.group_state.is_empty() {
+            "none"
+        } else {
+            self.group_state().as_str()
+        };
+        write!(
+            f,
+            "(groupId='{}', type={ty}, protocol='{}', groupState={st})",
+            self.group_id, self.protocol_type
+        )
     }
 }
 

@@ -328,7 +328,11 @@ impl AdminConfig {
     }
 }
 
-/// Topic to create (`CreateTopics`).
+/// Topic to create (`CreateTopics`). Java `NewTopic`.
+///
+/// [`Display`] is Java `NewTopic.toString`. Negative partition count or
+/// replication factor prints `default`. Empty assignments and configs
+/// print `null`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewTopic {
     /// Topic name.
@@ -446,6 +450,55 @@ impl NewTopic {
         } else {
             Some(self.assignments.as_slice())
         }
+    }
+}
+
+impl fmt::Display for NewTopic {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(name={}, numPartitions=", self.name)?;
+        if self.num_partitions < 0 {
+            f.write_str("default")?;
+        } else {
+            write!(f, "{}", self.num_partitions)?;
+        }
+        f.write_str(", replicationFactor=")?;
+        if self.replication_factor < 0 {
+            f.write_str("default")?;
+        } else {
+            write!(f, "{}", self.replication_factor)?;
+        }
+        f.write_str(", replicasAssignments=")?;
+        if self.assignments.is_empty() {
+            f.write_str("null")?;
+        } else {
+            f.write_str("{")?;
+            for (i, (partition, brokers)) in self.assignments.iter().enumerate() {
+                if i > 0 {
+                    f.write_str(", ")?;
+                }
+                write!(f, "{partition}=")?;
+                write_java_int_list(f, brokers)?;
+            }
+            f.write_str("}")?;
+        }
+        f.write_str(", configs=")?;
+        if self.configs.is_empty() {
+            f.write_str("null")?;
+        } else {
+            f.write_str("{")?;
+            for (i, (name, value)) in self.configs.iter().enumerate() {
+                if i > 0 {
+                    f.write_str(", ")?;
+                }
+                write!(f, "{name}=")?;
+                match value {
+                    Some(v) => f.write_str(v)?,
+                    None => f.write_str("null")?,
+                }
+            }
+            f.write_str("}")?;
+        }
+        f.write_str(")")
     }
 }
 
@@ -1204,7 +1257,22 @@ fn write_java_nullable_str(f: &mut fmt::Formatter<'_>, s: Option<&str>) -> fmt::
     }
 }
 
+/// Java `List.toString` id list: `[1, 2]` (comma-space).
+fn write_java_int_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result {
+    f.write_str("[")?;
+    for (i, id) in ids.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{id}")?;
+    }
+    f.write_str("]")
+}
+
 /// Increase a topic's partition count (`CreatePartitions`). Java `NewPartitions`.
+///
+/// [`Display`] is Java `NewPartitions.toString` (no topic name; `None`
+/// assignments print `null`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewPartitions {
     /// Topic name.
@@ -1265,6 +1333,26 @@ impl NewPartitions {
     #[must_use]
     pub fn assignments(&self) -> Option<&[Vec<i32>]> {
         self.assignments.as_deref()
+    }
+}
+
+impl fmt::Display for NewPartitions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(totalCount={}, newAssignments=", self.total_count)?;
+        match &self.assignments {
+            None => f.write_str("null")?,
+            Some(asns) => {
+                f.write_str("[")?;
+                for (i, brokers) in asns.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    write_java_int_list(f, brokers)?;
+                }
+                f.write_str("]")?;
+            }
+        }
+        f.write_str(")")
     }
 }
 
@@ -11611,18 +11699,44 @@ mod tests {
         assert_eq!(topic.num_partitions(), 3);
         assert_eq!(topic.replication_factor(), 1);
         assert!(topic.replicas_assignments().is_none());
+        assert_eq!(
+            topic.to_string(),
+            "(name=orders, numPartitions=3, replicationFactor=1, replicasAssignments=null, configs=null)"
+        );
+        assert_eq!(
+            NewTopic::broker_defaults("t").to_string(),
+            "(name=t, numPartitions=default, replicationFactor=default, replicasAssignments=null, configs=null)"
+        );
         let assigned = NewTopic::with_assignments("t", [(0, vec![1, 2])]);
         assert_eq!(assigned.num_partitions(), -1);
         assert_eq!(
             assigned.replicas_assignments(),
             Some(&[(0, vec![1, 2])][..])
         );
+        assert_eq!(
+            assigned.to_string(),
+            "(name=t, numPartitions=default, replicationFactor=default, replicasAssignments={0=[1, 2]}, configs=null)"
+        );
+        assert_eq!(
+            NewTopic::new("orders", 3, 1)
+                .config("cleanup.policy", "compact")
+                .to_string(),
+            "(name=orders, numPartitions=3, replicationFactor=1, replicasAssignments=null, configs={cleanup.policy=compact})"
+        );
         let parts = NewPartitions::increase_to("t", 5);
         assert_eq!(parts.name(), "t");
         assert_eq!(parts.total_count(), 5);
         assert!(parts.assignments().is_none());
+        assert_eq!(parts.to_string(), "(totalCount=5, newAssignments=null)");
         let with = parts.with_assignments([vec![1, 2]]);
         assert_eq!(with.assignments().map(<[Vec<i32>]>::len), Some(1));
+        assert_eq!(with.to_string(), "(totalCount=5, newAssignments=[[1, 2]])");
+        assert_eq!(
+            NewPartitions::increase_to("t", 5)
+                .with_assignments(Vec::<Vec<i32>>::new())
+                .to_string(),
+            "(totalCount=5, newAssignments=[])"
+        );
         let abort = AbortTransactionSpec::new(("events", 2), 9, 1, 3);
         assert_eq!(
             abort.topic_partition(),
@@ -11942,6 +12056,14 @@ mod tests {
         assert_eq!(listed.group_id(), "g");
         assert_eq!(listed.protocol(), "consumer");
         assert!(!listed.is_simple_consumer_group());
+        assert_eq!(
+            listed.to_string(),
+            "(groupId='g', type=Classic, protocol='consumer', groupState=Stable)"
+        );
+        assert_eq!(
+            ListedGroup::new("g").to_string(),
+            "(groupId='g', type=none, protocol='', groupState=none)"
+        );
         let simple = ListedGroup {
             group_id: "s".into(),
             protocol_type: String::new(),

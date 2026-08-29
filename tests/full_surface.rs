@@ -8580,6 +8580,10 @@ async fn list_groups_follows_broker() {
     assert_eq!(first[0].group_state, "Stable");
     assert_eq!(first[0].group_type, "classic");
     assert_eq!(
+        first[0].to_string(),
+        "(groupId='g', type=Classic, protocol='consumer', groupState=Stable)"
+    );
+    assert_eq!(
         mock.last_list_groups_node(),
         Some(1),
         "ListGroups must land on the connected broker, not the coordinator or controller"
@@ -8635,6 +8639,10 @@ async fn list_groups_negotiates_v4_when_broker_caps() {
     assert!(
         listed[0].group_type.is_empty(),
         "v4 has no GroupType; decode fills empty"
+    );
+    assert_eq!(
+        listed[0].to_string(),
+        "(groupId='g', type=none, protocol='consumer', groupState=Stable)"
     );
     assert_eq!(
         mock.last_list_groups_version(),
