@@ -1221,8 +1221,8 @@ pub struct Admin {
     cached_client_instance_id: Option<[u8; 16]>,
     push_telemetry_version: Option<i16>,
     assign_replicas_to_dirs_version: Option<i16>,
-    alter_replica_log_dirs_version: i16,
-    describe_log_dirs_version: i16,
+    alter_replica_log_dirs_version: Option<i16>,
+    describe_log_dirs_version: Option<i16>,
     create_delegation_token_version: i16,
     renew_delegation_token_version: i16,
     expire_delegation_token_version: i16,
@@ -1422,9 +1422,9 @@ impl Admin {
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
     /// UnregisterBroker, DescribeProducers, DescribeCluster,
     /// UpdateFeatures, DescribeClientQuotas, AlterClientQuotas,
-    /// AlterUserScramCredentials, and DescribeUserScramCredentials are
-    /// optional at connect. Missing APIs fail on the method with
-    /// [`Error::Unsupported`].
+    /// AlterUserScramCredentials, DescribeUserScramCredentials,
+    /// AlterReplicaLogDirs, and DescribeLogDirs are optional at connect.
+    /// Missing APIs fail on the method with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1622,14 +1622,10 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let alter_replica_log_dirs_version = versions
             .get(&ALTER_REPLICA_LOG_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2));
         let describe_log_dirs_version = versions
             .get(&DESCRIBE_LOG_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 4))
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 4));
         let create_delegation_token_version = versions
             .get(&CREATE_DELEGATION_TOKEN)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
@@ -8190,7 +8186,9 @@ impl Admin {
     /// directory path and topic/partition indexes only; this is not a
     /// log-dir store. AlterReplicaLogDirs has no TimeoutMs; the RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
-    /// deadline, use [`Self::alter_replica_log_dirs_timeout`].
+    /// deadline, use [`Self::alter_replica_log_dirs_timeout`]. Optional at
+    /// [`Self::new`] (Kafka 1.1+ / KIP-113); a broker that omits api 34
+    /// returns [`Error::Unsupported`].
     pub async fn alter_replica_log_dirs(
         &mut self,
         dirs: Vec<AlterReplicaLogDirsDirectory>,
@@ -8208,7 +8206,9 @@ impl Admin {
         dirs: Vec<AlterReplicaLogDirsDirectory>,
         timeout: Duration,
     ) -> Result<AlterReplicaLogDirsResponse> {
-        let version = self.alter_replica_log_dirs_version;
+        let version = self.alter_replica_log_dirs_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
+        })?;
         let req = AlterReplicaLogDirsRequest::new(dirs);
         let body = self
             .roundtrip_bootstrap(
@@ -8248,6 +8248,8 @@ impl Admin {
     /// [`Self::describe_broker_log_dirs`]. DescribeLogDirs has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use [`Self::describe_log_dirs_timeout`].
+    /// Optional at [`Self::new`] (Kafka 1.0+ / KIP-113); a broker that
+    /// omits api 35 returns [`Error::Unsupported`].
     pub async fn describe_log_dirs(
         &mut self,
         topics: Option<Vec<DescribableLogDirTopic>>,
@@ -8265,7 +8267,9 @@ impl Admin {
         topics: Option<Vec<DescribableLogDirTopic>>,
         timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
-        let version = self.describe_log_dirs_version;
+        let version = self
+            .describe_log_dirs_version
+            .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
         let req = DescribeLogDirsRequest::new(topics);
         let body = self
             .roundtrip_bootstrap(
@@ -8392,7 +8396,9 @@ impl Admin {
         topics: Option<Vec<DescribableLogDirTopic>>,
         timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
-        let version = self.describe_log_dirs_version;
+        let version = self
+            .describe_log_dirs_version
+            .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let req = DescribeLogDirsRequest::new(topics);

@@ -8473,6 +8473,25 @@ async fn alter_replica_log_dirs_follows_broker() {
         .unwrap();
     assert_eq!(timed.results.len(), 1);
     assert_eq!(timed.results[0].partitions[0].error_code, 0);
+    admin.close().await.unwrap();
+    mock.hide_api(ALTER_REPLICA_LOG_DIRS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let hidden =
+        AlterReplicaLogDirsDirectory::new("/d", vec![AlterReplicaLogDirsTopic::new("t", vec![0])]);
+    let err = admin
+        .alter_replica_log_dirs(vec![hidden])
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "AlterReplicaLogDirs is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -8563,6 +8582,23 @@ async fn describe_log_dirs_follows_broker() {
         .unwrap();
     assert_eq!(timed.error_code, 0);
     assert_eq!(timed.results[0].log_dir, "/d");
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_LOG_DIRS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .describe_log_dirs(Some(vec![DescribableLogDirTopic::new("t", vec![0])]))
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeLogDirs is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
