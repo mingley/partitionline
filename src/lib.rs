@@ -299,6 +299,9 @@
 //! `listConsumerGroupOffsets(Map)` ([`ListConsumerGroupOffsetsSpec`];
 //! OffsetFetch v8+ Groups array of N, KIP-709; FindCoordinator v4+
 //! CoordinatorKeys array of N, KIP-699).
+//! [`ListConsumerGroupOffsetsSpec`] `Display` is Java
+//! `ListConsumerGroupOffsetsSpec.toString` (`topicPartitions=null` when
+//! [`ListConsumerGroupOffsetsSpec::all`]).
 //! [`Admin::delete_records_for`] is Java `deleteRecords(Map)`
 //! ([`RecordsToDelete`] / [`DeletedRecords`]; one DeleteRecords RPC per leader).
 //! [`Admin::delete_records_timeout`] /

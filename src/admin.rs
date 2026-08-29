@@ -2450,6 +2450,9 @@ impl From<String> for MemberToRemove {
 ///
 /// `partitions: None` is every committed partition (OffsetFetch null
 /// Topics). Empty `partitions` is a no-op for that group.
+///
+/// [`Display`] is Java `ListConsumerGroupOffsetsSpec.toString`
+/// (`topicPartitions=null` when [`Self::all`]).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListConsumerGroupOffsetsSpec {
     /// Topic-partitions to fetch. `None` is all committed partitions.
@@ -2477,6 +2480,26 @@ impl ListConsumerGroupOffsetsSpec {
     #[must_use]
     pub fn partitions(&self) -> Option<&[crate::TopicPartition]> {
         self.partitions.as_deref()
+    }
+}
+
+impl fmt::Display for ListConsumerGroupOffsetsSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ListConsumerGroupOffsetsSpec(topicPartitions=")?;
+        match &self.partitions {
+            None => f.write_str("null")?,
+            Some(tps) => {
+                f.write_str("[")?;
+                for (i, tp) in tps.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{tp}")?;
+                }
+                f.write_str("]")?;
+            }
+        }
+        f.write_str(")")
     }
 }
 
@@ -11892,7 +11915,26 @@ mod tests {
         assert_eq!(removed.error_code(), 0);
         let spec = ListConsumerGroupOffsetsSpec::topic_partitions([("t", 0)]);
         assert_eq!(spec.partitions().map(<[_]>::len), Some(1));
+        assert_eq!(
+            spec.to_string(),
+            "ListConsumerGroupOffsetsSpec(topicPartitions=[t-0])"
+        );
+        assert_eq!(
+            ListConsumerGroupOffsetsSpec::topic_partitions([("t", 0), ("t", 1)]).to_string(),
+            "ListConsumerGroupOffsetsSpec(topicPartitions=[t-0, t-1])"
+        );
+        assert_eq!(
+            ListConsumerGroupOffsetsSpec {
+                partitions: Some(Vec::new()),
+            }
+            .to_string(),
+            "ListConsumerGroupOffsetsSpec(topicPartitions=[])"
+        );
         assert!(ListConsumerGroupOffsetsSpec::all().partitions().is_none());
+        assert_eq!(
+            ListConsumerGroupOffsetsSpec::all().to_string(),
+            "ListConsumerGroupOffsetsSpec(topicPartitions=null)"
+        );
         let update = FeatureUpdate::new("metadata.version", 20);
         assert_eq!(update.name(), "metadata.version");
         assert_eq!(update.max_version_level(), 20);
