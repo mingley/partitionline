@@ -295,6 +295,7 @@ mod tests {
                     isr_nodes: vec![1],
                     offline_replicas: Vec::new(),
                 }],
+                topic_authorized_operations: i32::MIN,
             }],
             error_code: 0,
         });
@@ -344,6 +345,7 @@ mod tests {
                     isr_nodes: vec![1, 2],
                     offline_replicas: Vec::new(),
                 }],
+                topic_authorized_operations: i32::MIN,
             }],
             error_code: 0,
         });

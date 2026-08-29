@@ -150,7 +150,7 @@ null header value. `current_lag` is Java `currentLag`. `enforce_rebalance` /
 names starting with `__` are skipped). Share groups have the same
 `subscribe_matching` / `join_matching`.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
-Metadata. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
+Metadata. `describe_topics_with` is Java `DescribeTopicsOptions.includeAuthorizedOperations`. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
 assignment (`assign_partitions` is Java `assign(Collection)` and uses
 `auto.offset.reset`).
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.

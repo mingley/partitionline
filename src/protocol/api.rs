@@ -523,6 +523,9 @@ pub struct TopicMetadata {
     pub is_internal: bool,
     /// Partitions.
     pub partitions: Vec<PartitionMetadata>,
+    /// Topic authorized operations (v8+). `i32::MIN` when omitted
+    /// ([`crate::AUTHORIZED_OPERATIONS_OMITTED`]).
+    pub topic_authorized_operations: i32,
 }
 
 /// Metadata response body.
@@ -554,11 +557,28 @@ impl MetadataResponse {
 }
 
 /// Encode Metadata. `topics = None` asks for all topics.
+///
+/// `IncludeTopicAuthorizedOperations` is false (Java default). Use
+/// [`encode_metadata_request_with`] for `DescribeTopicsOptions`.
 pub fn encode_metadata_request(
     buf: &mut BytesMut,
     version: i16,
     topics: Option<&[String]>,
     allow_auto: bool,
+) -> crate::error::Result<()> {
+    encode_metadata_request_with(buf, version, topics, allow_auto, false)
+}
+
+/// Encode Metadata with `IncludeTopicAuthorizedOperations` (v8+).
+///
+/// Below v8 the flag is omitted. Cluster authorized operations stay
+/// unset (`false` on v8–v10).
+pub fn encode_metadata_request_with(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[String]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
     let flexible = version >= 9;
     match topics {
@@ -583,7 +603,7 @@ pub fn encode_metadata_request(
         buf.put_u8(0);
     }
     if version >= 8 {
-        buf.put_u8(0);
+        buf.put_u8(u8::from(include_topic_authorized_operations));
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -591,11 +611,12 @@ pub fn encode_metadata_request(
     Ok(())
 }
 
-/// Decode Metadata request: topic names (`None` is all topics) and `allow.auto.create.topics`.
+/// Decode Metadata request: topic names (`None` is all topics),
+/// `allow.auto.create.topics`, and `IncludeTopicAuthorizedOperations`.
 pub fn decode_metadata_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Option<Vec<String>>, bool)> {
+) -> Result<(Option<Vec<String>>, bool, bool)> {
     let flexible = version >= 9;
     let topics = match buf::get_array_len(buf, flexible)? {
         None => None,
@@ -627,14 +648,16 @@ pub fn decode_metadata_request<B: Buf>(
         buf::need(buf, 1)?;
         let _include_cluster = buf.get_u8();
     }
-    if version >= 8 {
+    let include_topic_authorized = if version >= 8 {
         buf::need(buf, 1)?;
-        let _include_topic = buf.get_u8();
-    }
+        buf.get_u8() != 0
+    } else {
+        false
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((topics, allow_auto))
+    Ok((topics, allow_auto, include_topic_authorized))
 }
 
 fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
@@ -728,9 +751,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
                 offline_replicas,
             });
         }
-        if version >= 8 {
-            let _authorized = buf::get_i32(buf)?;
-        }
+        let topic_authorized_operations = if version >= 8 {
+            buf::get_i32(buf)?
+        } else {
+            i32::MIN
+        };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
@@ -740,6 +765,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             topic_id,
             is_internal,
             partitions,
+            topic_authorized_operations,
         });
     }
     if (8..=10).contains(&version) {
@@ -815,7 +841,7 @@ pub fn encode_metadata_response(
             }
         }
         if version >= 8 {
-            buf.put_i32(-2147483648);
+            buf.put_i32(t.topic_authorized_operations);
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
@@ -1649,6 +1675,7 @@ mod tests {
                     isr_nodes: vec![1],
                     offline_replicas: vec![2],
                 }],
+                topic_authorized_operations: i32::MIN,
             }],
             error_code: 0,
         };
@@ -1697,14 +1724,31 @@ mod tests {
         let topics = ["orders".to_string(), "payments".to_string()];
         let mut buf = BytesMut::new();
         encode_metadata_request(&mut buf, 12, Some(&topics), true).unwrap();
-        let (got, allow) = decode_metadata_request(&mut &buf[..], 12).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &buf[..], 12).unwrap();
         assert_eq!(got.as_deref(), Some(topics.as_slice()));
         assert!(allow);
+        assert!(
+            !include_topic,
+            "encode_metadata_request must leave IncludeTopicAuthorizedOperations unset"
+        );
 
         let mut all = BytesMut::new();
         encode_metadata_request(&mut all, 12, None, false).unwrap();
-        let (got, allow) = decode_metadata_request(&mut &all[..], 12).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &all[..], 12).unwrap();
         assert!(got.is_none());
         assert!(!allow);
+        assert!(!include_topic);
+
+        let mut with = BytesMut::new();
+        encode_metadata_request_with(&mut with, 12, Some(&topics), false, true).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &with[..], 12).unwrap();
+        assert_eq!(got.as_deref(), Some(topics.as_slice()));
+        assert!(!allow);
+        assert!(include_topic);
+        assert_ne!(
+            &buf[..],
+            &with[..],
+            "IncludeTopicAuthorizedOperations true must not match the default request"
+        );
     }
 }

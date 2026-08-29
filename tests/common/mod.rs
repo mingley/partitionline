@@ -231,6 +231,7 @@ struct State {
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
+    last_metadata_include_topic_authorized: Option<bool>,
     brokers: Vec<Broker>,
     /// Broker ids omitted from Metadata (still reachable via NodeEndpoints).
     hidden_brokers: HashSet<i32>,
@@ -567,6 +568,7 @@ fn new_state(
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
         last_metadata_topics: None,
+        last_metadata_include_topic_authorized: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
         api_max: HashMap::new(),
@@ -923,7 +925,12 @@ fn kip848_recompute(st: &mut State, group_id: &str) {
     }
 }
 
-fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> MetadataResponse {
+fn metadata_for(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    include_topic_authorized: bool,
+) -> MetadataResponse {
     let brokers = if st.brokers.is_empty() {
         vec![Broker {
             node_id: 1,
@@ -980,6 +987,11 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
                         }
                     })
                     .collect(),
+                topic_authorized_operations: if include_topic_authorized {
+                    4
+                } else {
+                    i32::MIN
+                },
             })
             .collect(),
         error_code: 0,
@@ -1355,6 +1367,10 @@ impl Mock {
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
         self.state.lock().last_metadata_topics.clone()
+    }
+
+    pub fn last_metadata_include_topic_authorized(&self) -> Option<bool> {
+        self.state.lock().last_metadata_include_topic_authorized
     }
 
     pub fn set_produce_error(&self, code: i16) {
@@ -2944,16 +2960,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             METADATA => {
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
-                let (topics, allow) =
+                let (topics, allow, include_topic) =
                     decode_metadata_request(&mut frame.clone(), header.api_version).unwrap();
                 st.last_metadata_allow_auto = Some(allow);
                 st.last_metadata_version = Some(header.api_version);
                 st.last_metadata_topics = Some(topics);
+                st.last_metadata_include_topic_authorized = Some(include_topic);
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(
                     &mut body,
                     header.api_version,
-                    &metadata_for(&st, &host, port),
+                    &metadata_for(&st, &host, port, include_topic),
                 )
                 .unwrap();
             }

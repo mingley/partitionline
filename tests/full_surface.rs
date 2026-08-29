@@ -38,9 +38,9 @@ use partitionline::{
     OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
     RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
     TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4527,9 +4527,22 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     assert_eq!(described[0].partitions.len(), 1);
     assert_eq!(described[0].partitions[0].leader, 1);
     assert_eq!(
+        described[0].authorized_operations, AUTHORIZED_OPERATIONS_OMITTED,
+        "describe_topics must leave IncludeTopicAuthorizedOperations unset"
+    );
+    assert_eq!(mock.last_metadata_include_topic_authorized(), Some(false));
+    assert_eq!(
         mock.last_metadata_topics(),
         Some(Some(vec!["t".into()])),
         "describe_topics must send Metadata for the named topics"
+    );
+    let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
+    assert_eq!(with_ops.len(), 1);
+    assert_eq!(with_ops[0].authorized_operations, 4);
+    assert_eq!(
+        mock.last_metadata_include_topic_authorized(),
+        Some(true),
+        "describe_topics_with(true) must send IncludeTopicAuthorizedOperations"
     );
     let calls = mock.metadata_calls();
     let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();

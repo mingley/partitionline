@@ -3439,6 +3439,10 @@ async fn admin_list_and_describe_topics() {
     assert_eq!(described[0].partitions.len(), 1);
     assert_eq!(described[0].partitions[0].partition, 0);
     assert_eq!(described[0].topic_id[0], b't');
+    assert_eq!(
+        described[0].authorized_operations,
+        partitionline::AUTHORIZED_OPERATIONS_OMITTED
+    );
     assert_eq!(mock.last_metadata_topics(), Some(Some(vec!["t".into()])));
     assert_eq!(mock.last_metadata_allow_auto(), Some(false));
     let calls = mock.metadata_calls();

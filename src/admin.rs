@@ -65,7 +65,7 @@ use crate::protocol::admin::{
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
-    encode_metadata_request, ApiVersion, MetadataResponse,
+    encode_metadata_request_with, ApiVersion, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -385,6 +385,9 @@ pub struct TopicDescription {
     pub error_code: i16,
     /// Partitions (empty when [`Self::error_code`] is not `0`).
     pub partitions: Vec<crate::PartitionInfo>,
+    /// Topic authorized operations (Metadata v8+), or
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`] when not requested.
+    pub authorized_operations: i32,
 }
 
 impl TopicDescription {
@@ -403,6 +406,7 @@ impl TopicDescription {
             is_internal,
             error_code,
             partitions,
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }
     }
 }
@@ -1799,15 +1803,34 @@ impl Admin {
     /// Empty input is a no-op (no RPC). Per-topic Metadata errors live
     /// on [`TopicDescription::error_code`]; [`TopicDescription::partitions`]
     /// is filled only when that code is `0`.
+    /// `IncludeTopicAuthorizedOperations` is false; see
+    /// [`Self::describe_topics_with`].
     pub async fn describe_topics(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_with(topics, false).await
+    }
+
+    /// [`Self::describe_topics`] with Java
+    /// `DescribeTopicsOptions.includeAuthorizedOperations`.
+    ///
+    /// Metadata v8+ sends IncludeTopicAuthorizedOperations.
+    /// Below v8 the flag is omitted and
+    /// [`TopicDescription::authorized_operations`] is
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    pub async fn describe_topics_with(
+        &mut self,
+        topics: impl IntoIterator<Item = impl AsRef<str>>,
+        include_authorized_operations: bool,
     ) -> Result<Vec<TopicDescription>> {
         let names: Vec<String> = topics.into_iter().map(|s| s.as_ref().to_string()).collect();
         if names.is_empty() {
             return Ok(Vec::new());
         }
-        let md = self.fetch_metadata(Some(&names)).await?;
+        let md = self
+            .fetch_metadata_with(Some(&names), include_authorized_operations)
+            .await?;
         Ok(topic_descriptions_from(&md))
     }
 
@@ -3394,13 +3417,29 @@ impl Admin {
     }
 
     async fn fetch_metadata(&mut self, topics: Option<&[String]>) -> Result<MetadataResponse> {
+        self.fetch_metadata_with(topics, false).await
+    }
+
+    async fn fetch_metadata_with(
+        &mut self,
+        topics: Option<&[String]>,
+        include_topic_authorized_operations: bool,
+    ) -> Result<MetadataResponse> {
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 METADATA,
                 version,
-                |buf| encode_metadata_request(buf, version, topics, false),
+                |buf| {
+                    encode_metadata_request_with(
+                        buf,
+                        version,
+                        topics,
+                        false,
+                        include_topic_authorized_operations,
+                    )
+                },
                 timeout,
             )
             .await?;
@@ -6997,6 +7036,7 @@ fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
                 is_internal: t.is_internal,
                 error_code: t.error_code,
                 partitions,
+                authorized_operations: t.topic_authorized_operations,
             })
         })
         .collect()
@@ -7161,6 +7201,7 @@ mod tests {
                         isr_nodes: vec![1],
                         offline_replicas: Vec::new(),
                     }],
+                    topic_authorized_operations: i32::MIN,
                 },
                 TopicMetadata {
                     error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
@@ -7176,6 +7217,7 @@ mod tests {
                         isr_nodes: Vec::new(),
                         offline_replicas: Vec::new(),
                     }],
+                    topic_authorized_operations: i32::MIN,
                 },
                 TopicMetadata {
                     error_code: 0,
@@ -7183,6 +7225,7 @@ mod tests {
                     topic_id: [2; 16],
                     is_internal: true,
                     partitions: Vec::new(),
+                    topic_authorized_operations: i32::MIN,
                 },
             ],
             error_code: 0,
