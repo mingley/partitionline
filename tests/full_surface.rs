@@ -2228,6 +2228,46 @@ async fn offset_commit_negotiates_below_v9_when_broker_caps() {
         "client must speak OffsetCommit v7 when the broker max is 7"
     );
     group.leave().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_COMMIT, 6);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-oc6".into());
+    let mut group = ConsumerGroup::join(ccfg, "oc6", "t").await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(6),
+        "client must speak OffsetCommit v6 when the broker max is 6"
+    );
+    group.leave().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_COMMIT, 5);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg, "oc5", "t").await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(5),
+        "client must speak OffsetCommit v5 when the broker max is 5"
+    );
+    group.leave().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_COMMIT, 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join(ccfg, "oc2", "t").await.unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.last_offset_commit_version(),
+        Some(2),
+        "client must speak OffsetCommit v2 when the broker max is 2"
+    );
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

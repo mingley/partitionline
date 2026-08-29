@@ -136,7 +136,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         LIST_OFFSETS if api_version >= 6 => 2,
         // OffsetCommit is classic through v7; flexible from v8
         // (Apache JSON flexibleVersions: "8+"). Kafka 4.0 validVersions
-        // is 2-9. This crate speaks 7–9. v9 is KIP-848 errors (same layout).
+        // is 2-9 (v0–v1 removed). This crate speaks 2–9. v2–v4
+        // RetentionTimeMs. v6 CommittedLeaderEpoch. v7 GroupInstanceId.
+        // v9 is KIP-848 errors (same layout). v0–v1 and v10+ are not
+        // spoken.
         OFFSET_COMMIT if api_version >= 8 => 2,
         // OffsetFetch is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
@@ -570,8 +573,12 @@ mod tests {
     #[test]
     fn offset_commit_v8_is_flexible_v7_is_not() {
         // Official JSON: validVersions 2-9, flexibleVersions 8+.
-        // HeaderVersion is 1 / 0 at v7 and 2 / 1 at v8–v9. This crate
-        // speaks 7–9. v9 is KIP-848 errors (same layout as v8).
+        // HeaderVersion is 1 / 0 at v2–v7 and 2 / 1 at v8–v9. This crate
+        // speaks 2–9. v9 is KIP-848 errors (same layout as v8).
+        assert_eq!(request_header_version(OFFSET_COMMIT, 2), 1);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 2), 0);
+        assert_eq!(request_header_version(OFFSET_COMMIT, 5), 1);
+        assert_eq!(response_header_version(OFFSET_COMMIT, 5), 0);
         assert_eq!(request_header_version(OFFSET_COMMIT, 7), 1);
         assert_eq!(response_header_version(OFFSET_COMMIT, 7), 0);
         assert_eq!(request_header_version(OFFSET_COMMIT, 8), 2);

@@ -28,7 +28,7 @@
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
-//! OffsetCommit v7–v9 (v8+ flexible; v9 KIP-848 errors),
+//! OffsetCommit v2–v9 (v2–v4 retention `-1`; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
 //! OffsetFetch v5–v9 (v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),

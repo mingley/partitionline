@@ -1139,12 +1139,7 @@ impl ConsumerGroup {
         if topics.is_empty() {
             return Ok(());
         }
-        let version = self.coord.offset_commit_version;
-        if !(7..=9).contains(&version) {
-            return Err(Error::Unsupported(
-                "broker does not support OffsetCommit v7-9".into(),
-            ));
-        }
+        let version = spoken_offset_commit(self.coord.offset_commit_version)?;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -1992,6 +1987,16 @@ async fn leave_if_max_poll(
     true
 }
 
+fn spoken_offset_commit(version: i16) -> Result<i16> {
+    if (2..=9).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support OffsetCommit v2-9".into(),
+        ))
+    }
+}
+
 fn spoken_join_group(version: i16) -> Result<i16> {
     if (2..=9).contains(&version) {
         Ok(version)
@@ -2288,7 +2293,7 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == OFFSET_COMMIT)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 7, 9))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
         .unwrap_or(0);
     conn.offset_fetch_version = resp
         .api_keys

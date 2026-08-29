@@ -852,7 +852,7 @@ pub fn decode_leave_group_response_version<B: Buf>(
     Ok((error_code, members))
 }
 
-/// One partition in OffsetCommit v7–v9 / OffsetFetch v5.
+/// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetPartition {
     /// Partition index.
@@ -878,7 +878,7 @@ impl OffsetPartition {
     }
 }
 
-/// Topic + partitions for OffsetCommit v7–v9.
+/// Topic + partitions for OffsetCommit v2–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetTopic {
     /// Topic name.
@@ -936,16 +936,16 @@ pub struct FetchedOffsetTopic {
 
 /// `true` when OffsetCommit `version` is flexible (v8+).
 ///
-/// v7 is classic (GroupId / MemberId / GroupInstanceId, leader epoch,
-/// metadata). v8–v9 are compact strings/arrays plus tagged fields on
-/// partitions / topics / top-level (Apache JSON `flexibleVersions: "8+"`).
-/// v9 is KIP-848 error codes (`GROUP_ID_NOT_FOUND`, `STALE_MEMBER_EPOCH`)
-/// with the same layout as v8. Kafka 4.0 `validVersions` is `2-9`. This
-/// crate speaks 7–9. v2–v6 (retention time / no instance id) and v10+
-/// are not spoken.
+/// v2–v7 are classic. v8–v9 are compact strings/arrays plus tagged fields
+/// on partitions / topics / top-level (Apache JSON `flexibleVersions:
+/// "8+"`). Official JSON: v3 and v4 match v2 (RetentionTimeMs). v5
+/// drops retention. v6 CommittedLeaderEpoch. v7 GroupInstanceId. v9 is
+/// KIP-848 error codes with the same layout as v8. Kafka 4.0
+/// `validVersions` is `2-9` (v0–v1 removed). This crate speaks 2–9.
+/// v0–v1 and v10+ are not spoken.
 fn offset_commit_flexible(version: i16) -> Result<bool> {
     match version {
-        7 => Ok(false),
+        2..=7 => Ok(false),
         8..=9 => Ok(true),
         other => Err(Error::protocol(format!(
             "OffsetCommit version {other} is not implemented"
@@ -953,7 +953,12 @@ fn offset_commit_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// Encode OffsetCommit v7 (classic) or v8–v9 (flexible).
+/// Encode OffsetCommit v2–v9.
+///
+/// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "8+"`.
+/// v2–v4 send RetentionTimeMs `-1` after MemberId. v5 omits retention.
+/// v6 CommittedLeaderEpoch. v7 GroupInstanceId. v8 flexible. v9 matches
+/// v8. This crate speaks 2–9. v0–v1 and v10+ are not spoken.
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     version: i16,
@@ -967,7 +972,12 @@ pub fn encode_offset_commit_request(
     buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i32(generation_id);
     buf::put_string(buf, flexible, Some(member_id))?;
-    buf::put_string(buf, flexible, group_instance_id)?;
+    if version >= 7 {
+        buf::put_string(buf, flexible, group_instance_id)?;
+    }
+    if (2..=4).contains(&version) {
+        buf.put_i64(-1);
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.topic))?;
@@ -975,7 +985,9 @@ pub fn encode_offset_commit_request(
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
-            buf.put_i32(p.leader_epoch);
+            if version >= 6 {
+                buf.put_i32(p.leader_epoch);
+            }
             let meta = if p.metadata.is_empty() {
                 None
             } else {
@@ -1005,7 +1017,12 @@ pub fn decode_offset_commit_request<B: Buf>(
     let group = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
     let member = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _inst = buf::get_string(buf, flexible)?;
+    if version >= 7 {
+        let _inst = buf::get_string(buf, flexible)?;
+    }
+    if (2..=4).contains(&version) {
+        let _retention = buf::get_i64(buf)?;
+    }
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -1015,7 +1032,7 @@ pub fn decode_offset_commit_request<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = buf::get_i32(buf)?;
+            let leader_epoch = if version >= 6 { buf::get_i32(buf)? } else { -1 };
             let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -1038,7 +1055,7 @@ pub fn decode_offset_commit_request<B: Buf>(
     Ok((group, member, topics))
 }
 
-/// Encode OffsetCommit: one error code applied to every partition.
+/// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1046,7 +1063,9 @@ pub fn encode_offset_commit_response(
     error: i16,
 ) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
-    buf.put_i32(0);
+    if version >= 3 {
+        buf.put_i32(0);
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.topic))?;
@@ -1069,9 +1088,12 @@ pub fn encode_offset_commit_response(
 }
 
 /// Decode OffsetCommit: first non-zero partition error, or `0`.
+/// Throttle is v3+.
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
     let flexible = offset_commit_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    if version >= 3 {
+        let _throttle = buf::get_i32(buf)?;
+    }
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut first_err = 0i16;
     for _ in 0..n {
@@ -2125,6 +2147,83 @@ mod tests {
     }
 
     #[test]
+    fn offset_commit_v2_v4_match_and_v5_drops_retention() {
+        // Official JSON: "Version 3 and 4 are the same as version 2."
+        // Request: "g", gen 7, "m1", RetentionTimeMs -1, topic "t" p0
+        // offset 3, null metadata. Leader epoch is v6+. Instance is v7+.
+        const REQ: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x00, 0x07, 0x00, 0x02, 0x6d, 0x31, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x74, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+            0xff, 0xff,
+        ];
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 3,
+                leader_epoch: 4,
+                metadata: String::new(),
+            }],
+        }];
+        let mut v2 = BytesMut::new();
+        encode_offset_commit_request(&mut v2, 2, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        let mut v3 = BytesMut::new();
+        encode_offset_commit_request(&mut v3, 3, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        let mut v4 = BytesMut::new();
+        encode_offset_commit_request(&mut v4, 4, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        assert_eq!(&v2[..], REQ);
+        assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
+        let mut cur = v2.as_ref();
+        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got[0].partitions[0].offset, 3);
+        assert_eq!(got[0].partitions[0].leader_epoch, -1);
+        assert!(cur.is_empty(), "v2 request leftover-empty");
+
+        let mut v5 = BytesMut::new();
+        encode_offset_commit_request(&mut v5, 5, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        assert_ne!(v4.as_ref(), v5.as_ref(), "v5 drops RetentionTimeMs");
+        let mut cur = v5.as_ref();
+        let (_gid, _mid, got) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        assert_eq!(got[0].partitions[0].leader_epoch, -1);
+        assert!(cur.is_empty(), "v5 request leftover-empty");
+
+        let mut v6 = BytesMut::new();
+        encode_offset_commit_request(&mut v6, 6, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        assert_ne!(v5.as_ref(), v6.as_ref(), "v6 adds CommittedLeaderEpoch");
+        let mut cur = v6.as_ref();
+        let (_gid, _mid, got) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        assert_eq!(got[0].partitions[0].leader_epoch, 4);
+        assert!(cur.is_empty(), "v6 request leftover-empty");
+
+        v2.clear();
+        encode_offset_commit_response(&mut v2, 2, &topics, 0).unwrap();
+        v3.clear();
+        encode_offset_commit_response(&mut v3, 3, &topics, 0).unwrap();
+        assert_ne!(v2.as_ref(), v3.as_ref(), "v3 response adds ThrottleTimeMs");
+        let mut cur = v2.as_ref();
+        assert_eq!(decode_offset_commit_response(&mut cur, 2).unwrap(), 0);
+        assert!(cur.is_empty(), "v2 response leftover-empty");
+        let mut cur = v3.as_ref();
+        assert_eq!(decode_offset_commit_response(&mut cur, 3).unwrap(), 0);
+        assert!(cur.is_empty(), "v3 response leftover-empty");
+
+        v2.clear();
+        let err =
+            encode_offset_commit_request(&mut v2, 0, "g", 7, "m1", None, &topics).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v0 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 2, 9), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 9, 2, 9), Some(9));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 2, 9), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 2, 9), None);
+    }
+
+    #[test]
     fn offset_commit_v7_batches_partitions_and_consumes_epoch_metadata() {
         let topics = offset_commit_topics();
         let mut buf = BytesMut::new();
@@ -2213,9 +2312,9 @@ mod tests {
         encode_offset_commit_request(&mut v7, 7, "g", 7, "m1", None, &topics).unwrap();
         assert_ne!(&buf[..], &v7[..], "OffsetCommit v8 must not be classic v7");
         assert!(
-            encode_offset_commit_request(&mut BytesMut::new(), 6, "g", 7, "m1", None, &topics)
+            encode_offset_commit_request(&mut BytesMut::new(), 1, "g", 7, "m1", None, &topics)
                 .is_err(),
-            "OffsetCommit v6 is not spoken"
+            "OffsetCommit v0–v1 are not spoken"
         );
         assert!(
             encode_offset_commit_request(&mut BytesMut::new(), 10, "g", 7, "m1", None, &topics)

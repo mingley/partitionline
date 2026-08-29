@@ -254,7 +254,8 @@ pub struct BrokerConn {
     /// [`Self::send`] plus [`Self::read_response`] is not double-counted.
     stats: Option<Arc<crate::metrics::AdminTracker>>,
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
-    /// Classic consumer groups pick 7–9 from ApiVersions.
+    /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0
+    /// removed v0–v1, so `0` is not a spoken version.
     pub(crate) offset_commit_version: i16,
     /// OffsetFetch version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 5–9 from ApiVersions.
