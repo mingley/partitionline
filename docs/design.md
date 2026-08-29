@@ -76,7 +76,7 @@ tagged fields; v4 SupportedFeatures.MinVersion 0, KAFKA-17011;
 `Admin::update_features_timeout` / `Admin::update_features_with_timeout` are
 Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 `Admin::list_topics` / `Admin::list_topics_with` / `Admin::list_topics_timeout` / `Admin::describe_topics` / `Admin::describe_topics_with` / `Admin::describe_topics_by_id` are Java `listTopics` / `ListTopicsOptions.listInternal` / `ListTopicsOptions.timeoutMs` /
-`describeTopics` (DescribeTopicPartitions api 75, KIP-966) / `DescribeTopicsOptions.includeAuthorizedOperations` / `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+). `Admin::describe_acls_with` is Java
+`describeTopics` (DescribeTopicPartitions api 75, KIP-966; Metadata fallback when api 75 is missing) / `DescribeTopicsOptions.includeAuthorizedOperations` / `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+). `Admin::describe_acls_with` is Java
 `describeAcls(AclBindingFilter)`. `Admin::delete_acls_with` is Java
 `deleteAcls(Collection)` (DeleteAcls Filters of N). `Admin::describe_classic_groups` is Java
 `describeClassicGroups` (DescribeGroups v0–v6; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_consumer_groups` is Java

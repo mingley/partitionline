@@ -15,12 +15,12 @@ use partitionline::protocol::api_keys::{
     CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
     DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN,
-    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, UPDATE_FEATURES,
+    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_TOPIC_PARTITIONS,
+    END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
+    JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN,
+    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -4765,6 +4765,57 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         dtp,
         "empty describe_topics does not send DescribeTopicPartitions"
     );
+}
+
+/// Name-based describe_topics falls back to Metadata when the broker
+/// does not advertise DescribeTopicPartitions (api 75).
+#[tokio::test]
+async fn admin_describe_topics_falls_back_to_metadata_without_dtp() {
+    let mock = common::Mock::start().await;
+    mock.hide_api(DESCRIBE_TOPIC_PARTITIONS);
+    assert!(mock.api_hidden(DESCRIBE_TOPIC_PARTITIONS));
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let dtp = mock.last_describe_topic_partitions();
+    let described = admin.describe_topics(["t"]).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].name, "t");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[0].partitions.len(), 1);
+    assert_eq!(
+        described[0].authorized_operations,
+        AUTHORIZED_OPERATIONS_OMITTED
+    );
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        dtp,
+        "describe_topics must not send DescribeTopicPartitions when hidden"
+    );
+    assert_eq!(
+        mock.last_metadata_topics(),
+        Some(Some(vec!["t".into()])),
+        "Metadata fallback sends named Topics, not a null array"
+    );
+    assert_eq!(mock.last_metadata_allow_auto(), Some(false));
+    let missing = admin.describe_topics(["no-such-topic"]).await.unwrap();
+    assert_eq!(missing.len(), 1);
+    assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+    let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
+    assert_eq!(with_ops.len(), 1);
+    assert_eq!(with_ops[0].authorized_operations, 4);
+    assert_eq!(
+        mock.last_metadata_include_topic_authorized(),
+        Some(true),
+        "Metadata fallback sends IncludeTopicAuthorizedOperations"
+    );
+    let err = admin
+        .describe_topic_partitions(&["t"], 2000, None)
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "raw DescribeTopicPartitions is unsupported when hidden: {err}"
+    );
+    admin.close().await.unwrap();
 }
 
 /// Java `describeTopics(TopicCollection.ofTopicIds)` sends Metadata v10+

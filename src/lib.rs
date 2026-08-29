@@ -240,7 +240,7 @@
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_by_id`] are Java
 //! `listTopics` / `ListTopicsOptions.listInternal` /
-//! `ListTopicsOptions.timeoutMs` / `describeTopics` (DescribeTopicPartitions api 75) /
+//! `ListTopicsOptions.timeoutMs` / `describeTopics` (DescribeTopicPartitions api 75, Metadata fallback) /
 //! `DescribeTopicsOptions.includeAuthorizedOperations` /
 //! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
 //! ([`TopicListing`] / [`TopicDescription`]).

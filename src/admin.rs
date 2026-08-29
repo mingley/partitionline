@@ -1059,7 +1059,7 @@ pub struct Admin {
     describe_share_group_offsets_version: i16,
     alter_share_group_offsets_version: i16,
     delete_share_group_offsets_version: i16,
-    describe_topic_partitions_version: i16,
+    describe_topic_partitions_version: Option<i16>,
     list_config_resources_version: i16,
     get_telemetry_subscriptions_version: i16,
     /// Cached KIP-714 client instance UUID (`None` until first fetch).
@@ -1438,10 +1438,7 @@ impl Admin {
             })?;
         let describe_topic_partitions_version = versions
             .get(&DESCRIBE_TOPIC_PARTITIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeTopicPartitions".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let list_config_resources_version = versions
             .get(&LIST_CONFIG_RESOURCES)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
@@ -1938,8 +1935,9 @@ impl Admin {
 
     /// Topic partition layouts (Java `Admin.describeTopics`).
     ///
-    /// Sends DescribeTopicPartitions (api 75, KIP-966) for these names
-    /// on the bootstrap connection (Java `TopicCollection.ofTopicNames`).
+    /// Sends DescribeTopicPartitions (api 75, KIP-966) when the broker
+    /// advertises it (Java `TopicCollection.ofTopicNames`). Otherwise
+    /// Metadata for the named topics (Java fallback before KIP-966).
     /// `ResponsePartitionLimit` is 2000; a `NextCursor` is followed until
     /// the broker is done. Empty input is a no-op (no RPC). Per-topic
     /// errors live on [`TopicDescription::error_code`];
@@ -1962,7 +1960,8 @@ impl Admin {
     /// DescribeTopicPartitions always returns TopicAuthorizedOperations.
     /// When `include_authorized_operations` is false, this crate stores
     /// [`AUTHORIZED_OPERATIONS_OMITTED`] (Java Metadata path omits the
-    /// request flag; DTP has no equivalent field).
+    /// request flag; DTP has no equivalent field). The Metadata fallback
+    /// sends IncludeTopicAuthorizedOperations when the flag is true.
     pub async fn describe_topics_with(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
@@ -1972,8 +1971,13 @@ impl Admin {
         if names.is_empty() {
             return Ok(Vec::new());
         }
-        self.describe_topics_dtp(&names, include_authorized_operations)
-            .await
+        if self.describe_topic_partitions_version.is_some() {
+            self.describe_topics_dtp(&names, include_authorized_operations)
+                .await
+        } else {
+            self.describe_topics_metadata(&names, include_authorized_operations)
+                .await
+        }
     }
 
     /// Describe topics by TopicId (Java `describeTopics(TopicCollection.ofTopicIds)`).
@@ -6040,7 +6044,9 @@ impl Admin {
         response_partition_limit: i32,
         cursor: Option<&TopicPartitionCursor>,
     ) -> Result<DescribeTopicPartitionsResponse> {
-        let version = self.describe_topic_partitions_version;
+        let version = self.describe_topic_partitions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeTopicPartitions".into())
+        })?;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
@@ -6093,6 +6099,17 @@ impl Admin {
             }
         }
         Ok(out)
+    }
+
+    async fn describe_topics_metadata(
+        &mut self,
+        names: &[String],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<TopicDescription>> {
+        let md = self
+            .fetch_metadata_with(Some(names), include_authorized_operations)
+            .await?;
+        Ok(topic_descriptions_for_names(&md, names))
     }
 
     /// List configuration resources (ListConfigResources api 74,
@@ -7390,6 +7407,27 @@ fn topic_descriptions_including_unnamed(md: &MetadataResponse) -> Vec<TopicDescr
     md.topics.iter().map(topic_description_from).collect()
 }
 
+fn topic_descriptions_for_names(md: &MetadataResponse, names: &[String]) -> Vec<TopicDescription> {
+    names
+        .iter()
+        .map(|name| {
+            md.topics
+                .iter()
+                .find(|t| t.name.as_deref() == Some(name.as_str()))
+                .map(topic_description_from)
+                .unwrap_or_else(|| {
+                    TopicDescription::new(
+                        name.clone(),
+                        [0; 16],
+                        false,
+                        error::UNKNOWN_TOPIC_OR_PARTITION,
+                        Vec::new(),
+                    )
+                })
+        })
+        .collect()
+}
+
 fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescription {
     let name = t.name.clone().unwrap_or_default();
     let partitions = if t.error_code == 0 {
@@ -7670,6 +7708,15 @@ mod tests {
         assert_eq!(described[2].topic_id, [2; 16]);
         assert_eq!(described[3].name, "__consumer_offsets");
         assert!(described[3].is_internal);
+        let named =
+            topic_descriptions_for_names(&md, &["ok".into(), "gone".into(), "missing".into()]);
+        assert_eq!(named.len(), 3);
+        assert_eq!(named[0].name, "ok");
+        assert_eq!(named[0].error_code, 0);
+        assert_eq!(named[1].name, "gone");
+        assert_eq!(named[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(named[2].name, "missing");
+        assert_eq!(named[2].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
     }
 
     #[test]

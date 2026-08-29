@@ -244,6 +244,9 @@ struct State {
     hidden_brokers: HashSet<i32>,
     /// Override advertised ApiVersions max per api key.
     api_max: HashMap<i16, i16>,
+    /// Api keys omitted from ApiVersions (cannot be advertised via
+    /// [`Mock::set_api_max`], which clamps to the key's min version).
+    hidden_apis: HashSet<i16>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
@@ -586,6 +589,7 @@ fn new_state(
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
         api_max: HashMap::new(),
+        hidden_apis: HashSet::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
@@ -1599,6 +1603,14 @@ impl Mock {
 
     pub fn set_api_max(&self, api_key: i16, max: i16) {
         let _ = self.state.lock().api_max.insert(api_key, max);
+    }
+
+    pub fn hide_api(&self, api_key: i16) {
+        let _ = self.state.lock().hidden_apis.insert(api_key);
+    }
+
+    pub fn api_hidden(&self, api_key: i16) -> bool {
+        self.state.lock().hidden_apis.contains(&api_key)
     }
 
     pub fn fetch_nodes(&self) -> Vec<i32> {
@@ -3022,6 +3034,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         error_code: 0,
         api_keys: keys
             .into_iter()
+            .filter(|(api_key, _, _)| !st.hidden_apis.contains(api_key))
             .map(|(api_key, min_version, max_version)| ApiVersion {
                 api_key,
                 min_version,
