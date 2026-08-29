@@ -950,10 +950,14 @@ pub fn decode_describe_configs_response<B: Buf>(
     Ok(out)
 }
 
-/// Incremental AlterConfigs op: set a key.
+/// Incremental AlterConfigs op: set a key (Java `AlterConfigOp.OpType.SET`).
 pub const ALTER_CONFIG_SET: i8 = 0;
-/// Incremental AlterConfigs op: delete a key.
+/// Incremental AlterConfigs op: delete a key (Java `AlterConfigOp.OpType.DELETE`).
 pub const ALTER_CONFIG_DELETE: i8 = 1;
+/// Incremental AlterConfigs op: append to a list (Java `AlterConfigOp.OpType.APPEND`).
+pub const ALTER_CONFIG_APPEND: i8 = 2;
+/// Incremental AlterConfigs op: subtract from a list (Java `AlterConfigOp.OpType.SUBTRACT`).
+pub const ALTER_CONFIG_SUBTRACT: i8 = 3;
 
 /// `true` when CreatePartitions `version` is flexible.
 ///
@@ -1084,7 +1088,8 @@ pub fn decode_create_partitions_response<B: Buf>(
 pub struct AlterConfig {
     /// Config key.
     pub name: String,
-    /// `ALTER_CONFIG_SET` or `ALTER_CONFIG_DELETE`.
+    /// `ALTER_CONFIG_SET`, `ALTER_CONFIG_DELETE`, `ALTER_CONFIG_APPEND`,
+    /// or `ALTER_CONFIG_SUBTRACT`.
     pub op: i8,
     /// New value. `None` for delete.
     pub value: Option<String>,
@@ -1108,6 +1113,33 @@ impl AlterConfig {
             name: name.into(),
             op: ALTER_CONFIG_DELETE,
             value: None,
+        }
+    }
+
+    /// Append comma-separated `value` to a LIST config (`ALTER_CONFIG_APPEND`).
+    ///
+    /// Java `AlterConfigOp.OpType.APPEND`. Duplicates already in the
+    /// current value are not added again.
+    #[must_use]
+    pub fn append(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            op: ALTER_CONFIG_APPEND,
+            value: Some(value.into()),
+        }
+    }
+
+    /// Remove comma-separated `value` from a LIST config
+    /// (`ALTER_CONFIG_SUBTRACT`).
+    ///
+    /// Java `AlterConfigOp.OpType.SUBTRACT`. Removing every entry leaves
+    /// an empty list; it does not revert to the default.
+    #[must_use]
+    pub fn subtract(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            op: ALTER_CONFIG_SUBTRACT,
+            value: Some(value.into()),
         }
     }
 }
@@ -9826,6 +9858,49 @@ mod tests {
             &buf[..],
             &v0r[..],
             "IncrementalAlterConfigs v1 response must not be classic v0"
+        );
+    }
+
+    #[test]
+    fn incremental_alter_configs_append_subtract_ops_roundtrip() {
+        assert_eq!(ALTER_CONFIG_APPEND, 2);
+        assert_eq!(ALTER_CONFIG_SUBTRACT, 3);
+        const APPEND: &[u8] = &[
+            0x02, 0x02, 0x02, 0x74, 0x02, 0x02, 0x6b, 0x02, 0x02, 0x76, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const SUBTRACT: &[u8] = &[
+            0x02, 0x02, 0x02, 0x74, 0x02, 0x02, 0x6b, 0x03, 0x02, 0x76, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let append = [AlterConfig::append("k", "v")];
+        let mut buf = BytesMut::new();
+        encode_incremental_alter_configs_request(&mut buf, 1, RESOURCE_TOPIC, "t", &append, false)
+            .unwrap();
+        assert_eq!(&buf[..], APPEND);
+        let mut cur = &buf[..];
+        let (_, _, decoded, _) = decode_incremental_alter_configs_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded, append);
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs APPEND request must be leftover-empty"
+        );
+        let subtract = [AlterConfig::subtract("k", "v")];
+        buf.clear();
+        encode_incremental_alter_configs_request(
+            &mut buf,
+            1,
+            RESOURCE_TOPIC,
+            "t",
+            &subtract,
+            false,
+        )
+        .unwrap();
+        assert_eq!(&buf[..], SUBTRACT);
+        let mut cur = &buf[..];
+        let (_, _, decoded, _) = decode_incremental_alter_configs_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded, subtract);
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs SUBTRACT request must be leftover-empty"
         );
     }
 

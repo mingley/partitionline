@@ -4059,6 +4059,88 @@ async fn admin_partitions_alter_configs_and_acls() {
             .and_then(|e| e.value.as_deref()),
         Some("1000")
     );
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::set("cleanup.policy", "delete")],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::append("cleanup.policy", "compact")],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("acl-t").keys(["cleanup.policy"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "cleanup.policy")
+            .and_then(|e| e.value.as_deref()),
+        Some("delete,compact")
+    );
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::append("cleanup.policy", "compact")],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("acl-t").keys(["cleanup.policy"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "cleanup.policy")
+            .and_then(|e| e.value.as_deref()),
+        Some("delete,compact"),
+        "APPEND must not duplicate an existing LIST entry"
+    );
+    let err = admin
+        .incremental_alter_configs(
+            &ConfigResource::topic("acl-t"),
+            &[AlterConfig::subtract("cleanup.policy", "delete")],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("acl-t").keys(["cleanup.policy"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "cleanup.policy")
+            .and_then(|e| e.value.as_deref()),
+        Some("compact")
+    );
     let created = admin
         .create_acls(&[AclBinding::allow_topic("acl-t", "User:alice")])
         .await

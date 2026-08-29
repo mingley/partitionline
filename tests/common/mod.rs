@@ -91,10 +91,10 @@ use partitionline::protocol::admin::{
     OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
     ReassignmentTopicResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
     ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
-    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_APPEND,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
+    RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
@@ -1095,6 +1095,39 @@ fn metadata_topic_for(
             i32::MIN
         },
     }
+}
+
+fn apply_incremental_list_op(
+    current: Option<&Option<String>>,
+    op: i8,
+    value: Option<String>,
+) -> Option<String> {
+    let mut parts: Vec<String> = match current {
+        Some(Some(s)) => s
+            .split(',')
+            .filter(|p| !p.is_empty())
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    };
+    let op_value = value.unwrap_or_default();
+    if op == ALTER_CONFIG_APPEND {
+        for part in op_value.split(',') {
+            if !part.is_empty() && !parts.iter().any(|existing| existing == part) {
+                parts.push(part.to_string());
+            }
+        }
+    } else {
+        for part in op_value.split(',') {
+            if part.is_empty() {
+                continue;
+            }
+            if let Some(idx) = parts.iter().position(|existing| existing == part) {
+                let _removed = parts.remove(idx);
+            }
+        }
+    }
+    Some(parts.join(","))
 }
 
 fn describe_topic_partitions_for(
@@ -3590,6 +3623,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         spec.configs.remove(&c.name);
                                     } else if c.op == ALTER_CONFIG_SET {
                                         spec.configs.insert(c.name, c.value);
+                                    } else if c.op == ALTER_CONFIG_APPEND
+                                        || c.op == ALTER_CONFIG_SUBTRACT
+                                    {
+                                        let next = apply_incremental_list_op(
+                                            spec.configs.get(&c.name),
+                                            c.op,
+                                            c.value,
+                                        );
+                                        spec.configs.insert(c.name, next);
                                     }
                                 }
                             }

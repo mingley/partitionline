@@ -136,11 +136,11 @@ pub use crate::protocol::admin::{
     PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, UpgradeType, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
-    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
-    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
-    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
+    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
+    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS,
+    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
@@ -571,7 +571,7 @@ impl ConfigResource {
 pub struct ConfigResourceUpdate {
     /// Resource to alter.
     pub resource: ConfigResource,
-    /// Incremental ops (`AlterConfig::set` / `delete`).
+    /// Incremental ops (`AlterConfig::set` / `delete` / `append` / `subtract`).
     pub configs: Vec<AlterConfig>,
 }
 
