@@ -114,6 +114,17 @@ impl ShareRecord {
         &self.headers
     }
 
+    /// Java `Headers.lastHeader`.
+    #[must_use]
+    pub fn last_header(&self, key: &str) -> Option<&Header> {
+        Header::last_in(&self.headers, key)
+    }
+
+    /// Java `Headers.headers(String)`.
+    pub fn headers_for_key<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a Header> + 'a {
+        Header::for_key(&self.headers, key)
+    }
+
     /// Broker delivery count for this share (KIP-932).
     #[must_use]
     pub fn delivery_count(&self) -> i16 {
@@ -1356,6 +1367,7 @@ mod tests {
         assert!(first.key().is_none());
         assert!(first.value().is_none());
         assert!(first.headers().is_empty());
+        assert!(first.last_header("k").is_none());
         assert_eq!(first.delivery_count(), 1);
         assert!(first.leader_epoch().is_none());
         assert_eq!(first.serialized_key_size(), -1);

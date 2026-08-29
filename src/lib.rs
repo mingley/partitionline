@@ -137,6 +137,11 @@
 //! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
 //! [`FetchedRecord::timestamp_type`] is Java `timestampType` ([`TimestampType`]).
+//! [`FetchedRecord::last_header`] / [`FetchedRecord::headers_for_key`] are Java
+//! `Headers.lastHeader` / `headers(String)`.
+//! [`Header`] `Display` is Java `RecordHeader.toString`.
+//! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
+//! match Java `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

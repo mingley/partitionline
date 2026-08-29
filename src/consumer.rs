@@ -544,6 +544,17 @@ impl FetchedRecord {
         &self.headers
     }
 
+    /// Java `Headers.lastHeader`.
+    #[must_use]
+    pub fn last_header(&self, key: &str) -> Option<&Header> {
+        Header::last_in(&self.headers, key)
+    }
+
+    /// Java `Headers.headers(String)`.
+    pub fn headers_for_key<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a Header> + 'a {
+        Header::for_key(&self.headers, key)
+    }
+
     /// Java `ConsumerRecord.leaderEpoch`.
     #[must_use]
     pub fn leader_epoch(&self) -> Option<i32> {
@@ -836,6 +847,21 @@ impl OffsetAndMetadata {
     }
 }
 
+impl fmt::Display for OffsetAndMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OffsetAndMetadata{{offset={}, leaderEpoch=", self.offset)?;
+        write_optional_i32(f, self.leader_epoch)?;
+        write!(f, ", metadata='{}'}}", self.metadata)
+    }
+}
+
+fn write_optional_i32(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "{n}"),
+        None => f.write_str("null"),
+    }
+}
+
 impl From<i64> for OffsetAndMetadata {
     fn from(offset: i64) -> Self {
         Self::new(offset)
@@ -889,6 +915,14 @@ impl OffsetAndTimestamp {
     #[must_use]
     pub fn leader_epoch(self) -> Option<i32> {
         self.leader_epoch
+    }
+}
+
+impl fmt::Display for OffsetAndTimestamp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(timestamp={}, leaderEpoch=", self.timestamp)?;
+        write_optional_i32(f, self.leader_epoch)?;
+        write!(f, ", offset={})", self.offset)
     }
 }
 
@@ -956,6 +990,39 @@ impl PartitionInfo {
     pub fn offline_replicas(&self) -> &[i32] {
         &self.offline_replicas
     }
+}
+
+impl fmt::Display for PartitionInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Partition(topic = {}, partition = {}, leader = ",
+            self.topic, self.partition
+        )?;
+        if self.leader < 0 {
+            f.write_str("none")?;
+        } else {
+            write!(f, "{}", self.leader)?;
+        }
+        f.write_str(", replicas = ")?;
+        write_broker_id_list(f, &self.replicas)?;
+        f.write_str(", isr = ")?;
+        write_broker_id_list(f, &self.isr)?;
+        f.write_str(", offlineReplicas = ")?;
+        write_broker_id_list(f, &self.offline_replicas)?;
+        f.write_str(")")
+    }
+}
+
+fn write_broker_id_list(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result {
+    f.write_str("[")?;
+    for (i, id) in ids.iter().enumerate() {
+        if i > 0 {
+            f.write_str(",")?;
+        }
+        write!(f, "{id}")?;
+    }
+    f.write_str("]")
 }
 
 /// Manual-assignment fetch client.
@@ -3004,10 +3071,26 @@ mod tests {
         assert_eq!(committed.offset(), 9);
         assert_eq!(committed.leader_epoch(), Some(2));
         assert_eq!(committed.metadata(), "meta");
+        assert_eq!(
+            committed.to_string(),
+            "OffsetAndMetadata{offset=9, leaderEpoch=2, metadata='meta'}"
+        );
+        assert_eq!(
+            OffsetAndMetadata::new(1).to_string(),
+            "OffsetAndMetadata{offset=1, leaderEpoch=null, metadata=''}"
+        );
         let listed = OffsetAndTimestamp::new(5, 1_700_000_000_000).with_leader_epoch(4);
         assert_eq!(listed.offset(), 5);
         assert_eq!(listed.timestamp(), 1_700_000_000_000);
         assert_eq!(listed.leader_epoch(), Some(4));
+        assert_eq!(
+            listed.to_string(),
+            "(timestamp=1700000000000, leaderEpoch=4, offset=5)"
+        );
+        assert_eq!(
+            OffsetAndTimestamp::new(1, 2).to_string(),
+            "(timestamp=2, leaderEpoch=null, offset=1)"
+        );
         let info = PartitionInfo {
             topic: "t".into(),
             partition: 1,
@@ -3024,6 +3107,23 @@ mod tests {
         assert_eq!(info.replicas(), &[2, 3]);
         assert_eq!(info.isr(), &[2]);
         assert_eq!(info.offline_replicas(), &[3]);
+        assert_eq!(
+            info.to_string(),
+            "Partition(topic = t, partition = 1, leader = 2, replicas = [2,3], isr = [2], offlineReplicas = [3])"
+        );
+        let no_leader = PartitionInfo {
+            topic: "t".into(),
+            partition: 0,
+            leader: -1,
+            leader_epoch: -1,
+            replicas: Vec::new(),
+            isr: Vec::new(),
+            offline_replicas: Vec::new(),
+        };
+        assert_eq!(
+            no_leader.to_string(),
+            "Partition(topic = t, partition = 0, leader = none, replicas = [], isr = [], offlineReplicas = [])"
+        );
         let rec = rec("t", 0, 11);
         assert_eq!(rec.topic(), "t");
         assert_eq!(rec.partition(), 0);
@@ -3033,6 +3133,8 @@ mod tests {
         assert!(rec.key().is_none());
         assert!(rec.value().is_none());
         assert!(rec.headers().is_empty());
+        assert!(rec.last_header("k").is_none());
+        assert_eq!(rec.headers_for_key("k").count(), 0);
         assert!(rec.leader_epoch().is_none());
     }
 }

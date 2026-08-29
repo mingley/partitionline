@@ -3344,6 +3344,7 @@ async fn share_fetch_accept_then_release() {
     assert_eq!(recs[0].timestamp_type, TimestampType::CreateTime);
     assert!(recs[0].headers().is_empty());
     assert!(recs[0].headers.is_empty());
+    assert!(recs[0].last_header("k").is_none());
     let off = recs[0].offset;
     g.accept(&recs).await.unwrap();
     assert_eq!(

@@ -1,5 +1,6 @@
 //! Magic-v2 RecordBatch codec (gzip, snappy, lz4).
 
+use std::fmt;
 use std::io::{Read, Write};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -100,6 +101,39 @@ impl Header {
     pub fn value(&self) -> Option<&[u8]> {
         self.value.as_deref()
     }
+
+    /// Last header whose key is `key` (Java `Headers.lastHeader`).
+    #[must_use]
+    pub fn last_in<'a>(headers: &'a [Self], key: &str) -> Option<&'a Self> {
+        headers.iter().rev().find(|h| h.key() == key)
+    }
+
+    /// Headers whose key is `key`, in insertion order (Java `Headers.headers(String)`).
+    pub fn for_key<'a>(headers: &'a [Self], key: &'a str) -> impl Iterator<Item = &'a Self> + 'a {
+        headers.iter().filter(move |h| h.key() == key)
+    }
+}
+
+impl fmt::Display for Header {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "RecordHeader(key = {}, value = ", self.key())?;
+        write_java_byte_array(f, self.value())?;
+        f.write_str(")")
+    }
+}
+
+fn write_java_byte_array(f: &mut fmt::Formatter<'_>, value: Option<&[u8]>) -> fmt::Result {
+    let Some(bytes) = value else {
+        return f.write_str("null");
+    };
+    f.write_str("[")?;
+    for (i, b) in bytes.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{}", i8::from_ne_bytes([*b]))?;
+    }
+    f.write_str("]")
 }
 
 /// One record inside a magic-v2 batch.
@@ -177,6 +211,17 @@ impl Record {
     #[must_use]
     pub fn headers(&self) -> &[Header] {
         &self.headers
+    }
+
+    /// Java `Headers.lastHeader`.
+    #[must_use]
+    pub fn last_header(&self, key: &str) -> Option<&Header> {
+        Header::last_in(&self.headers, key)
+    }
+
+    /// Java `Headers.headers(String)`.
+    pub fn headers_for_key<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a Header> + 'a {
+        Header::for_key(&self.headers, key)
     }
 }
 
@@ -937,6 +982,22 @@ mod tests {
         let n = Header::null("n");
         assert_eq!(n.key(), "n");
         assert!(n.value().is_none());
+        assert_eq!(h.to_string(), "RecordHeader(key = k, value = [118])");
+        assert_eq!(n.to_string(), "RecordHeader(key = n, value = null)");
+        let signed = Header::new("s", Bytes::from_static(&[0xff]));
+        assert_eq!(signed.to_string(), "RecordHeader(key = s, value = [-1])");
+        let many = [
+            Header::new("k", Bytes::from_static(b"1")),
+            Header::new("k", Bytes::from_static(b"2")),
+            Header::null("empty"),
+        ];
+        assert_eq!(
+            Header::last_in(&many, "k").and_then(Header::value),
+            Some(&b"2"[..])
+        );
+        assert!(Header::last_in(&many, "missing").is_none());
+        let keyed: Vec<_> = Header::for_key(&many, "k").map(Header::key).collect();
+        assert_eq!(keyed, vec!["k", "k"]);
     }
 
     #[test]
@@ -957,6 +1018,8 @@ mod tests {
         assert!(rec.has_value());
         assert_eq!(rec.value_size(), 3);
         assert_eq!(rec.headers().len(), 1);
+        assert_eq!(rec.last_header("h").map(Header::key), Some("h"));
+        assert_eq!(rec.headers_for_key("h").count(), 1);
         let empty = Record {
             offset: 0,
             timestamp: 0,

@@ -460,6 +460,20 @@ impl ProduceRecord {
         self.topic.as_ref()
     }
 
+    /// Java `Headers.lastHeader`.
+    #[must_use]
+    pub fn last_header(&self, key: &str) -> Option<&RecordHeader> {
+        RecordHeader::last_in(&self.headers, key)
+    }
+
+    /// Java `Headers.headers(String)`.
+    pub fn headers_for_key<'a>(
+        &'a self,
+        key: &'a str,
+    ) -> impl Iterator<Item = &'a RecordHeader> + 'a {
+        RecordHeader::for_key(&self.headers, key)
+    }
+
     /// Set the key. The default partitioner hashes it with murmur2.
     #[must_use]
     pub fn key(mut self, key: impl Into<Bytes>) -> Self {

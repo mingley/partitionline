@@ -72,16 +72,15 @@ async fn produce_header_survives_fetch() {
         Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
             .await
             .unwrap();
-    let md = producer
-        .send(
-            ProduceRecord::to("t")
-                .value(&b"with-header"[..])
-                .header("k", &b"v"[..])
-                .null_header("empty")
-                .timestamp(1_700_000_000_000),
-        )
-        .await
-        .unwrap();
+    let rec = ProduceRecord::to("t")
+        .value(&b"with-header"[..])
+        .header("k", &b"v"[..])
+        .null_header("empty")
+        .timestamp(1_700_000_000_000);
+    assert_eq!(rec.last_header("k").map(|h| h.key()), Some("k"));
+    assert!(rec.last_header("empty").unwrap().value().is_none());
+    assert_eq!(rec.headers_for_key("k").count(), 1);
+    let md = producer.send(rec).await.unwrap();
     assert_eq!(md.timestamp(), 1_700_000_000_000);
     assert_eq!(md.timestamp, 1_700_000_000_000);
     assert!(md.has_timestamp());
@@ -134,6 +133,14 @@ async fn produce_header_survives_fetch() {
     assert_eq!(recs[0].headers[0].value.as_deref(), Some(&b"v"[..]));
     assert_eq!(recs[0].headers[1].key, "empty");
     assert!(recs[0].headers[1].value.is_none());
+    assert_eq!(recs[0].last_header("k").map(|h| h.key()), Some("k"));
+    assert_eq!(
+        recs[0].last_header("k").and_then(|h| h.value()),
+        Some(&b"v"[..])
+    );
+    assert!(recs[0].last_header("empty").unwrap().value().is_none());
+    assert!(recs[0].last_header("missing").is_none());
+    assert_eq!(recs[0].headers_for_key("k").count(), 1);
 }
 
 #[tokio::test]
@@ -711,6 +718,10 @@ async fn partitions_for_and_end_offsets() {
     assert_eq!(info[0].leader, 1);
     assert_eq!(info[0].leader_epoch, 0);
     assert!(info[0].offline_replicas.is_empty());
+    assert_eq!(
+        info[0].to_string(),
+        "Partition(topic = t, partition = 0, leader = 1, replicas = [1], isr = [1], offlineReplicas = [])"
+    );
     let end = consumer
         .end_offsets_timeout([("t", 0)], Duration::from_secs(5))
         .await
@@ -1624,10 +1635,15 @@ fn topic_partition_from_tuple() {
     assert_eq!(md.offset, 9);
     assert_eq!(md.leader_epoch, Some(2));
     assert_eq!(md.metadata, "ckpt");
+    assert_eq!(
+        md.to_string(),
+        "OffsetAndMetadata{offset=9, leaderEpoch=2, metadata='ckpt'}"
+    );
     let oat = OffsetAndTimestamp::new(1, 2).with_leader_epoch(0);
     assert_eq!(oat.offset, 1);
     assert_eq!(oat.timestamp, 2);
     assert_eq!(oat.leader_epoch, Some(0));
+    assert_eq!(oat.to_string(), "(timestamp=2, leaderEpoch=0, offset=1)");
 }
 
 #[tokio::test]
