@@ -4428,6 +4428,8 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     let cluster = admin.describe_cluster().await.unwrap();
     assert_eq!(cluster.error_code, 0);
     assert_eq!(cluster.error_code(), 0);
+    assert!(cluster.error_message.is_none());
+    assert!(cluster.error_message().is_none());
     assert!(!cluster.brokers.is_empty());
     assert!(!cluster.brokers().is_empty());
     assert_eq!(cluster.nodes().len(), cluster.brokers().len());
@@ -4437,6 +4439,11 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         cluster.controller().map(DescribeClusterBroker::id),
         Some(cluster.controller_id())
     );
+    assert_eq!(
+        cluster.controller().map(DescribeClusterBroker::id_string),
+        Some(cluster.controller_id().to_string())
+    );
+    assert!(!cluster.nodes().iter().any(DescribeClusterBroker::is_empty));
     assert_eq!(
         cluster.authorized_operations(),
         AUTHORIZED_OPERATIONS_OMITTED

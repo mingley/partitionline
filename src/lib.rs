@@ -285,6 +285,9 @@
 //! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
 //! `DescribeClusterResult.nodes` / `controller`.
+//! [`DescribeClusterBroker::id_string`] / [`DescribeClusterBroker::is_empty`] /
+//! [`DescribeClusterBroker::no_node`] are Java `Node.idString` / `isEmpty` /
+//! `noNode`.
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).

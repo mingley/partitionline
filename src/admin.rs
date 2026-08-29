@@ -11552,6 +11552,18 @@ mod tests {
         assert_eq!(cluster.brokers()[0].rack(), Some("r"));
         assert!(cluster.brokers()[0].has_rack());
         assert!(!cluster.brokers()[0].is_fenced());
+        assert_eq!(cluster.brokers()[0].id_string(), "1");
+        assert!(!cluster.brokers()[0].is_empty());
+        assert!(cluster.error_message().is_none());
+        assert_eq!(
+            cluster.brokers()[0].to_string(),
+            "127.0.0.1:9092 (id: 1 rack: r isFenced: false)"
+        );
+        let empty = DescribeClusterBroker::no_node();
+        assert_eq!(empty.id(), -1);
+        assert!(empty.is_empty());
+        assert_eq!(empty.id_string(), "-1");
+        assert_eq!(empty.to_string(), ":-1 (id: -1 rack: null isFenced: false)");
     }
 
     #[test]
@@ -11904,6 +11916,14 @@ mod tests {
         assert_eq!(
             cluster.authorized_operations(),
             AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert!(cluster.error_message().is_none());
+        let controller = cluster.controller().unwrap();
+        assert_eq!(controller.id_string(), "2");
+        assert!(!controller.is_empty());
+        assert_eq!(
+            controller.to_string(),
+            "h2:9092 (id: 2 rack: r isFenced: false)"
         );
         let no_controller = ClusterDescription {
             controller_id: -1,

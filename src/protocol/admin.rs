@@ -2525,10 +2525,42 @@ impl DescribeClusterBroker {
         self.rack.is_some()
     }
 
-    /// Whether the broker is fenced (DescribeCluster v2).
+    /// Whether the broker is fenced (DescribeCluster v2). Java `Node.isFenced`.
     #[must_use]
     pub fn is_fenced(&self) -> bool {
         self.is_fenced
+    }
+
+    /// Java `Node.idString` (`Integer.toString(id)`).
+    #[must_use]
+    pub fn id_string(&self) -> String {
+        self.node_id.to_string()
+    }
+
+    /// Java `Node.isEmpty` (empty host or negative port).
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.host.is_empty() || self.port < 0
+    }
+
+    /// Java `Node.noNode` (`id` `-1`, empty host, port `-1`).
+    #[must_use]
+    pub fn no_node() -> Self {
+        Self::new(-1, "", -1, None, false)
+    }
+}
+
+impl fmt::Display for DescribeClusterBroker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}:{} (id: {} rack: {} isFenced: {})",
+            self.host,
+            self.port,
+            self.node_id,
+            self.rack.as_deref().unwrap_or("null"),
+            self.is_fenced
+        )
     }
 }
 
@@ -2625,6 +2657,12 @@ impl ClusterDescription {
     #[must_use]
     pub fn endpoint_type(&self) -> i8 {
         self.endpoint_type
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
     }
 }
 
