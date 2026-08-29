@@ -674,7 +674,8 @@ impl ConsumerGroup {
         self.consumer.position_of(partition)
     }
 
-    /// Set the next fetch offset for an assigned partition.
+    /// Set the next fetch offset for an assigned partition (Java
+    /// `seek(TopicPartition, long)`).
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
         self.consumer.seek(topic, partition, offset)
     }
@@ -682,6 +683,18 @@ impl ConsumerGroup {
     /// [`Self::seek`] for a [`TopicPartition`].
     pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
         self.consumer.seek_to(partition, offset)
+    }
+
+    /// Seek using [`OffsetAndMetadata`] (Java `seek(TopicPartition, OffsetAndMetadata)`).
+    ///
+    /// The leader epoch is sent as Fetch `LastFetchedEpoch`. The metadata
+    /// string is ignored.
+    pub fn seek_with_metadata(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        offset: impl Into<OffsetAndMetadata>,
+    ) -> Result<()> {
+        self.consumer.seek_with_metadata(partition, offset)
     }
 
     /// Seek every assigned partition to the log start (Java `seekToBeginning`).

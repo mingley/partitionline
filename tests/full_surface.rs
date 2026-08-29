@@ -33,12 +33,13 @@ use partitionline::{
     CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
     DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
-    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    FeatureUpdate, IsolationLevel, NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig,
+    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
+    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -1494,6 +1495,17 @@ async fn fetch_sends_last_fetched_epoch_after_records() {
         mock.last_fetched_epoch(),
         Some(-1),
         "seek must clear LastFetchedEpoch"
+    );
+
+    consumer
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(0).with_leader_epoch(7))
+        .unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(7),
+        "seek_with_metadata must send OffsetAndMetadata leader epoch as LastFetchedEpoch"
     );
     consumer.close().await.unwrap();
 }

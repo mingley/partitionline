@@ -2391,6 +2391,77 @@ async fn seek_to_and_assigned_partitions() {
 }
 
 #[tokio::test]
+async fn seek_with_metadata_sets_position_and_last_fetched_epoch() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer
+        .flush_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer
+        .seek_with_metadata(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::with_metadata(1, "ignored").with_leader_epoch(3),
+        )
+        .unwrap();
+    assert_eq!(consumer.position_of(("t", 0)).unwrap(), 1);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].offset, 1);
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(3),
+        "seek_with_metadata must send leader epoch as LastFetchedEpoch"
+    );
+    let err = consumer
+        .seek_with_metadata(("u", 0), OffsetAndMetadata::new(0))
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unassigned"),
+        "seek of unassigned must fail, got {err}"
+    );
+    consumer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "swm",
+        "t",
+    )
+    .await
+    .unwrap();
+    group
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(0).with_leader_epoch(5))
+        .unwrap();
+    assert_eq!(group.position_of(("t", 0)).unwrap(), 0);
+    let recs = group.poll().await.unwrap();
+    assert!(!recs.is_empty());
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(5),
+        "group seek_with_metadata must send LastFetchedEpoch"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn group_seek_to_beginning_rereads() {
     let mock = common::Mock::start().await;
     let producer =

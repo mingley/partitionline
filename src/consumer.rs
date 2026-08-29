@@ -2225,27 +2225,57 @@ impl Consumer {
         }
     }
 
-    /// Set the next fetch offset for an assigned partition.
+    /// Set the next fetch offset for an assigned partition (Java
+    /// `seek(TopicPartition, long)`).
+    ///
+    /// Clears Fetch `LastFetchedEpoch` (KIP-320). To keep a leader epoch,
+    /// use [`Self::seek_with_metadata`].
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
-        if let Some(slot) = self
-            .assigned
-            .iter_mut()
-            .find(|(t, p, _)| t == topic && *p == partition)
-        {
-            slot.2 = offset;
-            self.set_last_fetched_epoch(topic, partition, -1);
-            self.drop_pending_for(topic, partition);
-            return Ok(());
-        }
-        Err(Error::protocol(format!(
-            "seek of unassigned {topic}-{partition}"
-        )))
+        self.seek_with_epoch(topic, partition, offset, -1)
     }
 
     /// [`Self::seek`] for a [`TopicPartition`].
     pub fn seek_to(&mut self, partition: impl Into<TopicPartition>, offset: i64) -> Result<()> {
         let tp = partition.into();
         self.seek(&tp.topic, tp.partition, offset)
+    }
+
+    /// Seek using [`OffsetAndMetadata`] (Java `seek(TopicPartition, OffsetAndMetadata)`).
+    ///
+    /// The offset is the next fetch position. The leader epoch is sent as
+    /// Fetch `LastFetchedEpoch` (KIP-320). Unknown epoch (`None`) clears it,
+    /// matching Java `Optional.empty()`. The metadata string is ignored
+    /// (Java does the same).
+    pub fn seek_with_metadata(
+        &mut self,
+        partition: impl Into<TopicPartition>,
+        offset: impl Into<OffsetAndMetadata>,
+    ) -> Result<()> {
+        let tp = partition.into();
+        let md = offset.into();
+        self.seek_with_epoch(&tp.topic, tp.partition, md.offset, md.wire_epoch())
+    }
+
+    fn seek_with_epoch(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        offset: i64,
+        last_fetched_epoch: i32,
+    ) -> Result<()> {
+        if let Some(slot) = self
+            .assigned
+            .iter_mut()
+            .find(|(t, p, _)| t == topic && *p == partition)
+        {
+            slot.2 = offset;
+            self.set_last_fetched_epoch(topic, partition, last_fetched_epoch);
+            self.drop_pending_for(topic, partition);
+            return Ok(());
+        }
+        Err(Error::protocol(format!(
+            "seek of unassigned {topic}-{partition}"
+        )))
     }
 
     /// Seek every assigned partition to the log start (`ListOffsets` earliest).

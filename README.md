@@ -45,11 +45,14 @@ let recs = consumer.fetch().await?;
 `fetch` / group `poll` return `ConsumerRecords` (Java `count` /
 `partitions` / `records` / `nextOffsets`). Share `poll` returns `ShareRecords`.
 `assign_topic` assigns every partition. `seek` / `seek_to` /
-`seek_to_beginning` / `seek_to_end` / `seek_to_beginning_of` /
-`seek_to_end_of` move the next fetch offset. `pause` /
+`seek_with_metadata` / `seek_to_beginning` / `seek_to_end` /
+`seek_to_beginning_of` / `seek_to_end_of` move the next fetch offset
+(`seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)`
+and sends the leader epoch as Fetch `LastFetchedEpoch`). `pause` /
 `resume` skip partitions without dropping the assignment. `fetch` talks to every
 partition leader at once when there is more than one. Fetch v12+ sends
-`LastFetchedEpoch` from the last consumed batch and seeks on `DivergingEpoch`.
+`LastFetchedEpoch` from the last consumed batch (or from
+`seek_with_metadata`) and seeks on `DivergingEpoch`.
 `ConsumerConfig::max_bytes` sets both `fetch.max.bytes` and
 `max.partition.fetch.bytes`; `fetch_max_bytes` / `max_partition_fetch_bytes`
 set them independently. `partitions_for`
@@ -115,7 +118,9 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
 `incremental_alter_configs` / `alter_configs` take `ConfigResource`.
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
-metadata string. `commit_with_metadata(recs.next_offsets())` is Java
+metadata string. `seek_with_metadata` is Java
+`seek(TopicPartition, OffsetAndMetadata)` (Fetch `LastFetchedEpoch`;
+metadata string ignored). `commit_with_metadata(recs.next_offsets())` is Java
 `commitSync(records.nextOffsets())`. `commit_timeout` /
 `commit_with_metadata_timeout` are Java `commitSync(Duration)`. `ProduceRecord::null_header` is a
 null header value. `current_lag` is Java `currentLag`. `enforce_rebalance`

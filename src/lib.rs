@@ -91,10 +91,13 @@
 //! ```
 //!
 //! [`Consumer::assign_topic`] assigns every partition. [`Consumer::seek`] /
-//! [`Consumer::seek_to`] / [`Consumer::seek_to_beginning`] /
+//! [`Consumer::seek_to`] / [`Consumer::seek_with_metadata`] /
+//! [`Consumer::seek_to_beginning`] /
 //! [`Consumer::seek_to_end`] / [`Consumer::seek_to_beginning_of`] /
 //! [`Consumer::seek_to_end_of`] move the
-//! next fetch offset. [`Consumer::pause`] / [`Consumer::resume`] skip
+//! next fetch offset ([`Consumer::seek_with_metadata`] is Java
+//! `seek(TopicPartition, OffsetAndMetadata)` and sends the leader epoch as
+//! Fetch `LastFetchedEpoch`). [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. Fetch negotiates v4–v17 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
@@ -219,6 +222,9 @@
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`]).
+//! [`Consumer::seek_with_metadata`] / [`ConsumerGroup::seek_with_metadata`]
+//! are Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch
+//! `LastFetchedEpoch` from the leader epoch; metadata string ignored).
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::commit_timeout`] /
 //! [`ConsumerGroup::commit_with_metadata_timeout`] are Java

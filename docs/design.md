@@ -39,6 +39,9 @@ ListOffsets for every assigned partition; `seek_to_beginning_of` /
 `seekToEnd`). `pause` / `resume` skip
 assigned partitions without dropping them; pause survives group rebalance.
 `position` is the next fetch offset (`position_of` takes `TopicPartition`).
+`seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)`:
+the offset is the next fetch position and the leader epoch is Fetch
+`LastFetchedEpoch` (KIP-320). `seek` / `seek_to` still clear the epoch.
 `partitions_for` / `beginning_offsets` / `end_offsets` wrap Metadata and
 ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
 (Java `partitionsFor(String, Duration)` / `beginningOffsets` /
@@ -110,6 +113,9 @@ offset (`Earliest` by default). `ConsumerConfig::allow_auto_create_topics` is
 Kafka `allow.auto.create.topics` on Metadata (default `false`). `committed` / `committed_timeout` are OffsetFetch
 for the current assignment (Java `committed` / `committed(Duration)`). `commit` / `commit_timeout` are Java `commitSync` / `commitSync(Duration)`. `commit_offsets` commits caller-chosen offsets
 ([`TopicPartition`](../src/consumer.rs) plus the next fetch offset).
+`seek_with_metadata` takes [`OffsetAndMetadata`](../src/consumer.rs)
+(Java `seek(TopicPartition, OffsetAndMetadata)`; Fetch `LastFetchedEpoch`
+from the leader epoch; metadata string ignored).
 `commit_with_metadata` sends [`OffsetAndMetadata`](../src/consumer.rs)
 (leader epoch and a metadata string). `commit_with_metadata_timeout` is Java
 `commitSync(Map, Duration)`. Pass
