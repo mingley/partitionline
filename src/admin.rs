@@ -60,9 +60,9 @@ use crate::protocol::admin::{
     AlterableResource, CreatableTopic, CreatePartitionsTopic, CreateTopicsRequest,
     DeleteRecordsPartition, DeleteRecordsTopic, DeleteTopicState, DescribeConfigsResource,
     DescribeConfigsResult, DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic,
-    ReassignablePartition, ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
-    RESOURCE_GROUP, RESOURCE_TOPIC,
+    ReassignablePartition, ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -324,21 +324,53 @@ impl AdminConfig {
 pub struct NewTopic {
     /// Topic name.
     pub name: String,
-    /// Partition count.
+    /// Partition count, or `-1` when `assignments` is set (Java
+    /// `NewTopic(String, Map)` / broker default).
     pub num_partitions: i32,
-    /// Replication factor.
+    /// Replication factor, or `-1` when `assignments` is set (Java
+    /// `NewTopic(String, Map)` / broker default).
     pub replication_factor: i16,
+    /// Manual replica assignments `(partition_index, broker_ids)`.
+    ///
+    /// Empty is Java `NewTopic(String, int, short)` (broker assigns).
+    /// Non-empty is Java `NewTopic(String, Map<Integer, List<Integer>>)`.
+    pub assignments: Vec<(i32, Vec<i32>)>,
     /// Optional topic configs `(name, value)`.
     pub configs: Vec<(String, Option<String>)>,
 }
 
 impl NewTopic {
     /// `name` with partition count and replication factor.
+    ///
+    /// Assignments are empty; the broker places replicas.
     pub fn new(name: impl Into<String>, num_partitions: i32, replication_factor: i16) -> Self {
         Self {
             name: name.into(),
             num_partitions,
             replication_factor,
+            assignments: Vec::new(),
+            configs: Vec::new(),
+        }
+    }
+
+    /// Java `NewTopic(String, Map<Integer, List<Integer>>)`.
+    ///
+    /// `num_partitions` and `replication_factor` are `-1`. Each pair is
+    /// partition index → replica broker ids.
+    #[must_use]
+    pub fn with_assignments<A, B>(name: impl Into<String>, assignments: A) -> Self
+    where
+        A: IntoIterator<Item = (i32, B)>,
+        B: IntoIterator<Item = i32>,
+    {
+        Self {
+            name: name.into(),
+            num_partitions: -1,
+            replication_factor: -1,
+            assignments: assignments
+                .into_iter()
+                .map(|(partition, brokers)| (partition, brokers.into_iter().collect()))
+                .collect(),
             configs: Vec::new(),
         }
     }
@@ -1694,7 +1726,14 @@ impl Admin {
                     name: t.name.clone(),
                     num_partitions: t.num_partitions,
                     replication_factor: t.replication_factor,
-                    assignments: Vec::new(),
+                    assignments: t
+                        .assignments
+                        .iter()
+                        .map(|(partition_index, broker_ids)| ReplicaAssignment {
+                            partition_index: *partition_index,
+                            broker_ids: broker_ids.clone(),
+                        })
+                        .collect(),
                     configs: t
                         .configs
                         .iter()

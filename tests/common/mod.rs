@@ -283,6 +283,7 @@ struct State {
     last_create_topics_node: Option<i32>,
     last_create_topics_version: Option<i16>,
     last_create_topics_timeout: Option<i32>,
+    last_create_topics_replica_assignments: Option<Vec<(i32, Vec<i32>)>>,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
@@ -628,6 +629,7 @@ fn new_state(
         last_create_topics_node: None,
         last_create_topics_version: None,
         last_create_topics_timeout: None,
+        last_create_topics_replica_assignments: None,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         last_delete_topics_version: None,
@@ -1848,6 +1850,13 @@ impl Mock {
 
     pub fn last_create_topics_timeout(&self) -> Option<i32> {
         self.state.lock().last_create_topics_timeout
+    }
+
+    pub fn last_create_topics_replica_assignments(&self) -> Option<Vec<(i32, Vec<i32>)>> {
+        self.state
+            .lock()
+            .last_create_topics_replica_assignments
+            .clone()
     }
 
     pub fn create_topics_not_controller(&self) -> u32 {
@@ -3330,6 +3339,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_create_topics_version = Some(version);
                 st.last_create_topics_timeout = Some(req.timeout_ms);
+                if let Some(t) = req.topics.first() {
+                    st.last_create_topics_replica_assignments = Some(
+                        t.assignments
+                            .iter()
+                            .map(|a| (a.partition_index, a.broker_ids.clone()))
+                            .collect(),
+                    );
+                }
                 if st.controller_node != node_id {
                     st.create_topics_not_controller =
                         st.create_topics_not_controller.saturating_add(1);

@@ -5178,6 +5178,28 @@ async fn create_topics_follows_controller() {
         Some(1),
         "CreateTopics must follow Metadata after NOT_CONTROLLER"
     );
+    assert_eq!(
+        mock.last_create_topics_replica_assignments(),
+        Some(Vec::new()),
+        "NewTopic::new sends an empty Assignments array"
+    );
+    let assigned = admin
+        .create_topics(
+            &[NewTopic::with_assignments(
+                "ctrl-as",
+                [(0, [1, 2]), (1, [2, 1])],
+            )],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code, 0);
+    assert_eq!(assigned[0].num_partitions, 2);
+    assert_eq!(
+        mock.last_create_topics_replica_assignments(),
+        Some(vec![(0, vec![1, 2]), (1, vec![2, 1])])
+    );
 }
 
 #[tokio::test]
