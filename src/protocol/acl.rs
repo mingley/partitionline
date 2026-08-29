@@ -109,6 +109,12 @@ impl AclResourceType {
         }
     }
 
+    /// Java `ResourceType.code`.
+    #[must_use]
+    pub const fn code(self) -> i8 {
+        self as i8
+    }
+
     /// Java `ResourceType.isUnknown`.
     #[must_use]
     pub const fn is_unknown(self) -> bool {
@@ -181,6 +187,12 @@ impl AclPatternType {
             "PREFIXED" => Self::Prefixed,
             _ => Self::Unknown,
         }
+    }
+
+    /// Java `PatternType.code`.
+    #[must_use]
+    pub const fn code(self) -> i8 {
+        self as i8
     }
 
     /// Java `PatternType.isUnknown`.
@@ -312,6 +324,12 @@ impl AclOperation {
         }
     }
 
+    /// Java `AclOperation.code`.
+    #[must_use]
+    pub const fn code(self) -> i8 {
+        self as i8
+    }
+
     /// Java `AclOperation.isUnknown`.
     #[must_use]
     pub const fn is_unknown(self) -> bool {
@@ -388,6 +406,12 @@ impl AclPermission {
         } else {
             Self::Unknown
         }
+    }
+
+    /// Java `AclPermissionType.code`.
+    #[must_use]
+    pub const fn code(self) -> i8 {
+        self as i8
     }
 
     /// Java `AclPermissionType.isUnknown`.
@@ -1853,6 +1877,17 @@ mod tests {
 
     #[test]
     fn acl_java_types_match_kafka() {
+        assert_eq!(AclResourceType::Topic.code(), 2);
+        assert_eq!(AclResourceType::User.code(), 7);
+        assert_eq!(AclPatternType::Literal.code(), 3);
+        assert_eq!(AclPatternType::Prefixed.code(), 4);
+        assert_eq!(AclOperation::Read.code(), 3);
+        assert_eq!(
+            AclOperation::CreateTokens.code(),
+            ACL_OPERATION_CREATE_TOKENS
+        );
+        assert_eq!(AclPermission::Allow.code(), ACL_PERMISSION_ALLOW);
+        assert_eq!(AclPermission::Deny.code(), 2);
         assert_eq!(AclResourceType::from_id(2), AclResourceType::Topic);
         assert_eq!(AclResourceType::from_id(99), AclResourceType::Unknown);
         assert_eq!(

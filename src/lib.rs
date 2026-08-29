@@ -532,6 +532,10 @@
 //! `DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has
 //! no TimeoutMs).
 //! [`Admin::metrics`] is Java `Admin.metrics()` ([`AdminMetrics`]).
+//! [`AclResourceType::code`] / [`AclPatternType::code`] /
+//! [`AclOperation::code`] / [`AclPermission::code`] are Java
+//! `ResourceType.code` / `PatternType.code` / `AclOperation.code` /
+//! `AclPermissionType.code`.
 //! [`AclBinding::allow_topic`] / [`AclBinding::new`] / [`AclBindingFilter`] /
 //! [`ResourcePattern`] / [`AccessControlEntry`] / [`AclResourceType`] /
 //! [`AclOperation`] / [`AclPermission`] cover CreateAcls / DescribeAcls /
