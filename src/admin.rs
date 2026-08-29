@@ -2397,10 +2397,25 @@ impl Admin {
     /// is set). v3 is the same layout (user resource type). Kafka 4.0
     /// `validVersions` is `1-3`. v4+ is not spoken.
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
-    /// Metadata and retries on the new controller.
+    /// Metadata and retries on the new controller. CreateAcls has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::create_acls_timeout`].
     pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
-        let version = self.create_acls_version;
         let timeout = self.cfg.request_timeout;
+        self.create_acls_timeout(acls, timeout).await
+    }
+
+    /// [`Self::create_acls`] with a one-shot RPC deadline (Java
+    /// `CreateAclsOptions.timeoutMs`).
+    ///
+    /// CreateAcls has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the `NOT_CONTROLLER` retry budget.
+    pub async fn create_acls_timeout(
+        &mut self,
+        acls: &[AclBinding],
+        timeout: Duration,
+    ) -> Result<Vec<i16>> {
+        let version = self.create_acls_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let acls = acls.to_vec();
@@ -3616,19 +3631,47 @@ impl Admin {
     ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`
     /// (`ACL_RESOURCE_TOPIC`, …). For principal / host / name / operation
-    /// filters, use [`Self::describe_acls_with`].
+    /// filters, use [`Self::describe_acls_with`]. DescribeAcls has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::describe_acls_timeout`].
     pub async fn describe_acls(&mut self, resource_type: impl Into<i8>) -> Result<Vec<AclBinding>> {
         self.describe_acls_with(&AclBindingFilter::resource_type(resource_type))
             .await
     }
 
+    /// [`Self::describe_acls`] with a one-shot RPC deadline (Java
+    /// `DescribeAclsOptions.timeoutMs`).
+    pub async fn describe_acls_timeout(
+        &mut self,
+        resource_type: impl Into<i8>,
+        timeout: Duration,
+    ) -> Result<Vec<AclBinding>> {
+        self.describe_acls_with_timeout(&AclBindingFilter::resource_type(resource_type), timeout)
+            .await
+    }
+
     /// [`Self::describe_acls`] with a Java `AclBindingFilter`.
+    ///
+    /// DescribeAcls has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_acls_with_timeout`].
     pub async fn describe_acls_with(
         &mut self,
         filter: &AclBindingFilter,
     ) -> Result<Vec<AclBinding>> {
-        let version = self.describe_acls_version;
         let timeout = self.cfg.request_timeout;
+        self.describe_acls_with_timeout(filter, timeout).await
+    }
+
+    /// [`Self::describe_acls_with`] with Java `DescribeAclsOptions.timeoutMs`.
+    ///
+    /// DescribeAcls has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_acls_with_timeout(
+        &mut self,
+        filter: &AclBindingFilter,
+        timeout: Duration,
+    ) -> Result<Vec<AclBinding>> {
+        let version = self.describe_acls_version;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_ACLS,
@@ -4691,7 +4734,10 @@ impl Admin {
     ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`.
     /// Returns the first filter's error code. For principal / host / name
-    /// filters or Filters of N, use [`Self::delete_acls_with`].
+    /// filters or Filters of N, use [`Self::delete_acls_with`]. DeleteAcls
+    /// has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::delete_acls_timeout`].
     pub async fn delete_acls(&mut self, resource_type: impl Into<i8>) -> Result<i16> {
         let results = self
             .delete_acls_with(&[AclBindingFilter::resource_type(resource_type)])
@@ -4699,18 +4745,45 @@ impl Admin {
         Ok(results.first().map(|r| r.error_code).unwrap_or(0))
     }
 
+    /// [`Self::delete_acls`] with a one-shot RPC deadline (Java
+    /// `DeleteAclsOptions.timeoutMs`).
+    pub async fn delete_acls_timeout(
+        &mut self,
+        resource_type: impl Into<i8>,
+        timeout: Duration,
+    ) -> Result<i16> {
+        let results = self
+            .delete_acls_with_timeout(&[AclBindingFilter::resource_type(resource_type)], timeout)
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
     /// [`Self::delete_acls`] with Java `deleteAcls(Collection)` Filters of N.
     ///
-    /// Empty `filters` is a no-op.
+    /// Empty `filters` is a no-op. DeleteAcls has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::delete_acls_with_timeout`].
     pub async fn delete_acls_with(
         &mut self,
         filters: &[AclBindingFilter],
+    ) -> Result<Vec<DeletedAclsFilterResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_acls_with_timeout(filters, timeout).await
+    }
+
+    /// [`Self::delete_acls_with`] with Java `DeleteAclsOptions.timeoutMs`.
+    ///
+    /// Empty `filters` is a no-op. DeleteAcls has no TimeoutMs; `timeout`
+    /// is the RPC deadline.
+    pub async fn delete_acls_with_timeout(
+        &mut self,
+        filters: &[AclBindingFilter],
+        timeout: Duration,
     ) -> Result<Vec<DeletedAclsFilterResult>> {
         if filters.is_empty() {
             return Ok(Vec::new());
         }
         let version = self.delete_acls_version;
-        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DELETE_ACLS,

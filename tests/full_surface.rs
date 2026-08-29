@@ -4079,6 +4079,26 @@ async fn admin_partitions_alter_configs_and_acls() {
         .await
         .unwrap()
         .is_empty());
+    let created = admin
+        .create_acls_timeout(
+            &[AclBinding::allow_topic("acl-t", "User:alice")],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0]);
+    let listed = admin
+        .describe_acls_timeout(AclResourceType::Topic, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        admin
+            .delete_acls_timeout(AclResourceType::Topic, Duration::from_secs(5))
+            .await
+            .unwrap(),
+        0
+    );
 }
 
 #[tokio::test]
@@ -4107,6 +4127,15 @@ async fn admin_describe_delete_acls_with_filter() {
     assert_eq!(filter.operation, partitionline::ACL_OPERATION_ANY);
     assert_eq!(filter.permission, partitionline::ACL_PERMISSION_ANY);
 
+    let listed = admin
+        .describe_acls_with_timeout(
+            &AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice"),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+
     let results = admin
         .delete_acls_with(&[
             AclBindingFilter::resource_type(AclResourceType::Topic).principal("User:alice"),
@@ -4118,6 +4147,12 @@ async fn admin_describe_delete_acls_with_filter() {
     assert_eq!(results[0].error_code, 0);
     assert_eq!(results[0].matching.len(), 1);
     assert_eq!(results[1].matching.len(), 1);
+    assert_eq!(mock.last_delete_acls_n(), Some(2));
+    let empty = admin
+        .delete_acls_with_timeout(&[], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
     assert_eq!(mock.last_delete_acls_n(), Some(2));
     assert!(admin
         .describe_acls(AclResourceType::Topic)

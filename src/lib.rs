@@ -261,6 +261,9 @@
 //! [`AclOperation`] / [`AclPermission`] cover CreateAcls / DescribeAcls /
 //! DeleteAcls. [`Admin::describe_acls_with`] is Java `describeAcls(AclBindingFilter)`.
 //! [`Admin::delete_acls_with`] is Java `deleteAcls(Collection)` (DeleteAcls Filters of N).
+//! [`Admin::create_acls_timeout`] / [`Admin::describe_acls_timeout`] /
+//! [`Admin::delete_acls_timeout`] are Java `CreateAclsOptions` /
+//! `DescribeAclsOptions` / `DeleteAclsOptions.timeoutMs` (RPC deadline).
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
 //! [`Producer::close_timeout`] match Java. [`Consumer::close_timeout`]
 //! drops fetch connections (Java `close(Duration)`; no LeaveGroup).
