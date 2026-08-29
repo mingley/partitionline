@@ -25,6 +25,7 @@
 //! is not spoken.
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init `-1`/`-1`, epoch-bump resume sends the last id/epoch).
+//! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4

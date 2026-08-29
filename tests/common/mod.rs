@@ -223,6 +223,7 @@ struct State {
     created_topics: HashMap<String, CreatedTopic>,
     metadata_calls: u32,
     last_metadata_allow_auto: Option<bool>,
+    last_metadata_version: Option<i16>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -479,6 +480,7 @@ fn new_state(
         created_topics,
         metadata_calls: 0,
         last_metadata_allow_auto: None,
+        last_metadata_version: None,
         last_metadata_topics: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
@@ -816,6 +818,7 @@ fn metadata_for(st: &State, fallback_host: &str, fallback_port: i32) -> Metadata
                     .collect(),
             })
             .collect(),
+        error_code: 0,
     }
 }
 
@@ -1172,6 +1175,10 @@ impl Mock {
 
     pub fn last_metadata_allow_auto(&self) -> Option<bool> {
         self.state.lock().last_metadata_allow_auto
+    }
+
+    pub fn last_metadata_version(&self) -> Option<i16> {
+        self.state.lock().last_metadata_version
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -2166,7 +2173,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (PRODUCE, 3, 12),
         (FETCH, 4, 17),
         (LIST_OFFSETS, 0, 10),
-        (METADATA, 1, 12),
+        (METADATA, 1, 13),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
         (FIND_COORDINATOR, 0, 6),
@@ -2410,6 +2417,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (topics, allow) =
                     decode_metadata_request(&mut frame.clone(), header.api_version).unwrap();
                 st.last_metadata_allow_auto = Some(allow);
+                st.last_metadata_version = Some(header.api_version);
                 st.last_metadata_topics = Some(topics);
                 let (host, port) = broker_host_port(&st, node_id);
                 encode_metadata_response(

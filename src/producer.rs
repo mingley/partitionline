@@ -775,7 +775,7 @@ impl Producer {
         })?;
         let produce_version = pick(&versions, PRODUCE, 3, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-12".into()))?;
-        let metadata_version = pick(&versions, METADATA, 1, 12)
+        let metadata_version = pick(&versions, METADATA, 1, 13)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =
             if cfg.transactional_id.is_some() {
@@ -1598,6 +1598,7 @@ impl Producer {
             .await?;
         drop(conn);
         let resp = decode_metadata_response(&mut body.clone(), version)?;
+        resp.check()?;
         {
             let mut cluster = self.inner.shared.cluster.lock();
             cluster.apply(&resp);
@@ -1943,6 +1944,7 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
         .await?;
     drop(conn);
     let resp = decode_metadata_response(&mut body.clone(), version)?;
+    resp.check()?;
     let t = resp
         .topics
         .iter()

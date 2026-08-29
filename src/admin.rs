@@ -1096,7 +1096,7 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls".into()))?;
         let metadata_version = versions
             .get(&METADATA)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let find_coord_version = versions
             .get(&FIND_COORDINATOR)
@@ -2788,6 +2788,7 @@ impl Admin {
             )
             .await?;
         let md = decode_metadata_response(&mut body.clone(), version)?;
+        md.check()?;
         self.cluster.apply(&md);
         Ok(md)
     }
@@ -5497,6 +5498,7 @@ mod tests {
                     partitions: Vec::new(),
                 },
             ],
+            error_code: 0,
         };
         let listed = topic_listings_from(&md);
         assert_eq!(listed.len(), 1);

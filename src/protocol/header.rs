@@ -52,6 +52,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "3+"). This crate speaks 1–6.
         // v4+ is KIP-699 CoordinatorKeys (same header as v3).
         FIND_COORDINATOR if api_version >= 3 => 2,
+        // Metadata is classic through v8; flexible from v9
+        // (Apache JSON flexibleVersions: "9+"). This crate speaks 1–13.
+        // v13 adds top-level ErrorCode (same header as v9–v12).
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS

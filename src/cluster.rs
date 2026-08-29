@@ -247,6 +247,7 @@ mod tests {
             cluster_id: Some("mock".into()),
             controller_id: 2,
             topics: Vec::new(),
+            error_code: 0,
         });
         assert_eq!(cluster.controller().unwrap(), 2);
         cluster.invalidate_controller();
@@ -295,6 +296,7 @@ mod tests {
                     offline_replicas: Vec::new(),
                 }],
             }],
+            error_code: 0,
         });
         assert!(cluster.topic_fresh("t", Duration::from_secs(5)));
         assert!(
@@ -343,6 +345,7 @@ mod tests {
                     offline_replicas: Vec::new(),
                 }],
             }],
+            error_code: 0,
         });
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 0);

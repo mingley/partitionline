@@ -905,7 +905,7 @@ impl Consumer {
             .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-17".into()))?;
         let metadata_version = versions
             .get(&METADATA)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let telemetry_version = versions
             .get(&GET_TELEMETRY_SUBSCRIPTIONS)
@@ -1277,6 +1277,7 @@ impl Consumer {
             Err(e) => return Err(e),
         };
         let md = decode_metadata_response(&mut body.clone(), version)?;
+        md.check()?;
         self.cluster.apply(&md);
         self.metadata = Some(md);
         Ok(())

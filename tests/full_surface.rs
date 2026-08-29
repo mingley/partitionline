@@ -10,7 +10,7 @@
 
 mod common;
 
-use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR};
+use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR, METADATA};
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
@@ -65,6 +65,40 @@ async fn try_send_flush_writes_record() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"try-send"[..]));
+}
+
+#[tokio::test]
+async fn metadata_negotiates_v13_when_advertised() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"md13"[..]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_metadata_version(),
+        Some(13),
+        "Producer must prefer Metadata v13 when the broker advertises it"
+    );
+    producer.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(METADATA, 12);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"md12"[..]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_metadata_version(),
+        Some(12),
+        "client must speak Metadata v12 when the broker max is 12"
+    );
+    producer.close().await.unwrap();
 }
 
 #[tokio::test]

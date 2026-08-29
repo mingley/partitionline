@@ -415,6 +415,19 @@ pub struct MetadataResponse {
     pub controller_id: i32,
     /// Topics.
     pub topics: Vec<TopicMetadata>,
+    /// Top-level error (v13+). `0` on v1–v12.
+    pub error_code: i16,
+}
+
+impl MetadataResponse {
+    /// Fail when the v13+ top-level ErrorCode is non-zero.
+    pub(crate) fn check(&self) -> Result<()> {
+        if self.error_code == 0 {
+            Ok(())
+        } else {
+            Err(Error::broker(self.error_code, "Metadata"))
+        }
+    }
 }
 
 /// Encode Metadata. `topics = None` asks for all topics.
@@ -609,9 +622,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
     if (8..=10).contains(&version) {
         let _cluster_authorized = buf::get_i32(buf)?;
     }
-    if version >= 13 {
-        let _top_error = buf::get_i16(buf)?;
-    }
+    let error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
@@ -621,6 +632,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
         cluster_id,
         controller_id,
         topics,
+        error_code,
     })
 }
 
@@ -690,7 +702,7 @@ pub fn encode_metadata_response(
         buf.put_i32(-2147483648);
     }
     if version >= 13 {
-        buf.put_i16(0);
+        buf.put_i16(resp.error_code);
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -1390,11 +1402,46 @@ mod tests {
                     offline_replicas: vec![2],
                 }],
             }],
+            error_code: 0,
         };
         let mut buf = BytesMut::new();
         encode_metadata_response(&mut buf, 12, &resp).unwrap();
-        let decoded = decode_metadata_response(&mut &buf[..], 12).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_metadata_response(&mut cur, 12).unwrap();
         assert_eq!(decoded, resp);
+        leftover_empty(&cur, "Metadata v12").unwrap();
+
+        let mut v13 = BytesMut::new();
+        encode_metadata_response(&mut v13, 13, &resp).unwrap();
+        let mut cur = &v13[..];
+        let decoded = decode_metadata_response(&mut cur, 13).unwrap();
+        assert_eq!(decoded, resp);
+        leftover_empty(&cur, "Metadata v13").unwrap();
+        assert_ne!(
+            &buf[..],
+            &v13[..],
+            "Metadata v13 must write top-level ErrorCode before tagged fields"
+        );
+    }
+
+    #[test]
+    fn metadata_v13_top_error_fails_check() {
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: -1,
+            topics: Vec::new(),
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 13, &resp).unwrap();
+        let decoded = decode_metadata_response(&mut &buf[..], 13).unwrap();
+        assert_eq!(decoded.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            decoded.check().unwrap_err().broker_code(),
+            Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
     }
 
     #[test]
