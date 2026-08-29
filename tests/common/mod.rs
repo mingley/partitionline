@@ -132,15 +132,16 @@ use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
-    decode_find_coordinator_request_keys, decode_heartbeat_request, decode_join_group_request,
-    decode_leave_group_request_version, decode_offset_commit_request, decode_offset_delete_request,
-    decode_offset_fetch_groups_request, decode_sync_group_request,
-    encode_find_coordinator_response_coordinators, encode_heartbeat_response,
-    encode_join_group_response, encode_leave_group_response_version, encode_offset_commit_response,
-    encode_offset_delete_response, encode_offset_fetch_groups_response,
-    encode_offset_fetch_response, encode_sync_group_response, CoordinatorResult, FetchedOffset,
-    FetchedOffsetTopic, JoinMember, LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult,
-    OffsetFetchGroupResult, OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
+    decode_find_coordinator_request_keys, decode_heartbeat_request,
+    decode_join_group_request_protocols, decode_leave_group_request_version,
+    decode_offset_commit_request, decode_offset_delete_request, decode_offset_fetch_groups_request,
+    decode_sync_group_request, encode_find_coordinator_response_coordinators,
+    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response_version,
+    encode_offset_commit_response, encode_offset_delete_response,
+    encode_offset_fetch_groups_response, encode_offset_fetch_response, encode_sync_group_response,
+    CoordinatorResult, FetchedOffset, FetchedOffsetTopic, JoinMember, LeaveGroupMember,
+    LeaveGroupMemberResult, OffsetDeleteResult, OffsetFetchGroupResult, OffsetPartition,
+    OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::{
@@ -477,6 +478,7 @@ struct State {
     last_sync_group_version: Option<i16>,
     last_join_group_version: Option<i16>,
     last_join_group_reason: Option<String>,
+    last_join_protocols_n: Option<usize>,
     last_consumer_group_heartbeat_version: Option<i16>,
     last_consumer_group_heartbeat_join_member_id: Option<String>,
     last_share_group_heartbeat_version: Option<i16>,
@@ -813,6 +815,7 @@ fn new_state(
         last_sync_group_version: None,
         last_join_group_version: None,
         last_join_group_reason: None,
+        last_join_protocols_n: None,
         last_consumer_group_heartbeat_version: None,
         last_consumer_group_heartbeat_join_member_id: None,
         last_share_group_heartbeat_version: None,
@@ -2470,6 +2473,10 @@ impl Mock {
 
     pub fn last_join_group_reason(&self) -> Option<String> {
         self.state.lock().last_join_group_reason.clone()
+    }
+
+    pub fn last_join_protocols_n(&self) -> Option<usize> {
+        self.state.lock().last_join_protocols_n
     }
 
     pub fn last_consumer_group_heartbeat_version(&self) -> Option<i16> {
@@ -5319,12 +5326,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             JOIN_GROUP => {
-                let (gid, member_id, instance, metadata, reason) =
-                    decode_join_group_request(&mut frame, header.api_version).unwrap();
+                let (gid, member_id, instance, protocols, reason) =
+                    decode_join_group_request_protocols(&mut frame, header.api_version).unwrap();
+                let protocol_name = protocols
+                    .first()
+                    .map(|p| p.name.as_str())
+                    .unwrap_or("range");
+                let metadata = protocols
+                    .first()
+                    .map(|p| p.metadata.clone())
+                    .unwrap_or_default();
                 let mut st = state.lock();
                 st.join_group_calls = st.join_group_calls.saturating_add(1);
                 st.last_join_group_version = Some(header.api_version);
                 st.last_join_group_reason = reason;
+                st.last_join_protocols_n = Some(protocols.len());
                 st.last_group_instance_id = instance.clone();
                 if member_id.is_empty() {
                     st.member_seq += 1;
@@ -5334,7 +5350,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         header.api_version,
                         79,
                         -1,
-                        "range",
+                        protocol_name,
                         "",
                         &assigned,
                         &[],
@@ -5381,7 +5397,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         header.api_version,
                         0,
                         gen,
-                        "range",
+                        protocol_name,
                         &leader,
                         &member_id,
                         &members,

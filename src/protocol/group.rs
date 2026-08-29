@@ -316,17 +316,83 @@ pub struct JoinGroupRequest<'a> {
     pub reason: Option<&'a str>,
 }
 
+/// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct JoinGroupProtocol<'a> {
+    /// Protocol name (`"range"`, `"sticky"`, `"cooperative-sticky"`).
+    pub name: &'a str,
+    /// Subscription metadata bytes for this assignor.
+    pub metadata: &'a [u8],
+}
+
+impl<'a> JoinGroupProtocol<'a> {
+    /// Protocol `name` with `metadata`.
+    #[must_use]
+    pub fn new(name: &'a str, metadata: &'a [u8]) -> Self {
+        Self { name, metadata }
+    }
+}
+
+/// Owned JoinGroup Protocols entry (decode).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JoinGroupProtocolOwned {
+    /// Protocol name.
+    pub name: String,
+    /// Subscription metadata bytes for this assignor.
+    pub metadata: Vec<u8>,
+}
+
+/// JoinGroup request with Protocols of N.
+#[derive(Debug, Clone, Copy)]
+pub struct JoinGroupProtocolsRequest<'a> {
+    /// Group id.
+    pub group_id: &'a str,
+    /// Session timeout.
+    pub session_timeout_ms: i32,
+    /// Member id (`""` on first join).
+    pub member_id: &'a str,
+    /// Kafka `group.instance.id`.
+    pub group_instance_id: Option<&'a str>,
+    /// Protocol type (`"consumer"`).
+    pub protocol_type: &'a str,
+    /// Assignors in preference order (Java `partition.assignment.strategy`).
+    pub protocols: &'a [JoinGroupProtocol<'a>],
+    /// Why the member (re-)joins (v8+, KIP-800). `None` is a null reason.
+    pub reason: Option<&'a str>,
+}
+
 /// Encode JoinGroup v2–v9.
 ///
 /// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "6+"`.
 /// v2–v4 are GroupId, SessionTimeoutMs, RebalanceTimeoutMs, MemberId,
 /// ProtocolType, and Protocols (v2 and v3 match). v5 GroupInstanceId.
 /// v6 flexible. v8 Reason. This crate speaks 2–9. v0–v1 and v10+ are
-/// not spoken.
+/// not spoken. Protocols of 1.
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
     version: i16,
     req: &JoinGroupRequest<'_>,
+) -> crate::error::Result<()> {
+    encode_join_group_protocols_request(
+        buf,
+        version,
+        &JoinGroupProtocolsRequest {
+            group_id: req.group_id,
+            session_timeout_ms: req.session_timeout_ms,
+            member_id: req.member_id,
+            group_instance_id: req.group_instance_id,
+            protocol_type: req.protocol_type,
+            protocols: &[JoinGroupProtocol::new(req.protocol_name, req.metadata)],
+            reason: req.reason,
+        },
+    )
+}
+
+/// Encode JoinGroup with Protocols of N (v2–v9).
+pub fn encode_join_group_protocols_request(
+    buf: &mut BytesMut,
+    version: i16,
+    req: &JoinGroupProtocolsRequest<'_>,
 ) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
     buf::put_string(buf, flexible, Some(req.group_id))?;
@@ -337,11 +403,13 @@ pub fn encode_join_group_request(
         buf::put_string(buf, flexible, req.group_instance_id)?;
     }
     buf::put_string(buf, flexible, Some(req.protocol_type))?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf::put_string(buf, flexible, Some(req.protocol_name))?;
-    buf::put_bytes(buf, flexible, Some(req.metadata))?;
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
+    buf::put_array_len(buf, flexible, Some(req.protocols.len()))?;
+    for p in req.protocols {
+        buf::put_string(buf, flexible, Some(p.name))?;
+        buf::put_bytes(buf, flexible, Some(p.metadata))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     if version >= 8 {
         buf::put_string(buf, true, req.reason)?;
@@ -354,7 +422,8 @@ pub fn encode_join_group_request(
 
 /// Decode JoinGroup: `(group_id, member_id, instance_id, metadata, reason)`.
 ///
-/// `reason` is `None` below v8 (KIP-800).
+/// `reason` is `None` below v8 (KIP-800). `metadata` is the first Protocols
+/// entry; use [`decode_join_group_request_protocols`] for Protocols of N.
 #[expect(
     clippy::type_complexity,
     reason = "decoded JoinGroup is group, member, instance, metadata, reason"
@@ -363,6 +432,30 @@ pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, String, Option<String>, Vec<u8>, Option<String>)> {
+    let (group_id, member_id, instance, protocols, reason) =
+        decode_join_group_request_protocols(buf, version)?;
+    let metadata = protocols
+        .first()
+        .map(|p| p.metadata.clone())
+        .unwrap_or_default();
+    Ok((group_id, member_id, instance, metadata, reason))
+}
+
+/// Decode JoinGroup Protocols of N (v2–v9).
+#[expect(
+    clippy::type_complexity,
+    reason = "decoded JoinGroup is group, member, instance, protocols, reason"
+)]
+pub fn decode_join_group_request_protocols<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    String,
+    String,
+    Option<String>,
+    Vec<JoinGroupProtocolOwned>,
+    Option<String>,
+)> {
     let flexible = join_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _session = buf::get_i32(buf)?;
@@ -375,13 +468,14 @@ pub fn decode_join_group_request<B: Buf>(
     };
     let _ptype = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut metadata = Vec::new();
+    let mut protocols = Vec::with_capacity(n);
     for _ in 0..n {
-        let _name = buf::get_string(buf, flexible)?;
-        metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        protocols.push(JoinGroupProtocolOwned { name, metadata });
     }
     let reason = if version >= 8 {
         buf::get_string(buf, true)?
@@ -391,7 +485,7 @@ pub fn decode_join_group_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, instance, metadata, reason))
+    Ok((group_id, member_id, instance, protocols, reason))
 }
 
 /// One member in a JoinGroup response (leader sees all).
@@ -2469,6 +2563,74 @@ mod tests {
         assert!(
             encode_join_group_request(&mut BytesMut::new(), 10, &join_req(&[1, 2, 3])).is_err(),
             "JoinGroup v10+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn join_group_protocols_of_n_v6_compact() {
+        // Same header as v6 one-protocol, then Protocols of 2: "range" and
+        // "sticky", each metadata [1,2,3], empty tags on each protocol and
+        // the top-level.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x27, 0x10, 0x00, 0x00, 0x27, 0x10, 0x03, 0x6d, 0x31, 0x00,
+            0x09, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x03, 0x06, 0x72, 0x61, 0x6e,
+            0x67, 0x65, 0x04, 0x01, 0x02, 0x03, 0x00, 0x07, 0x73, 0x74, 0x69, 0x63, 0x6b, 0x79,
+            0x04, 0x01, 0x02, 0x03, 0x00, 0x00,
+        ];
+        let meta = [1u8, 2, 3];
+        let protocols = [
+            JoinGroupProtocol::new("range", &meta),
+            JoinGroupProtocol::new("sticky", &meta),
+        ];
+        let req = JoinGroupProtocolsRequest {
+            group_id: "g",
+            session_timeout_ms: 10_000,
+            member_id: "m1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocols: &protocols,
+            reason: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_join_group_protocols_request(&mut buf, 6, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (gid, member, instance, got, reason) =
+            decode_join_group_request_protocols(&mut cur, 6).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(member, "m1");
+        assert_eq!(instance, None);
+        assert_eq!(reason, None);
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].name, "range");
+        assert_eq!(got[0].metadata, meta);
+        assert_eq!(got[1].name, "sticky");
+        assert_eq!(got[1].metadata, meta);
+        assert!(
+            cur.is_empty(),
+            "JoinGroup v6 Protocols of 2 must be leftover-empty"
+        );
+        buf.clear();
+        encode_join_group_protocols_request(
+            &mut buf,
+            6,
+            &JoinGroupProtocolsRequest {
+                group_id: "g",
+                session_timeout_ms: 10_000,
+                member_id: "m1",
+                group_instance_id: None,
+                protocol_type: "consumer",
+                protocols: &[JoinGroupProtocol::new("range", &meta)],
+                reason: None,
+            },
+        )
+        .unwrap();
+        let mut one = BytesMut::new();
+        encode_join_group_request(&mut one, 6, &join_req(&meta)).unwrap();
+        assert_eq!(
+            &buf[..],
+            &one[..],
+            "Protocols of 1 must match encode_join_group_request"
         );
     }
 

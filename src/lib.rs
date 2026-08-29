@@ -35,7 +35,8 @@
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
-//! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment),
+//! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
+//! Protocols of N via [`ConsumerGroup::join_with_assignors`]),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
@@ -261,7 +262,9 @@
 //! # Groups
 //!
 //! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
-//! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429, and
+//! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429,
+//! [`ConsumerGroup::join_with_assignors`] is Java `partition.assignment.strategy`
+//! (JoinGroup Protocols of N), and
 //! [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
 //! `_topics` variant for several topics. [`ConsumerGroup::join_matching`] /
 //! [`ConsumerGroup::join_sticky_matching`] /

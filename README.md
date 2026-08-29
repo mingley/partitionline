@@ -117,6 +117,7 @@ user SCRAM.
 Classic range, sticky, cooperative-sticky (KIP-429), KIP-848 (`join_consumer`), and KIP-932 share groups
 (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `unsubscribe`).
 `join_topics` / `join_sticky_topics` / `join_cooperative_sticky_topics` /
+`join_with_assignors` / `join_with_assignors_topics` /
 `join_consumer_topics` subscribe to
 several topics. Set `group.instance.id` with
 `ConsumerConfig::group_instance_id` for static membership.

@@ -27,10 +27,11 @@ use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
     decode_offset_fetch_response, decode_subscription_owned, decode_sync_group_response,
-    encode_find_coordinator_request_typed, encode_heartbeat_request, encode_join_group_request,
-    encode_leave_group_request_members, encode_offset_commit_request, encode_offset_fetch_request,
-    encode_subscription, encode_subscription_owned, encode_sync_group_request,
-    encode_tp_assignment, FetchedOffsetTopic, JoinGroupRequest, LeaveGroupMember, OffsetFetchTopic,
+    encode_find_coordinator_request_typed, encode_heartbeat_request,
+    encode_join_group_protocols_request, encode_leave_group_request_members,
+    encode_offset_commit_request, encode_offset_fetch_request, encode_subscription,
+    encode_subscription_owned, encode_sync_group_request, encode_tp_assignment, FetchedOffsetTopic,
+    JoinGroupProtocol, JoinGroupProtocolsRequest, LeaveGroupMember, OffsetFetchTopic,
     OffsetPartition, OffsetTopic, SyncGroupRequest, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
@@ -343,6 +344,8 @@ pub struct ConsumerGroup {
     topic_match: Option<TopicMatch>,
     last_match_refresh: Instant,
     protocol: String,
+    /// Assignors advertised on JoinGroup (Java `partition.assignment.strategy`).
+    assignors: Vec<String>,
     kip848: bool,
     prev_assignment: HashMap<String, Vec<(String, i32)>>,
     hb_err: Arc<AtomicI16>,
@@ -430,16 +433,49 @@ impl ConsumerGroup {
     ) -> Result<Self> {
         let group_id = group_id.into();
         let topics = collect_topics(topics)?;
-        Self::join_with_protocol_list(cfg, group_id, topics, protocol, None).await
+        Self::join_with_protocol_list(cfg, group_id, topics, vec![protocol.to_string()], None).await
+    }
+
+    /// Join with several assignors (Java `partition.assignment.strategy`).
+    ///
+    /// JoinGroup sends Protocols of N in this order. The broker picks the
+    /// first protocol every member supports; this client then assigns with
+    /// that name. Empty `assignors` is a protocol error.
+    pub async fn join_with_assignors(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topic: impl Into<String>,
+        assignors: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
+        Self::join_with_assignors_topics(cfg, group_id, std::iter::once(topic), assignors).await
+    }
+
+    /// [`Self::join_with_assignors`] for several topics.
+    pub async fn join_with_assignors_topics(
+        cfg: ConsumerConfig,
+        group_id: impl Into<String>,
+        topics: impl IntoIterator<Item = impl Into<String>>,
+        assignors: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Result<Self> {
+        let names: Vec<String> = assignors.into_iter().map(Into::into).collect();
+        if names.is_empty() {
+            return Err(Error::protocol("JoinGroup Protocols is empty"));
+        }
+        Self::join_with_protocol_list(cfg, group_id.into(), collect_topics(topics)?, names, None)
+            .await
     }
 
     async fn join_with_protocol_list(
         cfg: ConsumerConfig,
         group_id: String,
         topics: Vec<String>,
-        protocol: &str,
+        assignors: Vec<String>,
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
+        let protocol = assignors
+            .first()
+            .cloned()
+            .ok_or_else(|| Error::protocol("JoinGroup Protocols is empty"))?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
 
@@ -458,7 +494,8 @@ impl ConsumerGroup {
             topics,
             topic_match,
             last_match_refresh: Instant::now(),
-            protocol: protocol.to_string(),
+            protocol,
+            assignors,
             kip848: false,
             prev_assignment: HashMap::new(),
             hb_err,
@@ -497,7 +534,7 @@ impl ConsumerGroup {
             cfg,
             group_id.into(),
             Vec::new(),
-            "range",
+            vec!["range".into()],
             Some(Arc::new(matches)),
         )
         .await
@@ -513,7 +550,7 @@ impl ConsumerGroup {
             cfg,
             group_id.into(),
             Vec::new(),
-            "sticky",
+            vec!["sticky".into()],
             Some(Arc::new(matches)),
         )
         .await
@@ -530,7 +567,7 @@ impl ConsumerGroup {
             cfg,
             group_id.into(),
             Vec::new(),
-            "cooperative-sticky",
+            vec!["cooperative-sticky".into()],
             Some(Arc::new(matches)),
         )
         .await
@@ -589,6 +626,7 @@ impl ConsumerGroup {
             topic_match,
             last_match_refresh: Instant::now(),
             protocol: "consumer".into(),
+            assignors: Vec::new(),
             kip848: true,
             prev_assignment: HashMap::new(),
             hb_err,
@@ -1574,18 +1612,32 @@ impl ConsumerGroup {
         Err(Error::protocol("cooperative-sticky did not settle"))
     }
 
-    fn join_metadata(&self) -> Result<Vec<u8>> {
-        if self.protocol == "range" {
-            encode_subscription(&self.topics)
+    fn join_protocol_entries(&self) -> Result<Vec<(String, Vec<u8>)>> {
+        let owned: Vec<(String, i32)> = self.assignment().into_iter().map(Into::into).collect();
+        let names = if self.assignors.is_empty() {
+            vec![self.protocol.clone()]
         } else {
-            let owned: Vec<(String, i32)> = self.assignment().into_iter().map(Into::into).collect();
-            encode_subscription_owned(&self.topics, &owned)
+            self.assignors.clone()
+        };
+        let mut out = Vec::with_capacity(names.len());
+        for name in names {
+            let metadata = if name == "range" {
+                encode_subscription(&self.topics)?
+            } else {
+                encode_subscription_owned(&self.topics, &owned)?
+            };
+            out.push((name, metadata));
         }
+        Ok(out)
     }
 
     async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
         let timeout = self.cfg.request_timeout;
-        let metadata = self.join_metadata()?;
+        let entries = self.join_protocol_entries()?;
+        let protocols: Vec<JoinGroupProtocol<'_>> = entries
+            .iter()
+            .map(|(n, m)| JoinGroupProtocol::new(n, m))
+            .collect();
         let version = spoken_join_group(self.coord.join_group_version)?;
         let reason = self.rebalance_reason.take();
         if self.member_id.is_empty() {
@@ -1597,17 +1649,16 @@ impl ConsumerGroup {
                 JOIN_GROUP,
                 version,
                 |buf| {
-                    encode_join_group_request(
+                    encode_join_group_protocols_request(
                         buf,
                         version,
-                        &JoinGroupRequest {
+                        &JoinGroupProtocolsRequest {
                             group_id: &self.group_id,
                             session_timeout_ms: self.cfg.session_timeout_ms,
                             member_id: "",
                             group_instance_id: self.cfg.group_instance_id.as_deref(),
                             protocol_type: "consumer",
-                            protocol_name: &self.protocol,
-                            metadata: &metadata,
+                            protocols: &protocols,
                             reason: reason.as_deref(),
                         },
                     )
@@ -1622,7 +1673,6 @@ impl ConsumerGroup {
                 return Err(Error::broker(error, "JoinGroup"));
             }
         }
-        let metadata = self.join_metadata()?;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -1631,17 +1681,16 @@ impl ConsumerGroup {
             JOIN_GROUP,
             version,
             |buf| {
-                encode_join_group_request(
+                encode_join_group_protocols_request(
                     buf,
                     version,
-                    &JoinGroupRequest {
+                    &JoinGroupProtocolsRequest {
                         group_id: &self.group_id,
                         session_timeout_ms: self.cfg.session_timeout_ms,
                         member_id: &self.member_id,
                         group_instance_id: self.cfg.group_instance_id.as_deref(),
                         protocol_type: "consumer",
-                        protocol_name: &self.protocol,
-                        metadata: &metadata,
+                        protocols: &protocols,
                         reason: reason.as_deref(),
                     },
                 )
@@ -1656,7 +1705,9 @@ impl ConsumerGroup {
         }
         self.member_id = assigned_id;
         self.generation_id = generation;
-        let _ = protocol;
+        if !protocol.is_empty() {
+            self.protocol = protocol;
+        }
 
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
         let mut owned_prev = self.prev_assignment.clone();

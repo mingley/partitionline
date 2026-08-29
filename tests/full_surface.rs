@@ -2268,6 +2268,11 @@ async fn consumer_group_join_fetch_commit() {
         None,
         "first JoinGroup must send a null Reason"
     );
+    assert_eq!(
+        mock.last_join_protocols_n(),
+        Some(1),
+        "join() must send JoinGroup Protocols of 1"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
@@ -2277,6 +2282,39 @@ async fn consumer_group_join_fetch_commit() {
         Some(9),
         "ConsumerGroup must prefer OffsetCommit v9 when the broker advertises it"
     );
+}
+
+#[tokio::test]
+async fn join_with_assignors_sends_protocols_of_n() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"assignors"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut group = ConsumerGroup::join_with_assignors(
+        ccfg,
+        "g-assignors",
+        "t",
+        ["range", "cooperative-sticky"],
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mock.last_join_protocols_n(),
+        Some(2),
+        "join_with_assignors must send JoinGroup Protocols of N"
+    );
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(recs[0].value.as_deref(), Some(&b"assignors"[..]));
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]
