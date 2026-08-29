@@ -435,6 +435,66 @@ impl TopicListing {
     }
 }
 
+/// One group from [`Admin::describe_consumer_groups`] (Java
+/// `ConsumerGroupDescription`).
+///
+/// Kafka 4.0 `DescribeConsumerGroupsHandler` sends ConsumerGroupDescribe
+/// (api 69) first. Per-group [`crate::error::UNSUPPORTED_VERSION`] (35) or
+/// [`crate::error::GROUP_ID_NOT_FOUND`] (69), a broker that does not
+/// advertise api 69, or an RPC-level [`Error::Unsupported`], fall back to
+/// DescribeGroups (api 15).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConsumerGroupDescription {
+    /// New consumer protocol (KIP-848) via ConsumerGroupDescribe.
+    Consumer(DescribedConsumerGroup),
+    /// Classic protocol via DescribeGroups.
+    Classic(DescribedGroup),
+}
+
+impl ConsumerGroupDescription {
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        match self {
+            Self::Consumer(g) => g.group_id.as_str(),
+            Self::Classic(g) => g.group_id.as_str(),
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        match self {
+            Self::Consumer(g) => g.error_code,
+            Self::Classic(g) => g.error_code,
+        }
+    }
+
+    /// Group state name from the broker.
+    #[must_use]
+    pub fn group_state(&self) -> &str {
+        match self {
+            Self::Consumer(g) => g.group_state.as_str(),
+            Self::Classic(g) => g.group_state.as_str(),
+        }
+    }
+
+    /// Bitfield of authorized operations, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        match self {
+            Self::Consumer(g) => g.authorized_operations,
+            Self::Classic(g) => g.authorized_operations,
+        }
+    }
+
+    /// `true` when this came from ConsumerGroupDescribe (api 69).
+    #[must_use]
+    pub fn is_consumer_protocol(&self) -> bool {
+        matches!(self, Self::Consumer(_))
+    }
+}
+
 /// One topic from [`Admin::describe_topics`] (Java `TopicDescription`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicDescription {
@@ -1146,7 +1206,7 @@ pub struct Admin {
     allocate_producer_ids_version: i16,
     describe_transactions_version: i16,
     list_transactions_version: i16,
-    consumer_group_describe_version: i16,
+    consumer_group_describe_version: Option<i16>,
     describe_groups_version: i16,
     list_groups_version: i16,
     delete_groups_version: i16,
@@ -1532,10 +1592,7 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
         let consumer_group_describe_version = versions
             .get(&CONSUMER_GROUP_DESCRIBE)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support ConsumerGroupDescribe v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let describe_groups_version = versions
             .get(&DESCRIBE_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
@@ -6256,10 +6313,10 @@ impl Admin {
     /// [`Self::consumer_group_describe`] with a one-shot RPC deadline.
     ///
     /// ConsumerGroupDescribe has no TimeoutMs; `timeout` is the RPC
-    /// deadline and the coordinator retry budget. Java
-    /// `Admin.describeConsumerGroups` uses DescribeGroups (api 15), not
-    /// this RPC; that path is [`Self::describe_consumer_groups_timeout`].
-    /// This overload is the crate-first KIP-848 describe.
+    /// deadline and the coordinator retry budget.
+    /// Java `Admin.describeConsumerGroups` is
+    /// [`Self::describe_consumer_groups_timeout`] (tries this RPC, then
+    /// DescribeGroups). This overload is the crate-first KIP-848 describe.
     pub async fn consumer_group_describe_timeout(
         &mut self,
         group_ids: &[&str],
@@ -6270,7 +6327,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.consumer_group_describe_version;
+        let version = self.consumer_group_describe_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ConsumerGroupDescribe v0-1".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
@@ -6458,17 +6517,21 @@ impl Admin {
 
     /// Describe consumer groups (Java `Admin.describeConsumerGroups`).
     ///
-    /// Same wire as [`Self::describe_groups`]: DescribeGroups api 15 on
-    /// the group coordinator. Java's `DescribeConsumerGroupsHandler`
-    /// builds a DescribeGroups request. Empty input is a no-op.
-    /// DescribeGroups has no TimeoutMs; the RPC deadline is
-    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::describe_consumer_groups_timeout`].
+    /// Kafka 4.0 `DescribeConsumerGroupsHandler` sends ConsumerGroupDescribe
+    /// (api 69) on the group coordinator first. Per-group
+    /// [`crate::error::UNSUPPORTED_VERSION`] (35) or
+    /// [`crate::error::GROUP_ID_NOT_FOUND`] (69) retries that group with
+    /// DescribeGroups (api 15). A broker that does not advertise api 69, or
+    /// an RPC-level [`Error::Unsupported`] for that API, uses DescribeGroups
+    /// for every group. Coordinator errors still refresh FindCoordinator
+    /// and retry. Empty input is a no-op. Neither RPC has TimeoutMs; the
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_consumer_groups_timeout`].
     pub async fn describe_consumer_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
-    ) -> Result<Vec<DescribedGroup>> {
+    ) -> Result<Vec<ConsumerGroupDescription>> {
         let timeout = self.cfg.request_timeout;
         self.describe_consumer_groups_timeout(group_ids, include_authorized_operations, timeout)
             .await
@@ -6477,16 +6540,67 @@ impl Admin {
     /// [`Self::describe_consumer_groups`] with a one-shot RPC deadline (Java
     /// `DescribeConsumerGroupsOptions.timeoutMs`).
     ///
-    /// DescribeGroups has no TimeoutMs; `timeout` is the RPC deadline
-    /// and the coordinator retry budget.
+    /// Neither ConsumerGroupDescribe nor DescribeGroups has TimeoutMs;
+    /// `timeout` is the RPC deadline and the coordinator retry budget
+    /// across both hops.
     pub async fn describe_consumer_groups_timeout(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
         timeout: Duration,
-    ) -> Result<Vec<DescribedGroup>> {
-        self.describe_groups_timeout(group_ids, include_authorized_operations, timeout)
-            .await
+    ) -> Result<Vec<ConsumerGroupDescription>> {
+        if group_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let deadline = Instant::now() + timeout;
+        let mut out: Vec<Option<ConsumerGroupDescription>> = vec![None; group_ids.len()];
+        let mut classic_pending: Vec<usize> = Vec::new();
+        if self.consumer_group_describe_version.is_some() {
+            match self
+                .consumer_group_describe_timeout(group_ids, include_authorized_operations, timeout)
+                .await
+            {
+                Ok(groups) => {
+                    for (i, g) in groups.into_iter().enumerate() {
+                        if error::consumer_group_describe_classic_fallback(g.error_code) {
+                            classic_pending.push(i);
+                        } else if let Some(slot) = out.get_mut(i) {
+                            *slot = Some(ConsumerGroupDescription::Consumer(g));
+                        }
+                    }
+                }
+                Err(Error::Unsupported(_)) => {
+                    classic_pending.extend(0..group_ids.len());
+                }
+                Err(e) => return Err(e),
+            }
+        } else {
+            classic_pending.extend(0..group_ids.len());
+        }
+        if !classic_pending.is_empty() {
+            let classic_ids: Vec<&str> = classic_pending
+                .iter()
+                .filter_map(|&i| group_ids.get(i).copied())
+                .collect();
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            let classic = self
+                .describe_groups_timeout(&classic_ids, include_authorized_operations, remaining)
+                .await?;
+            for (i, g) in classic_pending.iter().copied().zip(classic) {
+                if let Some(slot) = out.get_mut(i) {
+                    *slot = Some(ConsumerGroupDescription::Classic(g));
+                }
+            }
+        }
+        out.into_iter()
+            .enumerate()
+            .map(|(i, g)| {
+                g.ok_or_else(|| {
+                    let id = group_ids.get(i).copied().unwrap_or("");
+                    Error::protocol(format!("describeConsumerGroups missing {id}"))
+                })
+            })
+            .collect()
     }
 
     /// List consumer groups (ListGroups api 16).

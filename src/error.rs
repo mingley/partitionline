@@ -245,6 +245,8 @@ pub const UNKNOWN_PRODUCER_ID: i16 = 54;
 pub const PRODUCER_FENCED: i16 = 86;
 /// Kafka `THROTTLING_QUOTA_EXCEEDED` (89). KIP-599.
 pub const THROTTLING_QUOTA_EXCEEDED: i16 = 89;
+/// Kafka `GROUP_ID_NOT_FOUND` (69). KIP-848 / KIP-1043.
+pub const GROUP_ID_NOT_FOUND: i16 = 69;
 /// Kafka `FENCED_LEADER_EPOCH` (74).
 pub const FENCED_LEADER_EPOCH: i16 = 74;
 /// Kafka `UNKNOWN_LEADER_EPOCH` (77).
@@ -266,6 +268,13 @@ pub fn coordinator_retriable(code: i16) -> bool {
         code,
         COORDINATOR_LOAD_IN_PROGRESS | COORDINATOR_NOT_AVAILABLE | NOT_COORDINATOR
     )
+}
+
+/// Per-group ConsumerGroupDescribe codes that Java `describeConsumerGroups`
+/// retries with DescribeGroups (api 15).
+#[must_use]
+pub fn consumer_group_describe_classic_fallback(code: i16) -> bool {
+    matches!(code, UNSUPPORTED_VERSION | GROUP_ID_NOT_FOUND)
 }
 
 /// Kafka error code name, when this crate knows it.
@@ -307,6 +316,7 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         UNKNOWN_PRODUCER_ID => "UNKNOWN_PRODUCER_ID",
         PRODUCER_FENCED => "PRODUCER_FENCED",
         THROTTLING_QUOTA_EXCEEDED => "THROTTLING_QUOTA_EXCEEDED",
+        GROUP_ID_NOT_FOUND => "GROUP_ID_NOT_FOUND",
         FENCED_LEADER_EPOCH => "FENCED_LEADER_EPOCH",
         UNKNOWN_LEADER_EPOCH => "UNKNOWN_LEADER_EPOCH",
         UNKNOWN_TOPIC_ID => "UNKNOWN_TOPIC_ID",

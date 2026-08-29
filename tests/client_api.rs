@@ -10,6 +10,8 @@
 
 mod common;
 
+use partitionline::error;
+use partitionline::protocol::api_keys::CONSUMER_GROUP_DESCRIBE;
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
@@ -3178,16 +3180,84 @@ async fn admin_describe_consumer_groups_uses_describe_groups() {
         .await
         .unwrap();
     assert_eq!(described.len(), 1);
-    assert_eq!(described[0].group_id, "g-cons");
-    assert_eq!(described[0].error_code, 0);
-    assert_eq!(mock.last_describe_groups_node(), Some(1));
+    assert_eq!(described[0].group_id(), "g-cons");
+    assert_eq!(described[0].error_code(), 0);
+    assert!(
+        described[0].is_consumer_protocol(),
+        "Kafka 4.0 describeConsumerGroups tries ConsumerGroupDescribe first"
+    );
+    assert_eq!(mock.last_consumer_group_describe_node(), Some(1));
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        None,
+        "successful api 69 must not fall back to DescribeGroups"
+    );
     let empty = admin.describe_consumer_groups(&[], false).await.unwrap();
     assert!(empty.is_empty());
     let timed = admin
         .describe_consumer_groups_timeout(&["g-cons"], false, Duration::from_secs(5))
         .await
         .unwrap();
-    assert_eq!(timed[0].group_id, "g-cons");
+    assert_eq!(timed[0].group_id(), "g-cons");
+    assert!(timed[0].is_consumer_protocol());
+
+    mock.set_consumer_group_describe_error("g-classic-fb", error::GROUP_ID_NOT_FOUND);
+    let classic = admin
+        .describe_consumer_groups(&["g-classic-fb"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic.len(), 1);
+    assert_eq!(classic[0].group_id(), "g-classic-fb");
+    assert_eq!(classic[0].error_code(), 0);
+    assert!(
+        !classic[0].is_consumer_protocol(),
+        "GROUP_ID_NOT_FOUND (69) on api 69 must retry DescribeGroups"
+    );
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
+
+    let mixed = admin
+        .describe_consumer_groups(&["g-cons", "g-classic-fb"], false)
+        .await
+        .unwrap();
+    assert_eq!(mixed.len(), 2);
+    assert!(mixed[0].is_consumer_protocol());
+    assert_eq!(mixed[0].group_id(), "g-cons");
+    assert!(!mixed[1].is_consumer_protocol());
+    assert_eq!(mixed[1].group_id(), "g-classic-fb");
+    assert_eq!(mock.last_consumer_group_describe_n(), 2);
+    assert_eq!(mock.last_describe_groups_n(), 1);
+
+    mock.set_consumer_group_describe_error("g-unsup", error::UNSUPPORTED_VERSION);
+    let unsup = admin
+        .describe_consumer_groups(&["g-unsup"], false)
+        .await
+        .unwrap();
+    assert_eq!(unsup.len(), 1);
+    assert!(!unsup[0].is_consumer_protocol());
+    assert_eq!(unsup[0].group_id(), "g-unsup");
+
+    admin.close().await.unwrap();
+    let cg_calls = mock.consumer_group_describe_calls();
+    mock.hide_api(CONSUMER_GROUP_DESCRIBE);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let hidden = admin
+        .describe_consumer_groups(&["g-hidden"], false)
+        .await
+        .unwrap();
+    assert_eq!(hidden.len(), 1);
+    assert_eq!(hidden[0].group_id(), "g-hidden");
+    assert!(
+        !hidden[0].is_consumer_protocol(),
+        "when api 69 is not advertised, describeConsumerGroups uses DescribeGroups"
+    );
+    assert_eq!(
+        mock.consumer_group_describe_calls(),
+        cg_calls,
+        "hidden ConsumerGroupDescribe must not be sent"
+    );
+    assert_eq!(mock.last_describe_groups_node(), Some(1));
     admin.close().await.unwrap();
 }
 

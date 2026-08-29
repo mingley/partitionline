@@ -382,6 +382,7 @@ struct State {
     last_consumer_group_describe_n: usize,
     consumer_group_describe_calls: u32,
     consumer_group_describe_not_coordinator: u32,
+    consumer_group_describe_errors: HashMap<String, i16>,
     last_describe_groups_node: Option<i32>,
     last_describe_groups_version: Option<i16>,
     last_describe_groups_include: Option<bool>,
@@ -735,6 +736,7 @@ fn new_state(
         last_consumer_group_describe_n: 0,
         consumer_group_describe_calls: 0,
         consumer_group_describe_not_coordinator: 0,
+        consumer_group_describe_errors: HashMap::new(),
         last_describe_groups_node: None,
         last_describe_groups_version: None,
         last_describe_groups_include: None,
@@ -2288,6 +2290,14 @@ impl Mock {
 
     pub fn consumer_group_describe_not_coordinator(&self) -> u32 {
         self.state.lock().consumer_group_describe_not_coordinator
+    }
+
+    pub fn set_consumer_group_describe_error(&self, group_id: &str, code: i16) {
+        let _prev = self
+            .state
+            .lock()
+            .consumer_group_describe_errors
+            .insert(group_id.to_string(), code);
     }
 
     pub fn last_describe_groups_node(&self) -> Option<i32> {
@@ -5898,11 +5908,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let results: Vec<DescribedConsumerGroup> = ids
                         .into_iter()
                         .map(|group_id| {
-                            let mut g = DescribedConsumerGroup::new(group_id, 0);
-                            g.group_state = "Stable".into();
-                            g.group_epoch = 1;
-                            g.assignment_epoch = 1;
-                            g.assignor_name = "uniform".into();
+                            let code = st
+                                .consumer_group_describe_errors
+                                .get(&group_id)
+                                .copied()
+                                .unwrap_or(0);
+                            let mut g = DescribedConsumerGroup::new(group_id, code);
+                            if code == 0 {
+                                g.group_state = "Stable".into();
+                                g.group_epoch = 1;
+                                g.assignment_epoch = 1;
+                                g.assignor_name = "uniform".into();
+                            }
                             g
                         })
                         .collect();

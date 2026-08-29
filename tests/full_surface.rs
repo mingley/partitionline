@@ -9160,19 +9160,61 @@ async fn describe_consumer_groups_follows_group_coordinator() {
         .await
         .unwrap();
     assert_eq!(described.len(), 1);
-    assert_eq!(described[0].group_id, "g-cons");
-    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[0].group_id(), "g-cons");
+    assert_eq!(described[0].error_code(), 0);
+    assert!(described[0].is_consumer_protocol());
+    assert_eq!(
+        mock.last_consumer_group_describe_node(),
+        Some(2),
+        "describeConsumerGroups must land ConsumerGroupDescribe on the group coordinator"
+    );
     assert_eq!(
         mock.last_describe_groups_node(),
-        Some(2),
-        "describeConsumerGroups must land on the group coordinator"
+        None,
+        "successful api 69 must not fall back to DescribeGroups"
     );
     let timed = admin
         .describe_consumer_groups_timeout(&["g-cons"], false, Duration::from_secs(5))
         .await
         .unwrap();
     assert_eq!(timed.len(), 1);
-    assert_eq!(timed[0].group_id, "g-cons");
+    assert_eq!(timed[0].group_id(), "g-cons");
+    assert!(timed[0].is_consumer_protocol());
+
+    mock.set_consumer_group_describe_error("g-classic-fb", error::GROUP_ID_NOT_FOUND);
+    let classic = admin
+        .describe_consumer_groups(&["g-classic-fb"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic.len(), 1);
+    assert!(!classic[0].is_consumer_protocol());
+    assert_eq!(classic[0].group_id(), "g-classic-fb");
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        Some(2),
+        "classic fallback must still land DescribeGroups on the group coordinator"
+    );
+
+    admin.close().await.unwrap();
+    let cg_calls = mock.consumer_group_describe_calls();
+    mock.hide_api(CONSUMER_GROUP_DESCRIBE);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let hidden = admin
+        .describe_consumer_groups(&["g-cons"], false)
+        .await
+        .unwrap();
+    assert_eq!(hidden.len(), 1);
+    assert!(!hidden[0].is_consumer_protocol());
+    assert_eq!(
+        mock.consumer_group_describe_calls(),
+        cg_calls,
+        "hidden ConsumerGroupDescribe must not be sent"
+    );
+    assert_eq!(
+        mock.last_describe_groups_node(),
+        Some(2),
+        "when api 69 is hidden, describeConsumerGroups must DescribeGroups on the coordinator"
+    );
     admin.close().await.unwrap();
 }
 

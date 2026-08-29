@@ -263,12 +263,14 @@
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
 //! [`Admin::force_terminate_transaction_timeout`] is the same plus timeout.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
-//! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`.
+//! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`
+//! ([`ConsumerGroupDescription`]; ConsumerGroupDescribe first, then
+//! DescribeGroups).
 //! [`Admin::describe_classic_groups_timeout`] /
 //! [`Admin::describe_consumer_groups_timeout`] /
 //! [`Admin::describe_groups_timeout`] are Java
 //! `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`
-//! (RPC deadline; DescribeGroups has no TimeoutMs).
+//! (RPC deadline; neither RPC has TimeoutMs).
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
 //! [`Admin::list_groups_timeout`] / [`Admin::list_consumer_groups_timeout`]
 //! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
@@ -285,9 +287,9 @@
 //! `DescribeShareGroupsOptions.timeoutMs` (RPC deadline;
 //! ShareGroupDescribe has no TimeoutMs).
 //! [`Admin::consumer_group_describe_timeout`] is the crate-first
-//! ConsumerGroupDescribe (api 69) RPC deadline; Java
-//! `describeConsumerGroups` uses DescribeGroups
-//! ([`Admin::describe_consumer_groups_timeout`]).
+//! ConsumerGroupDescribe (api 69) RPC deadline. Java
+//! `describeConsumerGroups` is [`Admin::describe_consumer_groups_timeout`]
+//! (api 69 first, then DescribeGroups).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
 //! [`Admin::list_config_resources_timeout`] /
 //! [`Admin::list_client_metrics_resources_timeout`] are Java
@@ -546,7 +548,7 @@ pub use admin::{
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigReplacement,
     ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    ConsumerGroupDescription, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedShareGroupOffsets,
     DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
