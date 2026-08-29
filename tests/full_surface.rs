@@ -4025,6 +4025,25 @@ async fn admin_delete_and_describe() {
     assert!(entry.documentation().is_none());
     assert_eq!(entry.documentation, None);
 
+    let resource = ConfigResource::topic("orders");
+    assert!(!resource.is_default());
+    assert_eq!(
+        format!("{resource}"),
+        "ConfigResource(type=TOPIC, name='orders')"
+    );
+    assert_eq!(
+        format!("{entry}"),
+        format!(
+            "ConfigEntry(name={}, value={}, source={}, isSensitive={}, isReadOnly={}, synonyms=[], type={}, documentation=null)",
+            entry.name(),
+            entry.value().unwrap(),
+            entry.source(),
+            entry.is_sensitive(),
+            entry.is_read_only(),
+            entry.config_type(),
+        )
+    );
+
     let mapped = admin
         .create_topics(
             &[NewTopic::new("orders-map", 1, 1)

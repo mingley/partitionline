@@ -145,7 +145,8 @@
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
-//! is Java `Uuid.randomUuid`.
+//! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`]
+//! `Display` match Java `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
@@ -204,7 +205,10 @@
 //! `describeConfigs` result `Config` (`entries` / `get`).
 //! [`ConfigEntry::source`] / [`ConfigEntry::config_type`] /
 //! [`ConfigEntry::is_default`] are Java `ConfigEntry.source` / `type` /
-//! `isDefault` ([`ConfigSource`] / [`ConfigType`]).
+//! `isDefault` ([`ConfigSource`] / [`ConfigType`]). [`Config`] /
+//! [`ConfigEntry`] / [`ConfigResource`] `Display` match Java `toString`
+//! ([`ConfigEntry`] redacts sensitive values). [`ConfigResource::is_default`]
+//! is Java `ConfigResource.isDefault`.
 //! [`Admin::incremental_alter_configs_timeout`] /
 //! [`Admin::alter_configs_timeout`] are Java `AlterConfigsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).

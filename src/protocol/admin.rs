@@ -223,6 +223,39 @@ impl From<ConfigType> for i8 {
     }
 }
 
+impl fmt::Display for ConfigSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Self::Unknown => "UNKNOWN",
+            Self::DynamicTopic => "DYNAMIC_TOPIC_CONFIG",
+            Self::DynamicBroker => "DYNAMIC_BROKER_CONFIG",
+            Self::DynamicDefaultBroker => "DYNAMIC_DEFAULT_BROKER_CONFIG",
+            Self::StaticBroker => "STATIC_BROKER_CONFIG",
+            Self::Default => "DEFAULT_CONFIG",
+            Self::DynamicBrokerLogger => "DYNAMIC_BROKER_LOGGER_CONFIG",
+            Self::DynamicClientMetrics => "DYNAMIC_CLIENT_METRICS_CONFIG",
+            Self::DynamicGroup => "DYNAMIC_GROUP_CONFIG",
+        })
+    }
+}
+
+impl fmt::Display for ConfigType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Self::Unknown => "UNKNOWN",
+            Self::Boolean => "BOOLEAN",
+            Self::String => "STRING",
+            Self::Int => "INT",
+            Self::Short => "SHORT",
+            Self::Long => "LONG",
+            Self::Double => "DOUBLE",
+            Self::List => "LIST",
+            Self::Class => "CLASS",
+            Self::Password => "PASSWORD",
+        })
+    }
+}
+
 /// Manual replica assignment for one CreateTopics partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplicaAssignment {
@@ -477,6 +510,18 @@ impl ConfigSynonym {
     }
 }
 
+impl fmt::Display for ConfigSynonym {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ConfigSynonym(name={}, value={}, source={})",
+            self.name,
+            self.value.as_deref().unwrap_or("null"),
+            self.source()
+        )
+    }
+}
+
 /// One key from DescribeConfigs.
 ///
 /// [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`] is set
@@ -595,6 +640,49 @@ impl fmt::Debug for ConfigEntry {
     }
 }
 
+impl fmt::Display for ConfigEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ConfigEntry(name=")?;
+        f.write_str(self.name.as_str())?;
+        f.write_str(", value=")?;
+        if self.is_sensitive {
+            f.write_str("Redacted")?;
+        } else {
+            write_java_nullable_str(f, self.value.as_deref())?;
+        }
+        write!(f, ", source={}", self.source())?;
+        write!(f, ", isSensitive={}", self.is_sensitive)?;
+        write!(f, ", isReadOnly={}", self.read_only)?;
+        f.write_str(", synonyms=")?;
+        write_java_bracket_list(f, &self.synonyms)?;
+        write!(f, ", type={}", self.config_type())?;
+        f.write_str(", documentation=")?;
+        write_java_nullable_str(f, self.documentation.as_deref())?;
+        f.write_str(")")
+    }
+}
+
+fn write_java_nullable_str(f: &mut fmt::Formatter<'_>, s: Option<&str>) -> fmt::Result {
+    match s {
+        Some(s) => f.write_str(s),
+        None => f.write_str("null"),
+    }
+}
+
+fn write_java_bracket_list<T: fmt::Display>(
+    f: &mut fmt::Formatter<'_>,
+    items: &[T],
+) -> fmt::Result {
+    f.write_str("[")?;
+    for (i, item) in items.iter().enumerate() {
+        if i > 0 {
+            f.write_str(", ")?;
+        }
+        write!(f, "{item}")?;
+    }
+    f.write_str("]")
+}
+
 /// Java `org.apache.kafka.clients.admin.Config`: entries for one resource.
 ///
 /// [`Self::new`] is Java `Config(Collection)`. [`Self::entries`] /
@@ -625,6 +713,14 @@ impl Config {
     #[must_use]
     pub fn get(&self, name: &str) -> Option<&ConfigEntry> {
         self.entries.iter().find(|e| e.name == name)
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Config(entries=")?;
+        write_java_bracket_list(f, &self.entries)?;
+        f.write_str(")")
     }
 }
 
@@ -14161,6 +14257,18 @@ mod tests {
         assert_eq!(entry.value(), Some("compact"));
         assert!(!entry.is_sensitive());
         assert!(!entry.is_read_only());
+        assert_eq!(
+            entry.to_string(),
+            "ConfigEntry(name=cleanup.policy, value=compact, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)"
+        );
+        assert_eq!(
+            config.to_string(),
+            "Config(entries=[ConfigEntry(name=cleanup.policy, value=compact, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)])"
+        );
+        assert_eq!(
+            ConfigEntry::new("unset", None).to_string(),
+            "ConfigEntry(name=unset, value=null, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)"
+        );
         let result = DescribeConfigsResult {
             error_code: 0,
             error_message: None,
@@ -14184,6 +14292,14 @@ mod tests {
             "sensitive ConfigEntry Debug must not leak the value: {debug}"
         );
         assert_eq!(secret.value(), Some("s3cret"));
+        assert_eq!(
+            secret.to_string(),
+            "ConfigEntry(name=ssl.keystore.password, value=Redacted, source=UNKNOWN, isSensitive=true, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)"
+        );
+        assert!(
+            !secret.to_string().contains("s3cret"),
+            "sensitive ConfigEntry Display must not leak the value"
+        );
         let created = CreatedTopicConfig {
             name: "ssl.keystore.password".into(),
             value: Some("s3cret".into()),

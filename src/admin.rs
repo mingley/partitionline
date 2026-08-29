@@ -1305,6 +1305,18 @@ impl ConfigResourceType {
     }
 }
 
+impl fmt::Display for ConfigResourceType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Self::Topic => "TOPIC",
+            Self::Broker => "BROKER",
+            Self::BrokerLogger => "BROKER_LOGGER",
+            Self::ClientMetrics => "CLIENT_METRICS",
+            Self::Group => "GROUP",
+        })
+    }
+}
+
 /// Resource for DescribeConfigs / IncrementalAlterConfigs / AlterConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigResource {
@@ -1362,6 +1374,23 @@ impl ConfigResource {
     #[must_use]
     pub fn resource_type(&self) -> Option<ConfigResourceType> {
         ConfigResourceType::from_id(self.resource_type)
+    }
+
+    /// Java `ConfigResource.isDefault` (empty name).
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        self.name.is_empty()
+    }
+}
+
+impl fmt::Display for ConfigResource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ConfigResource(type=")?;
+        match self.resource_type() {
+            Some(ty) => write!(f, "{ty}")?,
+            None => f.write_str("UNKNOWN")?,
+        }
+        write!(f, ", name='{}')", self.name)
     }
 }
 
@@ -11763,6 +11792,17 @@ mod tests {
             ConfigResource::topic("t").resource_type(),
             Some(ConfigResourceType::Topic)
         );
+        assert!(!ConfigResource::topic("t").is_default());
+        assert_eq!(
+            ConfigResource::topic("t").to_string(),
+            "ConfigResource(type=TOPIC, name='t')"
+        );
+        assert!(ConfigResource::of(ConfigResourceType::Broker, "").is_default());
+        assert_eq!(
+            ConfigResource::of(ConfigResourceType::Broker, "").to_string(),
+            "ConfigResource(type=BROKER, name='')"
+        );
+        assert_eq!(ConfigResourceType::Topic.to_string(), "TOPIC");
         assert_eq!(
             ConfigResourceType::from_id(CONFIG_RESOURCE_TOPIC),
             Some(ConfigResourceType::Topic)
@@ -11777,6 +11817,13 @@ mod tests {
         assert_eq!(i8::from(ConfigType::Password), CONFIG_TYPE_PASSWORD);
         assert_eq!(ConfigType::from_id(CONFIG_TYPE_STRING), ConfigType::String);
         assert_eq!(ConfigType::from_id(99), ConfigType::Unknown);
+        assert_eq!(ConfigType::Unknown.to_string(), "UNKNOWN");
+        assert_eq!(ConfigType::Int.to_string(), "INT");
+        assert_eq!(ConfigSource::Default.to_string(), "DEFAULT_CONFIG");
+        assert_eq!(
+            ConfigSource::DynamicTopic.to_string(),
+            "DYNAMIC_TOPIC_CONFIG"
+        );
         assert_eq!(i8::from(ConfigSource::Unknown), CONFIG_SOURCE_UNKNOWN);
         assert_eq!(
             i8::from(ConfigSource::DynamicTopic),
@@ -11820,6 +11867,22 @@ mod tests {
         assert_eq!(syn.name(), "k");
         assert_eq!(syn.value(), Some("v"));
         assert_eq!(syn.source(), ConfigSource::Default);
+        assert_eq!(
+            syn.to_string(),
+            "ConfigSynonym(name=k, value=v, source=DEFAULT_CONFIG)"
+        );
+        assert_eq!(
+            def.to_string(),
+            "ConfigEntry(name=k, value=v, source=DEFAULT_CONFIG, isSensitive=false, isReadOnly=false, synonyms=[], type=INT, documentation=null)"
+        );
+        let with_syn = ConfigEntry {
+            synonyms: vec![syn.clone()],
+            ..def.clone()
+        };
+        assert_eq!(
+            with_syn.to_string(),
+            "ConfigEntry(name=k, value=v, source=DEFAULT_CONFIG, isSensitive=false, isReadOnly=false, synonyms=[ConfigSynonym(name=k, value=v, source=DEFAULT_CONFIG)], type=INT, documentation=null)"
+        );
     }
 
     #[test]
