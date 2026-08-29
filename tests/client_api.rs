@@ -2798,6 +2798,13 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert_eq!(all[0].0, TopicPartition::new("t", 0));
     assert_eq!(all[0].1.offset, 3);
     assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
+    let all_timed = admin
+        .list_all_consumer_group_offsets_timeout("g-off", Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(all_timed.len(), 1);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(false));
+    assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
     let stable = admin
         .list_consumer_group_offsets_with(
             "g-off",
@@ -2907,6 +2914,17 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert_eq!(mixed.len(), 2);
     assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
     assert_eq!(mock.last_offset_fetch_group_count(), 2);
+    let timed_all = ListConsumerGroupOffsetsSpec::all();
+    let timed_tp = ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]);
+    let timed_groups = admin
+        .list_consumer_group_offsets_for_groups_timeout(
+            [("g-off", timed_all), ("g-off-b", timed_tp)],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_groups.len(), 2);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(false));
     let empty_groups =
         admin
             .list_consumer_group_offsets_for_groups(

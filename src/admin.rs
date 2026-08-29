@@ -5293,13 +5293,30 @@ impl Admin {
     /// `listConsumerGroupOffsets(groupId)` with no topic-partition filter).
     ///
     /// OffsetFetch null Topics (v2+). Waits up to
-    /// [`AdminConfig::request_timeout`]. For `requireStable` and a one-shot
-    /// timeout, use [`Self::list_all_consumer_group_offsets_with`].
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::list_all_consumer_group_offsets_timeout`]. For
+    /// `requireStable` and a one-shot timeout, use
+    /// [`Self::list_all_consumer_group_offsets_with`].
     pub async fn list_all_consumer_group_offsets(
         &mut self,
         group_id: &str,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
         let timeout = self.cfg.request_timeout;
+        self.list_all_consumer_group_offsets_timeout(group_id, timeout)
+            .await
+    }
+
+    /// [`Self::list_all_consumer_group_offsets`] with a one-shot timeout
+    /// (Java `ListConsumerGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// OffsetFetch has no TimeoutMs; `timeout` is the RPC deadline.
+    /// RequireStable stays false. For `requireStable`, use
+    /// [`Self::list_all_consumer_group_offsets_with`].
+    pub async fn list_all_consumer_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
         self.list_all_consumer_group_offsets_with(group_id, false, timeout)
             .await
     }
@@ -5333,8 +5350,9 @@ impl Admin {
     /// v1–v3 get one FindCoordinator per group. Empty input is a no-op.
     /// Empty [`ListConsumerGroupOffsetsSpec::topic_partitions`] for a
     /// group is a no-op for that group. Waits up to
-    /// [`AdminConfig::request_timeout`]. For `requireStable` and a
-    /// one-shot timeout, use
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::list_consumer_group_offsets_for_groups_timeout`]. For
+    /// `requireStable` and a one-shot timeout, use
     /// [`Self::list_consumer_group_offsets_for_groups_with`].
     pub async fn list_consumer_group_offsets_for_groups(
         &mut self,
@@ -5346,6 +5364,26 @@ impl Admin {
         )>,
     > {
         let timeout = self.cfg.request_timeout;
+        self.list_consumer_group_offsets_for_groups_timeout(groups, timeout)
+            .await
+    }
+
+    /// [`Self::list_consumer_group_offsets_for_groups`] with a one-shot
+    /// timeout (Java `ListConsumerGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// OffsetFetch has no TimeoutMs; `timeout` is the RPC deadline.
+    /// RequireStable stays false. For `requireStable`, use
+    /// [`Self::list_consumer_group_offsets_for_groups_with`].
+    pub async fn list_consumer_group_offsets_for_groups_timeout(
+        &mut self,
+        groups: impl IntoIterator<Item = (impl Into<String>, ListConsumerGroupOffsetsSpec)>,
+        timeout: Duration,
+    ) -> Result<
+        Vec<(
+            String,
+            Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+        )>,
+    > {
         self.list_consumer_group_offsets_for_groups_with(groups, false, timeout)
             .await
     }

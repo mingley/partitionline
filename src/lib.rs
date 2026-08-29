@@ -184,10 +184,14 @@
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
 //! [`Admin::list_all_consumer_group_offsets`] is Java
 //! `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
+//! [`Admin::list_all_consumer_group_offsets_timeout`] is Java
+//! `ListConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline; OffsetFetch
+//! has no TimeoutMs).
 //! [`Admin::list_consumer_group_offsets_with`] /
 //! [`Admin::list_all_consumer_group_offsets_with`] are Java
 //! `ListConsumerGroupOffsetsOptions.requireStable` and `timeoutMs`.
 //! [`Admin::list_consumer_group_offsets_for_groups`] /
+//! [`Admin::list_consumer_group_offsets_for_groups_timeout`] /
 //! [`Admin::list_consumer_group_offsets_for_groups_with`] are Java
 //! `listConsumerGroupOffsets(Map)` ([`ListConsumerGroupOffsetsSpec`];
 //! OffsetFetch v8+ Groups array of N, KIP-709; FindCoordinator v4+
