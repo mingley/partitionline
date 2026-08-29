@@ -135,6 +135,9 @@
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
 //! [`Admin::describe_configs_with_documentation`] is Java `describeConfigs`
 //! plus `DescribeConfigsOptions.includeDocumentation` (DescribeConfigs v3).
+//! [`Admin::describe_cluster_with`] is Java `describeCluster` plus
+//! `DescribeClusterOptions` (DescribeCluster v0–v2; v1 EndpointType, v2
+//! IncludeFencedBrokers).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
@@ -310,20 +313,21 @@ pub use admin::{
     ConfigResourceType, ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions,
     CreatableRenewer, CreateDelegationTokenRequest, CreateDelegationTokenResponse,
     DeletableGroupResult, DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets,
-    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    FeatureMetadata, FeatureUpdate, FeatureUpdateResult, FencedProducer, FinalizedVersionRange,
-    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, MemberToRemove,
-    NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment,
-    ProducerIdBlock, PushTelemetryResponse, ReassignmentResult, RemovedMember,
-    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo,
+    DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
+    ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
+    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, ListedConfigResource,
+    ListedGroup, MemberToRemove, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
+    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
+    RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo,
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
     TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
@@ -333,8 +337,9 @@ pub use admin::{
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
     CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST,
     CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
-    CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
-    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
+    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{

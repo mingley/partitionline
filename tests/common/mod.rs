@@ -76,21 +76,22 @@ use partitionline::protocol::admin::{
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaValue, ClusterDescription, ConfigEntry, CreateDelegationTokenRequest,
     CreateDelegationTokenResponse, CreatedTopicConfig, DeletableGroupResult,
-    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
-    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
-    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment, PushTelemetryResponse,
-    ReassignmentPartitionResult, ReassignmentTopicResult, RenewDelegationTokenRequest,
-    RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
-    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
-    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeClusterBroker,
+    DescribeConfigsResult, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
+    DescribedConsumerGroup, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
+    DescribedShareGroupOffsets, DescribedTopicPartition, DescribedTopicPartitions,
+    ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse,
+    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
+    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
+    OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
+    ReassignmentTopicResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
+    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
     CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
     RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
@@ -248,6 +249,9 @@ struct State {
     last_delete_records_node: Option<i32>,
     last_delete_records_version: Option<i16>,
     delete_records_not_leader: u32,
+    last_describe_cluster_version: Option<i16>,
+    last_describe_cluster_endpoint_type: Option<i8>,
+    last_describe_cluster_include_fenced: Option<bool>,
     last_describe_producers_node: Option<i32>,
     describe_producers_not_leader: u32,
     last_write_txn_markers_node: Option<i32>,
@@ -520,6 +524,9 @@ fn new_state(
         last_delete_records_node: None,
         last_delete_records_version: None,
         delete_records_not_leader: 0,
+        last_describe_cluster_version: None,
+        last_describe_cluster_endpoint_type: None,
+        last_describe_cluster_include_fenced: None,
         last_describe_producers_node: None,
         describe_producers_not_leader: 0,
         last_write_txn_markers_node: None,
@@ -1377,6 +1384,18 @@ impl Mock {
 
     pub fn delete_records_not_leader(&self) -> u32 {
         self.state.lock().delete_records_not_leader
+    }
+
+    pub fn last_describe_cluster_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_cluster_version
+    }
+
+    pub fn last_describe_cluster_endpoint_type(&self) -> Option<i8> {
+        self.state.lock().last_describe_cluster_endpoint_type
+    }
+
+    pub fn last_describe_cluster_include_fenced(&self) -> Option<bool> {
+        self.state.lock().last_describe_cluster_include_fenced
     }
 
     pub fn last_describe_producers_node(&self) -> Option<i32> {
@@ -2326,7 +2345,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (CREATE_PARTITIONS, 0, 3),
         (DELETE_RECORDS, 0, 2),
         (ALTER_CONFIGS, 0, 2),
-        (DESCRIBE_CLUSTER, 0, 0),
+        (DESCRIBE_CLUSTER, 0, 2),
         (DESCRIBE_PRODUCERS, 0, 0),
         (DESCRIBE_ACLS, 0, 3),
         (CREATE_ACLS, 0, 3),
@@ -2964,8 +2983,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             DESCRIBE_CLUSTER => {
-                let _include = decode_describe_cluster_request(&mut frame).unwrap();
-                let st = state.lock();
+                let version = header.api_version;
+                let (_include, endpoint, fenced) =
+                    decode_describe_cluster_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_cluster_version = Some(version);
+                st.last_describe_cluster_endpoint_type = Some(endpoint);
+                st.last_describe_cluster_include_fenced = Some(fenced);
                 let brokers = if st.brokers.is_empty() {
                     vec![Broker {
                         node_id,
@@ -2979,12 +3003,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let controller_id = brokers.first().map(|b| b.node_id).unwrap_or(node_id);
                 encode_describe_cluster_response(
                     &mut body,
+                    version,
                     &ClusterDescription {
                         error_code: 0,
                         error_message: None,
                         cluster_id: Some("mock".into()),
                         controller_id,
-                        brokers,
+                        endpoint_type: endpoint,
+                        cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+                        brokers: brokers
+                            .into_iter()
+                            .map(DescribeClusterBroker::from)
+                            .collect(),
                     },
                 )
                 .unwrap();

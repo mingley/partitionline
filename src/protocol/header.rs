@@ -59,6 +59,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "9+"). This crate speaks 1–13.
         // v13 adds top-level ErrorCode (same header as v9–v12).
         METADATA if api_version >= 9 => 2,
+        // DescribeCluster is flexible from v0 (Apache JSON flexibleVersions: "0+").
+        // Kafka 4.0 validVersions is 0-2. This crate speaks 0–2.
+        // v1 EndpointType (KIP-919). v2 IncludeFencedBrokers / IsFenced
+        // (KIP-1073). v3+ is not spoken.
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
@@ -636,6 +640,16 @@ mod tests {
         assert_eq!(response_header_version(ALTER_CONFIGS, 1), 0);
         assert_eq!(request_header_version(ALTER_CONFIGS, 2), 2);
         assert_eq!(response_header_version(ALTER_CONFIGS, 2), 1);
+    }
+
+    #[test]
+    fn describe_cluster_v0_to_v2_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions 0-2, flexibleVersions 0+.
+        // HeaderVersion is 2 / 1 at every spoken version. This crate speaks 0–2.
+        for version in 0..=2 {
+            assert_eq!(request_header_version(DESCRIBE_CLUSTER, version), 2);
+            assert_eq!(response_header_version(DESCRIBE_CLUSTER, version), 1);
+        }
     }
 
     #[test]

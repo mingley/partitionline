@@ -1520,6 +1520,73 @@ pub fn decode_delete_records_response<B: Buf>(
     Ok((partition, low_watermark, error_code))
 }
 
+/// DescribeCluster endpoint type: brokers (KIP-919).
+pub const ENDPOINT_TYPE_BROKERS: i8 = 1;
+/// DescribeCluster endpoint type: controllers (KIP-919).
+pub const ENDPOINT_TYPE_CONTROLLERS: i8 = 2;
+
+/// DescribeCluster `EndpointType` (KIP-919). `1` = brokers, `2` = controllers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum EndpointType {
+    /// Broker listener (`1`).
+    Brokers = 1,
+    /// Controller listener (`2`).
+    Controllers = 2,
+}
+
+impl From<EndpointType> for i8 {
+    fn from(ty: EndpointType) -> Self {
+        ty as i8
+    }
+}
+
+/// One broker in a DescribeCluster response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeClusterBroker {
+    /// Broker id.
+    pub node_id: i32,
+    /// Hostname or IP.
+    pub host: String,
+    /// Port.
+    pub port: i32,
+    /// Rack id, or `None`.
+    pub rack: Option<String>,
+    /// Whether the broker is fenced (v2 / KIP-1073). `false` on v0–v1.
+    pub is_fenced: bool,
+}
+
+impl DescribeClusterBroker {
+    /// Construct [`Self`].
+    pub fn new(
+        node_id: i32,
+        host: impl Into<String>,
+        port: i32,
+        rack: Option<String>,
+        is_fenced: bool,
+    ) -> Self {
+        Self {
+            node_id,
+            host: host.into(),
+            port,
+            rack,
+            is_fenced,
+        }
+    }
+}
+
+impl From<super::api::Broker> for DescribeClusterBroker {
+    fn from(b: super::api::Broker) -> Self {
+        Self {
+            node_id: b.node_id,
+            host: b.host,
+            port: b.port,
+            rack: b.rack,
+            is_fenced: false,
+        }
+    }
+}
+
 /// DescribeCluster response: cluster id, controller, and brokers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterDescription {
@@ -1531,36 +1598,88 @@ pub struct ClusterDescription {
     pub cluster_id: Option<String>,
     /// Controller broker id, or `-1`.
     pub controller_id: i32,
+    /// Endpoint type described (KIP-919). `1` = brokers, `2` = controllers.
+    /// v0 decode fills [`ENDPOINT_TYPE_BROKERS`].
+    pub endpoint_type: i8,
+    /// 32-bit authorized-operations bitfield, or
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    pub cluster_authorized_operations: i32,
     /// Brokers in the cluster.
-    pub brokers: Vec<super::api::Broker>,
+    pub brokers: Vec<DescribeClusterBroker>,
 }
 
-/// Encode a DescribeCluster request.
+/// Check that DescribeCluster `version` is spoken (0–2).
+///
+/// Flexible from v0. v1 adds EndpointType (KIP-919). v2 adds
+/// IncludeFencedBrokers / IsFenced (KIP-1073). Kafka 4.0 `validVersions`
+/// is `0-2`. This crate speaks 0–2. v3+ is not spoken.
+fn describe_cluster_spoken(version: i16) -> Result<i16> {
+    match version {
+        0 | 1 | 2 => Ok(version),
+        other => Err(Error::protocol(format!(
+            "DescribeCluster version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a DescribeCluster request (v0–2; flexible from v0).
 pub fn encode_describe_cluster_request(
     buf: &mut BytesMut,
+    version: i16,
     include_authorized_operations: bool,
+    endpoint_type: i8,
+    include_fenced_brokers: bool,
 ) -> crate::error::Result<()> {
+    let _ = describe_cluster_spoken(version)?;
     buf.put_u8(u8::from(include_authorized_operations));
+    if version >= 1 {
+        buf.put_i8(endpoint_type);
+    }
+    if version >= 2 {
+        buf.put_u8(u8::from(include_fenced_brokers));
+    }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a DescribeCluster request.
-pub fn decode_describe_cluster_request<B: Buf>(buf: &mut B) -> Result<bool> {
+///
+/// v0 fills `endpoint_type` = [`ENDPOINT_TYPE_BROKERS`] and
+/// `include_fenced_brokers` = `false`.
+pub fn decode_describe_cluster_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(bool, i8, bool)> {
+    let _ = describe_cluster_spoken(version)?;
     let include = buf::get_bool(buf)?;
+    let endpoint_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ENDPOINT_TYPE_BROKERS
+    };
+    let include_fenced = if version >= 2 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
     buf::skip_tagged_fields(buf)?;
-    Ok(include)
+    Ok((include, endpoint_type, include_fenced))
 }
 
-/// Encode a DescribeCluster response.
+/// Encode a DescribeCluster response (v0–2; flexible from v0).
 pub fn encode_describe_cluster_response(
     buf: &mut BytesMut,
+    version: i16,
     desc: &ClusterDescription,
 ) -> crate::error::Result<()> {
+    let _ = describe_cluster_spoken(version)?;
     buf.put_i32(0);
     buf.put_i16(desc.error_code);
     buf::put_compact_string(buf, desc.error_message.as_deref())?;
-    buf::put_compact_string(buf, desc.cluster_id.as_deref())?;
+    if version >= 1 {
+        buf.put_i8(desc.endpoint_type);
+    }
+    buf::put_compact_string(buf, Some(desc.cluster_id.as_deref().unwrap_or("")))?;
     buf.put_i32(desc.controller_id);
     buf::put_array_len(buf, true, Some(desc.brokers.len()))?;
     for b in &desc.brokers {
@@ -1568,9 +1687,12 @@ pub fn encode_describe_cluster_response(
         buf::put_compact_string(buf, Some(&b.host))?;
         buf.put_i32(b.port);
         buf::put_compact_string(buf, b.rack.as_deref())?;
+        if version >= 2 {
+            buf.put_u8(u8::from(b.is_fenced));
+        }
         buf::put_empty_tagged_fields(buf);
     }
-    buf.put_i32(i32::MIN);
+    buf.put_i32(desc.cluster_authorized_operations);
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
@@ -3433,11 +3555,23 @@ pub fn decode_unregister_broker_response<B: Buf>(buf: &mut B) -> Result<Unregist
     })
 }
 
-/// Decode a DescribeCluster response.
-pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDescription> {
+/// Decode a DescribeCluster response (v0–2; flexible from v0).
+///
+/// v0 fills `endpoint_type` = [`ENDPOINT_TYPE_BROKERS`]. v0–v1 fill
+/// `is_fenced` = `false`.
+pub fn decode_describe_cluster_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ClusterDescription> {
+    let _ = describe_cluster_spoken(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
+    let endpoint_type = if version >= 1 {
+        buf::get_i8(buf)?
+    } else {
+        ENDPOINT_TYPE_BROKERS
+    };
     let cluster_id = buf::get_compact_string(buf)?;
     let controller_id = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -3447,21 +3581,29 @@ pub fn decode_describe_cluster_response<B: Buf>(buf: &mut B) -> Result<ClusterDe
         let host = buf::get_compact_string(buf)?.unwrap_or_default();
         let port = buf::get_i32(buf)?;
         let rack = buf::get_compact_string(buf)?;
+        let is_fenced = if version >= 2 {
+            buf::get_bool(buf)?
+        } else {
+            false
+        };
         buf::skip_tagged_fields(buf)?;
-        brokers.push(super::api::Broker {
+        brokers.push(DescribeClusterBroker {
             node_id,
             host,
             port,
             rack,
+            is_fenced,
         });
     }
-    let _ops = buf::get_i32(buf)?;
+    let cluster_authorized_operations = buf::get_i32(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(ClusterDescription {
         error_code,
         error_message,
         cluster_id,
         controller_id,
+        endpoint_type,
+        cluster_authorized_operations,
         brokers,
     })
 }
@@ -8961,21 +9103,137 @@ mod tests {
             error_message: None,
             cluster_id: Some("mock".into()),
             controller_id: 1,
-            brokers: vec![super::super::api::Broker {
-                node_id: 1,
-                host: "127.0.0.1".into(),
-                port: 9092,
-                rack: None,
-            }],
+            endpoint_type: ENDPOINT_TYPE_BROKERS,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![DescribeClusterBroker::new(
+                1,
+                "127.0.0.1",
+                9092,
+                None,
+                false,
+            )],
         };
         let mut req = BytesMut::new();
-        encode_describe_cluster_request(&mut req, false).unwrap();
-        assert!(!decode_describe_cluster_request(&mut &req[..]).unwrap());
+        encode_describe_cluster_request(&mut req, 0, false, ENDPOINT_TYPE_BROKERS, false).unwrap();
+        let mut cur = &req[..];
+        let (include, endpoint, fenced) = decode_describe_cluster_request(&mut cur, 0).unwrap();
+        assert!(!include);
+        assert_eq!(endpoint, ENDPOINT_TYPE_BROKERS);
+        assert!(!fenced);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeCluster v0 request must be leftover-empty"
+        );
         let mut buf = BytesMut::new();
-        encode_describe_cluster_response(&mut buf, &desc).unwrap();
-        assert_eq!(
-            decode_describe_cluster_response(&mut &buf[..]).unwrap(),
-            desc
+        encode_describe_cluster_response(&mut buf, 0, &desc).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_cluster_response(&mut cur, 0).unwrap(), desc);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeCluster v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_cluster_v2_compact_layout_matches_independent_encode() {
+        // IncludeClusterAuthorizedOperations false, EndpointType brokers,
+        // IncludeFencedBrokers false, empty tagged fields.
+        const REQ_V2: &[u8] = &[0x00, 0x01, 0x00, 0x00];
+        const REQ_V1: &[u8] = &[0x00, 0x01, 0x00];
+        const REQ_V0: &[u8] = &[0x00, 0x00];
+        let mut buf = BytesMut::new();
+        encode_describe_cluster_request(&mut buf, 2, false, ENDPOINT_TYPE_BROKERS, false).unwrap();
+        assert_eq!(&buf[..], REQ_V2);
+        let mut cur = &buf[..];
+        let (include, endpoint, fenced) = decode_describe_cluster_request(&mut cur, 2).unwrap();
+        assert!(!include);
+        assert_eq!(endpoint, ENDPOINT_TYPE_BROKERS);
+        assert!(!fenced);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeCluster v2 request must consume compact fields and tagged fields"
+        );
+        let mut v1 = BytesMut::new();
+        encode_describe_cluster_request(&mut v1, 1, false, ENDPOINT_TYPE_BROKERS, false).unwrap();
+        assert_eq!(&v1[..], REQ_V1);
+        assert_ne!(&buf[..], &v1[..], "DescribeCluster v2 must include fenced");
+        let mut v0 = BytesMut::new();
+        encode_describe_cluster_request(&mut v0, 0, false, ENDPOINT_TYPE_BROKERS, false).unwrap();
+        assert_eq!(&v0[..], REQ_V0);
+        assert_ne!(
+            &v1[..],
+            &v0[..],
+            "DescribeCluster v1 must include EndpointType"
+        );
+        assert!(
+            encode_describe_cluster_request(
+                &mut BytesMut::new(),
+                3,
+                false,
+                ENDPOINT_TYPE_BROKERS,
+                false
+            )
+            .is_err(),
+            "DescribeCluster v3+ is not spoken"
+        );
+
+        buf.clear();
+        encode_describe_cluster_request(&mut buf, 2, true, ENDPOINT_TYPE_CONTROLLERS, true)
+            .unwrap();
+        assert_eq!(&buf[..], &[0x01, 0x02, 0x01, 0x00]);
+        let mut cur = &buf[..];
+        let (include, endpoint, fenced) = decode_describe_cluster_request(&mut cur, 2).unwrap();
+        assert!(include);
+        assert_eq!(endpoint, ENDPOINT_TYPE_CONTROLLERS);
+        assert!(fenced);
+
+        let desc = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("m".into()),
+            controller_id: 1,
+            endpoint_type: ENDPOINT_TYPE_BROKERS,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![DescribeClusterBroker::new(1, "h", 9092, None, false)],
+        };
+        // Throttle 0, error 0, null message, EndpointType 1, cluster "m",
+        // controller 1, 1 broker id=1 host "h" port 9092 rack null unfenced,
+        // authorized ops omitted, empty tagged fields.
+        const RESP_V2: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x6d, 0x00, 0x00, 0x00, 0x01,
+            0x02, 0x00, 0x00, 0x00, 0x01, 0x02, 0x68, 0x00, 0x00, 0x23, 0x84, 0x00, 0x00, 0x00,
+            0x80, 0x00, 0x00, 0x00, 0x00,
+        ];
+        buf.clear();
+        encode_describe_cluster_response(&mut buf, 2, &desc).unwrap();
+        assert_eq!(&buf[..], RESP_V2);
+        let mut cur = &buf[..];
+        assert_eq!(decode_describe_cluster_response(&mut cur, 2).unwrap(), desc);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeCluster v2 response must be leftover-empty"
+        );
+        let mut v1r = BytesMut::new();
+        encode_describe_cluster_response(&mut v1r, 1, &desc).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1r[..],
+            "DescribeCluster v2 response must include IsFenced"
+        );
+        let mut v0r = BytesMut::new();
+        encode_describe_cluster_response(&mut v0r, 0, &desc).unwrap();
+        assert_ne!(
+            &v1r[..],
+            &v0r[..],
+            "DescribeCluster v1 response must include EndpointType"
+        );
+        let mut cur = &v0r[..];
+        let got0 = decode_describe_cluster_response(&mut cur, 0).unwrap();
+        assert_eq!(got0.endpoint_type, ENDPOINT_TYPE_BROKERS);
+        assert!(!got0.brokers[0].is_fenced);
+        assert!(
+            encode_describe_cluster_response(&mut BytesMut::new(), 3, &desc).is_err(),
+            "DescribeCluster v3+ is not spoken"
         );
     }
 

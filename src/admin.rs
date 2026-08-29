@@ -116,23 +116,24 @@ pub use crate::protocol::admin::{
     ConsumerGroupAssignment, ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
     CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
     DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
-    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
-    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
+    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    GetTelemetrySubscriptionsResponse, ListedConfigResource, ListedGroup, PushTelemetryRequest,
-    PushTelemetryResponse, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
-    TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST,
-    CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
-    CONFIG_TYPE_UNKNOWN, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
+    ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse, ListedConfigResource,
+    ListedGroup, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
+    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
+    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
+    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
+    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
+    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
@@ -1090,8 +1091,10 @@ impl Admin {
             })?;
         let describe_cluster_version = versions
             .get(&DESCRIBE_CLUSTER)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeCluster".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeCluster v0-2".into())
+            })?;
         let create_acls_version = versions
             .get(&CREATE_ACLS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
@@ -3390,18 +3393,49 @@ impl Admin {
     }
 
     /// Brokers, controller, and cluster id (`DescribeCluster`).
+    ///
+    /// Negotiates v0–v2 (flexible from v0). v1 EndpointType is brokers
+    /// (KIP-919). v2 omits fenced brokers (`IncludeFencedBrokers` false).
+    /// Kafka 4.0 `validVersions` is `0-2`. v3+ is not spoken. See
+    /// [`Self::describe_cluster_with`] for Java `DescribeClusterOptions`.
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
+        self.describe_cluster_with(false, ENDPOINT_TYPE_BROKERS, false)
+            .await
+    }
+
+    /// DescribeCluster with authorized operations, endpoint type, and
+    /// fenced brokers (Java `describeCluster` plus
+    /// `DescribeClusterOptions`).
+    ///
+    /// `endpoint_type` is [`EndpointType`] or a protocol `i8` (`1` brokers,
+    /// `2` controllers). v1+ sends EndpointType. v2 sends
+    /// IncludeFencedBrokers. v0 omits both even when set.
+    pub async fn describe_cluster_with(
+        &mut self,
+        include_authorized_operations: bool,
+        endpoint_type: impl Into<i8>,
+        include_fenced_brokers: bool,
+    ) -> Result<ClusterDescription> {
+        let endpoint_type = endpoint_type.into();
         let version = self.describe_cluster_version;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLUSTER,
                 version,
-                |buf| encode_describe_cluster_request(buf, false),
+                |buf| {
+                    encode_describe_cluster_request(
+                        buf,
+                        version,
+                        include_authorized_operations,
+                        endpoint_type,
+                        include_fenced_brokers,
+                    )
+                },
                 timeout,
             )
             .await?;
-        decode_describe_cluster_response(&mut body.clone())
+        decode_describe_cluster_response(&mut body.clone(), version)
     }
 
     /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.

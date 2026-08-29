@@ -12,8 +12,8 @@ mod common;
 
 use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
+    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
     OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
@@ -26,8 +26,8 @@ use partitionline::{
     ConfigResourceType, Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer,
     CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
-    DescribeShareGroupOffsetsGroup, Error, ExpireDelegationTokenRequest, FeatureUpdate,
-    IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
+    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
+    FeatureUpdate, IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
     ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
     TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialUpsertion,
@@ -3328,6 +3328,13 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     assert_eq!(cluster.error_code, 0);
     assert!(!cluster.brokers.is_empty());
     assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
+    assert_eq!(
+        mock.last_describe_cluster_version(),
+        Some(2),
+        "Admin must prefer DescribeCluster v2 when the broker advertises it"
+    );
+    assert_eq!(cluster.endpoint_type, 1);
+    assert!(!cluster.brokers[0].is_fenced);
 }
 
 #[tokio::test]
@@ -3432,6 +3439,76 @@ async fn delete_records_negotiates_v1_when_broker_caps() {
         mock.last_delete_records_version(),
         Some(1),
         "client must speak DeleteRecords v1 when the broker max is 1"
+    );
+}
+
+#[tokio::test]
+async fn describe_cluster_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_CLUSTER, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert_eq!(cluster.error_code, 0);
+    assert!(!cluster.brokers.is_empty());
+    assert_eq!(cluster.endpoint_type, 1);
+    assert!(!cluster.brokers[0].is_fenced);
+    assert_eq!(
+        mock.last_describe_cluster_version(),
+        Some(0),
+        "client must speak DescribeCluster v0 when the broker max is 0"
+    );
+}
+
+#[tokio::test]
+async fn describe_cluster_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_CLUSTER, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let cluster = admin.describe_cluster().await.unwrap();
+    assert_eq!(cluster.error_code, 0);
+    assert_eq!(cluster.endpoint_type, 1);
+    assert!(!cluster.brokers[0].is_fenced);
+    assert_eq!(
+        mock.last_describe_cluster_version(),
+        Some(1),
+        "client must speak DescribeCluster v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_describe_cluster_endpoint_type(),
+        Some(1),
+        "DescribeCluster v1 must send EndpointType brokers"
+    );
+    assert_eq!(
+        mock.last_describe_cluster_include_fenced(),
+        Some(false),
+        "DescribeCluster v1 has no IncludeFencedBrokers"
+    );
+}
+
+#[tokio::test]
+async fn describe_cluster_with_sends_endpoint_type_and_fenced() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let cluster = admin
+        .describe_cluster_with(true, EndpointType::Controllers, true)
+        .await
+        .unwrap();
+    assert_eq!(cluster.error_code, 0);
+    assert_eq!(cluster.endpoint_type, i8::from(EndpointType::Controllers));
+    assert_eq!(
+        mock.last_describe_cluster_version(),
+        Some(2),
+        "describe_cluster_with must keep DescribeCluster v2"
+    );
+    assert_eq!(
+        mock.last_describe_cluster_endpoint_type(),
+        Some(2),
+        "describe_cluster_with must send EndpointType controllers"
+    );
+    assert_eq!(
+        mock.last_describe_cluster_include_fenced(),
+        Some(true),
+        "describe_cluster_with must send IncludeFencedBrokers on v2"
     );
 }
 
