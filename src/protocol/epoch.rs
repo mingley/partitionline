@@ -208,7 +208,7 @@ mod tests {
         buf.clear();
         encode_offset_for_leader_epoch_request(&mut buf, 2, "t", 0, 3, 3).unwrap();
         assert_eq!(&buf[..], REQ_V2);
-        assert_ne!(&buf[..], &REQ_V3[..], "v2 must not send ReplicaId (v3+)");
+        assert_ne!(&buf[..], REQ_V3, "v2 must not send ReplicaId (v3+)");
         buf.clear();
         encode_offset_for_leader_epoch_response(&mut buf, 4, "t", 0, 0, 4, 12).unwrap();
         assert_eq!(&buf[..], RESP_V4);
