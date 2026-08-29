@@ -5702,18 +5702,25 @@ impl Admin {
     /// FindCoordinator per retry for uncached groups. DescribeGroups is
     /// one RPC per coordinator. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
-    /// a no-op.
+    /// a no-op. DescribeGroups has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_groups_timeout`].
     pub async fn describe_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedGroup>> {
         let timeout = self.cfg.request_timeout;
-        self.describe_groups_deadline(group_ids, include_authorized_operations, timeout)
+        self.describe_groups_timeout(group_ids, include_authorized_operations, timeout)
             .await
     }
 
-    async fn describe_groups_deadline(
+    /// [`Self::describe_groups`] with a one-shot RPC deadline (Java
+    /// `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`).
+    ///
+    /// DescribeGroups has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget.
+    pub async fn describe_groups_timeout(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
@@ -5780,12 +5787,31 @@ impl Admin {
     /// Same wire as [`Self::describe_groups`]: DescribeGroups api 15 on
     /// the group coordinator. Java's `DescribeClassicGroupsHandler`
     /// builds a DescribeGroups request. Empty input is a no-op.
+    /// DescribeGroups has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_classic_groups_timeout`].
     pub async fn describe_classic_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedGroup>> {
-        self.describe_groups(group_ids, include_authorized_operations)
+        let timeout = self.cfg.request_timeout;
+        self.describe_classic_groups_timeout(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_classic_groups`] with a one-shot RPC deadline (Java
+    /// `DescribeClassicGroupsOptions.timeoutMs`).
+    ///
+    /// DescribeGroups has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget.
+    pub async fn describe_classic_groups_timeout(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<DescribedGroup>> {
+        self.describe_groups_timeout(group_ids, include_authorized_operations, timeout)
             .await
     }
 
@@ -5794,12 +5820,31 @@ impl Admin {
     /// Same wire as [`Self::describe_groups`]: DescribeGroups api 15 on
     /// the group coordinator. Java's `DescribeConsumerGroupsHandler`
     /// builds a DescribeGroups request. Empty input is a no-op.
+    /// DescribeGroups has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_consumer_groups_timeout`].
     pub async fn describe_consumer_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedGroup>> {
-        self.describe_groups(group_ids, include_authorized_operations)
+        let timeout = self.cfg.request_timeout;
+        self.describe_consumer_groups_timeout(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_consumer_groups`] with a one-shot RPC deadline (Java
+    /// `DescribeConsumerGroupsOptions.timeoutMs`).
+    ///
+    /// DescribeGroups has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget.
+    pub async fn describe_consumer_groups_timeout(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<DescribedGroup>> {
+        self.describe_groups_timeout(group_ids, include_authorized_operations, timeout)
             .await
     }
 
@@ -6079,7 +6124,7 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<RemovedMember>> {
         let described = self
-            .describe_groups_deadline(&[group_id], false, timeout)
+            .describe_groups_timeout(&[group_id], false, timeout)
             .await?;
         let Some(g) = described.first() else {
             return Ok(Vec::new());

@@ -3126,6 +3126,11 @@ async fn admin_describe_classic_groups_uses_describe_groups() {
     assert_eq!(mock.last_describe_groups_node(), Some(1));
     let empty = admin.describe_classic_groups(&[], false).await.unwrap();
     assert!(empty.is_empty());
+    let timed = admin
+        .describe_classic_groups_timeout(&["g-classic"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-classic");
     admin.close().await.unwrap();
 }
 
@@ -3145,6 +3150,11 @@ async fn admin_describe_consumer_groups_uses_describe_groups() {
     assert_eq!(mock.last_describe_groups_node(), Some(1));
     let empty = admin.describe_consumer_groups(&[], false).await.unwrap();
     assert!(empty.is_empty());
+    let timed = admin
+        .describe_consumer_groups_timeout(&["g-cons"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-cons");
     admin.close().await.unwrap();
 }
 

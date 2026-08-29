@@ -8591,6 +8591,12 @@ async fn describe_classic_groups_follows_group_coordinator() {
         Some(2),
         "describeClassicGroups must land on the group coordinator"
     );
+    let timed = admin
+        .describe_classic_groups_timeout(&["g-classic"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "g-classic");
     admin.close().await.unwrap();
 }
 
@@ -8611,6 +8617,12 @@ async fn describe_consumer_groups_follows_group_coordinator() {
         Some(2),
         "describeConsumerGroups must land on the group coordinator"
     );
+    let timed = admin
+        .describe_consumer_groups_timeout(&["g-cons"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "g-cons");
     admin.close().await.unwrap();
 }
 

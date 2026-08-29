@@ -232,6 +232,11 @@
 //! [`Admin::force_terminate_transaction_timeout`] is the same plus timeout.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
 //! [`Admin::describe_consumer_groups`] is Java `describeConsumerGroups`.
+//! [`Admin::describe_classic_groups_timeout`] /
+//! [`Admin::describe_consumer_groups_timeout`] /
+//! [`Admin::describe_groups_timeout`] are Java
+//! `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`
+//! (RPC deadline; DescribeGroups has no TimeoutMs).
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
 //! [`Admin::list_groups_timeout`] / [`Admin::list_consumer_groups_timeout`]
 //! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
