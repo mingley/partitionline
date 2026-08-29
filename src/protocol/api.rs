@@ -556,6 +556,39 @@ impl MetadataResponse {
     }
 }
 
+/// One topic in a Metadata request (v10+ TopicId + nullable Name).
+///
+/// Java `describeTopics(Collection<String>)` sends [`Self::by_name`]
+/// (Name set, TopicId zero). Java `describeTopics(TopicCollection.ofTopicIds)`
+/// sends [`Self::by_id`] (Name null, TopicId set).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetadataRequestTopic {
+    /// Topic name, or `None` when describing by TopicId.
+    pub name: Option<String>,
+    /// Topic UUID (v10+). Zero when describing by name.
+    pub topic_id: [u8; 16],
+}
+
+impl MetadataRequestTopic {
+    /// Name-based Metadata topic (TopicId zero).
+    #[must_use]
+    pub fn by_name(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            topic_id: [0; 16],
+        }
+    }
+
+    /// Id-based Metadata topic (Name null). Requires Metadata v10+.
+    #[must_use]
+    pub fn by_id(topic_id: [u8; 16]) -> Self {
+        Self {
+            name: None,
+            topic_id,
+        }
+    }
+}
+
 /// Encode Metadata. `topics = None` asks for all topics.
 ///
 /// `IncludeTopicAuthorizedOperations` is false (Java default). Use
@@ -572,11 +605,38 @@ pub fn encode_metadata_request(
 /// Encode Metadata with `IncludeTopicAuthorizedOperations` (v8+).
 ///
 /// Below v8 the flag is omitted. Cluster authorized operations stay
-/// unset (`false` on v8–v10).
+/// unset (`false` on v8–v10). Name-based: v10+ sends TopicId zero.
+/// For TopicId describes, use [`encode_metadata_request_topics`].
 pub fn encode_metadata_request_with(
     buf: &mut BytesMut,
     version: i16,
     topics: Option<&[String]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    let owned = topics.map(|names| {
+        names
+            .iter()
+            .map(|name| MetadataRequestTopic::by_name(name.clone()))
+            .collect::<Vec<_>>()
+    });
+    encode_metadata_request_topics(
+        buf,
+        version,
+        owned.as_deref(),
+        allow_auto,
+        include_topic_authorized_operations,
+    )
+}
+
+/// Encode Metadata Topics of Name and/or TopicId (v10+).
+///
+/// Java `describeTopics(TopicCollection.ofTopicIds)` sends Name null
+/// and TopicId set. `topics = None` asks for all topics.
+pub fn encode_metadata_request_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[MetadataRequestTopic]>,
     allow_auto: bool,
     include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
@@ -585,11 +645,11 @@ pub fn encode_metadata_request_with(
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
             buf::put_array_len(buf, flexible, Some(topics.len()))?;
-            for name in topics {
+            for t in topics {
                 if version >= 10 {
-                    buf.extend_from_slice(&[0u8; 16]);
+                    buf.extend_from_slice(&t.topic_id);
                 }
-                buf::put_string(buf, flexible, Some(name))?;
+                buf::put_string(buf, flexible, t.name.as_deref())?;
                 if flexible {
                     buf::put_empty_tagged_fields(buf);
                 }
@@ -613,29 +673,42 @@ pub fn encode_metadata_request_with(
 
 /// Decode Metadata request: topic names (`None` is all topics),
 /// `allow.auto.create.topics`, and `IncludeTopicAuthorizedOperations`.
+///
+/// v10+ Topics entries with a null Name are skipped (id-based describes).
+/// See [`decode_metadata_request_topics`] for every Topics entry.
 pub fn decode_metadata_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Option<Vec<String>>, bool, bool)> {
+    let (topics, allow_auto, include_topic_authorized) =
+        decode_metadata_request_topics(buf, version)?;
+    let names = topics.map(|ts| ts.into_iter().filter_map(|t| t.name).collect());
+    Ok((names, allow_auto, include_topic_authorized))
+}
+
+/// Decode Metadata: every topic (Name and/or TopicId) plus flags.
+pub fn decode_metadata_request_topics<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Option<Vec<MetadataRequestTopic>>, bool, bool)> {
     let flexible = version >= 9;
     let topics = match buf::get_array_len(buf, flexible)? {
         None => None,
         Some(n) => {
-            let mut names = Vec::with_capacity(n);
+            let mut topics = Vec::with_capacity(n);
             for _ in 0..n {
-                if version >= 10 {
-                    buf::need(buf, 16)?;
-                    buf.advance(16);
-                }
+                let topic_id = if version >= 10 {
+                    buf::get_uuid(buf)?
+                } else {
+                    [0; 16]
+                };
                 let name = buf::get_string(buf, flexible)?;
                 if flexible {
                     buf::skip_tagged_fields(buf)?;
                 }
-                if let Some(name) = name {
-                    names.push(name);
-                }
+                topics.push(MetadataRequestTopic { name, topic_id });
             }
-            Some(names)
+            Some(topics)
         }
     };
     let allow_auto = if version >= 4 {
@@ -1749,6 +1822,38 @@ mod tests {
             &buf[..],
             &with[..],
             "IncludeTopicAuthorizedOperations true must not match the default request"
+        );
+    }
+
+    #[test]
+    fn metadata_v12_topic_id_request_is_compact() {
+        // Compact Topics[1] { TopicId "t" padded, Name null, tagged }
+        // + AllowAutoTopicCreation false + IncludeTopicAuthorizedOperations
+        // false + tagged. v12 is not in 8..=10, so no cluster-auth byte.
+        const V12_ID: &[u8] = &[
+            0x02, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let topics = [MetadataRequestTopic::by_id(id)];
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, 12, Some(&topics), false, false).unwrap();
+        assert_eq!(&buf[..], V12_ID);
+        let mut cur = &buf[..];
+        let (got, allow, include_topic) = decode_metadata_request_topics(&mut cur, 12).unwrap();
+        leftover_empty(&cur, "Metadata v12 TopicId request leftover").unwrap();
+        let got = got.expect("Topics array");
+        assert_eq!(got.as_slice(), topics.as_slice());
+        assert!(!allow);
+        assert!(!include_topic);
+        let mut cur = &buf[..];
+        let (names_only, _, _) = decode_metadata_request(&mut cur, 12).unwrap();
+        leftover_empty(&cur, "Metadata v12 TopicId names-only leftover").unwrap();
+        assert_eq!(
+            names_only.as_deref(),
+            Some(&[][..]),
+            "name-only decode skips null-Name TopicId describes"
         );
     }
 }

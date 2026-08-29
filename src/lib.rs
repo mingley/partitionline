@@ -26,7 +26,8 @@
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init `-1`/`-1`, epoch-bump resume sends the last id/epoch).
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
-//! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_with`]).
+//! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_with`];
+//! v10+ TopicId on [`Admin::describe_topics_by_id`]).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
 //! OffsetCommit v2–v9 (v2–v4 retention `-1`; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
@@ -234,8 +235,9 @@
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
 //! [`Admin::list_topics`] / [`Admin::describe_topics`] /
-//! [`Admin::describe_topics_with`] are Java
+//! [`Admin::describe_topics_with`] / [`Admin::describe_topics_by_id`] are Java
 //! `listTopics` / `describeTopics` / `DescribeTopicsOptions.includeAuthorizedOperations`
+//! / `describeTopics(TopicCollection.ofTopicIds)`
 //! ([`TopicListing`] / [`TopicDescription`]).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).

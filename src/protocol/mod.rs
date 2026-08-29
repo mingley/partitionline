@@ -51,11 +51,12 @@ pub mod txn;
 
 pub use api::{
     decode_api_versions_handshake, decode_api_versions_response, decode_metadata_request,
-    decode_metadata_response, decode_produce_request, decode_produce_response,
-    encode_api_versions_request, encode_api_versions_response, encode_metadata_request,
-    encode_metadata_request_with, encode_metadata_response, encode_produce_request,
-    encode_produce_response, negotiate_api_versions, ApiVersion, ApiVersionsResponse, Broker,
-    FinalizedFeatureKey, MetadataResponse, NodeEndpoint, PartitionMetadata, ProducePartitionData,
+    decode_metadata_request_topics, decode_metadata_response, decode_produce_request,
+    decode_produce_response, encode_api_versions_request, encode_api_versions_response,
+    encode_metadata_request, encode_metadata_request_topics, encode_metadata_request_with,
+    encode_metadata_response, encode_produce_request, encode_produce_response,
+    negotiate_api_versions, ApiVersion, ApiVersionsResponse, Broker, FinalizedFeatureKey,
+    MetadataRequestTopic, MetadataResponse, NodeEndpoint, PartitionMetadata, ProducePartitionData,
     ProducePartitionResponse, ProduceTopicData, SupportedFeatureKey, TopicMetadata,
 };
 pub use api_keys::{

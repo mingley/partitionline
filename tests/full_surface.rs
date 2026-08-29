@@ -4584,6 +4584,11 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         Some(Some(vec!["t".into()])),
         "describe_topics must send Metadata for the named topics"
     );
+    assert_eq!(
+        mock.last_metadata_topic_ids(),
+        Some(0),
+        "name-based describeTopics sends TopicId zero, not ofTopicIds"
+    );
     let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
     assert_eq!(with_ops.len(), 1);
     assert_eq!(with_ops[0].authorized_operations, 4);
@@ -4600,6 +4605,87 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
         calls,
         "empty describe_topics is a no-op"
     );
+}
+
+/// Java `describeTopics(TopicCollection.ofTopicIds)` sends Metadata v10+
+/// Topics of null Name + TopicId.
+#[tokio::test]
+async fn admin_describe_topics_by_id() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("dtid-a", 1, 1), NewTopic::new("dtid-b", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    assert_ne!(created[0].topic_id, [0u8; 16]);
+    assert_ne!(created[1].topic_id, [0u8; 16]);
+    let calls = mock.metadata_calls();
+    let empty = admin.describe_topics_by_id(&[]).await.unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.metadata_calls(),
+        calls,
+        "empty describe_topics_by_id is a no-op"
+    );
+    let described = admin
+        .describe_topics_by_id(&[created[0].topic_id, created[1].topic_id])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(described[0].name, "dtid-a");
+    assert_eq!(described[1].name, "dtid-b");
+    assert_eq!(described[0].topic_id, created[0].topic_id);
+    assert_eq!(described[1].topic_id, created[1].topic_id);
+    assert_eq!(described[0].partitions.len(), 1);
+    assert_eq!(
+        described[0].authorized_operations, AUTHORIZED_OPERATIONS_OMITTED,
+        "describe_topics_by_id must leave IncludeTopicAuthorizedOperations unset"
+    );
+    assert_eq!(
+        mock.last_metadata_topic_ids(),
+        Some(2),
+        "describe_topics_by_id sends Topics of null Name + TopicId"
+    );
+    assert_eq!(
+        mock.last_metadata_allow_auto(),
+        Some(false),
+        "describeTopics sets AllowAutoTopicCreation false"
+    );
+    let missing = admin.describe_topics_by_id(&[[0xff; 16]]).await.unwrap();
+    assert_eq!(missing.len(), 1);
+    assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_ID);
+    assert!(missing[0].name.is_empty());
+    assert_eq!(missing[0].topic_id, [0xff; 16]);
+    let with_ops = admin
+        .describe_topics_by_id_with(&[created[0].topic_id], true)
+        .await
+        .unwrap();
+    assert_eq!(with_ops.len(), 1);
+    assert_eq!(with_ops[0].authorized_operations, 4);
+    assert_eq!(
+        mock.last_metadata_include_topic_authorized(),
+        Some(true),
+        "describe_topics_by_id_with(true) must send IncludeTopicAuthorizedOperations"
+    );
+    admin.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(METADATA, 9);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_topics_by_id(&[[1u8; 16]]).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "Metadata below v10 cannot describe by TopicId: {err}"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

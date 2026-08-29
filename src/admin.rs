@@ -66,7 +66,7 @@ use crate::protocol::admin::{
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
-    encode_metadata_request_with, ApiVersion, MetadataResponse,
+    encode_metadata_request_topics, ApiVersion, MetadataRequestTopic, MetadataResponse,
 };
 use crate::protocol::api_keys::{
     pick_version, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS, ALTER_CONFIGS,
@@ -377,7 +377,7 @@ impl TopicListing {
 /// One topic from [`Admin::describe_topics`] (Java `TopicDescription`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicDescription {
-    /// Topic name.
+    /// Topic name (empty when a TopicId describe returns no name).
     pub name: String,
     /// Topic id (Metadata v10+), or zeros.
     pub topic_id: [u8; 16],
@@ -1900,12 +1900,13 @@ impl Admin {
 
     /// Topic partition layouts (Java `Admin.describeTopics`).
     ///
-    /// Sends Metadata for these names on the bootstrap connection.
-    /// Empty input is a no-op (no RPC). Per-topic Metadata errors live
-    /// on [`TopicDescription::error_code`]; [`TopicDescription::partitions`]
-    /// is filled only when that code is `0`.
+    /// Sends Metadata for these names on the bootstrap connection
+    /// (Name set, TopicId zero). Empty input is a no-op (no RPC).
+    /// Per-topic Metadata errors live on [`TopicDescription::error_code`];
+    /// [`TopicDescription::partitions`] is filled only when that code is `0`.
     /// `IncludeTopicAuthorizedOperations` is false; see
-    /// [`Self::describe_topics_with`].
+    /// [`Self::describe_topics_with`]. For TopicId describes (Java
+    /// `TopicCollection.ofTopicIds`), use [`Self::describe_topics_by_id`].
     pub async fn describe_topics(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
@@ -1933,6 +1934,49 @@ impl Admin {
             .fetch_metadata_with(Some(&names), include_authorized_operations)
             .await?;
         Ok(topic_descriptions_from(&md))
+    }
+
+    /// Describe topics by TopicId (Java `describeTopics(TopicCollection.ofTopicIds)`).
+    ///
+    /// Metadata v10+ sends Topics of null Name + TopicId.
+    /// `AllowAutoTopicCreation` is false. Brokers that only speak v1–v9
+    /// return [`Error::Unsupported`]. Empty `ids` is a no-op. Unknown
+    /// ids return `UNKNOWN_TOPIC_ID` (100) per topic with an empty name.
+    /// See [`Self::describe_topics_by_id_with`].
+    pub async fn describe_topics_by_id(
+        &mut self,
+        ids: &[[u8; 16]],
+    ) -> Result<Vec<TopicDescription>> {
+        self.describe_topics_by_id_with(ids, false).await
+    }
+
+    /// [`Self::describe_topics_by_id`] with Java
+    /// `DescribeTopicsOptions.includeAuthorizedOperations`.
+    ///
+    /// Metadata v10+ sends IncludeTopicAuthorizedOperations (the flag
+    /// exists from v8; TopicId requires v10).
+    pub async fn describe_topics_by_id_with(
+        &mut self,
+        ids: &[[u8; 16]],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<TopicDescription>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        if self.metadata_version < 10 {
+            return Err(Error::Unsupported(
+                "broker does not support Metadata v10 topic IDs".into(),
+            ));
+        }
+        let topics: Vec<MetadataRequestTopic> = ids
+            .iter()
+            .copied()
+            .map(MetadataRequestTopic::by_id)
+            .collect();
+        let md = self
+            .fetch_metadata_request_with(Some(&topics), include_authorized_operations)
+            .await?;
+        Ok(topic_descriptions_including_unnamed(&md))
     }
 
     /// Describe broker or topic configs (`DescribeConfigs`).
@@ -3526,6 +3570,21 @@ impl Admin {
         topics: Option<&[String]>,
         include_topic_authorized_operations: bool,
     ) -> Result<MetadataResponse> {
+        let owned = topics.map(|names| {
+            names
+                .iter()
+                .map(|name| MetadataRequestTopic::by_name(name.clone()))
+                .collect::<Vec<_>>()
+        });
+        self.fetch_metadata_request_with(owned.as_deref(), include_topic_authorized_operations)
+            .await
+    }
+
+    async fn fetch_metadata_request_with(
+        &mut self,
+        topics: Option<&[MetadataRequestTopic]>,
+        include_topic_authorized_operations: bool,
+    ) -> Result<MetadataResponse> {
         let version = self.metadata_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -3533,7 +3592,7 @@ impl Admin {
                 METADATA,
                 version,
                 |buf| {
-                    encode_metadata_request_with(
+                    encode_metadata_request_topics(
                         buf,
                         version,
                         topics,
@@ -7235,34 +7294,40 @@ fn topic_listings_from(md: &MetadataResponse) -> Vec<TopicListing> {
 fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
     md.topics
         .iter()
-        .filter_map(|t| {
-            let name = t.name.clone()?;
-            let partitions = if t.error_code == 0 {
-                t.partitions
-                    .iter()
-                    .map(|p| crate::PartitionInfo {
-                        topic: name.clone(),
-                        partition: p.partition_index,
-                        leader: p.leader_id,
-                        leader_epoch: p.leader_epoch,
-                        replicas: p.replica_nodes.clone(),
-                        isr: p.isr_nodes.clone(),
-                        offline_replicas: p.offline_replicas.clone(),
-                    })
-                    .collect()
-            } else {
-                Vec::new()
-            };
-            Some(TopicDescription {
-                name,
-                topic_id: t.topic_id,
-                is_internal: t.is_internal,
-                error_code: t.error_code,
-                partitions,
-                authorized_operations: t.topic_authorized_operations,
-            })
-        })
+        .filter_map(|t| t.name.as_ref().map(|_| topic_description_from(t)))
         .collect()
+}
+
+fn topic_descriptions_including_unnamed(md: &MetadataResponse) -> Vec<TopicDescription> {
+    md.topics.iter().map(topic_description_from).collect()
+}
+
+fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescription {
+    let name = t.name.clone().unwrap_or_default();
+    let partitions = if t.error_code == 0 {
+        t.partitions
+            .iter()
+            .map(|p| crate::PartitionInfo {
+                topic: name.clone(),
+                partition: p.partition_index,
+                leader: p.leader_id,
+                leader_epoch: p.leader_epoch,
+                replicas: p.replica_nodes.clone(),
+                isr: p.isr_nodes.clone(),
+                offline_replicas: p.offline_replicas.clone(),
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    TopicDescription {
+        name,
+        topic_id: t.topic_id,
+        is_internal: t.is_internal,
+        error_code: t.error_code,
+        partitions,
+        authorized_operations: t.topic_authorized_operations,
+    }
 }
 
 fn list_offset_topic_requests(

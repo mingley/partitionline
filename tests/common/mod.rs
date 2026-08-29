@@ -97,10 +97,10 @@ use partitionline::protocol::admin::{
     RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
-    decode_metadata_request, decode_produce_request, encode_api_versions_response,
+    decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
     encode_metadata_response, encode_produce_response_with_endpoints, ApiVersion,
-    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataResponse, NodeEndpoint,
-    PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
+    ApiVersionsResponse, Broker, FinalizedFeatureKey, MetadataRequestTopic, MetadataResponse,
+    NodeEndpoint, PartitionMetadata, ProducePartitionResponse, SupportedFeatureKey, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
@@ -232,6 +232,9 @@ struct State {
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
+    /// Count of null-Name + nonzero TopicId entries on the last Metadata
+    /// request (`None` = never recorded).
+    last_metadata_topic_ids: Option<usize>,
     last_metadata_include_topic_authorized: Option<bool>,
     brokers: Vec<Broker>,
     /// Broker ids omitted from Metadata (still reachable via NodeEndpoints).
@@ -571,6 +574,7 @@ fn new_state(
         last_api_versions_version: None,
         api_versions_versions: Vec::new(),
         last_metadata_topics: None,
+        last_metadata_topic_ids: None,
         last_metadata_include_topic_authorized: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
@@ -936,6 +940,82 @@ fn metadata_for(
     fallback_port: i32,
     include_topic_authorized: bool,
 ) -> MetadataResponse {
+    let (brokers, replica_nodes, default_leader, controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    MetadataResponse {
+        throttle_time_ms: 0,
+        brokers,
+        cluster_id: Some("mock".into()),
+        controller_id,
+        topics: st
+            .created_topics
+            .iter()
+            .map(|(name, spec)| {
+                metadata_topic_for(
+                    st,
+                    name,
+                    spec,
+                    include_topic_authorized,
+                    &replica_nodes,
+                    default_leader,
+                )
+            })
+            .collect(),
+        error_code: 0,
+    }
+}
+
+fn metadata_for_ids(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    include_topic_authorized: bool,
+    topics: &[MetadataRequestTopic],
+) -> MetadataResponse {
+    let (brokers, replica_nodes, default_leader, controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    let topics = topics
+        .iter()
+        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+        .map(|t| {
+            st.created_topics
+                .iter()
+                .find(|(name, _)| mock_topic_id(name) == t.topic_id)
+                .map(|(name, spec)| {
+                    metadata_topic_for(
+                        st,
+                        name,
+                        spec,
+                        include_topic_authorized,
+                        &replica_nodes,
+                        default_leader,
+                    )
+                })
+                .unwrap_or_else(|| TopicMetadata {
+                    error_code: error::UNKNOWN_TOPIC_ID,
+                    name: None,
+                    topic_id: t.topic_id,
+                    is_internal: false,
+                    partitions: Vec::new(),
+                    topic_authorized_operations: i32::MIN,
+                })
+        })
+        .collect();
+    MetadataResponse {
+        throttle_time_ms: 0,
+        brokers,
+        cluster_id: Some("mock".into()),
+        controller_id,
+        topics,
+        error_code: 0,
+    }
+}
+
+fn metadata_cluster(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+) -> (Vec<Broker>, Vec<i32>, i32, i32) {
     let brokers = if st.brokers.is_empty() {
         vec![Broker {
             node_id: 1,
@@ -957,49 +1037,49 @@ fn metadata_for(
     } else {
         default_leader
     };
-    MetadataResponse {
-        throttle_time_ms: 0,
-        brokers,
-        cluster_id: Some("mock".into()),
-        controller_id,
-        topics: st
-            .created_topics
-            .iter()
-            .map(|(name, spec)| TopicMetadata {
-                error_code: 0,
-                name: Some(name.clone()),
-                topic_id: mock_topic_id(name),
-                is_internal: false,
-                partitions: (0..spec.num_partitions)
-                    .map(|i| {
-                        let leader_id = st
-                            .partition_leaders
-                            .get(&(name.clone(), i))
-                            .copied()
-                            .unwrap_or(default_leader);
-                        PartitionMetadata {
-                            error_code: 0,
-                            partition_index: i,
-                            leader_id,
-                            leader_epoch: st
-                                .partition_epochs
-                                .get(&(name.clone(), i))
-                                .copied()
-                                .unwrap_or(0),
-                            replica_nodes: replica_nodes.clone(),
-                            isr_nodes: replica_nodes.clone(),
-                            offline_replicas: Vec::new(),
-                        }
-                    })
-                    .collect(),
-                topic_authorized_operations: if include_topic_authorized {
-                    4
-                } else {
-                    i32::MIN
-                },
+    (brokers, replica_nodes, default_leader, controller_id)
+}
+
+fn metadata_topic_for(
+    st: &State,
+    name: &str,
+    spec: &CreatedTopic,
+    include_topic_authorized: bool,
+    replica_nodes: &[i32],
+    default_leader: i32,
+) -> TopicMetadata {
+    TopicMetadata {
+        error_code: 0,
+        name: Some(name.to_string()),
+        topic_id: mock_topic_id(name),
+        is_internal: false,
+        partitions: (0..spec.num_partitions)
+            .map(|i| {
+                let leader_id = st
+                    .partition_leaders
+                    .get(&(name.to_string(), i))
+                    .copied()
+                    .unwrap_or(default_leader);
+                PartitionMetadata {
+                    error_code: 0,
+                    partition_index: i,
+                    leader_id,
+                    leader_epoch: st
+                        .partition_epochs
+                        .get(&(name.to_string(), i))
+                        .copied()
+                        .unwrap_or(0),
+                    replica_nodes: replica_nodes.to_vec(),
+                    isr_nodes: replica_nodes.to_vec(),
+                    offline_replicas: Vec::new(),
+                }
             })
             .collect(),
-        error_code: 0,
+        topic_authorized_operations: if include_topic_authorized {
+            4
+        } else {
+            i32::MIN
+        },
     }
 }
 
@@ -1372,6 +1452,10 @@ impl Mock {
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
         self.state.lock().last_metadata_topics.clone()
+    }
+
+    pub fn last_metadata_topic_ids(&self) -> Option<usize> {
+        self.state.lock().last_metadata_topic_ids
     }
 
     pub fn last_metadata_include_topic_authorized(&self) -> Option<bool> {
@@ -3037,18 +3121,34 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.metadata_calls = st.metadata_calls.saturating_add(1);
                 let (topics, allow, include_topic) =
-                    decode_metadata_request(&mut frame.clone(), header.api_version).unwrap();
+                    decode_metadata_request_topics(&mut frame.clone(), header.api_version).unwrap();
                 st.last_metadata_allow_auto = Some(allow);
                 st.last_metadata_version = Some(header.api_version);
-                st.last_metadata_topics = Some(topics);
+                let id_based = topics.as_ref().map_or(0, |ts| {
+                    ts.iter()
+                        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+                        .count()
+                });
+                st.last_metadata_topic_ids = Some(id_based);
+                st.last_metadata_topics = Some(
+                    topics
+                        .as_ref()
+                        .map(|ts| ts.iter().filter_map(|t| t.name.clone()).collect()),
+                );
                 st.last_metadata_include_topic_authorized = Some(include_topic);
                 let (host, port) = broker_host_port(&st, node_id);
-                encode_metadata_response(
-                    &mut body,
-                    header.api_version,
-                    &metadata_for(&st, &host, port, include_topic),
-                )
-                .unwrap();
+                let md = if id_based > 0 {
+                    metadata_for_ids(
+                        &st,
+                        &host,
+                        port,
+                        include_topic,
+                        topics.as_deref().unwrap_or(&[]),
+                    )
+                } else {
+                    metadata_for(&st, &host, port, include_topic)
+                };
+                encode_metadata_response(&mut body, header.api_version, &md).unwrap();
             }
             CREATE_TOPICS => {
                 let version = header.api_version;
