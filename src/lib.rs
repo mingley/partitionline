@@ -231,7 +231,8 @@
 //! [`Admin::describe_producers_for_timeout`] are Java
 //! `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers
 //! has no TimeoutMs).
-//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
+//! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
+//! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
@@ -633,8 +634,8 @@ pub use protocol::acl::{
 };
 pub use protocol::admin::{CreatedTopicConfig, DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{
-    EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,
-    MAX_TIMESTAMP,
+    OffsetSpec, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP,
+    LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch};

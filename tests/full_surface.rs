@@ -36,10 +36,10 @@ use partitionline::{
     DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel,
-    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig,
-    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
-    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OffsetSpec,
+    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup,
+    TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
     UserScramCredentialDeletion, UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED,
     CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
     LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
@@ -1792,6 +1792,17 @@ async fn admin_list_offsets_batches_by_leader() {
         mock.last_list_offsets_timeout(),
         Some(8_000),
         "list_offsets_with_isolation_timeout must send isolation and TimeoutMs"
+    );
+    let spec = admin
+        .list_offsets([(("t", 0), OffsetSpec::latest())])
+        .await
+        .unwrap();
+    assert_eq!(spec.len(), 1);
+    assert_eq!(spec[0].0, TopicPartition::new("t", 0));
+    assert_eq!(
+        mock.last_list_offsets_isolation(),
+        Some(0),
+        "OffsetSpec::latest uses list_offsets default isolation"
     );
 }
 

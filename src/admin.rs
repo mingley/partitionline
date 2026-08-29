@@ -5049,11 +5049,17 @@ impl Admin {
     /// [`Self::list_offsets_with_isolation`] for Java
     /// `ListOffsetsOptions.isolationLevel`. Waits up to
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
-    /// [`Self::list_offsets_timeout`].
-    pub async fn list_offsets(
+    /// [`Self::list_offsets_timeout`]. Each timestamp is
+    /// [`crate::OffsetSpec`] or INT64 (see
+    /// [`Self::list_offsets_with_isolation`]).
+    pub async fn list_offsets<Tp, Ts>(
         &mut self,
-        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
-    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+        queries: impl IntoIterator<Item = (Tp, Ts)>,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Ts: Into<i64>,
+    {
         let timeout = self.cfg.request_timeout;
         self.list_offsets_timeout(queries, timeout).await
     }
@@ -5062,11 +5068,15 @@ impl Admin {
     /// plus `ListOffsetsOptions.timeoutMs`).
     ///
     /// `timeout` is the RPC deadline and ListOffsets v10 `TimeoutMs`.
-    pub async fn list_offsets_timeout(
+    pub async fn list_offsets_timeout<Tp, Ts>(
         &mut self,
-        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        queries: impl IntoIterator<Item = (Tp, Ts)>,
         timeout: Duration,
-    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Ts: Into<i64>,
+    {
         self.list_offsets_with_isolation_timeout(
             queries,
             crate::IsolationLevel::ReadUncommitted,
@@ -5078,10 +5088,14 @@ impl Admin {
     /// ListOffsets with isolation (Java `listOffsets` +
     /// `ListOffsetsOptions.isolationLevel`).
     ///
-    /// Each item is a [`crate::TopicPartition`] and a timestamp:
-    /// [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::LATEST_TIMESTAMP`]
-    /// (`-1`), [`crate::MAX_TIMESTAMP`] (`-3`),
+    /// Each item is a [`crate::TopicPartition`] and a timestamp
+    /// ([`crate::OffsetSpec`] or INT64): [`crate::OffsetSpec::earliest`]
+    /// / [`crate::EARLIEST_TIMESTAMP`] (`-2`), [`crate::OffsetSpec::latest`]
+    /// / [`crate::LATEST_TIMESTAMP`] (`-1`), [`crate::OffsetSpec::max_timestamp`]
+    /// / [`crate::MAX_TIMESTAMP`] (`-3`),
+    /// [`crate::OffsetSpec::earliest_local`] /
     /// [`crate::EARLIEST_LOCAL_TIMESTAMP`] (`-4`),
+    /// [`crate::OffsetSpec::latest_tiered`] /
     /// [`crate::LATEST_TIERED_TIMESTAMP`] (`-5`), or milliseconds since
     /// the Unix epoch. One ListOffsets
     /// RPC per Metadata partition leader (duplicate partitions keep
@@ -5091,11 +5105,15 @@ impl Admin {
     /// v1–v5 are classic; v6–v10 are flexible. v10 `TimeoutMs` is
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
     /// [`Self::list_offsets_with_isolation_timeout`]. Empty input is a no-op.
-    pub async fn list_offsets_with_isolation(
+    pub async fn list_offsets_with_isolation<Tp, Ts>(
         &mut self,
-        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        queries: impl IntoIterator<Item = (Tp, Ts)>,
         isolation: crate::IsolationLevel,
-    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Ts: Into<i64>,
+    {
         let timeout = self.cfg.request_timeout;
         self.list_offsets_with_isolation_timeout(queries, isolation, timeout)
             .await
@@ -5106,15 +5124,19 @@ impl Admin {
     /// `timeoutMs`).
     ///
     /// `timeout` is the RPC deadline and ListOffsets v10 `TimeoutMs`.
-    pub async fn list_offsets_with_isolation_timeout(
+    pub async fn list_offsets_with_isolation_timeout<Tp, Ts>(
         &mut self,
-        queries: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        queries: impl IntoIterator<Item = (Tp, Ts)>,
         isolation: crate::IsolationLevel,
         timeout: Duration,
-    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>> {
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndTimestamp)>>
+    where
+        Tp: Into<crate::TopicPartition>,
+        Ts: Into<i64>,
+    {
         let queries: Vec<(crate::TopicPartition, i64)> = queries
             .into_iter()
-            .map(|(tp, ts)| (tp.into(), ts))
+            .map(|(tp, ts)| (tp.into(), ts.into()))
             .collect();
         if queries.is_empty() {
             return Ok(Vec::new());

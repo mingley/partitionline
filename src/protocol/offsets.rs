@@ -16,6 +16,77 @@ pub const EARLIEST_LOCAL_TIMESTAMP: i64 = -4;
 /// Last offset in tiered/remote storage (KIP-1005). ListOffsets v9+.
 pub const LATEST_TIERED_TIMESTAMP: i64 = -5;
 
+/// Java `OffsetSpec` for [`crate::Admin::list_offsets`].
+///
+/// Converts to the ListOffsets Timestamp INT64:
+/// [`EARLIEST_TIMESTAMP`], [`LATEST_TIMESTAMP`], [`MAX_TIMESTAMP`],
+/// [`EARLIEST_LOCAL_TIMESTAMP`], [`LATEST_TIERED_TIMESTAMP`], or a
+/// millisecond Unix timestamp from [`Self::for_timestamp`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OffsetSpec {
+    timestamp: i64,
+}
+
+impl OffsetSpec {
+    /// Java `OffsetSpec.earliest()` (`-2`).
+    #[must_use]
+    pub const fn earliest() -> Self {
+        Self {
+            timestamp: EARLIEST_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.latest()` (`-1`).
+    #[must_use]
+    pub const fn latest() -> Self {
+        Self {
+            timestamp: LATEST_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.maxTimestamp()` (`-3`, ListOffsets v7+).
+    #[must_use]
+    pub const fn max_timestamp() -> Self {
+        Self {
+            timestamp: MAX_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.earliestLocal()` (`-4`, ListOffsets v8+).
+    #[must_use]
+    pub const fn earliest_local() -> Self {
+        Self {
+            timestamp: EARLIEST_LOCAL_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.latestTiered()` (`-5`, ListOffsets v9+).
+    #[must_use]
+    pub const fn latest_tiered() -> Self {
+        Self {
+            timestamp: LATEST_TIERED_TIMESTAMP,
+        }
+    }
+
+    /// Java `OffsetSpec.forTimestamp(long)`.
+    #[must_use]
+    pub const fn for_timestamp(timestamp: i64) -> Self {
+        Self { timestamp }
+    }
+
+    /// ListOffsets Timestamp INT64.
+    #[must_use]
+    pub const fn timestamp(self) -> i64 {
+        self.timestamp
+    }
+}
+
+impl From<OffsetSpec> for i64 {
+    fn from(spec: OffsetSpec) -> Self {
+        spec.timestamp
+    }
+}
+
 /// One partition in a ListOffsets response.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ListOffsetsPartition {
@@ -424,6 +495,25 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn offset_spec_matches_list_offsets_timestamp_constants() {
+        assert_eq!(i64::from(OffsetSpec::earliest()), EARLIEST_TIMESTAMP);
+        assert_eq!(i64::from(OffsetSpec::latest()), LATEST_TIMESTAMP);
+        assert_eq!(i64::from(OffsetSpec::max_timestamp()), MAX_TIMESTAMP);
+        assert_eq!(
+            i64::from(OffsetSpec::earliest_local()),
+            EARLIEST_LOCAL_TIMESTAMP
+        );
+        assert_eq!(
+            i64::from(OffsetSpec::latest_tiered()),
+            LATEST_TIERED_TIMESTAMP
+        );
+        assert_eq!(
+            OffsetSpec::for_timestamp(1_700_000_000_000).timestamp(),
+            1_700_000_000_000
+        );
+    }
 
     #[test]
     fn list_offsets_v2_roundtrip() {

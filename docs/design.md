@@ -49,7 +49,7 @@ ListOffsets and take `TopicPartition`. Each has a `_timeout` variant
 `partitions_for` includes leader epoch
 and offline replicas (Java `offlineReplicas`). `list_offset` is ListOffsets for one
 partition. `Admin::list_offsets` is Java `Admin.listOffsets` (earliest / latest /
-timestamp; one ListOffsets RPC per partition leader; returns
+timestamp / `OffsetSpec`; one ListOffsets RPC per partition leader; returns
 `OffsetAndTimestamp`). `Admin::list_offsets_with_isolation` is Java
 `listOffsets` plus `ListOffsetsOptions.isolationLevel`.
 `Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java
