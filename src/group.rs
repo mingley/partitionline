@@ -32,7 +32,7 @@ use crate::protocol::group::{
     encode_leave_group_request, encode_offset_commit_request, encode_offset_fetch_request,
     encode_subscription, encode_subscription_owned, encode_sync_group_request,
     encode_tp_assignment, FetchedOffsetTopic, JoinGroupRequest, OffsetFetchTopic, OffsetPartition,
-    OffsetTopic, COORDINATOR_GROUP,
+    OffsetTopic, SyncGroupRequest, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -1529,26 +1529,38 @@ impl ConsumerGroup {
         } else {
             Vec::new()
         };
+        let version = self.coord.sync_group_version;
+        if version == 0 {
+            return Err(Error::Unsupported(
+                "broker does not support SyncGroup v3-5".into(),
+            ));
+        }
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
             &self.group_id,
             COORDINATOR_GROUP,
             SYNC_GROUP,
-            3,
+            version,
             |buf| {
                 encode_sync_group_request(
                     buf,
-                    &self.group_id,
-                    self.generation_id,
-                    &self.member_id,
-                    &assignments,
+                    version,
+                    &SyncGroupRequest {
+                        group_id: &self.group_id,
+                        generation_id: self.generation_id,
+                        member_id: &self.member_id,
+                        group_instance_id: self.cfg.group_instance_id.as_deref(),
+                        protocol_type: "consumer",
+                        protocol_name: &self.protocol,
+                        assignments: &assignments,
+                    },
                 )
             },
             timeout,
         )
         .await?;
-        let (err, assignment) = decode_sync_group_response(&mut body.clone())?;
+        let (err, assignment) = decode_sync_group_response(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "SyncGroup"));
         }
@@ -2204,6 +2216,12 @@ async fn open_coord_with_find_version(
         .iter()
         .find(|k| k.api_key == HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 3, 4))
+        .unwrap_or(0);
+    conn.sync_group_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == SYNC_GROUP)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 5))
         .unwrap_or(0);
     sasl::authenticate(
         &mut conn,

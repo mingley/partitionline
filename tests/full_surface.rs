@@ -11,7 +11,7 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    END_TXN, FIND_COORDINATOR, HEARTBEAT, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -1989,6 +1989,11 @@ async fn consumer_group_join_fetch_commit() {
         Some(false),
         "ReadUncommitted OffsetFetch must send RequireStable false"
     );
+    assert_eq!(
+        mock.last_sync_group_version(),
+        Some(5),
+        "ConsumerGroup must prefer SyncGroup v5 when the broker advertises it"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
@@ -2122,6 +2127,31 @@ async fn heartbeat_negotiates_below_v4_when_broker_caps() {
         "client must speak Heartbeat v3 when the broker max is 3"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn sync_group_negotiates_below_v5_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SYNC_GROUP, 4);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "sg4", "t").await.unwrap();
+    assert_eq!(
+        mock.last_sync_group_version(),
+        Some(4),
+        "client must speak SyncGroup v4 when the broker max is 4"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SYNC_GROUP, 3);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "sg3", "t").await.unwrap();
+    assert_eq!(
+        mock.last_sync_group_version(),
+        Some(3),
+        "client must speak SyncGroup v3 when the broker max is 3"
+    );
 }
 
 #[tokio::test]

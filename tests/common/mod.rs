@@ -393,6 +393,7 @@ struct State {
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
     last_heartbeat_version: Option<i16>,
+    last_sync_group_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
@@ -646,6 +647,7 @@ fn new_state(
         last_offset_commit_node: None,
         last_offset_commit_version: None,
         last_heartbeat_version: None,
+        last_sync_group_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
@@ -1834,6 +1836,10 @@ impl Mock {
         self.state.lock().last_heartbeat_version
     }
 
+    pub fn last_sync_group_version(&self) -> Option<i16> {
+        self.state.lock().last_sync_group_version
+    }
+
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
     }
@@ -2203,7 +2209,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (FIND_COORDINATOR, 0, 6),
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 4),
-        (SYNC_GROUP, 0, 3),
+        (SYNC_GROUP, 0, 5),
         (LEAVE_GROUP, 0, 5),
         (CONSUMER_GROUP_HEARTBEAT, 0, 0),
         (CONSUMER_GROUP_DESCRIBE, 0, 1),
@@ -2300,7 +2306,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         HEARTBEAT => encode_heartbeat_response(body, api_version, NC).unwrap(),
         LEAVE_GROUP => encode_leave_group_response_version(body, api_version, NC, &[]).unwrap(),
         JOIN_GROUP => encode_join_group_response(body, NC, -1, "", "", "", &[]).unwrap(),
-        SYNC_GROUP => encode_sync_group_response(body, NC, &[]).unwrap(),
+        SYNC_GROUP => encode_sync_group_response(body, api_version, NC, &[]).unwrap(),
         OFFSET_COMMIT => encode_offset_commit_response(
             body,
             api_version,
@@ -4389,8 +4395,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 {
                     let mut st = state.lock();
                     st.sync_group_calls = st.sync_group_calls.saturating_add(1);
+                    st.last_sync_group_version = Some(header.api_version);
                 }
-                let (gid, member_id, assignments) = decode_sync_group_request(&mut frame).unwrap();
+                let (gid, member_id, assignments) =
+                    decode_sync_group_request(&mut frame, header.api_version).unwrap();
                 let notify = state.lock().assign_notify.clone();
                 if !assignments.is_empty() {
                     let mut st = state.lock();
@@ -4415,7 +4423,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     tokio::time::sleep(std::time::Duration::from_millis(25)).await;
                 }
-                encode_sync_group_response(&mut body, 0, &asg).unwrap();
+                encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
             }
             HEARTBEAT => {
                 let (gid, _gen, member_id) =

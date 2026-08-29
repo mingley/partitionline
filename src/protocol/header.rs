@@ -14,7 +14,7 @@ use super::api_keys::{
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
     WRITE_TXN_MARKERS,
 };
 use super::buf;
@@ -126,6 +126,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 0-4. This crate speaks 3–4. v0–v2 (no instance id) are
         // not spoken.
         HEARTBEAT if api_version >= 4 => 2,
+        // SyncGroup is classic through v3; flexible from v4
+        // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
+        // is 0-5. This crate speaks 3–5. v5 ProtocolType / ProtocolName
+        // (KIP-559) keep the v4 header. v0–v2 are not spoken.
+        SYNC_GROUP if api_version >= 4 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -203,6 +208,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         OFFSET_COMMIT if api_version >= 8 => 1,
         OFFSET_FETCH if api_version >= 6 => 1,
         HEARTBEAT if api_version >= 4 => 1,
+        SYNC_GROUP if api_version >= 4 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -476,6 +482,19 @@ mod tests {
         assert_eq!(response_header_version(HEARTBEAT, 3), 0);
         assert_eq!(request_header_version(HEARTBEAT, 4), 2);
         assert_eq!(response_header_version(HEARTBEAT, 4), 1);
+    }
+
+    #[test]
+    fn sync_group_v4_is_flexible_v3_is_not() {
+        // Official JSON: validVersions 0-5, flexibleVersions 4+.
+        // HeaderVersion is 1 / 0 at v3 and 2 / 1 at v4–v5. This crate
+        // speaks 3–5. v5 ProtocolType / ProtocolName keep the v4 header.
+        assert_eq!(request_header_version(SYNC_GROUP, 3), 1);
+        assert_eq!(response_header_version(SYNC_GROUP, 3), 0);
+        assert_eq!(request_header_version(SYNC_GROUP, 4), 2);
+        assert_eq!(response_header_version(SYNC_GROUP, 4), 1);
+        assert_eq!(request_header_version(SYNC_GROUP, 5), 2);
+        assert_eq!(response_header_version(SYNC_GROUP, 5), 1);
     }
 
     #[test]

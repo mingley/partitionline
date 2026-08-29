@@ -279,22 +279,69 @@ pub fn decode_join_group_response<B: Buf>(
     Ok((error, generation, protocol, leader, member_id, members))
 }
 
-/// Encode SyncGroup with member assignments (`member_id` → assignment bytes).
+/// `true` when SyncGroup `version` is flexible (v4+).
+///
+/// v3 is classic (GroupId, GenerationId, MemberId, GroupInstanceId,
+/// Assignments). v4 is compact strings/bytes/arrays plus tagged fields
+/// (Apache JSON `flexibleVersions: "4+"`). v5 adds ProtocolType /
+/// ProtocolName (KIP-559). Kafka 4.0 `validVersions` is `0-5`. This crate
+/// speaks 3–5. v0–v2 (no instance id) and v6+ are not spoken.
+fn sync_group_flexible(version: i16) -> Result<bool> {
+    match version {
+        3 => Ok(false),
+        4..=5 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "SyncGroup version {other} is not implemented"
+        ))),
+    }
+}
+
+/// SyncGroup request (classic v3 or flexible v4–v5).
+#[derive(Debug, Clone, Copy)]
+pub struct SyncGroupRequest<'a> {
+    /// Group id.
+    pub group_id: &'a str,
+    /// Generation id from JoinGroup.
+    pub generation_id: i32,
+    /// Member id assigned by the coordinator.
+    pub member_id: &'a str,
+    /// Kafka `group.instance.id`.
+    pub group_instance_id: Option<&'a str>,
+    /// Protocol type (`"consumer"`). Written on v5+ (KIP-559).
+    pub protocol_type: &'a str,
+    /// Protocol name (`"range"`, `"sticky"`, `"cooperative-sticky"`).
+    /// Written on v5+ (KIP-559).
+    pub protocol_name: &'a str,
+    /// Member assignments (`member_id` → assignment bytes). Empty for
+    /// followers.
+    pub assignments: &'a [(String, Vec<u8>)],
+}
+
+/// Encode SyncGroup v3 (classic) or v4–v5 (flexible).
 pub fn encode_sync_group_request(
     buf: &mut BytesMut,
-    group_id: &str,
-    generation_id: i32,
-    member_id: &str,
-    assignments: &[(String, Vec<u8>)],
+    version: i16,
+    req: &SyncGroupRequest<'_>,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
-    buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_classic_nullable_string(buf, None)?;
-    buf::put_array_len(buf, false, Some(assignments.len()))?;
-    for (id, bytes) in assignments {
-        buf::put_classic_nullable_string(buf, Some(id))?;
-        buf::put_classic_bytes(buf, Some(bytes))?;
+    let flexible = sync_group_flexible(version)?;
+    buf::put_string(buf, flexible, Some(req.group_id))?;
+    buf.put_i32(req.generation_id);
+    buf::put_string(buf, flexible, Some(req.member_id))?;
+    buf::put_string(buf, flexible, req.group_instance_id)?;
+    if version >= 5 {
+        buf::put_string(buf, true, Some(req.protocol_type))?;
+        buf::put_string(buf, true, Some(req.protocol_name))?;
+    }
+    buf::put_array_len(buf, flexible, Some(req.assignments.len()))?;
+    for (id, bytes) in req.assignments {
+        buf::put_string(buf, flexible, Some(id))?;
+        buf::put_bytes(buf, flexible, Some(bytes))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -306,17 +353,29 @@ pub fn encode_sync_group_request(
 /// Decode SyncGroup: `(group_id, member_id, assignments)`.
 pub fn decode_sync_group_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(String, String, Vec<(String, Vec<u8>)>)> {
-    let group_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let flexible = sync_group_flexible(version)?;
+    let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
-    let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _inst = buf::get_classic_nullable_string(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let _inst = buf::get_string(buf, flexible)?;
+    if version >= 5 {
+        let _ptype = buf::get_string(buf, true)?;
+        let _pname = buf::get_string(buf, true)?;
+    }
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut assignments = Vec::with_capacity(n);
     for _ in 0..n {
-        let id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let bytes = buf::get_classic_bytes(buf)?.unwrap_or_default();
+        let id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let bytes = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         assignments.push((id, bytes));
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok((group_id, member_id, assignments))
 }
@@ -324,20 +383,37 @@ pub fn decode_sync_group_request<B: Buf>(
 /// Encode SyncGroup: error plus this member's assignment bytes.
 pub fn encode_sync_group_response(
     buf: &mut BytesMut,
+    version: i16,
     error_code: i16,
     assignment: &[u8],
 ) -> crate::error::Result<()> {
+    let flexible = sync_group_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
-    buf::put_classic_bytes(buf, Some(assignment))?;
+    if version >= 5 {
+        buf::put_string(buf, true, None)?;
+        buf::put_string(buf, true, None)?;
+    }
+    buf::put_bytes(buf, flexible, Some(assignment))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode SyncGroup: `(error_code, assignment)`.
-pub fn decode_sync_group_response<B: Buf>(buf: &mut B) -> Result<(i16, Vec<u8>)> {
+pub fn decode_sync_group_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, Vec<u8>)> {
+    let flexible = sync_group_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
-    let assignment = buf::get_classic_bytes(buf)?.unwrap_or_default();
+    if version >= 5 {
+        let _ptype = buf::get_string(buf, true)?;
+        let _pname = buf::get_string(buf, true)?;
+    }
+    let assignment = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((error, assignment))
 }
 
@@ -2007,6 +2083,172 @@ mod tests {
             &buf[..],
             &v3[..],
             "Heartbeat v4 response must include tagged fields"
+        );
+    }
+
+    fn sync_req(assignments: &[(String, Vec<u8>)]) -> SyncGroupRequest<'_> {
+        SyncGroupRequest {
+            group_id: "g",
+            generation_id: 7,
+            member_id: "m1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            assignments,
+        }
+    }
+
+    #[test]
+    fn sync_group_v3_roundtrip_is_leftover_empty() {
+        let assignments = vec![("m1".into(), vec![1, 2, 3])];
+        let mut buf = BytesMut::new();
+        encode_sync_group_request(&mut buf, 3, &sync_req(&assignments)).unwrap();
+        let mut cur = &buf[..];
+        let (gid, mid, got) = decode_sync_group_request(&mut cur, 3).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got, assignments);
+        assert!(
+            cur.is_empty(),
+            "v3 decoder must consume instance id and assignments; leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        encode_sync_group_response(&mut buf, 3, 0, &[1, 2, 3]).unwrap();
+        let mut cur = &buf[..];
+        let (err, asg) = decode_sync_group_response(&mut cur, 3).unwrap();
+        assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
+        assert!(cur.is_empty(), "v3 response leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn sync_group_v4_roundtrip_is_leftover_empty() {
+        let assignments = vec![("m1".into(), vec![1, 2, 3])];
+        let mut req = BytesMut::new();
+        encode_sync_group_request(&mut req, 4, &sync_req(&assignments)).unwrap();
+        let mut cur = &req[..];
+        let (gid, mid, got) = decode_sync_group_request(&mut cur, 4).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got, assignments);
+        assert!(
+            cur.is_empty(),
+            "v4 decoder must consume compact fields and tagged fields; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut resp = BytesMut::new();
+        encode_sync_group_response(&mut resp, 4, 0, &[1, 2, 3]).unwrap();
+        let mut cur = &resp[..];
+        let (err, asg) = decode_sync_group_response(&mut cur, 4).unwrap();
+        assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
+        assert!(
+            cur.is_empty(),
+            "v4 response must consume tagged fields; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn sync_group_v5_roundtrip_is_leftover_empty() {
+        let assignments = vec![("m1".into(), vec![1, 2, 3])];
+        let mut req = BytesMut::new();
+        encode_sync_group_request(&mut req, 5, &sync_req(&assignments)).unwrap();
+        let mut cur = &req[..];
+        let (gid, mid, got) = decode_sync_group_request(&mut cur, 5).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(got, assignments);
+        assert!(
+            cur.is_empty(),
+            "v5 decoder must consume ProtocolType / ProtocolName; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut resp = BytesMut::new();
+        encode_sync_group_response(&mut resp, 5, 0, &[1, 2, 3]).unwrap();
+        let mut cur = &resp[..];
+        let (err, asg) = decode_sync_group_response(&mut cur, 5).unwrap();
+        assert_eq!((err, asg.as_slice()), (0, &[1, 2, 3][..]));
+        assert!(
+            cur.is_empty(),
+            "v5 response must consume ProtocolType / ProtocolName; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn sync_group_v4_request_matches_compact_layout() {
+        // Compact "g", generation 7, compact "m1", null instance, empty
+        // assignments, tagged. v4 has no ProtocolType / ProtocolName.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x00, 0x07, 0x03, 0x6d, 0x31, 0x00, 0x01, 0x00,
+        ];
+        let empty: [(String, Vec<u8>); 0] = [];
+        let mut buf = BytesMut::new();
+        encode_sync_group_request(&mut buf, 4, &sync_req(&empty)).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v3 = BytesMut::new();
+        encode_sync_group_request(&mut v3, 3, &sync_req(&empty)).unwrap();
+        assert_ne!(&buf[..], &v3[..], "SyncGroup v4 must not be classic v3");
+        assert!(
+            encode_sync_group_request(&mut BytesMut::new(), 2, &sync_req(&empty)).is_err(),
+            "SyncGroup v2 is not spoken"
+        );
+        assert!(
+            encode_sync_group_request(&mut BytesMut::new(), 6, &sync_req(&empty)).is_err(),
+            "SyncGroup v6+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn sync_group_v5_request_matches_compact_layout() {
+        // v4 body plus compact "consumer" / "range" after instance.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x00, 0x07, 0x03, 0x6d, 0x31, 0x00, 0x09, 0x63, 0x6f, 0x6e,
+            0x73, 0x75, 0x6d, 0x65, 0x72, 0x06, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x01, 0x00,
+        ];
+        let empty: [(String, Vec<u8>); 0] = [];
+        let mut buf = BytesMut::new();
+        encode_sync_group_request(&mut buf, 5, &sync_req(&empty)).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v4 = BytesMut::new();
+        encode_sync_group_request(&mut v4, 4, &sync_req(&empty)).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v4[..],
+            "SyncGroup v5 must include ProtocolType / ProtocolName"
+        );
+    }
+
+    #[test]
+    fn sync_group_v4_response_matches_compact_layout() {
+        // Throttle 0, error 0, compact empty assignment, tagged.
+        const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let mut buf = BytesMut::new();
+        encode_sync_group_response(&mut buf, 4, 0, &[]).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut v3 = BytesMut::new();
+        encode_sync_group_response(&mut v3, 3, 0, &[]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v3[..],
+            "SyncGroup v4 response must use compact bytes"
+        );
+    }
+
+    #[test]
+    fn sync_group_v5_response_matches_compact_layout() {
+        // Throttle 0, error 0, null ProtocolType / ProtocolName, compact
+        // empty assignment, tagged.
+        const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+        let mut buf = BytesMut::new();
+        encode_sync_group_response(&mut buf, 5, 0, &[]).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut v4 = BytesMut::new();
+        encode_sync_group_response(&mut v4, 4, 0, &[]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v4[..],
+            "SyncGroup v5 response must include ProtocolType / ProtocolName"
         );
     }
 
