@@ -2835,6 +2835,7 @@ async fn admin_list_and_alter_consumer_group_offsets() {
         .await
         .unwrap();
     let before_groups = mock.offset_fetch_calls();
+    let before_find = mock.find_coordinator_calls();
     let mut listed_groups = admin
         .list_consumer_group_offsets_for_groups([
             (
@@ -2868,6 +2869,16 @@ async fn admin_list_and_alter_consumer_group_offsets() {
         mock.offset_fetch_calls().saturating_sub(before_groups),
         1,
         "groups that share a coordinator must be one OffsetFetch"
+    );
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "KIP-699 FindCoordinator CoordinatorKeys array of N"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator on v4+"
     );
     let mixed = admin
         .list_consumer_group_offsets_for_groups_with(

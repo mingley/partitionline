@@ -83,9 +83,10 @@ use crate::protocol::api_keys::{
     UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use crate::protocol::group::{
-    decode_find_coordinator_response, decode_leave_group_response_version,
-    decode_offset_commit_response, decode_offset_delete_response,
-    decode_offset_fetch_groups_response, decode_offset_fetch_response,
+    decode_find_coordinator_response, decode_find_coordinator_response_coordinators,
+    decode_leave_group_response_version, decode_offset_commit_response,
+    decode_offset_delete_response, decode_offset_fetch_groups_response,
+    decode_offset_fetch_response, encode_find_coordinator_request_keys,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_groups_request,
     encode_offset_fetch_request, LeaveGroupMember, OffsetDeleteTopic, OffsetFetchGroup,
@@ -4079,11 +4080,15 @@ impl Admin {
     /// `listConsumerGroupOffsets(Map<String, ListConsumerGroupOffsetsSpec>)`).
     ///
     /// OffsetFetch v8+ Groups array of N (KIP-709): groups that share a
-    /// coordinator go in one RPC. Brokers that only speak OffsetFetch
-    /// v1–v7 get one RPC per group. Empty input is a no-op. Empty
-    /// [`ListConsumerGroupOffsetsSpec::topic_partitions`] for a group is a
-    /// no-op for that group. Waits up to [`AdminConfig::request_timeout`].
-    /// For `requireStable` and a one-shot timeout, use
+    /// coordinator go in one RPC. FindCoordinator v4+ CoordinatorKeys
+    /// array of N (KIP-699): one FindCoordinator per retry, not one per
+    /// group. Brokers that only speak OffsetFetch v1–v7 get one
+    /// OffsetFetch per group. Brokers that only speak FindCoordinator
+    /// v1–v3 get one FindCoordinator per group. Empty input is a no-op.
+    /// Empty [`ListConsumerGroupOffsetsSpec::topic_partitions`] for a
+    /// group is a no-op for that group. Waits up to
+    /// [`AdminConfig::request_timeout`]. For `requireStable` and a
+    /// one-shot timeout, use
     /// [`Self::list_consumer_group_offsets_for_groups_with`].
     pub async fn list_consumer_group_offsets_for_groups(
         &mut self,
@@ -4144,6 +4149,11 @@ impl Admin {
             let deadline = Instant::now() + timeout;
             let mut attempt = 0u32;
             loop {
+                let group_ids: Vec<String> = remaining
+                    .iter()
+                    .filter_map(|&i| jobs.get(i).map(|j| j.0.clone()))
+                    .collect();
+                let coords = self.discover_group_coords(&group_ids).await?;
                 let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
                 for &i in &remaining {
                     let group_id = jobs
@@ -4151,19 +4161,9 @@ impl Admin {
                         .ok_or_else(|| Error::protocol("missing group spec"))?
                         .0
                         .clone();
-                    let stale = self
-                        .group_coord
-                        .as_ref()
-                        .is_none_or(|(g, _)| g != &group_id);
-                    if stale {
-                        let node = self.discover_group_coord(&group_id).await?;
-                        self.group_coord = Some((group_id, node));
-                    }
-                    let node = self
-                        .group_coord
-                        .as_ref()
-                        .map(|(_, n)| *n)
-                        .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+                    let node = *coords.get(&group_id).ok_or_else(|| {
+                        Error::protocol(format!("missing coordinator for {group_id}"))
+                    })?;
                     by_node.entry(node).or_default().push(i);
                 }
                 let mut nodes: Vec<i32> = by_node.keys().copied().collect();
@@ -6023,6 +6023,92 @@ impl Admin {
                 continue;
             }
             return Err(Error::broker(err, "FindCoordinator"));
+        }
+    }
+
+    async fn discover_group_coords(
+        &mut self,
+        group_ids: &[String],
+    ) -> Result<HashMap<String, i32>> {
+        let mut keys: Vec<String> = Vec::new();
+        for g in group_ids {
+            if !keys.iter().any(|k| k == g) {
+                keys.push(g.clone());
+            }
+        }
+        if keys.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let version = self.find_coord_version;
+        if version < 4 {
+            let mut out = HashMap::new();
+            for k in &keys {
+                let node = self.discover_group_coord(k).await?;
+                let _prev = out.insert(k.clone(), node);
+            }
+            return Ok(out);
+        }
+        if self.cluster.brokers.is_empty() {
+            self.refresh_metadata(None).await?;
+        }
+        let timeout = self.cfg.request_timeout;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        loop {
+            let key_refs: Vec<&str> = keys.iter().map(String::as_str).collect();
+            let body = self
+                .roundtrip_bootstrap(
+                    FIND_COORDINATOR,
+                    version,
+                    |buf| {
+                        encode_find_coordinator_request_keys(
+                            buf,
+                            version,
+                            &key_refs,
+                            COORDINATOR_GROUP,
+                        )
+                    },
+                    timeout,
+                )
+                .await;
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let coords = decode_find_coordinator_response_coordinators(&mut body.clone(), version)?;
+            let mut by_key: HashMap<String, (i16, i32)> = HashMap::new();
+            for c in coords {
+                let _prev = by_key.insert(c.key, (c.error_code, c.node_id));
+            }
+            let mut retry = false;
+            let mut out = HashMap::new();
+            for k in &keys {
+                let (err, node) = by_key
+                    .get(k)
+                    .copied()
+                    .ok_or_else(|| Error::protocol(format!("FindCoordinator missing {k}")))?;
+                if err == 0 {
+                    if !self.cluster.brokers.contains_key(&node) {
+                        self.refresh_metadata(None).await?;
+                    }
+                    let _prev = out.insert(k.clone(), node);
+                    continue;
+                }
+                if error::coordinator_retriable(err) {
+                    retry = true;
+                    continue;
+                }
+                return Err(Error::broker(err, k.clone()));
+            }
+            if retry {
+                self.wait_retry(&mut attempt, deadline).await?;
+                continue;
+            }
+            return Ok(out);
         }
     }
 

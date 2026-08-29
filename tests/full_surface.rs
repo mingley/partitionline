@@ -2456,6 +2456,122 @@ async fn admin_list_consumer_group_offsets_for_groups_falls_back_below_v8() {
 }
 
 #[tokio::test]
+async fn admin_list_consumer_group_offsets_for_groups_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g1",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+        )
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g2",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(2))],
+        )
+        .await
+        .unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_fetch = mock.offset_fetch_calls();
+    let listed = admin
+        .list_consumer_group_offsets_for_groups([
+            (
+                "g1",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+            (
+                "g2",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "listConsumerGroupOffsets(Map) must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.offset_fetch_calls().saturating_sub(before_fetch),
+        1,
+        "groups that share a coordinator must be one OffsetFetch"
+    );
+    admin.close().await.unwrap();
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(FIND_COORDINATOR, 3);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g1",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+        )
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g2",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(2))],
+        )
+        .await
+        .unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_fetch = mock.offset_fetch_calls();
+    let listed = admin
+        .list_consumer_group_offsets_for_groups([
+            (
+                "g1",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+            (
+                "g2",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2);
+    assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(3),
+        "client must speak FindCoordinator v3 when the broker max is 3"
+    );
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        1,
+        "FindCoordinator v1–v3 is one key per RPC"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        2,
+        "v1–v3 must send one FindCoordinator per group"
+    );
+    assert_eq!(
+        mock.last_offset_fetch_group_count(),
+        2,
+        "OffsetFetch v8+ Groups of N still batches when FindCoordinator is v3"
+    );
+    assert_eq!(
+        mock.offset_fetch_calls().saturating_sub(before_fetch),
+        1,
+        "OffsetFetch v8+ is still one RPC per coordinator"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn heartbeat_negotiates_v4_when_broker_advertises() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

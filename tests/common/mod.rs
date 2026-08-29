@@ -130,14 +130,14 @@ use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
 };
 use partitionline::protocol::group::{
-    decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
+    decode_find_coordinator_request_keys, decode_heartbeat_request, decode_join_group_request,
     decode_leave_group_request_version, decode_offset_commit_request, decode_offset_delete_request,
     decode_offset_fetch_groups_request, decode_sync_group_request,
-    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
-    encode_leave_group_response_version, encode_offset_commit_response,
+    encode_find_coordinator_response_coordinators, encode_heartbeat_response,
+    encode_join_group_response, encode_leave_group_response_version, encode_offset_commit_response,
     encode_offset_delete_response, encode_offset_fetch_groups_response,
-    encode_offset_fetch_response, encode_sync_group_response, FetchedOffset, FetchedOffsetTopic,
-    JoinMember, LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult,
+    encode_offset_fetch_response, encode_sync_group_response, CoordinatorResult, FetchedOffset,
+    FetchedOffsetTopic, JoinMember, LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult,
     OffsetFetchGroupResult, OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
@@ -468,6 +468,8 @@ struct State {
     txn_coord_node: i32,
     find_coordinator_key_types: Vec<i8>,
     last_find_coordinator_version: Option<i16>,
+    last_find_coordinator_key_count: usize,
+    find_coordinator_calls: u32,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
     last_init_producer_id_version: Option<i16>,
@@ -774,6 +776,8 @@ fn new_state(
         txn_coord_node: 1,
         find_coordinator_key_types: Vec::new(),
         last_find_coordinator_version: None,
+        last_find_coordinator_key_count: 0,
+        find_coordinator_calls: 0,
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
         last_init_producer_id_version: None,
@@ -2283,6 +2287,14 @@ impl Mock {
 
     pub fn last_find_coordinator_version(&self) -> Option<i16> {
         self.state.lock().last_find_coordinator_version
+    }
+
+    pub fn last_find_coordinator_key_count(&self) -> usize {
+        self.state.lock().last_find_coordinator_key_count
+    }
+
+    pub fn find_coordinator_calls(&self) -> u32 {
+        self.state.lock().find_coordinator_calls
     }
 
     pub fn last_init_producer_id_node(&self) -> Option<i32> {
@@ -4550,11 +4562,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                let (key, key_type) =
-                    decode_find_coordinator_request(&mut frame, header.api_version).unwrap();
+                let (keys, key_type) =
+                    decode_find_coordinator_request_keys(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.find_coordinator_key_types.push(key_type);
                 st.last_find_coordinator_version = Some(header.api_version);
+                st.last_find_coordinator_key_count = keys.len();
+                st.find_coordinator_calls = st.find_coordinator_calls.saturating_add(1);
                 let coord = if key_type == COORDINATOR_TRANSACTION {
                     if st.stale_txn_finds > 0 {
                         st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
@@ -4570,15 +4584,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.coord_node
                 };
                 let (host, port) = broker_host_port(&st, coord);
-                encode_find_coordinator_response(
-                    &mut body,
-                    header.api_version,
-                    coord,
-                    &host,
-                    port,
-                    &key,
-                )
-                .unwrap();
+                let out: Vec<CoordinatorResult> = keys
+                    .into_iter()
+                    .map(|key| CoordinatorResult {
+                        key,
+                        node_id: coord,
+                        host: host.clone(),
+                        port,
+                        error_code: 0,
+                        error_message: None,
+                    })
+                    .collect();
+                encode_find_coordinator_response_coordinators(&mut body, header.api_version, &out)
+                    .unwrap();
             }
             SHARE_GROUP_HEARTBEAT => {
                 let version = header.api_version;

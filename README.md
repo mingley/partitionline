@@ -66,7 +66,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `alter_consumer_group_offsets` take `TopicPartition`.
 `Admin::list_all_consumer_group_offsets` is Java `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
 `Admin::list_consumer_group_offsets_with` is Java `ListConsumerGroupOffsetsOptions.requireStable` / `timeoutMs`.
-`Admin::list_consumer_group_offsets_for_groups` is Java `listConsumerGroupOffsets(Map)` (`ListConsumerGroupOffsetsSpec`; OffsetFetch v8+ Groups array of N).
+`Admin::list_consumer_group_offsets_for_groups` is Java `listConsumerGroupOffsets(Map)` (`ListConsumerGroupOffsetsSpec`; OffsetFetch v8+ Groups array of N; FindCoordinator v4+ CoordinatorKeys array of N).
 `Admin::delete_records_for` is Java `deleteRecords(Map)` (one DeleteRecords RPC per leader).
 `Admin::delete_records_timeout` / `delete_records_for_timeout` are Java `DeleteRecordsOptions.timeoutMs`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).

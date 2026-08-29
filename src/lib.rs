@@ -168,7 +168,8 @@
 //! [`Admin::list_consumer_group_offsets_for_groups`] /
 //! [`Admin::list_consumer_group_offsets_for_groups_with`] are Java
 //! `listConsumerGroupOffsets(Map)` ([`ListConsumerGroupOffsetsSpec`];
-//! OffsetFetch v8+ Groups array of N, KIP-709).
+//! OffsetFetch v8+ Groups array of N, KIP-709; FindCoordinator v4+
+//! CoordinatorKeys array of N, KIP-699).
 //! [`Admin::delete_records_for`] is Java `deleteRecords(Map)` (one
 //! DeleteRecords RPC per leader). [`Admin::delete_records_timeout`] /
 //! [`Admin::delete_records_for_timeout`] are Java

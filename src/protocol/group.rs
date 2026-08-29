@@ -35,6 +35,27 @@ fn find_coordinator_batched(version: i16) -> bool {
     version >= 4
 }
 
+/// One coordinator in a FindCoordinator response (v1–v6).
+///
+/// v1–v3 have a single top-level coordinator (`key` is empty). v4+ is
+/// Coordinators[] (KIP-699); `key` is `Coordinators[].Key`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoordinatorResult {
+    /// Coordinator key (group id, transactional.id, …). Empty on v1–v3.
+    pub key: String,
+    /// Broker node id (`-1` when ErrorCode is non-zero).
+    pub node_id: i32,
+    /// Broker host.
+    pub host: String,
+    /// Broker port.
+    pub port: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// Nullable error message (v4+ Coordinators[].ErrorMessage; v1–v3
+    /// top-level ErrorMessage).
+    pub error_message: Option<String>,
+}
+
 /// Encode FindCoordinator for a consumer group id.
 pub fn encode_find_coordinator_request(
     buf: &mut BytesMut,
@@ -44,21 +65,42 @@ pub fn encode_find_coordinator_request(
     encode_find_coordinator_request_typed(buf, version, key, COORDINATOR_GROUP)
 }
 
-/// Encode FindCoordinator with an explicit `key_type`.
+/// Encode FindCoordinator with an explicit `key_type` (one key).
 pub fn encode_find_coordinator_request_typed(
     buf: &mut BytesMut,
     version: i16,
     key: &str,
     key_type: i8,
 ) -> crate::error::Result<()> {
+    encode_find_coordinator_request_keys(buf, version, &[key], key_type)
+}
+
+/// Encode FindCoordinator v4+ CoordinatorKeys of N (KIP-699).
+///
+/// v1–v3 support one key only (`does not support CoordinatorKeys` when
+/// `keys.len() != 1`).
+pub fn encode_find_coordinator_request_keys(
+    buf: &mut BytesMut,
+    version: i16,
+    keys: &[&str],
+    key_type: i8,
+) -> crate::error::Result<()> {
     let flexible = find_coordinator_flexible(version)?;
     if find_coordinator_batched(version) {
         buf.put_i8(key_type);
-        buf::put_array_len(buf, true, Some(1))?;
-        buf::put_compact_string(buf, Some(key))?;
+        buf::put_array_len(buf, true, Some(keys.len()))?;
+        for key in keys {
+            buf::put_compact_string(buf, Some(key))?;
+        }
         buf::put_empty_tagged_fields(buf);
         return Ok(());
     }
+    if keys.len() != 1 {
+        return Err(Error::protocol(format!(
+            "FindCoordinator version {version} does not support CoordinatorKeys"
+        )));
+    }
+    let key = keys.first().copied().unwrap_or("");
     buf::put_string(buf, flexible, Some(key))?;
     buf.put_i8(key_type);
     if flexible {
@@ -67,30 +109,37 @@ pub fn encode_find_coordinator_request_typed(
     Ok(())
 }
 
-/// Decode FindCoordinator: `(key, key_type)`.
+/// Decode FindCoordinator: `(key, key_type)` (first CoordinatorKey).
 pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B, version: i16) -> Result<(String, i8)> {
+    let (keys, key_type) = decode_find_coordinator_request_keys(buf, version)?;
+    let key = keys.into_iter().next().unwrap_or_default();
+    Ok((key, key_type))
+}
+
+/// Decode FindCoordinator: every CoordinatorKey plus KeyType.
+///
+/// v1–v3 return a vec of 1 (the Key field). v4+ is CoordinatorKeys.
+pub fn decode_find_coordinator_request_keys<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, i8)> {
     let flexible = find_coordinator_flexible(version)?;
     if find_coordinator_batched(version) {
         let key_type = buf::get_i8(buf)?;
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut key = String::new();
-        let mut first = true;
+        let mut keys = Vec::with_capacity(n);
         for _ in 0..n {
-            let next = buf::get_compact_string(buf)?.unwrap_or_default();
-            if first {
-                key = next;
-                first = false;
-            }
+            keys.push(buf::get_compact_string(buf)?.unwrap_or_default());
         }
         buf::skip_tagged_fields(buf)?;
-        return Ok((key, key_type));
+        return Ok((keys, key_type));
     }
     let key = buf::get_string(buf, flexible)?.unwrap_or_default();
     let key_type = buf::get_i8(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((key, key_type))
+    Ok((vec![key], key_type))
 }
 
 /// Encode FindCoordinator: node, host, port (error `0`).
@@ -105,65 +154,126 @@ pub fn encode_find_coordinator_response(
     port: i32,
     key: &str,
 ) -> crate::error::Result<()> {
+    encode_find_coordinator_response_coordinators(
+        buf,
+        version,
+        &[CoordinatorResult {
+            key: key.to_string(),
+            node_id,
+            host: host.to_string(),
+            port,
+            error_code: 0,
+            error_message: None,
+        }],
+    )
+}
+
+/// Encode FindCoordinator v4+ Coordinators of N (KIP-699).
+///
+/// v1–v3 support one coordinator only (`does not support Coordinators`
+/// when `coordinators.len() != 1`).
+pub fn encode_find_coordinator_response_coordinators(
+    buf: &mut BytesMut,
+    version: i16,
+    coordinators: &[CoordinatorResult],
+) -> crate::error::Result<()> {
     let flexible = find_coordinator_flexible(version)?;
     buf.put_i32(0);
     if find_coordinator_batched(version) {
-        buf::put_array_len(buf, true, Some(1))?;
-        buf::put_compact_string(buf, Some(key))?;
-        buf.put_i32(node_id);
-        buf::put_compact_string(buf, Some(host))?;
-        buf.put_i32(port);
-        buf.put_i16(0);
-        buf::put_compact_string(buf, None)?;
-        buf::put_empty_tagged_fields(buf);
+        buf::put_array_len(buf, true, Some(coordinators.len()))?;
+        for c in coordinators {
+            buf::put_compact_string(buf, Some(&c.key))?;
+            buf.put_i32(c.node_id);
+            buf::put_compact_string(buf, Some(&c.host))?;
+            buf.put_i32(c.port);
+            buf.put_i16(c.error_code);
+            buf::put_compact_string(buf, c.error_message.as_deref())?;
+            buf::put_empty_tagged_fields(buf);
+        }
         buf::put_empty_tagged_fields(buf);
         return Ok(());
     }
-    buf.put_i16(0);
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i32(node_id);
-    buf::put_string(buf, flexible, Some(host))?;
-    buf.put_i32(port);
+    if coordinators.len() != 1 {
+        return Err(Error::protocol(format!(
+            "FindCoordinator version {version} does not support Coordinators"
+        )));
+    }
+    let c = coordinators
+        .first()
+        .ok_or_else(|| Error::protocol("missing FindCoordinator Coordinators"))?;
+    buf.put_i16(c.error_code);
+    buf::put_string(buf, flexible, c.error_message.as_deref())?;
+    buf.put_i32(c.node_id);
+    buf::put_string(buf, flexible, Some(&c.host))?;
+    buf.put_i32(c.port);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode FindCoordinator: `(error_code, node_id, host, port)`.
+/// Decode FindCoordinator: `(error_code, node_id, host, port)` (first
+/// Coordinators entry).
 pub fn decode_find_coordinator_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i16, i32, String, i32)> {
+    let coords = decode_find_coordinator_response_coordinators(buf, version)?;
+    let c = coords
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::protocol("missing FindCoordinator Coordinators"))?;
+    Ok((c.error_code, c.node_id, c.host, c.port))
+}
+
+/// Decode FindCoordinator v0–v6: every Coordinators entry.
+///
+/// v1–v3 return a vec of 1 (`key` empty). v4+ is Coordinators[].
+pub fn decode_find_coordinator_response_coordinators<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<CoordinatorResult>> {
     let flexible = find_coordinator_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     if find_coordinator_batched(version) {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut first = None;
+        let mut out = Vec::with_capacity(n);
         for _ in 0..n {
-            let _key = buf::get_compact_string(buf)?;
+            let key = buf::get_compact_string(buf)?.unwrap_or_default();
             let node_id = buf::get_i32(buf)?;
             let host = buf::get_compact_string(buf)?.unwrap_or_default();
             let port = buf::get_i32(buf)?;
-            let error = buf::get_i16(buf)?;
-            let _msg = buf::get_compact_string(buf)?;
+            let error_code = buf::get_i16(buf)?;
+            let error_message = buf::get_compact_string(buf)?;
             buf::skip_tagged_fields(buf)?;
-            if first.is_none() {
-                first = Some((error, node_id, host, port));
-            }
+            out.push(CoordinatorResult {
+                key,
+                node_id,
+                host,
+                port,
+                error_code,
+                error_message,
+            });
         }
         buf::skip_tagged_fields(buf)?;
-        return first.ok_or_else(|| Error::protocol("missing FindCoordinator Coordinators"));
+        return Ok(out);
     }
-    let error = buf::get_i16(buf)?;
-    let _msg = buf::get_string(buf, flexible)?;
+    let error_code = buf::get_i16(buf)?;
+    let error_message = buf::get_string(buf, flexible)?;
     let node_id = buf::get_i32(buf)?;
     let host = buf::get_string(buf, flexible)?.unwrap_or_default();
     let port = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error, node_id, host, port))
+    Ok(vec![CoordinatorResult {
+        key: String::new(),
+        node_id,
+        host,
+        port,
+        error_code,
+        error_message,
+    }])
 }
 
 /// `true` when JoinGroup `version` is flexible (v6+).
@@ -1999,6 +2109,83 @@ mod tests {
             &v3[..],
             &v4[..],
             "v4 CoordinatorKeys must not match v3 Key + KeyType"
+        );
+    }
+
+    #[test]
+    fn find_coordinator_v4_coordinator_keys_array_of_two() {
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_request_keys(&mut buf, 4, &["g", "h"], COORDINATOR_GROUP).unwrap();
+        let mut cur = &buf[..];
+        let (keys, key_type) = decode_find_coordinator_request_keys(&mut cur, 4).unwrap();
+        assert_eq!(key_type, COORDINATOR_GROUP);
+        assert_eq!(keys, vec!["g".to_string(), "h".to_string()]);
+        assert!(
+            cur.is_empty(),
+            "FindCoordinator v4 CoordinatorKeys-of-2 leftover-empty"
+        );
+        // KeyType 0, compact CoordinatorKeys of 2 ("g", "h"), tagged.
+        const REQ: &[u8] = &[0x00, 0x03, 0x02, 0x67, 0x02, 0x68, 0x00];
+        assert_eq!(&buf[..], REQ);
+
+        let mut via_keys = BytesMut::new();
+        encode_find_coordinator_request_keys(&mut via_keys, 4, &["g"], COORDINATOR_GROUP).unwrap();
+        let mut via_one = BytesMut::new();
+        encode_find_coordinator_request_typed(&mut via_one, 4, "g", COORDINATOR_GROUP).unwrap();
+        assert_eq!(
+            via_keys.as_ref(),
+            via_one.as_ref(),
+            "CoordinatorKeys of 1 must match encode_find_coordinator_request_typed"
+        );
+        assert!(
+            encode_find_coordinator_request_keys(
+                &mut BytesMut::new(),
+                3,
+                &["g", "h"],
+                COORDINATOR_GROUP
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("does not support CoordinatorKeys"),
+            "FindCoordinator v3 does not support CoordinatorKeys"
+        );
+
+        let coords = vec![
+            CoordinatorResult {
+                key: "g".into(),
+                node_id: 1,
+                host: "h".into(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            },
+            CoordinatorResult {
+                key: "h".into(),
+                node_id: 1,
+                host: "h".into(),
+                port: 9092,
+                error_code: 0,
+                error_message: None,
+            },
+        ];
+        buf.clear();
+        encode_find_coordinator_response_coordinators(&mut buf, 4, &coords).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_find_coordinator_response_coordinators(&mut cur, 4).unwrap();
+        assert_eq!(decoded, coords);
+        assert!(
+            cur.is_empty(),
+            "FindCoordinator v4 Coordinators-of-2 leftover-empty"
+        );
+        let mut via_one = BytesMut::new();
+        encode_find_coordinator_response(&mut via_one, 4, 1, "h", 9092, "g").unwrap();
+        let one = coords.first().cloned().map(|c| vec![c]).unwrap_or_default();
+        let mut via_coords = BytesMut::new();
+        encode_find_coordinator_response_coordinators(&mut via_coords, 4, &one).unwrap();
+        assert_eq!(
+            via_one.as_ref(),
+            via_coords.as_ref(),
+            "Coordinators of 1 must match encode_find_coordinator_response"
         );
     }
 
