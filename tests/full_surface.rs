@@ -5108,6 +5108,59 @@ async fn list_partition_reassignments_follows_controller() {
 }
 
 #[tokio::test]
+async fn admin_alter_list_partition_reassignments_timeout() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("re-to", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+
+    let assigned = admin
+        .alter_partition_reassignments(
+            &[PartitionReassignment::assign(
+                TopicPartition::new("re-to", 0),
+                [1],
+            )],
+            10_000,
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code, 0);
+    assert_eq!(mock.last_alter_reassignments_timeout(), Some(10_000));
+    let assigned = admin
+        .alter_partition_reassignments_timeout(
+            &[PartitionReassignment::assign(
+                TopicPartition::new("re-to", 0),
+                [1],
+            )],
+            Duration::from_millis(1_500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(assigned[0].error_code, 0);
+    assert_eq!(mock.last_alter_reassignments_timeout(), Some(1_500));
+
+    let listed = admin
+        .list_partition_reassignments(Some(&[TopicPartition::new("re-to", 0)]), 10_000)
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(mock.last_list_reassignments_timeout(), Some(10_000));
+    let listed = admin
+        .list_partition_reassignments_timeout(
+            Some(&[TopicPartition::new("re-to", 0)]),
+            Duration::from_millis(2_500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(mock.last_list_reassignments_timeout(), Some(2_500));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn update_features_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

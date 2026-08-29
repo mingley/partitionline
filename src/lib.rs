@@ -130,6 +130,10 @@
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
 //! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.
+//! [`Admin::alter_partition_reassignments_timeout`] is Java
+//! `AlterPartitionReassignmentsOptions.timeoutMs`.
+//! [`Admin::list_partition_reassignments_timeout`] is Java
+//! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Consumer::current_lag`] is Java `currentLag`.

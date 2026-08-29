@@ -2055,14 +2055,43 @@ impl Admin {
     ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
+    /// `timeout_ms` is AlterPartitionReassignments TimeoutMs. The RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout that drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::alter_partition_reassignments_timeout`].
     pub async fn alter_partition_reassignments(
         &mut self,
         assignments: &[PartitionReassignment],
         timeout_ms: i32,
     ) -> Result<Vec<ReassignmentResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout)
+            .await
+    }
+
+    /// [`Self::alter_partition_reassignments`] with a one-shot timeout
+    /// (Java `AlterPartitionReassignmentsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and AlterPartitionReassignments
+    /// TimeoutMs.
+    pub async fn alter_partition_reassignments_timeout(
+        &mut self,
+        assignments: &[PartitionReassignment],
+        timeout: Duration,
+    ) -> Result<Vec<ReassignmentResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.alter_partition_reassignments_with(assignments, timeout_ms, timeout)
+            .await
+    }
+
+    async fn alter_partition_reassignments_with(
+        &mut self,
+        assignments: &[PartitionReassignment],
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<ReassignmentResult>> {
         let topics = group_reassignments(assignments);
         let version = self.reassign_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -2124,14 +2153,43 @@ impl Admin {
     /// `partitions = None` lists every ongoing reassignment. Lands on the
     /// Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata and
     /// retries on the new controller.
+    /// `timeout_ms` is ListPartitionReassignments TimeoutMs. The RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout that drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::list_partition_reassignments_timeout`].
     pub async fn list_partition_reassignments(
         &mut self,
         partitions: Option<&[crate::TopicPartition]>,
         timeout_ms: i32,
     ) -> Result<Vec<OngoingReassignment>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_partition_reassignments_with(partitions, timeout_ms, timeout)
+            .await
+    }
+
+    /// [`Self::list_partition_reassignments`] with a one-shot timeout
+    /// (Java `ListPartitionReassignmentsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and ListPartitionReassignments
+    /// TimeoutMs.
+    pub async fn list_partition_reassignments_timeout(
+        &mut self,
+        partitions: Option<&[crate::TopicPartition]>,
+        timeout: Duration,
+    ) -> Result<Vec<OngoingReassignment>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.list_partition_reassignments_with(partitions, timeout_ms, timeout)
+            .await
+    }
+
+    async fn list_partition_reassignments_with(
+        &mut self,
+        partitions: Option<&[crate::TopicPartition]>,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<OngoingReassignment>> {
         let topics = partitions.map(group_list_reassignments);
         let version = self.list_reassign_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

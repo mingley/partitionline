@@ -290,10 +290,12 @@ struct State {
     last_describe_acls_version: Option<i16>,
     last_delete_acls_version: Option<i16>,
     last_alter_reassignments_node: Option<i32>,
+    last_alter_reassignments_timeout: Option<i32>,
     alter_reassignments_not_controller: u32,
     last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
     reassignments: HashMap<(String, i32), Vec<i32>>,
     last_list_reassignments_node: Option<i32>,
+    last_list_reassignments_timeout: Option<i32>,
     list_reassignments_not_controller: u32,
     last_update_features_node: Option<i32>,
     last_update_features_version: Option<i16>,
@@ -617,10 +619,12 @@ fn new_state(
         last_describe_acls_version: None,
         last_delete_acls_version: None,
         last_alter_reassignments_node: None,
+        last_alter_reassignments_timeout: None,
         alter_reassignments_not_controller: 0,
         last_reassignment: None,
         reassignments: HashMap::new(),
         last_list_reassignments_node: None,
+        last_list_reassignments_timeout: None,
         list_reassignments_not_controller: 0,
         last_update_features_node: None,
         last_update_features_version: None,
@@ -1654,6 +1658,10 @@ impl Mock {
         self.state.lock().last_alter_reassignments_node
     }
 
+    pub fn last_alter_reassignments_timeout(&self) -> Option<i32> {
+        self.state.lock().last_alter_reassignments_timeout
+    }
+
     pub fn alter_reassignments_not_controller(&self) -> u32 {
         self.state.lock().alter_reassignments_not_controller
     }
@@ -1664,6 +1672,10 @@ impl Mock {
 
     pub fn last_list_reassignments_node(&self) -> Option<i32> {
         self.state.lock().last_list_reassignments_node
+    }
+
+    pub fn last_list_reassignments_timeout(&self) -> Option<i32> {
+        self.state.lock().last_list_reassignments_timeout
     }
 
     pub fn list_reassignments_not_controller(&self) -> u32 {
@@ -3412,9 +3424,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ALTER_PARTITION_REASSIGNMENTS => {
-                let (_timeout, topics) =
+                let (timeout_ms, topics) =
                     decode_alter_partition_reassignments_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.last_alter_reassignments_timeout = Some(timeout_ms);
                 if st.controller_node != node_id {
                     st.alter_reassignments_not_controller =
                         st.alter_reassignments_not_controller.saturating_add(1);
@@ -3475,9 +3488,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             LIST_PARTITION_REASSIGNMENTS => {
-                let (_timeout, topics) =
+                let (timeout_ms, topics) =
                     decode_list_partition_reassignments_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.last_list_reassignments_timeout = Some(timeout_ms);
                 if st.controller_node != node_id {
                     st.list_reassignments_not_controller =
                         st.list_reassignments_not_controller.saturating_add(1);
