@@ -173,6 +173,7 @@
 //! `AlterConfigOp.OpType.toString` / `AlterConfigOp.toString`.
 //! [`IsolationLevel`] / [`Compression`] `Display` match Java
 //! `IsolationLevel.toString` / `CompressionType.toString`.
+//! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

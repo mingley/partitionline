@@ -181,6 +181,8 @@ impl fmt::Display for IsolationLevel {
 ///
 /// Kafka `auto.offset.reset`. Java defaults to [`Self::Latest`]. This crate
 /// defaults to [`Self::Earliest`] so a new group reads the existing log.
+///
+/// [`Display`] is Java `OffsetResetStrategy.toString` (`earliest`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AutoOffsetReset {
     /// Log start (offset `0` when the broker has no committed offset).
@@ -190,6 +192,24 @@ pub enum AutoOffsetReset {
     Latest,
     /// Fail join / rebalance if there is no committed offset.
     None,
+}
+
+impl AutoOffsetReset {
+    /// Java `OffsetResetStrategy.toString` / `AutoOffsetResetStrategy.name`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Earliest => "earliest",
+            Self::Latest => "latest",
+            Self::None => "none",
+        }
+    }
+}
+
+impl fmt::Display for AutoOffsetReset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// SASL mechanism. Set at most one.
@@ -335,6 +355,10 @@ mod tests {
     #[test]
     fn auto_offset_reset_default_is_earliest() {
         assert_eq!(AutoOffsetReset::default(), AutoOffsetReset::Earliest);
+        assert_eq!(AutoOffsetReset::Earliest.to_string(), "earliest");
+        assert_eq!(AutoOffsetReset::Latest.to_string(), "latest");
+        assert_eq!(AutoOffsetReset::None.to_string(), "none");
+        assert_eq!(AutoOffsetReset::Earliest.as_str(), "earliest");
     }
 
     #[test]

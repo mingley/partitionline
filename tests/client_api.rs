@@ -309,6 +309,7 @@ fn config_builders_set_typed_knobs() {
     assert_eq!(c.rack.as_deref(), Some("az1"));
     assert_eq!(c.group_instance_id.as_deref(), Some("worker-1"));
     assert_eq!(c.auto_offset_reset, AutoOffsetReset::Latest);
+    assert_eq!(c.auto_offset_reset.to_string(), "latest");
     assert_eq!(c.max_poll_records, Some(50));
     assert_eq!(c.session_timeout_ms, 20_000);
     assert_eq!(c.heartbeat_interval, Duration::from_millis(200));
