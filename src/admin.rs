@@ -19,7 +19,7 @@ use crate::protocol::acl::{
 };
 use crate::protocol::admin::{
     decode_allocate_producer_ids_response, decode_alter_client_quotas_response,
-    decode_alter_configs_response, decode_alter_partition_reassignments_response,
+    decode_alter_configs_resource_results, decode_alter_partition_reassignments_response,
     decode_alter_replica_log_dirs_response, decode_alter_share_group_offsets_response,
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response, decode_create_delegation_token_response,
@@ -38,7 +38,7 @@ use crate::protocol::admin::{
     decode_push_telemetry_response, decode_renew_delegation_token_response,
     decode_share_group_describe_response, decode_unregister_broker_response,
     decode_update_features_response, encode_allocate_producer_ids_request,
-    encode_alter_client_quotas_request, encode_alter_configs_request,
+    encode_alter_client_quotas_request, encode_alter_configs_resources_request,
     encode_alter_partition_reassignments_request, encode_alter_replica_log_dirs_request,
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
@@ -56,12 +56,12 @@ use crate::protocol::admin::{
     encode_list_groups_request, encode_list_partition_reassignments_request,
     encode_list_transactions_request, encode_push_telemetry_request,
     encode_renew_delegation_token_request, encode_share_group_describe_request,
-    encode_unregister_broker_request, encode_update_features_request, AlterableResource,
-    CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic,
-    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic,
-    ReassignablePartition, ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion,
-    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
-    RESOURCE_GROUP, RESOURCE_TOPIC,
+    encode_unregister_broker_request, encode_update_features_request, AlterConfigsResource,
+    AlterableResource, CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition,
+    DeleteRecordsTopic, DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey,
+    ListReassignmentTopic, ReassignablePartition, ReassignableTopic, ScramCredentialDeletion,
+    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -573,6 +573,30 @@ impl ConfigResourceUpdate {
     /// `resource` with these ops.
     #[must_use]
     pub fn new(resource: ConfigResource, configs: impl IntoIterator<Item = AlterConfig>) -> Self {
+        Self {
+            resource,
+            configs: configs.into_iter().collect(),
+        }
+    }
+}
+
+/// One resource plus replacement entries for [`Admin::alter_configs_for`]
+/// (Java `alterConfigs(Map)`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigReplacement {
+    /// Resource to replace configs on.
+    pub resource: ConfigResource,
+    /// Replacement name/value pairs (value `None` clears the key).
+    pub configs: Vec<(String, Option<String>)>,
+}
+
+impl ConfigReplacement {
+    /// `resource` with these entries.
+    #[must_use]
+    pub fn new(
+        resource: ConfigResource,
+        configs: impl IntoIterator<Item = (String, Option<String>)>,
+    ) -> Self {
         Self {
             resource,
             configs: configs.into_iter().collect(),
@@ -3307,41 +3331,66 @@ impl Admin {
     /// v3+ is not spoken.
     ///
     /// Prefer [`Self::incremental_alter_configs`] on modern brokers.
+    /// Returns the first resource's error code. For several resources in
+    /// one RPC (Java `alterConfigs(Map)`), use [`Self::alter_configs_for`].
     pub async fn alter_configs(
         &mut self,
         resource: &ConfigResource,
         configs: &[(String, Option<String>)],
         validate_only: bool,
     ) -> Result<i16> {
-        let version = self.legacy_alter_version;
-        let timeout = self.cfg.request_timeout;
-        let resource_type = resource.resource_type;
-        let name = resource.name.clone();
-        let configs: Vec<TopicConfig> = configs
+        let results = self
+            .alter_configs_for(
+                &[ConfigReplacement::new(
+                    resource.clone(),
+                    configs.iter().cloned(),
+                )],
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
+    /// [`Self::alter_configs`] for several resources (Java `alterConfigs(Map)`;
+    /// AlterConfigs Resources of N).
+    ///
+    /// Empty `updates` is a no-op.
+    pub async fn alter_configs_for(
+        &mut self,
+        updates: &[ConfigReplacement],
+        validate_only: bool,
+    ) -> Result<Vec<AlterConfigsResourceResult>> {
+        if updates.is_empty() {
+            return Ok(Vec::new());
+        }
+        let resources: Vec<AlterConfigsResource> = updates
             .iter()
-            .map(|(n, v)| TopicConfig {
-                name: n.clone(),
-                value: v.clone(),
+            .map(|u| AlterConfigsResource {
+                resource_type: u.resource.resource_type,
+                name: u.resource.name.clone(),
+                configs: u
+                    .configs
+                    .iter()
+                    .map(|(n, v)| TopicConfig {
+                        name: n.clone(),
+                        value: v.clone(),
+                    })
+                    .collect(),
             })
             .collect();
+        let version = self.legacy_alter_version;
+        let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
                 ALTER_CONFIGS,
                 version,
                 |buf| {
-                    encode_alter_configs_request(
-                        buf,
-                        version,
-                        resource_type,
-                        &name,
-                        &configs,
-                        validate_only,
-                    )
+                    encode_alter_configs_resources_request(buf, version, &resources, validate_only)
                 },
                 timeout,
             )
             .await?;
-        decode_alter_configs_response(&mut body.clone(), version)
+        decode_alter_configs_resource_results(&mut body.clone(), version)
     }
 
     async fn fetch_metadata(&mut self, topics: Option<&[String]>) -> Result<MetadataResponse> {

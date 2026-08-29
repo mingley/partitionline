@@ -1280,6 +1280,17 @@ fn alter_configs_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One AlterConfigs resource (Resources array element).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterConfigsResource {
+    /// Resource type (`RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name.
+    pub name: String,
+    /// Replacement configs for this resource.
+    pub configs: Vec<TopicConfig>,
+}
+
 /// Encode an AlterConfigs request (v0–2; classic through v1; flexible from v2).
 pub fn encode_alter_configs_request(
     buf: &mut BytesMut,
@@ -1289,20 +1300,41 @@ pub fn encode_alter_configs_request(
     configs: &[TopicConfig],
     validate_only: bool,
 ) -> crate::error::Result<()> {
+    encode_alter_configs_resources_request(
+        buf,
+        version,
+        &[AlterConfigsResource {
+            resource_type,
+            name: name.to_string(),
+            configs: configs.to_vec(),
+        }],
+        validate_only,
+    )
+}
+
+/// AlterConfigs Resources of N (Java `alterConfigs(Map)`).
+pub fn encode_alter_configs_resources_request(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[AlterConfigsResource],
+    validate_only: bool,
+) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i8(resource_type);
-    buf::put_string(buf, flexible, Some(name))?;
-    buf::put_array_len(buf, flexible, Some(configs.len()))?;
-    for c in configs {
-        buf::put_string(buf, flexible, Some(&c.name))?;
-        buf::put_string(buf, flexible, c.value.as_deref())?;
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    for r in resources {
+        buf.put_i8(r.resource_type);
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        buf::put_array_len(buf, flexible, Some(r.configs.len()))?;
+        for c in &r.configs {
+            buf::put_string(buf, flexible, Some(&c.name))?;
+            buf::put_string(buf, flexible, c.value.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
-    }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
     }
     buf.put_u8(u8::from(validate_only));
     if flexible {
@@ -1316,16 +1348,26 @@ pub fn decode_alter_configs_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, String, Vec<TopicConfig>, bool)> {
+    let (resources, validate_only) = decode_alter_configs_resources_request(buf, version)?;
+    match resources.into_iter().next() {
+        Some(r) => Ok((r.resource_type, r.name, r.configs, validate_only)),
+        None => Ok((0, String::new(), Vec::new(), validate_only)),
+    }
+}
+
+/// Decode AlterConfigs: every resource plus ValidateOnly.
+pub fn decode_alter_configs_resources_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AlterConfigsResource>, bool)> {
     let flexible = alter_configs_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut resource_type = 0i8;
-    let mut name = String::new();
-    let mut configs = Vec::new();
-    if n > 0 {
-        resource_type = buf::get_i8(buf)?;
-        name = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let mut resources = Vec::with_capacity(n);
+    for _ in 0..n {
+        let resource_type = buf::get_i8(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        configs.reserve(cn);
+        let mut configs = Vec::with_capacity(cn);
         for _ in 0..cn {
             let cname = buf::get_string(buf, flexible)?.unwrap_or_default();
             let value = buf::get_string(buf, flexible)?;
@@ -1337,27 +1379,17 @@ pub fn decode_alter_configs_request<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            let _ = buf::get_i8(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            for _ in 0..extra {
-                let _ = buf::get_string(buf, flexible)?;
-                let _ = buf::get_string(buf, flexible)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        resources.push(AlterConfigsResource {
+            resource_type,
+            name,
+            configs,
+        });
     }
     let validate_only = buf::get_bool(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((resource_type, name, configs, validate_only))
+    Ok((resources, validate_only))
 }
 
 /// Encode an AlterConfigs response (one resource).
@@ -1370,17 +1402,39 @@ pub fn encode_alter_configs_response(
     error_code: i16,
     name: &str,
 ) -> crate::error::Result<()> {
+    encode_alter_configs_resource_results(
+        buf,
+        version,
+        &[AlterConfigsResourceResult {
+            error_code,
+            error_message: None,
+            resource_type: RESOURCE_TOPIC,
+            name: name.to_string(),
+        }],
+    )
+}
+
+/// Encode AlterConfigs Responses of N.
+pub fn encode_alter_configs_resource_results(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[AlterConfigsResourceResult],
+) -> crate::error::Result<()> {
     let flexible = alter_configs_flexible(version)?;
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i16(error_code);
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i8(RESOURCE_TOPIC);
-    buf::put_string(buf, flexible, Some(name))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
+    for r in results {
+        buf.put_i16(r.error_code);
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
+        buf.put_i8(r.resource_type);
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
@@ -1388,34 +1442,40 @@ pub fn encode_alter_configs_response(
 
 /// Decode an AlterConfigs response (first resource error).
 pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let results = decode_alter_configs_resource_results(buf, version)?;
+    Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+}
+
+/// Decode AlterConfigs: every resource result.
+pub fn decode_alter_configs_resource_results<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<AlterConfigsResourceResult>> {
     let flexible = alter_configs_flexible(version)?;
     if version >= 1 {
         let _th = buf::get_i32(buf)?;
     }
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut error_code = 0i16;
-    if n > 0 {
-        error_code = buf::get_i16(buf)?;
-        let _msg = buf::get_string(buf, flexible)?;
-        let _rt = buf::get_i8(buf)?;
-        let _name = buf::get_string(buf, flexible)?;
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
+        let resource_type = buf::get_i8(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            let _ = buf::get_i16(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            let _ = buf::get_i8(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        out.push(AlterConfigsResourceResult {
+            error_code,
+            error_message,
+            resource_type,
+            name,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(error_code)
+    Ok(out)
 }
 
 /// `true` when DeleteRecords `version` is flexible.
@@ -10031,6 +10091,60 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterConfigs v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_configs_v2_resources_of_two_matches_independent_encode() {
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x02, 0x61, 0x02, 0x02, 0x6b, 0x02, 0x31, 0x00, 0x00, 0x02, 0x02, 0x62,
+            0x02, 0x02, 0x6b, 0x02, 0x32, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let resources = [
+            AlterConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "a".into(),
+                configs: vec![TopicConfig {
+                    name: "k".into(),
+                    value: Some("1".into()),
+                }],
+            },
+            AlterConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "b".into(),
+                configs: vec![TopicConfig {
+                    name: "k".into(),
+                    value: Some("2".into()),
+                }],
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_alter_configs_resources_request(&mut buf, 2, &resources, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (got, validate) = decode_alter_configs_resources_request(&mut cur, 2).unwrap();
+        assert_eq!(got, resources);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v2 Resources of 2 must be leftover-empty"
+        );
+
+        let mut v1 = BytesMut::new();
+        encode_alter_configs_resources_request(&mut v1, 1, &resources, false).unwrap();
+        const V1: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, 0x02, 0x00, 0x01, 0x61, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x6b, 0x00, 0x01, 0x31, 0x02, 0x00, 0x01, 0x62, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x6b, 0x00, 0x01, 0x32, 0x00,
+        ];
+        assert_eq!(&v1[..], V1);
+        let mut cur = &v1[..];
+        let (got1, validate1) = decode_alter_configs_resources_request(&mut cur, 1).unwrap();
+        assert_eq!(got1, resources);
+        assert!(!validate1);
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v1 Resources of 2 must be leftover-empty"
         );
     }
 

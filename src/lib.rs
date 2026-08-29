@@ -62,7 +62,7 @@
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N),
-//! AlterConfigs v0–v2 (v2 flexible),
+//! AlterConfigs v0–v2 (v2 flexible; Resources of N),
 //! DeleteRecords v0–v2 (v2 flexible),
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
@@ -138,6 +138,8 @@
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java
 //! `incrementalAlterConfigs(Map)` ([`ConfigResourceUpdate`]; Resources of N).
+//! [`Admin::alter_configs_for`] is Java `alterConfigs(Map)`
+//! ([`ConfigReplacement`]; Resources of N).
 //! [`Consumer::current_lag`] is Java `currentLag`.
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::assign_partitions`] / [`Consumer::unassign`] replace or
@@ -386,15 +388,16 @@ pub use admin::{
     AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigResource,
-    ConfigResourceType, ConfigResourceUpdate, ConsumerGroupAssignment, ConsumerGroupMember,
-    ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
-    CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
-    DeletedAclsFilterResult, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ConfigEntry, ConfigReplacement,
+    ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConsumerGroupAssignment,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedAclsFilterResult, DeletedShareGroupOffsets,
+    DeletedShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeClusterBroker,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeShareGroupOffsetsGroup, DescribeShareGroupOffsetsTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,

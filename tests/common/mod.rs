@@ -30,7 +30,7 @@ use partitionline::protocol::acl::{
 };
 use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
-    decode_alter_configs_request, decode_alter_partition_reassignments_request,
+    decode_alter_configs_resources_request, decode_alter_partition_reassignments_request,
     decode_alter_replica_log_dirs_request, decode_alter_share_group_offsets_request,
     decode_alter_user_scram_credentials_request, decode_assign_replicas_to_dirs_request,
     decode_consumer_group_describe_request, decode_create_delegation_token_request,
@@ -49,7 +49,7 @@ use partitionline::protocol::admin::{
     decode_renew_delegation_token_request, decode_share_group_describe_request,
     decode_unregister_broker_request, decode_update_features_request,
     encode_allocate_producer_ids_response, encode_alter_client_quotas_response,
-    encode_alter_configs_response, encode_alter_partition_reassignments_response,
+    encode_alter_configs_resource_results, encode_alter_partition_reassignments_response,
     encode_alter_replica_log_dirs_response, encode_alter_share_group_offsets_response,
     encode_alter_user_scram_credentials_response, encode_assign_replicas_to_dirs_response,
     encode_consumer_group_describe_response, encode_create_delegation_token_response,
@@ -285,6 +285,7 @@ struct State {
     last_incremental_alter_configs_n: Option<usize>,
     incremental_alter_configs_not_controller: u32,
     last_alter_configs_version: Option<i16>,
+    last_alter_configs_n: Option<usize>,
     last_create_acls_node: Option<i32>,
     last_create_acls_version: Option<i16>,
     create_acls_not_controller: u32,
@@ -618,6 +619,7 @@ fn new_state(
         last_incremental_alter_configs_n: None,
         incremental_alter_configs_not_controller: 0,
         last_alter_configs_version: None,
+        last_alter_configs_n: None,
         last_create_acls_node: None,
         last_create_acls_version: None,
         create_acls_not_controller: 0,
@@ -1644,6 +1646,10 @@ impl Mock {
 
     pub fn last_alter_configs_version(&self) -> Option<i16> {
         self.state.lock().last_alter_configs_version
+    }
+
+    pub fn last_alter_configs_n(&self) -> Option<usize> {
+        self.state.lock().last_alter_configs_n
     }
 
     pub fn last_create_acls_node(&self) -> Option<i32> {
@@ -3292,27 +3298,37 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             ALTER_CONFIGS => {
                 let version = header.api_version;
-                let (rt, name, configs, validate_only) =
-                    decode_alter_configs_request(&mut frame, version).unwrap();
-                let mut err = 0i16;
+                let (resources, validate_only) =
+                    decode_alter_configs_resources_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_alter_configs_version = Some(version);
-                if rt != RESOURCE_TOPIC {
-                    err = 3;
-                } else if let Some(spec) = st.created_topics.get_mut(&name) {
-                    if !validate_only {
-                        for c in configs {
-                            if let Some(val) = c.value {
-                                spec.configs.insert(c.name, Some(val));
-                            } else {
-                                spec.configs.remove(&c.name);
+                st.last_alter_configs_n = Some(resources.len());
+                let mut results = Vec::with_capacity(resources.len());
+                for r in resources {
+                    let mut err = 0i16;
+                    if r.resource_type != RESOURCE_TOPIC {
+                        err = 3;
+                    } else if let Some(spec) = st.created_topics.get_mut(&r.name) {
+                        if !validate_only {
+                            for c in r.configs {
+                                if let Some(val) = c.value {
+                                    spec.configs.insert(c.name, Some(val));
+                                } else {
+                                    spec.configs.remove(&c.name);
+                                }
                             }
                         }
+                    } else {
+                        err = 3;
                     }
-                } else {
-                    err = 3;
+                    results.push(AlterConfigsResourceResult {
+                        error_code: err,
+                        error_message: None,
+                        resource_type: r.resource_type,
+                        name: r.name,
+                    });
                 }
-                encode_alter_configs_response(&mut body, version, err, &name).unwrap();
+                encode_alter_configs_resource_results(&mut body, version, &results).unwrap();
             }
             DELETE_RECORDS => {
                 let version = header.api_version;

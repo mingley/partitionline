@@ -29,8 +29,8 @@ use partitionline::{
     AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
-    Compression, ConfigResource, ConfigResourceType, ConfigResourceUpdate, Consumer,
-    ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
+    Compression, ConfigReplacement, ConfigResource, ConfigResourceType, ConfigResourceUpdate,
+    Consumer, ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
     DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel,
@@ -4143,6 +4143,80 @@ async fn alter_configs_negotiates_v1_when_broker_caps() {
         Some(1),
         "client must speak AlterConfigs v1 when the broker max is 1"
     );
+}
+
+#[tokio::test]
+async fn admin_alter_configs_for() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("ac-a", 1, 1), NewTopic::new("ac-b", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let empty = admin.alter_configs_for(&[], false).await.unwrap();
+    assert!(empty.is_empty());
+
+    let results = admin
+        .alter_configs_for(
+            &[
+                ConfigReplacement::new(
+                    ConfigResource::topic("ac-a"),
+                    [("retention.ms".into(), Some("1000".into()))],
+                ),
+                ConfigReplacement::new(
+                    ConfigResource::topic("ac-b"),
+                    [("retention.ms".into(), Some("2000".into()))],
+                ),
+            ],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(results[0].name, "ac-a");
+    assert_eq!(results[1].error_code, 0);
+    assert_eq!(results[1].name, "ac-b");
+    assert_eq!(
+        mock.last_alter_configs_n(),
+        Some(2),
+        "alterConfigs(Map) must send Resources of 2 in one RPC"
+    );
+
+    let described = admin
+        .describe_configs(
+            &[
+                ConfigResource::topic("ac-a").keys(["retention.ms"]),
+                ConfigResource::topic("ac-b").keys(["retention.ms"]),
+            ],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("1000")
+    );
+    assert_eq!(
+        described[1]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("2000")
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
