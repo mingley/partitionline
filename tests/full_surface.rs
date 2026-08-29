@@ -3417,13 +3417,13 @@ async fn delete_records_negotiates_v1_when_broker_caps() {
     pcfg.linger = Duration::ZERO;
     let producer = Producer::new(pcfg).await.unwrap();
     let md = producer
-        .send(ProduceRecord::to("dr1").value(&b"x"[..]))
+        .send(ProduceRecord::to("t").value(&b"x"[..]))
         .await
         .unwrap();
     producer.close().await.unwrap();
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
     let (low, err) = admin
-        .delete_records(("dr1", md.partition), md.offset + 1, 10_000)
+        .delete_records(("t", md.partition), md.offset + 1, 10_000)
         .await
         .unwrap();
     assert_eq!(err, 0);
