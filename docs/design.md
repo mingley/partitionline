@@ -173,7 +173,7 @@ UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
 DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs, the
 delegation-token APIs, DescribeTransactions, ListTransactions,
-AlterPartitionReassignments, ListPartitionReassignments, ShareGroupDescribe,
+AlterPartitionReassignments, ListPartitionReassignments, OffsetDelete, ShareGroupDescribe,
 the share-offset RPCs, ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs;
 those methods
 return `Error::Unsupported` when the broker omits them.
