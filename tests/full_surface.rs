@@ -6630,6 +6630,10 @@ async fn admin_incremental_alter_configs_for() {
     );
     assert_eq!(from_entry.op_type(), Some(AlterConfigOpType::Set));
     assert_eq!(from_entry.config_entry().value.as_deref(), Some("5000"));
+    assert_eq!(
+        from_entry.to_string(),
+        "AlterConfigOp{opType=SET, configEntry=ConfigEntry(name=retention.ms, value=5000, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)}"
+    );
     let via_entry = admin
         .incremental_alter_configs_for(
             &[ConfigResourceUpdate::new(

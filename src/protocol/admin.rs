@@ -1581,6 +1581,8 @@ pub const ALTER_CONFIG_APPEND: i8 = 2;
 pub const ALTER_CONFIG_SUBTRACT: i8 = 3;
 
 /// Java `AlterConfigOp.OpType` (IncrementalAlterConfigs ConfigOperation).
+///
+/// [`Display`] is Java `AlterConfigOp.OpType.toString` (`SET`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum AlterConfigOpType {
@@ -1595,6 +1597,17 @@ pub enum AlterConfigOpType {
 }
 
 impl AlterConfigOpType {
+    /// Java `AlterConfigOp.OpType.toString`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Set => "SET",
+            Self::Delete => "DELETE",
+            Self::Append => "APPEND",
+            Self::Subtract => "SUBTRACT",
+        }
+    }
+
     /// Java `AlterConfigOp.OpType.forId` (`None` when the id is unknown).
     #[must_use]
     pub const fn from_id(id: i8) -> Option<Self> {
@@ -1611,6 +1624,12 @@ impl AlterConfigOpType {
 impl From<AlterConfigOpType> for i8 {
     fn from(op: AlterConfigOpType) -> Self {
         op as i8
+    }
+}
+
+impl fmt::Display for AlterConfigOpType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -1788,6 +1807,9 @@ pub fn decode_create_partitions_response<B: Buf>(
 }
 
 /// One incremental config change (`AlterConfigOp`).
+///
+/// [`Display`] is Java `AlterConfigOp.toString`. Unknown op ids print
+/// `null`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfig {
     /// Config key.
@@ -1867,6 +1889,19 @@ impl AlterConfig {
     #[must_use]
     pub fn config_entry(&self) -> ConfigEntry {
         ConfigEntry::new(self.name.clone(), self.value.clone())
+    }
+}
+
+impl fmt::Display for AlterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("AlterConfigOp{opType=")?;
+        match self.op_type() {
+            Some(op) => write!(f, "{op}")?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(", configEntry=")?;
+        write!(f, "{}", self.config_entry())?;
+        f.write_str("}")
     }
 }
 

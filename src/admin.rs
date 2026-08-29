@@ -12186,11 +12186,29 @@ mod tests {
             Some(AlterConfigOpType::Set)
         );
         assert_eq!(AlterConfigOpType::from_id(99), None);
+        assert_eq!(AlterConfigOpType::Set.to_string(), "SET");
+        assert_eq!(AlterConfigOpType::Delete.to_string(), "DELETE");
+        assert_eq!(AlterConfigOpType::Append.to_string(), "APPEND");
+        assert_eq!(AlterConfigOpType::Subtract.to_string(), "SUBTRACT");
         let entry = ConfigEntry::new("retention.ms", Some("1000".into()));
         let op = AlterConfig::from_entry(&entry, AlterConfigOpType::Set);
         assert_eq!(op.op_type(), Some(AlterConfigOpType::Set));
         assert_eq!(op.config_entry().name, "retention.ms");
         assert_eq!(op.config_entry().value.as_deref(), Some("1000"));
+        assert_eq!(
+            op.to_string(),
+            "AlterConfigOp{opType=SET, configEntry=ConfigEntry(name=retention.ms, value=1000, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)}"
+        );
+        let unknown = AlterConfig {
+            name: "k".into(),
+            op: 99,
+            value: None,
+        };
+        assert!(unknown.op_type().is_none());
+        assert_eq!(
+            unknown.to_string(),
+            "AlterConfigOp{opType=null, configEntry=ConfigEntry(name=k, value=null, source=UNKNOWN, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)}"
+        );
         assert_eq!(AlterConfigOp::set("k", "v").op, ALTER_CONFIG_SET);
     }
 
