@@ -29,17 +29,18 @@ use partitionline::{
     AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilterComponent, ClientQuotaOp,
-    Compression, ConfigResource, ConfigResourceType, Consumer, ConsumerConfig, ConsumerGroup,
-    CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
-    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
-    ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec,
-    NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
-    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    Compression, ConfigResource, ConfigResourceType, ConfigResourceUpdate, Consumer,
+    ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
+    DeleteShareGroupOffsetsTopic, DescribableLogDirTopic, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
+    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel,
+    ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig,
+    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
+    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
+    SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4941,6 +4942,83 @@ async fn incremental_alter_configs_negotiates_v0_when_broker_caps() {
         Some(0),
         "client must speak IncrementalAlterConfigs v0 when the broker max is 0"
     );
+}
+
+#[tokio::test]
+async fn admin_incremental_alter_configs_for() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("iac-a", 1, 1), NewTopic::new("iac-b", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let empty = admin
+        .incremental_alter_configs_for(&[], false)
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+
+    let results = admin
+        .incremental_alter_configs_for(
+            &[
+                ConfigResourceUpdate::new(
+                    ConfigResource::topic("iac-a"),
+                    [AlterConfig::set("retention.ms", "1000")],
+                ),
+                ConfigResourceUpdate::new(
+                    ConfigResource::topic("iac-b"),
+                    [AlterConfig::set("retention.ms", "2000")],
+                ),
+            ],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(results[0].name, "iac-a");
+    assert_eq!(results[1].error_code, 0);
+    assert_eq!(results[1].name, "iac-b");
+    assert_eq!(
+        mock.last_incremental_alter_configs_n(),
+        Some(2),
+        "incrementalAlterConfigs(Map) must send Resources of 2 in one RPC"
+    );
+
+    let described = admin
+        .describe_configs(
+            &[
+                ConfigResource::topic("iac-a").keys(["retention.ms"]),
+                ConfigResource::topic("iac-b").keys(["retention.ms"]),
+            ],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("1000")
+    );
+    assert_eq!(
+        described[1]
+            .entries
+            .iter()
+            .find(|e| e.name == "retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("2000")
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

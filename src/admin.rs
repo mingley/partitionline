@@ -32,7 +32,7 @@ use crate::protocol::admin::{
     decode_describe_producers_response, decode_describe_share_group_offsets_response,
     decode_describe_topic_partitions_response, decode_describe_transactions_response,
     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
-    decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_response,
+    decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
     decode_list_config_resources_response, decode_list_groups_response,
     decode_list_partition_reassignments_response, decode_list_transactions_response,
     decode_push_telemetry_response, decode_renew_delegation_token_response,
@@ -52,16 +52,16 @@ use crate::protocol::admin::{
     encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
     encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
     encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
-    encode_incremental_alter_configs_request, encode_list_config_resources_request,
+    encode_incremental_alter_configs_resources_request, encode_list_config_resources_request,
     encode_list_groups_request, encode_list_partition_reassignments_request,
     encode_list_transactions_request, encode_push_telemetry_request,
     encode_renew_delegation_token_request, encode_share_group_describe_request,
-    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
-    CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic, DescribeConfigsResource,
-    DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
-    ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
-    RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
-    RESOURCE_TOPIC,
+    encode_unregister_broker_request, encode_update_features_request, AlterableResource,
+    CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic,
+    DescribeConfigsResource, DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic,
+    ReassignablePartition, ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion,
+    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
+    RESOURCE_GROUP, RESOURCE_TOPIC,
 };
 use crate::protocol::api::{
     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
@@ -108,8 +108,8 @@ pub use crate::protocol::acl::{
     DeletedAclsFilterResult,
 };
 pub use crate::protocol::admin::{
-    ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
-    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    ActiveProducer, AlterConfig, AlterConfigsResourceResult, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
     AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
     AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
@@ -556,6 +556,27 @@ impl ConfigResource {
     pub fn keys(mut self, keys: impl IntoIterator<Item = impl Into<String>>) -> Self {
         self.keys = Some(keys.into_iter().map(Into::into).collect());
         self
+    }
+}
+
+/// One resource plus ops for [`Admin::incremental_alter_configs_for`]
+/// (Java `incrementalAlterConfigs(Map)`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigResourceUpdate {
+    /// Resource to alter.
+    pub resource: ConfigResource,
+    /// Incremental ops (`AlterConfig::set` / `delete`).
+    pub configs: Vec<AlterConfig>,
+}
+
+impl ConfigResourceUpdate {
+    /// `resource` with these ops.
+    #[must_use]
+    pub fn new(resource: ConfigResource, configs: impl IntoIterator<Item = AlterConfig>) -> Self {
+        Self {
+            resource,
+            configs: configs.into_iter().collect(),
+        }
     }
 }
 
@@ -1932,19 +1953,51 @@ impl Admin {
     /// `validVersions` is `0-1`. v2+ is not spoken.
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
+    /// Returns the first resource's error code. For several resources in
+    /// one RPC (Java `incrementalAlterConfigs(Map)`), use
+    /// [`Self::incremental_alter_configs_for`].
     pub async fn incremental_alter_configs(
         &mut self,
         resource: &ConfigResource,
         configs: &[AlterConfig],
         validate_only: bool,
     ) -> Result<i16> {
+        let results = self
+            .incremental_alter_configs_for(
+                &[ConfigResourceUpdate::new(
+                    resource.clone(),
+                    configs.iter().cloned(),
+                )],
+                validate_only,
+            )
+            .await?;
+        Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+    }
+
+    /// [`Self::incremental_alter_configs`] for several resources (Java
+    /// `incrementalAlterConfigs(Map)`; IncrementalAlterConfigs Resources of N).
+    ///
+    /// Empty `updates` is a no-op.
+    pub async fn incremental_alter_configs_for(
+        &mut self,
+        updates: &[ConfigResourceUpdate],
+        validate_only: bool,
+    ) -> Result<Vec<AlterConfigsResourceResult>> {
+        if updates.is_empty() {
+            return Ok(Vec::new());
+        }
+        let resources: Vec<AlterableResource> = updates
+            .iter()
+            .map(|u| AlterableResource {
+                resource_type: u.resource.resource_type,
+                name: u.resource.name.clone(),
+                configs: u.configs.clone(),
+            })
+            .collect();
         let version = self.alter_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
-        let resource_type = resource.resource_type;
-        let name = resource.name.clone();
-        let configs = configs.to_vec();
         loop {
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
@@ -1960,12 +2013,10 @@ impl Admin {
                     INCREMENTAL_ALTER_CONFIGS,
                     version,
                     |buf| {
-                        encode_incremental_alter_configs_request(
+                        encode_incremental_alter_configs_resources_request(
                             buf,
                             version,
-                            resource_type,
-                            &name,
-                            &configs,
+                            &resources,
                             validate_only,
                         )
                     },
@@ -1983,16 +2034,19 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let err = decode_incremental_alter_configs_response(&mut body.clone(), version)?;
-            if err == error::NOT_CONTROLLER {
-                // NOT_CONTROLLER (41): Metadata, then the new controller.
+            let results =
+                decode_incremental_alter_configs_resource_results(&mut body.clone(), version)?;
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
                 self.wait_retry(&mut attempt, deadline).await?;
                 self.refresh_metadata(None).await?;
                 continue;
             }
-            return Ok(err);
+            return Ok(results);
         }
     }
 

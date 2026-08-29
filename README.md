@@ -131,7 +131,8 @@ interceptors are `ProducerConfig::interceptor` / `ConsumerConfig::interceptor`.
 (`OffsetAndTimestamp::leader_epoch` is Java `getLeaderEpoch`).
 `FetchedRecord::leader_epoch` is the record-batch partition leader epoch.
 `Admin::create_partitions` takes `NewPartitions` (Java `increaseTo`).
-`incremental_alter_configs` / `alter_configs` take `ConfigResource`.
+`incremental_alter_configs` / `incremental_alter_configs_for` / `alter_configs`
+take `ConfigResource` / `ConfigResourceUpdate` (Java `incrementalAlterConfigs(Map)`).
 `OffsetAndMetadata` / `commit_with_metadata` send leader epoch and a
 metadata string. `seek_with_metadata` is Java
 `seek(TopicPartition, OffsetAndMetadata)` (Fetch `LastFetchedEpoch`;

@@ -1039,6 +1039,30 @@ impl AlterConfig {
     }
 }
 
+/// One IncrementalAlterConfigs resource (Resources array element).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterableResource {
+    /// Resource type (`RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name.
+    pub name: String,
+    /// Incremental ops for this resource.
+    pub configs: Vec<AlterConfig>,
+}
+
+/// Per-resource IncrementalAlterConfigs result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlterConfigsResourceResult {
+    /// Resource error, or `0`.
+    pub error_code: i16,
+    /// Resource error message.
+    pub error_message: Option<String>,
+    /// Resource type (`RESOURCE_TOPIC`, …).
+    pub resource_type: i8,
+    /// Resource name.
+    pub name: String,
+}
+
 /// `true` when IncrementalAlterConfigs `version` is flexible.
 ///
 /// v0 is classic. v1 is the first flexible version. Kafka 4.0
@@ -1062,21 +1086,42 @@ pub fn encode_incremental_alter_configs_request(
     configs: &[AlterConfig],
     validate_only: bool,
 ) -> crate::error::Result<()> {
+    encode_incremental_alter_configs_resources_request(
+        buf,
+        version,
+        &[AlterableResource {
+            resource_type,
+            name: name.to_string(),
+            configs: configs.to_vec(),
+        }],
+        validate_only,
+    )
+}
+
+/// IncrementalAlterConfigs Resources of N (Java `incrementalAlterConfigs(Map)`).
+pub fn encode_incremental_alter_configs_resources_request(
+    buf: &mut BytesMut,
+    version: i16,
+    resources: &[AlterableResource],
+    validate_only: bool,
+) -> crate::error::Result<()> {
     let flexible = incremental_alter_configs_flexible(version)?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i8(resource_type);
-    buf::put_string(buf, flexible, Some(name))?;
-    buf::put_array_len(buf, flexible, Some(configs.len()))?;
-    for c in configs {
-        buf::put_string(buf, flexible, Some(&c.name))?;
-        buf.put_i8(c.op);
-        buf::put_string(buf, flexible, c.value.as_deref())?;
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    for r in resources {
+        buf.put_i8(r.resource_type);
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        buf::put_array_len(buf, flexible, Some(r.configs.len()))?;
+        for c in &r.configs {
+            buf::put_string(buf, flexible, Some(&c.name))?;
+            buf.put_i8(c.op);
+            buf::put_string(buf, flexible, c.value.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
-    }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
     }
     buf.put_u8(u8::from(validate_only));
     if flexible {
@@ -1090,16 +1135,28 @@ pub fn decode_incremental_alter_configs_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, String, Vec<AlterConfig>, bool)> {
+    let (resources, validate_only) =
+        decode_incremental_alter_configs_resources_request(buf, version)?;
+    let first = resources.into_iter().next();
+    match first {
+        Some(r) => Ok((r.resource_type, r.name, r.configs, validate_only)),
+        None => Ok((0, String::new(), Vec::new(), validate_only)),
+    }
+}
+
+/// Decode IncrementalAlterConfigs: every resource plus ValidateOnly.
+pub fn decode_incremental_alter_configs_resources_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AlterableResource>, bool)> {
     let flexible = incremental_alter_configs_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut resource_type = 0i8;
-    let mut name = String::new();
-    let mut configs = Vec::new();
-    if n > 0 {
-        resource_type = buf::get_i8(buf)?;
-        name = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let mut resources = Vec::with_capacity(n);
+    for _ in 0..n {
+        let resource_type = buf::get_i8(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        configs.reserve(cn);
+        let mut configs = Vec::with_capacity(cn);
         for _ in 0..cn {
             let cname = buf::get_string(buf, flexible)?.unwrap_or_default();
             let op = buf::get_i8(buf)?;
@@ -1116,28 +1173,17 @@ pub fn decode_incremental_alter_configs_request<B: Buf>(
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            let _ = buf::get_i8(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            for _ in 0..extra {
-                let _ = buf::get_string(buf, flexible)?;
-                let _ = buf::get_i8(buf)?;
-                let _ = buf::get_string(buf, flexible)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        resources.push(AlterableResource {
+            resource_type,
+            name,
+            configs,
+        });
     }
     let validate_only = buf::get_bool(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((resource_type, name, configs, validate_only))
+    Ok((resources, validate_only))
 }
 
 /// Encode an IncrementalAlterConfigs response (one resource).
@@ -1147,15 +1193,37 @@ pub fn encode_incremental_alter_configs_response(
     error_code: i16,
     name: &str,
 ) -> crate::error::Result<()> {
+    encode_incremental_alter_configs_resource_results(
+        buf,
+        version,
+        &[AlterConfigsResourceResult {
+            error_code,
+            error_message: None,
+            resource_type: RESOURCE_TOPIC,
+            name: name.to_string(),
+        }],
+    )
+}
+
+/// Encode IncrementalAlterConfigs Responses of N.
+pub fn encode_incremental_alter_configs_resource_results(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[AlterConfigsResourceResult],
+) -> crate::error::Result<()> {
     let flexible = incremental_alter_configs_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i16(error_code);
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i8(RESOURCE_TOPIC);
-    buf::put_string(buf, flexible, Some(name))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
+    for r in results {
+        buf.put_i16(r.error_code);
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
+        buf.put_i8(r.resource_type);
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
@@ -1163,32 +1231,38 @@ pub fn encode_incremental_alter_configs_response(
 
 /// Decode an IncrementalAlterConfigs response (first resource error).
 pub fn decode_incremental_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let results = decode_incremental_alter_configs_resource_results(buf, version)?;
+    Ok(results.first().map(|r| r.error_code).unwrap_or(0))
+}
+
+/// Decode IncrementalAlterConfigs: every resource result.
+pub fn decode_incremental_alter_configs_resource_results<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<AlterConfigsResourceResult>> {
     let flexible = incremental_alter_configs_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut error_code = 0i16;
-    if n > 0 {
-        error_code = buf::get_i16(buf)?;
-        let _msg = buf::get_string(buf, flexible)?;
-        let _rt = buf::get_i8(buf)?;
-        let _name = buf::get_string(buf, flexible)?;
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
+        let resource_type = buf::get_i8(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..n {
-            let _ = buf::get_i16(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            let _ = buf::get_i8(buf)?;
-            let _ = buf::get_string(buf, flexible)?;
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        out.push(AlterConfigsResourceResult {
+            error_code,
+            error_message,
+            resource_type,
+            name,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(error_code)
+    Ok(out)
 }
 
 /// `true` when AlterConfigs `version` is flexible.
@@ -9558,6 +9632,56 @@ mod tests {
             &buf[..],
             &v0r[..],
             "IncrementalAlterConfigs v1 response must not be classic v0"
+        );
+    }
+
+    #[test]
+    fn incremental_alter_configs_v1_resources_of_two_matches_independent_encode() {
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x02, 0x61, 0x02, 0x02, 0x6b, 0x00, 0x02, 0x31, 0x00, 0x00, 0x02, 0x02,
+            0x62, 0x02, 0x02, 0x6b, 0x00, 0x02, 0x32, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let resources = [
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "a".into(),
+                configs: vec![AlterConfig::set("k", "1")],
+            },
+            AlterableResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "b".into(),
+                configs: vec![AlterConfig::set("k", "2")],
+            },
+        ];
+        let mut buf = BytesMut::new();
+        encode_incremental_alter_configs_resources_request(&mut buf, 1, &resources, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (got, validate) =
+            decode_incremental_alter_configs_resources_request(&mut cur, 1).unwrap();
+        assert_eq!(got, resources);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs v1 Resources of 2 must be leftover-empty"
+        );
+
+        let mut v0 = BytesMut::new();
+        encode_incremental_alter_configs_resources_request(&mut v0, 0, &resources, false).unwrap();
+        const V0: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, 0x02, 0x00, 0x01, 0x61, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+            0x6b, 0x00, 0x00, 0x01, 0x31, 0x02, 0x00, 0x01, 0x62, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0x01, 0x6b, 0x00, 0x00, 0x01, 0x32, 0x00,
+        ];
+        assert_eq!(&v0[..], V0);
+        let mut cur = &v0[..];
+        let (got0, validate0) =
+            decode_incremental_alter_configs_resources_request(&mut cur, 0).unwrap();
+        assert_eq!(got0, resources);
+        assert!(!validate0);
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs v0 Resources of 2 must be leftover-empty"
         );
     }
 

@@ -43,7 +43,7 @@ use partitionline::protocol::admin::{
     decode_describe_share_group_offsets_request, decode_describe_topic_partitions_request,
     decode_describe_transactions_request, decode_describe_user_scram_credentials_request,
     decode_expire_delegation_token_request, decode_get_telemetry_subscriptions_request,
-    decode_incremental_alter_configs_request, decode_list_config_resources_request,
+    decode_incremental_alter_configs_resources_request, decode_list_config_resources_request,
     decode_list_groups_request, decode_list_partition_reassignments_request,
     decode_list_transactions_request, decode_push_telemetry_request,
     decode_renew_delegation_token_request, decode_share_group_describe_request,
@@ -62,21 +62,21 @@ use partitionline::protocol::admin::{
     encode_describe_producers_response, encode_describe_share_group_offsets_response,
     encode_describe_topic_partitions_response, encode_describe_transactions_response,
     encode_describe_user_scram_credentials_response, encode_expire_delegation_token_response,
-    encode_get_telemetry_subscriptions_response, encode_incremental_alter_configs_response,
+    encode_get_telemetry_subscriptions_response, encode_incremental_alter_configs_resource_results,
     encode_list_config_resources_response, encode_list_groups_response,
     encode_list_partition_reassignments_response, encode_list_transactions_response,
     encode_push_telemetry_response, encode_renew_delegation_token_response,
     encode_share_group_describe_response, encode_unregister_broker_response,
     encode_update_features_response, ActiveProducer, AllocateProducerIdsResponse,
-    AlterPartitionReassignmentsResponse, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
-    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
-    AlterUserScramCredentialsResult, AlteredShareGroupOffsets, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
-    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
-    ClientQuotaValue, ClusterDescription, ConfigEntry, CreateDelegationTokenRequest,
-    CreateDelegationTokenResponse, CreatedTopicConfig, DeletableGroupResult,
-    DeletedRecordsPartition, DeletedRecordsTopic, DeletedShareGroupOffsets,
+    AlterConfigsResourceResult, AlterPartitionReassignmentsResponse, AlterReplicaLogDirsRequest,
+    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AlterReplicaLogDirsResponseTopic, AlterUserScramCredentialsResult, AlteredShareGroupOffsets,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
+    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
+    AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
+    ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
+    ConfigEntry, CreateDelegationTokenRequest, CreateDelegationTokenResponse, CreatedTopicConfig,
+    DeletableGroupResult, DeletedRecordsPartition, DeletedRecordsTopic, DeletedShareGroupOffsets,
     DescribeClientQuotasResponse, DescribeClusterBroker, DescribeConfigsResult,
     DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
     DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
@@ -282,6 +282,7 @@ struct State {
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     last_incremental_alter_configs_version: Option<i16>,
+    last_incremental_alter_configs_n: Option<usize>,
     incremental_alter_configs_not_controller: u32,
     last_alter_configs_version: Option<i16>,
     last_create_acls_node: Option<i32>,
@@ -614,6 +615,7 @@ fn new_state(
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         last_incremental_alter_configs_version: None,
+        last_incremental_alter_configs_n: None,
         incremental_alter_configs_not_controller: 0,
         last_alter_configs_version: None,
         last_create_acls_node: None,
@@ -1630,6 +1632,10 @@ impl Mock {
 
     pub fn last_incremental_alter_configs_version(&self) -> Option<i16> {
         self.state.lock().last_incremental_alter_configs_version
+    }
+
+    pub fn last_incremental_alter_configs_n(&self) -> Option<usize> {
+        self.state.lock().last_incremental_alter_configs_n
     }
 
     pub fn incremental_alter_configs_not_controller(&self) -> u32 {
@@ -3232,35 +3238,57 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             INCREMENTAL_ALTER_CONFIGS => {
                 let version = header.api_version;
-                let (rt, name, configs, validate_only) =
-                    decode_incremental_alter_configs_request(&mut frame, version).unwrap();
-                let mut err = 0i16;
+                let (resources, validate_only) =
+                    decode_incremental_alter_configs_resources_request(&mut frame, version)
+                        .unwrap();
                 let mut st = state.lock();
                 st.last_incremental_alter_configs_version = Some(version);
+                st.last_incremental_alter_configs_n = Some(resources.len());
                 if st.controller_node != node_id {
                     st.incremental_alter_configs_not_controller = st
                         .incremental_alter_configs_not_controller
                         .saturating_add(1);
-                    err = error::NOT_CONTROLLER;
+                    let results: Vec<AlterConfigsResourceResult> = resources
+                        .into_iter()
+                        .map(|r| AlterConfigsResourceResult {
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            resource_type: r.resource_type,
+                            name: r.name,
+                        })
+                        .collect();
+                    encode_incremental_alter_configs_resource_results(&mut body, version, &results)
+                        .unwrap();
                 } else {
                     st.last_incremental_alter_configs_node = Some(node_id);
-                    if rt != RESOURCE_TOPIC {
-                        err = 3;
-                    } else if let Some(spec) = st.created_topics.get_mut(&name) {
-                        if !validate_only {
-                            for c in configs {
-                                if c.op == ALTER_CONFIG_DELETE {
-                                    spec.configs.remove(&c.name);
-                                } else if c.op == ALTER_CONFIG_SET {
-                                    spec.configs.insert(c.name, c.value);
+                    let mut results = Vec::with_capacity(resources.len());
+                    for r in resources {
+                        let mut err = 0i16;
+                        if r.resource_type != RESOURCE_TOPIC {
+                            err = 3;
+                        } else if let Some(spec) = st.created_topics.get_mut(&r.name) {
+                            if !validate_only {
+                                for c in r.configs {
+                                    if c.op == ALTER_CONFIG_DELETE {
+                                        spec.configs.remove(&c.name);
+                                    } else if c.op == ALTER_CONFIG_SET {
+                                        spec.configs.insert(c.name, c.value);
+                                    }
                                 }
                             }
+                        } else {
+                            err = 3;
                         }
-                    } else {
-                        err = 3;
+                        results.push(AlterConfigsResourceResult {
+                            error_code: err,
+                            error_message: None,
+                            resource_type: r.resource_type,
+                            name: r.name,
+                        });
                     }
+                    encode_incremental_alter_configs_resource_results(&mut body, version, &results)
+                        .unwrap();
                 }
-                encode_incremental_alter_configs_response(&mut body, version, err, &name).unwrap();
             }
             ALTER_CONFIGS => {
                 let version = header.api_version;
