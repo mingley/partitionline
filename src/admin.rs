@@ -3410,7 +3410,7 @@ impl Admin {
 
     /// List committed offsets for `group_id` (Java `listConsumerGroupOffsets`).
     ///
-    /// OffsetFetch v5 on the group coordinator. Partitions with no committed
+    /// OffsetFetch v5–v9 on the group coordinator. Partitions with no committed
     /// offset return [`crate::OffsetAndMetadata`] offset `-1`. Empty
     /// `partitions` returns an empty list. `COORDINATOR_LOAD_IN_PROGRESS` /
     /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` refresh the coordinator
@@ -3433,8 +3433,8 @@ impl Admin {
         let version = self
             .versions
             .get(&OFFSET_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
-            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v5".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
+            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v5-9".into()))?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -3462,7 +3462,11 @@ impl Admin {
                 conn.roundtrip(
                     OFFSET_FETCH,
                     version,
-                    |buf| encode_offset_fetch_request(buf, &group_id, &topics),
+                    |buf| {
+                        encode_offset_fetch_request(
+                            buf, version, &group_id, None, -1, false, &topics,
+                        )
+                    },
                     timeout,
                 )
                 .await
@@ -3477,7 +3481,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let fetched = match decode_offset_fetch_response(&mut body.clone()) {
+            let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
                 Ok(t) => t,
                 Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                     self.group_coord = None;

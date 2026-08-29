@@ -256,6 +256,9 @@ pub struct BrokerConn {
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 7–9 from ApiVersions.
     pub(crate) offset_commit_version: i16,
+    /// OffsetFetch version negotiated on coordinator sockets (`0` unset).
+    /// Classic consumer groups pick 5–9 from ApiVersions.
+    pub(crate) offset_fetch_version: i16,
 }
 
 impl BrokerConn {
@@ -310,6 +313,7 @@ impl BrokerConn {
             last_io: Instant::now(),
             stats: None,
             offset_commit_version: 0,
+            offset_fetch_version: 0,
         })
     }
 

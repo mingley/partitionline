@@ -626,7 +626,7 @@ pub struct OffsetTopic {
     pub partitions: Vec<OffsetPartition>,
 }
 
-/// Topic + partition indexes for OffsetFetch v5.
+/// Topic + partition indexes for OffsetFetch v5–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchTopic {
     /// Topic name.
@@ -635,7 +635,7 @@ pub struct OffsetFetchTopic {
     pub partitions: Vec<i32>,
 }
 
-/// One partition in an OffsetFetch v5 response.
+/// One partition in an OffsetFetch v5–v9 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
     /// Partition index.
@@ -664,7 +664,7 @@ impl FetchedOffset {
     }
 }
 
-/// Topic + committed offsets from OffsetFetch v5.
+/// Topic + committed offsets from OffsetFetch v5–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffsetTopic {
     /// Topic name.
@@ -836,51 +836,73 @@ pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     Ok(first_err)
 }
 
-/// Encode OffsetFetch v5.
-pub fn encode_offset_fetch_request(
+/// `true` when OffsetFetch `version` is flexible (v6+).
+///
+/// v5 is classic (GroupId + Topics, committed leader epoch). v6 is compact
+/// strings/arrays plus tagged fields (Apache JSON `flexibleVersions: "6+"`).
+/// v7 adds RequireStable. v8 replaces GroupId / Topics with Groups (KIP-709).
+/// v9 adds MemberId / MemberEpoch on each group (KIP-848). Kafka 4.0
+/// `validVersions` is `1-9`. This crate speaks 5–9. v1–v4 (no leader epoch)
+/// and v10+ (topic IDs) are not spoken.
+fn offset_fetch_flexible(version: i16) -> Result<bool> {
+    match version {
+        5 => Ok(false),
+        6..=9 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "OffsetFetch version {other} is not implemented"
+        ))),
+    }
+}
+
+fn encode_offset_fetch_topics(
     buf: &mut BytesMut,
-    group_id: &str,
+    flexible: bool,
     topics: &[OffsetFetchTopic],
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(*p);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
         }
     }
     Ok(())
 }
 
-/// Decode OffsetFetch: `(group_id, topics)`.
-pub fn decode_offset_fetch_request<B: Buf>(buf: &mut B) -> Result<(String, Vec<OffsetFetchTopic>)> {
-    let group = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+fn decode_offset_fetch_topics<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+) -> Result<Vec<OffsetFetchTopic>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             partitions.push(buf::get_i32(buf)?);
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(OffsetFetchTopic { topic, partitions });
     }
-    Ok((group, topics))
+    Ok(topics)
 }
 
-/// Encode OffsetFetch v5.
-pub fn encode_offset_fetch_response(
+fn encode_fetched_offset_topics(
     buf: &mut BytesMut,
+    flexible: bool,
     topics: &[FetchedOffsetTopic],
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
@@ -890,29 +912,38 @@ pub fn encode_offset_fetch_response(
             } else {
                 Some(p.metadata.as_str())
             };
-            buf::put_classic_nullable_string(buf, meta)?;
+            buf::put_string(buf, flexible, meta)?;
             buf.put_i16(p.error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
         }
     }
-    buf.put_i16(0); // top-level error
     Ok(())
 }
 
-/// Decode OffsetFetch. Top-level error is [`crate::error::Error::Broker`].
-pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOffsetTopic>> {
-    let _throttle = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+fn decode_fetched_offset_topics<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+) -> Result<Vec<FetchedOffsetTopic>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
             let leader_epoch = buf::get_i32(buf)?;
-            let metadata = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             let error_code = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(FetchedOffset {
                 partition,
                 offset,
@@ -921,9 +952,147 @@ pub fn decode_offset_fetch_response<B: Buf>(buf: &mut B) -> Result<Vec<FetchedOf
                 error_code,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(FetchedOffsetTopic { topic, partitions });
     }
-    let top = buf::get_i16(buf)?;
+    Ok(topics)
+}
+
+/// Encode OffsetFetch v5 (classic) or v6–v9 (flexible).
+pub fn encode_offset_fetch_request(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    require_stable: bool,
+    topics: &[OffsetFetchTopic],
+) -> crate::error::Result<()> {
+    let flexible = offset_fetch_flexible(version)?;
+    if version <= 7 {
+        buf::put_string(buf, flexible, Some(group_id))?;
+        encode_offset_fetch_topics(buf, flexible, topics)?;
+    } else {
+        buf::put_array_len(buf, true, Some(1))?;
+        buf::put_compact_string(buf, Some(group_id))?;
+        if version >= 9 {
+            buf::put_compact_string(buf, member_id)?;
+            buf.put_i32(member_epoch);
+        }
+        encode_offset_fetch_topics(buf, true, topics)?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    if version >= 7 {
+        buf.put_u8(u8::from(require_stable));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode OffsetFetch: `(group_id, topics, require_stable)`.
+pub fn decode_offset_fetch_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, Vec<OffsetFetchTopic>, bool)> {
+    let flexible = offset_fetch_flexible(version)?;
+    let (group, topics) = if version <= 7 {
+        let group = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let topics = decode_offset_fetch_topics(buf, flexible)?;
+        (group, topics)
+    } else {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut group = String::new();
+        let mut topics = Vec::new();
+        let mut first = true;
+        for _ in 0..n {
+            let next = buf::get_compact_string(buf)?.unwrap_or_default();
+            if version >= 9 {
+                let _member = buf::get_compact_string(buf)?;
+                let _epoch = buf::get_i32(buf)?;
+            }
+            let next_topics = decode_offset_fetch_topics(buf, true)?;
+            buf::skip_tagged_fields(buf)?;
+            if first {
+                group = next;
+                topics = next_topics;
+                first = false;
+            }
+        }
+        (group, topics)
+    };
+    let require_stable = if version >= 7 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((group, topics, require_stable))
+}
+
+/// Encode OffsetFetch: throttle, topics or Groups, then error / tagged fields.
+pub fn encode_offset_fetch_response(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    topics: &[FetchedOffsetTopic],
+    error: i16,
+) -> crate::error::Result<()> {
+    let flexible = offset_fetch_flexible(version)?;
+    buf.put_i32(0);
+    if version <= 7 {
+        encode_fetched_offset_topics(buf, flexible, topics)?;
+        buf.put_i16(error);
+    } else {
+        buf::put_array_len(buf, true, Some(1))?;
+        buf::put_compact_string(buf, Some(group_id))?;
+        encode_fetched_offset_topics(buf, true, topics)?;
+        buf.put_i16(error);
+        buf::put_empty_tagged_fields(buf);
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    Ok(())
+}
+
+/// Decode OffsetFetch. Top-level / group error is [`crate::error::Error::Broker`].
+pub fn decode_offset_fetch_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<FetchedOffsetTopic>> {
+    let flexible = offset_fetch_flexible(version)?;
+    let _throttle = buf::get_i32(buf)?;
+    let (topics, top) = if version <= 7 {
+        let topics = decode_fetched_offset_topics(buf, flexible)?;
+        let top = buf::get_i16(buf)?;
+        (topics, top)
+    } else {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let mut topics = Vec::new();
+        let mut top = 0i16;
+        let mut first = true;
+        for _ in 0..n {
+            let _gid = buf::get_compact_string(buf)?;
+            let next = decode_fetched_offset_topics(buf, true)?;
+            let err = buf::get_i16(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            if first {
+                topics = next;
+                top = err;
+                first = false;
+            }
+        }
+        (topics, top)
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     if top != 0 {
         return Err(crate::error::Error::broker(top, "OffsetFetch"));
     }
@@ -1534,11 +1703,12 @@ mod tests {
             partitions: vec![0, 1, 2],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_fetch_request(&mut buf, "g", &req).unwrap();
+        encode_offset_fetch_request(&mut buf, 5, "g", None, -1, false, &req).unwrap();
         let mut cur = &buf[..];
-        let (gid, got) = decode_offset_fetch_request(&mut cur).unwrap();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 5).unwrap();
         assert_eq!(gid, "g");
         assert_eq!(got, req);
+        assert!(!stable);
         assert!(cur.is_empty());
 
         let resp = vec![FetchedOffsetTopic {
@@ -1555,14 +1725,165 @@ mod tests {
             ],
         }];
         buf.clear();
-        encode_offset_fetch_response(&mut buf, &resp).unwrap();
+        encode_offset_fetch_response(&mut buf, 5, "g", &resp, 0).unwrap();
         let mut cur = &buf[..];
-        let decoded = decode_offset_fetch_response(&mut cur).unwrap();
+        let decoded = decode_offset_fetch_response(&mut cur, 5).unwrap();
         assert_eq!(decoded, resp);
         assert!(
             cur.is_empty(),
             "v5 decoder must consume epoch, metadata, partition error, and top-level error"
         );
+    }
+
+    fn offset_fetch_one_topic() -> Vec<OffsetFetchTopic> {
+        vec![OffsetFetchTopic {
+            topic: "t".into(),
+            partitions: vec![0],
+        }]
+    }
+
+    #[test]
+    fn offset_fetch_v6_roundtrip_is_leftover_empty() {
+        let req = offset_fetch_one_topic();
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, &req).unwrap();
+        let mut cur = &buf[..];
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 6).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, req);
+        assert!(
+            cur.is_empty(),
+            "v6 request must consume tagged fields; leftover {} bytes",
+            cur.len()
+        );
+
+        let resp = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset::new(0, 4, 0)],
+        }];
+        buf.clear();
+        encode_offset_fetch_response(&mut buf, 6, "g", &resp, 0).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_offset_fetch_response(&mut cur, 6).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            cur.is_empty(),
+            "v6 response must consume tagged fields; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_v6_request_matches_compact_layout() {
+        // Compact "g", one topic "t" partition 0, tagged.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let req = offset_fetch_one_topic();
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v5 = BytesMut::new();
+        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, &req).unwrap();
+        assert_ne!(&buf[..], &v5[..], "OffsetFetch v6 must not be classic v5");
+        assert!(
+            encode_offset_fetch_request(&mut BytesMut::new(), 4, "g", None, -1, false, &req)
+                .is_err(),
+            "OffsetFetch v4 is not spoken"
+        );
+        assert!(
+            encode_offset_fetch_request(&mut BytesMut::new(), 10, "g", None, -1, false, &req)
+                .is_err(),
+            "OffsetFetch v10+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn offset_fetch_v7_sends_require_stable() {
+        let req = offset_fetch_one_topic();
+        let mut off = BytesMut::new();
+        encode_offset_fetch_request(&mut off, 7, "g", None, -1, false, &req).unwrap();
+        let mut on = BytesMut::new();
+        encode_offset_fetch_request(&mut on, 7, "g", None, -1, true, &req).unwrap();
+        assert_ne!(&off[..], &on[..], "RequireStable must change the v7 body");
+        let mut cur = &on[..];
+        let (_gid, _got, stable) = decode_offset_fetch_request(&mut cur, 7).unwrap();
+        assert!(stable);
+        assert!(cur.is_empty());
+        // Compact "g", one topic "t" p0, RequireStable 1, tagged.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        ];
+        assert_eq!(&on[..], REQ);
+    }
+
+    #[test]
+    fn offset_fetch_v8_groups_roundtrip_is_leftover_empty() {
+        let req = offset_fetch_one_topic();
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(&mut buf, 8, "g", None, -1, false, &req).unwrap();
+        let mut cur = &buf[..];
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 8).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, req);
+        assert!(
+            cur.is_empty(),
+            "v8 request must consume Groups tagged fields; leftover {} bytes",
+            cur.len()
+        );
+        // Compact Groups of 1 ("g"), one topic "t" p0, group tags, RequireStable 0, top tags.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x67, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        assert_eq!(&buf[..], REQ);
+
+        let resp = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset::new(0, 4, 0)],
+        }];
+        buf.clear();
+        encode_offset_fetch_response(&mut buf, 8, "g", &resp, 0).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_offset_fetch_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            cur.is_empty(),
+            "v8 response must consume Groups tagged fields; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_v9_sends_member_id_and_epoch() {
+        let req = offset_fetch_one_topic();
+        let mut v8 = BytesMut::new();
+        encode_offset_fetch_request(&mut v8, 8, "g", Some("m1"), 3, false, &req).unwrap();
+        let mut v9 = BytesMut::new();
+        encode_offset_fetch_request(&mut v9, 9, "g", Some("m1"), 3, false, &req).unwrap();
+        assert_ne!(&v8[..], &v9[..], "v9 must write MemberId / MemberEpoch");
+        let mut cur = &v9[..];
+        let (gid, got, _stable) = decode_offset_fetch_request(&mut cur, 9).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(got, req);
+        assert!(cur.is_empty());
+        // Compact Groups of 1: "g", compact "m1", epoch 3, one topic "t" p0,
+        // group tags, RequireStable 0, top tags.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x67, 0x03, 0x6d, 0x31, 0x00, 0x00, 0x00, 0x03, 0x02, 0x02, 0x74, 0x02,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert_eq!(&v9[..], REQ);
+
+        let resp = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset::new(0, 4, 0)],
+        }];
+        let mut r8 = BytesMut::new();
+        encode_offset_fetch_response(&mut r8, 8, "g", &resp, 0).unwrap();
+        let mut r9 = BytesMut::new();
+        encode_offset_fetch_response(&mut r9, 9, "g", &resp, 0).unwrap();
+        assert_eq!(&r8[..], &r9[..], "OffsetFetch v9 response matches v8");
     }
 
     #[test]

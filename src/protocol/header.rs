@@ -12,9 +12,10 @@ use super::api_keys::{
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
     FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, TXN_OFFSET_COMMIT,
-    UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
+    RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    SHARE_GROUP_HEARTBEAT, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
+    WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -115,6 +116,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "8+"). Kafka 4.0 validVersions
         // is 2-9. This crate speaks 7–9. v9 is KIP-848 errors (same layout).
         OFFSET_COMMIT if api_version >= 8 => 2,
+        // OffsetFetch is classic through v5; flexible from v6
+        // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
+        // is 1-9. This crate speaks 5–9. v7 RequireStable; v8 Groups;
+        // v9 MemberId / MemberEpoch (same header as v6).
+        OFFSET_FETCH if api_version >= 6 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -190,6 +196,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         LEAVE_GROUP if api_version >= 4 => 1,
         LIST_OFFSETS if api_version >= 6 => 1,
         OFFSET_COMMIT if api_version >= 8 => 1,
+        OFFSET_FETCH if api_version >= 6 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -439,6 +446,19 @@ mod tests {
         assert_eq!(response_header_version(OFFSET_COMMIT, 8), 1);
         assert_eq!(request_header_version(OFFSET_COMMIT, 9), 2);
         assert_eq!(response_header_version(OFFSET_COMMIT, 9), 1);
+    }
+
+    #[test]
+    fn offset_fetch_v6_is_flexible_v5_is_not() {
+        // Official JSON: validVersions 1-9, flexibleVersions 6+.
+        // HeaderVersion is 1 / 0 at v5 and 2 / 1 at v6–v9. This crate
+        // speaks 5–9. v7–v9 keep the v6 header (RequireStable / Groups).
+        assert_eq!(request_header_version(OFFSET_FETCH, 5), 1);
+        assert_eq!(response_header_version(OFFSET_FETCH, 5), 0);
+        assert_eq!(request_header_version(OFFSET_FETCH, 6), 2);
+        assert_eq!(response_header_version(OFFSET_FETCH, 6), 1);
+        assert_eq!(request_header_version(OFFSET_FETCH, 9), 2);
+        assert_eq!(response_header_version(OFFSET_FETCH, 9), 1);
     }
 
     #[test]

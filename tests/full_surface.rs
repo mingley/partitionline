@@ -10,7 +10,9 @@
 
 mod common;
 
-use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR, METADATA, OFFSET_COMMIT};
+use partitionline::protocol::api_keys::{
+    END_TXN, FIND_COORDINATOR, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+};
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
@@ -1977,6 +1979,16 @@ async fn consumer_group_join_fetch_commit() {
         Some(6),
         "ConsumerGroup must prefer FindCoordinator v6 when the broker advertises it"
     );
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(9),
+        "ConsumerGroup must prefer OffsetFetch v9 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_offset_fetch_require_stable(),
+        Some(false),
+        "ReadUncommitted OffsetFetch must send RequireStable false"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
@@ -2040,6 +2052,45 @@ async fn offset_commit_negotiates_below_v9_when_broker_caps() {
         "client must speak OffsetCommit v7 when the broker max is 7"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn offset_fetch_negotiates_below_v9_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 7);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "of7", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(7),
+        "client must speak OffsetFetch v7 when the broker max is 7"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 5);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "of5", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(5),
+        "client must speak OffsetFetch v5 when the broker max is 5"
+    );
+}
+
+#[tokio::test]
+async fn offset_fetch_read_committed_sets_require_stable() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.isolation_level = IsolationLevel::ReadCommitted;
+    let _group = ConsumerGroup::join(ccfg, "of-rs", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_require_stable(),
+        Some(true),
+        "ReadCommitted OffsetFetch must send RequireStable true"
+    );
 }
 
 #[tokio::test]

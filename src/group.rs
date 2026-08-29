@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use bytes::{Bytes, BytesMut};
 use tokio::sync::watch;
 
-use crate::config::AutoOffsetReset;
+use crate::config::{AutoOffsetReset, IsolationLevel};
 use crate::consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata, TopicPartition,
 };
@@ -763,18 +763,7 @@ impl ConsumerGroup {
             .map(|tp| (tp.topic.clone(), tp.partition))
             .collect();
         let topics = group_offset_fetch_topics(&wanted);
-        let body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_GROUP,
-            OFFSET_FETCH,
-            5,
-            |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
-            timeout,
-        )
-        .await?;
-        let fetched = decode_offset_fetch_response(&mut body.clone())?;
+        let fetched = self.offset_fetch(&topics, timeout).await?;
         let map = committed_offset_map(&fetched)?;
         Ok(partitions
             .iter()
@@ -786,6 +775,47 @@ impl ConsumerGroup {
                 (tp.clone(), md)
             })
             .collect())
+    }
+
+    async fn offset_fetch(
+        &mut self,
+        topics: &[OffsetFetchTopic],
+        timeout: Duration,
+    ) -> Result<Vec<FetchedOffsetTopic>> {
+        let version = self.coord.offset_fetch_version;
+        if !(5..=9).contains(&version) {
+            return Err(Error::Unsupported(
+                "broker does not support OffsetFetch v5-9".into(),
+            ));
+        }
+        let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
+        let (member_id, member_epoch) = if self.kip848 {
+            (Some(self.member_id.as_str()), self.generation_id)
+        } else {
+            (None, -1)
+        };
+        let body = coord_roundtrip(
+            &mut self.coord,
+            &self.cfg,
+            &self.group_id,
+            COORDINATOR_GROUP,
+            OFFSET_FETCH,
+            version,
+            |buf| {
+                encode_offset_fetch_request(
+                    buf,
+                    version,
+                    &self.group_id,
+                    member_id,
+                    member_epoch,
+                    require_stable,
+                    topics,
+                )
+            },
+            timeout,
+        )
+        .await?;
+        decode_offset_fetch_response(&mut body.clone(), version)
     }
 
     /// Fetch the current assignment. Rejoins on a classic rebalance.
@@ -1610,18 +1640,7 @@ impl ConsumerGroup {
         } else {
             let topics = group_offset_fetch_topics(&added);
             let timeout = self.cfg.request_timeout;
-            let body = coord_roundtrip(
-                &mut self.coord,
-                &self.cfg,
-                &self.group_id,
-                COORDINATOR_GROUP,
-                OFFSET_FETCH,
-                5,
-                |buf| encode_offset_fetch_request(buf, &self.group_id, &topics),
-                timeout,
-            )
-            .await?;
-            decode_offset_fetch_response(&mut body.clone())?
+            self.offset_fetch(&topics, timeout).await?
         };
         let map = committed_offset_map(&fetched)?;
         let reset = self.cfg.auto_offset_reset;
@@ -2170,6 +2189,12 @@ async fn open_coord_with_find_version(
         .find(|k| k.api_key == OFFSET_COMMIT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 7, 9))
         .unwrap_or(0);
+    conn.offset_fetch_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == OFFSET_FETCH)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
+        .unwrap_or(0);
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),
@@ -2248,7 +2273,7 @@ fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16>
             Ok(code) => Some(code),
             Err(_) => None,
         },
-        OFFSET_FETCH => match decode_offset_fetch_response(&mut { body }) {
+        OFFSET_FETCH => match decode_offset_fetch_response(&mut { body }, api_version) {
             Err(Error::Broker { code, .. }) => Some(code),
             Ok(topics) => topics
                 .iter()
@@ -2415,7 +2440,7 @@ mod tests {
             partitions: vec![FetchedOffset::new(0, -1, error::NOT_COORDINATOR)],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_fetch_response(&mut buf, &topics).unwrap();
+        encode_offset_fetch_response(&mut buf, 5, "g", &topics, 0).unwrap();
         assert_ne!(
             peek_error_code(&buf),
             Some(error::NOT_COORDINATOR),

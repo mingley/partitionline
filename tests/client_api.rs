@@ -2433,6 +2433,11 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert_eq!(listed[0].1.offset, 3);
     assert_eq!(listed[0].1.metadata, "admin");
     assert_eq!(listed[0].1.leader_epoch, Some(0));
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(9),
+        "Admin must prefer OffsetFetch v9 when the broker advertises it"
+    );
     let empty = admin
         .list_consumer_group_offsets("g-off", Vec::<TopicPartition>::new())
         .await

@@ -388,6 +388,8 @@ struct State {
     offset_fetch_calls: u32,
     last_offset_commit_partitions: usize,
     last_offset_fetch_partitions: usize,
+    last_offset_fetch_version: Option<i16>,
+    last_offset_fetch_require_stable: Option<bool>,
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
     offset_commit_not_coordinator: u32,
@@ -638,6 +640,8 @@ fn new_state(
         offset_fetch_calls: 0,
         last_offset_commit_partitions: 0,
         last_offset_fetch_partitions: 0,
+        last_offset_fetch_version: None,
+        last_offset_fetch_require_stable: None,
         last_offset_commit_node: None,
         last_offset_commit_version: None,
         offset_commit_not_coordinator: 0,
@@ -1840,6 +1844,14 @@ impl Mock {
         self.state.lock().last_offset_fetch_partitions
     }
 
+    pub fn last_offset_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_offset_fetch_version
+    }
+
+    pub fn last_offset_fetch_require_stable(&self) -> Option<bool> {
+        self.state.lock().last_offset_fetch_require_stable
+    }
+
     pub fn add_partitions_to_txn_calls(&self) -> u32 {
         self.state.lock().add_partitions_to_txn_calls
     }
@@ -2181,7 +2193,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 13),
         (OFFSET_COMMIT, 2, 9),
-        (OFFSET_FETCH, 1, 5),
+        (OFFSET_FETCH, 1, 9),
         (FIND_COORDINATOR, 0, 6),
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
@@ -2295,10 +2307,13 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         .unwrap(),
         OFFSET_FETCH => encode_offset_fetch_response(
             body,
+            api_version,
+            "g",
             &[FetchedOffsetTopic {
                 topic: "t".into(),
                 partitions: vec![FetchedOffset::new(0, -1, NC)],
             }],
+            NC,
         )
         .unwrap(),
         CONSUMER_GROUP_HEARTBEAT => encode_consumer_group_heartbeat_response(
@@ -4507,9 +4522,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             OFFSET_FETCH => {
-                let (_g, topics) = decode_offset_fetch_request(&mut frame).unwrap();
+                let (gid, topics, stable) =
+                    decode_offset_fetch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_fetch_calls = st.offset_fetch_calls.saturating_add(1);
+                st.last_offset_fetch_version = Some(header.api_version);
+                st.last_offset_fetch_require_stable = Some(stable);
                 let mut nparts = 0usize;
                 let mut out = Vec::with_capacity(topics.len());
                 for t in topics {
@@ -4535,7 +4553,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     });
                 }
                 st.last_offset_fetch_partitions = nparts;
-                encode_offset_fetch_response(&mut body, &out).unwrap();
+                encode_offset_fetch_response(&mut body, header.api_version, &gid, &out, 0).unwrap();
             }
             OFFSET_DELETE => {
                 let (_gid, topics) = decode_offset_delete_request(&mut frame).unwrap();
