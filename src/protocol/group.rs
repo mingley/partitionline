@@ -245,6 +245,10 @@ pub fn encode_join_group_request(
 /// Decode JoinGroup: `(group_id, member_id, instance_id, metadata, reason)`.
 ///
 /// `reason` is `None` below v8 (KIP-800).
+#[expect(
+    clippy::type_complexity,
+    reason = "decoded JoinGroup is group, member, instance, metadata, reason"
+)]
 pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
     version: i16,
