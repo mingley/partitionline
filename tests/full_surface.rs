@@ -3926,6 +3926,19 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         Some(2),
         "Admin must prefer DeleteRecords v2 when the broker advertises it"
     );
+    assert_eq!(mock.last_delete_records_partitions(), 1);
+    assert_eq!(mock.last_delete_records_timeout(), Some(10_000));
+    let (low_t, err_t) = admin
+        .delete_records_timeout(
+            ("rest", md0.partition),
+            md0.offset + 1,
+            Duration::from_millis(1500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(err_t, 0);
+    assert_eq!(low_t, md0.offset + 1);
+    assert_eq!(mock.last_delete_records_timeout(), Some(1500));
 
     let cluster = admin.describe_cluster().await.unwrap();
     assert_eq!(cluster.error_code, 0);
@@ -4043,6 +4056,82 @@ async fn delete_records_negotiates_v1_when_broker_caps() {
         Some(1),
         "client must speak DeleteRecords v1 when the broker max is 1"
     );
+}
+
+#[tokio::test]
+async fn admin_delete_records_for_batches_partitions() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    assert_eq!(
+        admin
+            .create_topics(&[NewTopic::new("dr2", 2, 1)], 10_000, false)
+            .await
+            .unwrap()[0]
+            .error_code,
+        0
+    );
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md0 = producer
+        .send(ProduceRecord::to("dr2").partition(0).value(&b"a"[..]))
+        .await
+        .unwrap();
+    let md1 = producer
+        .send(ProduceRecord::to("dr2").partition(1).value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let before = mock.delete_records_calls();
+    let listed = admin
+        .delete_records_for([
+            (TopicPartition::new("dr2", md0.partition), md0.offset + 1),
+            (TopicPartition::new("dr2", md1.partition), md1.offset + 1),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2);
+    assert_eq!(listed[0].2, 0);
+    assert_eq!(listed[1].2, 0);
+    assert_eq!(listed[0].1, md0.offset + 1);
+    assert_eq!(listed[1].1, md1.offset + 1);
+    assert_eq!(
+        mock.last_delete_records_partitions(),
+        2,
+        "deleteRecords(Map) must send Topics/Partitions of N on one leader"
+    );
+    assert_eq!(
+        mock.delete_records_calls().saturating_sub(before),
+        1,
+        "partitions that share a leader must be one DeleteRecords"
+    );
+    assert_eq!(
+        mock.last_delete_records_timeout(),
+        Some(30_000),
+        "delete_records_for TimeoutMs is AdminConfig::request_timeout"
+    );
+    let timed = admin
+        .delete_records_for_timeout(
+            [(TopicPartition::new("dr2", md0.partition), md0.offset + 1)],
+            Duration::from_millis(2_500),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].2, 0);
+    assert_eq!(mock.last_delete_records_timeout(), Some(2_500));
+    let after_timeout = mock.delete_records_calls();
+    let empty = admin
+        .delete_records_for(Vec::<(TopicPartition, i64)>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.delete_records_calls(),
+        after_timeout,
+        "empty deleteRecords(Map) is a no-op"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

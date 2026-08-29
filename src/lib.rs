@@ -169,6 +169,10 @@
 //! [`Admin::list_consumer_group_offsets_for_groups_with`] are Java
 //! `listConsumerGroupOffsets(Map)` ([`ListConsumerGroupOffsetsSpec`];
 //! OffsetFetch v8+ Groups array of N, KIP-709).
+//! [`Admin::delete_records_for`] is Java `deleteRecords(Map)` (one
+//! DeleteRecords RPC per leader). [`Admin::delete_records_timeout`] /
+//! [`Admin::delete_records_for_timeout`] are Java
+//! `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.

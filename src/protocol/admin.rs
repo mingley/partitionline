@@ -1355,6 +1355,44 @@ fn delete_records_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One partition in a DeleteRecords request (v0–2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteRecordsPartition {
+    /// Partition index.
+    pub partition: i32,
+    /// Delete records with offset strictly below this value.
+    pub offset: i64,
+}
+
+/// Topic + partitions for DeleteRecords (v0–2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteRecordsTopic {
+    /// Topic name.
+    pub topic: String,
+    /// Partitions and before-offsets.
+    pub partitions: Vec<DeleteRecordsPartition>,
+}
+
+/// One partition in a DeleteRecords response (v0–2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletedRecordsPartition {
+    /// Partition index.
+    pub partition: i32,
+    /// New log start offset after the delete.
+    pub low_watermark: i64,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+}
+
+/// Topic + partition results from DeleteRecords (v0–2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeletedRecordsTopic {
+    /// Topic name.
+    pub topic: String,
+    /// Per-partition low watermarks and errors.
+    pub partitions: Vec<DeletedRecordsPartition>,
+}
+
 /// Encode a DeleteRecords request (v0–2; classic through v1; flexible from v2).
 pub fn encode_delete_records_request(
     buf: &mut BytesMut,
@@ -1364,15 +1402,39 @@ pub fn encode_delete_records_request(
     offset: i64,
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_delete_records_topics_request(
+        buf,
+        version,
+        &[DeleteRecordsTopic {
+            topic: topic.to_string(),
+            partitions: vec![DeleteRecordsPartition { partition, offset }],
+        }],
+        timeout_ms,
+    )
+}
+
+/// Encode DeleteRecords v0–2 with a Topics array of N (Java `deleteRecords(Map)`).
+pub fn encode_delete_records_topics_request(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeleteRecordsTopic],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf::put_string(buf, flexible, Some(topic))?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i64(offset);
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
-        buf::put_empty_tagged_fields(buf);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for t in topics {
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i64(p.offset);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     buf.put_i32(timeout_ms);
     if flexible {
@@ -1386,51 +1448,50 @@ pub fn decode_delete_records_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, i32, i64, i32)> {
-    let flexible = delete_records_flexible(version)?;
-    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let (topics, timeout_ms) = decode_delete_records_topics_request(buf, version)?;
     let mut topic = String::new();
     let mut partition = 0i32;
     let mut offset = 0i64;
-    if tn > 0 {
-        topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+    if let Some(t) = topics.into_iter().next() {
+        topic = t.topic;
+        if let Some(p) = t.partitions.into_iter().next() {
+            partition = p.partition;
+            offset = p.offset;
+        }
+    }
+    Ok((topic, partition, offset, timeout_ms))
+}
+
+/// Decode DeleteRecords v0–2: every topic/partition plus TimeoutMs.
+pub fn decode_delete_records_topics_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<DeleteRecordsTopic>, i32)> {
+    let flexible = delete_records_flexible(version)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        if pn > 0 {
-            partition = buf::get_i32(buf)?;
-            offset = buf::get_i64(buf)?;
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let offset = buf::get_i64(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            for _ in 1..pn {
-                let _ = buf::get_i32(buf)?;
-                let _ = buf::get_i64(buf)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
+            partitions.push(DeleteRecordsPartition { partition, offset });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..tn {
-            let _ = buf::get_string(buf, flexible)?;
-            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            for _ in 0..extra {
-                let _ = buf::get_i32(buf)?;
-                let _ = buf::get_i64(buf)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        topics.push(DeleteRecordsTopic { topic, partitions });
     }
     let timeout_ms = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((topic, partition, offset, timeout_ms))
+    Ok((topics, timeout_ms))
 }
 
 /// Encode a DeleteRecords response (one topic/partition).
@@ -1445,19 +1506,47 @@ pub fn encode_delete_records_response(
     low_watermark: i64,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    encode_delete_records_topics_response(
+        buf,
+        version,
+        &[DeletedRecordsTopic {
+            topic: topic.to_string(),
+            partitions: vec![DeletedRecordsPartition {
+                partition,
+                low_watermark,
+                error_code,
+            }],
+        }],
+    )
+}
+
+/// Encode DeleteRecords v0–2 for every topic/partition.
+pub fn encode_delete_records_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeletedRecordsTopic],
+) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf::put_string(buf, flexible, Some(topic))?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i32(partition);
-    buf.put_i64(low_watermark);
-    buf.put_i16(error_code);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for t in topics {
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i64(p.low_watermark);
+            buf.put_i16(p.error_code);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
-        buf::put_empty_tagged_fields(buf);
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
@@ -1468,56 +1557,60 @@ pub fn decode_delete_records_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i32, i64, i16)> {
+    let topics = decode_delete_records_topics_response(buf, version)?;
+    let mut partition = 0i32;
+    let mut low_watermark = 0i64;
+    let mut error_code = 0i16;
+    if let Some(t) = topics.into_iter().next() {
+        if let Some(p) = t.partitions.into_iter().next() {
+            partition = p.partition;
+            low_watermark = p.low_watermark;
+            error_code = p.error_code;
+        }
+    }
+    Ok((partition, low_watermark, error_code))
+}
+
+/// Decode DeleteRecords v0–2: every topic/partition.
+///
+/// Throttle is v1+. Does not fail on a non-zero partition ErrorCode;
+/// callers decide.
+pub fn decode_delete_records_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<DeletedRecordsTopic>> {
     let flexible = delete_records_flexible(version)?;
     if version >= 1 {
         let _th = buf::get_i32(buf)?;
     }
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut partition = 0i32;
-    let mut low_watermark = 0i64;
-    let mut error_code = 0i16;
-    if tn > 0 {
-        let _topic = buf::get_string(buf, flexible)?;
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        if pn > 0 {
-            partition = buf::get_i32(buf)?;
-            low_watermark = buf::get_i64(buf)?;
-            error_code = buf::get_i16(buf)?;
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let low_watermark = buf::get_i64(buf)?;
+            let error_code = buf::get_i16(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            for _ in 1..pn {
-                let _ = buf::get_i32(buf)?;
-                let _ = buf::get_i64(buf)?;
-                let _ = buf::get_i16(buf)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
+            partitions.push(DeletedRecordsPartition {
+                partition,
+                low_watermark,
+                error_code,
+            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        for _ in 1..tn {
-            let _ = buf::get_string(buf, flexible)?;
-            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-            for _ in 0..extra {
-                let _ = buf::get_i32(buf)?;
-                let _ = buf::get_i64(buf)?;
-                let _ = buf::get_i16(buf)?;
-                if flexible {
-                    buf::skip_tagged_fields(buf)?;
-                }
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
-        }
+        topics.push(DeletedRecordsTopic { topic, partitions });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((partition, low_watermark, error_code))
+    Ok(topics)
 }
 
 /// DescribeCluster endpoint type: brokers (KIP-919).
@@ -9886,6 +9979,82 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteRecords v0 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_records_v2_topics_array_of_two_partitions() {
+        let topics = vec![DeleteRecordsTopic {
+            topic: "t".into(),
+            partitions: vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 5,
+                },
+                DeleteRecordsPartition {
+                    partition: 1,
+                    offset: 9,
+                },
+            ],
+        }];
+        let mut buf = BytesMut::new();
+        encode_delete_records_topics_request(&mut buf, 2, &topics, 1000).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, timeout) = decode_delete_records_topics_request(&mut cur, 2).unwrap();
+        assert_eq!(timeout, 1000);
+        assert_eq!(got, topics);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v2 Topics-of-2 leftover-empty"
+        );
+        // Compact 1 topic "t", 2 partitions, timeout 1000, tagged fields.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x74, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x09, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00,
+        ];
+        assert_eq!(&buf[..], REQ);
+
+        let one = vec![DeleteRecordsTopic {
+            topic: "t".into(),
+            partitions: vec![DeleteRecordsPartition {
+                partition: 0,
+                offset: 5,
+            }],
+        }];
+        let mut via_topics = BytesMut::new();
+        encode_delete_records_topics_request(&mut via_topics, 2, &one, 1000).unwrap();
+        let mut via_one = BytesMut::new();
+        encode_delete_records_request(&mut via_one, 2, "t", 0, 5, 1000).unwrap();
+        assert_eq!(
+            via_topics.as_ref(),
+            via_one.as_ref(),
+            "Topics of 1 must match encode_delete_records_request"
+        );
+
+        let resp = vec![DeletedRecordsTopic {
+            topic: "t".into(),
+            partitions: vec![
+                DeletedRecordsPartition {
+                    partition: 0,
+                    low_watermark: 5,
+                    error_code: 0,
+                },
+                DeletedRecordsPartition {
+                    partition: 1,
+                    low_watermark: 9,
+                    error_code: 0,
+                },
+            ],
+        }];
+        buf.clear();
+        encode_delete_records_topics_response(&mut buf, 2, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_delete_records_topics_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v2 Topics-of-2 response leftover-empty"
         );
     }
 

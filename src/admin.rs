@@ -24,7 +24,7 @@ use crate::protocol::admin::{
     decode_alter_user_scram_credentials_response, decode_assign_replicas_to_dirs_response,
     decode_consumer_group_describe_response, decode_create_delegation_token_response,
     decode_create_partitions_response, decode_create_topics_response,
-    decode_delete_groups_response, decode_delete_records_response,
+    decode_delete_groups_response, decode_delete_records_topics_response,
     decode_delete_share_group_offsets_response, decode_delete_topics_response,
     decode_describe_client_quotas_response, decode_describe_cluster_response,
     decode_describe_configs_response, decode_describe_delegation_token_response,
@@ -43,20 +43,21 @@ use crate::protocol::admin::{
     encode_alter_share_group_offsets_request, encode_alter_user_scram_credentials_request,
     encode_assign_replicas_to_dirs_request, encode_consumer_group_describe_request,
     encode_create_delegation_token_request, encode_create_partitions_request,
-    encode_create_topics_request, encode_delete_groups_request, encode_delete_records_request,
-    encode_delete_share_group_offsets_request, encode_delete_topics_request,
-    encode_describe_client_quotas_request, encode_describe_cluster_request,
-    encode_describe_configs_request, encode_describe_delegation_token_request,
-    encode_describe_groups_request, encode_describe_log_dirs_request,
-    encode_describe_producers_request, encode_describe_share_group_offsets_request,
-    encode_describe_topic_partitions_request, encode_describe_transactions_request,
-    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
-    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_request,
-    encode_list_config_resources_request, encode_list_groups_request,
-    encode_list_partition_reassignments_request, encode_list_transactions_request,
-    encode_push_telemetry_request, encode_renew_delegation_token_request,
-    encode_share_group_describe_request, encode_unregister_broker_request,
-    encode_update_features_request, CreatableTopic, CreateTopicsRequest, DescribeConfigsResource,
+    encode_create_topics_request, encode_delete_groups_request,
+    encode_delete_records_topics_request, encode_delete_share_group_offsets_request,
+    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_describe_cluster_request, encode_describe_configs_request,
+    encode_describe_delegation_token_request, encode_describe_groups_request,
+    encode_describe_log_dirs_request, encode_describe_producers_request,
+    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
+    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
+    encode_incremental_alter_configs_request, encode_list_config_resources_request,
+    encode_list_groups_request, encode_list_partition_reassignments_request,
+    encode_list_transactions_request, encode_push_telemetry_request,
+    encode_renew_delegation_token_request, encode_share_group_describe_request,
+    encode_unregister_broker_request, encode_update_features_request, CreatableTopic,
+    CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic, DescribeConfigsResource,
     DescribeConfigsResult, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
     ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
     RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
@@ -1080,6 +1081,42 @@ fn listed_group_offsets(
             })
             .collect()),
     }
+}
+
+fn delete_records_topics(
+    records: &[(crate::TopicPartition, i64)],
+    idxs: &[usize],
+) -> Vec<DeleteRecordsTopic> {
+    let mut by_topic: HashMap<String, Vec<DeleteRecordsPartition>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for &i in idxs {
+        let Some((tp, offset)) = records.get(i) else {
+            continue;
+        };
+        match by_topic.entry(tp.topic.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                order.push(tp.topic.clone());
+                let _ = slot.insert(vec![DeleteRecordsPartition {
+                    partition: tp.partition,
+                    offset: *offset,
+                }]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                slot.get_mut().push(DeleteRecordsPartition {
+                    partition: tp.partition,
+                    offset: *offset,
+                });
+            }
+        }
+    }
+    order
+        .into_iter()
+        .filter_map(|topic| {
+            by_topic
+                .remove(&topic)
+                .map(|partitions| DeleteRecordsTopic { topic, partitions })
+        })
+        .collect()
 }
 
 impl Admin {
@@ -3193,69 +3230,254 @@ impl Admin {
     ///
     /// Lands on the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` (6)
     /// and other retriable codes refresh Metadata and retry on the new
-    /// leader. Returns `(low_watermark, error_code)`.
+    /// leader. Returns `(low_watermark, error_code)`. `timeout_ms` is
+    /// DeleteRecords TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For several partitions, use
+    /// [`Self::delete_records_for`]. For a one-shot timeout that drives
+    /// both the RPC deadline and TimeoutMs, use
+    /// [`Self::delete_records_timeout`].
     pub async fn delete_records(
         &mut self,
         partition: impl Into<crate::TopicPartition>,
         offset: i64,
         timeout_ms: i32,
     ) -> Result<(i64, i16)> {
-        let tp = partition.into();
-        let topic = tp.topic;
-        let partition = tp.partition;
-        let version = self.delete_records_version;
         let timeout = self.cfg.request_timeout;
+        self.delete_records_one(partition.into(), offset, timeout_ms, timeout)
+            .await
+    }
+
+    /// [`Self::delete_records`] with a one-shot timeout (Java
+    /// `DeleteRecordsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteRecords TimeoutMs.
+    pub async fn delete_records_timeout(
+        &mut self,
+        partition: impl Into<crate::TopicPartition>,
+        offset: i64,
+        timeout: Duration,
+    ) -> Result<(i64, i16)> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_records_one(partition.into(), offset, timeout_ms, timeout)
+            .await
+    }
+
+    /// Delete records on several partitions (Java `deleteRecords(Map)`).
+    ///
+    /// One DeleteRecords RPC per Metadata partition leader. Empty input
+    /// is a no-op. TimeoutMs and the RPC deadline are
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::delete_records_for_timeout`].
+    pub async fn delete_records_for(
+        &mut self,
+        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_records_for_timeout(records, timeout).await
+    }
+
+    /// [`Self::delete_records_for`] with a one-shot timeout (Java
+    /// `deleteRecords` plus `DeleteRecordsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteRecords TimeoutMs.
+    pub async fn delete_records_for_timeout(
+        &mut self,
+        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_records_for_with(records, timeout_ms, timeout)
+            .await
+    }
+
+    async fn delete_records_one(
+        &mut self,
+        tp: crate::TopicPartition,
+        offset: i64,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<(i64, i16)> {
+        let mut out = self
+            .delete_records_for_with([(tp, offset)], timeout_ms, timeout)
+            .await?;
+        match out.pop() {
+            Some((_, low, err)) => Ok((low, err)),
+            None => Err(Error::protocol("missing DeleteRecords result")),
+        }
+    }
+
+    async fn delete_records_for_with(
+        &mut self,
+        records: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, i64)>,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, i64, i16)>> {
+        let records: Vec<(crate::TopicPartition, i64)> = records
+            .into_iter()
+            .map(|(tp, off)| (tp.into(), off))
+            .collect();
+        if records.is_empty() {
+            return Ok(Vec::new());
+        }
+        let version = self.delete_records_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<(i64, i16)>> = vec![None; records.len()];
+        let mut pending: Vec<usize> = (0..records.len()).collect();
         loop {
-            if self.cluster.leader(&topic, partition).is_err() {
-                let topics = [topic.clone()];
-                self.refresh_metadata(Some(&topics)).await?;
+            if pending.is_empty() {
+                break;
             }
-            let (node, _) = self.cluster.leader(&topic, partition)?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing delete_records conn"))?;
-                conn.roundtrip(
-                    DELETE_RECORDS,
-                    version,
-                    |buf| {
-                        encode_delete_records_request(
-                            buf, version, &topic, partition, offset, timeout_ms,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.wait_retry(&mut attempt, deadline).await?;
+            let mut need: Vec<String> = Vec::new();
+            for &i in &pending {
+                let Some((tp, _)) = records.get(i) else {
                     continue;
+                };
+                if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                    && !need.iter().any(|t| t == &tp.topic)
+                {
+                    need.push(tp.topic.clone());
                 }
-                Err(e) => return Err(e),
-            };
-            let (_p, low, err) = decode_delete_records_response(&mut body.clone(), version)?;
-            if err == 0 {
-                return Ok((low, err));
             }
-            let e = Error::broker(err, format!("{topic}-{partition}"));
-            if e.is_retriable() {
-                // NOT_LEADER_OR_FOLLOWER (6) and friends: Metadata, then the new leader.
-                self.cluster.invalidate_topic(&topic);
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                let topics = [topic.clone()];
+            if !need.is_empty() {
+                self.refresh_metadata(Some(&need)).await?;
+            }
+            let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+            let mut nodes: Vec<i32> = Vec::new();
+            for &i in &pending {
+                let (tp, _) = records
+                    .get(i)
+                    .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
+                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                match by_node.entry(node) {
+                    std::collections::hash_map::Entry::Vacant(slot) => {
+                        nodes.push(node);
+                        let _ = slot.insert(vec![i]);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut slot) => {
+                        slot.get_mut().push(i);
+                    }
+                }
+            }
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.remove(&node).unwrap_or_default();
+                match self
+                    .delete_records_on_node(node, version, timeout_ms, &records, &idxs, timeout)
+                    .await
+                {
+                    Ok((done, retry)) => {
+                        for (i, low, err) in done {
+                            if let Some(slot) = out.get_mut(i) {
+                                *slot = Some((low, err));
+                            }
+                        }
+                        still.extend(retry);
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
+            for &i in &pending {
+                if let Some((tp, _)) = records.get(i) {
+                    self.cluster.invalidate_topic(&tp.topic);
+                }
+            }
+            let topics: Vec<String> = {
+                let mut t = Vec::new();
+                for &i in &pending {
+                    if let Some((tp, _)) = records.get(i) {
+                        if !t.iter().any(|n| n == &tp.topic) {
+                            t.push(tp.topic.clone());
+                        }
+                    }
+                }
+                t
+            };
+            if !topics.is_empty() {
                 self.refresh_metadata(Some(&topics)).await?;
+            }
+        }
+        out.into_iter()
+            .zip(records)
+            .map(|(got, (tp, _))| {
+                got.map(|(low, err)| (tp, low, err))
+                    .ok_or_else(|| Error::protocol("DeleteRecords missing result"))
+            })
+            .collect()
+    }
+
+    async fn delete_records_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        timeout_ms: i32,
+        records: &[(crate::TopicPartition, i64)],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<(Vec<(usize, i64, i16)>, Vec<usize>)> {
+        let topics = delete_records_topics(records, idxs);
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing delete_records conn"))?;
+            conn.roundtrip(
+                DELETE_RECORDS,
+                version,
+                |buf| encode_delete_records_topics_request(buf, version, &topics, timeout_ms),
+                timeout,
+            )
+            .await
+        }?;
+        let resp = decode_delete_records_topics_response(&mut body.clone(), version)?;
+        let mut by_key: HashMap<(String, i32), VecDeque<(i64, i16)>> = HashMap::new();
+        for t in resp {
+            for p in t.partitions {
+                by_key
+                    .entry((t.topic.clone(), p.partition))
+                    .or_default()
+                    .push_back((p.low_watermark, p.error_code));
+            }
+        }
+        let mut done = Vec::new();
+        let mut retry = Vec::new();
+        for &i in idxs {
+            let (tp, _) = records
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing DeleteRecords query"))?;
+            let (low, err) = by_key
+                .get_mut(&(tp.topic.clone(), tp.partition))
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| {
+                    Error::protocol(format!(
+                        "DeleteRecords missing {}-{}",
+                        tp.topic, tp.partition
+                    ))
+                })?;
+            if err == 0 {
+                done.push((i, low, err));
                 continue;
             }
-            return Ok((low, err));
+            let e = Error::broker(err, format!("{}-{}", tp.topic, tp.partition));
+            if e.is_retriable() {
+                self.cluster.invalidate_topic(&tp.topic);
+                let _ = self.conns.remove(&node);
+                retry.push(i);
+            } else {
+                done.push((i, low, err));
+            }
         }
+        Ok((done, retry))
     }
 
     /// ListOffsets for these partitions (Java `Admin.listOffsets`).

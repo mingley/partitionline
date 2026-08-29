@@ -35,7 +35,7 @@ use partitionline::protocol::admin::{
     decode_alter_user_scram_credentials_request, decode_assign_replicas_to_dirs_request,
     decode_consumer_group_describe_request, decode_create_delegation_token_request,
     decode_create_partitions_request, decode_create_topics_request, decode_delete_groups_request,
-    decode_delete_records_request, decode_delete_share_group_offsets_request,
+    decode_delete_records_topics_request, decode_delete_share_group_offsets_request,
     decode_delete_topics_request, decode_describe_client_quotas_request,
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_delegation_token_request, decode_describe_groups_request,
@@ -54,7 +54,7 @@ use partitionline::protocol::admin::{
     encode_alter_user_scram_credentials_response, encode_assign_replicas_to_dirs_response,
     encode_consumer_group_describe_response, encode_create_delegation_token_response,
     encode_create_partitions_response, encode_create_topics_response,
-    encode_delete_groups_response, encode_delete_records_response,
+    encode_delete_groups_response, encode_delete_records_topics_response,
     encode_delete_share_group_offsets_response, encode_delete_topics_response,
     encode_describe_client_quotas_response, encode_describe_cluster_response,
     encode_describe_configs_response, encode_describe_delegation_token_response,
@@ -76,24 +76,24 @@ use partitionline::protocol::admin::{
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaValue, ClusterDescription, ConfigEntry, CreateDelegationTokenRequest,
     CreateDelegationTokenResponse, CreatedTopicConfig, DeletableGroupResult,
-    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeClusterBroker,
-    DescribeConfigsResult, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
-    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
-    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
-    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
-    DescribedShareGroupOffsets, DescribedTopicPartition, DescribedTopicPartitions,
-    ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse,
-    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
-    OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
-    ReassignmentTopicResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
-    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
-    ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
-    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    DeletedRecordsPartition, DeletedRecordsTopic, DeletedShareGroupOffsets,
+    DescribeClientQuotasResponse, DescribeClusterBroker, DescribeConfigsResult,
+    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
+    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
+    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment, PushTelemetryResponse,
+    ReassignmentPartitionResult, ReassignmentTopicResult, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
+    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
+    RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_metadata_request, decode_produce_request, encode_api_versions_response,
@@ -252,6 +252,9 @@ struct State {
     last_list_offsets_version: Option<i16>,
     last_delete_records_node: Option<i32>,
     last_delete_records_version: Option<i16>,
+    last_delete_records_timeout: Option<i32>,
+    last_delete_records_partitions: usize,
+    delete_records_calls: u32,
     delete_records_not_leader: u32,
     last_describe_cluster_version: Option<i16>,
     last_describe_cluster_endpoint_type: Option<i8>,
@@ -559,6 +562,9 @@ fn new_state(
         last_list_offsets_version: None,
         last_delete_records_node: None,
         last_delete_records_version: None,
+        last_delete_records_timeout: None,
+        last_delete_records_partitions: 0,
+        delete_records_calls: 0,
         delete_records_not_leader: 0,
         last_describe_cluster_version: None,
         last_describe_cluster_endpoint_type: None,
@@ -1460,6 +1466,18 @@ impl Mock {
 
     pub fn last_delete_records_version(&self) -> Option<i16> {
         self.state.lock().last_delete_records_version
+    }
+
+    pub fn last_delete_records_timeout(&self) -> Option<i32> {
+        self.state.lock().last_delete_records_timeout
+    }
+
+    pub fn last_delete_records_partitions(&self) -> usize {
+        self.state.lock().last_delete_records_partitions
+    }
+
+    pub fn delete_records_calls(&self) -> u32 {
+        self.state.lock().delete_records_calls
     }
 
     pub fn delete_records_not_leader(&self) -> u32 {
@@ -3134,40 +3152,60 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             DELETE_RECORDS => {
                 let version = header.api_version;
-                let (topic, partition, offset, _timeout) =
-                    decode_delete_records_request(&mut frame, version).unwrap();
+                let (topics, timeout_ms) =
+                    decode_delete_records_topics_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_delete_records_version = Some(version);
-                let key = (topic.clone(), partition);
-                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
-                if leader != node_id {
-                    st.delete_records_not_leader = st.delete_records_not_leader.saturating_add(1);
-                    encode_delete_records_response(
-                        &mut body,
-                        version,
-                        &topic,
-                        partition,
-                        -1,
-                        error::NOT_LEADER_OR_FOLLOWER,
-                    )
-                    .unwrap();
-                } else {
-                    let (low, err) = if st.created_topics.contains_key(&topic) {
-                        let hw = *st.next_offset.get(&key).unwrap_or(&0);
-                        let start = *st.log_start.get(&key).unwrap_or(&0);
-                        let low = offset.clamp(start, hw);
-                        st.log_start.insert(key.clone(), low);
-                        if let Some(recs) = st.log.get_mut(&key) {
-                            recs.retain(|r| r.offset >= low);
+                st.last_delete_records_timeout = Some(timeout_ms);
+                st.delete_records_calls = st.delete_records_calls.saturating_add(1);
+                let mut nparts = 0usize;
+                let mut out = Vec::new();
+                let mut any_leader = false;
+                for t in topics {
+                    let mut parts = Vec::new();
+                    for p in t.partitions {
+                        nparts = nparts.saturating_add(1);
+                        let key = (t.topic.clone(), p.partition);
+                        let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+                        if leader != node_id {
+                            st.delete_records_not_leader =
+                                st.delete_records_not_leader.saturating_add(1);
+                            parts.push(DeletedRecordsPartition {
+                                partition: p.partition,
+                                low_watermark: -1,
+                                error_code: error::NOT_LEADER_OR_FOLLOWER,
+                            });
+                            continue;
                         }
-                        st.last_delete_records_node = Some(node_id);
-                        (low, 0i16)
-                    } else {
-                        (0i64, 3i16)
-                    };
-                    encode_delete_records_response(&mut body, version, &topic, partition, low, err)
-                        .unwrap();
+                        let (low, err) = if st.created_topics.contains_key(&t.topic) {
+                            let hw = *st.next_offset.get(&key).unwrap_or(&0);
+                            let start = *st.log_start.get(&key).unwrap_or(&0);
+                            let low = p.offset.clamp(start, hw);
+                            st.log_start.insert(key.clone(), low);
+                            if let Some(recs) = st.log.get_mut(&key) {
+                                recs.retain(|r| r.offset >= low);
+                            }
+                            any_leader = true;
+                            (low, 0i16)
+                        } else {
+                            (0i64, 3i16)
+                        };
+                        parts.push(DeletedRecordsPartition {
+                            partition: p.partition,
+                            low_watermark: low,
+                            error_code: err,
+                        });
+                    }
+                    out.push(DeletedRecordsTopic {
+                        topic: t.topic,
+                        partitions: parts,
+                    });
                 }
+                st.last_delete_records_partitions = nparts;
+                if any_leader {
+                    st.last_delete_records_node = Some(node_id);
+                }
+                encode_delete_records_topics_response(&mut body, version, &out).unwrap();
             }
             DESCRIBE_PRODUCERS => {
                 let (topic, partitions) = decode_describe_producers_request(&mut frame).unwrap();
