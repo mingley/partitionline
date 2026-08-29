@@ -214,6 +214,7 @@ struct State {
     oauth_principal: Option<String>,
     next_pid: i64,
     last_producer_id: Option<i64>,
+    last_produce_producer_epoch: Option<i16>,
     last_produce_version: Option<i16>,
     expected_seq: HashMap<(i64, i16, String, i32), i32>,
     produce_error: Option<i16>,
@@ -463,6 +464,7 @@ fn new_state(
         oauth_principal,
         next_pid: 1000,
         last_producer_id: None,
+        last_produce_producer_epoch: None,
         last_produce_version: None,
         expected_seq: HashMap::new(),
         produce_error: None,
@@ -1086,6 +1088,10 @@ impl Mock {
 
     pub fn last_producer_id(&self) -> Option<i64> {
         self.state.lock().last_producer_id
+    }
+
+    pub fn last_produce_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_produce_producer_epoch
     }
 
     pub fn last_produce_version(&self) -> Option<i16> {
@@ -2079,7 +2085,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 
 fn versions() -> ApiVersionsResponse {
     let keys = [
-        (PRODUCE, 3, 11),
+        (PRODUCE, 3, 12),
         (FETCH, 4, 12),
         (LIST_OFFSETS, 0, 9),
         (METADATA, 1, 12),
@@ -3432,6 +3438,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.produce_requests.push(node_id);
                 st.last_produce_version = Some(header.api_version);
+                if header.api_version >= 12 && txn_id.is_some() {
+                    // Produce v12 transaction V2: the partition leader
+                    // also performs AddPartitionsToTxn.
+                    st.in_txn = true;
+                }
                 let forced = match (st.produce_error, st.produce_error_left) {
                     (Some(_), Some(0)) => {
                         st.produce_error = None;
@@ -3452,6 +3463,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 for topic in decoded.3 {
                     for p in topic.partitions {
                         st.last_producer_id = Some(p.records.producer_id);
+                        st.last_produce_producer_epoch = Some(p.records.producer_epoch);
                         let key = (topic.topic.clone(), p.index);
                         let nrec = p.records.records.len() as i32;
                         let leader = st

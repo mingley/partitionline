@@ -663,16 +663,16 @@ pub struct ProducePartitionResponse {
 
 /// `true` when Produce `version` is flexible (v9+).
 ///
-/// v3–v8 are classic. v9–v11 are compact arrays/strings/bytes plus tagged
+/// v3–v8 are classic. v9–v12 are compact arrays/strings/bytes plus tagged
 /// fields (Apache JSON `flexibleVersions: "9+"`). v10+ adds partition
 /// CurrentLeader tagged field 0 (KIP-951). v11 is TRANSACTION_ABORTABLE
-/// (same layout as v10). Kafka 4.0 removed v0–v2. This crate speaks 3–11.
-/// v12 (KIP-890 Part 2 transaction V2: Produce also does AddPartitionsToTxn)
-/// and v13+ (topic IDs) are not spoken.
+/// (same layout as v10). v12 is the same layout (KIP-890 Part 2
+/// transaction V2: Produce also does AddPartitionsToTxn). Kafka 4.0
+/// removed v0–v2. This crate speaks 3–12. v13+ (topic IDs) are not spoken.
 fn produce_flexible(version: i16) -> Result<bool> {
     match version {
         3..=8 => Ok(false),
-        9..=11 => Ok(true),
+        9..=12 => Ok(true),
         other => Err(Error::protocol(format!(
             "Produce version {other} is not implemented"
         ))),
@@ -730,7 +730,7 @@ fn decode_produce_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i
     Ok((current_leader_id, current_leader_epoch))
 }
 
-/// Encode Produce v3–v8 (classic) or v9–v11 (flexible).
+/// Encode Produce v3–v8 (classic) or v9–v12 (flexible).
 pub fn encode_produce_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1108,16 +1108,16 @@ mod tests {
         );
 
         buf.clear();
-        encode_produce_request(&mut buf, 11, None, 1, 1500, &topics).unwrap();
+        encode_produce_request(&mut buf, 12, None, 1, 1500, &topics).unwrap();
         let mut cur = &buf[..];
-        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 11).unwrap();
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 12).unwrap();
         assert_eq!(txn, None);
         assert_eq!(acks, 1);
         assert_eq!(timeout, 1500);
         assert_eq!(decoded[0].topic, "t");
         assert!(
             cur.is_empty(),
-            "Produce v11 request must consume compact tagged fields"
+            "Produce v12 request must consume compact tagged fields"
         );
 
         let mut txn_buf = BytesMut::new();
@@ -1133,8 +1133,8 @@ mod tests {
 
         buf.clear();
         assert!(
-            encode_produce_request(&mut buf, 12, None, 1, 1500, &topics).is_err(),
-            "Produce v12 (KIP-890 Part 2 transaction V2) is not spoken"
+            encode_produce_request(&mut buf, 13, None, 1, 1500, &topics).is_err(),
+            "Produce v13+ (topic IDs) is not spoken"
         );
     }
 
@@ -1171,18 +1171,18 @@ mod tests {
         );
 
         buf.clear();
-        encode_produce_response(&mut buf, 11, &parts).unwrap();
+        encode_produce_response(&mut buf, 12, &parts).unwrap();
         assert_eq!(
             &buf[..],
             RESP,
-            "Produce v11 with omitted CurrentLeader matches v9 bytes"
+            "Produce v12 with omitted CurrentLeader matches v9 bytes"
         );
         let mut cur = &buf[..];
-        let got = decode_produce_response(&mut cur, 11).unwrap();
+        let got = decode_produce_response(&mut cur, 12).unwrap();
         assert_eq!(got, parts);
         assert!(
             cur.is_empty(),
-            "Produce v11 empty CurrentLeader must consume compact tagged fields"
+            "Produce v12 empty CurrentLeader must consume compact tagged fields"
         );
     }
 
@@ -1220,9 +1220,12 @@ mod tests {
         encode_produce_response(&mut buf, 10, &parts).unwrap();
         assert_eq!(&buf[..], RESP, "Produce v10 CurrentLeader matches v11");
         buf.clear();
+        encode_produce_response(&mut buf, 12, &parts).unwrap();
+        assert_eq!(&buf[..], RESP, "Produce v12 CurrentLeader matches v11");
+        buf.clear();
         assert!(
-            encode_produce_response(&mut buf, 12, &parts).is_err(),
-            "Produce v12 is not spoken"
+            encode_produce_response(&mut buf, 13, &parts).is_err(),
+            "Produce v13+ (topic IDs) is not spoken"
         );
     }
 

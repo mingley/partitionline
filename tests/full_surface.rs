@@ -54,8 +54,8 @@ async fn try_send_flush_writes_record() {
     producer.flush().await.unwrap();
     assert_eq!(
         mock.last_produce_version(),
-        Some(11),
-        "Producer must prefer Produce v11 when the broker advertises it"
+        Some(12),
+        "Producer must prefer Produce v12 when the broker advertises it"
     );
     producer.close().await.unwrap();
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
@@ -872,15 +872,15 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     producer.flush().await.unwrap();
     assert_eq!(
         mock.add_partitions_to_txn_calls(),
-        1,
-        "AddPartitionsToTxn must be one RPC, got {}",
+        0,
+        "Produce v12 skips AddPartitionsToTxn (transaction V2), got {} calls",
         mock.add_partitions_to_txn_calls()
     );
-    assert_eq!(mock.last_add_partitions_to_txn(), 3);
+    assert_eq!(mock.last_add_partitions_to_txn(), 0);
     assert_eq!(
         mock.last_add_partitions_to_txn_version(),
-        Some(3),
-        "Producer must prefer AddPartitionsToTxn v3 when the broker advertises it"
+        None,
+        "Produce v12 skips AddPartitionsToTxn (transaction V2)"
     );
 
     producer
@@ -943,9 +943,19 @@ async fn transactional_offsets_and_partitions_one_rpc() {
         .unwrap();
     producer.flush().await.unwrap();
     assert_eq!(
+        mock.last_add_partitions_to_txn_version(),
+        None,
+        "Produce v12 skips AddPartitionsToTxn (transaction V2)"
+    );
+    assert_eq!(
         mock.last_add_partitions_producer_epoch(),
+        None,
+        "Produce v12 skips AddPartitionsToTxn (transaction V2)"
+    );
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
         Some(1),
-        "EndTxn v5 must apply the bumped producer epoch on the next AddPartitionsToTxn"
+        "EndTxn v5 must apply the bumped producer epoch on the next Produce"
     );
     producer.close().await.unwrap();
 }
@@ -986,7 +996,11 @@ async fn transactional_producer_finds_txn_coordinator() {
         .await
         .unwrap();
     producer.flush().await.unwrap();
-    assert_eq!(mock.last_add_partitions_node(), Some(2));
+    assert_eq!(
+        mock.last_add_partitions_node(),
+        None,
+        "Produce v12 skips AddPartitionsToTxn (transaction V2)"
+    );
     producer
         .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
         .await

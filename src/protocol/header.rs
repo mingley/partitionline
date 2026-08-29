@@ -439,7 +439,7 @@ mod tests {
     fn produce_v9_is_flexible_v8_is_not() {
         // Official JSON: validVersions 3-12, flexibleVersions 9+.
         // Kafka 4.0 removed v0–v2. HeaderVersion is 1 / 0 at v3–8 and
-        // 2 / 1 at v9+. This crate speaks 3–11. v12 (transaction V2) is
+        // 2 / 1 at v9+. This crate speaks 3–12. v13+ (topic IDs) is
         // not spoken.
         assert_eq!(request_header_version(PRODUCE, 3), 1);
         assert_eq!(response_header_version(PRODUCE, 3), 0);
@@ -447,8 +447,8 @@ mod tests {
         assert_eq!(response_header_version(PRODUCE, 8), 0);
         assert_eq!(request_header_version(PRODUCE, 9), 2);
         assert_eq!(response_header_version(PRODUCE, 9), 1);
-        assert_eq!(request_header_version(PRODUCE, 11), 2);
-        assert_eq!(response_header_version(PRODUCE, 11), 1);
+        assert_eq!(request_header_version(PRODUCE, 12), 2);
+        assert_eq!(response_header_version(PRODUCE, 12), 1);
     }
 
     #[test]

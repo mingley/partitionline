@@ -757,8 +757,8 @@ impl Producer {
         let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 3).ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-3".into())
         })?;
-        let produce_version = pick(&versions, PRODUCE, 3, 11)
-            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-11".into()))?;
+        let produce_version = pick(&versions, PRODUCE, 3, 12)
+            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-12".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =
@@ -2440,6 +2440,16 @@ impl Worker {
                 let _ = set.insert((topic.clone(), *part));
             }
         }
+        // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
+        // performs AddPartitionsToTxn. Skip that RPC when the broker
+        // advertised v12 (Java `isTransactionV2Enabled`).
+        if self.shared.produce_version >= 12 {
+            let mut sent = self.shared.txn_added.lock();
+            for (topic, part, _) in groups {
+                let _ = sent.insert((topic.clone(), *part));
+            }
+            return Ok(());
+        }
         let timeout = self.shared.cfg.request_timeout;
         let pid = self.shared.producer_id.load(Ordering::SeqCst);
         let epoch = self.shared.producer_epoch.load(Ordering::SeqCst);
@@ -2659,8 +2669,9 @@ fn encode_produce_body(
     producer_epoch: i16,
     transactional_id: Option<&str>,
 ) -> Result<()> {
-    // v9–v11 share this compact request layout (v10+ CurrentLeader is
-    // response-only). Must stay in sync with `encode_produce_request`.
+    // v9–v12 share this compact request layout (v10+ CurrentLeader is
+    // response-only; v12 transaction V2 is Produce-does-AddPartitionsToTxn).
+    // Must stay in sync with `encode_produce_request`.
     let flexible = version >= 9;
     let transactional = transactional_id.is_some();
     if version >= 3 {
