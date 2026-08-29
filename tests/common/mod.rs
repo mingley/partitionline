@@ -238,6 +238,7 @@ struct State {
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
     last_epoch_node: Option<i32>,
+    last_epoch_version: Option<i16>,
     epoch_not_leader: u32,
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
@@ -518,6 +519,7 @@ fn new_state(
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
         last_epoch_node: None,
+        last_epoch_version: None,
         epoch_not_leader: 0,
         last_list_offsets: None,
         last_list_offsets_node: None,
@@ -1350,6 +1352,10 @@ impl Mock {
 
     pub fn last_offset_for_leader_epoch_node(&self) -> Option<i32> {
         self.state.lock().last_epoch_node
+    }
+
+    pub fn last_offset_for_leader_epoch_version(&self) -> Option<i16> {
+        self.state.lock().last_epoch_version
     }
 
     pub fn offset_for_leader_epoch_not_leader(&self) -> u32 {
@@ -2402,7 +2408,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (WRITE_TXN_MARKERS, 0, 1),
         (TXN_OFFSET_COMMIT, 0, 5),
         (OFFSET_DELETE, 0, 0),
-        (OFFSET_FOR_LEADER_EPOCH, 0, 2),
+        (OFFSET_FOR_LEADER_EPOCH, 0, 4),
         (DESCRIBE_CONFIGS, 0, 4),
         (SASL_AUTHENTICATE, 0, 1),
     ];
@@ -4164,6 +4170,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_offset_for_leader_epoch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_epoch_req = Some((topic.clone(), partition, leader_epoch));
+                st.last_epoch_version = Some(header.api_version);
                 let key = (topic.clone(), partition);
                 let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
                 let epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);

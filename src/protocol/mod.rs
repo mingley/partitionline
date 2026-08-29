@@ -21,7 +21,7 @@ pub mod api_keys;
 pub mod buf;
 /// ConsumerGroupHeartbeat (KIP-848, v0–v1).
 pub mod cgheartbeat;
-/// OffsetForLeaderEpoch codec.
+/// OffsetForLeaderEpoch codec (v0–v4).
 pub mod epoch;
 /// Fetch request and response codecs.
 pub mod fetch;

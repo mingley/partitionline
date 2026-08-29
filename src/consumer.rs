@@ -1471,9 +1471,9 @@ impl Consumer {
         let version = self
             .versions
             .get(&OFFSET_FOR_LEADER_EPOCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support OffsetForLeaderEpoch".into())
+                Error::Unsupported("broker does not support OffsetForLeaderEpoch v0-4".into())
             })?;
         // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
         // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.

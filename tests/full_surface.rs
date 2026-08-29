@@ -14,7 +14,7 @@ use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
     END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS,
-    METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP, UPDATE_FEATURES,
+    METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -557,6 +557,11 @@ async fn offset_for_leader_epoch_follows_partition_leader() {
         0,
         "Metadata refresh must send OffsetForLeaderEpoch to the leader without a follower 6"
     );
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_version(),
+        Some(4),
+        "Consumer must prefer OffsetForLeaderEpoch v4 when the broker advertises it"
+    );
 }
 
 #[tokio::test]
@@ -612,6 +617,58 @@ async fn fetch_recovers_from_fenced_leader_epoch() {
         .expect("fenced fetch must speak OffsetForLeaderEpoch");
     assert_eq!(ofle.0, "t");
     assert_eq!(ofle.1, md.partition);
+}
+
+#[tokio::test]
+async fn offset_for_leader_epoch_negotiates_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FOR_LEADER_EPOCH, 3);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"ofle3"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let _ = mock.bump_leader_epoch("t", md.partition);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle3"[..]));
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_version(),
+        Some(3),
+        "client must speak OffsetForLeaderEpoch v3 when the broker max is 3"
+    );
+}
+
+#[tokio::test]
+async fn offset_for_leader_epoch_negotiates_v2_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FOR_LEADER_EPOCH, 2);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"ofle2"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("t", md.partition, md.offset).await.unwrap();
+    let _ = mock.bump_leader_epoch("t", md.partition);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"ofle2"[..]));
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_version(),
+        Some(2),
+        "client must speak OffsetForLeaderEpoch v2 when the broker max is 2"
+    );
 }
 
 #[tokio::test]
