@@ -7018,6 +7018,24 @@ async fn describe_client_quotas_follows_broker() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].values[0].key, "producer_byte_rate");
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_CLIENT_QUOTAS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let hidden = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let err = admin
+        .describe_client_quotas(std::slice::from_ref(&hidden), false)
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeClientQuotas is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -7136,6 +7154,24 @@ async fn alter_client_quotas_follows_controller() {
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].error_code, 0);
     assert!(mock.has_quota_fixture("user", Some("dave"), "producer_byte_rate"));
+    admin.close().await.unwrap();
+    mock.hide_api(ALTER_CLIENT_QUOTAS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let eve = ClientQuotaAlteration::new(
+        vec![ClientQuotaEntity::new("user", Some("eve".into()))],
+        vec![ClientQuotaOp::set("producer_byte_rate", 1.0)],
+    );
+    let err = admin.alter_client_quotas(&[eve], false).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "AlterClientQuotas is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

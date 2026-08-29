@@ -1201,8 +1201,8 @@ pub struct Admin {
     alter_user_scram_version: i16,
     describe_user_scram_version: i16,
     unregister_broker_version: Option<i16>,
-    describe_client_quotas_version: i16,
-    alter_client_quotas_version: i16,
+    describe_client_quotas_version: Option<i16>,
+    alter_client_quotas_version: Option<i16>,
     allocate_producer_ids_version: Option<i16>,
     describe_transactions_version: i16,
     list_transactions_version: i16,
@@ -1420,9 +1420,10 @@ impl Admin {
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
-    /// UnregisterBroker, DescribeProducers, DescribeCluster, and
-    /// UpdateFeatures are optional at connect. Missing APIs fail on the
-    /// method with [`Error::Unsupported`].
+    /// UnregisterBroker, DescribeProducers, DescribeCluster,
+    /// UpdateFeatures, DescribeClientQuotas, and AlterClientQuotas are
+    /// optional at connect. Missing APIs fail on the method with
+    /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1561,16 +1562,10 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_client_quotas_version = versions
             .get(&DESCRIBE_CLIENT_QUOTAS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeClientQuotas v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let alter_client_quotas_version = versions
             .get(&ALTER_CLIENT_QUOTAS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterClientQuotas v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let allocate_producer_ids_version = versions
             .get(&ALLOCATE_PRODUCER_IDS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3726,6 +3721,8 @@ impl Admin {
     /// at bytes 4–5, after throttle. DescribeClientQuotas has no TimeoutMs;
     /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
     /// one-shot deadline, use [`Self::describe_client_quotas_timeout`].
+    /// Optional at [`Self::new`] (Kafka 2.6+ / KIP-219); a broker that
+    /// omits api 48 returns [`Error::Unsupported`].
     pub async fn describe_client_quotas(
         &mut self,
         components: &[ClientQuotaFilterComponent],
@@ -3747,7 +3744,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<ClientQuotaEntry>> {
         let components = components.to_vec();
-        let version = self.describe_client_quotas_version;
+        let version = self.describe_client_quotas_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeClientQuotas v0-1".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
@@ -3770,7 +3769,9 @@ impl Admin {
     /// `NOT_CONTROLLER` (41) refreshes Metadata and retries on the new
     /// controller. AlterClientQuotas has no TimeoutMs; the RPC deadline
     /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::alter_client_quotas_timeout`].
+    /// [`Self::alter_client_quotas_timeout`]. Optional at [`Self::new`]
+    /// (Kafka 2.6+ / KIP-219); a broker that omits api 49 returns
+    /// [`Error::Unsupported`].
     pub async fn alter_client_quotas(
         &mut self,
         entries: &[ClientQuotaAlteration],
@@ -3793,7 +3794,9 @@ impl Admin {
         validate_only: bool,
     ) -> Result<Vec<ClientQuotaAlterationResult>> {
         let entries = entries.to_vec();
-        let version = self.alter_client_quotas_version;
+        let version = self.alter_client_quotas_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterClientQuotas v0-1".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
