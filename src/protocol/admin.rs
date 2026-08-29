@@ -4191,6 +4191,10 @@ pub fn decode_describe_client_quotas_response<B: Buf>(
 }
 
 /// One active producer in DescribeProducers (api 61, KIP-360).
+///
+/// Java `ProducerState`. [`Self::coordinator_epoch`] /
+/// [`Self::current_txn_start_offset`] are `None` when the wire value is
+/// negative (Java `OptionalInt` / `OptionalLong`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveProducer {
     /// Producer id, or `-1`.
@@ -4209,6 +4213,7 @@ pub struct ActiveProducer {
 
 impl ActiveProducer {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(
         producer_id: i64,
         producer_epoch: i32,
@@ -4225,6 +4230,42 @@ impl ActiveProducer {
             coordinator_epoch,
             current_txn_start_offset,
         }
+    }
+
+    /// Java `ProducerState.producerId`.
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `ProducerState.producerEpoch`.
+    #[must_use]
+    pub fn producer_epoch(&self) -> i32 {
+        self.producer_epoch
+    }
+
+    /// Java `ProducerState.lastSequence`.
+    #[must_use]
+    pub fn last_sequence(&self) -> i32 {
+        self.last_sequence
+    }
+
+    /// Java `ProducerState.lastTimestamp`.
+    #[must_use]
+    pub fn last_timestamp(&self) -> i64 {
+        self.last_timestamp
+    }
+
+    /// Java `ProducerState.coordinatorEpoch` (`None` when the wire value is negative).
+    #[must_use]
+    pub fn coordinator_epoch(&self) -> Option<i32> {
+        (self.coordinator_epoch >= 0).then_some(self.coordinator_epoch)
+    }
+
+    /// Java `ProducerState.currentTransactionStartOffset` (`None` when the wire value is negative).
+    #[must_use]
+    pub fn current_txn_start_offset(&self) -> Option<i64> {
+        (self.current_txn_start_offset >= 0).then_some(self.current_txn_start_offset)
     }
 }
 
@@ -4244,6 +4285,7 @@ pub struct DescribeProducersPartition {
 
 impl DescribeProducersPartition {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(
         partition_index: i32,
         error_code: i16,
@@ -4256,6 +4298,30 @@ impl DescribeProducersPartition {
             error_message,
             active_producers,
         }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `DescribeProducersResult.PartitionProducerState.activeProducers`.
+    #[must_use]
+    pub fn active_producers(&self) -> &[ActiveProducer] {
+        &self.active_producers
     }
 }
 
@@ -4270,11 +4336,24 @@ pub struct DescribeProducersTopic {
 
 impl DescribeProducersTopic {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(name: impl Into<String>, partitions: Vec<DescribeProducersPartition>) -> Self {
         Self {
             name: name.into(),
             partitions,
         }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Per-partition producer state.
+    #[must_use]
+    pub fn partitions(&self) -> &[DescribeProducersPartition] {
+        &self.partitions
     }
 }
 
@@ -4288,8 +4367,15 @@ pub struct DescribeProducersResponse {
 
 impl DescribeProducersResponse {
     /// Construct [`Self`].
+    #[must_use]
     pub fn new(topics: Vec<DescribeProducersTopic>) -> Self {
         Self { topics }
+    }
+
+    /// Per-topic producer state.
+    #[must_use]
+    pub fn topics(&self) -> &[DescribeProducersTopic] {
+        &self.topics
     }
 }
 
@@ -4548,7 +4634,25 @@ pub struct TransactionTopic {
     pub partitions: Vec<i32>,
 }
 
+impl TransactionTopic {
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partition indexes in this transaction.
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+}
+
 /// One transactional.id result from DescribeTransactions (api 65) v0.
+///
+/// Java `TransactionDescription` (without `coordinatorId`, which Java
+/// fills from the hop node). [`Self::transaction_start_time_ms`] is
+/// `None` when the wire value is negative (Java `OptionalLong`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionState {
     /// Kafka error code (`0` is success).
@@ -4567,6 +4671,59 @@ pub struct TransactionState {
     pub producer_epoch: i16,
     /// Topics in this request or response.
     pub topics: Vec<TransactionTopic>,
+}
+
+impl TransactionState {
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Kafka `transactional.id`.
+    #[must_use]
+    pub fn transactional_id(&self) -> &str {
+        self.transactional_id.as_str()
+    }
+
+    /// Java `TransactionDescription.state` as the broker string.
+    ///
+    /// This is not a parsed Java `TransactionState` enum (`TransactionState`
+    /// is this describe result).
+    #[must_use]
+    pub fn state(&self) -> &str {
+        self.transaction_state.as_str()
+    }
+
+    /// Java `TransactionDescription.producerId`.
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `TransactionDescription.producerEpoch`.
+    #[must_use]
+    pub fn producer_epoch(&self) -> i16 {
+        self.producer_epoch
+    }
+
+    /// Java `TransactionDescription.transactionTimeoutMs`.
+    #[must_use]
+    pub fn transaction_timeout_ms(&self) -> i32 {
+        self.transaction_timeout_ms
+    }
+
+    /// Java `TransactionDescription.transactionStartTimeMs` (`None` when the wire value is negative).
+    #[must_use]
+    pub fn transaction_start_time_ms(&self) -> Option<i64> {
+        (self.transaction_start_time_ms >= 0).then_some(self.transaction_start_time_ms)
+    }
+
+    /// Topics and partitions in this transaction.
+    #[must_use]
+    pub fn topics(&self) -> &[TransactionTopic] {
+        &self.topics
+    }
 }
 
 /// DescribeTransactions v0 (flexible from v0; KIP-664).
@@ -4694,7 +4851,8 @@ fn list_transactions_flexible(version: i16) -> Result<bool> {
 
 /// One transactional.id listing from ListTransactions (api 66) v0–v1.
 ///
-/// This is not [`TransactionState`] (DescribeTransactions api 65).
+/// Java `TransactionListing`. This is not [`TransactionState`]
+/// (DescribeTransactions api 65).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionListing {
     /// Kafka `transactional.id`.
@@ -4703,6 +4861,26 @@ pub struct TransactionListing {
     pub producer_id: i64,
     /// Transaction state name from the broker.
     pub transaction_state: String,
+}
+
+impl TransactionListing {
+    /// Java `TransactionListing.transactionalId`.
+    #[must_use]
+    pub fn transactional_id(&self) -> &str {
+        self.transactional_id.as_str()
+    }
+
+    /// Java `TransactionListing.producerId`.
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `TransactionListing.state` as the broker string.
+    #[must_use]
+    pub fn state(&self) -> &str {
+        self.transaction_state.as_str()
+    }
 }
 
 /// ListTransactions v0–v1 body (api 66).
@@ -4727,6 +4905,26 @@ pub struct ListTransactionsResponse {
     pub unknown_state_filters: Vec<String>,
     /// Matching transactions.
     pub transaction_states: Vec<TransactionListing>,
+}
+
+impl ListTransactionsResponse {
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Transaction state filters the broker did not recognize.
+    #[must_use]
+    pub fn unknown_state_filters(&self) -> &[String] {
+        &self.unknown_state_filters
+    }
+
+    /// Matching transactions.
+    #[must_use]
+    pub fn transaction_states(&self) -> &[TransactionListing] {
+        &self.transaction_states
+    }
 }
 
 /// Encode a ListTransactions v0–v1 request.
@@ -12514,6 +12712,78 @@ mod tests {
         encode_describe_client_quotas_request(&mut buf, 1, std::slice::from_ref(&c), false)
             .unwrap();
         assert_eq!(&buf[..], REQ, "ofEntity must encode MatchType exact");
+    }
+
+    #[test]
+    fn producer_and_transaction_getters_match_java() {
+        let active = ActiveProducer::new(1000, 1, 7, 1_700_000_000_000, 0, -1);
+        assert_eq!(active.producer_id(), 1000);
+        assert_eq!(active.producer_epoch(), 1);
+        assert_eq!(active.last_sequence(), 7);
+        assert_eq!(active.last_timestamp(), 1_700_000_000_000);
+        assert_eq!(active.coordinator_epoch(), Some(0));
+        assert!(active.current_txn_start_offset().is_none());
+        let unset = ActiveProducer::new(1, 0, 0, 0, -1, 42);
+        assert!(unset.coordinator_epoch().is_none());
+        assert_eq!(unset.current_txn_start_offset(), Some(42));
+        let part = DescribeProducersPartition::new(0, 0, None, vec![active.clone()]);
+        assert_eq!(part.partition_index(), 0);
+        assert_eq!(part.error_code(), 0);
+        assert!(part.error_message().is_none());
+        assert_eq!(part.active_producers(), std::slice::from_ref(&active));
+        let topic = DescribeProducersTopic::new("t", vec![part.clone()]);
+        assert_eq!(topic.name(), "t");
+        assert_eq!(topic.partitions(), std::slice::from_ref(&part));
+        let resp = DescribeProducersResponse::new(vec![topic.clone()]);
+        assert_eq!(resp.topics(), std::slice::from_ref(&topic));
+        let txn_topic = TransactionTopic {
+            name: "orders".into(),
+            partitions: vec![0, 1],
+        };
+        assert_eq!(txn_topic.name(), "orders");
+        assert_eq!(txn_topic.partitions(), &[0, 1]);
+        let described = TransactionState {
+            error_code: 0,
+            transactional_id: "tx".into(),
+            transaction_state: "Ongoing".into(),
+            transaction_timeout_ms: 60_000,
+            transaction_start_time_ms: 1_700_000_000_000,
+            producer_id: 1001,
+            producer_epoch: 3,
+            topics: vec![txn_topic.clone()],
+        };
+        assert_eq!(described.error_code(), 0);
+        assert_eq!(described.transactional_id(), "tx");
+        assert_eq!(described.state(), "Ongoing");
+        assert_eq!(described.producer_id(), 1001);
+        assert_eq!(described.producer_epoch(), 3);
+        assert_eq!(described.transaction_timeout_ms(), 60_000);
+        assert_eq!(
+            described.transaction_start_time_ms(),
+            Some(1_700_000_000_000)
+        );
+        assert_eq!(described.topics(), std::slice::from_ref(&txn_topic));
+        let empty_start = TransactionState {
+            transaction_start_time_ms: -1,
+            ..described.clone()
+        };
+        assert!(empty_start.transaction_start_time_ms().is_none());
+        let listing = TransactionListing {
+            transactional_id: "tx".into(),
+            producer_id: 1001,
+            transaction_state: "Ongoing".into(),
+        };
+        assert_eq!(listing.transactional_id(), "tx");
+        assert_eq!(listing.producer_id(), 1001);
+        assert_eq!(listing.state(), "Ongoing");
+        let listed = ListTransactionsResponse {
+            error_code: 0,
+            unknown_state_filters: vec!["Nope".into()],
+            transaction_states: vec![listing.clone()],
+        };
+        assert_eq!(listed.error_code(), 0);
+        assert_eq!(listed.unknown_state_filters(), &["Nope".to_string()]);
+        assert_eq!(listed.transaction_states(), std::slice::from_ref(&listing));
     }
 
     #[test]

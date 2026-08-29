@@ -4898,7 +4898,13 @@ async fn describe_producers_follows_partition_leader() {
     assert_eq!(first.error_code, 0);
     assert_eq!(first.partition_index, 0);
     assert_eq!(first.active_producers.len(), 1);
-    assert_eq!(first.active_producers[0].producer_id, 1000);
+    assert_eq!(first.active_producers[0].producer_id(), 1000);
+    assert_eq!(first.active_producers()[0].coordinator_epoch(), Some(0));
+    assert!(first.active_producers()[0]
+        .current_txn_start_offset()
+        .is_none());
+    assert_eq!(first.error_code(), 0);
+    assert_eq!(first.partition_index(), 0);
     assert_eq!(
         mock.last_describe_producers_node(),
         Some(2),
@@ -7806,11 +7812,18 @@ async fn describe_transactions_follows_coordinator() {
 
     let first = admin.describe_transactions(&["tx-desc"]).await.unwrap();
     assert_eq!(first.len(), 1);
-    assert_eq!(first[0].error_code, 0);
-    assert_eq!(first[0].transactional_id, "tx-desc");
-    assert_eq!(first[0].transaction_state, "Ongoing");
-    assert_eq!(first[0].producer_id, 1001);
-    assert_eq!(first[0].producer_epoch, 3);
+    assert_eq!(first[0].error_code(), 0);
+    assert_eq!(first[0].transactional_id(), "tx-desc");
+    assert_eq!(first[0].state(), "Ongoing");
+    assert_eq!(first[0].producer_id(), 1001);
+    assert_eq!(first[0].producer_epoch(), 3);
+    assert_eq!(first[0].transaction_timeout_ms(), 60_000);
+    assert_eq!(
+        first[0].transaction_start_time_ms(),
+        Some(1_700_000_000_000)
+    );
+    assert_eq!(first[0].topics()[0].name(), "orders");
+    assert_eq!(first[0].topics()[0].partitions(), &[0, 1]);
     assert_eq!(
         mock.last_describe_transactions_node(),
         Some(2),
@@ -7944,9 +7957,9 @@ async fn list_transactions_follows_coordinator() {
 
     let first = admin.list_transactions(&[], &[]).await.unwrap();
     assert_eq!(first.len(), 1);
-    assert_eq!(first[0].transactional_id, "tx-list");
-    assert_eq!(first[0].transaction_state, "Ongoing");
-    assert_eq!(first[0].producer_id, 1001);
+    assert_eq!(first[0].transactional_id(), "tx-list");
+    assert_eq!(first[0].state(), "Ongoing");
+    assert_eq!(first[0].producer_id(), 1001);
     assert_eq!(
         mock.last_list_transactions_node(),
         Some(2),

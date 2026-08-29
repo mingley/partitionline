@@ -246,6 +246,9 @@
 //! [`Admin::describe_producers_for_timeout`] are Java
 //! `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers
 //! has no TimeoutMs).
+//! [`ActiveProducer`] getters match Java `ProducerState`
+//! (`coordinatorEpoch` / `currentTransactionStartOffset` are `None` when
+//! the wire value is negative).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
 //! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
@@ -259,6 +262,10 @@
 //! `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
 //! has no TimeoutMs).
 //! [`Admin::list_transactions_all`] is Java `listTransactions()`.
+//! [`TransactionListing::state`] is Java `TransactionListing.state` as
+//! the broker string. [`TransactionState::state`] is Java
+//! `TransactionDescription.state`; [`TransactionState::transaction_start_time_ms`]
+//! is Java `OptionalLong` (`None` when the wire value is negative).
 //! [`Admin::describe_transactions_timeout`] is Java
 //! `DescribeTransactionsOptions.timeoutMs` (RPC deadline;
 //! DescribeTransactions has no TimeoutMs).
