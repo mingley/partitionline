@@ -73,7 +73,9 @@ throttle v0+). `Admin::describe_share_groups` is Java
 `listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
 `listShareGroupOffsets` (DescribeShareGroupOffsets). `Admin::delete_consumer_group_offsets` is Java
 `deleteConsumerGroupOffsets` (OffsetDelete). `Admin::delete_share_groups` is Java
-`deleteShareGroups` (DeleteGroups v0–v2). `Admin::describe_replica_log_dirs` is Java
+`deleteShareGroups` (DeleteGroups v0–v2). `Admin::describe_client_quotas` /
+`Admin::alter_client_quotas` are Java `describeClientQuotas` /
+`alterClientQuotas` (v0–v1; classic v0, flexible v1). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
 each broker). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`

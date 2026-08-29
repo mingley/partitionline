@@ -2708,7 +2708,7 @@ impl ClientQuotaOp {
     }
 }
 
-/// One entity plus its ops in AlterClientQuotas v1.
+/// One entity plus its ops in AlterClientQuotas.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaAlteration {
     /// Quota entity entries.
@@ -2724,7 +2724,7 @@ impl ClientQuotaAlteration {
     }
 }
 
-/// Per-entry result of AlterClientQuotas v1. Error sits on the entry;
+/// Per-entry result of AlterClientQuotas. Error sits on the entry;
 /// there is no top-level response error_code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaAlterationResult {
@@ -2736,174 +2736,249 @@ pub struct ClientQuotaAlterationResult {
     pub entity: Vec<ClientQuotaEntity>,
 }
 
-/// AlterClientQuotas v1 (classic v0; flexible from v1; KIP-546 / KIP-599).
+/// `true` when AlterClientQuotas `version` is flexible.
+///
+/// v0 is classic. v1 is the first flexible version. Kafka 4.0
+/// `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
+fn alter_client_quotas_flexible(version: i16) -> Result<bool> {
+    match version {
+        0 => Ok(false),
+        1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "AlterClientQuotas version {other} is not implemented"
+        ))),
+    }
+}
+
+/// AlterClientQuotas v0–1 (classic at v0; flexible from v1; KIP-546 / KIP-599).
 ///
 /// Official Apache JSON (`apiKey: 49`, `validVersions: "0-1"`,
-/// `flexibleVersions: "1+"`) and kafka-protocol 0.18.0: this crate
-/// targets v1, the version a client encodes (VERSIONS.max). v0 is not
-/// flexible. Request: compact `Entries` of `{Entity compact
-/// [{EntityType, EntityName nullable, tagged}], Ops compact [{Key,
-/// Value FLOAT64, Remove BOOLEAN, tagged}], tagged}`, `ValidateOnly`
-/// BOOLEAN, tagged. No timeout field. Response: `ThrottleTimeMs`
-/// INT32, compact `Entries` of `{ErrorCode INT16, ErrorMessage
-/// compact-nullable, Entity, tagged}`, tagged. There is no top-level
-/// `error_code` — 41 is the first entry ErrorCode, after throttle and
-/// the compact entries length (bytes 5–6 for a one-entry fixture).
+/// `flexibleVersions: "1+"`) and kafka-protocol 0.18.0
+/// (`AlterClientQuotasRequest` / `AlterClientQuotasResponse`).
+/// Kafka 4.0 max is 1; this crate speaks 0–1.
+/// Request: `Entries` of `{Entity [{EntityType, EntityName nullable,
+/// tagged (v1+)}], Ops [{Key, Value FLOAT64, Remove BOOLEAN, tagged
+/// (v1+)}], tagged (v1+)}`, `ValidateOnly` BOOLEAN, tagged (v1+). No
+/// timeout field. Response: `ThrottleTimeMs` INT32, `Entries` of
+/// `{ErrorCode INT16, ErrorMessage nullable, Entity, tagged (v1+)}`,
+/// tagged (v1+). There is no top-level `error_code` — 41 is the first
+/// entry ErrorCode, after throttle and the entries length (bytes 5–6
+/// on leftover-empty v1 compact; classic v0 places that ErrorCode
+/// later).
 pub fn encode_alter_client_quotas_request(
     buf: &mut BytesMut,
+    version: i16,
     entries: &[ClientQuotaAlteration],
     validate_only: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(entries.len()))?;
+    let flexible = alter_client_quotas_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(entries.len()))?;
     for e in entries {
-        buf::put_array_len(buf, true, Some(e.entity.len()))?;
+        buf::put_array_len(buf, flexible, Some(e.entity.len()))?;
         for ent in &e.entity {
-            buf::put_compact_string(buf, Some(&ent.entity_type))?;
-            buf::put_compact_string(buf, ent.name.as_deref())?;
-            buf::put_empty_tagged_fields(buf);
+            buf::put_string(buf, flexible, Some(&ent.entity_type))?;
+            buf::put_string(buf, flexible, ent.name.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
-        buf::put_array_len(buf, true, Some(e.ops.len()))?;
+        buf::put_array_len(buf, flexible, Some(e.ops.len()))?;
         for op in &e.ops {
-            buf::put_compact_string(buf, Some(&op.key))?;
+            buf::put_string(buf, flexible, Some(&op.key))?;
             buf.put_f64(op.value);
             buf.put_u8(u8::from(op.remove));
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
             buf::put_empty_tagged_fields(buf);
         }
-        buf::put_empty_tagged_fields(buf);
     }
     buf.put_u8(u8::from(validate_only));
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode an AlterClientQuotas request.
 pub fn decode_alter_client_quotas_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(Vec<ClientQuotaAlteration>, bool)> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let flexible = alter_client_quotas_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut entries = Vec::with_capacity(n);
     for _ in 0..n {
-        let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut entity = Vec::with_capacity(en);
         for _ in 0..en {
-            let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
-            let name = buf::get_compact_string(buf)?;
-            buf::skip_tagged_fields(buf)?;
+            let entity_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let name = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             entity.push(ClientQuotaEntity { entity_type, name });
         }
-        let on = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let on = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut ops = Vec::with_capacity(on);
         for _ in 0..on {
-            let key = buf::get_compact_string(buf)?.unwrap_or_default();
+            let key = buf::get_string(buf, flexible)?.unwrap_or_default();
             let value = buf::get_f64(buf)?;
             let remove = buf::get_bool(buf)?;
-            buf::skip_tagged_fields(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             ops.push(ClientQuotaOp { key, value, remove });
         }
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         entries.push(ClientQuotaAlteration { entity, ops });
     }
     let validate_only = buf::get_bool(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((entries, validate_only))
 }
 
-/// Encode an AlterClientQuotas response.
+/// Encode an AlterClientQuotas response (v0–1).
 pub fn encode_alter_client_quotas_response(
     buf: &mut BytesMut,
+    version: i16,
     results: &[ClientQuotaAlterationResult],
 ) -> crate::error::Result<()> {
+    let flexible = alter_client_quotas_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, true, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
-        buf::put_compact_string(buf, r.error_message.as_deref())?;
-        buf::put_array_len(buf, true, Some(r.entity.len()))?;
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
+        buf::put_array_len(buf, flexible, Some(r.entity.len()))?;
         for ent in &r.entity {
-            buf::put_compact_string(buf, Some(&ent.entity_type))?;
-            buf::put_compact_string(buf, ent.name.as_deref())?;
+            buf::put_string(buf, flexible, Some(&ent.entity_type))?;
+            buf::put_string(buf, flexible, ent.name.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
             buf::put_empty_tagged_fields(buf);
         }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode an AlterClientQuotas response.
 pub fn decode_alter_client_quotas_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<Vec<ClientQuotaAlterationResult>> {
+    let flexible = alter_client_quotas_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_compact_string(buf)?;
-        let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let error_message = buf::get_string(buf, flexible)?;
+        let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut entity = Vec::with_capacity(en);
         for _ in 0..en {
-            let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
-            let name = buf::get_compact_string(buf)?;
-            buf::skip_tagged_fields(buf)?;
+            let entity_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let name = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             entity.push(ClientQuotaEntity { entity_type, name });
         }
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         results.push(ClientQuotaAlterationResult {
             error_code,
             error_message,
             entity,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(results)
 }
 
-/// DescribeClientQuotas v1 (classic v0; flexible from v1; KIP-219).
+/// `true` when DescribeClientQuotas `version` is flexible.
+///
+/// v0 is classic. v1 is the first flexible version. Kafka 4.0
+/// `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
+fn describe_client_quotas_flexible(version: i16) -> Result<bool> {
+    match version {
+        0 => Ok(false),
+        1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DescribeClientQuotas version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DescribeClientQuotas v0–1 (classic at v0; flexible from v1; KIP-219).
 ///
 /// Official Apache JSON (`apiKey: 48`, `validVersions: "0-1"`,
 /// `flexibleVersions: "1+"`, listeners `broker` only) and
-/// kafka-protocol 0.18.0: this crate targets v1, the version a client
-/// encodes (VERSIONS.max). v0 is not flexible. Request: compact
-/// `Components` of `{EntityType, MatchType INT8 (0 exact / 1 default /
-/// 2 any), Match nullable, tagged}`, `Strict` BOOLEAN, tagged. Response:
-/// `ThrottleTimeMs` INT32, **top-level `ErrorCode` INT16**, compact
-/// nullable `ErrorMessage`, compact nullable `Entries` of `{Entity
-/// compact [{EntityType, EntityName nullable, tagged}], Values compact
-/// [{Key, Value FLOAT64, tagged}], tagged}`, tagged. Measured
+/// kafka-protocol 0.18.0. Request: `Components` of `{EntityType,
+/// MatchType INT8 (0 exact / 1 default / 2 any), Match nullable,
+/// tagged (v1+)}`, `Strict` BOOLEAN, tagged (v1+). Response:
+/// `ThrottleTimeMs` INT32, **top-level `ErrorCode` INT16**, nullable
+/// `ErrorMessage`, nullable `Entries` of `{Entity [{EntityType,
+/// EntityName nullable, tagged (v1+)}], Values [{Key, Value FLOAT64,
+/// tagged (v1+)}], tagged (v1+)}`, tagged (v1+). Measured
 /// independently from kafka-protocol 0.18.0 (`client` encodes the
 /// request; `broker` encodes the response): **the top-level ErrorCode
 /// is the INT16 at bytes 4–5**, after throttle — not a first-result
-/// field (AlterClientQuotas puts the first-entry code at bytes 5–6).
-/// This is not a controller hop.
+/// field (AlterClientQuotas puts the first-entry code at bytes 5–6
+/// on v1). This is not a controller hop.
 pub fn encode_describe_client_quotas_request(
     buf: &mut BytesMut,
+    version: i16,
     components: &[ClientQuotaFilterComponent],
     strict: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(components.len()))?;
+    let flexible = describe_client_quotas_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(components.len()))?;
     for c in components {
-        buf::put_compact_string(buf, Some(&c.entity_type))?;
+        buf::put_string(buf, flexible, Some(&c.entity_type))?;
         buf.put_i8(c.match_type);
-        buf::put_compact_string(buf, c.match_value.as_deref())?;
-        buf::put_empty_tagged_fields(buf);
+        buf::put_string(buf, flexible, c.match_value.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     buf.put_u8(u8::from(strict));
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DescribeClientQuotas request.
 pub fn decode_describe_client_quotas_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(Vec<ClientQuotaFilterComponent>, bool)> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let flexible = describe_client_quotas_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut components = Vec::with_capacity(n);
     for _ in 0..n {
-        let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
+        let entity_type = buf::get_string(buf, flexible)?.unwrap_or_default();
         let match_type = buf::get_i8(buf)?;
-        let match_value = buf::get_compact_string(buf)?;
-        buf::skip_tagged_fields(buf)?;
+        let match_value = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         components.push(ClientQuotaFilterComponent {
             entity_type,
             match_type,
@@ -2911,78 +2986,100 @@ pub fn decode_describe_client_quotas_request<B: Buf>(
         });
     }
     let strict = buf::get_bool(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((components, strict))
 }
 
-/// Encode a DescribeClientQuotas response.
+/// Encode a DescribeClientQuotas response (v0–1).
 pub fn encode_describe_client_quotas_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &DescribeClientQuotasResponse,
 ) -> crate::error::Result<()> {
+    let flexible = describe_client_quotas_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(resp.error_code);
-    buf::put_compact_string(buf, resp.error_message.as_deref())?;
+    buf::put_string(buf, flexible, resp.error_message.as_deref())?;
     match &resp.entries {
-        None => buf::put_array_len(buf, true, None)?,
+        None => buf::put_array_len(buf, flexible, None)?,
         Some(entries) => {
-            buf::put_array_len(buf, true, Some(entries.len()))?;
+            buf::put_array_len(buf, flexible, Some(entries.len()))?;
             for e in entries {
-                buf::put_array_len(buf, true, Some(e.entity.len()))?;
+                buf::put_array_len(buf, flexible, Some(e.entity.len()))?;
                 for ent in &e.entity {
-                    buf::put_compact_string(buf, Some(&ent.entity_type))?;
-                    buf::put_compact_string(buf, ent.name.as_deref())?;
-                    buf::put_empty_tagged_fields(buf);
+                    buf::put_string(buf, flexible, Some(&ent.entity_type))?;
+                    buf::put_string(buf, flexible, ent.name.as_deref())?;
+                    if flexible {
+                        buf::put_empty_tagged_fields(buf);
+                    }
                 }
-                buf::put_array_len(buf, true, Some(e.values.len()))?;
+                buf::put_array_len(buf, flexible, Some(e.values.len()))?;
                 for v in &e.values {
-                    buf::put_compact_string(buf, Some(&v.key))?;
+                    buf::put_string(buf, flexible, Some(&v.key))?;
                     buf.put_f64(v.value);
+                    if flexible {
+                        buf::put_empty_tagged_fields(buf);
+                    }
+                }
+                if flexible {
                     buf::put_empty_tagged_fields(buf);
                 }
-                buf::put_empty_tagged_fields(buf);
             }
         }
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DescribeClientQuotas response.
 pub fn decode_describe_client_quotas_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<DescribeClientQuotasResponse> {
+    let flexible = describe_client_quotas_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let error_message = buf::get_compact_string(buf)?;
-    let entries = match buf::get_array_len(buf, true)? {
+    let error_message = buf::get_string(buf, flexible)?;
+    let entries = match buf::get_array_len(buf, flexible)? {
         None => None,
         Some(n) => {
             let mut entries = Vec::with_capacity(n);
             for _ in 0..n {
-                let en = buf::get_array_len(buf, true)?.unwrap_or(0);
+                let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
                 let mut entity = Vec::with_capacity(en);
                 for _ in 0..en {
-                    let entity_type = buf::get_compact_string(buf)?.unwrap_or_default();
-                    let name = buf::get_compact_string(buf)?;
-                    buf::skip_tagged_fields(buf)?;
+                    let entity_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+                    let name = buf::get_string(buf, flexible)?;
+                    if flexible {
+                        buf::skip_tagged_fields(buf)?;
+                    }
                     entity.push(ClientQuotaEntity { entity_type, name });
                 }
-                let vn = buf::get_array_len(buf, true)?.unwrap_or(0);
+                let vn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
                 let mut values = Vec::with_capacity(vn);
                 for _ in 0..vn {
-                    let key = buf::get_compact_string(buf)?.unwrap_or_default();
+                    let key = buf::get_string(buf, flexible)?.unwrap_or_default();
                     let value = buf::get_f64(buf)?;
-                    buf::skip_tagged_fields(buf)?;
+                    if flexible {
+                        buf::skip_tagged_fields(buf)?;
+                    }
                     values.push(ClientQuotaValue { key, value });
                 }
-                buf::skip_tagged_fields(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
                 entries.push(ClientQuotaEntry { entity, values });
             }
             Some(entries)
         }
     };
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(DescribeClientQuotasResponse {
         error_code,
         error_message,
@@ -10055,7 +10152,8 @@ mod tests {
     fn alter_client_quotas_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 49
-        // validVersions 0-1, flexibleVersions 1+. This crate targets v1.
+        // validVersions 0-1, flexibleVersions 1+. This crate speaks 0–1;
+        // this fixture is v1.
         // v0 is classic (not copied from AlterUserScramCredentials).
         const REQ: &[u8] = &[
             0x02, 0x02, 0x05, 0x75, 0x73, 0x65, 0x72, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00,
@@ -10073,7 +10171,7 @@ mod tests {
             vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
         )];
         let mut buf = BytesMut::new();
-        encode_alter_client_quotas_request(&mut buf, &entries, false).unwrap();
+        encode_alter_client_quotas_request(&mut buf, 1, &entries, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![ClientQuotaAlterationResult {
             error_code: crate::error::NOT_CONTROLLER,
@@ -10081,7 +10179,7 @@ mod tests {
             entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
         }];
         buf.clear();
-        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_alter_client_quotas_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);
     }
 
@@ -10098,9 +10196,9 @@ mod tests {
             ),
         ];
         let mut buf = BytesMut::new();
-        encode_alter_client_quotas_request(&mut buf, &entries, true).unwrap();
+        encode_alter_client_quotas_request(&mut buf, 1, &entries, true).unwrap();
         let mut cur = &buf[..];
-        let (got, validate_only) = decode_alter_client_quotas_request(&mut cur).unwrap();
+        let (got, validate_only) = decode_alter_client_quotas_request(&mut cur, 1).unwrap();
         assert_eq!(got, entries);
         assert!(validate_only);
         assert!(
@@ -10121,9 +10219,12 @@ mod tests {
             },
         ];
         buf.clear();
-        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_alter_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_alter_client_quotas_response(&mut cur).unwrap(), resp);
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            resp
+        );
         assert!(
             !cur.has_remaining(),
             "AlterClientQuotas v1 response must be leftover-empty"
@@ -10144,7 +10245,7 @@ mod tests {
             entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
         }];
         let mut buf = BytesMut::new();
-        encode_alter_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_alter_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_ne!(
@@ -10159,10 +10260,78 @@ mod tests {
             "v1 41 is the first entry ErrorCode after throttle and compact entries len"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_alter_client_quotas_response(&mut cur).unwrap(), resp);
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            resp
+        );
         assert!(
             !cur.has_remaining(),
             "AlterClientQuotas v1 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_client_quotas_v0_is_classic() {
+        const REQ_V0: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x75, 0x73, 0x65, 0x72,
+            0x00, 0x05, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00, 0x00, 0x00, 0x01, 0x00, 0x12, 0x70,
+            0x72, 0x6f, 0x64, 0x75, 0x63, 0x65, 0x72, 0x5f, 0x62, 0x79, 0x74, 0x65, 0x5f, 0x72,
+            0x61, 0x74, 0x65, 0x40, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const RESP_V0_41: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x29, 0x00, 0x0e, 0x4e, 0x6f,
+            0x74, 0x20, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x00, 0x00,
+            0x00, 0x01, 0x00, 0x04, 0x75, 0x73, 0x65, 0x72, 0x00, 0x05, 0x61, 0x6c, 0x69, 0x63,
+            0x65,
+        ];
+        let entries = vec![ClientQuotaAlteration::new(
+            vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+            vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+        )];
+        let resp = vec![ClientQuotaAlterationResult {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entity: vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+        }];
+        let mut buf = BytesMut::new();
+        encode_alter_client_quotas_request(&mut buf, 0, &entries, false).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        let mut cur = &buf[..];
+        let (got, validate_only) = decode_alter_client_quotas_request(&mut cur, 0).unwrap();
+        assert_eq!(got, entries);
+        assert!(!validate_only);
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas v0 request leftover-empty"
+        );
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_41);
+        let b8 = buf.get(8).copied().unwrap();
+        let b9 = buf.get(9).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b8, b9]),
+            crate::error::NOT_CONTROLLER,
+            "v0 first-entry ErrorCode is after throttle and classic array len (bytes 8-9)"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 0).unwrap(),
+            resp
+        );
+        assert!(!cur.has_remaining());
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+    }
+
+    #[test]
+    fn alter_client_quotas_v2_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_alter_client_quotas_request(&mut buf, 2, &[], false).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2+ is not spoken, got {err}"
         );
     }
 
@@ -10171,7 +10340,7 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 48
         // validVersions 0-1, flexibleVersions 1+, listeners broker only.
-        // This crate targets v1. Not copied from AlterClientQuotas
+        // This crate speaks 0–1; this fixture is v1. Not copied from AlterClientQuotas
         // (no top-level error; first-entry 41 at bytes 5-6).
         const REQ: &[u8] = &[
             0x02, 0x05, 0x75, 0x73, 0x65, 0x72, 0x00, 0x06, 0x61, 0x6c, 0x69, 0x63, 0x65, 0x00,
@@ -10187,7 +10356,7 @@ mod tests {
             Some("alice".into()),
         )];
         let mut buf = BytesMut::new();
-        encode_describe_client_quotas_request(&mut buf, &components, false).unwrap();
+        encode_describe_client_quotas_request(&mut buf, 1, &components, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = DescribeClientQuotasResponse {
             error_code: crate::error::NOT_CONTROLLER,
@@ -10195,7 +10364,7 @@ mod tests {
             entries: None,
         };
         buf.clear();
-        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_ERR);
     }
 
@@ -10206,9 +10375,9 @@ mod tests {
             ClientQuotaFilterComponent::new("client-id", QUOTA_MATCH_ANY, None),
         ];
         let mut buf = BytesMut::new();
-        encode_describe_client_quotas_request(&mut buf, &components, true).unwrap();
+        encode_describe_client_quotas_request(&mut buf, 1, &components, true).unwrap();
         let mut cur = &buf[..];
-        let (got, strict) = decode_describe_client_quotas_request(&mut cur).unwrap();
+        let (got, strict) = decode_describe_client_quotas_request(&mut cur, 1).unwrap();
         assert_eq!(got, components);
         assert!(strict);
         assert!(
@@ -10225,10 +10394,10 @@ mod tests {
             )]),
         };
         buf.clear();
-        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_client_quotas_response(&mut cur).unwrap(),
+            decode_describe_client_quotas_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
@@ -10252,7 +10421,7 @@ mod tests {
             entries: None,
         };
         let mut buf = BytesMut::new();
-        encode_describe_client_quotas_response(&mut buf, &resp).unwrap();
+        encode_describe_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_eq!(
@@ -10268,12 +10437,74 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_client_quotas_response(&mut cur).unwrap(),
+            decode_describe_client_quotas_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
             !cur.has_remaining(),
             "DescribeClientQuotas v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_client_quotas_v0_is_classic() {
+        const REQ_V0: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x75, 0x73, 0x65, 0x72, 0x00, 0x00, 0x05, 0x61,
+            0x6c, 0x69, 0x63, 0x65, 0x00,
+        ];
+        const RESP_V0_ERR: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x00, 0x0e, 0x4e, 0x6f, 0x74, 0x20, 0x63, 0x6f,
+            0x6e, 0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0xff, 0xff, 0xff, 0xff,
+        ];
+        let components = vec![ClientQuotaFilterComponent::new(
+            "user",
+            QUOTA_MATCH_EXACT,
+            Some("alice".into()),
+        )];
+        let resp = DescribeClientQuotasResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("Not controller".into()),
+            entries: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_describe_client_quotas_request(&mut buf, 0, &components, false).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        let mut cur = &buf[..];
+        let (got, strict) = decode_describe_client_quotas_request(&mut cur, 0).unwrap();
+        assert_eq!(got, components);
+        assert!(!strict);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeClientQuotas v0 request leftover-empty"
+        );
+        buf.clear();
+        encode_describe_client_quotas_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_ERR);
+        let b4 = buf.get(4).copied().unwrap();
+        let b5 = buf.get(5).copied().unwrap();
+        assert_eq!(
+            i16::from_be_bytes([b4, b5]),
+            crate::error::NOT_CONTROLLER,
+            "v0 top-level ErrorCode is still the INT16 at bytes 4-5"
+        );
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_client_quotas_response(&mut cur, 0).unwrap(),
+            resp
+        );
+        assert!(!cur.has_remaining());
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+    }
+
+    #[test]
+    fn describe_client_quotas_v2_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_describe_client_quotas_request(&mut buf, 2, &[], false).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2+ is not spoken, got {err}"
         );
     }
 

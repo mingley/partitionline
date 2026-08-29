@@ -306,8 +306,10 @@ struct State {
     last_scram_delete: Option<(String, i8)>,
     scram_users: HashMap<(String, i8), i32>,
     last_describe_client_quotas_node: Option<i32>,
+    last_describe_client_quotas_version: Option<i16>,
     last_describe_client_quotas: Option<(Vec<ClientQuotaFilterComponent>, bool)>,
     last_alter_client_quotas_node: Option<i32>,
+    last_alter_client_quotas_version: Option<i16>,
     alter_client_quotas_not_controller: u32,
     last_quota_upsert: Option<(String, Option<String>, String, f64)>,
     last_quota_delete: Option<(String, Option<String>, String)>,
@@ -591,8 +593,10 @@ fn new_state(
         last_scram_delete: None,
         scram_users: HashMap::new(),
         last_describe_client_quotas_node: None,
+        last_describe_client_quotas_version: None,
         last_describe_client_quotas: None,
         last_alter_client_quotas_node: None,
+        last_alter_client_quotas_version: None,
         alter_client_quotas_not_controller: 0,
         last_quota_upsert: None,
         last_quota_delete: None,
@@ -1639,12 +1643,20 @@ impl Mock {
         self.state.lock().last_describe_client_quotas_node
     }
 
+    pub fn last_describe_client_quotas_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_client_quotas_version
+    }
+
     pub fn last_describe_client_quotas(&self) -> Option<(Vec<ClientQuotaFilterComponent>, bool)> {
         self.state.lock().last_describe_client_quotas.clone()
     }
 
     pub fn last_alter_client_quotas_node(&self) -> Option<i32> {
         self.state.lock().last_alter_client_quotas_node
+    }
+
+    pub fn last_alter_client_quotas_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_client_quotas_version
     }
 
     pub fn alter_client_quotas_not_controller(&self) -> u32 {
@@ -3420,15 +3432,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             DESCRIBE_CLIENT_QUOTAS => {
+                let version = header.api_version;
                 let (components, strict) =
-                    decode_describe_client_quotas_request(&mut frame).unwrap();
+                    decode_describe_client_quotas_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture describe only;
                 // not a quota store and not a controller hop.
                 st.last_describe_client_quotas_node = Some(node_id);
+                st.last_describe_client_quotas_version = Some(version);
                 st.last_describe_client_quotas = Some((components, strict));
                 encode_describe_client_quotas_response(
                     &mut body,
+                    version,
                     &DescribeClientQuotasResponse {
                         error_code: 0,
                         error_message: None,
@@ -3441,9 +3456,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             ALTER_CLIENT_QUOTAS => {
+                let version = header.api_version;
                 let (entries, _validate_only) =
-                    decode_alter_client_quotas_request(&mut frame).unwrap();
+                    decode_alter_client_quotas_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_alter_client_quotas_version = Some(version);
                 if st.controller_node != node_id {
                     st.alter_client_quotas_not_controller =
                         st.alter_client_quotas_not_controller.saturating_add(1);
@@ -3456,7 +3473,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             entity: e.entity,
                         });
                     }
-                    encode_alter_client_quotas_response(&mut body, &results).unwrap();
+                    encode_alter_client_quotas_response(&mut body, version, &results).unwrap();
                 } else {
                     st.last_alter_client_quotas_node = Some(node_id);
                     let mut results = Vec::new();
@@ -3484,7 +3501,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             entity: e.entity,
                         });
                     }
-                    encode_alter_client_quotas_response(&mut body, &results).unwrap();
+                    encode_alter_client_quotas_response(&mut body, version, &results).unwrap();
                 }
             }
             ALLOCATE_PRODUCER_IDS => {

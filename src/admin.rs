@@ -1181,15 +1181,15 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support UnregisterBroker".into()))?;
         let describe_client_quotas_version = versions
             .get(&DESCRIBE_CLIENT_QUOTAS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeClientQuotas".into())
+                Error::Unsupported("broker does not support DescribeClientQuotas v0-1".into())
             })?;
         let alter_client_quotas_version = versions
             .get(&ALTER_CLIENT_QUOTAS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterClientQuotas".into())
+                Error::Unsupported("broker does not support AlterClientQuotas v0-1".into())
             })?;
         let allocate_producer_ids_version = versions
             .get(&ALLOCATE_PRODUCER_IDS)
@@ -2358,7 +2358,9 @@ impl Admin {
 
     /// Describe client quotas (DescribeClientQuotas api 48, KIP-219).
     ///
-    /// Lands on the connected broker (bootstrap is fine). Official Apache
+    /// Lands on the connected broker (bootstrap is fine). Negotiates
+    /// DescribeClientQuotas v0–v1 (Kafka 4.0 `validVersions` `0-1`;
+    /// v0 classic, v1 flexible). Official Apache
     /// JSON listeners are `broker` only. This is not a controller hop:
     /// there is no Metadata `controller_id` lookup and no
     /// `NOT_CONTROLLER` (41) retry. Top-level `error_code` is the INT16
@@ -2375,11 +2377,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_CLIENT_QUOTAS,
                 version,
-                |buf| encode_describe_client_quotas_request(buf, &components, strict),
+                |buf| encode_describe_client_quotas_request(buf, version, &components, strict),
                 timeout,
             )
             .await?;
-        let resp = decode_describe_client_quotas_response(&mut body.clone())?;
+        let resp = decode_describe_client_quotas_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "DescribeClientQuotas"));
         }
@@ -2388,8 +2390,10 @@ impl Admin {
 
     /// Upsert or delete client quotas (AlterClientQuotas api 49).
     ///
-    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
-    /// Metadata and retries on the new controller.
+    /// Lands on the Metadata controller. Negotiates AlterClientQuotas
+    /// v0–v1 (Kafka 4.0 `validVersions` `0-1`; v0 classic, v1 flexible).
+    /// `NOT_CONTROLLER` (41) refreshes Metadata and retries on the new
+    /// controller.
     pub async fn alter_client_quotas(
         &mut self,
         entries: &[ClientQuotaAlteration],
@@ -2414,7 +2418,7 @@ impl Admin {
                 conn.roundtrip(
                     ALTER_CLIENT_QUOTAS,
                     version,
-                    |buf| encode_alter_client_quotas_request(buf, &entries, validate_only),
+                    |buf| encode_alter_client_quotas_request(buf, version, &entries, validate_only),
                     timeout,
                 )
                 .await
@@ -2429,7 +2433,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_alter_client_quotas_response(&mut body.clone())?;
+            let results = decode_alter_client_quotas_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)

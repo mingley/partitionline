@@ -11,11 +11,12 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CONFIGS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS,
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
-    DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_GROUPS, LIST_TRANSACTIONS, METADATA,
-    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT,
+    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -4684,6 +4685,11 @@ async fn describe_client_quotas_follows_broker() {
         "DescribeClientQuotas must land on the connected broker, not the controller"
     );
     assert_eq!(
+        mock.last_describe_client_quotas_version(),
+        Some(1),
+        "Admin must prefer DescribeClientQuotas v1 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_describe_client_quotas(),
         Some((vec![filter], false))
     );
@@ -4691,6 +4697,25 @@ async fn describe_client_quotas_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "DescribeClientQuotas must not hop via AlterClientQuotas or Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn describe_client_quotas_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_CLIENT_QUOTAS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let filter = ClientQuotaFilterComponent::new("user", QUOTA_MATCH_EXACT, Some("alice".into()));
+    let entries = admin
+        .describe_client_quotas(std::slice::from_ref(&filter), false)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].values[0].key, "producer_byte_rate");
+    assert_eq!(
+        mock.last_describe_client_quotas_version(),
+        Some(0),
+        "client must speak DescribeClientQuotas v0 when the broker max is 0"
     );
 }
 
@@ -4711,6 +4736,11 @@ async fn alter_client_quotas_follows_controller() {
         mock.last_alter_client_quotas_node(),
         Some(2),
         "AlterClientQuotas must land on the controller, not bootstrap"
+    );
+    assert_eq!(
+        mock.last_alter_client_quotas_version(),
+        Some(1),
+        "Admin must prefer AlterClientQuotas v1 when the broker advertises it"
     );
     assert_eq!(
         mock.last_quota_upsert(),
@@ -4775,6 +4805,25 @@ async fn alter_client_quotas_follows_controller() {
     );
     assert!(mock.has_quota_fixture("user", Some("bob"), "consumer_byte_rate"));
     assert!(!mock.has_quota_fixture("user", Some("carol"), "producer_byte_rate"));
+}
+
+#[tokio::test]
+async fn alter_client_quotas_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(ALTER_CLIENT_QUOTAS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let alice = ClientQuotaAlteration::new(
+        vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+        vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+    );
+    let results = admin.alter_client_quotas(&[alice], false).await.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_alter_client_quotas_version(),
+        Some(0),
+        "client must speak AlterClientQuotas v0 when the broker max is 0"
+    );
 }
 
 #[tokio::test]

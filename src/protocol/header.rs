@@ -79,7 +79,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | DESCRIBE_PRODUCERS => 2,
         // DescribeClientQuotas / AlterClientQuotas are classic at v0;
         // flexible from v1 (Apache JSON flexibleVersions: "1+",
-        // kafka-protocol 0.18.0).
+        // kafka-protocol 0.18.0). Kafka 4.0 validVersions is 0-1.
+        // This crate speaks 0–1. v2+ is not spoken.
         DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
         // DescribeGroups is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+", kafka-protocol 0.18.0).
@@ -1045,7 +1046,7 @@ mod tests {
     fn describe_client_quotas_v1_is_flexible_v0_is_not() {
         // Official JSON: validVersions 0-1, flexibleVersions 1+.
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v1; 1 / 0 at v0.
-        // This crate speaks v1.
+        // This crate speaks 0–1.
         assert_eq!(request_header_version(DESCRIBE_CLIENT_QUOTAS, 0), 1);
         assert_eq!(response_header_version(DESCRIBE_CLIENT_QUOTAS, 0), 0);
         assert_eq!(request_header_version(DESCRIBE_CLIENT_QUOTAS, 1), 2);
@@ -1055,7 +1056,7 @@ mod tests {
     #[test]
     fn alter_client_quotas_v1_is_flexible_v0_is_not() {
         // Official JSON: validVersions 0-1, flexibleVersions 1+.
-        // v0 stays classic (header 1/0). This crate speaks v1.
+        // v0 stays classic (header 1/0). This crate speaks 0–1.
         assert_eq!(request_header_version(ALTER_CLIENT_QUOTAS, 0), 1);
         assert_eq!(response_header_version(ALTER_CLIENT_QUOTAS, 0), 0);
         assert_eq!(request_header_version(ALTER_CLIENT_QUOTAS, 1), 2);
