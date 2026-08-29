@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicI16, AtomicI64, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -24,7 +25,7 @@ use crate::protocol::group::{
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
-    write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader,
+    write_record_batch, BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch,
 };
 use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
@@ -514,6 +515,9 @@ impl ProduceRecord {
 /// Broker acknowledgement for a produced record.
 ///
 /// Java `RecordMetadata`. [`Self::has_offset`] is Java `hasOffset` (`offset != -1`).
+/// [`Self::has_timestamp`] is Java `hasTimestamp` (`timestamp` is not
+/// [`RecordBatch::NO_TIMESTAMP`]). [`Self::serialized_key_size`] /
+/// [`Self::serialized_value_size`] are `-1` when the key or value is null.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordMetadata {
     /// Topic name.
@@ -522,9 +526,20 @@ pub struct RecordMetadata {
     pub partition: i32,
     /// Assigned offset, or `-1` when `acks=0`.
     pub offset: i64,
+    /// Java `RecordMetadata.timestamp` ([`RecordBatch::NO_TIMESTAMP`] when
+    /// unknown). Log-append time from the Produce response when the broker
+    /// sends it; otherwise the produce timestamp (or the producer clock).
+    pub timestamp: i64,
+    /// Java `serializedKeySize` (`-1` if there is no key).
+    pub serialized_key_size: i32,
+    /// Java `serializedValueSize` (`-1` if there is no value).
+    pub serialized_value_size: i32,
 }
 
 impl RecordMetadata {
+    /// Java `RecordMetadata.UNKNOWN_PARTITION`.
+    pub const UNKNOWN_PARTITION: i32 = -1;
+
     /// Java `RecordMetadata.topic`.
     #[must_use]
     pub fn topic(&self) -> &str {
@@ -547,6 +562,44 @@ impl RecordMetadata {
     #[must_use]
     pub fn has_offset(&self) -> bool {
         self.offset != -1
+    }
+
+    /// Java `RecordMetadata.timestamp` ([`RecordBatch::NO_TIMESTAMP`] when
+    /// [`Self::has_timestamp`] is false).
+    #[must_use]
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `RecordMetadata.hasTimestamp`.
+    #[must_use]
+    pub fn has_timestamp(&self) -> bool {
+        self.timestamp != RecordBatch::NO_TIMESTAMP
+    }
+
+    /// Java `RecordMetadata.serializedKeySize` (`-1` if there is no key).
+    #[must_use]
+    pub fn serialized_key_size(&self) -> i32 {
+        self.serialized_key_size
+    }
+
+    /// Java `RecordMetadata.serializedValueSize` (`-1` if there is no value).
+    #[must_use]
+    pub fn serialized_value_size(&self) -> i32 {
+        self.serialized_value_size
+    }
+
+    /// Topic and partition of this ack (Java `TopicPartition` inside
+    /// `RecordMetadata`).
+    #[must_use]
+    pub fn topic_partition(&self) -> crate::TopicPartition {
+        crate::TopicPartition::new(self.topic.clone(), self.partition)
+    }
+}
+
+impl fmt::Display for RecordMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}-{}@{}", self.topic, self.partition, self.offset)
     }
 }
 
@@ -2570,11 +2623,13 @@ impl Worker {
                     self.shared.note_acked(&topic, n);
                     for (i, p) in pendings.into_iter().enumerate() {
                         self.shared.note_ack_latency(&topic, p.queued_at);
-                        let md = RecordMetadata {
-                            topic: topic.to_string(),
-                            partition: part,
-                            offset: r.base_offset + i64::try_from(i).unwrap_or(0),
-                        };
+                        let md = record_metadata(
+                            &topic,
+                            part,
+                            r.base_offset + i64::try_from(i).unwrap_or(0),
+                            &p.rec,
+                            r.log_append_time_ms,
+                        );
                         self.shared.interceptors.on_ack(&md);
                         if let Some(tx) = p.tx {
                             drop(tx.send(Ok(md)));
@@ -2987,11 +3042,7 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         shared.note_acked(&topic, n);
         for p in pendings {
             shared.note_ack_latency(&topic, p.queued_at);
-            let md = RecordMetadata {
-                topic: topic.to_string(),
-                partition: part,
-                offset: -1,
-            };
+            let md = record_metadata(&topic, part, -1, &p.rec, RecordBatch::NO_TIMESTAMP);
             shared.interceptors.on_ack(&md);
             if let Some(tx) = p.tx {
                 drop(tx.send(Ok(md)));
@@ -3053,6 +3104,34 @@ fn now_ms() -> i64 {
         .unwrap_or(0)
 }
 
+fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
+    bytes
+        .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+        .unwrap_or(-1)
+}
+
+fn record_metadata(
+    topic: &str,
+    partition: i32,
+    offset: i64,
+    rec: &ProduceRecord,
+    log_append_time_ms: i64,
+) -> RecordMetadata {
+    let timestamp = if log_append_time_ms >= 0 {
+        log_append_time_ms
+    } else {
+        rec.timestamp.unwrap_or_else(now_ms)
+    };
+    RecordMetadata {
+        topic: topic.to_string(),
+        partition,
+        offset,
+        timestamp,
+        serialized_key_size: serialized_bytes_size(rec.key.as_ref()),
+        serialized_value_size: serialized_bytes_size(rec.value.as_ref()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3063,16 +3142,34 @@ mod tests {
             topic: "events".into(),
             partition: 2,
             offset: 9,
+            timestamp: 1_700_000_000_000,
+            serialized_key_size: 3,
+            serialized_value_size: 5,
         };
         assert_eq!(md.topic(), "events");
         assert_eq!(md.partition(), 2);
         assert_eq!(md.offset(), 9);
         assert!(md.has_offset());
+        assert_eq!(md.timestamp(), 1_700_000_000_000);
+        assert!(md.has_timestamp());
+        assert_eq!(md.serialized_key_size(), 3);
+        assert_eq!(md.serialized_value_size(), 5);
+        assert_eq!(
+            md.topic_partition(),
+            crate::TopicPartition::new("events", 2)
+        );
+        assert_eq!(md.to_string(), "events-2@9");
+        assert_eq!(RecordMetadata::UNKNOWN_PARTITION, -1);
         let acks0 = RecordMetadata {
             topic: "events".into(),
             partition: 0,
             offset: -1,
+            timestamp: RecordBatch::NO_TIMESTAMP,
+            serialized_key_size: -1,
+            serialized_value_size: -1,
         };
         assert!(!acks0.has_offset());
+        assert!(!acks0.has_timestamp());
+        assert_eq!(acks0.to_string(), "events-0@-1");
     }
 }

@@ -130,10 +130,14 @@ async fn metadata_negotiates_v13_when_advertised() {
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     pcfg.linger = Duration::ZERO;
     let producer = Producer::new(pcfg).await.unwrap();
-    producer
+    let md = producer
         .send(ProduceRecord::to("t").value(&b"md13"[..]))
         .await
         .unwrap();
+    assert_eq!(md.serialized_key_size(), -1);
+    assert_eq!(md.serialized_value_size(), 4);
+    assert!(md.has_timestamp());
+    assert_eq!(md.to_string(), format!("t-0@{}", md.offset()));
     assert_eq!(
         mock.last_metadata_version(),
         Some(13),

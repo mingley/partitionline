@@ -285,9 +285,20 @@ pub struct RecordBatch {
 }
 
 impl RecordBatch {
+    /// Java `RecordBatch.NO_TIMESTAMP`.
+    pub const NO_TIMESTAMP: i64 = -1;
+    /// Java `RecordBatch.NO_PRODUCER_ID`.
+    pub const NO_PRODUCER_ID: i64 = -1;
+    /// Java `RecordBatch.NO_PRODUCER_EPOCH`.
+    pub const NO_PRODUCER_EPOCH: i16 = -1;
+    /// Java `RecordBatch.NO_SEQUENCE`.
+    pub const NO_SEQUENCE: i32 = -1;
+    /// Java `RecordBatch.NO_PARTITION_LEADER_EPOCH`.
+    pub const NO_PARTITION_LEADER_EPOCH: i32 = -1;
+
     /// Build a batch from records. Offsets become `0..n`; timestamps set
     /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
-    /// stay `-1`.
+    /// stay [`Self::NO_PRODUCER_ID`].
     pub fn from_records(mut records: Vec<Record>) -> Self {
         for (i, rec) in records.iter_mut().enumerate() {
             rec.offset = i64::try_from(i).unwrap_or(i64::MAX);
@@ -300,13 +311,13 @@ impl RecordBatch {
             .unwrap_or(base_timestamp);
         Self {
             base_offset: 0,
-            partition_leader_epoch: -1,
+            partition_leader_epoch: Self::NO_PARTITION_LEADER_EPOCH,
             attributes: 0,
             base_timestamp,
             max_timestamp,
-            producer_id: -1,
-            producer_epoch: -1,
-            base_sequence: -1,
+            producer_id: Self::NO_PRODUCER_ID,
+            producer_epoch: Self::NO_PRODUCER_EPOCH,
+            base_sequence: Self::NO_SEQUENCE,
             records,
         }
     }
@@ -432,7 +443,8 @@ impl RecordBatch {
         self.producer_id
     }
 
-    /// Java `DefaultRecordBatch.hasProducerId`.
+    /// Java `DefaultRecordBatch.hasProducerId` (`producerId` is not
+    /// [`Self::NO_PRODUCER_ID`]).
     #[must_use]
     pub fn has_producer_id(&self) -> bool {
         self.producer_id >= 0
@@ -967,18 +979,26 @@ mod tests {
         assert_eq!(batch.next_offset(), 1);
         assert_eq!(batch.count(), 1);
         assert_eq!(batch.records().len(), 1);
-        assert_eq!(batch.partition_leader_epoch(), -1);
+        assert_eq!(
+            batch.partition_leader_epoch(),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert_eq!(batch.base_timestamp(), 9);
         assert_eq!(batch.max_timestamp(), 9);
-        assert_eq!(batch.producer_id(), -1);
+        assert_eq!(batch.producer_id(), RecordBatch::NO_PRODUCER_ID);
         assert!(!batch.has_producer_id());
-        assert_eq!(batch.producer_epoch(), -1);
-        assert_eq!(batch.base_sequence(), -1);
+        assert_eq!(batch.producer_epoch(), RecordBatch::NO_PRODUCER_EPOCH);
+        assert_eq!(batch.base_sequence(), RecordBatch::NO_SEQUENCE);
         assert_eq!(batch.compression_type().unwrap(), Compression::None);
         let empty_batch = RecordBatch::from_records(vec![]);
         assert_eq!(empty_batch.count(), 0);
         assert_eq!(empty_batch.last_offset(), -1);
         assert_eq!(empty_batch.next_offset(), 0);
+        assert_eq!(RecordBatch::NO_TIMESTAMP, -1);
+        assert_eq!(RecordBatch::NO_PRODUCER_ID, -1);
+        assert_eq!(RecordBatch::NO_PRODUCER_EPOCH, -1);
+        assert_eq!(RecordBatch::NO_SEQUENCE, -1);
+        assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
         let mut with_pid = RecordBatch::from_records(vec![empty]);
         with_pid.producer_id = 5;
         with_pid.producer_epoch = 1;

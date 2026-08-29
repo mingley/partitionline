@@ -49,8 +49,14 @@ async fn send_all_queues_then_returns_offsets() {
         .unwrap();
     assert_eq!(mds.len(), 3);
     assert_eq!(mds[0].offset, 0);
+    assert_eq!(mds[0].offset(), 0);
     assert_eq!(mds[1].offset, 1);
     assert_eq!(mds[2].offset, 2);
+    assert_eq!(mds[0].serialized_key_size(), -1);
+    assert_eq!(mds[0].serialized_value_size(), 1);
+    assert!(mds[0].has_timestamp());
+    assert_eq!(mds[0].topic_partition(), TopicPartition::new("t", 0));
+    assert_eq!(mds[0].to_string(), "t-0@0");
     assert_eq!(
         mock.last_produce_version(),
         Some(12),
@@ -66,7 +72,7 @@ async fn produce_header_survives_fetch() {
         Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
             .await
             .unwrap();
-    producer
+    let md = producer
         .send(
             ProduceRecord::to("t")
                 .value(&b"with-header"[..])
@@ -76,6 +82,15 @@ async fn produce_header_survives_fetch() {
         )
         .await
         .unwrap();
+    assert_eq!(md.timestamp(), 1_700_000_000_000);
+    assert_eq!(md.timestamp, 1_700_000_000_000);
+    assert!(md.has_timestamp());
+    assert_eq!(md.serialized_key_size(), -1);
+    assert_eq!(md.serialized_key_size, -1);
+    assert_eq!(md.serialized_value_size(), 11);
+    assert_eq!(md.serialized_value_size, 11);
+    assert_eq!(md.topic_partition(), TopicPartition::new("t", 0));
+    assert_eq!(md.to_string(), format!("t-0@{}", md.offset()));
     producer.close().await.unwrap();
 
     let mut consumer =

@@ -10,7 +10,7 @@
 //! let md = producer
 //!     .send(ProduceRecord::to("events").value(&b"hello"[..]))
 //!     .await?;
-//! println!("{}-{}@{}", md.topic, md.partition, md.offset);
+//! println!("{md}");
 //! producer.close().await?;
 //! # Ok(())
 //! # }
@@ -83,6 +83,10 @@
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
 //! returns [`Uuid`]).
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
+//! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
+//! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
+//! match Java `RecordMetadata`. [`RecordBatch::NO_TIMESTAMP`] is Java
+//! `RecordBatch.NO_TIMESTAMP`.
 //! [`Admin::get_telemetry_subscriptions`] / [`Admin::push_telemetry`] take
 //! [`Uuid`] or `[u8; 16]`.
 //!
