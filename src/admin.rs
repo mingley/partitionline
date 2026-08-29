@@ -1026,6 +1026,7 @@ pub struct Admin {
     group_coord: Option<(String, i32)>,
     group_coords: HashMap<String, i32>,
     txn_coord: Option<(String, i32)>,
+    txn_coords: HashMap<String, i32>,
     stats: Arc<crate::metrics::AdminTracker>,
 }
 
@@ -1466,6 +1467,7 @@ impl Admin {
             group_coord: None,
             group_coords: HashMap::new(),
             txn_coord: None,
+            txn_coords: HashMap::new(),
             stats,
         })
     }
@@ -2862,66 +2864,64 @@ impl Admin {
     /// `key_type=1`). `COORDINATOR_LOAD_IN_PROGRESS` /
     /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. This is not `NOT_CONTROLLER` (41).
+    /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
+    /// FindCoordinator per retry for uncached transactional ids.
+    /// DescribeTransactions is one RPC per coordinator. Brokers that
+    /// only speak FindCoordinator v1–v3 get one FindCoordinator per
+    /// uncached id. Empty input is a no-op.
     pub async fn describe_transactions(
         &mut self,
         transactional_ids: &[&str],
     ) -> Result<Vec<TransactionState>> {
         let ids: Vec<String> = transactional_ids.iter().map(|s| (*s).to_string()).collect();
-        let Some(coord_key) = ids.first().cloned() else {
+        if ids.is_empty() {
             return Ok(Vec::new());
-        };
-        let version = self.describe_transactions_version;
+        }
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != &coord_key);
-            if stale {
-                let node = self.discover_txn_coord(&coord_key).await?;
-                self.txn_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .txn_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing describe_transactions conn"))?;
-                conn.roundtrip(
-                    DESCRIBE_TRANSACTIONS,
-                    version,
-                    |buf| encode_describe_transactions_request(buf, &ids),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.txn_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.txn_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .describe_transactions_on_node(node, &ids, &idxs, timeout)
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, t) in done {
+                            if error::coordinator_retriable(t.error_code) {
+                                self.invalidate_txn_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(t);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_txn_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_describe_transactions_response(&mut body.clone())?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new txn coordinator.
-                self.txn_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(t, id)| {
+                t.ok_or_else(|| Error::protocol(format!("DescribeTransactions missing {id}")))
+            })
+            .collect()
     }
 
     /// List transactional.id state (ListTransactions api 66).
@@ -4473,77 +4473,73 @@ impl Admin {
     /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. ErrorCode is per-group (bytes 5–6 on
     /// leftover-empty fixture group `"g"`), not top-level after throttle.
+    /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
+    /// FindCoordinator per retry for uncached groups. ConsumerGroupDescribe
+    /// is one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// v1–v3 get one FindCoordinator per uncached group. Empty input is
+    /// a no-op.
     pub async fn consumer_group_describe(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedConsumerGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
-        let Some(coord_key) = ids.first().cloned() else {
+        if ids.is_empty() {
             return Ok(Vec::new());
-        };
+        }
         let version = self.consumer_group_describe_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
-            if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
-                self.group_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing consumer_group_describe conn"))?;
-                conn.roundtrip(
-                    CONSUMER_GROUP_DESCRIBE,
-                    version,
-                    |buf| {
-                        encode_consumer_group_describe_request(
-                            buf,
-                            version,
-                            &ids,
-                            include_authorized_operations,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .consumer_group_describe_on_node(
+                        node,
+                        version,
+                        &ids,
+                        &idxs,
+                        include_authorized_operations,
+                        timeout,
+                    )
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_consumer_group_describe_response(&mut body.clone(), version)?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new group coordinator.
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| {
+                g.ok_or_else(|| Error::protocol(format!("ConsumerGroupDescribe missing {id}")))
+            })
+            .collect()
     }
 
     /// Describe classic consumer groups (DescribeGroups api 15).
@@ -4984,77 +4980,73 @@ impl Admin {
     /// ErrorCode is per-group (bytes 5–6 on leftover-empty fixture
     /// group `"g"`), not top-level after throttle.
     /// Java `describeShareGroups` is [`Self::describe_share_groups`].
+    /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
+    /// FindCoordinator per retry for uncached groups. ShareGroupDescribe
+    /// is one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// v1–v3 get one FindCoordinator per uncached group. Empty input is
+    /// a no-op.
     pub async fn share_group_describe(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedShareGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
-        let Some(coord_key) = ids.first().cloned() else {
+        if ids.is_empty() {
             return Ok(Vec::new());
-        };
+        }
         let version = self.share_group_describe_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
-            if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
-                self.group_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing share_group_describe conn"))?;
-                conn.roundtrip(
-                    SHARE_GROUP_DESCRIBE,
-                    version,
-                    |buf| {
-                        encode_share_group_describe_request(
-                            buf,
-                            version,
-                            &ids,
-                            include_authorized_operations,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .share_group_describe_on_node(
+                        node,
+                        version,
+                        &ids,
+                        &idxs,
+                        include_authorized_operations,
+                        timeout,
+                    )
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_share_group_describe_response(&mut body.clone(), version)?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new group coordinator.
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| {
+                g.ok_or_else(|| Error::protocol(format!("ShareGroupDescribe missing {id}")))
+            })
+            .collect()
     }
 
     /// Describe share groups (Java `Admin.describeShareGroups`).
@@ -6019,20 +6011,40 @@ impl Admin {
         &mut self,
         group_ids: &[String],
     ) -> Result<HashMap<String, i32>> {
-        let mut keys: Vec<String> = Vec::new();
-        for g in group_ids {
-            if !keys.iter().any(|k| k == g) {
-                keys.push(g.clone());
+        self.discover_coords(group_ids, COORDINATOR_GROUP).await
+    }
+
+    async fn discover_txn_coords(
+        &mut self,
+        transactional_ids: &[String],
+    ) -> Result<HashMap<String, i32>> {
+        self.discover_coords(transactional_ids, COORDINATOR_TRANSACTION)
+            .await
+    }
+
+    async fn discover_coords(
+        &mut self,
+        keys: &[String],
+        key_type: i8,
+    ) -> Result<HashMap<String, i32>> {
+        let mut uniq: Vec<String> = Vec::new();
+        for k in keys {
+            if !uniq.iter().any(|u| u == k) {
+                uniq.push(k.clone());
             }
         }
-        if keys.is_empty() {
+        if uniq.is_empty() {
             return Ok(HashMap::new());
         }
         let version = self.find_coord_version;
         if version < 4 {
             let mut out = HashMap::new();
-            for k in &keys {
-                let node = self.discover_group_coord(k).await?;
+            for k in &uniq {
+                let node = if key_type == COORDINATOR_TRANSACTION {
+                    self.discover_txn_coord(k).await?
+                } else {
+                    self.discover_group_coord(k).await?
+                };
                 let _prev = out.insert(k.clone(), node);
             }
             return Ok(out);
@@ -6044,19 +6056,12 @@ impl Admin {
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
-            let key_refs: Vec<&str> = keys.iter().map(String::as_str).collect();
+            let key_refs: Vec<&str> = uniq.iter().map(String::as_str).collect();
             let body = self
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
-                    |buf| {
-                        encode_find_coordinator_request_keys(
-                            buf,
-                            version,
-                            &key_refs,
-                            COORDINATOR_GROUP,
-                        )
-                    },
+                    |buf| encode_find_coordinator_request_keys(buf, version, &key_refs, key_type),
                     timeout,
                 )
                 .await;
@@ -6075,7 +6080,7 @@ impl Admin {
             }
             let mut retry = false;
             let mut out = HashMap::new();
-            for k in &keys {
+            for k in &uniq {
                 let (err, node) = by_key
                     .get(k)
                     .copied()
@@ -6138,6 +6143,47 @@ impl Admin {
         for &i in idxs {
             if let Some(id) = ids.get(i) {
                 let _ = self.group_coords.remove(id);
+            }
+        }
+    }
+
+    async fn txn_coord_nodes(
+        &mut self,
+        ids: &[String],
+        pending: &[usize],
+    ) -> Result<HashMap<i32, Vec<usize>>> {
+        let mut need: Vec<String> = Vec::new();
+        for &i in pending {
+            let Some(id) = ids.get(i) else {
+                continue;
+            };
+            if !self.txn_coords.contains_key(id) && !need.iter().any(|k| k == id) {
+                need.push(id.clone());
+            }
+        }
+        if !need.is_empty() {
+            let found = self.discover_txn_coords(&need).await?;
+            self.txn_coords.extend(found);
+        }
+        let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+        for &i in pending {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing transactional id"))?;
+            let node = *self
+                .txn_coords
+                .get(id)
+                .ok_or_else(|| Error::protocol(format!("missing coordinator for {id}")))?;
+            by_node.entry(node).or_default().push(i);
+        }
+        Ok(by_node)
+    }
+
+    fn invalidate_txn_coord_idxs(&mut self, ids: &[String], idxs: &[usize], node: i32) {
+        let _ = self.conns.remove(&node);
+        for &i in idxs {
+            if let Some(id) = ids.get(i) {
+                let _ = self.txn_coords.remove(id);
             }
         }
     }
@@ -6230,6 +6276,151 @@ impl Admin {
                 .and_then(VecDeque::pop_front)
                 .ok_or_else(|| Error::protocol(format!("DeleteGroups missing {id}")))?;
             out.push((i, g));
+        }
+        Ok(out)
+    }
+
+    async fn consumer_group_describe_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        ids: &[String],
+        idxs: &[usize],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<(usize, DescribedConsumerGroup)>> {
+        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing consumer_group_describe conn"))?;
+            conn.roundtrip(
+                CONSUMER_GROUP_DESCRIBE,
+                version,
+                |buf| {
+                    encode_consumer_group_describe_request(
+                        buf,
+                        version,
+                        &subset,
+                        include_authorized_operations,
+                    )
+                },
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_consumer_group_describe_response(&mut body.clone(), version)?;
+        let mut by_id: HashMap<String, VecDeque<DescribedConsumerGroup>> = HashMap::new();
+        for g in results {
+            by_id.entry(g.group_id.clone()).or_default().push_back(g);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let g = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| Error::protocol(format!("ConsumerGroupDescribe missing {id}")))?;
+            out.push((i, g));
+        }
+        Ok(out)
+    }
+
+    async fn share_group_describe_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        ids: &[String],
+        idxs: &[usize],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<(usize, DescribedShareGroup)>> {
+        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing share_group_describe conn"))?;
+            conn.roundtrip(
+                SHARE_GROUP_DESCRIBE,
+                version,
+                |buf| {
+                    encode_share_group_describe_request(
+                        buf,
+                        version,
+                        &subset,
+                        include_authorized_operations,
+                    )
+                },
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_share_group_describe_response(&mut body.clone(), version)?;
+        let mut by_id: HashMap<String, VecDeque<DescribedShareGroup>> = HashMap::new();
+        for g in results {
+            by_id.entry(g.group_id.clone()).or_default().push_back(g);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let g = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| Error::protocol(format!("ShareGroupDescribe missing {id}")))?;
+            out.push((i, g));
+        }
+        Ok(out)
+    }
+
+    async fn describe_transactions_on_node(
+        &mut self,
+        node: i32,
+        ids: &[String],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<Vec<(usize, TransactionState)>> {
+        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        self.connect_node(node).await?;
+        let version = self.describe_transactions_version;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing describe_transactions conn"))?;
+            conn.roundtrip(
+                DESCRIBE_TRANSACTIONS,
+                version,
+                |buf| encode_describe_transactions_request(buf, &subset),
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_describe_transactions_response(&mut body.clone())?;
+        let mut by_id: HashMap<String, VecDeque<TransactionState>> = HashMap::new();
+        for t in results {
+            by_id
+                .entry(t.transactional_id.clone())
+                .or_default()
+                .push_back(t);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing transactional id"))?;
+            let t = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| Error::protocol(format!("DescribeTransactions missing {id}")))?;
+            out.push((i, t));
         }
         Ok(out)
     }

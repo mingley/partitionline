@@ -41,10 +41,10 @@
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id),
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
-//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
+//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
-//! ConsumerGroupDescribe v0–v1 (v1 MemberType),
+//! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
@@ -199,7 +199,7 @@
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
 //! [`Admin::delete_consumer_groups`] is Java `deleteConsumerGroups`.
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
-//! (ShareGroupDescribe v0–v1).
+//! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
 //! [`Admin::list_share_group_offsets`] is Java `listShareGroupOffsets`.
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.

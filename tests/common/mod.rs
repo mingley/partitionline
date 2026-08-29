@@ -327,6 +327,8 @@ struct State {
     last_allocate_producer_ids: Option<(i32, i64, i64, i32)>,
     next_producer_id_block_start: i64,
     last_describe_transactions_node: Option<i32>,
+    last_describe_transactions_n: usize,
+    describe_transactions_calls: u32,
     describe_transactions_not_coordinator: u32,
     last_list_transactions_node: Option<i32>,
     last_list_transactions_version: Option<i16>,
@@ -338,6 +340,8 @@ struct State {
     offset_delete_not_coordinator: u32,
     last_consumer_group_describe_node: Option<i32>,
     last_consumer_group_describe_version: Option<i16>,
+    last_consumer_group_describe_n: usize,
+    consumer_group_describe_calls: u32,
     consumer_group_describe_not_coordinator: u32,
     last_describe_groups_node: Option<i32>,
     last_describe_groups_version: Option<i16>,
@@ -360,6 +364,8 @@ struct State {
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
     last_share_group_describe_version: Option<i16>,
+    last_share_group_describe_n: usize,
+    share_group_describe_calls: u32,
     share_group_describe_not_coordinator: u32,
     last_describe_share_group_offsets_node: Option<i32>,
     describe_share_group_offsets_not_coordinator: u32,
@@ -640,6 +646,8 @@ fn new_state(
         last_allocate_producer_ids: None,
         next_producer_id_block_start: 1000,
         last_describe_transactions_node: None,
+        last_describe_transactions_n: 0,
+        describe_transactions_calls: 0,
         describe_transactions_not_coordinator: 0,
         last_list_transactions_node: None,
         last_list_transactions_version: None,
@@ -650,6 +658,8 @@ fn new_state(
         offset_delete_not_coordinator: 0,
         last_consumer_group_describe_node: None,
         last_consumer_group_describe_version: None,
+        last_consumer_group_describe_n: 0,
+        consumer_group_describe_calls: 0,
         consumer_group_describe_not_coordinator: 0,
         last_describe_groups_node: None,
         last_describe_groups_version: None,
@@ -672,6 +682,8 @@ fn new_state(
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
         last_share_group_describe_version: None,
+        last_share_group_describe_n: 0,
+        share_group_describe_calls: 0,
         share_group_describe_not_coordinator: 0,
         last_describe_share_group_offsets_node: None,
         describe_share_group_offsets_not_coordinator: 0,
@@ -1767,6 +1779,14 @@ impl Mock {
         self.state.lock().last_describe_transactions_node
     }
 
+    pub fn last_describe_transactions_n(&self) -> usize {
+        self.state.lock().last_describe_transactions_n
+    }
+
+    pub fn describe_transactions_calls(&self) -> u32 {
+        self.state.lock().describe_transactions_calls
+    }
+
     pub fn describe_transactions_not_coordinator(&self) -> u32 {
         self.state.lock().describe_transactions_not_coordinator
     }
@@ -1824,6 +1844,14 @@ impl Mock {
 
     pub fn last_consumer_group_describe_version(&self) -> Option<i16> {
         self.state.lock().last_consumer_group_describe_version
+    }
+
+    pub fn last_consumer_group_describe_n(&self) -> usize {
+        self.state.lock().last_consumer_group_describe_n
+    }
+
+    pub fn consumer_group_describe_calls(&self) -> u32 {
+        self.state.lock().consumer_group_describe_calls
     }
 
     pub fn consumer_group_describe_not_coordinator(&self) -> u32 {
@@ -1912,6 +1940,14 @@ impl Mock {
 
     pub fn last_share_group_describe_version(&self) -> Option<i16> {
         self.state.lock().last_share_group_describe_version
+    }
+
+    pub fn last_share_group_describe_n(&self) -> usize {
+        self.state.lock().last_share_group_describe_n
+    }
+
+    pub fn share_group_describe_calls(&self) -> u32 {
+        self.state.lock().share_group_describe_calls
     }
 
     pub fn share_group_describe_not_coordinator(&self) -> u32 {
@@ -3761,6 +3797,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             DESCRIBE_TRANSACTIONS => {
                 let ids = decode_describe_transactions_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.last_describe_transactions_n = ids.len();
+                st.describe_transactions_calls = st.describe_transactions_calls.saturating_add(1);
                 if st.txn_coord_node != node_id {
                     st.describe_transactions_not_coordinator =
                         st.describe_transactions_not_coordinator.saturating_add(1);
@@ -5195,6 +5233,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_consumer_group_describe_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_consumer_group_describe_version = Some(version);
+                st.last_consumer_group_describe_n = ids.len();
+                st.consumer_group_describe_calls =
+                    st.consumer_group_describe_calls.saturating_add(1);
                 if st.coord_node != node_id {
                     st.consumer_group_describe_not_coordinator =
                         st.consumer_group_describe_not_coordinator.saturating_add(1);
@@ -5324,6 +5365,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_share_group_describe_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_group_describe_version = Some(version);
+                st.last_share_group_describe_n = ids.len();
+                st.share_group_describe_calls = st.share_group_describe_calls.saturating_add(1);
                 if st.coord_node != node_id {
                     st.share_group_describe_not_coordinator =
                         st.share_group_describe_not_coordinator.saturating_add(1);

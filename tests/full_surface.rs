@@ -5629,6 +5629,65 @@ async fn describe_transactions_follows_coordinator() {
 }
 
 #[tokio::test]
+async fn describe_transactions_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    mock.set_txn_fixture(TransactionState {
+        error_code: 0,
+        transactional_id: "tx-a".into(),
+        transaction_state: "Ongoing".into(),
+        transaction_timeout_ms: 60_000,
+        transaction_start_time_ms: 1,
+        producer_id: 1,
+        producer_epoch: 0,
+        topics: Vec::new(),
+    });
+    mock.set_txn_fixture(TransactionState {
+        error_code: 0,
+        transactional_id: "tx-b".into(),
+        transaction_state: "Ongoing".into(),
+        transaction_timeout_ms: 60_000,
+        transaction_start_time_ms: 1,
+        producer_id: 2,
+        producer_epoch: 0,
+        topics: Vec::new(),
+    });
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_desc = mock.describe_transactions_calls();
+    let described = admin
+        .describe_transactions(&["tx-a", "tx-b"])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].transactional_id, "tx-a");
+    assert_eq!(described[1].transactional_id, "tx-b");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "describeTransactions must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "transactional ids that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_describe_transactions_n(),
+        2,
+        "describeTransactions must send TransactionalIds of N on one coordinator"
+    );
+    assert_eq!(
+        mock.describe_transactions_calls()
+            .saturating_sub(before_desc),
+        1,
+        "transactional ids that share a coordinator must be one DescribeTransactions"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_transactions_follows_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.set_txn_coordinator(2);
@@ -5801,6 +5860,45 @@ async fn consumer_group_describe_follows_group_coordinator() {
         Some(1),
         "ConsumerGroupDescribe must FindCoordinator after NOT_COORDINATOR"
     );
+}
+
+#[tokio::test]
+async fn consumer_group_describe_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_desc = mock.consumer_group_describe_calls();
+    let described = admin
+        .consumer_group_describe(&["g-a", "g-b"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].group_id, "g-a");
+    assert_eq!(described[1].group_id, "g-b");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "consumerGroupDescribe must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_consumer_group_describe_n(),
+        2,
+        "consumerGroupDescribe must send GroupIds of N on one coordinator"
+    );
+    assert_eq!(
+        mock.consumer_group_describe_calls()
+            .saturating_sub(before_desc),
+        1,
+        "groups that share a coordinator must be one ConsumerGroupDescribe"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -7463,6 +7561,45 @@ async fn share_group_describe_follows_group_coordinator() {
         Some(1),
         "ShareGroupDescribe must FindCoordinator after NOT_COORDINATOR"
     );
+}
+
+#[tokio::test]
+async fn share_group_describe_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_desc = mock.share_group_describe_calls();
+    let described = admin
+        .share_group_describe(&["g-a", "g-b"], false)
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].group_id, "g-a");
+    assert_eq!(described[1].group_id, "g-b");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "shareGroupDescribe must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_share_group_describe_n(),
+        2,
+        "shareGroupDescribe must send GroupIds of N on one coordinator"
+    );
+    assert_eq!(
+        mock.share_group_describe_calls()
+            .saturating_sub(before_desc),
+        1,
+        "groups that share a coordinator must be one ShareGroupDescribe"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
