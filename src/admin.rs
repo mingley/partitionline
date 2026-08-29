@@ -1078,8 +1078,10 @@ impl Admin {
             })?;
         let delete_records_version = versions
             .get(&DELETE_RECORDS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| Error::Unsupported("broker does not support DeleteRecords".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DeleteRecords v0-2".into())
+            })?;
         let describe_producers_version = versions
             .get(&DESCRIBE_PRODUCERS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -3018,6 +3020,10 @@ impl Admin {
 
     /// Delete records before `offset` (`DeleteRecords`).
     ///
+    /// Negotiates v0–v2 (v0–v1 classic; v2 flexible). v1 response adds
+    /// ThrottleTimeMs (KIP-219). Kafka 4.0 `validVersions` is `0-2`.
+    /// v3+ is not spoken.
+    ///
     /// Lands on the Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` (6)
     /// and other retriable codes refresh Metadata and retry on the new
     /// leader. Returns `(low_watermark, error_code)`.
@@ -3049,7 +3055,11 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_RECORDS,
                     version,
-                    |buf| encode_delete_records_request(buf, &topic, partition, offset, timeout_ms),
+                    |buf| {
+                        encode_delete_records_request(
+                            buf, version, &topic, partition, offset, timeout_ms,
+                        )
+                    },
                     timeout,
                 )
                 .await

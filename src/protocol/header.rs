@@ -7,13 +7,13 @@ use super::api_keys::{
     ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
     ALTER_SHARE_GROUP_OFFSETS, ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS,
     CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_SHARE_GROUP_OFFSETS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
-    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR,
-    GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, INIT_PRODUCER_ID,
-    JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
+    DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
+    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
+    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
+    INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
     LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
     PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH,
     SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER,
@@ -167,6 +167,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 0-2. This crate speaks 0–2. v1 ThrottleTimeMs (KIP-219).
         // v3+ is not spoken.
         ALTER_CONFIGS if api_version >= 2 => 2,
+        // DeleteRecords is classic through v1; flexible from v2
+        // (Apache JSON flexibleVersions: "2+"). Kafka 4.0 validVersions
+        // is 0-2. This crate speaks 0–2. v1 ThrottleTimeMs (KIP-219).
+        // v3+ is not spoken.
+        DELETE_RECORDS if api_version >= 2 => 2,
         // CreateAcls / DescribeAcls / DeleteAcls are classic through v1;
         // flexible from v2 (Apache JSON flexibleVersions: "2+"). Kafka 4.0
         // validVersions is 1-3 (v0 removed). This crate speaks 0–3. v1
@@ -258,6 +263,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         CREATE_PARTITIONS if api_version >= 2 => 1,
         INCREMENTAL_ALTER_CONFIGS if api_version >= 1 => 1,
         ALTER_CONFIGS if api_version >= 2 => 1,
+        DELETE_RECORDS if api_version >= 2 => 1,
         CREATE_ACLS | DESCRIBE_ACLS | DELETE_ACLS if api_version >= 2 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
@@ -630,6 +636,18 @@ mod tests {
         assert_eq!(response_header_version(ALTER_CONFIGS, 1), 0);
         assert_eq!(request_header_version(ALTER_CONFIGS, 2), 2);
         assert_eq!(response_header_version(ALTER_CONFIGS, 2), 1);
+    }
+
+    #[test]
+    fn delete_records_v2_is_flexible_v1_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 0-2, flexibleVersions 2+.
+        // HeaderVersion is 1 / 0 at v0–1 and 2 / 1 at v2. This crate speaks 0–2.
+        assert_eq!(request_header_version(DELETE_RECORDS, 0), 1);
+        assert_eq!(response_header_version(DELETE_RECORDS, 0), 0);
+        assert_eq!(request_header_version(DELETE_RECORDS, 1), 1);
+        assert_eq!(response_header_version(DELETE_RECORDS, 1), 0);
+        assert_eq!(request_header_version(DELETE_RECORDS, 2), 2);
+        assert_eq!(response_header_version(DELETE_RECORDS, 2), 1);
     }
 
     #[test]

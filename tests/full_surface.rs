@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS,
-    DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
+    ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS,
+    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
     INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
     OFFSET_FETCH, SYNC_GROUP,
 };
@@ -3318,6 +3318,11 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
         .unwrap();
     assert_eq!(err, 0);
     assert_eq!(low, md0.offset + 1);
+    assert_eq!(
+        mock.last_delete_records_version(),
+        Some(2),
+        "Admin must prefer DeleteRecords v2 when the broker advertises it"
+    );
 
     let cluster = admin.describe_cluster().await.unwrap();
     assert_eq!(cluster.error_code, 0);
@@ -3374,6 +3379,11 @@ async fn delete_records_follows_partition_leader() {
     assert_eq!(err, 0);
     assert_eq!(low, md.offset + 1);
     assert_eq!(
+        mock.last_delete_records_version(),
+        Some(2),
+        "Admin must prefer DeleteRecords v2 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_delete_records_node(),
         Some(2),
         "DeleteRecords must land on the partition leader, not a follower"
@@ -3396,6 +3406,32 @@ async fn delete_records_follows_partition_leader() {
         mock.last_delete_records_node(),
         Some(1),
         "DeleteRecords must follow Metadata after NOT_LEADER"
+    );
+}
+
+#[tokio::test]
+async fn delete_records_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_RECORDS, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("dr1").value(&b"x"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let (low, err) = admin
+        .delete_records(("dr1", md.partition), md.offset + 1, 10_000)
+        .await
+        .unwrap();
+    assert_eq!(err, 0);
+    assert_eq!(low, md.offset + 1);
+    assert_eq!(
+        mock.last_delete_records_version(),
+        Some(1),
+        "client must speak DeleteRecords v1 when the broker max is 1"
     );
 }
 

@@ -246,6 +246,7 @@ struct State {
     list_offsets_not_leader: u32,
     last_list_offsets_version: Option<i16>,
     last_delete_records_node: Option<i32>,
+    last_delete_records_version: Option<i16>,
     delete_records_not_leader: u32,
     last_describe_producers_node: Option<i32>,
     describe_producers_not_leader: u32,
@@ -517,6 +518,7 @@ fn new_state(
         list_offsets_not_leader: 0,
         last_list_offsets_version: None,
         last_delete_records_node: None,
+        last_delete_records_version: None,
         delete_records_not_leader: 0,
         last_describe_producers_node: None,
         describe_producers_not_leader: 0,
@@ -1367,6 +1369,10 @@ impl Mock {
 
     pub fn last_delete_records_node(&self) -> Option<i32> {
         self.state.lock().last_delete_records_node
+    }
+
+    pub fn last_delete_records_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_records_version
     }
 
     pub fn delete_records_not_leader(&self) -> u32 {
@@ -2318,7 +2324,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (CREATE_TOPICS, 0, 7),
         (DELETE_TOPICS, 0, 6),
         (CREATE_PARTITIONS, 0, 3),
-        (DELETE_RECORDS, 0, 1),
+        (DELETE_RECORDS, 0, 2),
         (ALTER_CONFIGS, 0, 2),
         (DESCRIBE_CLUSTER, 0, 0),
         (DESCRIBE_PRODUCERS, 0, 0),
@@ -2880,16 +2886,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_alter_configs_response(&mut body, version, err, &name).unwrap();
             }
             DELETE_RECORDS => {
+                let version = header.api_version;
                 let (topic, partition, offset, _timeout) =
-                    decode_delete_records_request(&mut frame).unwrap();
+                    decode_delete_records_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_delete_records_version = Some(version);
                 let key = (topic.clone(), partition);
                 let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
                 if leader != node_id {
                     st.delete_records_not_leader = st.delete_records_not_leader.saturating_add(1);
                     encode_delete_records_response(
                         &mut body,
-                        header.api_version,
+                        version,
                         &topic,
                         partition,
                         -1,
@@ -2910,15 +2918,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     } else {
                         (0i64, 3i16)
                     };
-                    encode_delete_records_response(
-                        &mut body,
-                        header.api_version,
-                        &topic,
-                        partition,
-                        low,
-                        err,
-                    )
-                    .unwrap();
+                    encode_delete_records_response(&mut body, version, &topic, partition, low, err)
+                        .unwrap();
                 }
             }
             DESCRIBE_PRODUCERS => {

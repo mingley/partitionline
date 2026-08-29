@@ -1340,35 +1340,103 @@ pub fn decode_alter_configs_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     Ok(error_code)
 }
 
-/// Encode a DeleteRecords request.
+/// `true` when DeleteRecords `version` is flexible.
+///
+/// v0–v1 are classic (v1 response adds ThrottleTimeMs). v2 is the first
+/// flexible version. Kafka 4.0 `validVersions` is `0-2`. This crate
+/// speaks 0–2. v3+ is not spoken.
+fn delete_records_flexible(version: i16) -> Result<bool> {
+    match version {
+        0 | 1 => Ok(false),
+        2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DeleteRecords version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a DeleteRecords request (v0–2; classic through v1; flexible from v2).
 pub fn encode_delete_records_request(
     buf: &mut BytesMut,
+    version: i16,
     topic: &str,
     partition: i32,
     offset: i64,
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
+    let flexible = delete_records_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf::put_string(buf, flexible, Some(topic))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i32(partition);
     buf.put_i64(offset);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
     buf.put_i32(timeout_ms);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a DeleteRecords request.
-pub fn decode_delete_records_request<B: Buf>(buf: &mut B) -> Result<(String, i32, i64, i32)> {
-    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    let offset = buf::get_i64(buf)?;
+/// Decode a DeleteRecords request (first topic/partition).
+pub fn decode_delete_records_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(String, i32, i64, i32)> {
+    let flexible = delete_records_flexible(version)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topic = String::new();
+    let mut partition = 0i32;
+    let mut offset = 0i64;
+    if tn > 0 {
+        topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        if pn > 0 {
+            partition = buf::get_i32(buf)?;
+            offset = buf::get_i64(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            for _ in 1..pn {
+                let _ = buf::get_i32(buf)?;
+                let _ = buf::get_i64(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        for _ in 1..tn {
+            let _ = buf::get_string(buf, flexible)?;
+            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            for _ in 0..extra {
+                let _ = buf::get_i32(buf)?;
+                let _ = buf::get_i64(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+            }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
+    }
     let timeout_ms = buf::get_i32(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((topic, partition, offset, timeout_ms))
 }
 
-/// Encode a DeleteRecords response.
+/// Encode a DeleteRecords response (one topic/partition).
+///
+/// ThrottleTimeMs is encoded from v1 (KIP-219). v2 adds compact arrays/
+/// strings plus tagged fields.
 pub fn encode_delete_records_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1377,32 +1445,78 @@ pub fn encode_delete_records_response(
     low_watermark: i64,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    let flexible = delete_records_flexible(version)?;
     if version >= 1 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(topic))?;
-    buf::put_array_len(buf, false, Some(1))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf::put_string(buf, flexible, Some(topic))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
     buf.put_i32(partition);
     buf.put_i64(low_watermark);
     buf.put_i16(error_code);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a DeleteRecords response.
+/// Decode a DeleteRecords response (first partition).
 pub fn decode_delete_records_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i32, i64, i16)> {
+    let flexible = delete_records_flexible(version)?;
     if version >= 1 {
         let _th = buf::get_i32(buf)?;
     }
-    let _tn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let _topic = buf::get_classic_nullable_string(buf)?;
-    let _pn = buf::get_array_len(buf, false)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    let low_watermark = buf::get_i64(buf)?;
-    let error_code = buf::get_i16(buf)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut partition = 0i32;
+    let mut low_watermark = 0i64;
+    let mut error_code = 0i16;
+    if tn > 0 {
+        let _topic = buf::get_string(buf, flexible)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        if pn > 0 {
+            partition = buf::get_i32(buf)?;
+            low_watermark = buf::get_i64(buf)?;
+            error_code = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+            for _ in 1..pn {
+                let _ = buf::get_i32(buf)?;
+                let _ = buf::get_i64(buf)?;
+                let _ = buf::get_i16(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+            }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        for _ in 1..tn {
+            let _ = buf::get_string(buf, flexible)?;
+            let extra = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            for _ in 0..extra {
+                let _ = buf::get_i32(buf)?;
+                let _ = buf::get_i64(buf)?;
+                let _ = buf::get_i16(buf)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+            }
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((partition, low_watermark, error_code))
 }
 
@@ -8763,13 +8877,81 @@ mod tests {
     #[test]
     fn delete_records_v1_roundtrip() {
         let mut buf = BytesMut::new();
-        encode_delete_records_request(&mut buf, "t", 0, 5, 1000).unwrap();
-        let (topic, part, off, timeout) = decode_delete_records_request(&mut &buf[..]).unwrap();
+        encode_delete_records_request(&mut buf, 1, "t", 0, 5, 1000).unwrap();
+        let mut cur = &buf[..];
+        let (topic, part, off, timeout) = decode_delete_records_request(&mut cur, 1).unwrap();
         assert_eq!((topic.as_str(), part, off, timeout), ("t", 0, 5, 1000));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v1 request must be leftover-empty"
+        );
         buf.clear();
         encode_delete_records_response(&mut buf, 1, "t", 0, 5, 0).unwrap();
-        let (p, low, err) = decode_delete_records_response(&mut &buf[..], 1).unwrap();
+        let mut cur = &buf[..];
+        let (p, low, err) = decode_delete_records_response(&mut cur, 1).unwrap();
         assert_eq!((p, low, err), (0, 5, 0));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_records_v2_compact_layout_matches_independent_encode() {
+        // Compact 1 topic "t", 1 partition 0, offset 5, timeout 1000,
+        // empty tagged fields on partition, topic, and top-level.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x03, 0xe8, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_delete_records_request(&mut buf, 2, "t", 0, 5, 1000).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (topic, part, off, timeout) = decode_delete_records_request(&mut cur, 2).unwrap();
+        assert_eq!((topic.as_str(), part, off, timeout), ("t", 0, 5, 1000));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v2 request must consume compact fields and tagged fields"
+        );
+        let mut v1 = BytesMut::new();
+        encode_delete_records_request(&mut v1, 1, "t", 0, 5, 1000).unwrap();
+        assert_ne!(&buf[..], &v1[..], "DeleteRecords v2 must not be classic v1");
+        assert!(
+            encode_delete_records_request(&mut BytesMut::new(), 3, "t", 0, 5, 1000).is_err(),
+            "DeleteRecords v3+ is not spoken"
+        );
+
+        buf.clear();
+        encode_delete_records_response(&mut buf, 2, "t", 0, 5, 0).unwrap();
+        let mut cur = &buf[..];
+        let (p, low, err) = decode_delete_records_response(&mut cur, 2).unwrap();
+        assert_eq!((p, low, err), (0, 5, 0));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v2 response must be leftover-empty"
+        );
+        let mut v1r = BytesMut::new();
+        encode_delete_records_response(&mut v1r, 1, "t", 0, 5, 0).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1r[..],
+            "DeleteRecords v2 response must not be classic v1"
+        );
+        let mut v0r = BytesMut::new();
+        encode_delete_records_response(&mut v0r, 0, "t", 0, 5, 0).unwrap();
+        assert_ne!(
+            &v1r[..],
+            &v0r[..],
+            "DeleteRecords v1 response must include ThrottleTimeMs"
+        );
+        let mut cur = &v0r[..];
+        let (p0, low0, err0) = decode_delete_records_response(&mut cur, 0).unwrap();
+        assert_eq!((p0, low0, err0), (0, 5, 0));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords v0 response must be leftover-empty"
+        );
     }
 
     #[test]
