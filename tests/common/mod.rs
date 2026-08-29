@@ -341,6 +341,7 @@ struct State {
     last_alter_user_scram_node: Option<i32>,
     alter_user_scram_not_controller: u32,
     last_describe_user_scram_node: Option<i32>,
+    last_describe_user_scram_users: Option<Option<Vec<String>>>,
     describe_user_scram_not_controller: u32,
     last_unregister_broker_node: Option<i32>,
     unregister_broker_not_controller: u32,
@@ -699,6 +700,7 @@ fn new_state(
         last_alter_user_scram_node: None,
         alter_user_scram_not_controller: 0,
         last_describe_user_scram_node: None,
+        last_describe_user_scram_users: None,
         describe_user_scram_not_controller: 0,
         last_unregister_broker_node: None,
         unregister_broker_not_controller: 0,
@@ -2120,6 +2122,10 @@ impl Mock {
 
     pub fn last_describe_user_scram_node(&self) -> Option<i32> {
         self.state.lock().last_describe_user_scram_node
+    }
+
+    pub fn last_describe_user_scram_users(&self) -> Option<Option<Vec<String>>> {
+        self.state.lock().last_describe_user_scram_users.clone()
     }
 
     pub fn describe_user_scram_not_controller(&self) -> u32 {
@@ -4259,6 +4265,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .unwrap();
                 } else {
                     st.last_describe_user_scram_node = Some(node_id);
+                    st.last_describe_user_scram_users = Some(users.clone());
                     // Fixture users only. Name/mechanism/iterations; no
                     // salt, no password, nothing logged.
                     let mut by_user: std::collections::BTreeMap<String, Vec<ScramCredentialInfo>> =

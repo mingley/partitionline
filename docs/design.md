@@ -160,6 +160,7 @@ are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
 `Admin::describe_user_scram_credentials_timeout` are Java
 `AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`
 (RPC deadline; these RPCs have no TimeoutMs; both cap `NOT_CONTROLLER`).
+`Admin::describe_user_scram_credentials_all` is Java `describeUserScramCredentials()`.
 `Admin::unregister_broker_timeout` is Java
 `UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has no
 TimeoutMs; caps `NOT_CONTROLLER`).

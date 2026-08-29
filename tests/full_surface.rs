@@ -6765,6 +6765,11 @@ async fn describe_user_scram_credentials_follows_controller() {
         Some(2),
         "DescribeUserScramCredentials must land on the controller, not bootstrap"
     );
+    assert_eq!(
+        mock.last_describe_user_scram_users(),
+        Some(Some(vec!["alice".into()])),
+        "named describeUserScramCredentials sends Users of those names"
+    );
 
     mock.set_controller(1);
     let again = admin
@@ -6794,6 +6799,20 @@ async fn describe_user_scram_credentials_follows_controller() {
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].user, "alice");
     assert_eq!(timed[0].error_code, 0);
+    let all = admin.describe_user_scram_credentials_all().await.unwrap();
+    assert_eq!(all.len(), 2);
+    assert_eq!(all[0].user, "alice");
+    assert_eq!(all[1].user, "bob");
+    assert_eq!(
+        mock.last_describe_user_scram_users(),
+        Some(None),
+        "describeUserScramCredentials() sends Users null"
+    );
+    let timed_all = admin
+        .describe_user_scram_credentials_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 2);
 }
 
 #[tokio::test]

@@ -3504,10 +3504,12 @@ impl Admin {
     ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. Top-level `error_code`
-    /// (bytes 4–5), not a first-result field. Empty `users` describes all
-    /// fixture users. DescribeUserScramCredentials has no TimeoutMs; the
-    /// RPC deadline is [`AdminConfig::request_timeout`]. For a one-shot
-    /// deadline, use [`Self::describe_user_scram_credentials_timeout`].
+    /// (bytes 4–5), not a first-result field. Empty `users` sends a null
+    /// Users array (Java `describeUserScramCredentials()` / empty list)
+    /// and describes every user. DescribeUserScramCredentials has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use
+    /// [`Self::describe_user_scram_credentials_timeout`].
     pub async fn describe_user_scram_credentials(
         &mut self,
         users: &[&str],
@@ -3528,6 +3530,11 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
         let users: Vec<String> = users.iter().map(|s| (*s).to_string()).collect();
+        let users_wire: Option<&[String]> = if users.is_empty() {
+            None
+        } else {
+            Some(users.as_slice())
+        };
         let version = self.describe_user_scram_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -3544,7 +3551,7 @@ impl Admin {
                 conn.roundtrip(
                     DESCRIBE_USER_SCRAM_CREDENTIALS,
                     version,
-                    |buf| encode_describe_user_scram_credentials_request(buf, Some(&users)),
+                    |buf| encode_describe_user_scram_credentials_request(buf, users_wire),
                     timeout,
                 )
                 .await
@@ -3576,6 +3583,29 @@ impl Admin {
             }
             return Ok(resp.results);
         }
+    }
+
+    /// Describe every user's SCRAM credentials (Java
+    /// `Admin.describeUserScramCredentials()`).
+    ///
+    /// Same wire as [`Self::describe_user_scram_credentials`] with an
+    /// empty user list (Users null).
+    pub async fn describe_user_scram_credentials_all(
+        &mut self,
+    ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_user_scram_credentials_all_timeout(timeout)
+            .await
+    }
+
+    /// [`Self::describe_user_scram_credentials_all`] with a one-shot RPC
+    /// deadline (Java `DescribeUserScramCredentialsOptions.timeoutMs`).
+    pub async fn describe_user_scram_credentials_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<DescribeUserScramCredentialsResult>> {
+        self.describe_user_scram_credentials_timeout(&[], timeout)
+            .await
     }
 
     /// Unregister a broker (UnregisterBroker api 64, KIP-500).
