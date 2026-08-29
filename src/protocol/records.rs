@@ -183,6 +183,9 @@ pub(crate) fn write_java_optional<T: fmt::Display>(
 }
 
 /// One record inside a magic-v2 batch.
+///
+/// [`Display`] is Java `DefaultRecord.toString` (`key=N bytes`; null is
+/// `0 bytes`, not `keySize` `-1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Record {
     /// Log offset after decode; relative to the batch base when building with
@@ -268,6 +271,22 @@ impl Record {
     /// Java `Headers.headers(String)`.
     pub fn headers_for_key<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a Header> + 'a {
         Header::for_key(&self.headers, key)
+    }
+}
+
+impl fmt::Display for Record {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("DefaultRecord(offset=")?;
+        write!(f, "{}", self.offset())?;
+        f.write_str(", timestamp=")?;
+        write!(f, "{}", self.timestamp())?;
+        f.write_str(", key=")?;
+        write!(
+            f,
+            "{} bytes, value=",
+            self.key.as_ref().map_or(0, Bytes::len)
+        )?;
+        write!(f, "{} bytes)", self.value.as_ref().map_or(0, Bytes::len))
     }
 }
 
@@ -1066,6 +1085,10 @@ mod tests {
         assert_eq!(rec.headers().len(), 1);
         assert_eq!(rec.last_header("h").map(Header::key), Some("h"));
         assert_eq!(rec.headers_for_key("h").count(), 1);
+        assert_eq!(
+            rec.to_string(),
+            "DefaultRecord(offset=7, timestamp=9, key=1 bytes, value=3 bytes)"
+        );
         let empty = Record {
             offset: 0,
             timestamp: 0,
@@ -1077,6 +1100,10 @@ mod tests {
         assert!(!empty.has_value());
         assert_eq!(empty.key_size(), -1);
         assert_eq!(empty.value_size(), -1);
+        assert_eq!(
+            empty.to_string(),
+            "DefaultRecord(offset=0, timestamp=0, key=0 bytes, value=0 bytes)"
+        );
         let batch = RecordBatch::from_records(vec![rec])
             .with_transactional(true)
             .with_control_batch(true);
@@ -1256,6 +1283,14 @@ mod tests {
         encode_record_batch(&mut a, &RecordBatch::from_records(vec![null_key.clone()])).unwrap();
         encode_record_batch(&mut b, &RecordBatch::from_records(vec![empty_key.clone()])).unwrap();
         assert_ne!(&a[..], &b[..]);
+        assert_eq!(
+            null_key.to_string(),
+            "DefaultRecord(offset=0, timestamp=0, key=0 bytes, value=1 bytes)"
+        );
+        assert_eq!(
+            empty_key.to_string(),
+            "DefaultRecord(offset=0, timestamp=0, key=0 bytes, value=1 bytes)"
+        );
         assert_eq!(
             decode_record_batch(&mut &a[..]).unwrap().records[0].key,
             None
