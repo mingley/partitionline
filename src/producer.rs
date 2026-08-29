@@ -527,6 +527,8 @@ struct Pending {
     /// Failed Produce attempts so far. The first retry sleeps
     /// [`ProducerConfig::retry_backoff`].
     retry: u32,
+    /// Produce v10+ CurrentLeader already patched cluster metadata.
+    skip_meta_refresh: bool,
 }
 
 enum Ctrl {
@@ -755,8 +757,8 @@ impl Producer {
         let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 3).ok_or_else(|| {
             Error::Unsupported("broker does not support FindCoordinator v1-3".into())
         })?;
-        let produce_version = pick(&versions, PRODUCE, 3, 9)
-            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-9".into()))?;
+        let produce_version = pick(&versions, PRODUCE, 3, 11)
+            .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-11".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =
@@ -1038,6 +1040,7 @@ impl Producer {
                     deadline,
                     queued_at: now,
                     retry: 0,
+                    skip_meta_refresh: false,
                 })
                 .await
                 .is_err()
@@ -1147,6 +1150,7 @@ impl Producer {
             deadline,
             queued_at: now,
             retry: 0,
+            skip_meta_refresh: false,
         }) {
             self.inner.shared.release_buffer(bytes);
             return Err(match e {
@@ -2001,10 +2005,26 @@ async fn retry_one(shared: &Arc<Shared>, mut p: Pending) {
         fail_pendings(shared, vec![p], Error::Timeout);
         return;
     }
-    invalidate_cached_topic(shared, p.rec.topic.as_ref());
-    if let Err(e) = partitions_for(shared, &p.rec.topic).await {
-        fail_pendings(shared, vec![p], e);
-        return;
+    let skip_meta = p.skip_meta_refresh;
+    p.skip_meta_refresh = false;
+    let need_meta = if skip_meta {
+        match p.rec.partition {
+            Some(part) => shared
+                .cluster
+                .lock()
+                .leader(p.rec.topic.as_ref(), part)
+                .is_err(),
+            None => true,
+        }
+    } else {
+        true
+    };
+    if need_meta {
+        invalidate_cached_topic(shared, p.rec.topic.as_ref());
+        if let Err(e) = partitions_for(shared, &p.rec.topic).await {
+            fail_pendings(shared, vec![p], e);
+            return;
+        }
     }
     if p.rec.partition.is_none() {
         if let Some(np) = shared.cluster.lock().partition_count(p.rec.topic.as_ref()) {
@@ -2350,8 +2370,24 @@ impl Worker {
                 Some(r) if r.error_code != 0 => {
                     let e = Error::broker(r.error_code, format!("{topic}-{part}"));
                     if e.is_retriable() {
-                        invalidate_cached_topic(&self.shared, topic.as_ref());
-                        drop(self.shared.meta_tx.try_send(topic.clone()));
+                        let applied = r.current_leader_id >= 0
+                            && self.shared.cluster.lock().apply_current_leader(
+                                topic.as_ref(),
+                                part,
+                                r.current_leader_id,
+                                r.current_leader_epoch,
+                            );
+                        let mut pendings = pendings;
+                        if applied {
+                            drop_fast_topic(&self.shared, topic.as_ref());
+                            try_nudge_node(&self.shared.connect_tx, r.current_leader_id);
+                            for p in &mut pendings {
+                                p.skip_meta_refresh = true;
+                            }
+                        } else {
+                            invalidate_cached_topic(&self.shared, topic.as_ref());
+                            drop(self.shared.meta_tx.try_send(topic.clone()));
+                        }
                         self.requeue_pendings(pendings);
                     } else {
                         fail_pendings(&self.shared, pendings, clone_err(&e));
@@ -2623,6 +2659,8 @@ fn encode_produce_body(
     producer_epoch: i16,
     transactional_id: Option<&str>,
 ) -> Result<()> {
+    // v9–v11 share this compact request layout (v10+ CurrentLeader is
+    // response-only). Must stay in sync with `encode_produce_request`.
     let flexible = version >= 9;
     let transactional = transactional_id.is_some();
     if version >= 3 {

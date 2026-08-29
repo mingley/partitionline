@@ -140,6 +140,39 @@ impl Cluster {
         let _prev = self.leader_epochs.insert(topic.to_string(), v);
     }
 
+    /// Apply Produce v10+ CurrentLeader when `leader_id` is a known broker.
+    ///
+    /// Unknown brokers need NodeEndpoints (not applied here). Returns `true`
+    /// when the partition leader cache was updated.
+    pub(crate) fn apply_current_leader(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        leader_id: i32,
+        leader_epoch: i32,
+    ) -> bool {
+        if leader_id < 0 || !self.brokers.contains_key(&leader_id) {
+            return false;
+        }
+        let Ok(idx) = usize::try_from(partition) else {
+            return false;
+        };
+        {
+            let leaders = self.leaders.entry(topic.to_string()).or_default();
+            if leaders.len() <= idx {
+                leaders.resize(idx.saturating_add(1), -1);
+            }
+            if let Some(slot) = leaders.get_mut(idx) {
+                *slot = leader_id;
+            }
+        }
+        self.set_leader_epoch(topic, partition, leader_epoch);
+        let _prev = self
+            .topic_fetched_at
+            .insert(topic.to_string(), Instant::now());
+        true
+    }
+
     /// Partition count from the last Metadata that listed `topic`.
     pub(crate) fn partition_count(&self, topic: &str) -> Option<i32> {
         self.leaders
@@ -254,5 +287,58 @@ mod tests {
         );
         cluster.invalidate_topic("t");
         assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn apply_current_leader_updates_known_broker() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(&MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![
+                Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                },
+                Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9093,
+                    rack: None,
+                },
+            ],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 0,
+                    replica_nodes: vec![1, 2],
+                    isr_nodes: vec![1, 2],
+                    offline_replicas: Vec::new(),
+                }],
+            }],
+        });
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 0);
+        assert!(cluster.apply_current_leader("t", 0, 2, 7));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 7);
+        assert!(
+            !cluster.apply_current_leader("t", 0, 99, 8),
+            "unknown broker must not patch without NodeEndpoints"
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert!(!cluster.apply_current_leader("t", 0, -1, 8));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
     }
 }

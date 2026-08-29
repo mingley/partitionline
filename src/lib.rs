@@ -19,8 +19,10 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
-//! The producer negotiates Produce v3–v9 (v3–v8 classic; v9 flexible)
-//! and InitProducerId v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
+//! The producer negotiates Produce v3–v11 (v3–v8 classic; v9+ flexible;
+//! v10+ KIP-951 CurrentLeader; v11 TRANSACTION_ABORTABLE). v12
+//! (KIP-890 Part 2 transaction V2) is not spoken.
+//! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
 //! Groups and transactions negotiate FindCoordinator v1–v3 (v3 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5

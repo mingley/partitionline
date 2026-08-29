@@ -54,8 +54,8 @@ async fn try_send_flush_writes_record() {
     producer.flush().await.unwrap();
     assert_eq!(
         mock.last_produce_version(),
-        Some(9),
-        "Producer must prefer Produce v9 when the broker advertises it"
+        Some(11),
+        "Producer must prefer Produce v11 when the broker advertises it"
     );
     producer.close().await.unwrap();
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

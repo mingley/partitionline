@@ -655,24 +655,82 @@ pub struct ProducePartitionResponse {
     pub log_append_time_ms: i64,
     /// Log start offset.
     pub log_start_offset: i64,
+    /// Produce v10+ CurrentLeader `LeaderId`, or `-1` when omitted.
+    pub current_leader_id: i32,
+    /// Produce v10+ CurrentLeader `LeaderEpoch`, or `-1` when omitted.
+    pub current_leader_epoch: i32,
 }
 
-/// `true` when Produce `version` is flexible (v9).
+/// `true` when Produce `version` is flexible (v9+).
 ///
-/// v3–v8 are classic. v9 is compact arrays/strings/bytes plus tagged
-/// fields (Apache JSON `flexibleVersions: "9+"`). Kafka 4.0 removed
-/// v0–v2. v10+ (KIP-951 CurrentLeader tagged fields) is not spoken.
+/// v3–v8 are classic. v9–v11 are compact arrays/strings/bytes plus tagged
+/// fields (Apache JSON `flexibleVersions: "9+"`). v10+ adds partition
+/// CurrentLeader tagged field 0 (KIP-951). v11 is TRANSACTION_ABORTABLE
+/// (same layout as v10). Kafka 4.0 removed v0–v2. This crate speaks 3–11.
+/// v12 (KIP-890 Part 2 transaction V2: Produce also does AddPartitionsToTxn)
+/// and v13+ (topic IDs) are not spoken.
 fn produce_flexible(version: i16) -> Result<bool> {
     match version {
         3..=8 => Ok(false),
-        9 => Ok(true),
+        9..=11 => Ok(true),
         other => Err(Error::protocol(format!(
             "Produce version {other} is not implemented"
         ))),
     }
 }
 
-/// Encode Produce v3–v8 (classic) or v9 (flexible).
+fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
+    let mut inner = BytesMut::new();
+    inner.put_i32(leader_id);
+    inner.put_i32(leader_epoch);
+    buf::put_empty_tagged_fields(&mut inner);
+    inner.freeze()
+}
+
+fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
+    let mut cur = value.as_ref();
+    let leader_id = buf::get_i32(&mut cur)?;
+    let leader_epoch = buf::get_i32(&mut cur)?;
+    buf::skip_tagged_fields(&mut cur)?;
+    leftover_empty(&cur, "CurrentLeader")?;
+    Ok((leader_id, leader_epoch))
+}
+
+fn encode_produce_partition_tags(
+    buf: &mut BytesMut,
+    version: i16,
+    current_leader_id: i32,
+    current_leader_epoch: i32,
+) -> Result<()> {
+    if version >= 10 && current_leader_id >= 0 {
+        buf::put_tagged_fields(
+            buf,
+            &[(
+                0,
+                encode_current_leader(current_leader_id, current_leader_epoch),
+            )],
+        )
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
+}
+
+fn decode_produce_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, i32)> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut current_leader_id = -1;
+    let mut current_leader_epoch = -1;
+    if version >= 10 {
+        for (tag, value) in tags {
+            if tag == 0 {
+                (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?;
+            }
+        }
+    }
+    Ok((current_leader_id, current_leader_epoch))
+}
+
+/// Encode Produce v3–v8 (classic) or v9–v11 (flexible).
 pub fn encode_produce_request(
     buf: &mut BytesMut,
     version: i16,
@@ -808,7 +866,12 @@ pub fn encode_produce_response(
                 buf::put_string(buf, flexible, None)?;
             }
             if flexible {
-                buf::put_empty_tagged_fields(buf);
+                encode_produce_partition_tags(
+                    buf,
+                    version,
+                    p.current_leader_id,
+                    p.current_leader_epoch,
+                )?;
             }
         }
         if flexible {
@@ -857,9 +920,11 @@ pub fn decode_produce_response<B: Buf>(
                 }
                 let _err_msg = buf::get_string(buf, flexible)?;
             }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
+            let (current_leader_id, current_leader_epoch) = if flexible {
+                decode_produce_partition_tags(buf, version)?
+            } else {
+                (-1, -1)
+            };
             out.push(ProducePartitionResponse {
                 topic: topic.clone(),
                 partition,
@@ -867,6 +932,8 @@ pub fn decode_produce_response<B: Buf>(
                 base_offset,
                 log_append_time_ms,
                 log_start_offset,
+                current_leader_id,
+                current_leader_epoch,
             });
         }
         if flexible {
@@ -1040,6 +1107,19 @@ mod tests {
             "Produce v9 request must consume compact tagged fields"
         );
 
+        buf.clear();
+        encode_produce_request(&mut buf, 11, None, 1, 1500, &topics).unwrap();
+        let mut cur = &buf[..];
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 11).unwrap();
+        assert_eq!(txn, None);
+        assert_eq!(acks, 1);
+        assert_eq!(timeout, 1500);
+        assert_eq!(decoded[0].topic, "t");
+        assert!(
+            cur.is_empty(),
+            "Produce v11 request must consume compact tagged fields"
+        );
+
         let mut txn_buf = BytesMut::new();
         encode_produce_request(&mut txn_buf, 8, Some("tx-1"), 1, 1500, &topics).unwrap();
         let mut cur = &txn_buf[..];
@@ -1053,8 +1133,8 @@ mod tests {
 
         buf.clear();
         assert!(
-            encode_produce_request(&mut buf, 10, None, 1, 1500, &topics).is_err(),
-            "Produce v10+ (KIP-951) is not spoken"
+            encode_produce_request(&mut buf, 12, None, 1, 1500, &topics).is_err(),
+            "Produce v12 (KIP-890 Part 2 transaction V2) is not spoken"
         );
     }
 
@@ -1076,6 +1156,8 @@ mod tests {
             base_offset: 0,
             log_append_time_ms: -1,
             log_start_offset: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
         }];
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 9, &parts).unwrap();
@@ -1086,6 +1168,61 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Produce v9 response must consume compact tagged fields"
+        );
+
+        buf.clear();
+        encode_produce_response(&mut buf, 11, &parts).unwrap();
+        assert_eq!(
+            &buf[..],
+            RESP,
+            "Produce v11 with omitted CurrentLeader matches v9 bytes"
+        );
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 11).unwrap();
+        assert_eq!(got, parts);
+        assert!(
+            cur.is_empty(),
+            "Produce v11 empty CurrentLeader must consume compact tagged fields"
+        );
+    }
+
+    #[test]
+    fn produce_v11_current_leader_tagged_is_leftover_empty() {
+        // Same as v9 compact response except partition tagged field 0:
+        // LeaderId 2, LeaderEpoch 7, empty nested tagged fields (9 bytes).
+        const RESP: &[u8] = &[
+            0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x09, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: -1,
+            log_start_offset: 0,
+            current_leader_id: 2,
+            current_leader_epoch: 7,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 11, &parts).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 11).unwrap();
+        assert_eq!(got, parts);
+        assert!(
+            cur.is_empty(),
+            "Produce v11 CurrentLeader must consume nested tagged fields"
+        );
+        buf.clear();
+        encode_produce_response(&mut buf, 10, &parts).unwrap();
+        assert_eq!(&buf[..], RESP, "Produce v10 CurrentLeader matches v11");
+        buf.clear();
+        assert!(
+            encode_produce_response(&mut buf, 12, &parts).is_err(),
+            "Produce v12 is not spoken"
         );
     }
 

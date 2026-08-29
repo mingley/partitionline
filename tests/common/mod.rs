@@ -2079,7 +2079,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 
 fn versions() -> ApiVersionsResponse {
     let keys = [
-        (PRODUCE, 3, 9),
+        (PRODUCE, 3, 11),
         (FETCH, 4, 12),
         (LIST_OFFSETS, 0, 9),
         (METADATA, 1, 12),
@@ -3507,6 +3507,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 base_offset: start,
                                 log_append_time_ms: -1,
                                 log_start_offset: 0,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
                             });
                         } else {
                             parts.push(ProducePartitionResponse {
@@ -3516,6 +3518,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 base_offset: -1,
                                 log_append_time_ms: -1,
                                 log_start_offset: 0,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
                             });
                         }
                     }
