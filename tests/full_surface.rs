@@ -2387,6 +2387,11 @@ async fn offset_fetch_read_committed_sets_require_stable() {
         Some(true),
         "ReadCommitted OffsetFetch must send RequireStable true"
     );
+    assert_eq!(
+        mock.last_offset_fetch_null_topics(),
+        Some(false),
+        "group assign OffsetFetch names assigned partitions"
+    );
 }
 
 #[tokio::test]

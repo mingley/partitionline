@@ -160,6 +160,11 @@
 //! [`Admin::delete_consumer_group_offsets`] /
 //! [`Admin::list_consumer_group_offsets`] /
 //! [`Admin::alter_consumer_group_offsets`] take [`TopicPartition`].
+//! [`Admin::list_all_consumer_group_offsets`] is Java
+//! `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
+//! [`Admin::list_consumer_group_offsets_with`] /
+//! [`Admin::list_all_consumer_group_offsets_with`] are Java
+//! `ListConsumerGroupOffsetsOptions.requireStable` and `timeoutMs`.
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.

@@ -2786,6 +2786,46 @@ async fn admin_list_and_alter_consumer_group_offsets() {
         Some(9),
         "Admin must prefer OffsetFetch v9 when the broker advertises it"
     );
+    assert_eq!(mock.last_offset_fetch_null_topics(), Some(false));
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(false));
+    let mut all = admin
+        .list_all_consumer_group_offsets("g-off")
+        .await
+        .unwrap();
+    all.sort_by_key(|(tp, _)| (tp.topic.clone(), tp.partition));
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].0, TopicPartition::new("t", 0));
+    assert_eq!(all[0].1.offset, 3);
+    assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
+    let stable = admin
+        .list_consumer_group_offsets_with(
+            "g-off",
+            [TopicPartition::new("t", 0)],
+            true,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(stable.len(), 1);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
+    assert_eq!(mock.last_offset_fetch_null_topics(), Some(false));
+    let timed = admin
+        .list_consumer_group_offsets_timeout(
+            "g-off",
+            [TopicPartition::new("t", 0)],
+            Duration::from_secs(12),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(false));
+    let all_stable = admin
+        .list_all_consumer_group_offsets_with("g-off", true, Duration::from_secs(8))
+        .await
+        .unwrap();
+    assert_eq!(all_stable.len(), 1);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
+    assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
     let empty = admin
         .list_consumer_group_offsets("g-off", Vec::<TopicPartition>::new())
         .await

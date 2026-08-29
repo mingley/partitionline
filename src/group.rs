@@ -850,7 +850,7 @@ impl ConsumerGroup {
                     member_id,
                     member_epoch,
                     require_stable,
-                    topics,
+                    Some(topics),
                 )
             },
             timeout,

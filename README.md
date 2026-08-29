@@ -64,6 +64,8 @@ plus the next fetch offset. `assignment` is Java `assignment` (`positions`
 is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
 `alter_consumer_group_offsets` take `TopicPartition`.
+`Admin::list_all_consumer_group_offsets` is Java `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
+`Admin::list_consumer_group_offsets_with` is Java `ListConsumerGroupOffsetsOptions.requireStable` / `timeoutMs`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
 `Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
 `Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java `ListOffsetsOptions.timeoutMs`.

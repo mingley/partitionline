@@ -1150,27 +1150,34 @@ fn offset_fetch_flexible(version: i16) -> Result<bool> {
 fn encode_offset_fetch_topics(
     buf: &mut BytesMut,
     flexible: bool,
-    topics: &[OffsetFetchTopic],
+    topics: Option<&[OffsetFetchTopic]>,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
-        buf::put_string(buf, flexible, Some(&t.topic))?;
-        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
-            buf.put_i32(*p);
-        }
-        if flexible {
-            buf::put_empty_tagged_fields(buf);
+    match topics {
+        None => buf::put_array_len(buf, flexible, None),
+        Some(topics) => {
+            buf::put_array_len(buf, flexible, Some(topics.len()))?;
+            for t in topics {
+                buf::put_string(buf, flexible, Some(&t.topic))?;
+                buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+                for p in &t.partitions {
+                    buf.put_i32(*p);
+                }
+                if flexible {
+                    buf::put_empty_tagged_fields(buf);
+                }
+            }
+            Ok(())
         }
     }
-    Ok(())
 }
 
 fn decode_offset_fetch_topics<B: Buf>(
     buf: &mut B,
     flexible: bool,
-) -> Result<Vec<OffsetFetchTopic>> {
-    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+) -> Result<Option<Vec<OffsetFetchTopic>>> {
+    let Some(n) = buf::get_array_len(buf, flexible)? else {
+        return Ok(None);
+    };
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
         let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1184,7 +1191,7 @@ fn decode_offset_fetch_topics<B: Buf>(
         }
         topics.push(OffsetFetchTopic { topic, partitions });
     }
-    Ok(topics)
+    Ok(Some(topics))
 }
 
 fn encode_fetched_offset_topics(
@@ -1261,8 +1268,11 @@ fn decode_fetched_offset_topics<B: Buf>(
 ///
 /// Kafka 4.0 JSON: `validVersions: "1-9"`, `flexibleVersions: "6+"`.
 /// v1–v5 request is GroupId, Topics (v2–v5 match when Topics is
-/// non-null). v7 RequireStable. v8 Groups. v9 MemberId / MemberEpoch.
-/// This crate speaks 1–9. v0 and v10+ are not spoken.
+/// non-null). v2–v7 Topics is nullable (`None` = all committed
+/// partitions). v7 RequireStable. v8 Groups (nullable Topics per
+/// group). v9 MemberId / MemberEpoch.
+/// This crate speaks 1–9. v0 and v10+ are not spoken. Null Topics
+/// is v2+; v1 returns a protocol error.
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1270,9 +1280,14 @@ pub fn encode_offset_fetch_request(
     member_id: Option<&str>,
     member_epoch: i32,
     require_stable: bool,
-    topics: &[OffsetFetchTopic],
+    topics: Option<&[OffsetFetchTopic]>,
 ) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
+    if version < 2 && topics.is_none() {
+        return Err(Error::protocol(format!(
+            "OffsetFetch version {version} does not support null Topics"
+        )));
+    }
     if version <= 7 {
         buf::put_string(buf, flexible, Some(group_id))?;
         encode_offset_fetch_topics(buf, flexible, topics)?;
@@ -1296,10 +1311,13 @@ pub fn encode_offset_fetch_request(
 }
 
 /// Decode OffsetFetch: `(group_id, topics, require_stable)`.
+///
+/// `topics` is `None` when the request used a null Topics array (v2+;
+/// all committed partitions).
 pub fn decode_offset_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, Vec<OffsetFetchTopic>, bool)> {
+) -> Result<(String, Option<Vec<OffsetFetchTopic>>, bool)> {
     let flexible = offset_fetch_flexible(version)?;
     let (group, topics) = if version <= 7 {
         let group = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1308,7 +1326,7 @@ pub fn decode_offset_fetch_request<B: Buf>(
     } else {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
         let mut group = String::new();
-        let mut topics = Vec::new();
+        let mut topics = None;
         let mut first = true;
         for _ in 0..n {
             let next = buf::get_compact_string(buf)?.unwrap_or_default();
@@ -2391,11 +2409,11 @@ mod tests {
             partitions: vec![0, 1, 2],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_fetch_request(&mut buf, 5, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut buf, 5, "g", None, -1, false, Some(&req)).unwrap();
         let mut cur = &buf[..];
         let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 5).unwrap();
         assert_eq!(gid, "g");
-        assert_eq!(got, req);
+        assert_eq!(got, Some(req));
         assert!(!stable);
         assert!(cur.is_empty());
 
@@ -2441,15 +2459,15 @@ mod tests {
         ];
         let req = offset_fetch_one_topic();
         let mut v1 = BytesMut::new();
-        encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, Some(&req)).unwrap();
         let mut v2 = BytesMut::new();
-        encode_offset_fetch_request(&mut v2, 2, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v2, 2, "g", None, -1, false, Some(&req)).unwrap();
         let mut v3 = BytesMut::new();
-        encode_offset_fetch_request(&mut v3, 3, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v3, 3, "g", None, -1, false, Some(&req)).unwrap();
         let mut v4 = BytesMut::new();
-        encode_offset_fetch_request(&mut v4, 4, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v4, 4, "g", None, -1, false, Some(&req)).unwrap();
         let mut v5 = BytesMut::new();
-        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, Some(&req)).unwrap();
         assert_eq!(&v1[..], REQ);
         assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
         assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
@@ -2458,7 +2476,7 @@ mod tests {
         let mut cur = v1.as_ref();
         let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 1).unwrap();
         assert_eq!((gid.as_str(), stable), ("g", false));
-        assert_eq!(got, req);
+        assert_eq!(got.as_deref(), Some(req.as_slice()));
         assert!(cur.is_empty(), "v1 request leftover-empty");
 
         let resp = vec![FetchedOffsetTopic {
@@ -2513,7 +2531,8 @@ mod tests {
         assert!(cur.is_empty(), "v5 response leftover-empty");
 
         v1.clear();
-        let err = encode_offset_fetch_request(&mut v1, 0, "g", None, -1, false, &req).unwrap_err();
+        let err =
+            encode_offset_fetch_request(&mut v1, 0, "g", None, -1, false, Some(&req)).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
             "v0 is not spoken, got {err}"
@@ -2528,11 +2547,11 @@ mod tests {
     fn offset_fetch_v6_roundtrip_is_leftover_empty() {
         let req = offset_fetch_one_topic();
         let mut buf = BytesMut::new();
-        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, Some(&req)).unwrap();
         let mut cur = &buf[..];
         let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 6).unwrap();
         assert_eq!((gid.as_str(), stable), ("g", false));
-        assert_eq!(got, req);
+        assert_eq!(got, Some(req));
         assert!(
             cur.is_empty(),
             "v6 request must consume tagged fields; leftover {} bytes",
@@ -2563,18 +2582,18 @@ mod tests {
         ];
         let req = offset_fetch_one_topic();
         let mut buf = BytesMut::new();
-        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut buf, 6, "g", None, -1, false, Some(&req)).unwrap();
         assert_eq!(&buf[..], REQ);
         let mut v5 = BytesMut::new();
-        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, Some(&req)).unwrap();
         assert_ne!(&buf[..], &v5[..], "OffsetFetch v6 must not be classic v5");
         assert!(
-            encode_offset_fetch_request(&mut BytesMut::new(), 0, "g", None, -1, false, &req)
+            encode_offset_fetch_request(&mut BytesMut::new(), 0, "g", None, -1, false, Some(&req))
                 .is_err(),
             "OffsetFetch v0 is not spoken"
         );
         assert!(
-            encode_offset_fetch_request(&mut BytesMut::new(), 10, "g", None, -1, false, &req)
+            encode_offset_fetch_request(&mut BytesMut::new(), 10, "g", None, -1, false, Some(&req))
                 .is_err(),
             "OffsetFetch v10+ is not spoken"
         );
@@ -2584,9 +2603,9 @@ mod tests {
     fn offset_fetch_v7_sends_require_stable() {
         let req = offset_fetch_one_topic();
         let mut off = BytesMut::new();
-        encode_offset_fetch_request(&mut off, 7, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut off, 7, "g", None, -1, false, Some(&req)).unwrap();
         let mut on = BytesMut::new();
-        encode_offset_fetch_request(&mut on, 7, "g", None, -1, true, &req).unwrap();
+        encode_offset_fetch_request(&mut on, 7, "g", None, -1, true, Some(&req)).unwrap();
         assert_ne!(&off[..], &on[..], "RequireStable must change the v7 body");
         let mut cur = &on[..];
         let (_gid, _got, stable) = decode_offset_fetch_request(&mut cur, 7).unwrap();
@@ -2603,11 +2622,11 @@ mod tests {
     fn offset_fetch_v8_groups_roundtrip_is_leftover_empty() {
         let req = offset_fetch_one_topic();
         let mut buf = BytesMut::new();
-        encode_offset_fetch_request(&mut buf, 8, "g", None, -1, false, &req).unwrap();
+        encode_offset_fetch_request(&mut buf, 8, "g", None, -1, false, Some(&req)).unwrap();
         let mut cur = &buf[..];
         let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 8).unwrap();
         assert_eq!((gid.as_str(), stable), ("g", false));
-        assert_eq!(got, req);
+        assert_eq!(got, Some(req));
         assert!(
             cur.is_empty(),
             "v8 request must consume Groups tagged fields; leftover {} bytes",
@@ -2640,14 +2659,14 @@ mod tests {
     fn offset_fetch_v9_sends_member_id_and_epoch() {
         let req = offset_fetch_one_topic();
         let mut v8 = BytesMut::new();
-        encode_offset_fetch_request(&mut v8, 8, "g", Some("m1"), 3, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v8, 8, "g", Some("m1"), 3, false, Some(&req)).unwrap();
         let mut v9 = BytesMut::new();
-        encode_offset_fetch_request(&mut v9, 9, "g", Some("m1"), 3, false, &req).unwrap();
+        encode_offset_fetch_request(&mut v9, 9, "g", Some("m1"), 3, false, Some(&req)).unwrap();
         assert_ne!(&v8[..], &v9[..], "v9 must write MemberId / MemberEpoch");
         let mut cur = &v9[..];
         let (gid, got, _stable) = decode_offset_fetch_request(&mut cur, 9).unwrap();
         assert_eq!(gid, "g");
-        assert_eq!(got, req);
+        assert_eq!(got, Some(req));
         assert!(cur.is_empty());
         // Compact Groups of 1: "g", compact "m1", epoch 3, one topic "t" p0,
         // group tags, RequireStable 0, top tags.
@@ -2666,6 +2685,44 @@ mod tests {
         let mut r9 = BytesMut::new();
         encode_offset_fetch_response(&mut r9, 9, "g", &resp, 0).unwrap();
         assert_eq!(&r8[..], &r9[..], "OffsetFetch v9 response matches v8");
+    }
+
+    #[test]
+    fn offset_fetch_null_topics_is_all_partitions() {
+        let mut v1 = BytesMut::new();
+        let err = encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, None).unwrap_err();
+        assert!(
+            err.to_string().contains("null Topics"),
+            "v1 Topics is not nullable, got {err}"
+        );
+
+        let mut v2 = BytesMut::new();
+        encode_offset_fetch_request(&mut v2, 2, "g", None, -1, false, None).unwrap();
+        let mut cur = v2.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 2).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, None);
+        assert!(cur.is_empty(), "v2 null Topics leftover-empty");
+        const V2: &[u8] = &[0x00, 0x01, 0x67, 0xFF, 0xFF, 0xFF, 0xFF];
+        assert_eq!(&v2[..], V2);
+
+        let mut v8 = BytesMut::new();
+        encode_offset_fetch_request(&mut v8, 8, "g", None, -1, false, None).unwrap();
+        let mut cur = v8.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 8).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, None);
+        assert!(cur.is_empty(), "v8 null Topics leftover-empty");
+        const V8: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(&v8[..], V8);
+
+        let mut v9 = BytesMut::new();
+        encode_offset_fetch_request(&mut v9, 9, "g", None, -1, false, None).unwrap();
+        let mut cur = v9.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 9).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, None);
+        assert!(cur.is_empty(), "v9 null Topics leftover-empty");
     }
 
     #[test]

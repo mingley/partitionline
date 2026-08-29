@@ -432,6 +432,7 @@ struct State {
     last_offset_fetch_partitions: usize,
     last_offset_fetch_version: Option<i16>,
     last_offset_fetch_require_stable: Option<bool>,
+    last_offset_fetch_null_topics: Option<bool>,
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
     last_heartbeat_version: Option<i16>,
@@ -733,6 +734,7 @@ fn new_state(
         last_offset_fetch_partitions: 0,
         last_offset_fetch_version: None,
         last_offset_fetch_require_stable: None,
+        last_offset_fetch_null_topics: None,
         last_offset_commit_node: None,
         last_offset_commit_version: None,
         last_heartbeat_version: None,
@@ -2147,6 +2149,10 @@ impl Mock {
 
     pub fn last_offset_fetch_require_stable(&self) -> Option<bool> {
         self.state.lock().last_offset_fetch_require_stable
+    }
+
+    pub fn last_offset_fetch_null_topics(&self) -> Option<bool> {
+        self.state.lock().last_offset_fetch_null_topics
     }
 
     pub fn add_partitions_to_txn_calls(&self) -> u32 {
@@ -5010,29 +5016,54 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.offset_fetch_calls = st.offset_fetch_calls.saturating_add(1);
                 st.last_offset_fetch_version = Some(header.api_version);
                 st.last_offset_fetch_require_stable = Some(stable);
+                st.last_offset_fetch_null_topics = Some(topics.is_none());
                 let mut nparts = 0usize;
-                let mut out = Vec::with_capacity(topics.len());
-                for t in topics {
-                    nparts = nparts.saturating_add(t.partitions.len());
-                    let mut parts = Vec::with_capacity(t.partitions.len());
-                    for p in t.partitions {
-                        let (off, epoch, meta) = st
-                            .committed
-                            .get(&(t.topic.clone(), p))
-                            .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
-                            .unwrap_or((-1, -1, String::new()));
-                        parts.push(FetchedOffset {
-                            partition: p,
-                            offset: off,
-                            leader_epoch: epoch,
-                            metadata: meta,
-                            error_code: 0,
-                        });
+                let mut out = Vec::new();
+                match topics {
+                    None => {
+                        let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+                        for ((topic, part), c) in &st.committed {
+                            by_topic
+                                .entry(topic.clone())
+                                .or_default()
+                                .push(FetchedOffset {
+                                    partition: *part,
+                                    offset: c.offset,
+                                    leader_epoch: c.leader_epoch,
+                                    metadata: c.metadata.clone(),
+                                    error_code: 0,
+                                });
+                        }
+                        for (topic, partitions) in by_topic {
+                            nparts = nparts.saturating_add(partitions.len());
+                            out.push(FetchedOffsetTopic { topic, partitions });
+                        }
                     }
-                    out.push(FetchedOffsetTopic {
-                        topic: t.topic,
-                        partitions: parts,
-                    });
+                    Some(topics) => {
+                        out = Vec::with_capacity(topics.len());
+                        for t in topics {
+                            nparts = nparts.saturating_add(t.partitions.len());
+                            let mut parts = Vec::with_capacity(t.partitions.len());
+                            for p in t.partitions {
+                                let (off, epoch, meta) = st
+                                    .committed
+                                    .get(&(t.topic.clone(), p))
+                                    .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
+                                    .unwrap_or((-1, -1, String::new()));
+                                parts.push(FetchedOffset {
+                                    partition: p,
+                                    offset: off,
+                                    leader_epoch: epoch,
+                                    metadata: meta,
+                                    error_code: 0,
+                                });
+                            }
+                            out.push(FetchedOffsetTopic {
+                                topic: t.topic,
+                                partitions: parts,
+                            });
+                        }
+                    }
                 }
                 st.last_offset_fetch_partitions = nparts;
                 encode_offset_fetch_response(&mut body, header.api_version, &gid, &out, 0).unwrap();

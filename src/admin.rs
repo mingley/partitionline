@@ -3690,13 +3690,44 @@ impl Admin {
     ///
     /// OffsetFetch v1–v9 on the group coordinator. Partitions with no committed
     /// offset return [`crate::OffsetAndMetadata`] offset `-1`. Empty
-    /// `partitions` returns an empty list. `COORDINATOR_LOAD_IN_PROGRESS` /
+    /// `partitions` returns an empty list. For every committed partition,
+    /// use [`Self::list_all_consumer_group_offsets`]. `COORDINATOR_LOAD_IN_PROGRESS` /
     /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` refresh the coordinator
-    /// and retry.
+    /// and retry. Waits up to [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_consumer_group_offsets_timeout`].
     pub async fn list_consumer_group_offsets(
         &mut self,
         group_id: &str,
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_consumer_group_offsets_timeout(group_id, partitions, timeout)
+            .await
+    }
+
+    /// [`Self::list_consumer_group_offsets`] with a one-shot timeout (Java
+    /// `ListConsumerGroupOffsetsOptions.timeoutMs`).
+    pub async fn list_consumer_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+        self.list_consumer_group_offsets_with(group_id, partitions, false, timeout)
+            .await
+    }
+
+    /// [`Self::list_consumer_group_offsets`] plus `requireStable` and timeout
+    /// (Java `ListConsumerGroupOffsetsOptions.requireStable` and `timeoutMs`).
+    ///
+    /// `require_stable` is OffsetFetch v7+ RequireStable. `timeout` is the
+    /// RPC deadline.
+    pub async fn list_consumer_group_offsets_with(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        require_stable: bool,
+        timeout: Duration,
     ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
         let partitions: Vec<crate::TopicPartition> =
             partitions.into_iter().map(Into::into).collect();
@@ -3708,12 +3739,74 @@ impl Admin {
             .map(|tp| (tp.topic.clone(), tp.partition))
             .collect();
         let topics = crate::group::group_offset_fetch_topics(&wanted);
+        let fetched = self
+            .fetch_consumer_group_offsets(group_id, Some(topics), require_stable, timeout)
+            .await?;
+        let map = crate::group::committed_offset_map(&fetched)?;
+        Ok(partitions
+            .iter()
+            .map(|tp| {
+                let md = map
+                    .get(&(tp.topic.clone(), tp.partition))
+                    .cloned()
+                    .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+                (tp.clone(), md)
+            })
+            .collect())
+    }
+
+    /// List every committed offset for `group_id` (Java
+    /// `listConsumerGroupOffsets(groupId)` with no topic-partition filter).
+    ///
+    /// OffsetFetch null Topics (v2+). Waits up to
+    /// [`AdminConfig::request_timeout`]. For `requireStable` and a one-shot
+    /// timeout, use [`Self::list_all_consumer_group_offsets_with`].
+    pub async fn list_all_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_all_consumer_group_offsets_with(group_id, false, timeout)
+            .await
+    }
+
+    /// [`Self::list_all_consumer_group_offsets`] plus `requireStable` and
+    /// timeout (Java `ListConsumerGroupOffsetsOptions`).
+    pub async fn list_all_consumer_group_offsets_with(
+        &mut self,
+        group_id: &str,
+        require_stable: bool,
+        timeout: Duration,
+    ) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+        let fetched = self
+            .fetch_consumer_group_offsets(group_id, None, require_stable, timeout)
+            .await?;
+        let map = crate::group::committed_offset_map(&fetched)?;
+        Ok(map
+            .into_iter()
+            .map(|((topic, partition), md)| (crate::TopicPartition::new(topic, partition), md))
+            .collect())
+    }
+
+    async fn fetch_consumer_group_offsets(
+        &mut self,
+        group_id: &str,
+        topics: Option<Vec<crate::protocol::group::OffsetFetchTopic>>,
+        require_stable: bool,
+        timeout: Duration,
+    ) -> Result<Vec<crate::protocol::group::FetchedOffsetTopic>> {
+        let client_min = if topics.is_none() { 2 } else { 1 };
         let version = self
             .versions
             .get(&OFFSET_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
-            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v1-9".into()))?;
-        let timeout = self.cfg.request_timeout;
+            .and_then(|v| pick_version(v.min_version, v.max_version, client_min, 9))
+            .ok_or_else(|| {
+                Error::Unsupported(if topics.is_none() {
+                    "broker does not support OffsetFetch v2-9 (null Topics)".into()
+                } else {
+                    "broker does not support OffsetFetch v1-9".into()
+                })
+            })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let group_id = group_id.to_string();
@@ -3742,7 +3835,13 @@ impl Admin {
                     version,
                     |buf| {
                         encode_offset_fetch_request(
-                            buf, version, &group_id, None, -1, false, &topics,
+                            buf,
+                            version,
+                            &group_id,
+                            None,
+                            -1,
+                            require_stable,
+                            topics.as_deref(),
                         )
                     },
                     timeout,
@@ -3759,27 +3858,15 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let fetched = match decode_offset_fetch_response(&mut body.clone(), version) {
-                Ok(t) => t,
+            match decode_offset_fetch_response(&mut body.clone(), version) {
+                Ok(t) => return Ok(t),
                 Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                     self.group_coord = None;
                     let _ = self.conns.remove(&node);
                     self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
                 }
                 Err(e) => return Err(e),
-            };
-            let map = crate::group::committed_offset_map(&fetched)?;
-            return Ok(partitions
-                .iter()
-                .map(|tp| {
-                    let md = map
-                        .get(&(tp.topic.clone(), tp.partition))
-                        .cloned()
-                        .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
-                    (tp.clone(), md)
-                })
-                .collect());
+            }
         }
     }
 
