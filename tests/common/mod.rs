@@ -1083,6 +1083,55 @@ fn metadata_topic_for(
     }
 }
 
+fn describe_topic_partitions_for(
+    st: &State,
+    fallback_host: &str,
+    fallback_port: i32,
+    names: &[String],
+) -> DescribeTopicPartitionsResponse {
+    let (_brokers, replica_nodes, default_leader, _controller_id) =
+        metadata_cluster(st, fallback_host, fallback_port);
+    let topics = names
+        .iter()
+        .map(|name| match st.created_topics.get(name) {
+            Some(spec) => {
+                let md = metadata_topic_for(st, name, spec, true, &replica_nodes, default_leader);
+                DescribedTopicPartitions {
+                    error_code: 0,
+                    name: Some(name.clone()),
+                    topic_id: md.topic_id,
+                    is_internal: md.is_internal,
+                    partitions: md
+                        .partitions
+                        .iter()
+                        .map(|p| DescribedTopicPartition {
+                            error_code: p.error_code,
+                            partition_index: p.partition_index,
+                            leader_id: p.leader_id,
+                            leader_epoch: p.leader_epoch,
+                            replica_nodes: p.replica_nodes.clone(),
+                            isr_nodes: p.isr_nodes.clone(),
+                            eligible_leader_replicas: None,
+                            last_known_elr: None,
+                            offline_replicas: p.offline_replicas.clone(),
+                        })
+                        .collect(),
+                    topic_authorized_operations: 4,
+                }
+            }
+            None => DescribedTopicPartitions {
+                error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+                name: Some(name.clone()),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: i32::MIN,
+            },
+        })
+        .collect();
+    DescribeTopicPartitionsResponse::new(topics)
+}
+
 fn list_offsets_partition_result(
     st: &mut State,
     node_id: i32,
@@ -5771,29 +5820,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (topics, limit, cursor) =
                     decode_describe_topic_partitions_request(&mut frame).unwrap();
                 let mut st = state.lock();
-                // Any connected broker answers. Fixture topic only; not
-                // a metadata store, not a coordinator hop, not a 41/6
-                // path. Official JSON lists no error codes; official
-                // handler does not use NOT_COORDINATOR (16), so the
-                // wrong node does not return 16.
+                // Any connected broker answers. Official JSON lists no
+                // error codes; official handler does not use
+                // NOT_COORDINATOR (16), so the wrong node does not
+                // return 16.
                 st.last_describe_topic_partitions_node = Some(node_id);
                 st.last_describe_topic_partitions = Some((topics.clone(), limit, cursor));
-                let name = topics.first().cloned().unwrap_or_else(|| "t".into());
-                let mut topic = DescribedTopicPartitions::new(name, 0);
-                topic.partitions = vec![DescribedTopicPartition {
-                    error_code: 0,
-                    partition_index: 0,
-                    leader_id: 1,
-                    leader_epoch: 0,
-                    replica_nodes: vec![1],
-                    isr_nodes: vec![1],
-                    eligible_leader_replicas: None,
-                    last_known_elr: None,
-                    offline_replicas: Vec::new(),
-                }];
+                let (host, port) = broker_host_port(&st, node_id);
                 encode_describe_topic_partitions_response(
                     &mut body,
-                    &DescribeTopicPartitionsResponse::new(vec![topic]),
+                    &describe_topic_partitions_for(&st, &host, port, &topics),
                 )
                 .unwrap();
             }

@@ -74,6 +74,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_topics_timeout` is Java `DeleteTopicsOptions.timeoutMs`.
 `Admin::delete_topics_by_id` is Java `deleteTopics(TopicCollection.ofTopicIds)` (DeleteTopics v6 null Name + TopicId).
 `Admin::describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+ null Name + TopicId).
+`Admin::describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions api 75).
 `Admin::create_partitions_timeout` is Java `CreatePartitionsOptions.timeoutMs`.
 `Admin::alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs`.
 `Admin::list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs`.
@@ -153,7 +154,7 @@ null header value. `current_lag` is Java `currentLag`. `enforce_rebalance` /
 names starting with `__` are skipped). Share groups have the same
 `subscribe_matching` / `join_matching`.
 `group_metadata` is Java `ConsumerGroupMetadata`. `list_topics` is cluster
-Metadata. `describe_topics_with` is Java `DescribeTopicsOptions.includeAuthorizedOperations`. `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)`. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
+Metadata. `describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions). `describe_topics_with` surfaces TopicAuthorizedOperations from that response. `describe_topics_by_id` is Java `describeTopics(TopicCollection.ofTopicIds)`. `assign_many` / `assign_partitions` / `unassign` replace or drop a manual
 assignment (`assign_partitions` is Java `assign(Collection)` and uses
 `auto.offset.reset`).
 `fetch_timeout` / `poll_timeout` are Java `poll(Duration)`.

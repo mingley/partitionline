@@ -3443,7 +3443,11 @@ async fn admin_list_and_describe_topics() {
         described[0].authorized_operations,
         partitionline::AUTHORIZED_OPERATIONS_OMITTED
     );
-    assert_eq!(mock.last_metadata_topics(), Some(Some(vec!["t".into()])));
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None))
+    );
+    assert_eq!(mock.last_metadata_topics(), Some(None));
     assert_eq!(mock.last_metadata_allow_auto(), Some(false));
     let calls = mock.metadata_calls();
     let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();

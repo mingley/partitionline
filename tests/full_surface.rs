@@ -4576,34 +4576,63 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     assert_eq!(described[0].partitions[0].leader, 1);
     assert_eq!(
         described[0].authorized_operations, AUTHORIZED_OPERATIONS_OMITTED,
-        "describe_topics must leave IncludeTopicAuthorizedOperations unset"
+        "describe_topics must leave TopicAuthorizedOperations unset"
     );
-    assert_eq!(mock.last_metadata_include_topic_authorized(), Some(false));
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None)),
+        "describe_topics must send DescribeTopicPartitions for the named topics"
+    );
     assert_eq!(
         mock.last_metadata_topics(),
-        Some(Some(vec!["t".into()])),
-        "describe_topics must send Metadata for the named topics"
-    );
-    assert_eq!(
-        mock.last_metadata_topic_ids(),
-        Some(0),
-        "name-based describeTopics sends TopicId zero, not ofTopicIds"
+        Some(None),
+        "name-based describeTopics uses DescribeTopicPartitions, not Metadata"
     );
     let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
     assert_eq!(with_ops.len(), 1);
     assert_eq!(with_ops[0].authorized_operations, 4);
     assert_eq!(
-        mock.last_metadata_include_topic_authorized(),
-        Some(true),
-        "describe_topics_with(true) must send IncludeTopicAuthorizedOperations"
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None)),
+        "describe_topics_with(true) still uses DescribeTopicPartitions"
     );
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("dtn-a", 1, 1), NewTopic::new("dtn-b", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    let two = admin.describe_topics(["dtn-a", "dtn-b"]).await.unwrap();
+    assert_eq!(two.len(), 2);
+    assert_eq!(two[0].name, "dtn-a");
+    assert_eq!(two[1].name, "dtn-b");
+    assert_eq!(two[0].error_code, 0);
+    assert_eq!(two[1].error_code, 0);
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["dtn-a".into(), "dtn-b".into()], 2000, None)),
+        "describe_topics sends Topics of N"
+    );
+    let missing = admin.describe_topics(["no-such-topic"]).await.unwrap();
+    assert_eq!(missing.len(), 1);
+    assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
     let calls = mock.metadata_calls();
+    let dtp = mock.last_describe_topic_partitions();
     let empty = admin.describe_topics(Vec::<&str>::new()).await.unwrap();
     assert!(empty.is_empty());
     assert_eq!(
         mock.metadata_calls(),
         calls,
         "empty describe_topics is a no-op"
+    );
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        dtp,
+        "empty describe_topics does not send DescribeTopicPartitions"
     );
 }
 

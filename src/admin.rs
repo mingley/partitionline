@@ -1900,13 +1900,17 @@ impl Admin {
 
     /// Topic partition layouts (Java `Admin.describeTopics`).
     ///
-    /// Sends Metadata for these names on the bootstrap connection
-    /// (Name set, TopicId zero). Empty input is a no-op (no RPC).
-    /// Per-topic Metadata errors live on [`TopicDescription::error_code`];
+    /// Sends DescribeTopicPartitions (api 75, KIP-966) for these names
+    /// on the bootstrap connection (Java `TopicCollection.ofTopicNames`).
+    /// `ResponsePartitionLimit` is 2000; a `NextCursor` is followed until
+    /// the broker is done. Empty input is a no-op (no RPC). Per-topic
+    /// errors live on [`TopicDescription::error_code`];
     /// [`TopicDescription::partitions`] is filled only when that code is `0`.
-    /// `IncludeTopicAuthorizedOperations` is false; see
-    /// [`Self::describe_topics_with`]. For TopicId describes (Java
-    /// `TopicCollection.ofTopicIds`), use [`Self::describe_topics_by_id`].
+    /// DescribeTopicPartitions has no IncludeTopicAuthorizedOperations
+    /// request flag; [`TopicDescription::authorized_operations`] is
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`] unless
+    /// [`Self::describe_topics_with`] is used. For TopicId describes
+    /// (Java `TopicCollection.ofTopicIds`), use [`Self::describe_topics_by_id`].
     pub async fn describe_topics(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
@@ -1917,10 +1921,10 @@ impl Admin {
     /// [`Self::describe_topics`] with Java
     /// `DescribeTopicsOptions.includeAuthorizedOperations`.
     ///
-    /// Metadata v8+ sends IncludeTopicAuthorizedOperations.
-    /// Below v8 the flag is omitted and
-    /// [`TopicDescription::authorized_operations`] is
-    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    /// DescribeTopicPartitions always returns TopicAuthorizedOperations.
+    /// When `include_authorized_operations` is false, this crate stores
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`] (Java Metadata path omits the
+    /// request flag; DTP has no equivalent field).
     pub async fn describe_topics_with(
         &mut self,
         topics: impl IntoIterator<Item = impl AsRef<str>>,
@@ -1930,10 +1934,8 @@ impl Admin {
         if names.is_empty() {
             return Ok(Vec::new());
         }
-        let md = self
-            .fetch_metadata_with(Some(&names), include_authorized_operations)
-            .await?;
-        Ok(topic_descriptions_from(&md))
+        self.describe_topics_dtp(&names, include_authorized_operations)
+            .await
     }
 
     /// Describe topics by TopicId (Java `describeTopics(TopicCollection.ofTopicIds)`).
@@ -5984,6 +5986,16 @@ impl Admin {
         cursor: Option<&TopicPartitionCursor>,
     ) -> Result<DescribeTopicPartitionsResponse> {
         let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
+        self.describe_topic_partitions_once(&names, response_partition_limit, cursor)
+            .await
+    }
+
+    async fn describe_topic_partitions_once(
+        &mut self,
+        names: &[String],
+        response_partition_limit: i32,
+        cursor: Option<&TopicPartitionCursor>,
+    ) -> Result<DescribeTopicPartitionsResponse> {
         let version = self.describe_topic_partitions_version;
         let timeout = self.cfg.request_timeout;
         let body = self
@@ -5993,7 +6005,7 @@ impl Admin {
                 |buf| {
                     encode_describe_topic_partitions_request(
                         buf,
-                        &names,
+                        names,
                         response_partition_limit,
                         cursor,
                     )
@@ -6002,6 +6014,41 @@ impl Admin {
             )
             .await?;
         decode_describe_topic_partitions_response(&mut body.clone())
+    }
+
+    async fn describe_topics_dtp(
+        &mut self,
+        names: &[String],
+        include_authorized_operations: bool,
+    ) -> Result<Vec<TopicDescription>> {
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        let mut cursor: Option<TopicPartitionCursor> = None;
+        let mut out: Vec<TopicDescription> = Vec::new();
+        loop {
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let resp = self
+                .describe_topic_partitions_once(
+                    names,
+                    DESCRIBE_TOPIC_PARTITIONS_LIMIT,
+                    cursor.as_ref(),
+                )
+                .await?;
+            for t in &resp.topics {
+                let desc = topic_description_from_dtp(t, include_authorized_operations);
+                if let Some(existing) = out.iter_mut().find(|d| d.name == desc.name) {
+                    existing.partitions.extend(desc.partitions);
+                } else {
+                    out.push(desc);
+                }
+            }
+            match resp.next_cursor {
+                Some(next) if cursor.as_ref() != Some(&next) => cursor = Some(next),
+                _ => break,
+            }
+        }
+        Ok(out)
     }
 
     /// List configuration resources (ListConfigResources api 74,
@@ -7277,6 +7324,9 @@ fn offset_delete_topics(partitions: &[(String, i32)]) -> Vec<OffsetDeleteTopic> 
         .collect()
 }
 
+/// Java DescribeTopicPartitions default ResponsePartitionLimit.
+const DESCRIBE_TOPIC_PARTITIONS_LIMIT: i32 = 2000;
+
 fn topic_listings_from(md: &MetadataResponse) -> Vec<TopicListing> {
     md.topics
         .iter()
@@ -7288,13 +7338,6 @@ fn topic_listings_from(md: &MetadataResponse) -> Vec<TopicListing> {
                 is_internal: t.is_internal,
             })
         })
-        .collect()
-}
-
-fn topic_descriptions_from(md: &MetadataResponse) -> Vec<TopicDescription> {
-    md.topics
-        .iter()
-        .filter_map(|t| t.name.as_ref().map(|_| topic_description_from(t)))
         .collect()
 }
 
@@ -7327,6 +7370,41 @@ fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescr
         error_code: t.error_code,
         partitions,
         authorized_operations: t.topic_authorized_operations,
+    }
+}
+
+fn topic_description_from_dtp(
+    t: &DescribedTopicPartitions,
+    include_authorized_operations: bool,
+) -> TopicDescription {
+    let name = t.name.clone().unwrap_or_default();
+    let partitions = if t.error_code == 0 {
+        t.partitions
+            .iter()
+            .map(|p| crate::PartitionInfo {
+                topic: name.clone(),
+                partition: p.partition_index,
+                leader: p.leader_id,
+                leader_epoch: p.leader_epoch,
+                replicas: p.replica_nodes.clone(),
+                isr: p.isr_nodes.clone(),
+                offline_replicas: p.offline_replicas.clone(),
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    TopicDescription {
+        name,
+        topic_id: t.topic_id,
+        is_internal: t.is_internal,
+        error_code: t.error_code,
+        partitions,
+        authorized_operations: if include_authorized_operations {
+            t.topic_authorized_operations
+        } else {
+            AUTHORIZED_OPERATIONS_OMITTED
+        },
     }
 }
 
@@ -7522,14 +7600,16 @@ mod tests {
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].name, "ok");
         assert_eq!(listed[0].topic_id, [1; 16]);
-        let described = topic_descriptions_from(&md);
-        assert_eq!(described.len(), 2);
+        let described = topic_descriptions_including_unnamed(&md);
+        assert_eq!(described.len(), 3);
         assert_eq!(described[0].name, "ok");
         assert_eq!(described[0].partitions.len(), 1);
         assert_eq!(described[0].partitions[0].leader_epoch, 3);
         assert_eq!(described[1].name, "gone");
         assert_eq!(described[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
         assert!(described[1].partitions.is_empty());
+        assert!(described[2].name.is_empty());
+        assert_eq!(described[2].topic_id, [2; 16]);
     }
 
     #[test]
