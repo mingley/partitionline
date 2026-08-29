@@ -60,27 +60,62 @@ pub struct ApiVersionsResponse {
     pub zk_migration_ready: bool,
 }
 
-/// Encode ApiVersions. v3+ sends `softwareName` / `softwareVersion`.
+/// `true` when ApiVersions `version` is flexible (v3+).
+///
+/// Official Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "3+"`.
+/// v0–v2 are classic (empty request). v3–v4 send ClientSoftwareName /
+/// ClientSoftwareVersion. v4 allows SupportedFeatures.MinVersion 0
+/// (KAFKA-17011). v5+ is not spoken.
+fn api_versions_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ApiVersions version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode ApiVersions v0–v4.
+///
+/// Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "3+"`.
+/// v0–v2 are empty. v3 and v4 request match (ClientSoftwareName /
+/// ClientSoftwareVersion). v4 lets the broker return features with
+/// MinVersion 0 (KAFKA-17011). This crate speaks 0–4. v5+ is not spoken.
 pub fn encode_api_versions_request(
     buf: &mut BytesMut,
     version: i16,
     software_name: &str,
     software_version: &str,
 ) -> crate::error::Result<()> {
+    let flexible = api_versions_flexible(version)?;
     if version >= 3 {
-        buf::put_compact_string(buf, Some(software_name))?;
-        buf::put_compact_string(buf, Some(software_version))?;
+        buf::put_string(buf, flexible, Some(software_name))?;
+        buf::put_string(buf, flexible, Some(software_version))?;
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode ApiVersions (classic v0–2, flexible v3+).
+/// Decode ApiVersions v0–v4: `(software_name, software_version)`.
+/// Empty on v0–v2.
+pub fn decode_api_versions_request<B: Buf>(buf: &mut B, version: i16) -> Result<(String, String)> {
+    let flexible = api_versions_flexible(version)?;
+    if version >= 3 {
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let software_version = buf::get_string(buf, flexible)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        return Ok((name, software_version));
+    }
+    Ok((String::new(), String::new()))
+}
+
+/// Decode ApiVersions v0–v4 (classic v0–2, flexible v3–v4).
 pub fn decode_api_versions_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ApiVersionsResponse> {
-    let flexible = version >= 3;
+    let flexible = api_versions_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut api_keys = Vec::with_capacity(count);
@@ -119,13 +154,15 @@ pub fn decode_api_versions_response<B: Buf>(
     })
 }
 
-/// Encode ApiVersions (used by the mock broker).
+/// Encode ApiVersions v0–v4 (used by the mock broker).
+///
+/// v0–v3 omit SupportedFeatures with MinVersion 0 (KAFKA-17011 / KAFKA-17492).
 pub fn encode_api_versions_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ApiVersionsResponse,
 ) -> crate::error::Result<()> {
-    let flexible = version >= 3;
+    let flexible = api_versions_flexible(version)?;
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.api_keys.len()))?;
     for api in &resp.api_keys {
@@ -140,7 +177,7 @@ pub fn encode_api_versions_response(
         buf.put_i32(resp.throttle_time_ms);
     }
     if flexible {
-        encode_api_versions_tagged_fields(buf, resp)?;
+        encode_api_versions_tagged_fields(buf, version, resp)?;
     }
     Ok(())
 }
@@ -218,10 +255,20 @@ fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFea
     Ok(out)
 }
 
-fn encode_api_versions_tagged_fields(buf: &mut BytesMut, resp: &ApiVersionsResponse) -> Result<()> {
+fn encode_api_versions_tagged_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ApiVersionsResponse,
+) -> Result<()> {
     let mut tags: Vec<(u32, Bytes)> = Vec::new();
-    if !resp.supported_features.is_empty() {
-        tags.push((0, encode_supported_feature_keys(&resp.supported_features)?));
+    let supported: Vec<SupportedFeatureKey> = resp
+        .supported_features
+        .iter()
+        .filter(|f| version >= 4 || f.min_version != 0)
+        .cloned()
+        .collect();
+    if !supported.is_empty() {
+        tags.push((0, encode_supported_feature_keys(&supported)?));
     }
     if let Some(epoch) = resp.finalized_features_epoch {
         if epoch >= 0 {
@@ -1149,6 +1196,108 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ApiVersions v3 features must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn api_versions_v3_matches_v4_and_does_not_speak_v5() {
+        // Official Kafka 4.0 JSON: validVersions 0-4, flexibleVersions 3+.
+        // v3 and v4 request match. v4 response includes SupportedFeatures
+        // with MinVersion 0 (KAFKA-17011); v3 omits them. This crate
+        // speaks 0–4. v5+ is not spoken.
+        let mut v3 = BytesMut::new();
+        encode_api_versions_request(&mut v3, 3, "partitionline", "0.1.0").unwrap();
+        let mut v4 = BytesMut::new();
+        encode_api_versions_request(&mut v4, 4, "partitionline", "0.1.0").unwrap();
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
+        let mut v0 = BytesMut::new();
+        encode_api_versions_request(&mut v0, 0, "partitionline", "0.1.0").unwrap();
+        assert!(v0.is_empty(), "v0–v2 request is empty");
+        encode_api_versions_request(&mut v0, 2, "partitionline", "0.1.0").unwrap();
+        assert!(v0.is_empty(), "v2 request is empty");
+        let mut empty: &[u8] = &[];
+        assert_eq!(
+            decode_api_versions_request(&mut empty, 0).unwrap(),
+            (String::new(), String::new())
+        );
+        let mut empty: &[u8] = &[];
+        assert_eq!(
+            decode_api_versions_request(&mut empty, 2).unwrap(),
+            (String::new(), String::new())
+        );
+        let mut cur = v3.as_ref();
+        assert_eq!(
+            decode_api_versions_request(&mut cur, 3).unwrap(),
+            ("partitionline".into(), "0.1.0".into())
+        );
+        assert!(!cur.has_remaining(), "v3 request leftover-empty");
+        let mut cur = v4.as_ref();
+        assert_eq!(
+            decode_api_versions_request(&mut cur, 4).unwrap(),
+            ("partitionline".into(), "0.1.0".into())
+        );
+        assert!(!cur.has_remaining(), "v4 request leftover-empty");
+        let err = encode_api_versions_request(&mut BytesMut::new(), 5, "partitionline", "0.1.0")
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 is not spoken, got {err}"
+        );
+        let mut empty: &[u8] = &[];
+        let err = decode_api_versions_request(&mut empty, 5).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 decode is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 3, 0, 4), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 4, 0, 4), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(5, 5, 0, 4), None);
+
+        let kraft = SupportedFeatureKey {
+            name: "kraft.version".into(),
+            min_version: 0,
+            max_version: 1,
+        };
+        let meta = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![meta.clone(), kraft.clone()],
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        v3.clear();
+        encode_api_versions_response(&mut v3, 3, &resp).unwrap();
+        v4.clear();
+        encode_api_versions_response(&mut v4, 4, &resp).unwrap();
+        assert_ne!(
+            v3.as_ref(),
+            v4.as_ref(),
+            "v3 omits SupportedFeatures with MinVersion 0"
+        );
+        let mut cur = v3.as_ref();
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded.supported_features, vec![meta.clone()]);
+        assert!(!cur.has_remaining(), "v3 response leftover-empty");
+        let mut cur = v4.as_ref();
+        let decoded = decode_api_versions_response(&mut cur, 4).unwrap();
+        assert_eq!(decoded.supported_features, vec![meta, kraft]);
+        assert!(!cur.has_remaining(), "v4 response leftover-empty");
+        v3.clear();
+        let err = encode_api_versions_response(&mut v3, 5, &resp).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 response is not spoken, got {err}"
         );
     }
 

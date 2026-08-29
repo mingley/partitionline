@@ -11,15 +11,16 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, CONSUMER_GROUP_DESCRIBE,
-    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS,
-    CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
-    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN,
-    DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES,
-    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
-    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
+    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, API_VERSIONS,
+    CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
+    DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN,
+    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
+    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
+    SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -47,6 +48,11 @@ async fn try_send_flush_writes_record() {
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
     pcfg.linger = Duration::ZERO;
     let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(
+        mock.last_api_versions_version(),
+        Some(4),
+        "Producer must prefer ApiVersions v4 when the broker advertises it"
+    );
     let rec = ProduceRecord::to("t").value(&b"try-send"[..]);
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     loop {
@@ -6053,6 +6059,73 @@ async fn describe_log_dirs_follows_broker() {
         None,
         "DescribeLogDirs must not hop via Metadata controller_id"
     );
+}
+
+#[tokio::test]
+async fn describe_features_prefers_api_versions_v4() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_api_versions_version(),
+        Some(4),
+        "Admin must send ApiVersions v4 on connect"
+    );
+    let features = admin.describe_features().await.unwrap();
+    assert_eq!(
+        mock.last_api_versions_version(),
+        Some(4),
+        "Admin must prefer ApiVersions v4 when the broker advertises it"
+    );
+    let kraft = features
+        .supported_features
+        .iter()
+        .find(|f| f.name == "kraft.version")
+        .expect("kraft.version supported on v4");
+    assert_eq!(kraft.min_version, 0);
+    assert_eq!(kraft.max_version, 1);
+    let meta = features
+        .supported_features
+        .iter()
+        .find(|f| f.name == "metadata.version")
+        .expect("metadata.version supported");
+    assert_eq!(meta.min_version, 1);
+    assert_eq!(meta.max_version, 20);
+}
+
+#[tokio::test]
+async fn describe_features_negotiates_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(API_VERSIONS, 3);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_api_versions_version(),
+        Some(4),
+        "first ApiVersions cannot be negotiated; connect still sends v4"
+    );
+    let features = admin.describe_features().await.unwrap();
+    assert_eq!(
+        mock.last_api_versions_version(),
+        Some(3),
+        "client must speak ApiVersions v3 when the broker max is 3"
+    );
+    assert!(
+        features
+            .supported_features
+            .iter()
+            .all(|f| f.name != "kraft.version"),
+        "v3 omits SupportedFeatures with MinVersion 0"
+    );
+    let meta = features
+        .supported_features
+        .iter()
+        .find(|f| f.name == "metadata.version")
+        .expect("metadata.version supported on v3");
+    assert_eq!(meta.min_version, 1);
+    assert_eq!(meta.max_version, 20);
 }
 
 #[tokio::test]

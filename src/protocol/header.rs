@@ -45,6 +45,10 @@ pub struct ResponseHeader {
 /// Request header version: `1` classic, `2` flexible (KIP-482 tagged fields).
 pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
     match api_key {
+        // ApiVersions is classic through v2; flexible from v3
+        // (Apache JSON flexibleVersions: "3+"). Kafka 4.0 validVersions
+        // is 0-4. This crate speaks 0–4. v4 is the same request as v3
+        // (KAFKA-17011 MinVersion 0). Response header is never flexible.
         API_VERSIONS if api_version >= 3 => 2,
         PRODUCE if api_version >= 9 => 2,
         FETCH if api_version >= 12 => 2,
@@ -419,8 +423,14 @@ mod tests {
 
     #[test]
     fn api_versions_response_header_never_flexible() {
+        // Official Kafka 4.0 JSON: validVersions 0-4, flexibleVersions 3+.
+        // Request header is 1 at v0–2 and 2 at v3–v4. Response header is
+        // always 0 so the correlation id can be read first (KIP-482).
+        assert_eq!(request_header_version(API_VERSIONS, 2), 1);
         assert_eq!(response_header_version(API_VERSIONS, 0), 0);
+        assert_eq!(request_header_version(API_VERSIONS, 3), 2);
         assert_eq!(response_header_version(API_VERSIONS, 3), 0);
+        assert_eq!(request_header_version(API_VERSIONS, 4), 2);
         assert_eq!(response_header_version(API_VERSIONS, 4), 0);
     }
 

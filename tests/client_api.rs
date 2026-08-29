@@ -2870,6 +2870,13 @@ async fn admin_describe_features_from_api_versions() {
         .expect("metadata.version supported");
     assert_eq!(supported.min_version, 1);
     assert_eq!(supported.max_version, 20);
+    let kraft = features
+        .supported_features
+        .iter()
+        .find(|f| f.name == "kraft.version")
+        .expect("kraft.version supported on ApiVersions v4");
+    assert_eq!(kraft.min_version, 0);
+    assert_eq!(kraft.max_version, 1);
     let finalized = features
         .finalized_features
         .iter()

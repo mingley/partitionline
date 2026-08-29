@@ -224,6 +224,7 @@ struct State {
     metadata_calls: u32,
     last_metadata_allow_auto: Option<bool>,
     last_metadata_version: Option<i16>,
+    last_api_versions_version: Option<i16>,
     /// Last Metadata topic filter: `None` = never recorded;
     /// `Some(None)` = all topics; `Some(Some(names))` = named.
     last_metadata_topics: Option<Option<Vec<String>>>,
@@ -529,6 +530,7 @@ fn new_state(
         metadata_calls: 0,
         last_metadata_allow_auto: None,
         last_metadata_version: None,
+        last_api_versions_version: None,
         last_metadata_topics: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
@@ -1275,6 +1277,10 @@ impl Mock {
 
     pub fn last_metadata_version(&self) -> Option<i16> {
         self.state.lock().last_metadata_version
+    }
+
+    pub fn last_api_versions_version(&self) -> Option<i16> {
+        self.state.lock().last_api_versions_version
     }
 
     pub fn last_metadata_topics(&self) -> Option<Option<Vec<String>>> {
@@ -2546,11 +2552,18 @@ fn versions(st: &State) -> ApiVersionsResponse {
             })
             .collect(),
         throttle_time_ms: 0,
-        supported_features: vec![SupportedFeatureKey {
-            name: "metadata.version".into(),
-            min_version: 1,
-            max_version: 20,
-        }],
+        supported_features: vec![
+            SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            },
+            SupportedFeatureKey {
+                name: "kraft.version".into(),
+                min_version: 0,
+                max_version: 1,
+            },
+        ],
         finalized_features_epoch: Some(1),
         finalized_features: vec![FinalizedFeatureKey {
             name: "metadata.version".into(),
@@ -2702,7 +2715,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
         match header.api_key {
             API_VERSIONS => {
-                let st = state.lock();
+                let mut st = state.lock();
+                st.last_api_versions_version = Some(header.api_version);
                 encode_api_versions_response(&mut body, header.api_version, &versions(&st)).unwrap()
             }
             METADATA => {

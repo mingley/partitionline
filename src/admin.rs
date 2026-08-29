@@ -733,7 +733,7 @@ impl FinalizedVersionRange {
 /// Cluster feature metadata from [`Admin::describe_features`] (Java `FeatureMetadata`).
 ///
 /// There is no DescribeFeatures api key. Java and this client re-issue
-/// ApiVersions v3+ and read KIP-482 tagged fields.
+/// ApiVersions v3–v4 and read KIP-482 tagged fields.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureMetadata {
     /// Features the broker supports (`supportedFeatures`).
@@ -1040,12 +1040,12 @@ impl Admin {
         let body = conn
             .roundtrip(
                 API_VERSIONS,
-                3,
-                |buf| encode_api_versions_request(buf, 3, "partitionline", "0.1.0"),
+                4,
+                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
                 cfg.request_timeout,
             )
             .await?;
-        let resp = decode_api_versions_response(&mut body.clone(), 3)?;
+        let resp = decode_api_versions_response(&mut body.clone(), 4)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ApiVersions"));
         }
@@ -2108,10 +2108,11 @@ impl Admin {
 
     /// Supported and finalized features (Java `describeFeatures`).
     ///
-    /// There is no DescribeFeatures api key. This re-issues ApiVersions v3+
+    /// There is no DescribeFeatures api key. This re-issues ApiVersions v3–v4
     /// on the bootstrap connection and reads KIP-482 tagged fields
     /// (`supportedFeatures`, `finalizedFeaturesEpoch`, `finalizedFeatures`,
-    /// `zkMigrationReady`).
+    /// `zkMigrationReady`). v4 includes SupportedFeatures with MinVersion 0
+    /// (KAFKA-17011).
     pub async fn describe_features(&mut self) -> Result<FeatureMetadata> {
         let version = self
             .versions
@@ -3074,12 +3075,12 @@ impl Admin {
         let versions_body = conn
             .roundtrip(
                 API_VERSIONS,
-                3,
-                |buf| encode_api_versions_request(buf, 3, "partitionline", "0.1.0"),
+                4,
+                |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
                 self.cfg.request_timeout,
             )
             .await?;
-        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 3)?;
+        let versions_resp = decode_api_versions_response(&mut versions_body.clone(), 4)?;
         sasl::apply_api_keys(&mut conn, &versions_resp.api_keys);
         sasl::authenticate(
             &mut conn,

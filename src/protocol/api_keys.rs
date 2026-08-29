@@ -28,7 +28,7 @@ pub const DESCRIBE_GROUPS: i16 = 15;
 pub const LIST_GROUPS: i16 = 16;
 /// SaslHandshake (17). Kafka 4.0 `validVersions` is `0-1`.
 pub const SASL_HANDSHAKE: i16 = 17;
-/// ApiVersions (18).
+/// ApiVersions (18). Kafka 4.0 `validVersions` is `0-4`.
 pub const API_VERSIONS: i16 = 18;
 /// CreateTopics (19). Kafka 4.0 `validVersions` is `2-7`.
 pub const CREATE_TOPICS: i16 = 19;

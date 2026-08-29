@@ -2259,12 +2259,12 @@ async fn open_coord_with_find_version(
     let body = conn
         .roundtrip(
             API_VERSIONS,
-            3,
-            |buf| encode_api_versions_request(buf, 3, "partitionline", "0.1.0"),
+            4,
+            |buf| encode_api_versions_request(buf, 4, "partitionline", "0.1.0"),
             cfg.request_timeout,
         )
         .await?;
-    let resp = decode_api_versions_response(&mut body.clone(), 3)?;
+    let resp = decode_api_versions_response(&mut body.clone(), 4)?;
     if resp.error_code != 0 {
         return Err(Error::broker(resp.error_code, "ApiVersions"));
     }
