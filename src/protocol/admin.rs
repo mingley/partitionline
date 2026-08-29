@@ -3364,6 +3364,24 @@ impl From<UpgradeType> for i8 {
 }
 
 impl UpgradeType {
+    /// Java `FeatureUpdate.UpgradeType.code`.
+    #[must_use]
+    pub const fn code(self) -> i8 {
+        self as i8
+    }
+
+    /// Java `FeatureUpdate.UpgradeType.fromCode`. Unknown codes (including
+    /// Java `UNKNOWN` `0`) return `None`.
+    #[must_use]
+    pub const fn from_code(code: i32) -> Option<Self> {
+        match code {
+            1 => Some(Self::Upgrade),
+            2 => Some(Self::SafeDowngrade),
+            3 => Some(Self::UnsafeDowngrade),
+            _ => None,
+        }
+    }
+
     /// Java `FeatureUpdate.UpgradeType.toString`.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

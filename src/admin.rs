@@ -11915,6 +11915,23 @@ mod tests {
         assert_eq!(UpgradeType::Upgrade.to_string(), "UPGRADE");
         assert_eq!(UpgradeType::SafeDowngrade.to_string(), "SAFE_DOWNGRADE");
         assert_eq!(UpgradeType::UnsafeDowngrade.to_string(), "UNSAFE_DOWNGRADE");
+        assert_eq!(UpgradeType::Upgrade.code(), UPGRADE_TYPE_UPGRADE);
+        assert_eq!(
+            UpgradeType::SafeDowngrade.code(),
+            UPGRADE_TYPE_SAFE_DOWNGRADE
+        );
+        assert_eq!(
+            UpgradeType::UnsafeDowngrade.code(),
+            UPGRADE_TYPE_UNSAFE_DOWNGRADE
+        );
+        assert_eq!(UpgradeType::from_code(1), Some(UpgradeType::Upgrade));
+        assert_eq!(UpgradeType::from_code(2), Some(UpgradeType::SafeDowngrade));
+        assert_eq!(
+            UpgradeType::from_code(3),
+            Some(UpgradeType::UnsafeDowngrade)
+        );
+        assert!(UpgradeType::from_code(0).is_none());
+        assert!(UpgradeType::from_code(99).is_none());
         assert_eq!(
             FeatureUpdate::new("metadata.version", 1)
                 .upgrade_type(0_i8)

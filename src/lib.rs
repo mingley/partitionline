@@ -155,7 +155,8 @@
 //! match Java `toString`. [`FeatureUpdate`] / [`UpgradeType`] /
 //! [`RecordsToDelete`] / [`SupportedVersionRange`] /
 //! [`FinalizedVersionRange`] / [`FeatureMetadata`] `Display` match Java
-//! `toString`.
+//! `toString`. [`UpgradeType::code`] / [`UpgradeType::from_code`] are Java
+//! `FeatureUpdate.UpgradeType.code` / `fromCode` (Java `UNKNOWN` is `None`).
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on
