@@ -371,6 +371,93 @@ impl RecordBatch {
         }
         self
     }
+
+    /// Java `DefaultRecordBatch.magic` (this crate speaks magic-v2 only).
+    #[must_use]
+    pub fn magic(&self) -> i8 {
+        MAGIC_V2
+    }
+
+    /// Java `DefaultRecordBatch.baseOffset`.
+    #[must_use]
+    pub fn base_offset(&self) -> i64 {
+        self.base_offset
+    }
+
+    /// Java `DefaultRecordBatch.lastOffset` (`baseOffset + count - 1`).
+    #[must_use]
+    pub fn last_offset(&self) -> i64 {
+        self.base_offset.saturating_add(self.record_count_i64() - 1)
+    }
+
+    /// Java `DefaultRecordBatch.nextOffset` (`lastOffset + 1`).
+    #[must_use]
+    pub fn next_offset(&self) -> i64 {
+        self.base_offset.saturating_add(self.record_count_i64())
+    }
+
+    /// Java `DefaultRecordBatch.count`.
+    #[must_use]
+    pub fn count(&self) -> usize {
+        self.records.len()
+    }
+
+    /// Records in this batch.
+    #[must_use]
+    pub fn records(&self) -> &[Record] {
+        &self.records
+    }
+
+    /// Java `DefaultRecordBatch.partitionLeaderEpoch` (`-1` when unknown).
+    #[must_use]
+    pub fn partition_leader_epoch(&self) -> i32 {
+        self.partition_leader_epoch
+    }
+
+    /// Java `DefaultRecordBatch.baseTimestamp`.
+    #[must_use]
+    pub fn base_timestamp(&self) -> i64 {
+        self.base_timestamp
+    }
+
+    /// Java `DefaultRecordBatch.maxTimestamp`.
+    #[must_use]
+    pub fn max_timestamp(&self) -> i64 {
+        self.max_timestamp
+    }
+
+    /// Java `DefaultRecordBatch.producerId` (`-1` when none).
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `DefaultRecordBatch.hasProducerId`.
+    #[must_use]
+    pub fn has_producer_id(&self) -> bool {
+        self.producer_id >= 0
+    }
+
+    /// Java `DefaultRecordBatch.producerEpoch` (`-1` when none).
+    #[must_use]
+    pub fn producer_epoch(&self) -> i16 {
+        self.producer_epoch
+    }
+
+    /// Java `DefaultRecordBatch.baseSequence` (`-1` when none).
+    #[must_use]
+    pub fn base_sequence(&self) -> i32 {
+        self.base_sequence
+    }
+
+    /// Java `DefaultRecordBatch.compressionType`.
+    pub fn compression_type(&self) -> Result<Compression> {
+        Compression::from_attributes(self.attributes)
+    }
+
+    fn record_count_i64(&self) -> i64 {
+        i64::try_from(self.records.len()).unwrap_or(i64::MAX)
+    }
 }
 
 fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
@@ -874,6 +961,34 @@ mod tests {
             .with_control_batch(true);
         assert!(batch.is_transactional());
         assert!(batch.is_control_batch());
+        assert_eq!(batch.magic(), MAGIC_V2);
+        assert_eq!(batch.base_offset(), 0);
+        assert_eq!(batch.last_offset(), 0);
+        assert_eq!(batch.next_offset(), 1);
+        assert_eq!(batch.count(), 1);
+        assert_eq!(batch.records().len(), 1);
+        assert_eq!(batch.partition_leader_epoch(), -1);
+        assert_eq!(batch.base_timestamp(), 9);
+        assert_eq!(batch.max_timestamp(), 9);
+        assert_eq!(batch.producer_id(), -1);
+        assert!(!batch.has_producer_id());
+        assert_eq!(batch.producer_epoch(), -1);
+        assert_eq!(batch.base_sequence(), -1);
+        assert_eq!(batch.compression_type().unwrap(), Compression::None);
+        let empty_batch = RecordBatch::from_records(vec![]);
+        assert_eq!(empty_batch.count(), 0);
+        assert_eq!(empty_batch.last_offset(), -1);
+        assert_eq!(empty_batch.next_offset(), 0);
+        let mut with_pid = RecordBatch::from_records(vec![empty]);
+        with_pid.producer_id = 5;
+        with_pid.producer_epoch = 1;
+        with_pid.base_sequence = 0;
+        with_pid.partition_leader_epoch = 3;
+        assert!(with_pid.has_producer_id());
+        assert_eq!(with_pid.producer_id(), 5);
+        assert_eq!(with_pid.producer_epoch(), 1);
+        assert_eq!(with_pid.base_sequence(), 0);
+        assert_eq!(with_pid.partition_leader_epoch(), 3);
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
         let decoded = decode_record_batch(&mut &buf[..]).unwrap();

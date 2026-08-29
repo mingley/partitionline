@@ -135,6 +135,8 @@
 //! [`FetchedRecord::timestamp_type`] is Java `timestampType` ([`TimestampType`]).
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
+//! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
+//! `lastOffset` / `nextOffset`.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
