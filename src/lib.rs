@@ -157,6 +157,10 @@
 //! `AlterPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
+//! [`Admin::list_partition_reassignments_all`] is Java
+//! `listPartitionReassignments()`.
+//! [`Admin::list_partition_reassignments_for`] is Java
+//! `listPartitionReassignments(Set)`.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java

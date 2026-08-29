@@ -90,6 +90,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::create_partitions_with_quota_retry` is Java `CreatePartitionsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 `Admin::alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs`.
 `Admin::list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs`.
+`Admin::list_partition_reassignments_all` is Java `listPartitionReassignments()`. `Admin::list_partition_reassignments_for` is Java `listPartitionReassignments(Set)`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).
 `Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
 `Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java `ListOffsetsOptions.timeoutMs`.

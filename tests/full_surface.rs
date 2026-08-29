@@ -6419,6 +6419,39 @@ async fn list_partition_reassignments_follows_controller() {
         Some(1),
         "ListPartitionReassignments must follow Metadata after NOT_CONTROLLER"
     );
+    let for_parts = admin
+        .list_partition_reassignments_for(&[TopicPartition::new("lr2", 0)])
+        .await
+        .unwrap();
+    assert_eq!(for_parts.len(), 1);
+    assert_eq!(
+        mock.last_list_reassignments_topics(),
+        Some(Some(vec![("lr2".into(), vec![0])])),
+        "listPartitionReassignments(Set) sends those Topics"
+    );
+    assert_eq!(
+        mock.last_list_reassignments_timeout(),
+        Some(30_000),
+        "listPartitionReassignments(Set) uses request_timeout for TimeoutMs"
+    );
+    let all = admin.list_partition_reassignments_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(
+        mock.last_list_reassignments_topics(),
+        Some(None),
+        "listPartitionReassignments() sends Topics null"
+    );
+    assert_eq!(
+        mock.last_list_reassignments_timeout(),
+        Some(30_000),
+        "listPartitionReassignments() uses request_timeout for TimeoutMs"
+    );
+    let timed_all = admin
+        .list_partition_reassignments_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 1);
+    assert_eq!(mock.last_list_reassignments_timeout(), Some(5_000));
 }
 
 #[tokio::test]
@@ -6471,6 +6504,17 @@ async fn admin_alter_list_partition_reassignments_timeout() {
         .unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(mock.last_list_reassignments_timeout(), Some(2_500));
+    let all = admin
+        .list_partition_reassignments_all_timeout(Duration::from_millis(3_500))
+        .await
+        .unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(mock.last_list_reassignments_timeout(), Some(3_500));
+    assert_eq!(
+        mock.last_list_reassignments_topics(),
+        Some(None),
+        "listPartitionReassignments() sends Topics null"
+    );
     admin.close().await.unwrap();
 }
 

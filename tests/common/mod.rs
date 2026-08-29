@@ -329,6 +329,7 @@ struct State {
     reassignments: HashMap<(String, i32), Vec<i32>>,
     last_list_reassignments_node: Option<i32>,
     last_list_reassignments_timeout: Option<i32>,
+    last_list_reassignments_topics: Option<Option<Vec<(String, Vec<i32>)>>>,
     list_reassignments_not_controller: u32,
     last_update_features_node: Option<i32>,
     last_update_features_version: Option<i16>,
@@ -688,6 +689,7 @@ fn new_state(
         reassignments: HashMap::new(),
         last_list_reassignments_node: None,
         last_list_reassignments_timeout: None,
+        last_list_reassignments_topics: None,
         list_reassignments_not_controller: 0,
         last_update_features_node: None,
         last_update_features_version: None,
@@ -2074,6 +2076,10 @@ impl Mock {
 
     pub fn last_list_reassignments_timeout(&self) -> Option<i32> {
         self.state.lock().last_list_reassignments_timeout
+    }
+
+    pub fn last_list_reassignments_topics(&self) -> Option<Option<Vec<(String, Vec<i32>)>>> {
+        self.state.lock().last_list_reassignments_topics.clone()
     }
 
     pub fn list_reassignments_not_controller(&self) -> u32 {
@@ -4092,6 +4098,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_list_partition_reassignments_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.last_list_reassignments_timeout = Some(timeout_ms);
+                st.last_list_reassignments_topics = Some(topics.as_ref().map(|ts| {
+                    ts.iter()
+                        .map(|t| (t.name.clone(), t.partition_indexes.clone()))
+                        .collect()
+                }));
                 if st.controller_node != node_id {
                     st.list_reassignments_not_controller =
                         st.list_reassignments_not_controller.saturating_add(1);

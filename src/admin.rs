@@ -3107,6 +3107,43 @@ impl Admin {
             .await
     }
 
+    /// List every ongoing replica move (Java
+    /// `Admin.listPartitionReassignments()`).
+    ///
+    /// Same wire as [`Self::list_partition_reassignments`] with `topics`
+    /// null. TimeoutMs is [`AdminConfig::request_timeout`].
+    pub async fn list_partition_reassignments_all(&mut self) -> Result<Vec<OngoingReassignment>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_partition_reassignments_all_timeout(timeout).await
+    }
+
+    /// [`Self::list_partition_reassignments_all`] with a one-shot timeout
+    /// (Java `ListPartitionReassignmentsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and ListPartitionReassignments
+    /// TimeoutMs.
+    pub async fn list_partition_reassignments_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<OngoingReassignment>> {
+        self.list_partition_reassignments_timeout(None, timeout)
+            .await
+    }
+
+    /// List ongoing replica moves for `partitions` (Java
+    /// `Admin.listPartitionReassignments(Set)`).
+    ///
+    /// TimeoutMs is [`AdminConfig::request_timeout`]. For a one-shot
+    /// timeout, use [`Self::list_partition_reassignments_timeout`].
+    pub async fn list_partition_reassignments_for(
+        &mut self,
+        partitions: &[crate::TopicPartition],
+    ) -> Result<Vec<OngoingReassignment>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_partition_reassignments_timeout(Some(partitions), timeout)
+            .await
+    }
+
     async fn list_partition_reassignments_with(
         &mut self,
         partitions: Option<&[crate::TopicPartition]>,
