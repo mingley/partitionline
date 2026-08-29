@@ -7416,6 +7416,14 @@ async fn describe_user_scram_credentials_follows_controller() {
     assert_eq!(first[0].credential_infos[0].mechanism, SCRAM_SHA_256);
     assert_eq!(first[0].credential_infos[0].iterations, 4096);
     assert_eq!(
+        first[0].credential_infos[0].to_string(),
+        "ScramCredentialInfo{mechanism=SCRAM_SHA_256, iterations=4096}"
+    );
+    assert_eq!(
+        first[0].to_string(),
+        "UserScramCredentialsDescription{name='alice', credentialInfos=[ScramCredentialInfo{mechanism=SCRAM_SHA_256, iterations=4096}]}"
+    );
+    assert_eq!(
         mock.last_describe_user_scram_node(),
         Some(2),
         "DescribeUserScramCredentials must land on the controller, not bootstrap"

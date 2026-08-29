@@ -154,6 +154,10 @@
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
 //! match Java `toString`. [`FeatureUpdate`] / [`UpgradeType`] /
 //! [`RecordsToDelete`] `Display` match Java `toString`.
+//! [`ScramMechanism`] / [`ScramCredentialInfo`] /
+//! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
+//! (`UserScramCredentialsDescription.toString` on
+//! [`DescribeUserScramCredentialsResult`]).
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

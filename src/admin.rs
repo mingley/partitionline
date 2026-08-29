@@ -12536,9 +12536,26 @@ mod tests {
             ScramMechanism::Unknown
         );
         assert_eq!(ScramMechanism::Sha256.mechanism_name(), "SCRAM-SHA-256");
+        assert_eq!(ScramMechanism::Unknown.to_string(), "UNKNOWN");
+        assert_eq!(ScramMechanism::Sha256.to_string(), "SCRAM_SHA_256");
+        assert_eq!(ScramMechanism::Sha512.to_string(), "SCRAM_SHA_512");
         let info = ScramCredentialInfo::new(ScramMechanism::Sha512, 8192);
         assert_eq!(info.mechanism(), ScramMechanism::Sha512);
         assert_eq!(info.iterations(), 8192);
+        assert_eq!(
+            info.to_string(),
+            "ScramCredentialInfo{mechanism=SCRAM_SHA_512, iterations=8192}"
+        );
+        let described = DescribeUserScramCredentialsResult {
+            user: "alice".into(),
+            error_code: 0,
+            error_message: None,
+            credential_infos: vec![ScramCredentialInfo::new(ScramMechanism::Sha256, 4096)],
+        };
+        assert_eq!(
+            described.to_string(),
+            "UserScramCredentialsDescription{name='alice', credentialInfos=[ScramCredentialInfo{mechanism=SCRAM_SHA_256, iterations=4096}]}"
+        );
     }
 
     #[test]

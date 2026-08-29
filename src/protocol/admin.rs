@@ -18,6 +18,9 @@ pub const SCRAM_SHA_256: i8 = 1;
 pub const SCRAM_SHA_512: i8 = 2;
 
 /// Kafka SCRAM mechanism (`ScramMechanism` on the wire).
+///
+/// [`Display`] is Java `ScramMechanism.toString` (`SCRAM_SHA_256`).
+/// [`Self::mechanism_name`] is the SASL name (`SCRAM-SHA-256`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum ScramMechanism {
@@ -65,6 +68,22 @@ impl ScramMechanism {
             Self::Sha256 => "SCRAM-SHA-256",
             Self::Sha512 => "SCRAM-SHA-512",
         }
+    }
+
+    /// Java `ScramMechanism.toString` (`SCRAM_SHA_256`, not the SASL name).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Sha256 => "SCRAM_SHA_256",
+            Self::Sha512 => "SCRAM_SHA_512",
+        }
+    }
+}
+
+impl fmt::Display for ScramMechanism {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -3666,7 +3685,8 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
 /// One SCRAM mechanism + iteration count (DescribeUserScramCredentials v0).
 ///
 /// Fixture metadata only. This is not a credential store and does not
-/// carry salt or salted password.
+/// carry salt or salted password. [`Display`] is Java
+/// `ScramCredentialInfo.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScramCredentialInfo {
     /// SCRAM mechanism id (`SCRAM_SHA_256` / `SCRAM_SHA_512`).
@@ -3698,7 +3718,19 @@ impl ScramCredentialInfo {
     }
 }
 
+impl fmt::Display for ScramCredentialInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ScramCredentialInfo{mechanism=")?;
+        write!(f, "{}", self.mechanism())?;
+        f.write_str(", iterations=")?;
+        write!(f, "{}", self.iterations)?;
+        f.write_str("}")
+    }
+}
+
 /// Per-user result of DescribeUserScramCredentials v0.
+///
+/// [`Display`] is Java `UserScramCredentialsDescription.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResult {
     /// SCRAM user name.
@@ -3734,6 +3766,16 @@ impl DescribeUserScramCredentialsResult {
     #[must_use]
     pub fn credential_infos(&self) -> &[ScramCredentialInfo] {
         &self.credential_infos
+    }
+}
+
+impl fmt::Display for DescribeUserScramCredentialsResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("UserScramCredentialsDescription{name='")?;
+        f.write_str(&self.user)?;
+        f.write_str("', credentialInfos=")?;
+        write_java_bracket_list(f, &self.credential_infos)?;
+        f.write_str("}")
     }
 }
 
