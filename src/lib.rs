@@ -167,6 +167,9 @@
 //! `incrementalAlterConfigs(Map)` ([`ConfigResourceUpdate`]; Resources of N).
 //! [`AlterConfig::append`] / [`AlterConfig::subtract`] are Java
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
+//! [`AlterConfig::from_entry`] is Java `AlterConfigOp(ConfigEntry, OpType)`
+//! ([`AlterConfigOpType`]). [`AlterConfig::op_type`] is Java
+//! `AlterConfigOp.opType()`.
 //! [`Admin::alter_configs_for`] is Java `alterConfigs(Map)`
 //! ([`ConfigReplacement`]; Resources of N).
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
@@ -576,9 +579,9 @@ pub mod share;
 
 pub use admin::{
     AbortTransactionSpec, AclBinding, AclBindingFilter, AclOperation, AclPatternType,
-    AclPermission, AclResourceType, ActiveProducer, Admin, AdminConfig, AlterConfig,
-    AlterConfigsResourceResult, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
-    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AclPermission, AclResourceType, ActiveProducer, Admin, AdminConfig, AlterConfig, AlterConfigOp,
+    AlterConfigOpType, AlterConfigsResourceResult, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
     AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
     AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,

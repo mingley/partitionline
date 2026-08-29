@@ -1165,6 +1165,40 @@ pub const ALTER_CONFIG_APPEND: i8 = 2;
 /// Incremental AlterConfigs op: subtract from a list (Java `AlterConfigOp.OpType.SUBTRACT`).
 pub const ALTER_CONFIG_SUBTRACT: i8 = 3;
 
+/// Java `AlterConfigOp.OpType` (IncrementalAlterConfigs ConfigOperation).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum AlterConfigOpType {
+    /// Java `SET` (wire `0`).
+    Set = ALTER_CONFIG_SET,
+    /// Java `DELETE` (wire `1`).
+    Delete = ALTER_CONFIG_DELETE,
+    /// Java `APPEND` (wire `2`).
+    Append = ALTER_CONFIG_APPEND,
+    /// Java `SUBTRACT` (wire `3`).
+    Subtract = ALTER_CONFIG_SUBTRACT,
+}
+
+impl AlterConfigOpType {
+    /// Java `AlterConfigOp.OpType.forId` (`None` when the id is unknown).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Option<Self> {
+        match id {
+            ALTER_CONFIG_SET => Some(Self::Set),
+            ALTER_CONFIG_DELETE => Some(Self::Delete),
+            ALTER_CONFIG_APPEND => Some(Self::Append),
+            ALTER_CONFIG_SUBTRACT => Some(Self::Subtract),
+            _ => None,
+        }
+    }
+}
+
+impl From<AlterConfigOpType> for i8 {
+    fn from(op: AlterConfigOpType) -> Self {
+        op as i8
+    }
+}
+
 /// `true` when CreatePartitions `version` is flexible.
 ///
 /// v0–v1 are classic (v1 is quota-throttle timing only). v2 is the
@@ -1397,7 +1431,32 @@ impl AlterConfig {
             value: Some(value.into()),
         }
     }
+
+    /// Java `AlterConfigOp(ConfigEntry, OpType)`.
+    #[must_use]
+    pub fn from_entry(entry: &ConfigEntry, op: AlterConfigOpType) -> Self {
+        Self {
+            name: entry.name.clone(),
+            op: i8::from(op),
+            value: entry.value.clone(),
+        }
+    }
+
+    /// Java `AlterConfigOp.opType()`.
+    #[must_use]
+    pub fn op_type(&self) -> Option<AlterConfigOpType> {
+        AlterConfigOpType::from_id(self.op)
+    }
+
+    /// Java `AlterConfigOp.configEntry()` (name and value; source unknown).
+    #[must_use]
+    pub fn config_entry(&self) -> ConfigEntry {
+        ConfigEntry::new(self.name.clone(), self.value.clone())
+    }
 }
+
+/// Java `AlterConfigOp`. Same wire as [`AlterConfig`].
+pub type AlterConfigOp = AlterConfig;
 
 /// One IncrementalAlterConfigs resource (Resources array element).
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -27,7 +27,7 @@ use partitionline::protocol::api_keys::{
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclBindingFilter, AclResourceType, Admin, AdminConfig,
-    AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
+    AlterConfig, AlterConfigOpType, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent,
@@ -6372,6 +6372,38 @@ async fn admin_incremental_alter_configs_for() {
             .find(|e| e.name == "retention.ms")
             .and_then(|e| e.value.as_deref()),
         Some("2000")
+    );
+
+    let from_entry = AlterConfig::from_entry(
+        &ConfigEntry::new("retention.ms", Some("5000".into())),
+        AlterConfigOpType::Set,
+    );
+    assert_eq!(from_entry.op_type(), Some(AlterConfigOpType::Set));
+    assert_eq!(from_entry.config_entry().value.as_deref(), Some("5000"));
+    let via_entry = admin
+        .incremental_alter_configs_for(
+            &[ConfigResourceUpdate::new(
+                ConfigResource::topic("iac-a"),
+                [from_entry],
+            )],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(via_entry[0].error_code, 0);
+    let described = admin
+        .describe_configs(
+            &[ConfigResource::topic("iac-a").keys(["retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        described[0]
+            .config()
+            .get("retention.ms")
+            .and_then(|e| e.value.as_deref()),
+        Some("5000")
     );
     admin.close().await.unwrap();
 }

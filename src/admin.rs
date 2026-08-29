@@ -109,23 +109,24 @@ pub use crate::protocol::acl::{
     DeletedAclsFilterResult,
 };
 pub use crate::protocol::admin::{
-    ActiveProducer, AlterConfig, AlterConfigsResourceResult, AlterReplicaLogDirsDirectory,
-    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
-    AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
-    AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
-    AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
-    AssignReplicasToDirsRequest, AssignReplicasToDirsResponse,
-    AssignReplicasToDirsResponseDirectory, AssignReplicasToDirsResponsePartition,
-    AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
-    ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
-    ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config,
-    ConfigEntry, ConfigSource, ConfigSynonym, ConfigType, ConsumerGroupAssignment,
-    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
-    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
-    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
-    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    ActiveProducer, AlterConfig, AlterConfigOp, AlterConfigOpType, AlterConfigsResourceResult,
+    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse,
+    AlterReplicaLogDirsResponsePartition, AlterReplicaLogDirsResponseTopic,
+    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition, AlterShareGroupOffsetsTopic,
+    AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition, AlteredShareGroupOffsetsTopic,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsResponse, AssignReplicasToDirsResponseDirectory,
+    AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
+    ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter, ClientQuotaFilterComponent,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config, ConfigEntry, ConfigSource,
+    ConfigSynonym, ConfigType, ConsumerGroupAssignment, ConsumerGroupMember,
+    ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
+    CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
+    DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic, DescribableLogDirTopic,
+    DescribeClusterBroker, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeProducersTopic, DescribeShareGroupOffsetsGroup,
     DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
@@ -10067,6 +10068,25 @@ mod tests {
         assert!(def.is_default());
         assert_eq!(def.source(), ConfigSource::Default);
         assert_eq!(def.config_type(), ConfigType::Int);
+    }
+
+    #[test]
+    fn alter_config_op_type_matches_java() {
+        assert_eq!(i8::from(AlterConfigOpType::Set), ALTER_CONFIG_SET);
+        assert_eq!(i8::from(AlterConfigOpType::Delete), ALTER_CONFIG_DELETE);
+        assert_eq!(i8::from(AlterConfigOpType::Append), ALTER_CONFIG_APPEND);
+        assert_eq!(i8::from(AlterConfigOpType::Subtract), ALTER_CONFIG_SUBTRACT);
+        assert_eq!(
+            AlterConfigOpType::from_id(ALTER_CONFIG_SET),
+            Some(AlterConfigOpType::Set)
+        );
+        assert_eq!(AlterConfigOpType::from_id(99), None);
+        let entry = ConfigEntry::new("retention.ms", Some("1000".into()));
+        let op = AlterConfig::from_entry(&entry, AlterConfigOpType::Set);
+        assert_eq!(op.op_type(), Some(AlterConfigOpType::Set));
+        assert_eq!(op.config_entry().name, "retention.ms");
+        assert_eq!(op.config_entry().value.as_deref(), Some("1000"));
+        assert_eq!(AlterConfigOp::set("k", "v").op, ALTER_CONFIG_SET);
     }
 
     #[test]
