@@ -4411,15 +4411,20 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
 
     let cluster = admin.describe_cluster().await.unwrap();
     assert_eq!(cluster.error_code, 0);
+    assert_eq!(cluster.error_code(), 0);
     assert!(!cluster.brokers.is_empty());
+    assert!(!cluster.brokers().is_empty());
     assert_eq!(cluster.cluster_id.as_deref(), Some("mock"));
+    assert_eq!(cluster.cluster_id(), Some("mock"));
     assert_eq!(
         mock.last_describe_cluster_version(),
         Some(2),
         "Admin must prefer DescribeCluster v2 when the broker advertises it"
     );
     assert_eq!(cluster.endpoint_type, 1);
+    assert_eq!(cluster.endpoint_type(), 1);
     assert!(!cluster.brokers[0].is_fenced);
+    assert!(!cluster.brokers()[0].is_fenced());
 }
 
 #[tokio::test]

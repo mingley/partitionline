@@ -2223,6 +2223,42 @@ impl DescribeClusterBroker {
             is_fenced,
         }
     }
+
+    /// Java `Node.id`.
+    #[must_use]
+    pub fn id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `Node.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `Node.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+
+    /// Java `Node.rack`.
+    #[must_use]
+    pub fn rack(&self) -> Option<&str> {
+        self.rack.as_deref()
+    }
+
+    /// Java `Node.hasRack`.
+    #[must_use]
+    pub fn has_rack(&self) -> bool {
+        self.rack.is_some()
+    }
+
+    /// Whether the broker is fenced (DescribeCluster v2).
+    #[must_use]
+    pub fn is_fenced(&self) -> bool {
+        self.is_fenced
+    }
 }
 
 impl From<super::api::Broker> for DescribeClusterBroker {
@@ -2256,6 +2292,44 @@ pub struct ClusterDescription {
     pub cluster_authorized_operations: i32,
     /// Brokers in the cluster.
     pub brokers: Vec<DescribeClusterBroker>,
+}
+
+impl ClusterDescription {
+    /// Top-level error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `DescribeClusterResult.clusterId`.
+    #[must_use]
+    pub fn cluster_id(&self) -> Option<&str> {
+        self.cluster_id.as_deref()
+    }
+
+    /// Java `DescribeClusterResult.controller` as broker id (`-1` if none).
+    #[must_use]
+    pub fn controller_id(&self) -> i32 {
+        self.controller_id
+    }
+
+    /// Java `DescribeClusterResult.nodes`.
+    #[must_use]
+    pub fn brokers(&self) -> &[DescribeClusterBroker] {
+        &self.brokers
+    }
+
+    /// 32-bit authorized-operations bitfield, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn cluster_authorized_operations(&self) -> i32 {
+        self.cluster_authorized_operations
+    }
+
+    /// Endpoint type described (KIP-919).
+    #[must_use]
+    pub fn endpoint_type(&self) -> i8 {
+        self.endpoint_type
+    }
 }
 
 /// Check that DescribeCluster `version` is spoken (0–2).

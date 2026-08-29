@@ -414,9 +414,37 @@ impl NewTopic {
     {
         self.configs = configs
             .into_iter()
-            .map(|(name, value)| (name.into(), Some(value.into())))
+            .map(|(k, v)| (k.into(), Some(v.into())))
             .collect();
         self
+    }
+
+    /// Java `NewTopic.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `NewTopic.numPartitions` (`-1` is broker default / assignments).
+    #[must_use]
+    pub fn num_partitions(&self) -> i32 {
+        self.num_partitions
+    }
+
+    /// Java `NewTopic.replicationFactor` (`-1` is broker default / assignments).
+    #[must_use]
+    pub fn replication_factor(&self) -> i16 {
+        self.replication_factor
+    }
+
+    /// Java `NewTopic.replicasAssignments` (`None` is Java `null`).
+    #[must_use]
+    pub fn replicas_assignments(&self) -> Option<&[(i32, Vec<i32>)]> {
+        if self.assignments.is_empty() {
+            None
+        } else {
+            Some(self.assignments.as_slice())
+        }
     }
 }
 
@@ -955,6 +983,24 @@ impl NewPartitions {
         );
         self
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `NewPartitions.totalCount`.
+    #[must_use]
+    pub fn total_count(&self) -> i32 {
+        self.total_count
+    }
+
+    /// Java `NewPartitions.assignments` (`None` is Java `null`).
+    #[must_use]
+    pub fn assignments(&self) -> Option<&[Vec<i32>]> {
+        self.assignments.as_deref()
+    }
 }
 
 /// Kafka config resource type (`ConfigResource.Type`).
@@ -976,6 +1022,21 @@ pub enum ConfigResourceType {
 impl From<ConfigResourceType> for i8 {
     fn from(ty: ConfigResourceType) -> Self {
         ty as i8
+    }
+}
+
+impl ConfigResourceType {
+    /// Wire id to [`Self`]. Unknown ids are [`None`].
+    #[must_use]
+    pub const fn from_id(id: i8) -> Option<Self> {
+        match id {
+            RESOURCE_TOPIC => Some(Self::Topic),
+            RESOURCE_BROKER => Some(Self::Broker),
+            RESOURCE_BROKER_LOGGER => Some(Self::BrokerLogger),
+            RESOURCE_CLIENT_METRICS => Some(Self::ClientMetrics),
+            RESOURCE_GROUP => Some(Self::Group),
+            _ => None,
+        }
     }
 }
 
@@ -1024,6 +1085,18 @@ impl ConfigResource {
     pub fn keys(mut self, keys: impl IntoIterator<Item = impl Into<String>>) -> Self {
         self.keys = Some(keys.into_iter().map(Into::into).collect());
         self
+    }
+
+    /// Java `ConfigResource.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ConfigResource.type`.
+    #[must_use]
+    pub fn resource_type(&self) -> Option<ConfigResourceType> {
+        ConfigResourceType::from_id(self.resource_type)
     }
 }
 
@@ -1202,6 +1275,18 @@ impl FeatureUpdate {
         self.allow_downgrade = upgrade_type != UPGRADE_TYPE_UPGRADE;
         self
     }
+
+    /// Feature name (Java map key for `updateFeatures`).
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `FeatureUpdate.maxVersionLevel`.
+    #[must_use]
+    pub fn max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
 }
 
 /// Per-feature result of UpdateFeatures.
@@ -1213,6 +1298,26 @@ pub struct FeatureUpdateResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl FeatureUpdateResult {
+    /// Feature name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Per-feature error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// Supported version range from [`Admin::describe_features`] (Java `SupportedVersionRange`).
@@ -1235,6 +1340,24 @@ impl SupportedVersionRange {
             min_version,
             max_version,
         }
+    }
+
+    /// Feature name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `SupportedVersionRange.min`.
+    #[must_use]
+    pub fn min_version(&self) -> i16 {
+        self.min_version
+    }
+
+    /// Java `SupportedVersionRange.max`.
+    #[must_use]
+    pub fn max_version(&self) -> i16 {
+        self.max_version
     }
 }
 
@@ -1259,6 +1382,24 @@ impl FinalizedVersionRange {
             max_version_level,
         }
     }
+
+    /// Feature name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `FinalizedVersionRange.minVersionLevel`.
+    #[must_use]
+    pub fn min_version_level(&self) -> i16 {
+        self.min_version_level
+    }
+
+    /// Java `FinalizedVersionRange.maxVersionLevel`.
+    #[must_use]
+    pub fn max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
 }
 
 /// Cluster feature metadata from [`Admin::describe_features`] (Java `FeatureMetadata`).
@@ -1275,6 +1416,32 @@ pub struct FeatureMetadata {
     pub finalized_features_epoch: Option<i64>,
     /// ApiVersions tagged field 3 (`zkMigrationReady`, KIP-866).
     pub zk_migration_ready: bool,
+}
+
+impl FeatureMetadata {
+    /// Java `FeatureMetadata.supportedFeatures`.
+    #[must_use]
+    pub fn supported_features(&self) -> &[SupportedVersionRange] {
+        &self.supported_features
+    }
+
+    /// Java `FeatureMetadata.finalizedFeatures`.
+    #[must_use]
+    pub fn finalized_features(&self) -> &[FinalizedVersionRange] {
+        &self.finalized_features
+    }
+
+    /// Java `FeatureMetadata.finalizedFeaturesEpoch`.
+    #[must_use]
+    pub fn finalized_features_epoch(&self) -> Option<i64> {
+        self.finalized_features_epoch
+    }
+
+    /// ApiVersions tagged field 3 (`zkMigrationReady`).
+    #[must_use]
+    pub fn zk_migration_ready(&self) -> bool {
+        self.zk_migration_ready
+    }
 }
 
 /// One SCRAM credential to remove for `Admin::alter_user_scram_credentials`.
@@ -1457,6 +1624,30 @@ impl AbortTransactionSpec {
             coordinator_epoch,
         }
     }
+
+    /// Java `AbortTransactionSpec.topicPartition`.
+    #[must_use]
+    pub fn topic_partition(&self) -> crate::TopicPartition {
+        crate::TopicPartition::new(self.topic.clone(), self.partition)
+    }
+
+    /// Java `AbortTransactionSpec.producerId`.
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `AbortTransactionSpec.producerEpoch`.
+    #[must_use]
+    pub fn producer_epoch(&self) -> i16 {
+        self.producer_epoch
+    }
+
+    /// Java `AbortTransactionSpec.coordinatorEpoch`.
+    #[must_use]
+    pub fn coordinator_epoch(&self) -> i32 {
+        self.coordinator_epoch
+    }
 }
 
 /// Java `KafkaAdminClient.DEFAULT_LEAVE_GROUP_REASON` (KIP-800).
@@ -1486,6 +1677,12 @@ impl MemberToRemove {
         Self {
             group_instance_id: group_instance_id.into(),
         }
+    }
+
+    /// Java `MemberToRemove.groupInstanceId`.
+    #[must_use]
+    pub fn group_instance_id(&self) -> &str {
+        self.group_instance_id.as_str()
     }
 }
 
@@ -1527,6 +1724,12 @@ impl ListConsumerGroupOffsetsSpec {
             partitions: Some(partitions.into_iter().map(Into::into).collect()),
         }
     }
+
+    /// Java `ListConsumerGroupOffsetsSpec.topicPartitions` (`None` is all).
+    #[must_use]
+    pub fn partitions(&self) -> Option<&[crate::TopicPartition]> {
+        self.partitions.as_deref()
+    }
 }
 
 /// Per-member result of [`Admin::remove_members_from_consumer_group`].
@@ -1538,6 +1741,26 @@ pub struct RemovedMember {
     pub group_instance_id: Option<String>,
     /// Per-member error code (`0` is success).
     pub error_code: i16,
+}
+
+impl RemovedMember {
+    /// Kafka member id from the LeaveGroup response.
+    #[must_use]
+    pub fn member_id(&self) -> &str {
+        self.member_id.as_str()
+    }
+
+    /// Kafka `group.instance.id`, when present.
+    #[must_use]
+    pub fn group_instance_id(&self) -> Option<&str> {
+        self.group_instance_id.as_deref()
+    }
+
+    /// Per-member error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
 }
 
 /// Kafka admin client: topics, configs, ACLs, groups, and cluster operations.
@@ -10358,6 +10581,91 @@ mod tests {
     }
 
     #[test]
+    fn admin_java_spec_getters_match_fields() {
+        let topic = NewTopic::new("orders", 3, 1);
+        assert_eq!(topic.name(), "orders");
+        assert_eq!(topic.num_partitions(), 3);
+        assert_eq!(topic.replication_factor(), 1);
+        assert!(topic.replicas_assignments().is_none());
+        let assigned = NewTopic::with_assignments("t", [(0, vec![1, 2])]);
+        assert_eq!(assigned.num_partitions(), -1);
+        assert_eq!(
+            assigned.replicas_assignments(),
+            Some(&[(0, vec![1, 2])][..])
+        );
+        let parts = NewPartitions::increase_to("t", 5);
+        assert_eq!(parts.name(), "t");
+        assert_eq!(parts.total_count(), 5);
+        assert!(parts.assignments().is_none());
+        let with = parts.with_assignments([vec![1, 2]]);
+        assert_eq!(with.assignments().map(<[Vec<i32>]>::len), Some(1));
+        let abort = AbortTransactionSpec::new(("events", 2), 9, 1, 3);
+        assert_eq!(
+            abort.topic_partition(),
+            crate::TopicPartition::new("events", 2)
+        );
+        assert_eq!(abort.producer_id(), 9);
+        assert_eq!(abort.producer_epoch(), 1);
+        assert_eq!(abort.coordinator_epoch(), 3);
+        let member = MemberToRemove::new("i-1");
+        assert_eq!(member.group_instance_id(), "i-1");
+        let removed = RemovedMember {
+            member_id: "m".into(),
+            group_instance_id: Some("i-1".into()),
+            error_code: 0,
+        };
+        assert_eq!(removed.member_id(), "m");
+        assert_eq!(removed.group_instance_id(), Some("i-1"));
+        assert_eq!(removed.error_code(), 0);
+        let spec = ListConsumerGroupOffsetsSpec::topic_partitions([("t", 0)]);
+        assert_eq!(spec.partitions().map(<[_]>::len), Some(1));
+        assert!(ListConsumerGroupOffsetsSpec::all().partitions().is_none());
+        let update = FeatureUpdate::new("metadata.version", 20);
+        assert_eq!(update.name(), "metadata.version");
+        assert_eq!(update.max_version_level(), 20);
+        let range = SupportedVersionRange::new("metadata.version", 1, 20);
+        assert_eq!(range.min_version(), 1);
+        assert_eq!(range.max_version(), 20);
+        let fin = FinalizedVersionRange::new("metadata.version", 1, 17);
+        assert_eq!(fin.min_version_level(), 1);
+        assert_eq!(fin.max_version_level(), 17);
+        let md = FeatureMetadata {
+            supported_features: vec![range],
+            finalized_features: vec![fin],
+            finalized_features_epoch: Some(8),
+            zk_migration_ready: true,
+        };
+        assert_eq!(md.supported_features().len(), 1);
+        assert_eq!(md.finalized_features().len(), 1);
+        assert_eq!(md.finalized_features_epoch(), Some(8));
+        assert!(md.zk_migration_ready());
+        let cluster = ClusterDescription {
+            error_code: 0,
+            error_message: None,
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            endpoint_type: 1,
+            cluster_authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            brokers: vec![DescribeClusterBroker::new(
+                1,
+                "127.0.0.1",
+                9092,
+                Some("r".into()),
+                false,
+            )],
+        };
+        assert_eq!(cluster.error_code(), 0);
+        assert_eq!(cluster.cluster_id(), Some("mock"));
+        assert_eq!(cluster.controller_id(), 1);
+        assert_eq!(cluster.brokers()[0].id(), 1);
+        assert_eq!(cluster.brokers()[0].host(), "127.0.0.1");
+        assert_eq!(cluster.brokers()[0].port(), 9092);
+        assert_eq!(cluster.brokers()[0].rack(), Some("r"));
+        assert!(cluster.brokers()[0].has_rack());
+        assert!(!cluster.brokers()[0].is_fenced());
+    }
+
+    #[test]
     fn config_get_and_replacement_match_java() {
         let entry = ConfigEntry::new("retention.ms", Some("1000".into()));
         let config = Config::new([entry.clone()]);
@@ -10411,6 +10719,16 @@ mod tests {
             ConfigResource::topic("t").resource_type,
             i8::from(ConfigResourceType::Topic)
         );
+        assert_eq!(ConfigResource::topic("t").name(), "t");
+        assert_eq!(
+            ConfigResource::topic("t").resource_type(),
+            Some(ConfigResourceType::Topic)
+        );
+        assert_eq!(
+            ConfigResourceType::from_id(CONFIG_RESOURCE_TOPIC),
+            Some(ConfigResourceType::Topic)
+        );
+        assert_eq!(ConfigResourceType::from_id(99), None);
     }
 
     #[test]
