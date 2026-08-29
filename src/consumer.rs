@@ -899,8 +899,8 @@ impl Consumer {
         .await?;
         let fetch_version = versions
             .get(&FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 14))
-            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-14".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 15))
+            .ok_or_else(|| Error::Unsupported("broker does not support Fetch v4-15".into()))?;
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 12))
