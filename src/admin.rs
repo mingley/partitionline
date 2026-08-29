@@ -5708,12 +5708,22 @@ impl Admin {
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedGroup>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_groups_deadline(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    async fn describe_groups_deadline(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<DescribedGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
         if ids.is_empty() {
             return Ok(Vec::new());
         }
         let version = self.describe_groups_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
@@ -5996,10 +6006,29 @@ impl Admin {
     /// [`DEFAULT_LEAVE_GROUP_REASON`]. Empty `members` returns an empty
     /// list. Coordinator load / move errors refresh and retry. To remove
     /// every member, use [`Self::remove_all_members_from_consumer_group`].
+    /// LeaveGroup has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::remove_members_from_consumer_group_timeout`].
     pub async fn remove_members_from_consumer_group(
         &mut self,
         group_id: &str,
         members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
+    ) -> Result<Vec<RemovedMember>> {
+        let timeout = self.cfg.request_timeout;
+        self.remove_members_from_consumer_group_timeout(group_id, members, timeout)
+            .await
+    }
+
+    /// [`Self::remove_members_from_consumer_group`] with a one-shot RPC
+    /// deadline (Java `RemoveMembersFromConsumerGroupOptions.timeoutMs`).
+    ///
+    /// LeaveGroup has no TimeoutMs; `timeout` is the RPC deadline and the
+    /// coordinator retry budget.
+    pub async fn remove_members_from_consumer_group_timeout(
+        &mut self,
+        group_id: &str,
+        members: impl IntoIterator<Item = impl Into<MemberToRemove>>,
+        timeout: Duration,
     ) -> Result<Vec<RemovedMember>> {
         let members: Vec<LeaveGroupMember> = members
             .into_iter()
@@ -6015,7 +6044,7 @@ impl Admin {
         if members.is_empty() {
             return Ok(Vec::new());
         }
-        self.leave_group_members(group_id, members).await
+        self.leave_group_members(group_id, members, timeout).await
     }
 
     /// Remove every member of a consumer group (Java
@@ -6026,11 +6055,32 @@ impl Admin {
     /// [`DEFAULT_LEAVE_GROUP_REASON`]. A group with no members is a
     /// no-op (no LeaveGroup). This is not
     /// [`Self::remove_members_from_consumer_group`] with an empty list.
+    /// DescribeGroups and LeaveGroup have no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::remove_all_members_from_consumer_group_timeout`].
     pub async fn remove_all_members_from_consumer_group(
         &mut self,
         group_id: &str,
     ) -> Result<Vec<RemovedMember>> {
-        let described = self.describe_groups(&[group_id], false).await?;
+        let timeout = self.cfg.request_timeout;
+        self.remove_all_members_from_consumer_group_timeout(group_id, timeout)
+            .await
+    }
+
+    /// [`Self::remove_all_members_from_consumer_group`] with a one-shot RPC
+    /// deadline (Java `RemoveMembersFromConsumerGroupOptions.timeoutMs`
+    /// plus `removeAll`).
+    ///
+    /// DescribeGroups and LeaveGroup have no TimeoutMs; `timeout` is the
+    /// RPC deadline and the coordinator retry budget for both hops.
+    pub async fn remove_all_members_from_consumer_group_timeout(
+        &mut self,
+        group_id: &str,
+        timeout: Duration,
+    ) -> Result<Vec<RemovedMember>> {
+        let described = self
+            .describe_groups_deadline(&[group_id], false, timeout)
+            .await?;
         let Some(g) = described.first() else {
             return Ok(Vec::new());
         };
@@ -6049,13 +6099,14 @@ impl Admin {
         if members.is_empty() {
             return Ok(Vec::new());
         }
-        self.leave_group_members(group_id, members).await
+        self.leave_group_members(group_id, members, timeout).await
     }
 
     async fn leave_group_members(
         &mut self,
         group_id: &str,
         members: Vec<LeaveGroupMember>,
+        timeout: Duration,
     ) -> Result<Vec<RemovedMember>> {
         let version = self
             .versions
@@ -6071,7 +6122,6 @@ impl Admin {
                 m
             })
             .collect();
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let group_id = group_id.to_string();

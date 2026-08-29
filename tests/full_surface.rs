@@ -7144,6 +7144,14 @@ async fn admin_remove_all_members_from_consumer_group() {
         members[0].reason.as_deref(),
         Some(DEFAULT_LEAVE_GROUP_REASON)
     );
+    let timed = admin
+        .remove_all_members_from_consumer_group_timeout("g-rm-all", Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(
+        timed.is_empty(),
+        "timeout overload after removeAll is a no-op when the group is empty"
+    );
     admin.close().await.unwrap();
     group.close().await.unwrap();
 }

@@ -258,6 +258,10 @@
 //! [`DEFAULT_LEAVE_GROUP_REASON`] on v5).
 //! [`Admin::remove_all_members_from_consumer_group`] is Java
 //! `RemoveMembersFromConsumerGroupOptions.removeAll`.
+//! [`Admin::remove_members_from_consumer_group_timeout`] /
+//! [`Admin::remove_all_members_from_consumer_group_timeout`] are Java
+//! `RemoveMembersFromConsumerGroupOptions.timeoutMs` (RPC deadline;
+//! LeaveGroup and DescribeGroups have no TimeoutMs).
 //! [`Admin::describe_features`] is Java `describeFeatures`
 //! ([`FeatureMetadata`]; ApiVersions v3–v4 tagged fields; KIP-511 retry).
 //! [`Admin::describe_features_timeout`] is Java

@@ -3296,6 +3296,13 @@ async fn admin_remove_members_from_consumer_group() {
         .await
         .unwrap();
     assert!(empty.is_empty());
+    let timed_member = MemberToRemove::new("worker-timed");
+    let timed = admin
+        .remove_members_from_consumer_group_timeout("g-rm", [timed_member], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_instance_id.as_deref(), Some("worker-timed"));
     let removed_all = admin
         .remove_all_members_from_consumer_group("g-rm")
         .await
@@ -3332,7 +3339,7 @@ async fn admin_remove_all_members_from_consumer_group() {
     .await
     .unwrap();
     let removed = admin
-        .remove_all_members_from_consumer_group("g-rm-all")
+        .remove_all_members_from_consumer_group_timeout("g-rm-all", Duration::from_secs(5))
         .await
         .unwrap();
     assert_eq!(removed.len(), 1);

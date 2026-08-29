@@ -75,6 +75,10 @@ DescribeProducers has no TimeoutMs).
 v5 sends `DEFAULT_LEAVE_GROUP_REASON`).
 `Admin::remove_all_members_from_consumer_group` is Java
 `RemoveMembersFromConsumerGroupOptions.removeAll` (DescribeGroups then LeaveGroup).
+`Admin::remove_members_from_consumer_group_timeout` /
+`Admin::remove_all_members_from_consumer_group_timeout` are Java
+`RemoveMembersFromConsumerGroupOptions.timeoutMs` (RPC deadline; LeaveGroup
+and DescribeGroups have no TimeoutMs; caps coordinator retries).
 `Admin::describe_features` is Java `describeFeatures` (ApiVersions v3–v4
 tagged fields; v4 SupportedFeatures.MinVersion 0, KAFKA-17011;
 [`FeatureMetadata`](../src/admin.rs)).
