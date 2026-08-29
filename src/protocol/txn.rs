@@ -374,7 +374,10 @@ fn txn_offset_commit_flexible(version: i16) -> Result<bool> {
 }
 
 /// Encode TxnOffsetCommit v0–v2 (classic) or v3–v4 (flexible).
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
+)]
 pub fn encode_txn_offset_commit_request(
     buf: &mut BytesMut,
     version: i16,
