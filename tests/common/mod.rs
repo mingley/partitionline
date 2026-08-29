@@ -229,6 +229,8 @@ struct State {
     brokers: Vec<Broker>,
     /// Broker ids omitted from Metadata (still reachable via NodeEndpoints).
     hidden_brokers: HashSet<i32>,
+    /// Override advertised ApiVersions max per api key.
+    api_max: HashMap<i16, i16>,
     partition_leaders: HashMap<(String, i32), i32>,
     partition_epochs: HashMap<(String, i32), i32>,
     last_epoch_req: Option<(String, i32, i32)>,
@@ -480,6 +482,7 @@ fn new_state(
         last_metadata_topics: None,
         brokers: Vec::new(),
         hidden_brokers: HashSet::new(),
+        api_max: HashMap::new(),
         partition_leaders: HashMap::new(),
         partition_epochs: HashMap::new(),
         last_epoch_req: None,
@@ -1208,6 +1211,10 @@ impl Mock {
 
     pub fn hide_broker_from_metadata(&self, node_id: i32) {
         let _ = self.state.lock().hidden_brokers.insert(node_id);
+    }
+
+    pub fn set_api_max(&self, api_key: i16, max: i16) {
+        let _ = self.state.lock().api_max.insert(api_key, max);
     }
 
     pub fn fetch_nodes(&self) -> Vec<i32> {
@@ -2154,7 +2161,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
         .collect()
 }
 
-fn versions() -> ApiVersionsResponse {
+fn versions(st: &State) -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
         (FETCH, 4, 17),
@@ -2232,7 +2239,12 @@ fn versions() -> ApiVersionsResponse {
             .map(|(api_key, min_version, max_version)| ApiVersion {
                 api_key,
                 min_version,
-                max_version,
+                max_version: st
+                    .api_max
+                    .get(&api_key)
+                    .copied()
+                    .unwrap_or(max_version)
+                    .max(min_version),
             })
             .collect(),
         throttle_time_ms: 0,
@@ -2389,7 +2401,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
         }
         match header.api_key {
             API_VERSIONS => {
-                encode_api_versions_response(&mut body, header.api_version, &versions()).unwrap()
+                let st = state.lock();
+                encode_api_versions_response(&mut body, header.api_version, &versions(&st)).unwrap()
             }
             METADATA => {
                 let mut st = state.lock();
@@ -3355,6 +3368,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.init_producer_id_not_coordinator.saturating_add(1);
                     encode_init_producer_id_response(&mut body, header.api_version, 16, -1, -1)
                         .unwrap();
+                } else if producer_id >= 0 && producer_epoch >= 0 {
+                    st.last_init_producer_id_node = Some(node_id);
+                    let next_epoch = producer_epoch.saturating_add(1);
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        0,
+                        producer_id,
+                        next_epoch,
+                    )
+                    .unwrap();
                 } else {
                     st.last_init_producer_id_node = Some(node_id);
                     let pid = st.next_pid;

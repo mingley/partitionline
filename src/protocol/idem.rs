@@ -26,8 +26,8 @@ fn init_producer_id_flexible(version: i16) -> Result<bool> {
 ///
 /// `transaction_timeout_ms` is Kafka `transaction.timeout.ms` (INT32 after
 /// the nullable transactional id). `producer_id` / `producer_epoch` are
-/// written at v3+ (KIP-360); first init sends `-1` / `-1`. Ignored on
-/// v0–v2.
+/// written at v3+ (KIP-360); first init sends `-1` / `-1`. Epoch-bump
+/// resume sends the last producer id and epoch. Ignored on v0–v2.
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,

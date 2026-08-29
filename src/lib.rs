@@ -23,7 +23,8 @@
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
 //! Part 2 transaction V2, skipping AddPartitionsToTxn). v13+ (topic IDs)
 //! is not spoken.
-//! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
+//! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
+//! first init `-1`/`-1`, epoch-bump resume sends the last id/epoch).
 //! Groups and transactions negotiate FindCoordinator v1–v3 (v3 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5

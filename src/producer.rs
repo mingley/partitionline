@@ -561,11 +561,16 @@ struct Shared {
     end_txn_version: i16,
     txn_offset_version: i16,
     find_coord_version: i16,
+    init_producer_id_version: i16,
     telemetry_version: Option<i16>,
     client_instance_id: parking_lot::Mutex<Option<[u8; 16]>>,
     partitioner: Arc<dyn Partitioner>,
     producer_id: AtomicI64,
     producer_epoch: AtomicI16,
+    /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
+    /// INVALID_PRODUCER_ID_MAPPING on a transactional produce, abort
+    /// re-inits with the last producer id and epoch (KIP-360).
+    epoch_bump_required: AtomicBool,
     seqs: parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
     cache_nudge: Notify,
     buffer_nudge: Notify,
@@ -624,6 +629,17 @@ impl Shared {
         }
         self.producer_id.store(producer_id, Ordering::SeqCst);
         self.producer_epoch.store(producer_epoch, Ordering::SeqCst);
+    }
+
+    /// Local epoch bump for the idempotent producer (KIP-360).
+    fn bump_idempotent_epoch(&self) {
+        let epoch = self.producer_epoch.load(Ordering::SeqCst);
+        if epoch < 0 || epoch == i16::MAX {
+            return;
+        }
+        self.producer_epoch
+            .store(epoch.saturating_add(1), Ordering::SeqCst);
+        self.seqs.lock().clear();
     }
 
     fn note_queued_n(&self, topic: &Arc<str>, n: u64, bytes: u64) {
@@ -781,6 +797,7 @@ impl Producer {
 
         let mut producer_id = -1i64;
         let mut producer_epoch = -1i16;
+        let mut init_producer_id_version = 0i16;
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
             Some(
                 discover_typed_coord(&cfg, tid, COORDINATOR_TRANSACTION, find_coord_version)
@@ -793,12 +810,14 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 5).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
+            init_producer_id_version = ipid_version;
             let body = init_producer_id_roundtrip(
                 &cfg,
                 &mut txn,
                 &mut meta,
                 ipid_version,
                 find_coord_version,
+                (-1, -1),
             )
             .await?;
             let (err, pid, epoch) =
@@ -830,11 +849,13 @@ impl Producer {
             end_txn_version,
             txn_offset_version,
             find_coord_version,
+            init_producer_id_version,
             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
             producer_id: AtomicI64::new(producer_id),
             producer_epoch: AtomicI16::new(producer_epoch),
+            epoch_bump_required: AtomicBool::new(false),
             seqs: parking_lot::Mutex::new(HashMap::new()),
             cache_nudge: Notify::new(),
             buffer_nudge: Notify::new(),
@@ -1257,9 +1278,27 @@ impl Producer {
     }
 
     /// Flush, then abort the current transaction (`EndTxn` abort).
+    ///
+    /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
+    /// INVALID_PRODUCER_ID_MAPPING, EndTxn below v5 follows with
+    /// InitProducerId using the last producer id and epoch (KIP-360).
+    /// EndTxn v5 already returns the bumped identity.
     pub async fn abort_transaction(&self) -> Result<()> {
         self.flush().await?;
-        self.end_txn(false).await
+        self.end_txn(false).await?;
+        self.maybe_bump_epoch_after_abort().await
+    }
+
+    async fn maybe_bump_epoch_after_abort(&self) -> Result<()> {
+        if !self
+            .inner
+            .shared
+            .epoch_bump_required
+            .swap(false, Ordering::SeqCst)
+        {
+            return Ok(());
+        }
+        bump_producer_epoch(&self.inner.shared).await
     }
 
     /// Send these offsets to the transaction coordinator (`AddOffsetsToTxn`
@@ -1651,12 +1690,14 @@ async fn init_producer_id_roundtrip(
     meta: &mut BrokerConn,
     version: i16,
     find_coord_version: i16,
+    identity: (i64, i16),
 ) -> Result<Bytes> {
     let txn_id = cfg.transactional_id.clone();
     let timeout = cfg.request_timeout;
     let txn_timeout_ms = i32::try_from(cfg.transaction_timeout.as_millis())
         .unwrap_or(i32::MAX)
         .max(0);
+    let (producer_id, producer_epoch) = identity;
     let first = {
         let conn = txn.as_mut().unwrap_or(meta);
         conn.roundtrip(
@@ -1668,8 +1709,8 @@ async fn init_producer_id_roundtrip(
                     version,
                     txn_id.as_deref(),
                     txn_timeout_ms,
-                    -1,
-                    -1,
+                    producer_id,
+                    producer_epoch,
                 )
             },
             timeout,
@@ -1703,13 +1744,67 @@ async fn init_producer_id_roundtrip(
                 version,
                 Some(tid.as_str()),
                 txn_timeout_ms,
-                -1,
-                -1,
+                producer_id,
+                producer_epoch,
             )
         },
         timeout,
     )
     .await
+}
+
+/// KIP-360 epoch bump: InitProducerId with the last producer id and epoch.
+/// Skipped when InitProducerId is below v3 or EndTxn v5 already bumped.
+async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
+    let version = shared.init_producer_id_version;
+    if version < 3 || shared.end_txn_version >= 5 {
+        return Ok(());
+    }
+    let pid = shared.producer_id.load(Ordering::SeqCst);
+    let epoch = shared.producer_epoch.load(Ordering::SeqCst);
+    if pid < 0 {
+        return Ok(());
+    }
+    let tid = shared
+        .cfg
+        .transactional_id
+        .clone()
+        .ok_or_else(|| Error::protocol("transactional.id is not set"))?;
+    let timeout = shared.cfg.request_timeout;
+    let txn_timeout_ms = i32::try_from(shared.cfg.transaction_timeout.as_millis())
+        .unwrap_or(i32::MAX)
+        .max(0);
+    let body = txn_roundtrip(
+        shared,
+        INIT_PRODUCER_ID,
+        version,
+        |buf| {
+            encode_init_producer_id_request(
+                buf,
+                version,
+                Some(tid.as_str()),
+                txn_timeout_ms,
+                pid,
+                epoch,
+            )
+        },
+        timeout,
+        |body| Ok(decode_init_producer_id_response(&mut { body }, version)?.0),
+    )
+    .await?;
+    let (err, new_pid, new_epoch) = decode_init_producer_id_response(&mut body.clone(), version)?;
+    if err != 0 {
+        return Err(Error::broker(err, "InitProducerId"));
+    }
+    if new_pid < 0 {
+        return Err(Error::protocol("InitProducerId returned producer_id=-1"));
+    }
+    if new_pid != pid || new_epoch != epoch {
+        shared.seqs.lock().clear();
+    }
+    shared.producer_id.store(new_pid, Ordering::SeqCst);
+    shared.producer_epoch.store(new_epoch, Ordering::SeqCst);
+    Ok(())
 }
 
 async fn txn_roundtrip(
@@ -2390,6 +2485,31 @@ impl Worker {
                             drop(self.shared.meta_tx.try_send(topic.clone()));
                         }
                         self.requeue_pendings(pendings);
+                    } else if r.error_code == error::UNKNOWN_PRODUCER_ID
+                        && self.shared.cfg.transactional_id.is_none()
+                        && self.shared.producer_id.load(Ordering::SeqCst) >= 0
+                    {
+                        self.shared.bump_idempotent_epoch();
+                        let mut pendings = pendings;
+                        for p in &mut pendings {
+                            p.skip_meta_refresh = true;
+                        }
+                        self.requeue_pendings(pendings);
+                    } else if self.shared.cfg.transactional_id.is_some()
+                        && matches!(
+                            r.error_code,
+                            error::UNKNOWN_PRODUCER_ID
+                                | error::INVALID_PRODUCER_ID_MAPPING
+                                | error::INVALID_PRODUCER_EPOCH
+                        )
+                    {
+                        self.shared
+                            .epoch_bump_required
+                            .store(true, Ordering::SeqCst);
+                        fail_pendings(&self.shared, pendings, clone_err(&e));
+                        if first_err.is_none() {
+                            first_err = Some(e);
+                        }
                     } else {
                         fail_pendings(&self.shared, pendings, clone_err(&e));
                         if first_err.is_none() {

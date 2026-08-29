@@ -10,6 +10,7 @@
 
 mod common;
 
+use partitionline::protocol::api_keys::END_TXN;
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
@@ -284,6 +285,75 @@ async fn idempotent_produce_gets_pid_and_offset() {
         Some(-1),
         "first InitProducerId must send ProducerEpoch -1"
     );
+}
+
+#[tokio::test]
+async fn idempotent_unknown_producer_id_bumps_epoch_and_retries() {
+    let mock = common::Mock::start().await;
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.enable_idempotence = true;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"unk-pid"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(1),
+        "idempotent UNKNOWN_PRODUCER_ID must bump epoch locally and retry"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn transactional_abort_reinit_sends_last_pid_epoch() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(END_TXN, 4);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-bump".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    assert_eq!(mock.last_init_producer_id_producer_id(), Some(-1));
+    assert_eq!(mock.last_init_producer_id_producer_epoch(), Some(-1));
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(err.broker_code(), Some(error::UNKNOWN_PRODUCER_ID));
+    producer.abort_transaction().await.unwrap();
+    assert_eq!(
+        mock.last_init_producer_id_producer_id(),
+        Some(1000),
+        "KIP-360 resume must send the last producer id, not -1"
+    );
+    assert_eq!(
+        mock.last_init_producer_id_producer_epoch(),
+        Some(0),
+        "KIP-360 resume must send the last producer epoch"
+    );
+    assert_eq!(
+        mock.last_end_txn_version(),
+        Some(4),
+        "test fixture advertises EndTxn max 4 so InitProducerId performs the bump"
+    );
+    producer.begin_transaction().await.unwrap();
+    let md = producer
+        .send(ProduceRecord::to("t").value(&b"after-bump"[..]))
+        .await
+        .unwrap();
+    assert_eq!(md.offset, 0);
+    assert_eq!(
+        mock.last_produce_producer_epoch(),
+        Some(1),
+        "InitProducerId epoch bump must apply on the next Produce"
+    );
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
 }
 
 #[tokio::test]
