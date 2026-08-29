@@ -1305,10 +1305,10 @@ mod tests {
             cur.is_empty(),
             "Fetch DivergingEpoch tagged field 0 must consume nested tagged fields"
         );
-        let mut v12 = BytesMut::new();
-        encode_fetch_response(&mut v12, 12, &topics).unwrap();
+        let mut v15 = BytesMut::new();
+        encode_fetch_response(&mut v15, 15, &topics).unwrap();
         assert_eq!(
-            &v12[..],
+            &v15[..],
             &buf[..],
             "Fetch v12+ DivergingEpoch layout is unchanged at v16"
         );
