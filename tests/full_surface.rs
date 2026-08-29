@@ -7689,6 +7689,48 @@ async fn describe_share_group_offsets_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn describe_share_group_offsets_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_desc = mock.describe_share_group_offsets_calls();
+    let described = admin
+        .describe_share_group_offsets(&[
+            DescribeShareGroupOffsetsGroup::new("g-a"),
+            DescribeShareGroupOffsetsGroup::new("g-b"),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].group_id, "g-a");
+    assert_eq!(described[1].group_id, "g-b");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "describeShareGroupOffsets must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_describe_share_group_offsets_n(),
+        2,
+        "describeShareGroupOffsets must send Groups of N on one coordinator"
+    );
+    assert_eq!(
+        mock.describe_share_group_offsets_calls()
+            .saturating_sub(before_desc),
+        1,
+        "groups that share a coordinator must be one DescribeShareGroupOffsets"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_share_group_offsets_follows_group_coordinator() {
     let mock = common::Mock::start_two_node().await;
     mock.move_coordinator();

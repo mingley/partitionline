@@ -368,6 +368,8 @@ struct State {
     share_group_describe_calls: u32,
     share_group_describe_not_coordinator: u32,
     last_describe_share_group_offsets_node: Option<i32>,
+    last_describe_share_group_offsets_n: usize,
+    describe_share_group_offsets_calls: u32,
     describe_share_group_offsets_not_coordinator: u32,
     last_alter_share_group_offsets_node: Option<i32>,
     alter_share_group_offsets_not_coordinator: u32,
@@ -686,6 +688,8 @@ fn new_state(
         share_group_describe_calls: 0,
         share_group_describe_not_coordinator: 0,
         last_describe_share_group_offsets_node: None,
+        last_describe_share_group_offsets_n: 0,
+        describe_share_group_offsets_calls: 0,
         describe_share_group_offsets_not_coordinator: 0,
         last_alter_share_group_offsets_node: None,
         alter_share_group_offsets_not_coordinator: 0,
@@ -1956,6 +1960,14 @@ impl Mock {
 
     pub fn last_describe_share_group_offsets_node(&self) -> Option<i32> {
         self.state.lock().last_describe_share_group_offsets_node
+    }
+
+    pub fn last_describe_share_group_offsets_n(&self) -> usize {
+        self.state.lock().last_describe_share_group_offsets_n
+    }
+
+    pub fn describe_share_group_offsets_calls(&self) -> u32 {
+        self.state.lock().describe_share_group_offsets_calls
     }
 
     pub fn describe_share_group_offsets_not_coordinator(&self) -> u32 {
@@ -5396,6 +5408,9 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             DESCRIBE_SHARE_GROUP_OFFSETS => {
                 let groups = decode_describe_share_group_offsets_request(&mut frame).unwrap();
                 let mut st = state.lock();
+                st.last_describe_share_group_offsets_n = groups.len();
+                st.describe_share_group_offsets_calls =
+                    st.describe_share_group_offsets_calls.saturating_add(1);
                 if st.coord_node != node_id {
                     st.describe_share_group_offsets_not_coordinator = st
                         .describe_share_group_offsets_not_coordinator

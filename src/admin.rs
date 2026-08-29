@@ -5083,75 +5083,73 @@ impl Admin {
     /// (bytes 8–9 on leftover-empty fixture group `"g"`), not
     /// top-level after throttle and not first-partition.
     /// Java `listShareGroupOffsets` is [`Self::list_share_group_offsets`].
+    /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
+    /// FindCoordinator per retry for uncached groups. DescribeShareGroupOffsets
+    /// is one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// v1–v3 get one FindCoordinator per uncached group. Empty input is
+    /// a no-op.
     pub async fn describe_share_group_offsets(
         &mut self,
         groups: &[DescribeShareGroupOffsetsGroup],
     ) -> Result<Vec<DescribedShareGroupOffsets>> {
-        let Some(coord_key) = groups.first().map(|g| g.group_id.clone()) else {
+        if groups.is_empty() {
             return Ok(Vec::new());
-        };
+        }
+        let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
         let version = self.describe_share_group_offsets_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribedShareGroupOffsets>> = vec![None; groups.len()];
+        let mut pending: Vec<usize> = (0..groups.len()).collect();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
-            if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
-                self.group_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing describe_share_group_offsets conn"))?;
-                conn.roundtrip(
-                    DESCRIBE_SHARE_GROUP_OFFSETS,
-                    version,
-                    |buf| encode_describe_share_group_offsets_request(buf, groups),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .describe_share_group_offsets_on_node(node, version, groups, &idxs, timeout)
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_describe_share_group_offsets_response(&mut body.clone())?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new group coordinator.
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| {
+                g.ok_or_else(|| Error::protocol(format!("DescribeShareGroupOffsets missing {id}")))
+            })
+            .collect()
     }
 
     /// List share-group offsets (Java `Admin.listShareGroupOffsets`).
     ///
     /// Same wire as [`Self::describe_share_group_offsets`]:
     /// DescribeShareGroupOffsets api 90 on the group coordinator.
-    /// Java's `ListShareGroupOffsetsHandler` sends that RPC.
+    /// Java's `ListShareGroupOffsetsHandler` sends that RPC. Empty
+    /// input is a no-op.
     pub async fn list_share_group_offsets(
         &mut self,
         groups: &[DescribeShareGroupOffsetsGroup],
@@ -6375,6 +6373,54 @@ impl Admin {
                 .get_mut(id)
                 .and_then(VecDeque::pop_front)
                 .ok_or_else(|| Error::protocol(format!("ShareGroupDescribe missing {id}")))?;
+            out.push((i, g));
+        }
+        Ok(out)
+    }
+
+    async fn describe_share_group_offsets_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        groups: &[DescribeShareGroupOffsetsGroup],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<Vec<(usize, DescribedShareGroupOffsets)>> {
+        let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
+            .iter()
+            .filter_map(|&i| groups.get(i).cloned())
+            .collect();
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing describe_share_group_offsets conn"))?;
+            conn.roundtrip(
+                DESCRIBE_SHARE_GROUP_OFFSETS,
+                version,
+                |buf| encode_describe_share_group_offsets_request(buf, &subset),
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_describe_share_group_offsets_response(&mut body.clone())?;
+        let mut by_id: HashMap<String, VecDeque<DescribedShareGroupOffsets>> = HashMap::new();
+        for g in results {
+            by_id.entry(g.group_id.clone()).or_default().push_back(g);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = groups
+                .get(i)
+                .map(|g| g.group_id.as_str())
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let g = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| {
+                    Error::protocol(format!("DescribeShareGroupOffsets missing {id}"))
+                })?;
             out.push((i, g));
         }
         Ok(out)

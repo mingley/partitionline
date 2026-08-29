@@ -85,7 +85,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_consumer_groups` is Java `deleteConsumerGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::describe_share_groups` is Java `describeShareGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::list_client_metrics_resources` is Java `listClientMetricsResources`.
-`Admin::list_share_group_offsets` is Java `listShareGroupOffsets`.
+`Admin::list_share_group_offsets` is Java `listShareGroupOffsets` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::delete_consumer_group_offsets` is Java `deleteConsumerGroupOffsets`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
