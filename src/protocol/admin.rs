@@ -11036,6 +11036,47 @@ fn encode_hmac_as_base64(hmac: &[u8]) -> String {
     base64::Engine::encode(&base64::engine::general_purpose::STANDARD, hmac)
 }
 
+/// Java `TokenInformation.toString`.
+fn write_java_token_information<T: fmt::Display>(
+    f: &mut fmt::Formatter<'_>,
+    owner: &str,
+    token_requester: &str,
+    renewers: &[T],
+    timestamps: (i64, i64, i64),
+    token_id: &str,
+) -> fmt::Result {
+    let (issue_timestamp, max_timestamp, expiry_timestamp) = timestamps;
+    f.write_str("TokenInformation{owner=")?;
+    f.write_str(owner)?;
+    f.write_str(", tokenRequester=")?;
+    f.write_str(token_requester)?;
+    f.write_str(", renewers=")?;
+    write_java_bracket_list(f, renewers)?;
+    f.write_str(", issueTimestamp=")?;
+    write!(f, "{issue_timestamp}")?;
+    f.write_str(", maxTimestamp=")?;
+    write!(f, "{max_timestamp}")?;
+    f.write_str(", expiryTimestamp=")?;
+    write!(f, "{expiry_timestamp}")?;
+    f.write_str(", tokenId='")?;
+    f.write_str(token_id)?;
+    f.write_str("'}")
+}
+
+/// Java `DelegationToken.toString` (`hmac=[*******]`).
+fn write_java_delegation_token<T: fmt::Display>(
+    f: &mut fmt::Formatter<'_>,
+    owner: &str,
+    token_requester: &str,
+    renewers: &[T],
+    timestamps: (i64, i64, i64),
+    token_id: &str,
+) -> fmt::Result {
+    f.write_str("DelegationToken{tokenInformation=")?;
+    write_java_token_information(f, owner, token_requester, renewers, timestamps, token_id)?;
+    f.write_str(", hmac=[*******]}")
+}
+
 /// One renewer principal in a CreateDelegationToken (api 38) request.
 ///
 /// Official JSON `CreatableRenewers` has PrincipalType and
@@ -12036,8 +12077,9 @@ impl fmt::Display for DescribedDelegationTokenRenewer {
 /// has no per-token ErrorCode. v3 adds TokenRequesterPrincipalType /
 /// TokenRequesterPrincipalName (decode fills empty on v1–v2).
 ///
-/// [`Debug`] redacts [`Self::hmac`] (Java `DelegationToken.toString`
-/// prints `hmac=[*******]`).
+/// [`Display`] is Java `DelegationToken.toString` (nested
+/// `TokenInformation.toString`; `hmac=[*******]`). [`Debug`] also
+/// redacts [`Self::hmac`].
 #[derive(Clone, PartialEq, Eq)]
 pub struct DescribedDelegationToken {
     /// Principal type (for example `User`).
@@ -12173,6 +12215,43 @@ impl DescribedDelegationToken {
     #[must_use]
     pub fn renewers(&self) -> &[DescribedDelegationTokenRenewer] {
         &self.renewers
+    }
+
+    /// Java `TokenInformation.renewersAsString`.
+    #[must_use]
+    pub fn renewers_as_string(&self) -> Vec<String> {
+        self.renewers.iter().map(ToString::to_string).collect()
+    }
+
+    /// Java `TokenInformation.ownerOrRenewer`.
+    #[must_use]
+    pub fn owner_or_renewer(&self, principal_type: &str, principal_name: &str) -> bool {
+        (self.principal_type == principal_type && self.principal_name == principal_name)
+            || (self.token_requester_principal_type == principal_type
+                && self.token_requester_principal_name == principal_name)
+            || self
+                .renewers
+                .iter()
+                .any(|r| r.principal_type == principal_type && r.principal_name == principal_name)
+    }
+}
+
+impl fmt::Display for DescribedDelegationToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let owner = self.owner_as_string();
+        let token_requester = self.token_requester_as_string();
+        write_java_delegation_token(
+            f,
+            owner.as_str(),
+            token_requester.as_str(),
+            &self.renewers,
+            (
+                self.issue_timestamp,
+                self.max_timestamp,
+                self.expiry_timestamp,
+            ),
+            self.token_id.as_str(),
+        )
     }
 }
 

@@ -517,6 +517,11 @@
 //! [`Admin::renew_delegation_token_hmac`] / [`Admin::expire_delegation_token_hmac`]
 //! are Java `renewDelegationToken(byte[])` / `expireDelegationToken(byte[])`.
 //! [`Admin::describe_delegation_tokens`] is Java `describeDelegationToken()`.
+//! [`DescribedDelegationToken`] `Display` is Java `DelegationToken.toString`
+//! (nested `TokenInformation.toString`; `hmac=[*******]`).
+//! [`DescribedDelegationToken::renewers_as_string`] /
+//! [`DescribedDelegationToken::owner_or_renewer`] are Java
+//! `TokenInformation.renewersAsString` / `ownerOrRenewer`.
 //! [`Admin::describe_topic_partitions_timeout`] is the crate-first
 //! DescribeTopicPartitions (api 75) RPC deadline; Java `describeTopics`
 //! is [`Admin::describe_topics_timeout`].

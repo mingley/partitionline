@@ -12550,6 +12550,50 @@ mod tests {
         assert_eq!(token.owner_as_string(), "User:alice");
         assert_eq!(token.hmac_as_base64_string(), "qg==");
         assert_eq!(token.renewers()[0].to_string(), "User:r");
+        assert_eq!(token.renewers_as_string(), vec!["User:r".to_string()]);
+        assert!(token.owner_or_renewer("User", "alice"));
+        assert!(token.owner_or_renewer("User", "bob"));
+        assert!(token.owner_or_renewer("User", "r"));
+        assert!(!token.owner_or_renewer("User", "other"));
+        assert_eq!(
+            token.to_string(),
+            "DelegationToken{tokenInformation=TokenInformation{owner=User:alice, tokenRequester=User:bob, renewers=[User:r], issueTimestamp=1, maxTimestamp=3, expiryTimestamp=2, tokenId='tid'}, hmac=[*******]}"
+        );
+        let empty_renewers = DescribedDelegationToken::new(
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xaa],
+            vec![],
+        );
+        assert_eq!(
+            empty_renewers.to_string(),
+            "DelegationToken{tokenInformation=TokenInformation{owner=User:alice, tokenRequester=User:bob, renewers=[], issueTimestamp=1, maxTimestamp=3, expiryTimestamp=2, tokenId='tid'}, hmac=[*******]}"
+        );
+        let two_renewers = DescribedDelegationToken::new(
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xaa],
+            vec![
+                DescribedDelegationTokenRenewer::new("User", "r"),
+                DescribedDelegationTokenRenewer::new("User", "s"),
+            ],
+        );
+        assert_eq!(
+            two_renewers.to_string(),
+            "DelegationToken{tokenInformation=TokenInformation{owner=User:alice, tokenRequester=User:bob, renewers=[User:r, User:s], issueTimestamp=1, maxTimestamp=3, expiryTimestamp=2, tokenId='tid'}, hmac=[*******]}"
+        );
         let token_debug = format!("{token:?}");
         assert!(token_debug.contains("[*******]"));
         assert!(!token_debug.contains("170"));
