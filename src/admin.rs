@@ -324,11 +324,11 @@ impl AdminConfig {
 pub struct NewTopic {
     /// Topic name.
     pub name: String,
-    /// Partition count, or `-1` when `assignments` is set (Java
-    /// `NewTopic(String, Map)` / broker default).
+    /// Partition count, or `-1` for broker `num.partitions` (KIP-464) or
+    /// when `assignments` is set (Java `NewTopic(String, Map)`).
     pub num_partitions: i32,
-    /// Replication factor, or `-1` when `assignments` is set (Java
-    /// `NewTopic(String, Map)` / broker default).
+    /// Replication factor, or `-1` for broker `default.replication.factor`
+    /// (KIP-464) or when `assignments` is set (Java `NewTopic(String, Map)`).
     pub replication_factor: i16,
     /// Manual replica assignments `(partition_index, broker_ids)`.
     ///
@@ -342,7 +342,8 @@ pub struct NewTopic {
 impl NewTopic {
     /// `name` with partition count and replication factor.
     ///
-    /// Assignments are empty; the broker places replicas.
+    /// Assignments are empty; the broker places replicas. `-1` on either
+    /// count is Java `Optional.empty()` (KIP-464 broker default).
     pub fn new(name: impl Into<String>, num_partitions: i32, replication_factor: i16) -> Self {
         Self {
             name: name.into(),
@@ -351,6 +352,16 @@ impl NewTopic {
             assignments: Vec::new(),
             configs: Vec::new(),
         }
+    }
+
+    /// Java `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464).
+    ///
+    /// Sends NumPartitions `-1` and ReplicationFactor `-1` with an empty
+    /// Assignments array so the broker uses `num.partitions` /
+    /// `default.replication.factor`.
+    #[must_use]
+    pub fn broker_defaults(name: impl Into<String>) -> Self {
+        Self::new(name, -1, -1)
     }
 
     /// Java `NewTopic(String, Map<Integer, List<Integer>>)`.

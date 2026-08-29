@@ -74,6 +74,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_records_for` is Java `deleteRecords(Map)` (one DeleteRecords RPC per leader).
 `Admin::delete_records_timeout` / `delete_records_for_timeout` are Java `DeleteRecordsOptions.timeoutMs`.
 `NewTopic::with_assignments` is Java `NewTopic(String, Map<Integer, List<Integer>>)`.
+`NewTopic::broker_defaults` is Java `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464).
 `Admin::create_topics_timeout` is Java `CreateTopicsOptions.timeoutMs`.
 `Admin::delete_topics_timeout` is Java `DeleteTopicsOptions.timeoutMs`.
 `Admin::delete_topics_by_id` is Java `deleteTopics(TopicCollection.ofTopicIds)` (DeleteTopics v6 null Name + TopicId).

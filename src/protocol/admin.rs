@@ -9473,6 +9473,45 @@ mod tests {
     }
 
     #[test]
+    fn create_topics_broker_defaults_roundtrip() {
+        // Compact 1 topic "t", NumPartitions -1, RF -1, empty assignments
+        // and configs, timeout 5000, validateOnly false.
+        const V5: &[u8] = &[
+            0x02, 0x02, 0x74, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x01, 0x00, 0x00, 0x00,
+            0x13, 0x88, 0x00, 0x00,
+        ];
+        let req = CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "t".into(),
+                num_partitions: -1,
+                replication_factor: -1,
+                assignments: Vec::new(),
+                configs: Vec::new(),
+            }],
+            timeout_ms: 5_000,
+            validate_only: false,
+        };
+        let mut buf = BytesMut::new();
+        encode_create_topics_request(&mut buf, 5, &req).unwrap();
+        assert_eq!(&buf[..], V5);
+        let mut cur = &buf[..];
+        assert_eq!(decode_create_topics_request(&mut cur, 5).unwrap(), req);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v5 broker-defaults request must be leftover-empty"
+        );
+        buf.clear();
+        encode_create_topics_request(&mut buf, 4, &req).unwrap();
+        let mut cur = &buf[..];
+        let decoded4 = decode_create_topics_request(&mut cur, 4).unwrap();
+        assert_eq!(decoded4, req);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v4 broker-defaults request must be leftover-empty"
+        );
+    }
+
+    #[test]
     fn create_topics_v7_response_includes_topic_id() {
         let mut id = [0u8; 16];
         id[15] = 7;

@@ -137,6 +137,8 @@
 //! [`NewTopic::with_assignments`] is Java
 //! `NewTopic(String, Map<Integer, List<Integer>>)` (NumPartitions /
 //! ReplicationFactor `-1`; empty Assignments is `NewTopic(String, int, short)`).
+//! [`NewTopic::broker_defaults`] is Java
+//! `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464; `-1` / `-1`).
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`

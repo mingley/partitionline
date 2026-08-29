@@ -5200,6 +5200,28 @@ async fn create_topics_follows_controller() {
         mock.last_create_topics_replica_assignments(),
         Some(vec![(0, vec![1, 2]), (1, vec![2, 1])])
     );
+    let defaulted = admin
+        .create_topics(&[NewTopic::broker_defaults("ctrl-def")], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(defaulted[0].error_code, 0);
+    assert_eq!(defaulted[0].num_partitions, 1);
+    assert_eq!(defaulted[0].replication_factor, 1);
+    assert_eq!(
+        mock.last_create_topics_num_partitions(),
+        Some(-1),
+        "broker_defaults sends NumPartitions -1"
+    );
+    assert_eq!(
+        mock.last_create_topics_replication_factor(),
+        Some(-1),
+        "broker_defaults sends ReplicationFactor -1"
+    );
+    assert_eq!(
+        mock.last_create_topics_replica_assignments(),
+        Some(Vec::new()),
+        "broker_defaults sends an empty Assignments array"
+    );
 }
 
 #[tokio::test]

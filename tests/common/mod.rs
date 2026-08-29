@@ -284,6 +284,8 @@ struct State {
     last_create_topics_version: Option<i16>,
     last_create_topics_timeout: Option<i32>,
     last_create_topics_replica_assignments: Option<Vec<(i32, Vec<i32>)>>,
+    last_create_topics_num_partitions: Option<i32>,
+    last_create_topics_replication_factor: Option<i16>,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
@@ -630,6 +632,8 @@ fn new_state(
         last_create_topics_version: None,
         last_create_topics_timeout: None,
         last_create_topics_replica_assignments: None,
+        last_create_topics_num_partitions: None,
+        last_create_topics_replication_factor: None,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         last_delete_topics_version: None,
@@ -1857,6 +1861,14 @@ impl Mock {
             .lock()
             .last_create_topics_replica_assignments
             .clone()
+    }
+
+    pub fn last_create_topics_num_partitions(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_num_partitions
+    }
+
+    pub fn last_create_topics_replication_factor(&self) -> Option<i16> {
+        self.state.lock().last_create_topics_replication_factor
     }
 
     pub fn create_topics_not_controller(&self) -> u32 {
@@ -3346,6 +3358,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .map(|a| (a.partition_index, a.broker_ids.clone()))
                             .collect(),
                     );
+                    st.last_create_topics_num_partitions = Some(t.num_partitions);
+                    st.last_create_topics_replication_factor = Some(t.replication_factor);
                 }
                 if st.controller_node != node_id {
                     st.create_topics_not_controller =
@@ -3368,15 +3382,22 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             ));
                             continue;
                         }
-                        let npart = if t.assignments.is_empty() {
-                            t.num_partitions
-                        } else {
+                        let npart = if !t.assignments.is_empty() {
                             t.assignments.len() as i32
+                        } else if t.num_partitions == -1 {
+                            1
+                        } else {
+                            t.num_partitions
+                        };
+                        let rf = if t.assignments.is_empty() && t.replication_factor == -1 {
+                            1
+                        } else {
+                            t.replication_factor
                         };
                         let mut error_code = 0i16;
                         if npart < 1 {
                             error_code = 37;
-                        } else if t.replication_factor < 1 && t.assignments.is_empty() {
+                        } else if t.assignments.is_empty() && rf < 1 {
                             error_code = 38;
                         }
                         let resp_configs: Vec<CreatedTopicConfig> = t
@@ -3415,11 +3436,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             error_message: None,
                             topic_id,
                             num_partitions: if error_code == 0 { npart } else { -1 },
-                            replication_factor: if error_code == 0 {
-                                t.replication_factor
-                            } else {
-                                -1
-                            },
+                            replication_factor: if error_code == 0 { rf } else { -1 },
                             configs: if error_code == 0 {
                                 resp_configs
                             } else {
