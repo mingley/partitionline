@@ -192,6 +192,11 @@ async fn idempotent_produce_gets_pid_and_offset() {
         "idempotent produce must set producer_id, got {pid}"
     );
     assert_ne!(pid, -1);
+    assert_eq!(
+        mock.last_init_producer_id_version(),
+        Some(2),
+        "Producer must prefer InitProducerId v2 when the broker advertises it"
+    );
 }
 
 #[tokio::test]

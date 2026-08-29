@@ -2496,6 +2496,11 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     assert_eq!(fenced[0].epoch, 0);
     assert_eq!(mock.last_init_producer_id_node(), Some(1));
     assert_eq!(mock.last_init_producer_id_timeout(), Some(30_000));
+    assert_eq!(
+        mock.last_init_producer_id_version(),
+        Some(2),
+        "Admin must prefer InitProducerId v2 when the broker advertises it"
+    );
     let empty = admin.fence_producers(Vec::<String>::new()).await.unwrap();
     assert!(empty.is_empty());
     admin.close().await.unwrap();

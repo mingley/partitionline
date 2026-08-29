@@ -140,7 +140,9 @@ use partitionline::protocol::group::{
     COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
-use partitionline::protocol::idem::encode_init_producer_id_response;
+use partitionline::protocol::idem::{
+    decode_init_producer_id_request, encode_init_producer_id_response,
+};
 use partitionline::protocol::oauth;
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, encode_list_offsets_topics_response, ListOffsetsPartition,
@@ -394,6 +396,7 @@ struct State {
     find_coordinator_key_types: Vec<i8>,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
+    last_init_producer_id_version: Option<i16>,
     init_producer_id_nodes: Vec<i32>,
     init_producer_id_not_coordinator: u32,
     stale_txn_finds: u32,
@@ -626,6 +629,7 @@ fn new_state(
         find_coordinator_key_types: Vec::new(),
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
+        last_init_producer_id_version: None,
         init_producer_id_nodes: Vec::new(),
         init_producer_id_not_coordinator: 0,
         stale_txn_finds: 0,
@@ -1796,6 +1800,10 @@ impl Mock {
 
     pub fn last_init_producer_id_timeout(&self) -> Option<i32> {
         self.state.lock().last_init_producer_id_timeout
+    }
+
+    pub fn last_init_producer_id_version(&self) -> Option<i16> {
+        self.state.lock().last_init_producer_id_version
     }
 
     pub fn init_producer_id_nodes(&self) -> Vec<i32> {
@@ -3188,14 +3196,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .unwrap();
             }
             INIT_PRODUCER_ID => {
-                let tid = buf::get_classic_nullable_string(&mut frame).unwrap();
-                let txn_timeout = buf::get_i32(&mut frame).unwrap();
-                if header.api_version >= 3 {
-                    let _ = buf::get_i64(&mut frame).unwrap();
-                    let _ = buf::get_i16(&mut frame).unwrap();
-                }
+                let (tid, txn_timeout) =
+                    decode_init_producer_id_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_init_producer_id_timeout = Some(txn_timeout);
+                st.last_init_producer_id_version = Some(header.api_version);
                 st.init_producer_id_nodes.push(node_id);
                 if tid.is_some() && st.txn_coord_node != node_id {
                     st.init_producer_id_not_coordinator =

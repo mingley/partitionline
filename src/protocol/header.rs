@@ -10,9 +10,9 @@ use super::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN, FETCH,
-    GET_TELEMETRY_SUBSCRIPTIONS, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS,
-    LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY,
-    RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
+    GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
+    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE,
+    PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
@@ -44,6 +44,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS if api_version >= 3 => 2,
         PRODUCE if api_version >= 9 => 2,
         FETCH if api_version >= 12 => 2,
+        // InitProducerId is classic through v1; flexible from v2
+        // (Apache JSON flexibleVersions: "2+"). This crate speaks 0–2.
+        INIT_PRODUCER_ID if api_version >= 2 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -130,6 +133,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         API_VERSIONS => 0,
         PRODUCE if api_version >= 9 => 1,
         FETCH if api_version >= 12 => 1,
+        INIT_PRODUCER_ID if api_version >= 2 => 1,
         METADATA if api_version >= 9 => 1,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -364,6 +368,19 @@ mod tests {
         assert_eq!(response_header_version(FETCH, 11), 0);
         assert_eq!(request_header_version(FETCH, 12), 2);
         assert_eq!(response_header_version(FETCH, 12), 1);
+    }
+
+    #[test]
+    fn init_producer_id_v2_is_flexible_v1_is_not() {
+        // Official JSON: validVersions 0-5, flexibleVersions 2+.
+        // HeaderVersion is 1 / 0 at v0–1 and 2 / 1 at v2+. This crate
+        // speaks 0–2. v3+ (KIP-360 ProducerId) is not spoken.
+        assert_eq!(request_header_version(INIT_PRODUCER_ID, 0), 1);
+        assert_eq!(response_header_version(INIT_PRODUCER_ID, 0), 0);
+        assert_eq!(request_header_version(INIT_PRODUCER_ID, 1), 1);
+        assert_eq!(response_header_version(INIT_PRODUCER_ID, 1), 0);
+        assert_eq!(request_header_version(INIT_PRODUCER_ID, 2), 2);
+        assert_eq!(response_header_version(INIT_PRODUCER_ID, 2), 1);
     }
 
     #[test]

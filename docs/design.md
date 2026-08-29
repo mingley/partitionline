@@ -149,6 +149,7 @@ topics.
 - Record batch magic 2 CRC is CRC32-C over bytes from attributes to the end.
 - Record lengths are zigzag varints. Compact protocol lengths are unsigned varint of `n+1` (`0` means null).
 - Without `InitProducerId`, producer id / epoch / sequence must be `-1`. Zero is a real id.
+- InitProducerId v0–v1 are classic; v2 is flexible (compact transactional id plus tagged fields; request header 2, response header 1). v3+ (KIP-360 ProducerId / ProducerEpoch on the request) is not spoken.
 - `acks=0` means the broker sends no Produce response. Do not read one.
 - This client uses Produce versions 3–9 (v3–v8 classic record bytes; v9 is compact arrays/strings/bytes plus tagged fields; request header 2, response header 1). Kafka 4.0 removed v0–v2. v10+ (KIP-951 CurrentLeader tagged fields) is not spoken.
 - Fetch v11 is classic (RackId is a non-nullable STRING). v12 is flexible (compact arrays/strings/bytes plus tagged fields; LastFetchedEpoch after FetchOffset; request header 2, response header 1). Kafka 4.0 removed v0–v3. v13+ (topic IDs, KIP-516) is not spoken. This crate sends LastFetchedEpoch `-1`.

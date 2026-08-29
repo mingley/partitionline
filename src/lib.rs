@@ -211,7 +211,7 @@
 //! Kafka `retry.backoff.ms` / `retry.backoff.max.ms` on admin RPCs
 //! (`NOT_CONTROLLER`, coordinator moves, retriable IO; default 100ms / 1s).
 //! [`ProducerConfig::transaction_timeout`] is Kafka `transaction.timeout.ms`
-//! on InitProducerId (default 60s, same as Java).
+//! on InitProducerId v0–v2 (default 60s, same as Java).
 //! [`ProducerConfig::metadata_max_age`] / [`ConsumerConfig::metadata_max_age`]
 //! are Kafka `metadata.max.age.ms` (default 5 minutes; zero refreshes every
 //! lookup).
