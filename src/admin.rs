@@ -2318,6 +2318,8 @@ impl FencedProducer {
 ///
 /// Sends WriteTxnMarkers (api 27) with `transactionResult=false` (ABORT)
 /// to the Metadata partition leader.
+///
+/// [`Display`] is Java `AbortTransactionSpec.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AbortTransactionSpec {
     /// Topic name.
@@ -2373,6 +2375,20 @@ impl AbortTransactionSpec {
     #[must_use]
     pub fn coordinator_epoch(&self) -> i32 {
         self.coordinator_epoch
+    }
+}
+
+impl fmt::Display for AbortTransactionSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("AbortTransactionSpec(topicPartition=")?;
+        write!(f, "{}-{}", self.topic, self.partition)?;
+        f.write_str(", producerId=")?;
+        write!(f, "{}", self.producer_id())?;
+        f.write_str(", producerEpoch=")?;
+        write!(f, "{}", self.producer_epoch())?;
+        f.write_str(", coordinatorEpoch=")?;
+        write!(f, "{}", self.coordinator_epoch())?;
+        f.write_str(")")
     }
 }
 
@@ -11854,6 +11870,10 @@ mod tests {
         assert_eq!(abort.producer_id(), 9);
         assert_eq!(abort.producer_epoch(), 1);
         assert_eq!(abort.coordinator_epoch(), 3);
+        assert_eq!(
+            abort.to_string(),
+            "AbortTransactionSpec(topicPartition=events-2, producerId=9, producerEpoch=1, coordinatorEpoch=3)"
+        );
         let member = MemberToRemove::new("i-1");
         assert_eq!(member.group_instance_id(), "i-1");
         let removed = RemovedMember {

@@ -162,7 +162,8 @@
 //! [`DescribeUserScramCredentialsResult`]). [`ActiveProducer`] `Display`
 //! is Java `ProducerState.toString`. [`OngoingReassignment`] `Display`
 //! is Java `PartitionReassignment.toString`. [`TransactionListing`]
-//! `Display` is Java `TransactionListing.toString`.
+//! `Display` is Java `TransactionListing.toString`. [`AbortTransactionSpec`]
+//! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
@@ -409,7 +410,8 @@
 //! OffsetCommit has no TimeoutMs).
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
-//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1).
+//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1). [`AbortTransactionSpec`]
+//! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
 //! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).

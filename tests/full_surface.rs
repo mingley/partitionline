@@ -5102,10 +5102,12 @@ async fn admin_describe_producers_for() {
 async fn abort_transaction_follows_partition_leader() {
     let mock = common::Mock::start_two_node().await;
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    admin
-        .abort_transaction(AbortTransactionSpec::new(("t", 0), 1000, 0, 1))
-        .await
-        .unwrap();
+    let spec = AbortTransactionSpec::new(("t", 0), 1000, 0, 1);
+    assert_eq!(
+        spec.to_string(),
+        "AbortTransactionSpec(topicPartition=t-0, producerId=1000, producerEpoch=0, coordinatorEpoch=1)"
+    );
+    admin.abort_transaction(spec).await.unwrap();
     let marker = mock.last_write_txn_markers().expect("WriteTxnMarkers sent");
     assert_eq!(marker.producer_id, 1000);
     assert!(!marker.transaction_result);
