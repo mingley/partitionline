@@ -318,6 +318,9 @@ impl fmt::Display for Record {
 pub const ATTR_TRANSACTIONAL: i16 = 0x10;
 /// RecordBatch attributes: control batch (commit/abort marker).
 pub const ATTR_CONTROL: i16 = 0x20;
+/// RecordBatch attributes: delete horizon. When set,
+/// [`RecordBatch::delete_horizon_ms`] is [`RecordBatch::base_timestamp`].
+pub const ATTR_DELETE_HORIZON: i16 = 0x40;
 /// RecordBatch attributes bit 3: [`TimestampType::LogAppendTime`] when set,
 /// [`TimestampType::CreateTime`] when clear (Java `TIMESTAMP_TYPE_MASK`).
 pub const ATTR_TIMESTAMP_TYPE: i16 = 0x08;
@@ -402,7 +405,8 @@ pub struct RecordBatch {
     /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
-    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
+    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`] /
+    /// [`ATTR_DELETE_HORIZON`].
     pub attributes: i16,
     /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
@@ -647,6 +651,40 @@ impl RecordBatch {
         self.attributes & 0x07 != 0
     }
 
+    /// Set [`ATTR_DELETE_HORIZON`]. When set, [`Self::delete_horizon_ms`] is
+    /// [`Self::base_timestamp`].
+    #[must_use]
+    pub fn with_delete_horizon(mut self, delete_horizon: bool) -> Self {
+        if delete_horizon {
+            self.attributes |= ATTR_DELETE_HORIZON;
+        } else {
+            self.attributes &= !ATTR_DELETE_HORIZON;
+        }
+        self
+    }
+
+    /// Java `RecordBatch.deleteHorizonMs` (`baseTimestamp` when
+    /// [`ATTR_DELETE_HORIZON`] is set).
+    #[must_use]
+    pub fn delete_horizon_ms(&self) -> Option<i64> {
+        if self.attributes & ATTR_DELETE_HORIZON != 0 {
+            Some(self.base_timestamp)
+        } else {
+            None
+        }
+    }
+
+    /// Java `RecordBatch.offsetOfMaxTimestamp` (earliest offset among records
+    /// with [`Self::max_timestamp`]; `None` when none match).
+    #[must_use]
+    pub fn offset_of_max_timestamp(&self) -> Option<i64> {
+        let max = self.max_timestamp;
+        self.records
+            .iter()
+            .find(|r| r.timestamp == max)
+            .map(|r| r.offset)
+    }
+
     fn last_offset_delta(&self) -> i32 {
         let count = i32::try_from(self.records.len()).unwrap_or(i32::MAX);
         if count <= 0 {
@@ -789,7 +827,8 @@ pub struct BatchHeader {
     /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
-    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
+    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`] /
+    /// [`ATTR_DELETE_HORIZON`].
     pub attributes: i16,
     /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
@@ -1202,6 +1241,14 @@ mod tests {
         );
         assert_eq!(batch.base_timestamp(), 9);
         assert_eq!(batch.max_timestamp(), 9);
+        assert_eq!(batch.offset_of_max_timestamp(), Some(0));
+        assert!(batch.delete_horizon_ms().is_none());
+        let horizon = batch.clone().with_delete_horizon(true);
+        assert_eq!(horizon.delete_horizon_ms(), Some(9));
+        assert!(horizon
+            .with_delete_horizon(false)
+            .delete_horizon_ms()
+            .is_none());
         assert_eq!(batch.producer_id(), RecordBatch::NO_PRODUCER_ID);
         assert!(!batch.has_producer_id());
         assert_eq!(batch.producer_epoch(), RecordBatch::NO_PRODUCER_EPOCH);
@@ -1212,6 +1259,20 @@ mod tests {
         assert_eq!(empty_batch.last_offset(), -1);
         assert_eq!(empty_batch.next_offset(), 0);
         assert_eq!(empty_batch.last_sequence(), RecordBatch::NO_SEQUENCE);
+        assert!(empty_batch.offset_of_max_timestamp().is_none());
+        let mut early = empty.clone();
+        early.timestamp = 5;
+        let mut late = empty.clone();
+        late.timestamp = 9;
+        let mixed = RecordBatch::from_records(vec![early, late]);
+        assert_eq!(mixed.max_timestamp(), 9);
+        assert_eq!(mixed.offset_of_max_timestamp(), Some(1));
+        let mut first = empty.clone();
+        first.timestamp = 9;
+        let mut second = empty.clone();
+        second.timestamp = 9;
+        let tie = RecordBatch::from_records(vec![first, second]);
+        assert_eq!(tie.offset_of_max_timestamp(), Some(0));
         assert_eq!(RecordBatch::NO_TIMESTAMP, -1);
         assert_eq!(RecordBatch::NO_PRODUCER_ID, -1);
         assert_eq!(RecordBatch::NO_PRODUCER_EPOCH, -1);

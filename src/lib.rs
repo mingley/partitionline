@@ -187,6 +187,9 @@
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
 //! [`RecordBatch::last_sequence`] are Java `lastOffset` / `nextOffset` /
 //! `lastSequence`. [`RecordBatch::is_compressed`] is Java `isCompressed`.
+//! [`RecordBatch::offset_of_max_timestamp`] /
+//! [`RecordBatch::delete_horizon_ms`] are Java `offsetOfMaxTimestamp` /
+//! `deleteHorizonMs`.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
