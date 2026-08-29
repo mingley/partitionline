@@ -263,7 +263,8 @@
 //! ([`Consumer::assigned_partitions`] is the same list; [`Consumer::positions`]
 //! pairs each partition with its next fetch offset).
 //! [`Consumer::fetch`] / [`ConsumerGroup::poll`] return [`ConsumerRecords`]
-//! (Java `count` / `partitions` / `records` / `nextOffsets`).
+//! (Java `empty` / `isEmpty` / `count` / `partitions` / `records` /
+//! `nextOffsets`).
 //! [`ShareGroup::poll`] returns [`ShareRecords`]. [`Consumer::fetch_timeout`] /
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java

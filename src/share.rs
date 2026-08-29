@@ -189,13 +189,26 @@ impl fmt::Display for ShareRecord {
 
 /// Records from one share poll (Java `ConsumerRecords` for KIP-932).
 ///
-/// Indexes and iterates like a slice of [`ShareRecord`].
+/// Indexes and iterates like a slice of [`ShareRecord`]. [`Self::empty`] /
+/// [`Self::is_empty`] match Java `ConsumerRecords.empty` / `isEmpty`.
 #[derive(Debug, Clone, Default)]
 pub struct ShareRecords {
     records: Vec<ShareRecord>,
 }
 
 impl ShareRecords {
+    /// Java `ConsumerRecords.empty`.
+    #[must_use]
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    /// Java `ConsumerRecords.isEmpty`.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.records.is_empty()
+    }
+
     /// Number of records (Java `count`). Same as slice `len` via [`Deref`].
     #[must_use]
     pub fn count(&self) -> usize {
@@ -216,7 +229,7 @@ impl ShareRecords {
         out
     }
 
-    /// Records for this partition.
+    /// Records for this partition (Java `records(TopicPartition)`).
     pub fn records(
         &self,
         partition: impl Into<crate::TopicPartition>,
@@ -225,6 +238,14 @@ impl ShareRecords {
         self.records
             .iter()
             .filter(move |r| r.topic == tp.topic && r.partition == tp.partition)
+    }
+
+    /// Records for this topic name (Java `records(String)`).
+    pub fn records_for_topic<'a>(
+        &'a self,
+        topic: &'a str,
+    ) -> impl Iterator<Item = &'a ShareRecord> {
+        self.records.iter().filter(move |r| r.topic == topic)
     }
 }
 
@@ -1375,6 +1396,10 @@ mod tests {
         let recs = ShareRecords::from(vec![rec(0, 1), rec(1, 2), rec(0, 3)]);
         assert_eq!(recs.count(), 3);
         assert_eq!(recs.len(), 3);
+        assert!(!recs.is_empty());
+        assert!(ShareRecords::empty().is_empty());
+        assert_eq!(recs.records_for_topic("t").count(), 3);
+        assert_eq!(recs.records_for_topic("missing").count(), 0);
         assert_eq!(
             recs.partitions(),
             vec![

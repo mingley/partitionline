@@ -604,8 +604,9 @@ fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
 
 /// Records from one fetch or poll (Java `ConsumerRecords`).
 ///
-/// Indexes and iterates like a slice of [`FetchedRecord`]. [`Self::partitions`]
-/// / [`Self::records`] / [`Self::next_offsets`] match Java `partitions` /
+/// Indexes and iterates like a slice of [`FetchedRecord`]. [`Self::empty`] /
+/// [`Self::is_empty`] / [`Self::partitions`] / [`Self::records`] /
+/// [`Self::next_offsets`] match Java `empty` / `isEmpty` / `partitions` /
 /// `records(TopicPartition)` / `nextOffsets`.
 #[derive(Debug, Clone, Default)]
 pub struct ConsumerRecords {
@@ -613,6 +614,18 @@ pub struct ConsumerRecords {
 }
 
 impl ConsumerRecords {
+    /// Java `ConsumerRecords.empty`.
+    #[must_use]
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    /// Java `ConsumerRecords.isEmpty`.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.records.is_empty()
+    }
+
     /// Number of records (Java `count`). Same as slice `len` via [`Deref`].
     #[must_use]
     pub fn count(&self) -> usize {
@@ -3065,6 +3078,9 @@ mod tests {
         ]);
         assert_eq!(recs.count(), 4);
         assert_eq!(recs.len(), 4);
+        assert!(!recs.is_empty());
+        assert!(ConsumerRecords::empty().is_empty());
+        assert_eq!(ConsumerRecords::empty().count(), 0);
         assert_eq!(
             recs.partitions(),
             vec![
