@@ -1187,8 +1187,8 @@ pub struct Admin {
     alter_version: i16,
     legacy_alter_version: i16,
     delete_records_version: i16,
-    describe_producers_version: i16,
-    describe_cluster_version: i16,
+    describe_producers_version: Option<i16>,
+    describe_cluster_version: Option<i16>,
     create_acls_version: i16,
     describe_acls_version: i16,
     delete_acls_version: i16,
@@ -1420,8 +1420,9 @@ impl Admin {
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
-    /// and UnregisterBroker are optional at connect. Missing APIs fail
-    /// on the method with [`Error::Unsupported`].
+    /// UnregisterBroker, DescribeProducers, and DescribeCluster are
+    /// optional at connect. Missing APIs fail on the method with
+    /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1496,16 +1497,10 @@ impl Admin {
             })?;
         let describe_producers_version = versions
             .get(&DESCRIBE_PRODUCERS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeProducers".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_cluster_version = versions
             .get(&DESCRIBE_CLUSTER)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeCluster v0-2".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let create_acls_version = versions
             .get(&CREATE_ACLS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
@@ -5299,7 +5294,9 @@ impl Admin {
     /// `"t"` partition `0`), not top-level after throttle.
     /// For several partitions in one RPC per leader (Java
     /// `describeProducers(Collection)`), use [`Self::describe_producers_for`].
-    /// DescribeProducers has no TimeoutMs; the RPC deadline is
+    /// Optional at [`Self::new`] (Kafka 2.8+ / KIP-664); a broker that
+    /// omits api 61 returns [`Error::Unsupported`]. DescribeProducers
+    /// has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::describe_producers_timeout`].
     pub async fn describe_producers(
@@ -5405,7 +5402,9 @@ impl Admin {
         if partitions.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.describe_producers_version;
+        let version = self.describe_producers_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeProducers".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribeProducersPartition>> = vec![None; partitions.len()];
@@ -5586,7 +5585,9 @@ impl Admin {
     /// (KIP-919). v2 omits fenced brokers (`IncludeFencedBrokers` false).
     /// Kafka 4.0 `validVersions` is `0-2`. v3+ is not spoken. See
     /// [`Self::describe_cluster_with`] for Java `DescribeClusterOptions`.
-    /// DescribeCluster has no TimeoutMs; the RPC deadline is
+    /// Optional at [`Self::new`] (Kafka 2.8+ / KIP-700); a broker that
+    /// omits api 60 returns [`Error::Unsupported`]. DescribeCluster has
+    /// no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::describe_cluster_timeout`].
     pub async fn describe_cluster(&mut self) -> Result<ClusterDescription> {
@@ -5644,7 +5645,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<ClusterDescription> {
         let endpoint_type = endpoint_type.into();
-        let version = self.describe_cluster_version;
+        let version = self.describe_cluster_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeCluster v0-2".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CLUSTER,

@@ -15,12 +15,12 @@ use partitionline::protocol::api_keys::{
     CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN,
     CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS,
     DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_TOPIC_PARTITIONS,
-    END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS,
-    JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA,
-    OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN,
-    SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
+    DESCRIBE_TOPIC_PARTITIONS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -4740,6 +4740,20 @@ async fn describe_cluster_with_sends_endpoint_type_and_fenced() {
         timed_with.endpoint_type,
         i8::from(EndpointType::Controllers)
     );
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_CLUSTER);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_cluster().await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeCluster is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -4810,6 +4824,20 @@ async fn describe_producers_follows_partition_leader() {
         .unwrap();
     assert_eq!(pinned_ok[0].partitions[0].error_code, 0);
     assert_eq!(mock.last_describe_producers_node(), Some(1));
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_PRODUCERS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_producers(("t", 0)).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeProducers is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 /// Java `describeProducers(Collection<TopicPartition>)` sends DescribeProducers Topics of N
