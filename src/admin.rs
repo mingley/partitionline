@@ -1200,7 +1200,7 @@ pub struct Admin {
     update_features_version: i16,
     alter_user_scram_version: i16,
     describe_user_scram_version: i16,
-    unregister_broker_version: i16,
+    unregister_broker_version: Option<i16>,
     describe_client_quotas_version: i16,
     alter_client_quotas_version: i16,
     allocate_producer_ids_version: Option<i16>,
@@ -1419,9 +1419,9 @@ impl Admin {
     ///
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
-    /// GetTelemetrySubscriptions, PushTelemetry, and AssignReplicasToDirs
-    /// are optional at connect. Missing APIs fail on the method with
-    /// [`Error::Unsupported`].
+    /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
+    /// and UnregisterBroker are optional at connect. Missing APIs fail
+    /// on the method with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1566,8 +1566,7 @@ impl Admin {
             })?;
         let unregister_broker_version = versions
             .get(&UNREGISTER_BROKER)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support UnregisterBroker".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_client_quotas_version = versions
             .get(&DESCRIBE_CLIENT_QUOTAS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
@@ -3650,7 +3649,9 @@ impl Admin {
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. Top-level `error_code`
     /// (bytes 4–5), after throttle. Fixture broker id only; this is not
-    /// a live KRaft unregistration. UnregisterBroker has no TimeoutMs;
+    /// a live KRaft unregistration. Optional at [`Self::new`] (Java
+    /// `@InterfaceStability.Unstable`); a broker that omits api 64
+    /// returns [`Error::Unsupported`]. UnregisterBroker has no TimeoutMs;
     /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
     /// one-shot deadline, use [`Self::unregister_broker_timeout`].
     pub async fn unregister_broker(&mut self, broker_id: i32) -> Result<()> {
@@ -3668,7 +3669,9 @@ impl Admin {
         broker_id: i32,
         timeout: Duration,
     ) -> Result<()> {
-        let version = self.unregister_broker_version;
+        let version = self
+            .unregister_broker_version
+            .ok_or_else(|| Error::Unsupported("broker does not support UnregisterBroker".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

@@ -20,7 +20,7 @@ use partitionline::protocol::api_keys::{
     JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA,
     OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN,
     SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UPDATE_FEATURES,
+    SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6907,6 +6907,20 @@ async fn unregister_broker_follows_controller() {
         mock.has_unregistered_broker(5),
         "timeout overload must record the fixture unregistration"
     );
+    admin.close().await.unwrap();
+    mock.hide_api(UNREGISTER_BROKER);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.unregister_broker(6).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "UnregisterBroker is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

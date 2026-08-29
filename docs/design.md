@@ -169,7 +169,7 @@ TimeoutMs; caps `NOT_CONTROLLER`).
 `Admin::allocate_producer_ids_timeout` is the crate-first RPC deadline
 (AllocateProducerIds has no TimeoutMs; caps `NOT_CONTROLLER`). Java `Admin`
 has no `allocateProducerIds`. `Admin::new` does not require AllocateProducerIds,
-ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
+UnregisterBroker, ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
 GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs; those methods
 return `Error::Unsupported` when the broker omits them.
 `Admin::assign_replicas_to_dirs_timeout` is Java
