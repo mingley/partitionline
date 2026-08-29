@@ -347,6 +347,7 @@ struct State {
     last_delete_groups_version: Option<i16>,
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
+    last_share_group_describe_version: Option<i16>,
     share_group_describe_not_coordinator: u32,
     last_describe_share_group_offsets_node: Option<i32>,
     describe_share_group_offsets_not_coordinator: u32,
@@ -639,6 +640,7 @@ fn new_state(
         last_delete_groups_version: None,
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
+        last_share_group_describe_version: None,
         share_group_describe_not_coordinator: 0,
         last_describe_share_group_offsets_node: None,
         describe_share_group_offsets_not_coordinator: 0,
@@ -1822,6 +1824,10 @@ impl Mock {
         self.state.lock().last_share_group_describe_node
     }
 
+    pub fn last_share_group_describe_version(&self) -> Option<i16> {
+        self.state.lock().last_share_group_describe_version
+    }
+
     pub fn share_group_describe_not_coordinator(&self) -> u32 {
         self.state.lock().share_group_describe_not_coordinator
     }
@@ -2449,7 +2455,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DESCRIBE_GROUPS, 0, 6),
         (LIST_GROUPS, 0, 5),
         (DELETE_GROUPS, 0, 2),
-        (SHARE_GROUP_DESCRIBE, 1, 1),
+        (SHARE_GROUP_DESCRIBE, 0, 1),
         (DESCRIBE_SHARE_GROUP_OFFSETS, 0, 0),
         (ALTER_SHARE_GROUP_OFFSETS, 0, 0),
         (DELETE_SHARE_GROUP_OFFSETS, 0, 0),
@@ -5089,8 +5095,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             SHARE_GROUP_DESCRIBE => {
-                let (ids, _include) = decode_share_group_describe_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (ids, _include) =
+                    decode_share_group_describe_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_share_group_describe_version = Some(version);
                 if st.coord_node != node_id {
                     st.share_group_describe_not_coordinator =
                         st.share_group_describe_not_coordinator.saturating_add(1);
@@ -5100,7 +5109,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .into_iter()
                         .map(|group_id| DescribedShareGroup::new(group_id, error::NOT_COORDINATOR))
                         .collect();
-                    encode_share_group_describe_response(&mut body, &results).unwrap();
+                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
                 } else {
                     st.last_share_group_describe_node = Some(node_id);
                     let results: Vec<DescribedShareGroup> = ids
@@ -5114,7 +5123,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             g
                         })
                         .collect();
-                    encode_share_group_describe_response(&mut body, &results).unwrap();
+                    encode_share_group_describe_response(&mut body, version, &results).unwrap();
                 }
             }
             DESCRIBE_SHARE_GROUP_OFFSETS => {

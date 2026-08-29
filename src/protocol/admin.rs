@@ -4876,7 +4876,7 @@ impl ShareGroupAssignment {
     }
 }
 
-/// One member in a ShareGroupDescribe v1 group.
+/// One member in a ShareGroupDescribe v0–v1 group.
 ///
 /// Official member fields are MemberId, RackId, MemberEpoch, ClientId,
 /// ClientHost, SubscribedTopicNames, Assignment. There is no InstanceId,
@@ -4919,7 +4919,7 @@ impl ShareGroupMember {
     }
 }
 
-/// One described group in ShareGroupDescribe (api 77) v1.
+/// One described group in ShareGroupDescribe (api 77) v0–v1.
 ///
 /// ErrorCode sits here, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4961,20 +4961,37 @@ impl DescribedShareGroup {
     }
 }
 
-/// ShareGroupDescribe v1 (flexible from v0; KIP-932).
+/// Whether `version` of ShareGroupDescribe is flexible.
+///
+/// Kafka 4.0 JSON (`apiKey: 77`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
+/// 4.1 JSON (`validVersions: "1"` — v0 removed) use the same request
+/// and response fields. This crate speaks 0–1.
+fn share_group_describe_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ShareGroupDescribe version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a ShareGroupDescribe request (`version` 0–1).
 ///
 /// Official Apache JSON (`apiKey: 77`, request `listeners: ["broker"]`,
-/// `validVersions: "1"`, `flexibleVersions: "0+"`) and kafka-protocol
-/// 0.18.0 (`ShareGroupDescribeRequest` / `ShareGroupDescribeResponse`,
-/// `VERSIONS` min=1 max=1). This crate targets v1, the version a client
-/// encodes (`VERSIONS.max`). Version 0 was early-access in Kafka 4.0 and
-/// was removed in 4.1; this crate does not speak it. Request encode
-/// used `features = ["client"]`; response encode used `broker`.
+/// Kafka 4.0 `validVersions: "0"` / Kafka 4.1 `"1"`,
+/// `flexibleVersions: "0+"`). kafka-protocol 0.18.0
+/// (`ShareGroupDescribeRequest` / `ShareGroupDescribeResponse`)
+/// `VERSIONS` min=1 max=1 names only the 4.1-stable version; Kafka 4.0
+/// still advertises v0. This crate speaks 0–1. Request and response
+/// fields are identical on v0 and v1. Request encode used
+/// `features = ["client"]`; response encode used `broker`.
 /// Official listed errors (`ShareGroupDescribeResponse.json` /
 /// `ShareGroupDescribeResponse.java`): `GROUP_AUTHORIZATION_FAILED`,
-/// `TOPIC_AUTHORIZATION_FAILED` (v1+), `NOT_COORDINATOR` (16),
-/// `COORDINATOR_NOT_AVAILABLE`, `COORDINATOR_LOAD_IN_PROGRESS`,
-/// `INVALID_GROUP_ID`, `GROUP_ID_NOT_FOUND`, `INVALID_REQUEST`.
+/// `TOPIC_AUTHORIZATION_FAILED` (commented as v1+ in 4.1 JSON; not a
+/// wire field), `NOT_COORDINATOR` (16), `COORDINATOR_NOT_AVAILABLE`,
+/// `COORDINATOR_LOAD_IN_PROGRESS`, `INVALID_GROUP_ID`,
+/// `GROUP_ID_NOT_FOUND`, `INVALID_REQUEST`.
 /// Request: compact `GroupIds`, `IncludeAuthorizedOperations` BOOLEAN,
 /// tagged. Response: `ThrottleTimeMs` INT32, compact `Groups` of
 /// `{ErrorCode INT16, compact nullable ErrorMessage, GroupId,
@@ -5000,101 +5017,128 @@ impl DescribedShareGroup {
 /// hop and not a partition-leader hop.
 pub fn encode_share_group_describe_request(
     buf: &mut BytesMut,
+    version: i16,
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    let flexible = share_group_describe_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_compact_string(buf, Some(id))?;
+        buf::put_string(buf, flexible, Some(id))?;
     }
     buf.put_u8(u8::from(include_authorized_operations));
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a ShareGroupDescribe request.
-pub fn decode_share_group_describe_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+/// Decode a ShareGroupDescribe request (`version` 0–1).
+pub fn decode_share_group_describe_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, bool)> {
+    let flexible = share_group_describe_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
     for _ in 0..n {
-        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+        group_ids.push(buf::get_string(buf, flexible)?.unwrap_or_default());
     }
     let include_authorized_operations = buf::get_bool(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((group_ids, include_authorized_operations))
 }
 
 fn encode_share_group_assignment(
     buf: &mut BytesMut,
     assignment: &ShareGroupAssignment,
+    flexible: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(assignment.topic_partitions.len()))?;
+    buf::put_array_len(buf, flexible, Some(assignment.topic_partitions.len()))?;
     for tp in &assignment.topic_partitions {
         buf.extend_from_slice(&tp.topic_id);
-        buf::put_compact_string(buf, Some(&tp.topic_name))?;
-        buf::put_array_len(buf, true, Some(tp.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&tp.topic_name))?;
+        buf::put_array_len(buf, flexible, Some(tp.partitions.len()))?;
         for p in &tp.partitions {
             buf.put_i32(*p);
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-fn decode_share_group_assignment<B: Buf>(buf: &mut B) -> Result<ShareGroupAssignment> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+fn decode_share_group_assignment<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+) -> Result<ShareGroupAssignment> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topic_partitions = Vec::with_capacity(n);
     for _ in 0..n {
         let topic_id = buf::get_uuid(buf)?;
-        let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let topic_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             partitions.push(buf::get_i32(buf)?);
         }
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topic_partitions.push(ShareGroupTopicPartitions {
             topic_id,
             topic_name,
             partitions,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ShareGroupAssignment { topic_partitions })
 }
 
 fn encode_share_group_member(
     buf: &mut BytesMut,
     member: &ShareGroupMember,
+    flexible: bool,
 ) -> crate::error::Result<()> {
-    buf::put_compact_string(buf, Some(&member.member_id))?;
-    buf::put_compact_string(buf, member.rack_id.as_deref())?;
+    buf::put_string(buf, flexible, Some(&member.member_id))?;
+    buf::put_string(buf, flexible, member.rack_id.as_deref())?;
     buf.put_i32(member.member_epoch);
-    buf::put_compact_string(buf, Some(&member.client_id))?;
-    buf::put_compact_string(buf, Some(&member.client_host))?;
-    buf::put_array_len(buf, true, Some(member.subscribed_topic_names.len()))?;
+    buf::put_string(buf, flexible, Some(&member.client_id))?;
+    buf::put_string(buf, flexible, Some(&member.client_host))?;
+    buf::put_array_len(buf, flexible, Some(member.subscribed_topic_names.len()))?;
     for name in &member.subscribed_topic_names {
-        buf::put_compact_string(buf, Some(name))?;
+        buf::put_string(buf, flexible, Some(name))?;
     }
-    encode_share_group_assignment(buf, &member.assignment)?;
-    buf::put_empty_tagged_fields(buf);
+    encode_share_group_assignment(buf, &member.assignment, flexible)?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-fn decode_share_group_member<B: Buf>(buf: &mut B) -> Result<ShareGroupMember> {
-    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let rack_id = buf::get_compact_string(buf)?;
+fn decode_share_group_member<B: Buf>(buf: &mut B, flexible: bool) -> Result<ShareGroupMember> {
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let rack_id = buf::get_string(buf, flexible)?;
     let member_epoch = buf::get_i32(buf)?;
-    let client_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let client_host = buf::get_compact_string(buf)?.unwrap_or_default();
-    let sn = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let client_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let client_host = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut subscribed_topic_names = Vec::with_capacity(sn);
     for _ in 0..sn {
-        subscribed_topic_names.push(buf::get_compact_string(buf)?.unwrap_or_default());
+        subscribed_topic_names.push(buf::get_string(buf, flexible)?.unwrap_or_default());
     }
-    let assignment = decode_share_group_assignment(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    let assignment = decode_share_group_assignment(buf, flexible)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ShareGroupMember {
         member_id,
         rack_id,
@@ -5106,54 +5150,64 @@ fn decode_share_group_member<B: Buf>(buf: &mut B) -> Result<ShareGroupMember> {
     })
 }
 
-/// Encode a ShareGroupDescribe response.
+/// Encode a ShareGroupDescribe response (`version` 0–1).
 pub fn encode_share_group_describe_response(
     buf: &mut BytesMut,
+    version: i16,
     groups: &[DescribedShareGroup],
 ) -> crate::error::Result<()> {
+    let flexible = share_group_describe_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, true, Some(groups.len()))?;
+    buf::put_array_len(buf, flexible, Some(groups.len()))?;
     for g in groups {
         buf.put_i16(g.error_code);
-        buf::put_compact_string(buf, g.error_message.as_deref())?;
-        buf::put_compact_string(buf, Some(&g.group_id))?;
-        buf::put_compact_string(buf, Some(&g.group_state))?;
+        buf::put_string(buf, flexible, g.error_message.as_deref())?;
+        buf::put_string(buf, flexible, Some(&g.group_id))?;
+        buf::put_string(buf, flexible, Some(&g.group_state))?;
         buf.put_i32(g.group_epoch);
         buf.put_i32(g.assignment_epoch);
-        buf::put_compact_string(buf, Some(&g.assignor_name))?;
-        buf::put_array_len(buf, true, Some(g.members.len()))?;
+        buf::put_string(buf, flexible, Some(&g.assignor_name))?;
+        buf::put_array_len(buf, flexible, Some(g.members.len()))?;
         for m in &g.members {
-            encode_share_group_member(buf, m)?;
+            encode_share_group_member(buf, m, flexible)?;
         }
         buf.put_i32(g.authorized_operations);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-/// Decode a ShareGroupDescribe response.
+/// Decode a ShareGroupDescribe response (`version` 0–1).
 pub fn decode_share_group_describe_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<Vec<DescribedShareGroup>> {
+    let flexible = share_group_describe_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_compact_string(buf)?;
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
+        let error_message = buf::get_string(buf, flexible)?;
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_state = buf::get_string(buf, flexible)?.unwrap_or_default();
         let group_epoch = buf::get_i32(buf)?;
         let assignment_epoch = buf::get_i32(buf)?;
-        let assignor_name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let assignor_name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut members = Vec::with_capacity(mn);
         for _ in 0..mn {
-            members.push(decode_share_group_member(buf)?);
+            members.push(decode_share_group_member(buf, flexible)?);
         }
         let authorized_operations = buf::get_i32(buf)?;
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         groups.push(DescribedShareGroup {
             error_code,
             error_message,
@@ -5166,7 +5220,9 @@ pub fn decode_share_group_describe_response<B: Buf>(
             authorized_operations,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(groups)
 }
 
@@ -12303,13 +12359,13 @@ mod tests {
     fn share_group_describe_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 77
-        // validVersions 1, flexibleVersions 0+, listeners broker only.
-        // This crate targets v1 (VERSIONS.max). Not copied from
-        // ListGroups (top-level ErrorCode at bytes 4-5), DescribeGroups
-        // / ConsumerGroupDescribe (first-group ErrorCode at bytes 5-6
-        // on a different member layout), DeleteGroups (after GroupId at
-        // bytes 7-8), or DescribeProducers (first-partition ErrorCode
-        // at bytes 12-13).
+        // Kafka 4.0 validVersions "0" / Kafka 4.1 "1", flexibleVersions
+        // 0+, listeners broker only. This crate speaks 0–1. Not copied
+        // from ListGroups (top-level ErrorCode at bytes 4-5),
+        // DescribeGroups / ConsumerGroupDescribe (first-group ErrorCode
+        // at bytes 5-6 on a different member layout), DeleteGroups
+        // (after GroupId at bytes 7-8), or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
         const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
         const RESP_16: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x00, 0x00, 0x00,
@@ -12317,11 +12373,11 @@ mod tests {
         ];
         let ids = vec!["g".to_string()];
         let mut buf = BytesMut::new();
-        encode_share_group_describe_request(&mut buf, &ids, false).unwrap();
+        encode_share_group_describe_request(&mut buf, 1, &ids, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
         buf.clear();
-        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        encode_share_group_describe_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
     }
 
@@ -12329,9 +12385,9 @@ mod tests {
     fn share_group_describe_v1_roundtrip_is_leftover_empty() {
         let ids = vec!["g".to_string(), "g2".to_string()];
         let mut buf = BytesMut::new();
-        encode_share_group_describe_request(&mut buf, &ids, true).unwrap();
+        encode_share_group_describe_request(&mut buf, 1, &ids, true).unwrap();
         let mut cur = &buf[..];
-        let (got, include) = decode_share_group_describe_request(&mut cur).unwrap();
+        let (got, include) = decode_share_group_describe_request(&mut cur, 1).unwrap();
         assert_eq!(got, ids);
         assert!(include);
         assert!(
@@ -12355,10 +12411,10 @@ mod tests {
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }];
         buf.clear();
-        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        encode_share_group_describe_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_describe_response(&mut cur).unwrap(),
+            decode_share_group_describe_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
@@ -12379,7 +12435,7 @@ mod tests {
         // GroupId, or bytes 12-13 from DescribeProducers.
         let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
         let mut buf = BytesMut::new();
-        encode_share_group_describe_response(&mut buf, &resp).unwrap();
+        encode_share_group_describe_response(&mut buf, 1, &resp).unwrap();
         let b5 = buf.get(5).copied().unwrap();
         let b6 = buf.get(6).copied().unwrap();
         assert_eq!(
@@ -12410,12 +12466,65 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_describe_response(&mut cur).unwrap(),
+            decode_share_group_describe_response(&mut cur, 1).unwrap(),
             resp
         );
         assert!(
             !cur.has_remaining(),
             "ShareGroupDescribe v1 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn share_group_describe_v0_matches_v1_and_does_not_speak_v2() {
+        // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+",
+        // latestVersionUnstable. Official Kafka 4.1 JSON: validVersions "1"
+        // (v0 removed). Same request/response fields. This crate speaks 0–1.
+        let ids = vec!["g".to_string()];
+        let mut v0 = BytesMut::new();
+        encode_share_group_describe_request(&mut v0, 0, &ids, false).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_share_group_describe_request(&mut v1, 1, &ids, false).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        let mut cur = v0.as_ref();
+        let (got, include) = decode_share_group_describe_request(&mut cur, 0).unwrap();
+        assert_eq!(got, ids);
+        assert!(!include);
+        assert!(!cur.has_remaining(), "v0 request leftover-empty");
+        let err =
+            encode_share_group_describe_request(&mut BytesMut::new(), 2, &ids, false).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 is not spoken, got {err}"
+        );
+        let mut empty: &[u8] = &[];
+        let err = decode_share_group_describe_request(&mut empty, 2).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 decode is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+
+        let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
+        v0.clear();
+        encode_share_group_describe_response(&mut v0, 0, &resp).unwrap();
+        v1.clear();
+        encode_share_group_describe_response(&mut v1, 1, &resp).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 response bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(
+            decode_share_group_describe_response(&mut cur, 0).unwrap(),
+            resp
+        );
+        assert!(!cur.has_remaining(), "v0 response leftover-empty");
+        v0.clear();
+        let err = encode_share_group_describe_response(&mut v0, 2, &resp).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 response is not spoken, got {err}"
         );
     }
 

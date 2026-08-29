@@ -1231,9 +1231,9 @@ impl Admin {
             })?;
         let share_group_describe_version = versions
             .get(&SHARE_GROUP_DESCRIBE)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support ShareGroupDescribe".into())
+                Error::Unsupported("broker does not support ShareGroupDescribe v0-1".into())
             })?;
         let describe_share_group_offsets_version = versions
             .get(&DESCRIBE_SHARE_GROUP_OFFSETS)
@@ -4324,13 +4324,17 @@ impl Admin {
     /// Describe KIP-932 share groups (ShareGroupDescribe api 77).
     ///
     /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
-    /// Official Apache JSON listeners are `broker` only. Official listed
-    /// errors include `NOT_COORDINATOR` (16). Official Java
-    /// `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`. This is
-    /// not a controller hop and not a partition-leader hop: there is no
-    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
-    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. SHARE (`key_type=2`) is
-    /// the FindCoordinator v6 share-state key
+    /// Negotiates ShareGroupDescribe v0–v1. Kafka 4.0 `validVersions` is
+    /// `"0"` (`latestVersionUnstable`). Kafka 4.1 `validVersions` is
+    /// `"1"` (v0 removed). Request and response fields are identical.
+    /// This crate speaks 0–1. Official Apache JSON listeners are
+    /// `broker` only. Official listed errors include `NOT_COORDINATOR`
+    /// (16). Official Java `DescribeShareGroupsHandler` uses
+    /// `CoordinatorType.GROUP`. This is not a controller hop and not a
+    /// partition-leader hop: there is no Metadata `controller_id`
+    /// lookup, no `NOT_CONTROLLER` (41) retry, and no
+    /// `NOT_LEADER_OR_FOLLOWER` (6) hop. SHARE (`key_type=2`) is the
+    /// FindCoordinator v6 share-state key
     /// (`groupId:topicId:partition`) and is not used here.
     /// `COORDINATOR_LOAD_IN_PROGRESS` / `COORDINATOR_NOT_AVAILABLE` /
     /// `NOT_COORDINATOR` (16) refresh the coordinator and retry.
@@ -4376,6 +4380,7 @@ impl Admin {
                     |buf| {
                         encode_share_group_describe_request(
                             buf,
+                            version,
                             &ids,
                             include_authorized_operations,
                         )
@@ -4394,7 +4399,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_share_group_describe_response(&mut body.clone())?;
+            let results = decode_share_group_describe_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))
@@ -4412,8 +4417,9 @@ impl Admin {
     /// Describe share groups (Java `Admin.describeShareGroups`).
     ///
     /// Same wire as [`Self::share_group_describe`]: ShareGroupDescribe
-    /// api 77 on the group coordinator. Java's `DescribeShareGroupsHandler`
-    /// uses `CoordinatorType.GROUP`. Empty input is a no-op.
+    /// api 77 v0–v1 on the group coordinator. Java's
+    /// `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`. Empty
+    /// input is a no-op.
     pub async fn describe_share_groups(
         &mut self,
         group_ids: &[&str],

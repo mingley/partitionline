@@ -206,6 +206,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // ShareGroupHeartbeat is flexible from v0. Kafka 4.0
         // validVersions is "0" (unstable). Kafka 4.1 validVersions is
         // "1" (v0 removed). This crate speaks 0–1. Same fields. v2+
+        // is not spoken. ShareGroupDescribe is the same: Kafka 4.0
+        // validVersions is "0"; Kafka 4.1 validVersions is "1"
+        // (v0 removed). This crate speaks 0–1. Same fields. v2+
         // is not spoken.
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
@@ -906,12 +909,15 @@ mod tests {
     }
 
     #[test]
-    fn share_group_describe_v1_is_flexible() {
-        // Official JSON: validVersions 1, flexibleVersions 0+.
-        // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v1.
-        // This crate speaks v1 (VERSIONS.max).
-        assert_eq!(request_header_version(SHARE_GROUP_DESCRIBE, 1), 2);
-        assert_eq!(response_header_version(SHARE_GROUP_DESCRIBE, 1), 1);
+    fn share_group_describe_v0_and_v1_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+".
+        // Official Kafka 4.1 JSON: validVersions "1" (v0 removed).
+        // HeaderVersion is 2 / 1 at every spoken version. This crate
+        // speaks 0–1.
+        for version in 0..=1 {
+            assert_eq!(request_header_version(SHARE_GROUP_DESCRIBE, version), 2);
+            assert_eq!(response_header_version(SHARE_GROUP_DESCRIBE, version), 1);
+        }
     }
 
     #[test]
