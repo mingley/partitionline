@@ -122,6 +122,81 @@ pub struct Record {
 pub const ATTR_TRANSACTIONAL: i16 = 0x10;
 /// RecordBatch attributes: control batch (commit/abort marker).
 pub const ATTR_CONTROL: i16 = 0x20;
+/// RecordBatch attributes bit 3: [`TimestampType::LogAppendTime`] when set,
+/// [`TimestampType::CreateTime`] when clear (Java `TIMESTAMP_TYPE_MASK`).
+pub const ATTR_TIMESTAMP_TYPE: i16 = 0x08;
+
+/// Kafka record timestamp type (Java `TimestampType`).
+///
+/// Magic-v2 batches encode [`Self::CreateTime`] vs [`Self::LogAppendTime`] in
+/// [`ATTR_TIMESTAMP_TYPE`]. [`Self::NoTimestampType`] is the legacy magic-v0
+/// value; this crate does not produce it on the wire.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[repr(i8)]
+pub enum TimestampType {
+    /// Java `NO_TIMESTAMP_TYPE` (records without timestamps).
+    NoTimestampType = -1,
+    /// Java `CREATE_TIME` (producer timestamp).
+    #[default]
+    CreateTime = 0,
+    /// Java `LOG_APPEND_TIME` (broker append time).
+    LogAppendTime = 1,
+}
+
+impl TimestampType {
+    /// Java `TimestampType.id`.
+    #[must_use]
+    pub fn id(self) -> i32 {
+        i32::from(self as i8)
+    }
+
+    /// Java `TimestampType.name`.
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::NoTimestampType => "NoTimestampType",
+            Self::CreateTime => "CreateTime",
+            Self::LogAppendTime => "LogAppendTime",
+        }
+    }
+
+    /// Parse Java `TimestampType.id`. Unknown values return `None`.
+    #[must_use]
+    pub fn from_id(id: i32) -> Option<Self> {
+        match id {
+            -1 => Some(Self::NoTimestampType),
+            0 => Some(Self::CreateTime),
+            1 => Some(Self::LogAppendTime),
+            _ => None,
+        }
+    }
+
+    /// Java `TimestampType.forName`.
+    pub fn from_name(name: &str) -> Result<Self> {
+        match name {
+            "NoTimestampType" => Ok(Self::NoTimestampType),
+            "CreateTime" => Ok(Self::CreateTime),
+            "LogAppendTime" => Ok(Self::LogAppendTime),
+            other => Err(Error::protocol(format!("unknown timestamp type {other}"))),
+        }
+    }
+
+    /// Magic-v2 batch attributes: bit 3 set is [`Self::LogAppendTime`].
+    #[must_use]
+    pub fn from_attributes(attr: i16) -> Self {
+        if attr & ATTR_TIMESTAMP_TYPE == 0 {
+            Self::CreateTime
+        } else {
+            Self::LogAppendTime
+        }
+    }
+}
+
+impl std::fmt::Display for TimestampType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 /// Magic-v2 record batch (Kafka 0.11+).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,7 +206,7 @@ pub struct RecordBatch {
     /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
-    /// [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
+    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
     pub attributes: i16,
     /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
@@ -177,6 +252,27 @@ impl RecordBatch {
     /// Set the compression bits in [`Self::attributes`].
     pub fn with_compression(mut self, compression: Compression) -> Self {
         self.attributes = (self.attributes & !0x07) | (compression as i16);
+        self
+    }
+
+    /// Java `DefaultRecordBatch.timestampType` from [`Self::attributes`].
+    #[must_use]
+    pub fn timestamp_type(&self) -> TimestampType {
+        TimestampType::from_attributes(self.attributes)
+    }
+
+    /// Set [`ATTR_TIMESTAMP_TYPE`] for [`TimestampType::LogAppendTime`].
+    ///
+    /// [`TimestampType::NoTimestampType`] is encoded as
+    /// [`TimestampType::CreateTime`] (magic-v2 has no "no timestamp" bit).
+    #[must_use]
+    pub fn with_timestamp_type(mut self, timestamp_type: TimestampType) -> Self {
+        match timestamp_type {
+            TimestampType::LogAppendTime => self.attributes |= ATTR_TIMESTAMP_TYPE,
+            TimestampType::CreateTime | TimestampType::NoTimestampType => {
+                self.attributes &= !ATTR_TIMESTAMP_TYPE;
+            }
+        }
         self
     }
 }
@@ -309,7 +405,7 @@ pub struct BatchHeader {
     /// Partition leader epoch, or `-1` when unknown.
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
-    /// [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
+    /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`].
     pub attributes: i16,
     /// Timestamp of the first record (milliseconds since the Unix epoch).
     pub base_timestamp: i64,
@@ -646,6 +742,65 @@ mod tests {
         let n = Header::null("n");
         assert_eq!(n.key(), "n");
         assert!(n.value().is_none());
+    }
+
+    #[test]
+    fn timestamp_type_matches_java() {
+        assert_eq!(TimestampType::NoTimestampType.id(), -1);
+        assert_eq!(TimestampType::CreateTime.id(), 0);
+        assert_eq!(TimestampType::LogAppendTime.id(), 1);
+        assert_eq!(TimestampType::CreateTime.as_str(), "CreateTime");
+        assert_eq!(TimestampType::LogAppendTime.as_str(), "LogAppendTime");
+        assert_eq!(TimestampType::NoTimestampType.as_str(), "NoTimestampType");
+        assert_eq!(TimestampType::from_id(0), Some(TimestampType::CreateTime));
+        assert_eq!(
+            TimestampType::from_id(1),
+            Some(TimestampType::LogAppendTime)
+        );
+        assert_eq!(
+            TimestampType::from_id(-1),
+            Some(TimestampType::NoTimestampType)
+        );
+        assert!(TimestampType::from_id(2).is_none());
+        assert_eq!(
+            TimestampType::from_name("LogAppendTime").unwrap(),
+            TimestampType::LogAppendTime
+        );
+        let unknown = TimestampType::from_name("bogus").unwrap_err();
+        assert!(
+            unknown.to_string().contains("unknown timestamp type"),
+            "{unknown}"
+        );
+        assert_eq!(TimestampType::from_attributes(0), TimestampType::CreateTime);
+        assert_eq!(
+            TimestampType::from_attributes(ATTR_TIMESTAMP_TYPE),
+            TimestampType::LogAppendTime
+        );
+        assert_eq!(
+            TimestampType::from_attributes(ATTR_TIMESTAMP_TYPE | Compression::Gzip as i16),
+            TimestampType::LogAppendTime
+        );
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"ts")),
+            headers: vec![],
+        };
+        let create = RecordBatch::from_records(vec![rec.clone()]);
+        assert_eq!(create.timestamp_type(), TimestampType::CreateTime);
+        let append = create
+            .clone()
+            .with_timestamp_type(TimestampType::LogAppendTime);
+        assert_eq!(append.timestamp_type(), TimestampType::LogAppendTime);
+        assert_eq!(append.attributes & ATTR_TIMESTAMP_TYPE, ATTR_TIMESTAMP_TYPE);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &append).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert_eq!(decoded.timestamp_type(), TimestampType::LogAppendTime);
+        let cleared = append.with_timestamp_type(TimestampType::NoTimestampType);
+        assert_eq!(cleared.timestamp_type(), TimestampType::CreateTime);
+        assert_eq!(TimestampType::LogAppendTime.to_string(), "LogAppendTime");
     }
 
     #[test]

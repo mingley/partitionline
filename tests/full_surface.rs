@@ -40,11 +40,12 @@ use partitionline::{
     IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions,
     NewTopic, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicCollection,
-    TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
+    TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
+    UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -87,6 +88,8 @@ async fn try_send_flush_writes_record() {
     consumer.assign("t", 0, 0).await.unwrap();
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"try-send"[..]));
+    assert_eq!(recs[0].timestamp_type(), TimestampType::CreateTime);
+    assert_eq!(recs[0].timestamp_type, TimestampType::CreateTime);
 }
 
 #[tokio::test]
@@ -3333,6 +3336,10 @@ async fn share_fetch_accept_then_release() {
         "ShareGroup must prefer ShareFetch v1 when the broker advertises it"
     );
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-a"[..]));
+    assert_eq!(recs[0].timestamp_type(), TimestampType::CreateTime);
+    assert_eq!(recs[0].timestamp_type, TimestampType::CreateTime);
+    assert!(recs[0].headers().is_empty());
+    assert!(recs[0].headers.is_empty());
     let off = recs[0].offset;
     g.accept(&recs).await.unwrap();
     assert_eq!(

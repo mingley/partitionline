@@ -22,11 +22,11 @@ use partitionline::{
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, IsolationLevel,
     ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
     Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
-    ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica, Uuid,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,
-    LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
-    MAX_TIMESTAMP,
+    ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType, TopicPartition, TopicPartitionReplica,
+    Uuid, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON,
+    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP,
+    LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
+    LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -107,10 +107,14 @@ async fn produce_header_survives_fetch() {
     );
     assert_eq!(recs[0].value.as_deref(), Some(&b"with-header"[..]));
     assert_eq!(recs[0].timestamp, 1_700_000_000_000);
+    assert_eq!(recs[0].timestamp(), 1_700_000_000_000);
+    assert_eq!(recs[0].timestamp_type, TimestampType::CreateTime);
+    assert_eq!(recs[0].timestamp_type(), TimestampType::CreateTime);
     assert_eq!(recs[0].leader_epoch, Some(0));
     assert_eq!(recs[0].serialized_key_size(), -1);
     assert_eq!(recs[0].serialized_value_size(), 11);
     assert_eq!(recs[0].headers.len(), 2);
+    assert_eq!(recs[0].headers(), recs[0].headers.as_slice());
     assert_eq!(recs[0].headers[0].key, "k");
     assert_eq!(recs[0].headers[0].value.as_deref(), Some(&b"v"[..]));
     assert_eq!(recs[0].headers[1].key, "empty");

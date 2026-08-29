@@ -130,6 +130,7 @@
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`
 //! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
+//! [`FetchedRecord::timestamp_type`] is Java `timestampType` ([`TimestampType`]).
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
@@ -704,7 +705,7 @@ pub use protocol::offsets::{
     LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 pub use protocol::oidc::OidcConfig;
-pub use protocol::records::{Compression, Header, Record, RecordBatch};
+pub use protocol::records::{Compression, Header, Record, RecordBatch, TimestampType};
 pub use share::{
     ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
 };

@@ -29,7 +29,7 @@ use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
 };
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
-use crate::protocol::records::Header;
+use crate::protocol::records::{Header, TimestampType};
 use crate::protocol::sasl;
 
 type RebalanceFn = dyn Fn(&[TopicPartition], &[TopicPartition]) + Send + Sync;
@@ -463,6 +463,8 @@ pub struct FetchedRecord {
     pub offset: i64,
     /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Java `ConsumerRecord.timestampType`.
+    pub timestamp_type: TimestampType,
     /// Optional key.
     pub key: Option<Bytes>,
     /// Optional value.
@@ -516,6 +518,12 @@ impl FetchedRecord {
     #[must_use]
     pub fn timestamp(&self) -> i64 {
         self.timestamp
+    }
+
+    /// Java `ConsumerRecord.timestampType`.
+    #[must_use]
+    pub fn timestamp_type(&self) -> TimestampType {
+        self.timestamp_type
     }
 
     /// Java `ConsumerRecord.key`.
@@ -2255,6 +2263,7 @@ impl Consumer {
                         }
                         continue;
                     }
+                    let timestamp_type = batch.timestamp_type();
                     for rec in batch.records {
                         let offset = rec.offset;
                         if isolation == crate::IsolationLevel::ReadCommitted
@@ -2278,6 +2287,7 @@ impl Consumer {
                             partition: part.partition,
                             offset,
                             timestamp: rec.timestamp,
+                            timestamp_type,
                             key: rec.key,
                             value: rec.value,
                             headers: rec.headers,
@@ -2934,6 +2944,7 @@ mod tests {
             partition,
             offset,
             timestamp: 0,
+            timestamp_type: TimestampType::CreateTime,
             key: None,
             value: None,
             headers: Vec::new(),
@@ -3018,6 +3029,7 @@ mod tests {
         assert_eq!(rec.partition(), 0);
         assert_eq!(rec.offset(), 11);
         assert_eq!(rec.timestamp(), 0);
+        assert_eq!(rec.timestamp_type(), TimestampType::CreateTime);
         assert!(rec.key().is_none());
         assert!(rec.value().is_none());
         assert!(rec.headers().is_empty());

@@ -19,6 +19,7 @@ use crate::protocol::api_keys::{
     pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
 };
 use crate::protocol::group::COORDINATOR_SHARE;
+use crate::protocol::records::{Header, TimestampType};
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
     decode_share_group_heartbeat_response, encode_share_acknowledge_request,
@@ -44,10 +45,14 @@ pub struct ShareRecord {
     pub offset: i64,
     /// Timestamp in milliseconds since the Unix epoch.
     pub timestamp: i64,
+    /// Java `ConsumerRecord.timestampType`.
+    pub timestamp_type: TimestampType,
     /// Optional key.
     pub key: Option<Bytes>,
     /// Optional value.
     pub value: Option<Bytes>,
+    /// Record headers (Java `ConsumerRecord.headers`).
+    pub headers: Vec<Header>,
     /// Broker delivery count for this share.
     pub delivery_count: i16,
     /// Partition leader epoch from the record batch, or `None` when `-1`.
@@ -85,6 +90,12 @@ impl ShareRecord {
         self.timestamp
     }
 
+    /// Java `ConsumerRecord.timestampType`.
+    #[must_use]
+    pub fn timestamp_type(&self) -> TimestampType {
+        self.timestamp_type
+    }
+
     /// Java `ConsumerRecord.key`.
     #[must_use]
     pub fn key(&self) -> Option<&[u8]> {
@@ -95,6 +106,12 @@ impl ShareRecord {
     #[must_use]
     pub fn value(&self) -> Option<&[u8]> {
         self.value.as_deref()
+    }
+
+    /// Java `ConsumerRecord.headers`.
+    #[must_use]
+    pub fn headers(&self) -> &[Header] {
+        &self.headers
     }
 
     /// Broker delivery count for this share (KIP-932).
@@ -732,6 +749,7 @@ impl ShareGroup {
                 let name = self.name_for_topic_id(topic.topic_id);
                 for part in topic.partitions {
                     for batch in part.records {
+                        let timestamp_type = batch.timestamp_type();
                         for rec in batch.records {
                             let delivery = part
                                 .acquired
@@ -746,8 +764,10 @@ impl ShareGroup {
                                 partition: part.partition,
                                 offset: rec.offset,
                                 timestamp: rec.timestamp,
+                                timestamp_type,
                                 key: rec.key,
                                 value: rec.value,
+                                headers: rec.headers,
                                 delivery_count: delivery,
                                 leader_epoch: (batch.partition_leader_epoch >= 0)
                                     .then_some(batch.partition_leader_epoch),
@@ -1251,8 +1271,10 @@ mod tests {
             partition,
             offset,
             timestamp: 0,
+            timestamp_type: TimestampType::CreateTime,
             key: None,
             value: None,
+            headers: Vec::new(),
             delivery_count: 1,
             leader_epoch: None,
         }
@@ -1330,8 +1352,10 @@ mod tests {
         assert_eq!(first.partition(), 0);
         assert_eq!(first.offset(), 1);
         assert_eq!(first.timestamp(), 0);
+        assert_eq!(first.timestamp_type(), TimestampType::CreateTime);
         assert!(first.key().is_none());
         assert!(first.value().is_none());
+        assert!(first.headers().is_empty());
         assert_eq!(first.delivery_count(), 1);
         assert!(first.leader_epoch().is_none());
         assert_eq!(first.serialized_key_size(), -1);
