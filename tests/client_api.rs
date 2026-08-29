@@ -1982,8 +1982,13 @@ async fn send_offsets_with_metadata_then_committed() {
         .unwrap();
     assert_eq!(
         mock.last_txn_offset_commit_version(),
-        Some(4),
-        "Producer must prefer TxnOffsetCommit v4 when the broker advertises it"
+        Some(5),
+        "Producer must prefer TxnOffsetCommit v5 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_add_offsets_to_txn_version(),
+        None,
+        "TxnOffsetCommit v5 skips AddOffsetsToTxn (transaction V2)"
     );
     assert_eq!(mock.last_txn_offset_generation(), Some(1));
     assert_eq!(mock.last_txn_offset_member_id().as_deref(), Some("m"));

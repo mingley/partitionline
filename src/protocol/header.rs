@@ -95,10 +95,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // v5 adds ProducerId / ProducerEpoch on the response.
         END_TXN if api_version >= 3 => 2,
         // TxnOffsetCommit is classic through v2; flexible from v3
-        // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–4.
+        // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–5.
         // v3 adds GenerationId / MemberId / GroupInstanceId. v4 is
-        // TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5
-        // (KIP-890 Part 2 transaction V2) is not spoken.
+        // TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5 is
+        // transaction V2 (KIP-890 Part 2; same layout as v3–v4).
         TXN_OFFSET_COMMIT if api_version >= 3 => 2,
         // LeaveGroup is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). This crate speaks 0–5
@@ -407,7 +407,7 @@ mod tests {
     fn txn_offset_commit_v3_is_flexible_v2_is_not() {
         // Official JSON: validVersions 0-5, flexibleVersions 3+.
         // HeaderVersion is 1 / 0 at v0–2 and 2 / 1 at v3+. This crate
-        // speaks 0–4. v5 (KIP-890 Part 2 transaction V2) is not spoken.
+        // speaks 0–5. v5 is transaction V2 (same layout as v3–v4).
         assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 0), 1);
         assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 0), 0);
         assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 2), 1);
@@ -416,6 +416,8 @@ mod tests {
         assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 3), 1);
         assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 4), 2);
         assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 4), 1);
+        assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 5), 2);
+        assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 5), 1);
     }
 
     #[test]

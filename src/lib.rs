@@ -25,8 +25,9 @@
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
-//! and TxnOffsetCommit v0–v4
-//! (v3+ flexible; GenerationId / MemberId / GroupInstanceId).
+//! and TxnOffsetCommit v0–v5
+//! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
+//! v5 skips AddOffsetsToTxn, KIP-890 Part 2).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].

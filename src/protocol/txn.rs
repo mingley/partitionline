@@ -328,7 +328,7 @@ pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16
     Ok((err, producer_id, producer_epoch))
 }
 
-/// One partition in TxnOffsetCommit v0–4.
+/// One partition in TxnOffsetCommit v0–5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetPartition {
     /// Partition index.
@@ -341,7 +341,7 @@ pub struct TxnOffsetPartition {
     pub metadata: String,
 }
 
-/// Topic + partitions for TxnOffsetCommit v0–4.
+/// Topic + partitions for TxnOffsetCommit v0–5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetTopic {
     /// Topic name.
@@ -376,22 +376,23 @@ impl TxnOffsetCommitMember {
 
 /// `true` when TxnOffsetCommit `version` is flexible (v3+).
 ///
-/// v0–v2 are classic (v2 adds committed leader epoch). v3–v4 are compact
+/// v0–v2 are classic (v2 adds committed leader epoch). v3–v5 are compact
 /// strings/arrays plus tagged fields, and add GenerationId / MemberId /
 /// GroupInstanceId (Apache JSON `flexibleVersions: "3+"`). v4 is
-/// TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5 (KIP-890 Part 2
-/// transaction V2) is not spoken.
+/// TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5 is the same
+/// layout (KIP-890 Part 2 transaction V2: TxnOffsetCommit also performs
+/// AddOffsetsToTxn). v6+ is not spoken.
 fn txn_offset_commit_flexible(version: i16) -> Result<bool> {
     match version {
         0..=2 => Ok(false),
-        3..=4 => Ok(true),
+        3..=5 => Ok(true),
         other => Err(Error::protocol(format!(
             "TxnOffsetCommit version {other} is not implemented"
         ))),
     }
 }
 
-/// Encode TxnOffsetCommit v0–v2 (classic) or v3–v4 (flexible).
+/// Encode TxnOffsetCommit v0–v2 (classic) or v3–v5 (flexible).
 #[expect(
     clippy::too_many_arguments,
     reason = "TxnOffsetCommit request body needs version, ids, member identity, and topics together"
@@ -1051,11 +1052,19 @@ mod tests {
         assert_eq!(got_member, member);
         assert_eq!(got, topics);
         assert!(cur.is_empty(), "TxnOffsetCommit v4 shares the v3 layout");
+
+        req.clear();
+        encode_txn_offset_commit_request(&mut req, 5, "tx", "g", 9, 1, &member, &topics).unwrap();
+        let mut cur = &req[..];
+        let (_tid, _gid, got_member, got) = decode_txn_offset_commit_request(&mut cur, 5).unwrap();
+        assert_eq!(got_member, member);
+        assert_eq!(got, topics);
+        assert!(cur.is_empty(), "TxnOffsetCommit v5 shares the v3 layout");
         req.clear();
         assert!(
-            encode_txn_offset_commit_request(&mut req, 5, "tx", "g", 9, 1, &member, &topics)
+            encode_txn_offset_commit_request(&mut req, 6, "tx", "g", 9, 1, &member, &topics)
                 .is_err(),
-            "TxnOffsetCommit v5 transaction V2 is not spoken"
+            "TxnOffsetCommit v6+ is not spoken"
         );
     }
 

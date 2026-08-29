@@ -903,8 +903,8 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     assert_eq!(mock.last_txn_offset_commit_partitions(), 3);
     assert_eq!(
         mock.last_txn_offset_commit_version(),
-        Some(4),
-        "Producer must prefer TxnOffsetCommit v4 when the broker advertises it"
+        Some(5),
+        "Producer must prefer TxnOffsetCommit v5 when the broker advertises it"
     );
     assert_eq!(
         mock.last_txn_offset_generation(),
@@ -918,8 +918,8 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     );
     assert_eq!(
         mock.last_add_offsets_to_txn_version(),
-        Some(4),
-        "Producer must prefer AddOffsetsToTxn v4 when the broker advertises it"
+        None,
+        "TxnOffsetCommit v5 skips AddOffsetsToTxn (transaction V2)"
     );
     assert_eq!(
         mock.last_txn_offset_epochs(),
@@ -991,7 +991,11 @@ async fn transactional_producer_finds_txn_coordinator() {
         .send_offsets_to_transaction("g", [(TopicPartition::new("t", 0), 1)])
         .await
         .unwrap();
-    assert_eq!(mock.last_add_offsets_node(), Some(2));
+    assert_eq!(
+        mock.last_add_offsets_node(),
+        None,
+        "TxnOffsetCommit v5 skips AddOffsetsToTxn (transaction V2)"
+    );
     assert!(
         mock.find_coordinator_key_types()
             .contains(&COORDINATOR_GROUP),

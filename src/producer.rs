@@ -769,7 +769,7 @@ impl Producer {
                 })?;
                 let end = pick(&versions, END_TXN, 0, 5)
                     .ok_or_else(|| Error::Unsupported("broker does not support EndTxn".into()))?;
-                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 4).ok_or_else(|| {
+                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 5).ok_or_else(|| {
                     Error::Unsupported("broker does not support TxnOffsetCommit".into())
                 })?;
                 (add_p, add_o, end, toc)
@@ -1337,28 +1337,34 @@ impl Producer {
         let timeout = self.inner.shared.cfg.request_timeout;
         let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
         let epoch = self.inner.shared.producer_epoch.load(Ordering::SeqCst);
-        let add_offsets_version = self.inner.shared.add_offsets_version;
-        let body = txn_roundtrip(
-            &self.inner.shared,
-            ADD_OFFSETS_TO_TXN,
-            add_offsets_version,
-            |buf| {
-                encode_add_offsets_to_txn_request(
-                    buf,
-                    add_offsets_version,
-                    &tid,
-                    pid,
-                    epoch,
-                    group_id,
-                )
-            },
-            timeout,
-            |body| decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version),
-        )
-        .await?;
-        let err = decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
-        if err != 0 {
-            return Err(Error::broker(err, "AddOffsetsToTxn"));
+        let version = self.inner.shared.txn_offset_version;
+        // TxnOffsetCommit v5 is transaction V2 (KIP-890 Part 2): the
+        // group coordinator also performs AddOffsetsToTxn. Skip that
+        // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
+        if version < 5 {
+            let add_offsets_version = self.inner.shared.add_offsets_version;
+            let body = txn_roundtrip(
+                &self.inner.shared,
+                ADD_OFFSETS_TO_TXN,
+                add_offsets_version,
+                |buf| {
+                    encode_add_offsets_to_txn_request(
+                        buf,
+                        add_offsets_version,
+                        &tid,
+                        pid,
+                        epoch,
+                        group_id,
+                    )
+                },
+                timeout,
+                |body| decode_add_offsets_to_txn_response(&mut { body }, add_offsets_version),
+            )
+            .await?;
+            let err = decode_add_offsets_to_txn_response(&mut body.clone(), add_offsets_version)?;
+            if err != 0 {
+                return Err(Error::broker(err, "AddOffsetsToTxn"));
+            }
         }
         let mut topics: Vec<String> = Vec::new();
         for (tp, _) in &offsets {
@@ -1372,7 +1378,6 @@ impl Producer {
                 return Err(Error::UnknownTopic(topic.clone()));
             }
         }
-        let version = self.inner.shared.txn_offset_version;
         let grouped = {
             let cluster = self.inner.shared.cluster.lock();
             group_txn_offsets(&offsets, |topic, part| cluster.leader_epoch(topic, part))

@@ -2133,7 +2133,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_OFFSETS_TO_TXN, 0, 4),
         (END_TXN, 0, 5),
         (WRITE_TXN_MARKERS, 0, 1),
-        (TXN_OFFSET_COMMIT, 0, 4),
+        (TXN_OFFSET_COMMIT, 0, 5),
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
