@@ -81,8 +81,8 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `describeLogDirs(Collection<Integer>)`. `PartitionReassignment::assign`
 takes `TopicPartition`. `send_offsets_to_transaction` takes
 `TopicPartition`. `AclBinding::allow_topic`, `AclResourceType`,
-`AclOperation`, and `AclPermission` cover CreateAcls / DescribeAcls /
-DeleteAcls. `ConsumerConfig.isolation_level` is `IsolationLevel`.
+`AclOperation`, `AclPermission`, and `AclPatternType` cover CreateAcls /
+DescribeAcls / DeleteAcls (v0–v3; v1 ResourcePatternType; v2+ flexible). `ConsumerConfig.isolation_level` is `IsolationLevel`.
 `ConfigResourceType` / `ScramMechanism` type ListConfigResources and
 user SCRAM.
 

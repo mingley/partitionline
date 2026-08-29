@@ -99,7 +99,9 @@ use crate::protocol::txn::{
     WritableTxnMarkerTopic,
 };
 
-pub use crate::protocol::acl::{AclBinding, AclOperation, AclPermission, AclResourceType};
+pub use crate::protocol::acl::{
+    AclBinding, AclOperation, AclPatternType, AclPermission, AclResourceType,
+};
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
     AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
@@ -1088,16 +1090,18 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support DescribeCluster".into()))?;
         let create_acls_version = versions
             .get(&CREATE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
+            .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls v0-3".into()))?;
         let describe_acls_version = versions
             .get(&DESCRIBE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeAcls".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeAcls v0-3".into())
+            })?;
         let delete_acls_version = versions
             .get(&DELETE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
+            .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls v0-3".into()))?;
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
@@ -1761,6 +1765,10 @@ impl Admin {
 
     /// Create ACL bindings (`CreateAcls`).
     ///
+    /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1 adds
+    /// ResourcePatternType (LITERAL unless [`AclBinding::pattern_type`]
+    /// is set). v3 is the same layout (user resource type). Kafka 4.0
+    /// `validVersions` is `1-3`. v4+ is not spoken.
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
     pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
@@ -1783,7 +1791,7 @@ impl Admin {
                 conn.roundtrip(
                     CREATE_ACLS,
                     version,
-                    |buf| encode_create_acls_request(buf, &acls),
+                    |buf| encode_create_acls_request(buf, version, &acls),
                     timeout,
                 )
                 .await
@@ -1798,7 +1806,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_create_acls_response(&mut body.clone())?;
+            let results = decode_create_acls_response(&mut body.clone(), version)?;
             if results.contains(&error::NOT_CONTROLLER) {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
@@ -2797,6 +2805,10 @@ impl Admin {
 
     /// Describe ACL bindings (`DescribeAcls`) matching `resource_type`.
     ///
+    /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1+ sends
+    /// PatternTypeFilter ANY. Kafka 4.0 `validVersions` is `1-3`. v4+
+    /// is not spoken.
+    ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`
     /// (`ACL_RESOURCE_TOPIC`, …).
     pub async fn describe_acls(&mut self, resource_type: impl Into<i8>) -> Result<Vec<AclBinding>> {
@@ -2807,11 +2819,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_ACLS,
                 version,
-                |buf| encode_describe_acls_request(buf, resource_type),
+                |buf| encode_describe_acls_request(buf, version, resource_type),
                 timeout,
             )
             .await?;
-        decode_describe_acls_response(&mut body.clone())
+        decode_describe_acls_response(&mut body.clone(), version)
     }
 
     /// Replace configs (`AlterConfigs`, legacy api 33).
@@ -3378,6 +3390,10 @@ impl Admin {
 
     /// Delete ACL bindings (`DeleteAcls`) matching `resource_type`.
     ///
+    /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1+ sends
+    /// PatternTypeFilter ANY. Kafka 4.0 `validVersions` is `1-3`. v4+
+    /// is not spoken.
+    ///
     /// `resource_type` is [`crate::AclResourceType`] or a protocol `i8`.
     pub async fn delete_acls(&mut self, resource_type: impl Into<i8>) -> Result<i16> {
         let resource_type = resource_type.into();
@@ -3387,11 +3403,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 DELETE_ACLS,
                 version,
-                |buf| encode_delete_acls_request(buf, resource_type),
+                |buf| encode_delete_acls_request(buf, version, resource_type),
                 timeout,
             )
             .await?;
-        decode_delete_acls_response(&mut body.clone())
+        decode_delete_acls_response(&mut body.clone(), version)
     }
 
     /// Delete committed offsets for `group_id` (OffsetDelete api 47).

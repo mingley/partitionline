@@ -39,6 +39,7 @@
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible),
+//! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
@@ -293,9 +294,9 @@ pub mod protocol;
 pub mod share;
 
 pub use admin::{
-    AbortTransactionSpec, AclBinding, AclOperation, AclPermission, AclResourceType, ActiveProducer,
-    Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
-    AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
+    AbortTransactionSpec, AclBinding, AclOperation, AclPatternType, AclPermission, AclResourceType,
+    ActiveProducer, Admin, AdminConfig, AlterConfig, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsResponse, AlterReplicaLogDirsResponsePartition,
     AlterReplicaLogDirsResponseTopic, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsPartition,
     AlterShareGroupOffsetsTopic, AlteredShareGroupOffsets, AlteredShareGroupOffsetsPartition,
     AlteredShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
@@ -350,7 +351,10 @@ pub use partitioner::{
     murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,
 };
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
-pub use protocol::acl::{ACL_OPERATION_ALL, ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC};
+pub use protocol::acl::{
+    ACL_OPERATION_ALL, ACL_PATTERN_ANY, ACL_PATTERN_LITERAL, ACL_PATTERN_PREFIXED,
+    ACL_PERMISSION_ALLOW, ACL_RESOURCE_TOPIC,
+};
 pub use protocol::admin::{CreatedTopicConfig, DescribeConfigsResult, TopicResult};
 pub use protocol::offsets::{
     EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,

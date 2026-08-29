@@ -269,7 +269,10 @@ struct State {
     last_incremental_alter_configs_version: Option<i16>,
     incremental_alter_configs_not_controller: u32,
     last_create_acls_node: Option<i32>,
+    last_create_acls_version: Option<i16>,
     create_acls_not_controller: u32,
+    last_describe_acls_version: Option<i16>,
+    last_delete_acls_version: Option<i16>,
     last_alter_reassignments_node: Option<i32>,
     alter_reassignments_not_controller: u32,
     last_reassignment: Option<(String, i32, Option<Vec<i32>>)>,
@@ -536,7 +539,10 @@ fn new_state(
         last_incremental_alter_configs_version: None,
         incremental_alter_configs_not_controller: 0,
         last_create_acls_node: None,
+        last_create_acls_version: None,
         create_acls_not_controller: 0,
+        last_describe_acls_version: None,
+        last_delete_acls_version: None,
         last_alter_reassignments_node: None,
         alter_reassignments_not_controller: 0,
         last_reassignment: None,
@@ -1453,8 +1459,20 @@ impl Mock {
         self.state.lock().last_create_acls_node
     }
 
+    pub fn last_create_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_create_acls_version
+    }
+
     pub fn create_acls_not_controller(&self) -> u32 {
         self.state.lock().create_acls_not_controller
+    }
+
+    pub fn last_describe_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_acls_version
+    }
+
+    pub fn last_delete_acls_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_acls_version
     }
 
     pub fn last_alter_reassignments_node(&self) -> Option<i32> {
@@ -2298,9 +2316,9 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (ALTER_CONFIGS, 0, 1),
         (DESCRIBE_CLUSTER, 0, 0),
         (DESCRIBE_PRODUCERS, 0, 0),
-        (DESCRIBE_ACLS, 0, 1),
-        (CREATE_ACLS, 0, 1),
-        (DELETE_ACLS, 0, 1),
+        (DESCRIBE_ACLS, 0, 3),
+        (CREATE_ACLS, 0, 3),
+        (DELETE_ACLS, 0, 3),
         (INCREMENTAL_ALTER_CONFIGS, 0, 1),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
@@ -2963,17 +2981,23 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             CREATE_ACLS => {
-                let acls = decode_create_acls_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let acls = decode_create_acls_request(&mut frame, version).unwrap();
                 let n = acls.len();
                 let mut st = state.lock();
+                st.last_create_acls_version = Some(version);
                 if st.controller_node != node_id {
                     st.create_acls_not_controller = st.create_acls_not_controller.saturating_add(1);
-                    encode_create_acls_response(&mut body, &vec![error::NOT_CONTROLLER; n])
-                        .unwrap();
+                    encode_create_acls_response(
+                        &mut body,
+                        version,
+                        &vec![error::NOT_CONTROLLER; n],
+                    )
+                    .unwrap();
                 } else {
                     st.last_create_acls_node = Some(node_id);
                     st.acls.extend(acls);
-                    encode_create_acls_response(&mut body, &vec![0; n]).unwrap();
+                    encode_create_acls_response(&mut body, version, &vec![0; n]).unwrap();
                 }
             }
             ALTER_PARTITION_REASSIGNMENTS => {
@@ -3470,23 +3494,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             DESCRIBE_ACLS => {
-                let rt = decode_describe_acls_request(&mut frame).unwrap();
-                let st = state.lock();
+                let version = header.api_version;
+                let rt = decode_describe_acls_request(&mut frame, version).unwrap();
+                let mut st = state.lock();
+                st.last_describe_acls_version = Some(version);
                 let acls: Vec<AclBinding> = st
                     .acls
                     .iter()
                     .filter(|a| rt == 1 || a.resource_type == rt)
                     .cloned()
                     .collect();
-                encode_describe_acls_response(&mut body, &acls).unwrap();
+                encode_describe_acls_response(&mut body, version, &acls).unwrap();
             }
             DELETE_ACLS => {
-                let rt = decode_delete_acls_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let rt = decode_delete_acls_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
-                let before = st.acls.len();
+                st.last_delete_acls_version = Some(version);
+                let removed: Vec<AclBinding> = st
+                    .acls
+                    .iter()
+                    .filter(|a| rt == 1 || a.resource_type == rt)
+                    .cloned()
+                    .collect();
                 st.acls.retain(|a| rt != 1 && a.resource_type != rt);
-                let removed = i32::try_from(before.saturating_sub(st.acls.len())).unwrap_or(0);
-                encode_delete_acls_response(&mut body, removed).unwrap();
+                encode_delete_acls_response(&mut body, version, 0, &removed).unwrap();
             }
             LIST_OFFSETS => {
                 let (iso, topics) =

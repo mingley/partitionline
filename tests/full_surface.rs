@@ -11,9 +11,9 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, SYNC_GROUP,
+    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3230,10 +3230,26 @@ async fn admin_partitions_alter_configs_and_acls() {
         .await
         .unwrap();
     assert_eq!(created, vec![0]);
+    assert_eq!(
+        mock.last_create_acls_version(),
+        Some(3),
+        "Admin must prefer CreateAcls v3 when the broker advertises it"
+    );
     let listed = admin.describe_acls(AclResourceType::Topic).await.unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].principal, "User:alice");
+    assert_eq!(listed[0].pattern_type, partitionline::ACL_PATTERN_LITERAL);
+    assert_eq!(
+        mock.last_describe_acls_version(),
+        Some(3),
+        "Admin must prefer DescribeAcls v3 when the broker advertises it"
+    );
     assert_eq!(admin.delete_acls(AclResourceType::Topic).await.unwrap(), 0);
+    assert_eq!(
+        mock.last_delete_acls_version(),
+        Some(3),
+        "Admin must prefer DeleteAcls v3 when the broker advertises it"
+    );
     assert!(admin
         .describe_acls(AclResourceType::Topic)
         .await
@@ -3886,6 +3902,11 @@ async fn create_acls_follows_controller() {
         .unwrap();
     assert_eq!(created, vec![0]);
     assert_eq!(
+        mock.last_create_acls_version(),
+        Some(3),
+        "Admin must prefer CreateAcls v3 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_create_acls_node(),
         Some(2),
         "CreateAcls must land on the controller, not bootstrap"
@@ -3906,6 +3927,38 @@ async fn create_acls_follows_controller() {
         mock.last_create_acls_node(),
         Some(1),
         "CreateAcls must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn acl_apis_negotiate_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_ACLS, 0);
+    mock.set_api_max(DESCRIBE_ACLS, 0);
+    mock.set_api_max(DELETE_ACLS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_acls(&[AclBinding::allow_topic("acl0", "User:alice")])
+        .await
+        .unwrap();
+    assert_eq!(created, vec![0]);
+    assert_eq!(
+        mock.last_create_acls_version(),
+        Some(0),
+        "client must speak CreateAcls v0 when the broker max is 0"
+    );
+    let listed = admin.describe_acls(AclResourceType::Topic).await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        mock.last_describe_acls_version(),
+        Some(0),
+        "client must speak DescribeAcls v0 when the broker max is 0"
+    );
+    assert_eq!(admin.delete_acls(AclResourceType::Topic).await.unwrap(), 0);
+    assert_eq!(
+        mock.last_delete_acls_version(),
+        Some(0),
+        "client must speak DeleteAcls v0 when the broker max is 0"
     );
 }
 
