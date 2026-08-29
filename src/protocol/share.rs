@@ -5,7 +5,9 @@
 //! from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
 //! (v0 removed). This crate speaks 0–1. v0 and v1 fields differ
 //! (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize /
-//! AcquisitionLockTimeoutMs). v2+ is not spoken.
+//! AcquisitionLockTimeoutMs). v2+ is not spoken. ShareAcknowledge is
+//! flexible from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
+//! (v0 removed). This crate speaks 0–1. Same fields. v2+ is not spoken.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -618,9 +620,19 @@ pub fn decode_share_fetch_response<B: Buf>(
     Ok(topics)
 }
 
-/// Encode ShareAcknowledge for one topic.
+fn share_acknowledge_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ShareAcknowledge version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode ShareAcknowledge for one topic (`version` 0–1).
 pub fn encode_share_acknowledge_request(
     buf: &mut BytesMut,
+    version: i16,
     group_id: &str,
     member_id: &str,
     share_session_epoch: i32,
@@ -628,10 +640,11 @@ pub fn encode_share_acknowledge_request(
     partitions: &[(i32, Vec<AcknowledgementBatch>)],
 ) -> crate::error::Result<()> {
     if partitions.is_empty() {
-        encode_share_acknowledge_topics(buf, group_id, member_id, share_session_epoch, &[])
+        encode_share_acknowledge_topics(buf, version, group_id, member_id, share_session_epoch, &[])
     } else {
         encode_share_acknowledge_topics(
             buf,
+            version,
             group_id,
             member_id,
             share_session_epoch,
@@ -652,29 +665,42 @@ pub struct ShareAckTopic {
     pub partitions: Vec<(i32, Vec<AcknowledgementBatch>)>,
 }
 
-/// ShareAcknowledge with several topics in one request.
+/// ShareAcknowledge with several topics in one request (`version` 0–1).
+///
+/// Kafka 4.0 JSON (`apiKey: 79`, `validVersions: "0"`,
+/// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
+/// 4.1 JSON (`validVersions: "1"` — v0 removed). Request and response
+/// fields are identical. This crate speaks 0–1. v2+ is not spoken.
 pub fn encode_share_acknowledge_topics(
     buf: &mut BytesMut,
+    version: i16,
     group_id: &str,
     member_id: &str,
     share_session_epoch: i32,
     topics: &[ShareAckTopic],
 ) -> crate::error::Result<()> {
-    buf::put_compact_string(buf, Some(group_id))?;
-    buf::put_compact_string(buf, Some(member_id))?;
+    let flexible = share_acknowledge_flexible(version)?;
+    buf::put_string(buf, flexible, Some(group_id))?;
+    buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
-    buf::put_array_len(buf, true, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf.extend_from_slice(&t.topic_id);
-        buf::put_array_len(buf, true, Some(t.partitions.len()))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for (partition, batches) in &t.partitions {
             buf.put_i32(*partition);
             encode_ack_batches(buf, batches)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
             buf::put_empty_tagged_fields(buf);
         }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
@@ -703,76 +729,99 @@ pub fn encode_share_fetch_error(
     clippy::type_complexity,
     reason = "ack request is group, member, epoch, and topic-partition batches"
 )]
-/// Decode ShareAcknowledge: `(group_id, member_id, epoch, topic-partition batches)`.
+/// Decode a ShareAcknowledge request (`version` 0–1).
+///
+/// Returns `(group_id, member_id, epoch, topic-partition batches)`.
 pub fn decode_share_acknowledge_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(
     String,
     String,
     i32,
     Vec<([u8; 16], i32, Vec<AcknowledgementBatch>)>,
 )> {
-    let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
+    let flexible = share_acknowledge_flexible(version)?;
+    let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let epoch = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::new();
     for _ in 0..n {
         let topic_id = buf::get_uuid(buf)?;
-        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let batches = decode_ack_batches(buf)?;
-            buf::skip_tagged_fields(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             topics.push((topic_id, partition, batches));
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    buf::skip_tagged_fields(buf)?;
     Ok((group_id, member_id, epoch, topics))
 }
 
-/// Encode ShareAcknowledge: throttle `0` plus error code.
+/// Encode a ShareAcknowledge response (`version` 0–1): throttle `0` plus error code.
 pub fn encode_share_acknowledge_response(
     buf: &mut BytesMut,
+    version: i16,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    let flexible = share_acknowledge_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
-    buf::put_compact_string(buf, None)?;
-    buf::put_array_len(buf, true, Some(0))?;
-    buf::put_array_len(buf, true, Some(0))?;
-    buf::put_empty_tagged_fields(buf);
+    buf::put_string(buf, flexible, None)?;
+    buf::put_array_len(buf, flexible, Some(0))?;
+    buf::put_array_len(buf, flexible, Some(0))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode ShareAcknowledge: error code.
-pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B) -> Result<i16> {
+/// Decode a ShareAcknowledge response (`version` 0–1): error code.
+pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = share_acknowledge_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let _msg = buf::get_compact_string(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let _msg = buf::get_string(buf, flexible)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     for _ in 0..n {
         let _id = buf::get_uuid(buf)?;
-        let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let _p = buf::get_i32(buf)?;
             let _e = buf::get_i16(buf)?;
-            let _m = buf::get_compact_string(buf)?;
+            let _m = buf::get_string(buf, flexible)?;
             let _l = decode_leader(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
+        }
+        if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        buf::skip_tagged_fields(buf)?;
     }
-    let nodes = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let nodes = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     for _ in 0..nodes {
         let _id = buf::get_i32(buf)?;
-        let _h = buf::get_compact_string(buf)?;
+        let _h = buf::get_string(buf, flexible)?;
         let _p = buf::get_i32(buf)?;
-        let _r = buf::get_compact_string(buf)?;
+        let _r = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    buf::skip_tagged_fields(buf)?;
     Ok(error_code)
 }
 
@@ -957,6 +1006,7 @@ mod tests {
         buf.clear();
         encode_share_acknowledge_request(
             &mut buf,
+            1,
             "sg",
             "m1",
             1,
@@ -971,14 +1021,17 @@ mod tests {
             )],
         )
         .unwrap();
-        let (gid, mid, _e, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
+        let (gid, mid, _e, acks) = decode_share_acknowledge_request(&mut &buf[..], 1).unwrap();
         assert_eq!(gid, "sg");
         assert_eq!(mid, "m1");
         assert_eq!(acks[0].2[0].types, vec![ACK_ACCEPT]);
         assert_eq!(acks[0].2[0].last_offset, 2);
         buf.clear();
-        encode_share_acknowledge_response(&mut buf, 0).unwrap();
-        assert_eq!(decode_share_acknowledge_response(&mut &buf[..]).unwrap(), 0);
+        encode_share_acknowledge_response(&mut buf, 1, 0).unwrap();
+        assert_eq!(
+            decode_share_acknowledge_response(&mut &buf[..], 1).unwrap(),
+            0
+        );
     }
 
     #[test]
@@ -986,6 +1039,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_share_acknowledge_request(
             &mut buf,
+            1,
             "sg",
             "m1",
             2,
@@ -1010,7 +1064,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
+        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..], 1).unwrap();
         assert_eq!(epoch, 2);
         assert_eq!(acks.len(), 2);
         assert_eq!(acks[0].1, 0);
@@ -1021,10 +1075,76 @@ mod tests {
     #[test]
     fn share_acknowledge_close_session_has_no_topics() {
         let mut buf = BytesMut::new();
-        encode_share_acknowledge_request(&mut buf, "sg", "m1", -1, [0u8; 16], &[]).unwrap();
-        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..]).unwrap();
+        encode_share_acknowledge_request(&mut buf, 1, "sg", "m1", -1, [0u8; 16], &[]).unwrap();
+        let (_gid, _mid, epoch, acks) = decode_share_acknowledge_request(&mut &buf[..], 1).unwrap();
         assert_eq!(epoch, -1);
         assert!(acks.is_empty());
+    }
+
+    #[test]
+    fn share_acknowledge_v0_matches_v1_and_does_not_speak_v2() {
+        // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+",
+        // latestVersionUnstable. Official Kafka 4.1 JSON: validVersions "1"
+        // (v0 removed). Same request/response fields. This crate speaks 0–1.
+        let partitions = [(
+            0,
+            vec![AcknowledgementBatch {
+                first_offset: 0,
+                last_offset: 1,
+                types: vec![ACK_ACCEPT],
+            }],
+        )];
+        let mut v0 = BytesMut::new();
+        encode_share_acknowledge_request(&mut v0, 0, "sg", "m1", 1, [0u8; 16], &partitions)
+            .unwrap();
+        let mut v1 = BytesMut::new();
+        encode_share_acknowledge_request(&mut v1, 1, "sg", "m1", 1, [0u8; 16], &partitions)
+            .unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        let mut cur = v0.as_ref();
+        let (gid, mid, epoch, acks) = decode_share_acknowledge_request(&mut cur, 0).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str(), epoch), ("sg", "m1", 1));
+        assert_eq!(acks[0].2[0].types, vec![ACK_ACCEPT]);
+        assert!(!cur.has_remaining(), "v0 request leftover-empty");
+        let err = encode_share_acknowledge_request(
+            &mut BytesMut::new(),
+            2,
+            "sg",
+            "m1",
+            1,
+            [0u8; 16],
+            &partitions,
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 is not spoken, got {err}"
+        );
+        let mut empty: &[u8] = &[];
+        let err = decode_share_acknowledge_request(&mut empty, 2).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 decode is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+
+        v0.clear();
+        encode_share_acknowledge_response(&mut v0, 0, 0).unwrap();
+        v1.clear();
+        encode_share_acknowledge_response(&mut v1, 1, 0).unwrap();
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 response bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(decode_share_acknowledge_response(&mut cur, 0).unwrap(), 0);
+        assert!(!cur.has_remaining(), "v0 response leftover-empty");
+        v0.clear();
+        let err = encode_share_acknowledge_response(&mut v0, 2, 0).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v2 response is not spoken, got {err}"
+        );
     }
 
     #[test]

@@ -37,6 +37,7 @@
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs),
+//! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),

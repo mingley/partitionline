@@ -417,6 +417,7 @@ struct State {
     last_share_fetch_epoch: Option<i32>,
     last_share_fetch_version: Option<i16>,
     last_share_ack_epoch: Option<i32>,
+    last_share_ack_version: Option<i16>,
     last_share_ack_partitions: usize,
     last_share_fetch_node: Option<i32>,
     last_share_ack_node: Option<i32>,
@@ -711,6 +712,7 @@ fn new_state(
         last_share_fetch_epoch: None,
         last_share_fetch_version: None,
         last_share_ack_epoch: None,
+        last_share_ack_version: None,
         last_share_ack_partitions: 0,
         last_share_fetch_node: None,
         last_share_ack_node: None,
@@ -2021,6 +2023,10 @@ impl Mock {
         self.state.lock().last_share_ack_epoch
     }
 
+    pub fn last_share_ack_version(&self) -> Option<i16> {
+        self.state.lock().last_share_ack_version
+    }
+
     pub fn last_share_ack_partitions(&self) -> usize {
         self.state.lock().last_share_ack_partitions
     }
@@ -2477,7 +2483,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (DESCRIBE_DELEGATION_TOKEN, 1, 3),
         (SHARE_GROUP_HEARTBEAT, 0, 1),
         (SHARE_FETCH, 0, 1),
-        (SHARE_ACKNOWLEDGE, 1, 1),
+        (SHARE_ACKNOWLEDGE, 0, 1),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 7),
@@ -2600,7 +2606,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
             },
         )
         .unwrap(),
-        SHARE_ACKNOWLEDGE => encode_share_acknowledge_response(body, NC).unwrap(),
+        SHARE_ACKNOWLEDGE => encode_share_acknowledge_response(body, api_version, NC).unwrap(),
         SHARE_FETCH => encode_share_fetch_error(body, api_version, NC).unwrap(),
         OFFSET_DELETE => encode_offset_delete_response(body, NC, &[]).unwrap(),
         _ => {}
@@ -4585,9 +4591,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             SHARE_ACKNOWLEDGE => {
+                let version = header.api_version;
                 let (_gid, member_id, epoch, acks) =
-                    decode_share_acknowledge_request(&mut frame).unwrap();
+                    decode_share_acknowledge_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_share_ack_version = Some(version);
                 let tps: Vec<(String, i32)> = acks
                     .iter()
                     .map(|(tid, p, _)| (topic_name_for_id(&st, *tid), *p))
@@ -4596,19 +4604,23 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_share_ack_epoch = Some(epoch);
                 st.last_share_ack_partitions = acks.len();
                 if epoch != -1 && !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
-                    encode_share_acknowledge_response(&mut body, error::NOT_LEADER_OR_FOLLOWER)
-                        .unwrap();
+                    encode_share_acknowledge_response(
+                        &mut body,
+                        version,
+                        error::NOT_LEADER_OR_FOLLOWER,
+                    )
+                    .unwrap();
                 } else {
                     st.last_share_ack_node = Some(node_id);
                     let sess = share_session_step(&mut st, &member_id, epoch);
                     if sess != 0 {
-                        encode_share_acknowledge_response(&mut body, sess).unwrap();
+                        encode_share_acknowledge_response(&mut body, version, sess).unwrap();
                     } else {
                         for (tid, partition, batches) in acks {
                             let name = topic_name_for_id(&st, tid);
                             apply_share_acks(&mut st, &member_id, &name, partition, &batches);
                         }
-                        encode_share_acknowledge_response(&mut body, 0).unwrap();
+                        encode_share_acknowledge_response(&mut body, version, 0).unwrap();
                     }
                 }
             }

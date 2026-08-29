@@ -159,7 +159,7 @@ impl<'a> IntoIterator for &'a ShareRecords {
     }
 }
 
-/// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v1 / ShareAcknowledge).
+/// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v1 / ShareAcknowledge v0–v1).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -178,6 +178,9 @@ pub struct ShareGroup {
     /// ShareFetch version negotiated from ApiVersions (`-1` unset). `0` is a
     /// spoken version, so it cannot mean unset.
     share_fetch_version: i16,
+    /// ShareAcknowledge version negotiated from ApiVersions (`-1` unset). `0`
+    /// is a spoken version, so it cannot mean unset.
+    share_acknowledge_version: i16,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
     hb_stop: watch::Sender<bool>,
@@ -204,6 +207,16 @@ fn new_member_id() -> Result<String> {
         }
     }
     Ok(format!("s-{hex}"))
+}
+
+fn spoken_share_acknowledge(version: i16) -> Result<i16> {
+    if (0..=1).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support ShareAcknowledge v0-1".into(),
+        ))
+    }
 }
 
 fn spoken_share_fetch(version: i16) -> Result<i16> {
@@ -273,6 +286,13 @@ impl ShareGroup {
             .get(&SHARE_FETCH)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| Error::Unsupported("broker does not support ShareFetch v0-1".into()))?;
+        let share_acknowledge_version = consumer
+            .versions()
+            .get(&SHARE_ACKNOWLEDGE)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support ShareAcknowledge v0-1".into())
+            })?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -292,6 +312,7 @@ impl ShareGroup {
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
             share_fetch_version,
+            share_acknowledge_version,
             hb_err,
             hb_epoch,
             hb_stop,
@@ -863,15 +884,17 @@ impl ShareGroup {
                     }),
                 }
             }
+            let version = spoken_share_acknowledge(self.share_acknowledge_version)?;
             let body = self
                 .consumer
                 .roundtrip_node(
                     node,
                     SHARE_ACKNOWLEDGE,
-                    1,
+                    version,
                     |buf| {
                         encode_share_acknowledge_topics(
                             buf,
+                            version,
                             &self.group_id,
                             &self.member_id,
                             epoch,
@@ -889,7 +912,7 @@ impl ShareGroup {
                 }
                 Err(e) => return Err(e),
             };
-            let err = decode_share_acknowledge_response(&mut body.clone())?;
+            let err = decode_share_acknowledge_response(&mut body.clone(), version)?;
             if err != 0 {
                 let e = Error::broker(err, "ShareAcknowledge");
                 if share_leader_retriable(&e) || share_session_reset(&e) {
@@ -913,6 +936,7 @@ impl ShareGroup {
             return Ok(());
         }
         let timeout = self.cfg.request_timeout;
+        let version = spoken_share_acknowledge(self.share_acknowledge_version)?;
         let mut last = Ok(());
         for node in open {
             let body = self
@@ -920,10 +944,11 @@ impl ShareGroup {
                 .roundtrip_node(
                     node,
                     SHARE_ACKNOWLEDGE,
-                    1,
+                    version,
                     |buf| {
                         encode_share_acknowledge_request(
                             buf,
+                            version,
                             &self.group_id,
                             &self.member_id,
                             -1,
@@ -935,7 +960,7 @@ impl ShareGroup {
                 )
                 .await;
             let err = match body {
-                Ok(body) => decode_share_acknowledge_response(&mut body.clone())?,
+                Ok(body) => decode_share_acknowledge_response(&mut body.clone(), version)?,
                 Err(_) => error::SHARE_SESSION_NOT_FOUND,
             };
             let _ = self.share_epochs.remove(&node);
