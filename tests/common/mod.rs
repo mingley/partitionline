@@ -75,10 +75,10 @@ use partitionline::protocol::admin::{
     AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilterComponent,
     ClientQuotaValue, ClusterDescription, ConfigEntry, CreateDelegationTokenRequest,
-    CreateDelegationTokenResponse, DeletableGroupResult, DeletedShareGroupOffsets,
-    DescribeClientQuotasResponse, DescribeConfigsResult, DescribeDelegationTokenRequest,
-    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
-    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    CreateDelegationTokenResponse, CreatedTopicConfig, DeletableGroupResult,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeConfigsResult,
+    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
+    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
@@ -254,6 +254,7 @@ struct State {
     last_write_txn_markers_version: Option<i16>,
     controller_node: i32,
     last_create_topics_node: Option<i32>,
+    last_create_topics_version: Option<i16>,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     delete_topics_not_controller: u32,
@@ -515,6 +516,7 @@ fn new_state(
         last_write_txn_markers_version: None,
         controller_node: 1,
         last_create_topics_node: None,
+        last_create_topics_version: None,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         delete_topics_not_controller: 0,
@@ -1382,6 +1384,10 @@ impl Mock {
 
     pub fn last_create_topics_node(&self) -> Option<i32> {
         self.state.lock().last_create_topics_node
+    }
+
+    pub fn last_create_topics_version(&self) -> Option<i16> {
+        self.state.lock().last_create_topics_version
     }
 
     pub fn create_topics_not_controller(&self) -> u32 {
@@ -2254,7 +2260,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (SHARE_ACKNOWLEDGE, 1, 1),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
-        (CREATE_TOPICS, 0, 4),
+        (CREATE_TOPICS, 0, 7),
         (DELETE_TOPICS, 0, 3),
         (CREATE_PARTITIONS, 0, 1),
         (DELETE_RECORDS, 0, 1),
@@ -2482,28 +2488,30 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             CREATE_TOPICS => {
-                let req = decode_create_topics_request(&mut frame, header.api_version).unwrap();
+                let version = header.api_version;
+                let req = decode_create_topics_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
+                st.last_create_topics_version = Some(version);
                 if st.controller_node != node_id {
                     st.create_topics_not_controller =
                         st.create_topics_not_controller.saturating_add(1);
                     for t in req.topics {
-                        results.push(TopicResult {
-                            name: t.name,
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                        });
+                        results.push(TopicResult::new(
+                            t.name,
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ));
                     }
                 } else {
                     st.last_create_topics_node = Some(node_id);
                     for t in req.topics {
                         if st.created_topics.contains_key(&t.name) {
-                            results.push(TopicResult {
-                                name: t.name,
-                                error_code: 36,
-                                error_message: Some("Topic already exists.".into()),
-                            });
+                            results.push(TopicResult::new(
+                                t.name,
+                                36,
+                                Some("Topic already exists.".into()),
+                            ));
                             continue;
                         }
                         let npart = if t.assignments.is_empty() {
@@ -2517,6 +2525,17 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         } else if t.replication_factor < 1 && t.assignments.is_empty() {
                             error_code = 38;
                         }
+                        let resp_configs: Vec<CreatedTopicConfig> = t
+                            .configs
+                            .iter()
+                            .map(|c| CreatedTopicConfig {
+                                name: c.name.clone(),
+                                value: c.value.clone(),
+                                read_only: false,
+                                config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                                is_sensitive: false,
+                            })
+                            .collect();
                         if error_code == 0 && !req.validate_only {
                             let mut configs = HashMap::new();
                             for c in t.configs {
@@ -2530,14 +2549,31 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 },
                             );
                         }
+                        let topic_id = if version >= 7 && error_code == 0 {
+                            mock_topic_id(&t.name)
+                        } else {
+                            [0; 16]
+                        };
                         results.push(TopicResult {
                             name: t.name,
                             error_code,
                             error_message: None,
+                            topic_id,
+                            num_partitions: if error_code == 0 { npart } else { -1 },
+                            replication_factor: if error_code == 0 {
+                                t.replication_factor
+                            } else {
+                                -1
+                            },
+                            configs: if error_code == 0 {
+                                resp_configs
+                            } else {
+                                Vec::new()
+                            },
                         });
                     }
                 }
-                encode_create_topics_response(&mut body, header.api_version, &results).unwrap();
+                encode_create_topics_response(&mut body, version, &results).unwrap();
             }
             DELETE_TOPICS => {
                 let (names, _timeout) = decode_delete_topics_request(&mut frame).unwrap();
@@ -2547,11 +2583,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.delete_topics_not_controller =
                         st.delete_topics_not_controller.saturating_add(1);
                     for name in names {
-                        results.push(TopicResult {
+                        results.push(TopicResult::new(
                             name,
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                        });
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ));
                     }
                 } else {
                     st.last_delete_topics_node = Some(node_id);
@@ -2561,11 +2597,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         } else {
                             3
                         };
-                        results.push(TopicResult {
-                            name,
-                            error_code,
-                            error_message: None,
-                        });
+                        results.push(TopicResult::new(name, error_code, None));
                     }
                 }
                 encode_delete_topics_response(&mut body, header.api_version, &results).unwrap();
@@ -2668,21 +2700,21 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.create_partitions_not_controller =
                         st.create_partitions_not_controller.saturating_add(1);
                     for (name, _count) in topics {
-                        results.push(TopicResult {
+                        results.push(TopicResult::new(
                             name,
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                        });
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                        ));
                     }
                 } else {
                     st.last_create_partitions_node = Some(node_id);
                     for (name, count) in topics {
                         match st.created_topics.get_mut(&name) {
-                            None => results.push(TopicResult {
+                            None => results.push(TopicResult::new(
                                 name,
-                                error_code: 3,
-                                error_message: Some("Unknown topic.".into()),
-                            }),
+                                3,
+                                Some("Unknown topic.".into()),
+                            )),
                             Some(spec) => {
                                 let mut err = 0i16;
                                 if count < spec.num_partitions {
@@ -2690,11 +2722,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 } else if !validate_only {
                                     spec.num_partitions = count;
                                 }
-                                results.push(TopicResult {
-                                    name,
-                                    error_code: err,
-                                    error_message: None,
-                                });
+                                results.push(TopicResult::new(name, err, None));
                             }
                         }
                     }

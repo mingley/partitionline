@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, SYNC_GROUP,
+    CREATE_TOPICS, END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA,
+    OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3455,6 +3455,17 @@ async fn create_topics_follows_controller() {
         Some(2),
         "CreateTopics must land on the controller, not bootstrap"
     );
+    assert_eq!(
+        mock.last_create_topics_version(),
+        Some(7),
+        "Admin must prefer CreateTopics v7 when the broker advertises it"
+    );
+    assert_ne!(
+        created[0].topic_id, [0u8; 16],
+        "CreateTopics v7 must return TopicId"
+    );
+    assert_eq!(created[0].num_partitions, 1);
+    assert_eq!(created[0].replication_factor, 1);
 
     mock.set_controller(1);
     let again = admin
@@ -3471,6 +3482,46 @@ async fn create_topics_follows_controller() {
         mock.last_create_topics_node(),
         Some(1),
         "CreateTopics must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn create_topics_negotiates_below_v7_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_TOPICS, 5);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("ct5", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_topics_version(),
+        Some(5),
+        "client must speak CreateTopics v5 when the broker max is 5"
+    );
+    assert_eq!(
+        created[0].topic_id, [0u8; 16],
+        "CreateTopics v5 has no TopicId"
+    );
+    assert_eq!(created[0].num_partitions, 1);
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_TOPICS, 4);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("ct4", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_topics_version(),
+        Some(4),
+        "client must speak CreateTopics v4 when the broker max is 4"
+    );
+    assert_eq!(
+        created[0].num_partitions, -1,
+        "CreateTopics v4 omits NumPartitions"
     );
 }
 

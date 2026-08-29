@@ -1038,9 +1038,9 @@ impl Admin {
         .await?;
         let create_version = versions
             .get(&CREATE_TOPICS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 7))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support CreateTopics v0-4".into())
+                Error::Unsupported("broker does not support CreateTopics v0-7".into())
             })?;
         let delete_version = versions
             .get(&DELETE_TOPICS)
@@ -1383,6 +1383,10 @@ impl Admin {
     }
 
     /// Create topics (`CreateTopics`).
+    ///
+    /// Negotiates v0–v7 (v5+ flexible; v5 returns NumPartitions /
+    /// ReplicationFactor / Configs, KIP-525; v7 TopicId, KIP-516).
+    /// Kafka 4.0 `validVersions` is `2-7`. v8+ is not spoken.
     pub async fn create_topics(
         &mut self,
         topics: &[NewTopic],

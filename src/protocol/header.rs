@@ -6,12 +6,13 @@ use super::api_keys::{
     ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, ALLOCATE_PRODUCER_IDS, ALTER_CLIENT_QUOTAS,
     ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS, ALTER_SHARE_GROUP_OFFSETS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
-    CONSUMER_GROUP_HEARTBEAT, CREATE_DELEGATION_TOKEN, DELETE_GROUPS, DELETE_SHARE_GROUP_OFFSETS,
-    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS,
-    DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
-    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
-    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
-    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    CONSUMER_GROUP_HEARTBEAT, CREATE_DELEGATION_TOKEN, CREATE_TOPICS, DELETE_GROUPS,
+    DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
+    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
+    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR,
+    GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
@@ -136,6 +137,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 2-9. This crate speaks 5–9. v8 Reason and v9 SkipAssignment
         // keep the v6 header. v2–v4 are not spoken.
         JOIN_GROUP if api_version >= 6 => 2,
+        // CreateTopics is classic through v4; flexible from v5
+        // (Apache JSON flexibleVersions: "5+"). Kafka 4.0 validVersions
+        // is 2-7. This crate speaks 0–7. v5 returns configs (KIP-525);
+        // v7 TopicId (KIP-516). v8+ is not spoken.
+        CREATE_TOPICS if api_version >= 5 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -215,6 +221,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         HEARTBEAT if api_version >= 4 => 1,
         SYNC_GROUP if api_version >= 4 => 1,
         JOIN_GROUP if api_version >= 6 => 1,
+        CREATE_TOPICS if api_version >= 5 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -514,6 +521,19 @@ mod tests {
         assert_eq!(response_header_version(JOIN_GROUP, 6), 1);
         assert_eq!(request_header_version(JOIN_GROUP, 9), 2);
         assert_eq!(response_header_version(JOIN_GROUP, 9), 1);
+    }
+
+    #[test]
+    fn create_topics_v5_is_flexible_v4_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 2-7, flexibleVersions 5+.
+        // HeaderVersion is 1 / 0 at v0–4 and 2 / 1 at v5–v7. This crate
+        // speaks 0–7. v5 KIP-525 configs; v7 TopicId.
+        assert_eq!(request_header_version(CREATE_TOPICS, 4), 1);
+        assert_eq!(response_header_version(CREATE_TOPICS, 4), 0);
+        assert_eq!(request_header_version(CREATE_TOPICS, 5), 2);
+        assert_eq!(response_header_version(CREATE_TOPICS, 5), 1);
+        assert_eq!(request_header_version(CREATE_TOPICS, 7), 2);
+        assert_eq!(response_header_version(CREATE_TOPICS, 7), 1);
     }
 
     #[test]

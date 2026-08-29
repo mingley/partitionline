@@ -30,7 +30,7 @@ pub const LIST_GROUPS: i16 = 16;
 pub const SASL_HANDSHAKE: i16 = 17;
 /// ApiVersions (18).
 pub const API_VERSIONS: i16 = 18;
-/// CreateTopics (19).
+/// CreateTopics (19). Kafka 4.0 `validVersions` is `2-7`.
 pub const CREATE_TOPICS: i16 = 19;
 /// DeleteTopics (20).
 pub const DELETE_TOPICS: i16 = 20;

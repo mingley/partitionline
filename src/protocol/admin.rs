@@ -79,7 +79,7 @@ pub struct CreatableTopic {
     pub configs: Vec<TopicConfig>,
 }
 
-/// CreateTopics request body (classic v0–4).
+/// CreateTopics request body (classic v0–4; flexible v5–v7).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateTopicsRequest {
     /// Topics in this request or response.
@@ -99,6 +99,45 @@ pub struct TopicResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+    /// Topic UUID from CreateTopics v7. Zero when the version has no TopicId.
+    pub topic_id: [u8; 16],
+    /// Partition count from CreateTopics v5+, or `-1` when omitted.
+    pub num_partitions: i32,
+    /// Replication factor from CreateTopics v5+, or `-1` when omitted.
+    pub replication_factor: i16,
+    /// Topic configs from CreateTopics v5+ (KIP-525).
+    pub configs: Vec<CreatedTopicConfig>,
+}
+
+impl TopicResult {
+    /// Name plus per-topic error. CreateTopics v5+ fields are omitted.
+    #[must_use]
+    pub fn new(name: impl Into<String>, error_code: i16, error_message: Option<String>) -> Self {
+        Self {
+            name: name.into(),
+            error_code,
+            error_message,
+            topic_id: [0; 16],
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        }
+    }
+}
+
+/// One config entry on a CreateTopics v5+ response (KIP-525).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreatedTopicConfig {
+    /// Config key.
+    pub name: String,
+    /// Config value, or `None` when unset / sensitive.
+    pub value: Option<String>,
+    /// True when the broker will not change this key.
+    pub read_only: bool,
+    /// Kafka config source (`CONFIG_SOURCE_DYNAMIC_TOPIC`, …).
+    pub config_source: i8,
+    /// True when the value is redacted.
+    pub is_sensitive: bool,
 }
 
 /// One resource in a DescribeConfigs request.
@@ -155,16 +194,16 @@ pub struct DescribeConfigsResult {
     pub entries: Vec<ConfigEntry>,
 }
 
-fn put_i32_array(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(items.len()))?;
+fn put_i32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::error::Result<()> {
+    buf::put_array_len(buf, flexible, Some(items.len()))?;
     for v in items {
         buf.put_i32(*v);
     }
     Ok(())
 }
 
-fn get_i32_array<B: Buf>(buf: &mut B) -> Result<Vec<i32>> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+fn get_i32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
         out.push(buf::get_i32(buf)?);
@@ -200,31 +239,61 @@ fn put_string_array(buf: &mut BytesMut, items: Option<&[String]>) -> crate::erro
     Ok(())
 }
 
-/// CreateTopics v0–4 (classic; flexible from v5).
+/// `true` when CreateTopics `version` is flexible.
+///
+/// v0–v4 are classic. v5 is the first flexible version (KIP-525 configs on
+/// the response). v6 is the same layout (KIP-599 THROTTLING_QUOTA_EXCEEDED).
+/// v7 adds TopicId UUID on the response (KIP-516). Kafka 4.0
+/// `validVersions` is `2-7` (v0–v1 removed). This crate speaks 0–7.
+/// v8+ is not spoken.
+fn create_topics_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=4 => Ok(false),
+        5..=7 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "CreateTopics version {other} is not implemented"
+        ))),
+    }
+}
+
+/// CreateTopics v0–7 (classic through v4; flexible from v5).
 pub fn encode_create_topics_request(
     buf: &mut BytesMut,
     version: i16,
     req: &CreateTopicsRequest,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(req.topics.len()))?;
+    let flexible = create_topics_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
     for t in &req.topics {
-        buf::put_classic_nullable_string(buf, Some(&t.name))?;
+        buf::put_string(buf, flexible, Some(&t.name))?;
         buf.put_i32(t.num_partitions);
         buf.put_i16(t.replication_factor);
-        buf::put_array_len(buf, false, Some(t.assignments.len()))?;
+        buf::put_array_len(buf, flexible, Some(t.assignments.len()))?;
         for a in &t.assignments {
             buf.put_i32(a.partition_index);
-            put_i32_array(buf, &a.broker_ids)?;
+            put_i32_array(buf, flexible, &a.broker_ids)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
-        buf::put_array_len(buf, false, Some(t.configs.len()))?;
+        buf::put_array_len(buf, flexible, Some(t.configs.len()))?;
         for c in &t.configs {
-            buf::put_classic_nullable_string(buf, Some(&c.name))?;
-            buf::put_classic_nullable_string(buf, c.value.as_deref())?;
+            buf::put_string(buf, flexible, Some(&c.name))?;
+            buf::put_string(buf, flexible, c.value.as_deref())?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
         }
     }
     buf.put_i32(req.timeout_ms);
     if version >= 1 {
         buf.put_u8(u8::from(req.validate_only));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -234,28 +303,38 @@ pub fn decode_create_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<CreateTopicsRequest> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let flexible = create_topics_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let num_partitions = buf::get_i32(buf)?;
         let replication_factor = buf::get_i16(buf)?;
-        let an = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut assignments = Vec::with_capacity(an);
         for _ in 0..an {
             let partition_index = buf::get_i32(buf)?;
-            let broker_ids = get_i32_array(buf)?;
+            let broker_ids = get_i32_array(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             assignments.push(ReplicaAssignment {
                 partition_index,
                 broker_ids,
             });
         }
-        let cn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let cn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut configs = Vec::with_capacity(cn);
         for _ in 0..cn {
-            let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-            let value = buf::get_classic_nullable_string(buf)?;
+            let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let value = buf::get_string(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             configs.push(TopicConfig { name, value });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
         }
         topics.push(CreatableTopic {
             name,
@@ -271,6 +350,9 @@ pub fn decode_create_topics_request<B: Buf>(
     } else {
         false
     };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(CreateTopicsRequest {
         topics,
         timeout_ms,
@@ -284,16 +366,37 @@ pub fn encode_create_topics_response(
     version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    let flexible = create_topics_flexible(version)?;
     if version >= 2 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, false, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
-        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        if version >= 7 {
+            buf.extend_from_slice(&r.topic_id);
+        }
         buf.put_i16(r.error_code);
         if version >= 1 {
-            buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
+            buf::put_string(buf, flexible, r.error_message.as_deref())?;
         }
+        if version >= 5 {
+            buf.put_i32(r.num_partitions);
+            buf.put_i16(r.replication_factor);
+            buf::put_array_len(buf, true, Some(r.configs.len()))?;
+            for c in &r.configs {
+                buf::put_compact_string(buf, Some(&c.name))?;
+                buf::put_compact_string(buf, c.value.as_deref())?;
+                buf.put_u8(u8::from(c.read_only));
+                buf.put_i8(c.config_source);
+                buf.put_u8(u8::from(c.is_sensitive));
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -303,24 +406,62 @@ pub fn decode_create_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<TopicResult>> {
+    let flexible = create_topics_flexible(version)?;
     if version >= 2 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let topic_id = if version >= 7 {
+            buf::get_uuid(buf)?
+        } else {
+            [0u8; 16]
+        };
         let error_code = buf::get_i16(buf)?;
         let error_message = if version >= 1 {
-            buf::get_classic_nullable_string(buf)?
+            buf::get_string(buf, flexible)?
         } else {
             None
+        };
+        let (num_partitions, replication_factor, configs) = if version >= 5 {
+            let num_partitions = buf::get_i32(buf)?;
+            let replication_factor = buf::get_i16(buf)?;
+            let cn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            let mut configs = Vec::with_capacity(cn);
+            for _ in 0..cn {
+                let cname = buf::get_compact_string(buf)?.unwrap_or_default();
+                let value = buf::get_compact_string(buf)?;
+                let read_only = buf::get_bool(buf)?;
+                let config_source = buf::get_i8(buf)?;
+                let is_sensitive = buf::get_bool(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                configs.push(CreatedTopicConfig {
+                    name: cname,
+                    value,
+                    read_only,
+                    config_source,
+                    is_sensitive,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            (num_partitions, replication_factor, configs)
+        } else {
+            (-1, -1, Vec::new())
         };
         out.push(TopicResult {
             name,
             error_code,
             error_message,
+            topic_id,
+            num_partitions,
+            replication_factor,
+            configs,
         });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(out)
 }
@@ -376,11 +517,7 @@ pub fn decode_delete_topics_response<B: Buf>(
     for _ in 0..n {
         let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
         let error_code = buf::get_i16(buf)?;
-        out.push(TopicResult {
-            name,
-            error_code,
-            error_message: None,
-        });
+        out.push(TopicResult::new(name, error_code, None));
     }
     Ok(out)
 }
@@ -598,11 +735,7 @@ pub fn decode_create_partitions_response<B: Buf>(buf: &mut B) -> Result<Vec<Topi
         let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
         let error_code = buf::get_i16(buf)?;
         let error_message = buf::get_classic_nullable_string(buf)?;
-        out.push(TopicResult {
-            name,
-            error_code,
-            error_message,
-        });
+        out.push(TopicResult::new(name, error_code, error_message));
     }
     Ok(out)
 }
@@ -7274,11 +7407,7 @@ mod tests {
         let decoded = decode_create_topics_request(&mut &buf[..], 3).unwrap();
         assert_eq!(decoded, req);
 
-        let results = vec![TopicResult {
-            name: "orders".into(),
-            error_code: 0,
-            error_message: None,
-        }];
+        let results = vec![TopicResult::new("orders", 0, None)];
         buf.clear();
         encode_create_topics_response(&mut buf, 3, &results).unwrap();
         assert_eq!(
@@ -7289,11 +7418,7 @@ mod tests {
 
     #[test]
     fn create_topics_not_controller_is_not_at_byte_four() {
-        let results = vec![TopicResult {
-            name: "t".into(),
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: None,
-        }];
+        let results = vec![TopicResult::new("t", crate::error::NOT_CONTROLLER, None)];
         let mut buf = BytesMut::new();
         encode_create_topics_response(&mut buf, 4, &results).unwrap();
         let b4 = buf.get(4).copied().unwrap();
@@ -7311,6 +7436,134 @@ mod tests {
         );
     }
 
+    fn sample_create_topics_req() -> CreateTopicsRequest {
+        CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "orders".into(),
+                num_partitions: 6,
+                replication_factor: 1,
+                assignments: vec![ReplicaAssignment {
+                    partition_index: 0,
+                    broker_ids: vec![1],
+                }],
+                configs: vec![TopicConfig {
+                    name: "cleanup.policy".into(),
+                    value: Some("compact".into()),
+                }],
+            }],
+            timeout_ms: 10_000,
+            validate_only: false,
+        }
+    }
+
+    #[test]
+    fn create_topics_v5_roundtrip_is_leftover_empty() {
+        let req = sample_create_topics_req();
+        let mut buf = BytesMut::new();
+        encode_create_topics_request(&mut buf, 5, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_create_topics_request(&mut cur, 5).unwrap(), req);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v5 request must consume compact fields and tagged fields"
+        );
+        let mut v4 = BytesMut::new();
+        encode_create_topics_request(&mut v4, 4, &req).unwrap();
+        assert_ne!(&buf[..], &v4[..], "CreateTopics v5 must not be classic v4");
+
+        let results = vec![TopicResult {
+            name: "orders".into(),
+            error_code: 0,
+            error_message: None,
+            topic_id: [0; 16],
+            num_partitions: 6,
+            replication_factor: 1,
+            configs: vec![CreatedTopicConfig {
+                name: "cleanup.policy".into(),
+                value: Some("compact".into()),
+                read_only: false,
+                config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                is_sensitive: false,
+            }],
+        }];
+        buf.clear();
+        encode_create_topics_response(&mut buf, 5, &results).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(decode_create_topics_response(&mut cur, 5).unwrap(), results);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v5 response must be leftover-empty"
+        );
+        assert!(
+            encode_create_topics_request(&mut BytesMut::new(), 8, &req).is_err(),
+            "CreateTopics v8+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn create_topics_v5_compact_layout_matches_independent_encode() {
+        // Compact 1 topic "t", 1 partition, rf 1, empty assignments/configs,
+        // timeout 5000, validateOnly false, empty tagged fields.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00,
+            0x13, 0x88, 0x00, 0x00,
+        ];
+        let req = CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "t".into(),
+                num_partitions: 1,
+                replication_factor: 1,
+                assignments: Vec::new(),
+                configs: Vec::new(),
+            }],
+            timeout_ms: 5_000,
+            validate_only: false,
+        };
+        let mut buf = BytesMut::new();
+        encode_create_topics_request(&mut buf, 5, &req).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v6 = BytesMut::new();
+        encode_create_topics_request(&mut v6, 6, &req).unwrap();
+        assert_eq!(&buf[..], &v6[..], "CreateTopics v6 request matches v5");
+        let mut v7 = BytesMut::new();
+        encode_create_topics_request(&mut v7, 7, &req).unwrap();
+        assert_eq!(&buf[..], &v7[..], "CreateTopics v7 request matches v5");
+    }
+
+    #[test]
+    fn create_topics_v7_response_includes_topic_id() {
+        let mut id = [0u8; 16];
+        id[15] = 7;
+        let results = vec![TopicResult {
+            name: "t".into(),
+            error_code: 0,
+            error_message: None,
+            topic_id: id,
+            num_partitions: 1,
+            replication_factor: 1,
+            configs: Vec::new(),
+        }];
+        let mut v5 = BytesMut::new();
+        encode_create_topics_response(&mut v5, 5, &results).unwrap();
+        let mut v7 = BytesMut::new();
+        encode_create_topics_response(&mut v7, 7, &results).unwrap();
+        assert_ne!(
+            &v5[..],
+            &v7[..],
+            "CreateTopics v7 response must include TopicId"
+        );
+        let mut cur = &v7[..];
+        let got = decode_create_topics_response(&mut cur, 7).unwrap();
+        assert_eq!(got, results);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v7 response must be leftover-empty"
+        );
+        let mut v6 = BytesMut::new();
+        encode_create_topics_response(&mut v6, 6, &results).unwrap();
+        assert_eq!(&v5[..], &v6[..], "CreateTopics v6 response matches v5");
+    }
+
     #[test]
     fn delete_topics_v3_roundtrip() {
         let names = vec!["orders".into(), "t".into()];
@@ -7321,16 +7574,8 @@ mod tests {
         assert_eq!(timeout, 5000);
 
         let results = vec![
-            TopicResult {
-                name: "orders".into(),
-                error_code: 0,
-                error_message: None,
-            },
-            TopicResult {
-                name: "t".into(),
-                error_code: 3,
-                error_message: None,
-            },
+            TopicResult::new("orders", 0, None),
+            TopicResult::new("t", 3, None),
         ];
         buf.clear();
         encode_delete_topics_response(&mut buf, 3, &results).unwrap();
@@ -7342,11 +7587,7 @@ mod tests {
 
     #[test]
     fn create_partitions_not_controller_is_not_at_byte_four() {
-        let results = vec![TopicResult {
-            name: "t".into(),
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: None,
-        }];
+        let results = vec![TopicResult::new("t", crate::error::NOT_CONTROLLER, None)];
         let mut buf = BytesMut::new();
         encode_create_partitions_response(&mut buf, &results).unwrap();
         let b4 = buf.get(4).copied().unwrap();
@@ -7392,11 +7633,7 @@ mod tests {
 
     #[test]
     fn delete_topics_not_controller_is_not_at_byte_four() {
-        let results = vec![TopicResult {
-            name: "t".into(),
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: None,
-        }];
+        let results = vec![TopicResult::new("t", crate::error::NOT_CONTROLLER, None)];
         let mut buf = BytesMut::new();
         encode_delete_topics_response(&mut buf, 3, &results).unwrap();
         let b4 = buf.get(4).copied().unwrap();
