@@ -33,13 +33,13 @@ use partitionline::{
     CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DescribableLogDirTopic,
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
     DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, IsolationLevel, NewPartitions, NewTopic, OffsetAndMetadata, OidcConfig,
-    OngoingReassignment, PartitionReassignment, ProduceRecord, Producer, ProducerConfig,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition,
-    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialDeletion, UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitions, NewTopic,
+    OffsetAndMetadata, OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord,
+    Producer, ProducerConfig, RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism,
+    ShareGroup, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
+    UpgradeType, UserScramCredentialDeletion, UserScramCredentialUpsertion,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -2392,6 +2392,67 @@ async fn offset_fetch_read_committed_sets_require_stable() {
         Some(false),
         "group assign OffsetFetch names assigned partitions"
     );
+    assert_eq!(
+        mock.last_offset_fetch_group_count(),
+        1,
+        "classic group assign OffsetFetch is one group"
+    );
+}
+
+#[tokio::test]
+async fn admin_list_consumer_group_offsets_for_groups_falls_back_below_v8() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 7);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g1",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(1))],
+        )
+        .await
+        .unwrap();
+    admin
+        .alter_consumer_group_offsets(
+            "g2",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(2))],
+        )
+        .await
+        .unwrap();
+    let before = mock.offset_fetch_calls();
+    let listed = admin
+        .list_consumer_group_offsets_for_groups([
+            (
+                "g1",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+            (
+                "g2",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(listed.len(), 2);
+    assert_eq!(listed[0].1[0].1.offset, 1);
+    assert_eq!(listed[1].1[0].1.offset, 2);
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(7),
+        "OffsetFetch max 7 must not speak Groups"
+    );
+    assert_eq!(
+        mock.last_offset_fetch_group_count(),
+        1,
+        "v1–v7 fallback is one group per RPC"
+    );
+    assert_eq!(
+        mock.offset_fetch_calls().saturating_sub(before),
+        2,
+        "v1–v7 must send one OffsetFetch per group"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

@@ -132,12 +132,13 @@ use partitionline::protocol::fetch::{
 use partitionline::protocol::group::{
     decode_find_coordinator_request, decode_heartbeat_request, decode_join_group_request,
     decode_leave_group_request_version, decode_offset_commit_request, decode_offset_delete_request,
-    decode_offset_fetch_request, decode_sync_group_request, encode_find_coordinator_response,
-    encode_heartbeat_response, encode_join_group_response, encode_leave_group_response_version,
-    encode_offset_commit_response, encode_offset_delete_response, encode_offset_fetch_response,
-    encode_sync_group_response, FetchedOffset, FetchedOffsetTopic, JoinMember, LeaveGroupMember,
-    LeaveGroupMemberResult, OffsetDeleteResult, OffsetPartition, OffsetTopic,
-    COORDINATOR_TRANSACTION,
+    decode_offset_fetch_groups_request, decode_sync_group_request,
+    encode_find_coordinator_response, encode_heartbeat_response, encode_join_group_response,
+    encode_leave_group_response_version, encode_offset_commit_response,
+    encode_offset_delete_response, encode_offset_fetch_groups_response,
+    encode_offset_fetch_response, encode_sync_group_response, FetchedOffset, FetchedOffsetTopic,
+    JoinMember, LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult,
+    OffsetFetchGroupResult, OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::{
@@ -207,7 +208,8 @@ struct CommittedOffset {
 struct State {
     log: HashMap<(String, i32), Vec<Record>>,
     next_offset: HashMap<(String, i32), i64>,
-    committed: HashMap<(String, i32), CommittedOffset>,
+    /// Keyed by `(group_id, topic, partition)`.
+    committed: HashMap<(String, String, i32), CommittedOffset>,
     member_seq: u32,
     sasl_user: Option<(String, String)>,
     scram_user: Option<(scram::ScramAlg, String, String)>,
@@ -433,6 +435,7 @@ struct State {
     last_offset_fetch_version: Option<i16>,
     last_offset_fetch_require_stable: Option<bool>,
     last_offset_fetch_null_topics: Option<bool>,
+    last_offset_fetch_group_count: usize,
     last_offset_commit_node: Option<i32>,
     last_offset_commit_version: Option<i16>,
     last_heartbeat_version: Option<i16>,
@@ -735,6 +738,7 @@ fn new_state(
         last_offset_fetch_version: None,
         last_offset_fetch_require_stable: None,
         last_offset_fetch_null_topics: None,
+        last_offset_fetch_group_count: 0,
         last_offset_commit_node: None,
         last_offset_commit_version: None,
         last_heartbeat_version: None,
@@ -2153,6 +2157,10 @@ impl Mock {
 
     pub fn last_offset_fetch_null_topics(&self) -> Option<bool> {
         self.state.lock().last_offset_fetch_null_topics
+    }
+
+    pub fn last_offset_fetch_group_count(&self) -> usize {
+        self.state.lock().last_offset_fetch_group_count
     }
 
     pub fn add_partitions_to_txn_calls(&self) -> u32 {
@@ -3966,7 +3974,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             TXN_OFFSET_COMMIT => {
-                let (_tid, _gid, member, topics) =
+                let (_tid, gid, member, topics) =
                     decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.coord_node != node_id {
@@ -3981,7 +3989,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             nparts = nparts.saturating_add(1);
                             epochs.push(p.leader_epoch);
                             let _ = st.committed.insert(
-                                (t.topic.clone(), p.partition),
+                                (gid.clone(), t.topic.clone(), p.partition),
                                 CommittedOffset {
                                     offset: p.offset,
                                     leader_epoch: p.leader_epoch,
@@ -4972,7 +4980,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
             }
             OFFSET_COMMIT => {
-                let (_g, _m, topics) =
+                let (gid, _m, topics) =
                     decode_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);
@@ -4994,7 +5002,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         nparts = nparts.saturating_add(t.partitions.len());
                         for p in &t.partitions {
                             st.committed.insert(
-                                (t.topic.clone(), p.partition),
+                                (gid.clone(), t.topic.clone(), p.partition),
                                 CommittedOffset {
                                     offset: p.offset,
                                     leader_epoch: p.leader_epoch,
@@ -5010,71 +5018,87 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             OFFSET_FETCH => {
-                let (gid, topics, stable) =
-                    decode_offset_fetch_request(&mut frame, header.api_version).unwrap();
+                let (groups, stable) =
+                    decode_offset_fetch_groups_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_fetch_calls = st.offset_fetch_calls.saturating_add(1);
                 st.last_offset_fetch_version = Some(header.api_version);
                 st.last_offset_fetch_require_stable = Some(stable);
-                st.last_offset_fetch_null_topics = Some(topics.is_none());
+                st.last_offset_fetch_group_count = groups.len();
+                st.last_offset_fetch_null_topics =
+                    Some(groups.first().is_some_and(|g| g.topics.is_none()));
                 let mut nparts = 0usize;
-                let mut out = Vec::new();
-                match topics {
-                    None => {
-                        let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
-                        for ((topic, part), c) in &st.committed {
-                            by_topic
-                                .entry(topic.clone())
-                                .or_default()
-                                .push(FetchedOffset {
-                                    partition: *part,
-                                    offset: c.offset,
-                                    leader_epoch: c.leader_epoch,
-                                    metadata: c.metadata.clone(),
-                                    error_code: 0,
-                                });
+                let mut results = Vec::with_capacity(groups.len());
+                for g in groups {
+                    let out = match g.topics {
+                        None => {
+                            let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+                            for ((gid, topic, part), c) in &st.committed {
+                                if gid != &g.group_id {
+                                    continue;
+                                }
+                                by_topic
+                                    .entry(topic.clone())
+                                    .or_default()
+                                    .push(FetchedOffset {
+                                        partition: *part,
+                                        offset: c.offset,
+                                        leader_epoch: c.leader_epoch,
+                                        metadata: c.metadata.clone(),
+                                        error_code: 0,
+                                    });
+                            }
+                            let mut out = Vec::new();
+                            for (topic, partitions) in by_topic {
+                                nparts = nparts.saturating_add(partitions.len());
+                                out.push(FetchedOffsetTopic { topic, partitions });
+                            }
+                            out
                         }
-                        for (topic, partitions) in by_topic {
-                            nparts = nparts.saturating_add(partitions.len());
-                            out.push(FetchedOffsetTopic { topic, partitions });
-                        }
-                    }
-                    Some(topics) => {
-                        out = Vec::with_capacity(topics.len());
-                        for t in topics {
-                            nparts = nparts.saturating_add(t.partitions.len());
-                            let mut parts = Vec::with_capacity(t.partitions.len());
-                            for p in t.partitions {
-                                let (off, epoch, meta) = st
-                                    .committed
-                                    .get(&(t.topic.clone(), p))
-                                    .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
-                                    .unwrap_or((-1, -1, String::new()));
-                                parts.push(FetchedOffset {
-                                    partition: p,
-                                    offset: off,
-                                    leader_epoch: epoch,
-                                    metadata: meta,
-                                    error_code: 0,
+                        Some(topics) => {
+                            let mut out = Vec::with_capacity(topics.len());
+                            for t in topics {
+                                nparts = nparts.saturating_add(t.partitions.len());
+                                let mut parts = Vec::with_capacity(t.partitions.len());
+                                for p in t.partitions {
+                                    let (off, epoch, meta) = st
+                                        .committed
+                                        .get(&(g.group_id.clone(), t.topic.clone(), p))
+                                        .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
+                                        .unwrap_or((-1, -1, String::new()));
+                                    parts.push(FetchedOffset {
+                                        partition: p,
+                                        offset: off,
+                                        leader_epoch: epoch,
+                                        metadata: meta,
+                                        error_code: 0,
+                                    });
+                                }
+                                out.push(FetchedOffsetTopic {
+                                    topic: t.topic,
+                                    partitions: parts,
                                 });
                             }
-                            out.push(FetchedOffsetTopic {
-                                topic: t.topic,
-                                partitions: parts,
-                            });
+                            out
                         }
-                    }
+                    };
+                    results.push(OffsetFetchGroupResult {
+                        group_id: g.group_id,
+                        topics: out,
+                        error_code: 0,
+                    });
                 }
                 st.last_offset_fetch_partitions = nparts;
-                encode_offset_fetch_response(&mut body, header.api_version, &gid, &out, 0).unwrap();
+                encode_offset_fetch_groups_response(&mut body, header.api_version, &results)
+                    .unwrap();
             }
             OFFSET_DELETE => {
-                let (_gid, topics) = decode_offset_delete_request(&mut frame).unwrap();
+                let (gid, topics) = decode_offset_delete_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 let mut results = Vec::new();
                 for t in topics {
                     for p in t.partitions {
-                        let _removed = st.committed.remove(&(t.topic.clone(), p));
+                        let _removed = st.committed.remove(&(gid.clone(), t.topic.clone(), p));
                         results.push(OffsetDeleteResult {
                             topic: t.topic.clone(),
                             partition: p,

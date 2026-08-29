@@ -942,6 +942,47 @@ pub struct FetchedOffsetTopic {
     pub partitions: Vec<FetchedOffset>,
 }
 
+/// One group in OffsetFetch v8+ (KIP-709).
+///
+/// v1–v7 encode a single group as GroupId + Topics. v9 MemberId /
+/// MemberEpoch are null / `-1` for classic admin fetches.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetFetchGroup {
+    /// Consumer group id.
+    pub group_id: String,
+    /// Member id (v9). `None` is null.
+    pub member_id: Option<String>,
+    /// Member epoch (v9). `-1` when unknown.
+    pub member_epoch: i32,
+    /// Topic-partitions to fetch. `None` is null Topics (all committed
+    /// partitions; v2+).
+    pub topics: Option<Vec<OffsetFetchTopic>>,
+}
+
+impl OffsetFetchGroup {
+    /// Group id and optional Topics. MemberId is null; MemberEpoch is `-1`.
+    #[must_use]
+    pub fn new(group_id: impl Into<String>, topics: Option<Vec<OffsetFetchTopic>>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            member_id: None,
+            member_epoch: -1,
+            topics,
+        }
+    }
+}
+
+/// One group's OffsetFetch v8+ result (KIP-709).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetFetchGroupResult {
+    /// Consumer group id. Empty on v1–v7 (those versions have no Groups).
+    pub group_id: String,
+    /// Committed offsets for this group.
+    pub topics: Vec<FetchedOffsetTopic>,
+    /// Group-level error code (`0` is success).
+    pub error_code: i16,
+}
+
 /// `true` when OffsetCommit `version` is flexible (v8+).
 ///
 /// v2–v7 are classic. v8–v9 are compact strings/arrays plus tagged fields
@@ -1270,9 +1311,10 @@ fn decode_fetched_offset_topics<B: Buf>(
 /// v1–v5 request is GroupId, Topics (v2–v5 match when Topics is
 /// non-null). v2–v7 Topics is nullable (`None` = all committed
 /// partitions). v7 RequireStable. v8 Groups (nullable Topics per
-/// group). v9 MemberId / MemberEpoch.
+/// group; one or more). v9 MemberId / MemberEpoch.
 /// This crate speaks 1–9. v0 and v10+ are not spoken. Null Topics
-/// is v2+; v1 returns a protocol error.
+/// is v2+; v1 returns a protocol error. For several groups on v8+,
+/// use [`encode_offset_fetch_groups_request`].
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1291,58 +1333,142 @@ pub fn encode_offset_fetch_request(
     if version <= 7 {
         buf::put_string(buf, flexible, Some(group_id))?;
         encode_offset_fetch_topics(buf, flexible, topics)?;
-    } else {
-        buf::put_array_len(buf, true, Some(1))?;
-        buf::put_compact_string(buf, Some(group_id))?;
-        if version >= 9 {
-            buf::put_compact_string(buf, member_id)?;
-            buf.put_i32(member_epoch);
+        if version >= 7 {
+            buf.put_u8(u8::from(require_stable));
         }
-        encode_offset_fetch_topics(buf, true, topics)?;
-        buf::put_empty_tagged_fields(buf);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+        return Ok(());
     }
-    if version >= 7 {
-        buf.put_u8(u8::from(require_stable));
+    encode_offset_fetch_group_item(
+        buf,
+        version,
+        true,
+        group_id,
+        member_id,
+        member_epoch,
+        topics,
+    )?;
+    buf.put_u8(u8::from(require_stable));
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+fn encode_offset_fetch_group_item(
+    buf: &mut BytesMut,
+    version: i16,
+    write_array_len: bool,
+    group_id: &str,
+    member_id: Option<&str>,
+    member_epoch: i32,
+    topics: Option<&[OffsetFetchTopic]>,
+) -> crate::error::Result<()> {
+    if write_array_len {
+        buf::put_array_len(buf, true, Some(1))?;
     }
-    if flexible {
-        buf::put_empty_tagged_fields(buf);
+    buf::put_compact_string(buf, Some(group_id))?;
+    if version >= 9 {
+        buf::put_compact_string(buf, member_id)?;
+        buf.put_i32(member_epoch);
     }
+    encode_offset_fetch_topics(buf, true, topics)?;
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Encode OffsetFetch v8–v9 with a Groups array of N (KIP-709).
+///
+/// v1–v7 return a protocol error (`does not support Groups`). Null Topics
+/// per group is allowed. Empty `groups` writes Groups length 0.
+pub fn encode_offset_fetch_groups_request(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[OffsetFetchGroup],
+    require_stable: bool,
+) -> crate::error::Result<()> {
+    let _flexible = offset_fetch_flexible(version)?;
+    if version < 8 {
+        return Err(Error::protocol(format!(
+            "OffsetFetch version {version} does not support Groups"
+        )));
+    }
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for g in groups {
+        encode_offset_fetch_group_item(
+            buf,
+            version,
+            false,
+            &g.group_id,
+            g.member_id.as_deref(),
+            g.member_epoch,
+            g.topics.as_deref(),
+        )?;
+    }
+    buf.put_u8(u8::from(require_stable));
+    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode OffsetFetch: `(group_id, topics, require_stable)`.
 ///
 /// `topics` is `None` when the request used a null Topics array (v2+;
-/// all committed partitions).
+/// all committed partitions). v8+ with several groups returns the first
+/// group. For every group, use [`decode_offset_fetch_groups_request`].
 pub fn decode_offset_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, Option<Vec<OffsetFetchTopic>>, bool)> {
+    let (groups, require_stable) = decode_offset_fetch_groups_request(buf, version)?;
+    let first = groups
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| OffsetFetchGroup {
+            group_id: String::new(),
+            member_id: None,
+            member_epoch: -1,
+            topics: None,
+        });
+    Ok((first.group_id, first.topics, require_stable))
+}
+
+/// Decode OffsetFetch v1–v9: every group plus RequireStable.
+///
+/// v1–v7 yield one group (GroupId + Topics). v8+ yields the Groups array.
+pub fn decode_offset_fetch_groups_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<OffsetFetchGroup>, bool)> {
     let flexible = offset_fetch_flexible(version)?;
-    let (group, topics) = if version <= 7 {
-        let group = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let groups = if version <= 7 {
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
         let topics = decode_offset_fetch_topics(buf, flexible)?;
-        (group, topics)
+        vec![OffsetFetchGroup {
+            group_id,
+            member_id: None,
+            member_epoch: -1,
+            topics,
+        }]
     } else {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut group = String::new();
-        let mut topics = None;
-        let mut first = true;
+        let mut groups = Vec::with_capacity(n);
         for _ in 0..n {
-            let next = buf::get_compact_string(buf)?.unwrap_or_default();
-            if version >= 9 {
-                let _member = buf::get_compact_string(buf)?;
-                let _epoch = buf::get_i32(buf)?;
-            }
-            let next_topics = decode_offset_fetch_topics(buf, true)?;
+            let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+            let (member_id, member_epoch) = if version >= 9 {
+                (buf::get_compact_string(buf)?, buf::get_i32(buf)?)
+            } else {
+                (None, -1)
+            };
+            let topics = decode_offset_fetch_topics(buf, true)?;
             buf::skip_tagged_fields(buf)?;
-            if first {
-                group = next;
-                topics = next_topics;
-                first = false;
-            }
+            groups.push(OffsetFetchGroup {
+                group_id,
+                member_id,
+                member_epoch,
+                topics,
+            });
         }
-        (group, topics)
+        groups
     };
     let require_stable = if version >= 7 {
         buf::get_bool(buf)?
@@ -1352,7 +1478,7 @@ pub fn decode_offset_fetch_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group, topics, require_stable))
+    Ok((groups, require_stable))
 }
 
 /// Encode OffsetFetch v1–v9. Throttle is `0` on v3+. Top-level error is v2–v7.
@@ -1363,21 +1489,46 @@ pub fn encode_offset_fetch_response(
     topics: &[FetchedOffsetTopic],
     error: i16,
 ) -> crate::error::Result<()> {
+    encode_offset_fetch_groups_response(
+        buf,
+        version,
+        &[OffsetFetchGroupResult {
+            group_id: group_id.to_string(),
+            topics: topics.to_vec(),
+            error_code: error,
+        }],
+    )
+}
+
+/// Encode OffsetFetch v1–v9 for every group (KIP-709 on v8+).
+///
+/// v1–v7 write the first group's Topics and ErrorCode. Empty `groups`
+/// writes an empty Topics array (v1–v7) or Groups length 0 (v8+).
+pub fn encode_offset_fetch_groups_response(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[OffsetFetchGroupResult],
+) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
     if version >= 3 {
         buf.put_i32(0);
     }
     if version <= 7 {
+        let first = groups.first();
+        let topics = first.map(|g| g.topics.as_slice()).unwrap_or(&[]);
+        let error = first.map(|g| g.error_code).unwrap_or(0);
         encode_fetched_offset_topics(buf, version, flexible, topics)?;
         if version >= 2 {
             buf.put_i16(error);
         }
     } else {
-        buf::put_array_len(buf, true, Some(1))?;
-        buf::put_compact_string(buf, Some(group_id))?;
-        encode_fetched_offset_topics(buf, version, true, topics)?;
-        buf.put_i16(error);
-        buf::put_empty_tagged_fields(buf);
+        buf::put_array_len(buf, true, Some(groups.len()))?;
+        for g in groups {
+            buf::put_compact_string(buf, Some(&g.group_id))?;
+            encode_fetched_offset_topics(buf, version, true, &g.topics)?;
+            buf.put_i16(g.error_code);
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -1387,43 +1538,64 @@ pub fn encode_offset_fetch_response(
 
 /// Decode OffsetFetch. Top-level / group error is [`crate::error::Error::Broker`].
 /// Throttle is v3+. Top-level error is v2–v7. Leader epoch is v5+.
+/// v8+ with several groups returns the first group. For every group,
+/// use [`decode_offset_fetch_groups_response`].
 pub fn decode_offset_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<FetchedOffsetTopic>> {
+    let groups = decode_offset_fetch_groups_response(buf, version)?;
+    let first = groups.into_iter().next().unwrap_or(OffsetFetchGroupResult {
+        group_id: String::new(),
+        topics: Vec::new(),
+        error_code: 0,
+    });
+    if first.error_code != 0 {
+        return Err(crate::error::Error::broker(first.error_code, "OffsetFetch"));
+    }
+    Ok(first.topics)
+}
+
+/// Decode OffsetFetch v1–v9: every group's Topics and ErrorCode.
+///
+/// Does not fail on a non-zero group ErrorCode; callers decide. Throttle
+/// is v3+. v1–v7 yield one group with an empty `group_id`.
+pub fn decode_offset_fetch_groups_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<OffsetFetchGroupResult>> {
     let flexible = offset_fetch_flexible(version)?;
     if version >= 3 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let (topics, top) = if version <= 7 {
+    let groups = if version <= 7 {
         let topics = decode_fetched_offset_topics(buf, version, flexible)?;
-        let top = if version >= 2 { buf::get_i16(buf)? } else { 0 };
-        (topics, top)
+        let error_code = if version >= 2 { buf::get_i16(buf)? } else { 0 };
+        vec![OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics,
+            error_code,
+        }]
     } else {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-        let mut topics = Vec::new();
-        let mut top = 0i16;
-        let mut first = true;
+        let mut groups = Vec::with_capacity(n);
         for _ in 0..n {
-            let _gid = buf::get_compact_string(buf)?;
-            let next = decode_fetched_offset_topics(buf, version, true)?;
-            let err = buf::get_i16(buf)?;
+            let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topics = decode_fetched_offset_topics(buf, version, true)?;
+            let error_code = buf::get_i16(buf)?;
             buf::skip_tagged_fields(buf)?;
-            if first {
-                topics = next;
-                top = err;
-                first = false;
-            }
+            groups.push(OffsetFetchGroupResult {
+                group_id,
+                topics,
+                error_code,
+            });
         }
-        (topics, top)
+        groups
     };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    if top != 0 {
-        return Err(crate::error::Error::broker(top, "OffsetFetch"));
-    }
-    Ok(topics)
+    Ok(groups)
 }
 
 /// Topic + partitions for OffsetDelete (api 47) v0.
@@ -2723,6 +2895,104 @@ mod tests {
         assert_eq!((gid.as_str(), stable), ("g", false));
         assert_eq!(got, None);
         assert!(cur.is_empty(), "v9 null Topics leftover-empty");
+    }
+
+    #[test]
+    fn offset_fetch_v8_groups_array_of_two() {
+        let req = offset_fetch_one_topic();
+        let groups = vec![
+            OffsetFetchGroup::new("a", Some(req.clone())),
+            OffsetFetchGroup::new("b", Some(req)),
+        ];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_request(&mut buf, 8, &groups, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, stable) = decode_offset_fetch_groups_request(&mut cur, 8).unwrap();
+        assert!(!stable);
+        assert_eq!(got, groups);
+        assert!(
+            cur.is_empty(),
+            "v8 Groups-of-2 request leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        // Compact Groups of 2 ("a", "b"), each one topic "t" p0, RequireStable 0.
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x61, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+            0x62, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        assert_eq!(&buf[..], REQ);
+
+        let one = vec![OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()))];
+        let mut single = BytesMut::new();
+        encode_offset_fetch_groups_request(&mut single, 8, &one, false).unwrap();
+        let mut via_one = BytesMut::new();
+        encode_offset_fetch_request(
+            &mut via_one,
+            8,
+            "g",
+            None,
+            -1,
+            false,
+            Some(&offset_fetch_one_topic()),
+        )
+        .unwrap();
+        assert_eq!(
+            single.as_ref(),
+            via_one.as_ref(),
+            "Groups of 1 must match encode_offset_fetch_request"
+        );
+
+        let resp = vec![
+            OffsetFetchGroupResult {
+                group_id: "a".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::new(0, 1, 0)],
+                }],
+                error_code: 0,
+            },
+            OffsetFetchGroupResult {
+                group_id: "b".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::new(0, 2, 0)],
+                }],
+                error_code: 0,
+            },
+        ];
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 8, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            cur.is_empty(),
+            "v8 Groups-of-2 response leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let err = encode_offset_fetch_groups_request(&mut BytesMut::new(), 7, &groups, false)
+            .unwrap_err();
+        assert!(err.to_string().contains("does not support Groups"));
+    }
+
+    #[test]
+    fn offset_fetch_v8_groups_null_topics_array_of_two() {
+        let groups = vec![
+            OffsetFetchGroup::new("a", None),
+            OffsetFetchGroup::new("b", None),
+        ];
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_request(&mut buf, 8, &groups, true).unwrap();
+        let mut cur = buf.as_ref();
+        let (got, stable) = decode_offset_fetch_groups_request(&mut cur, 8).unwrap();
+        assert!(stable);
+        assert_eq!(got, groups);
+        assert!(cur.is_empty(), "v8 null-Topics Groups leftover-empty");
+        const REQ: &[u8] = &[
+            0x03, 0x02, 0x61, 0x00, 0x00, 0x02, 0x62, 0x00, 0x00, 0x01, 0x00,
+        ];
+        assert_eq!(&buf[..], REQ);
     }
 
     #[test]

@@ -14,12 +14,13 @@ use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, IsolationLevel,
-    MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
-    Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
-    ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP,
-    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
-    LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
+    ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata,
+    OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
+    RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,
+    LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
+    MAX_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -2826,6 +2827,73 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert_eq!(all_stable.len(), 1);
     assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
     assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
+    admin
+        .alter_consumer_group_offsets(
+            "g-off-b",
+            [(TopicPartition::new("t", 0), OffsetAndMetadata::new(9))],
+        )
+        .await
+        .unwrap();
+    let before_groups = mock.offset_fetch_calls();
+    let mut listed_groups = admin
+        .list_consumer_group_offsets_for_groups([
+            (
+                "g-off",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+            (
+                "g-off-b",
+                ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+            ),
+        ])
+        .await
+        .unwrap();
+    listed_groups.sort_by(|a, b| a.0.cmp(&b.0));
+    assert_eq!(listed_groups.len(), 2);
+    assert_eq!(listed_groups[0].0, "g-off");
+    assert_eq!(listed_groups[0].1[0].1.offset, 3);
+    assert_eq!(listed_groups[1].0, "g-off-b");
+    assert_eq!(listed_groups[1].1[0].1.offset, 9);
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(9),
+        "batched listConsumerGroupOffsets must prefer OffsetFetch v9"
+    );
+    assert_eq!(
+        mock.last_offset_fetch_group_count(),
+        2,
+        "KIP-709 OffsetFetch Groups array of N on one coordinator"
+    );
+    assert_eq!(
+        mock.offset_fetch_calls().saturating_sub(before_groups),
+        1,
+        "groups that share a coordinator must be one OffsetFetch"
+    );
+    let mixed = admin
+        .list_consumer_group_offsets_for_groups_with(
+            [
+                ("g-off", ListConsumerGroupOffsetsSpec::all()),
+                (
+                    "g-off-b",
+                    ListConsumerGroupOffsetsSpec::topic_partitions([TopicPartition::new("t", 0)]),
+                ),
+            ],
+            true,
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(mixed.len(), 2);
+    assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
+    assert_eq!(mock.last_offset_fetch_group_count(), 2);
+    let empty_groups =
+        admin
+            .list_consumer_group_offsets_for_groups(
+                Vec::<(String, ListConsumerGroupOffsetsSpec)>::new(),
+            )
+            .await
+            .unwrap();
+    assert!(empty_groups.is_empty());
     let empty = admin
         .list_consumer_group_offsets("g-off", Vec::<TopicPartition>::new())
         .await

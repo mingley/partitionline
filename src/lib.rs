@@ -165,6 +165,10 @@
 //! [`Admin::list_consumer_group_offsets_with`] /
 //! [`Admin::list_all_consumer_group_offsets_with`] are Java
 //! `ListConsumerGroupOffsetsOptions.requireStable` and `timeoutMs`.
+//! [`Admin::list_consumer_group_offsets_for_groups`] /
+//! [`Admin::list_consumer_group_offsets_for_groups_with`] are Java
+//! `listConsumerGroupOffsets(Map)` ([`ListConsumerGroupOffsetsSpec`];
+//! OffsetFetch v8+ Groups array of N, KIP-709).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`]; one RPC per leader; ListOffsets v1–v10).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
@@ -377,20 +381,20 @@ pub use admin::{
     DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
     DescribedTopicPartitions, EndpointType, ExpireDelegationTokenRequest,
     ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
-    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, ListedConfigResource,
-    ListedGroup, MemberToRemove, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
-    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
-    RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse, ReplicaLogDirInfo,
-    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
-    ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
-    TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
-    TransactionTopic, UpgradeType, UserScramCredentialDeletion, UserScramCredentialResult,
-    UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
-    CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
-    CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST,
-    CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
-    CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
+    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse,
+    ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove, NewPartitions,
+    NewTopic, OffsetDeleteResult, OngoingReassignment, PartitionReassignment, ProducerIdBlock,
+    PushTelemetryResponse, ReassignmentResult, RemovedMember, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ReplicaLogDirInfo, ScramCredentialInfo, ScramMechanism,
+    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
+    TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
+    TransactionListing, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialDeletion, UserScramCredentialResult, UserScramCredentialUpsertion,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
+    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
+    CONFIG_RESOURCE_TOPIC, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
+    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
+    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
     ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
     UPGRADE_TYPE_UPGRADE,

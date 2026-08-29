@@ -83,10 +83,12 @@ use crate::protocol::api_keys::{
 };
 use crate::protocol::group::{
     decode_find_coordinator_response, decode_leave_group_response_version,
-    decode_offset_commit_response, decode_offset_delete_response, decode_offset_fetch_response,
+    decode_offset_commit_response, decode_offset_delete_response,
+    decode_offset_fetch_groups_response, decode_offset_fetch_response,
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_request,
-    LeaveGroupMember, OffsetDeleteTopic, COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
+    encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_groups_request,
+    encode_offset_fetch_request, LeaveGroupMember, OffsetDeleteTopic, OffsetFetchGroup,
+    COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
@@ -925,6 +927,34 @@ impl From<String> for MemberToRemove {
     }
 }
 
+/// One group's topic-partition filter (Java `ListConsumerGroupOffsetsSpec`).
+///
+/// `partitions: None` is every committed partition (OffsetFetch null
+/// Topics). Empty `partitions` is a no-op for that group.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ListConsumerGroupOffsetsSpec {
+    /// Topic-partitions to fetch. `None` is all committed partitions.
+    pub partitions: Option<Vec<crate::TopicPartition>>,
+}
+
+impl ListConsumerGroupOffsetsSpec {
+    /// Every committed partition (Java null `topicPartitions`).
+    #[must_use]
+    pub fn all() -> Self {
+        Self { partitions: None }
+    }
+
+    /// Named topic-partitions (Java `ListConsumerGroupOffsetsSpec.topicPartitions`).
+    #[must_use]
+    pub fn topic_partitions(
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Self {
+        Self {
+            partitions: Some(partitions.into_iter().map(Into::into).collect()),
+        }
+    }
+}
+
 /// Per-member result of [`Admin::remove_members_from_consumer_group`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemovedMember {
@@ -1015,6 +1045,41 @@ pub(crate) async fn fetch_client_instance_id(
         return Err(Error::broker(resp.error_code, "GetTelemetrySubscriptions"));
     }
     Ok(resp.client_instance_id)
+}
+
+fn offset_fetch_topics_for_spec(
+    spec: &ListConsumerGroupOffsetsSpec,
+) -> Option<Vec<crate::protocol::group::OffsetFetchTopic>> {
+    spec.partitions.as_ref().map(|ps| {
+        let wanted: Vec<(String, i32)> = ps
+            .iter()
+            .map(|tp| (tp.topic.clone(), tp.partition))
+            .collect();
+        crate::group::group_offset_fetch_topics(&wanted)
+    })
+}
+
+fn listed_group_offsets(
+    spec: &ListConsumerGroupOffsetsSpec,
+    fetched: &[crate::protocol::group::FetchedOffsetTopic],
+) -> Result<Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>> {
+    let map = crate::group::committed_offset_map(fetched)?;
+    match &spec.partitions {
+        None => Ok(map
+            .into_iter()
+            .map(|((topic, partition), md)| (crate::TopicPartition::new(topic, partition), md))
+            .collect()),
+        Some(ps) => Ok(ps
+            .iter()
+            .map(|tp| {
+                let md = map
+                    .get(&(tp.topic.clone(), tp.partition))
+                    .cloned()
+                    .unwrap_or_else(|| crate::OffsetAndMetadata::new(-1));
+                (tp.clone(), md)
+            })
+            .collect()),
+    }
 }
 
 impl Admin {
@@ -3786,6 +3851,222 @@ impl Admin {
             .into_iter()
             .map(|((topic, partition), md)| (crate::TopicPartition::new(topic, partition), md))
             .collect())
+    }
+
+    /// List committed offsets for several groups (Java
+    /// `listConsumerGroupOffsets(Map<String, ListConsumerGroupOffsetsSpec>)`).
+    ///
+    /// OffsetFetch v8+ Groups array of N (KIP-709): groups that share a
+    /// coordinator go in one RPC. Brokers that only speak OffsetFetch
+    /// v1–v7 get one RPC per group. Empty input is a no-op. Empty
+    /// [`ListConsumerGroupOffsetsSpec::topic_partitions`] for a group is a
+    /// no-op for that group. Waits up to [`AdminConfig::request_timeout`].
+    /// For `requireStable` and a one-shot timeout, use
+    /// [`Self::list_consumer_group_offsets_for_groups_with`].
+    pub async fn list_consumer_group_offsets_for_groups(
+        &mut self,
+        groups: impl IntoIterator<Item = (impl Into<String>, ListConsumerGroupOffsetsSpec)>,
+    ) -> Result<
+        Vec<(
+            String,
+            Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+        )>,
+    > {
+        let timeout = self.cfg.request_timeout;
+        self.list_consumer_group_offsets_for_groups_with(groups, false, timeout)
+            .await
+    }
+
+    /// [`Self::list_consumer_group_offsets_for_groups`] plus `requireStable`
+    /// and timeout (Java `ListConsumerGroupOffsetsOptions`).
+    ///
+    /// `require_stable` is OffsetFetch v7+ RequireStable. `timeout` is the
+    /// RPC deadline.
+    pub async fn list_consumer_group_offsets_for_groups_with(
+        &mut self,
+        groups: impl IntoIterator<Item = (impl Into<String>, ListConsumerGroupOffsetsSpec)>,
+        require_stable: bool,
+        timeout: Duration,
+    ) -> Result<
+        Vec<(
+            String,
+            Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+        )>,
+    > {
+        let jobs: Vec<(String, ListConsumerGroupOffsetsSpec)> = groups
+            .into_iter()
+            .map(|(g, spec)| (g.into(), spec))
+            .collect();
+        if jobs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut out: Vec<(
+            String,
+            Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+        )> = jobs.iter().map(|(g, _)| (g.clone(), Vec::new())).collect();
+        let mut remaining: Vec<usize> = Vec::new();
+        for (i, (_, spec)) in jobs.iter().enumerate() {
+            if spec.partitions.as_ref().is_some_and(Vec::is_empty) {
+                continue;
+            }
+            remaining.push(i);
+        }
+        if remaining.is_empty() {
+            return Ok(out);
+        }
+        if let Some(version) = self
+            .versions
+            .get(&OFFSET_FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 8, 9))
+        {
+            let deadline = Instant::now() + timeout;
+            let mut attempt = 0u32;
+            loop {
+                let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+                for &i in &remaining {
+                    let group_id = jobs
+                        .get(i)
+                        .ok_or_else(|| Error::protocol("missing group spec"))?
+                        .0
+                        .clone();
+                    let stale = self
+                        .group_coord
+                        .as_ref()
+                        .is_none_or(|(g, _)| g != &group_id);
+                    if stale {
+                        let node = self.discover_group_coord(&group_id).await?;
+                        self.group_coord = Some((group_id, node));
+                    }
+                    let node = self
+                        .group_coord
+                        .as_ref()
+                        .map(|(_, n)| *n)
+                        .ok_or_else(|| Error::protocol("missing group coordinator"))?;
+                    by_node.entry(node).or_default().push(i);
+                }
+                let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+                nodes.sort_unstable();
+                let mut next_remaining = Vec::new();
+                let mut retry = false;
+                for node in nodes {
+                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                    let mut groups = Vec::new();
+                    for &i in &idxs {
+                        let job = jobs
+                            .get(i)
+                            .ok_or_else(|| Error::protocol("missing group spec"))?;
+                        groups.push(OffsetFetchGroup::new(
+                            job.0.clone(),
+                            offset_fetch_topics_for_spec(&job.1),
+                        ));
+                    }
+                    self.connect_node(node).await?;
+                    let body = {
+                        let conn = self.conns.get_mut(&node).ok_or_else(|| {
+                            Error::protocol("missing list_consumer_group_offsets conn")
+                        })?;
+                        conn.roundtrip(
+                            OFFSET_FETCH,
+                            version,
+                            |buf| {
+                                encode_offset_fetch_groups_request(
+                                    buf,
+                                    version,
+                                    &groups,
+                                    require_stable,
+                                )
+                            },
+                            timeout,
+                        )
+                        .await
+                    };
+                    let body = match body {
+                        Ok(b) => b,
+                        Err(e) if e.is_retriable() => {
+                            let _ = self.conns.remove(&node);
+                            self.group_coord = None;
+                            next_remaining.extend(idxs);
+                            retry = true;
+                            continue;
+                        }
+                        Err(e) => return Err(e),
+                    };
+                    let results =
+                        match decode_offset_fetch_groups_response(&mut body.clone(), version) {
+                            Ok(r) => r,
+                            Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
+                                self.group_coord = None;
+                                let _ = self.conns.remove(&node);
+                                next_remaining.extend(idxs);
+                                retry = true;
+                                continue;
+                            }
+                            Err(e) => return Err(e),
+                        };
+                    if results
+                        .iter()
+                        .any(|r| error::coordinator_retriable(r.error_code))
+                    {
+                        self.group_coord = None;
+                        let _ = self.conns.remove(&node);
+                        next_remaining.extend(idxs);
+                        retry = true;
+                        continue;
+                    }
+                    let mut by_id: HashMap<String, crate::protocol::group::OffsetFetchGroupResult> =
+                        HashMap::new();
+                    for g in results {
+                        if g.error_code != 0 {
+                            return Err(Error::broker(g.error_code, g.group_id));
+                        }
+                        let _ = by_id.insert(g.group_id.clone(), g);
+                    }
+                    for i in idxs {
+                        let job = jobs
+                            .get(i)
+                            .ok_or_else(|| Error::protocol("missing group spec"))?;
+                        let Some(got) = by_id.remove(&job.0) else {
+                            return Err(Error::protocol(format!(
+                                "OffsetFetch response missing group {}",
+                                job.0
+                            )));
+                        };
+                        let listed = listed_group_offsets(&job.1, &got.topics)?;
+                        let slot = out
+                            .get_mut(i)
+                            .ok_or_else(|| Error::protocol("missing group result slot"))?;
+                        slot.1 = listed;
+                    }
+                }
+                if !retry {
+                    break;
+                }
+                remaining = next_remaining;
+                self.wait_retry(&mut attempt, deadline).await?;
+            }
+            return Ok(out);
+        }
+        for i in remaining {
+            let (group_id, topics, spec) = {
+                let job = jobs
+                    .get(i)
+                    .ok_or_else(|| Error::protocol("missing group spec"))?;
+                (
+                    job.0.clone(),
+                    offset_fetch_topics_for_spec(&job.1),
+                    job.1.clone(),
+                )
+            };
+            let fetched = self
+                .fetch_consumer_group_offsets(&group_id, topics, require_stable, timeout)
+                .await?;
+            let listed = listed_group_offsets(&spec, &fetched)?;
+            let slot = out
+                .get_mut(i)
+                .ok_or_else(|| Error::protocol("missing group result slot"))?;
+            slot.1 = listed;
+        }
+        Ok(out)
     }
 
     async fn fetch_consumer_group_offsets(
