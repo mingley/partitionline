@@ -341,6 +341,9 @@
 //! (RPC deadline; ListConfigResources has no TimeoutMs).
 //! [`Admin::list_share_group_offsets`] is Java `listShareGroupOffsets`
 //! (DescribeShareGroupOffsets; FindCoordinator v4+ CoordinatorKeys of N).
+//! [`DescribeShareGroupOffsetsGroup::all`] is official nullable Topics
+//! (`None` lists every topic-partition). Share-offset result getters
+//! cover Describe/Alter/Delete ShareGroupOffsets v0.
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;

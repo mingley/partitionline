@@ -10423,9 +10423,9 @@ async fn describe_share_group_offsets_follows_group_coordinator() {
         .await
         .unwrap();
     assert_eq!(first.len(), 1);
-    assert_eq!(first[0].error_code, 0);
-    assert_eq!(first[0].group_id, "sg-off");
-    assert!(first[0].topics.is_empty());
+    assert_eq!(first[0].error_code(), 0);
+    assert_eq!(first[0].group_id(), "sg-off");
+    assert!(first[0].topics().is_empty());
     assert_eq!(
         mock.last_describe_share_group_offsets_node(),
         Some(2),
@@ -10547,8 +10547,8 @@ async fn alter_share_group_offsets_follows_group_coordinator() {
         .alter_share_group_offsets("sg-alt", &[])
         .await
         .unwrap();
-    assert_eq!(first.error_code, 0);
-    assert!(first.topics.is_empty());
+    assert_eq!(first.error_code(), 0);
+    assert!(first.topics().is_empty());
     assert_eq!(
         mock.last_alter_share_group_offsets_node(),
         Some(2),
@@ -10598,8 +10598,8 @@ async fn delete_share_group_offsets_follows_group_coordinator() {
         .delete_share_group_offsets("sg-del", &[])
         .await
         .unwrap();
-    assert_eq!(first.error_code, 0);
-    assert!(first.topics.is_empty());
+    assert_eq!(first.error_code(), 0);
+    assert!(first.topics().is_empty());
     assert_eq!(
         mock.last_delete_share_group_offsets_node(),
         Some(2),

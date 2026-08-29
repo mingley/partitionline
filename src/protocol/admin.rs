@@ -7129,6 +7129,18 @@ impl DescribeShareGroupOffsetsTopic {
             partitions,
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Partition indexes to describe (`[]` is none of this topic).
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
 }
 
 /// One requested group in DescribeShareGroupOffsets (api 90) v0.
@@ -7144,12 +7156,39 @@ pub struct DescribeShareGroupOffsetsGroup {
 }
 
 impl DescribeShareGroupOffsetsGroup {
-    /// Construct [`Self`].
+    /// Construct [`Self`] with empty Topics (`Some([])`, not null).
+    ///
+    /// Official nullable Topics `None` lists every topic-partition; use
+    /// [`Self::all`].
     pub fn new(group_id: impl Into<String>) -> Self {
         Self {
             group_id: group_id.into(),
             topics: Some(Vec::new()),
         }
+    }
+
+    /// Official nullable Topics `None` (list every topic-partition).
+    ///
+    /// Kafka 4.1 `ListShareGroupOffsetsSpec` with a null `topicPartitions`
+    /// collection. Kafka 4.0 `Admin.java` omits this RPC.
+    #[must_use]
+    pub fn all(group_id: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            topics: None,
+        }
+    }
+
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Requested topics (`None` is official null Topics).
+    #[must_use]
+    pub fn topics(&self) -> Option<&[DescribeShareGroupOffsetsTopic]> {
+        self.topics.as_deref()
     }
 }
 
@@ -7168,6 +7207,38 @@ pub struct DescribedShareGroupOffsetsPartition {
     pub error_message: Option<String>,
 }
 
+impl DescribedShareGroupOffsetsPartition {
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Start offset.
+    #[must_use]
+    pub fn start_offset(&self) -> i64 {
+        self.start_offset
+    }
+
+    /// Leader epoch, or `-1`.
+    #[must_use]
+    pub fn leader_epoch(&self) -> i32 {
+        self.leader_epoch
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+}
+
 /// One topic in a described share-group offsets group.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedShareGroupOffsetsTopic {
@@ -7177,6 +7248,26 @@ pub struct DescribedShareGroupOffsetsTopic {
     pub topic_id: [u8; 16],
     /// Partitions in this topic.
     pub partitions: Vec<DescribedShareGroupOffsetsPartition>,
+}
+
+impl DescribedShareGroupOffsetsTopic {
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Topic id (UUID), or zeros.
+    #[must_use]
+    pub fn topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+
+    /// Per-partition offsets.
+    #[must_use]
+    pub fn partitions(&self) -> &[DescribedShareGroupOffsetsPartition] {
+        &self.partitions
+    }
 }
 
 /// One described group in DescribeShareGroupOffsets (api 90) v0.
@@ -7204,6 +7295,30 @@ impl DescribedShareGroupOffsets {
             error_code,
             error_message: None,
         }
+    }
+
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Topics in this response.
+    #[must_use]
+    pub fn topics(&self) -> &[DescribedShareGroupOffsetsTopic] {
+        &self.topics
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
     }
 }
 
@@ -7410,6 +7525,18 @@ impl AlterShareGroupOffsetsPartition {
             start_offset,
         }
     }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Start offset.
+    #[must_use]
+    pub fn start_offset(&self) -> i64 {
+        self.start_offset
+    }
 }
 
 /// One requested topic in AlterShareGroupOffsets (api 91) v0.
@@ -7432,6 +7559,18 @@ impl AlterShareGroupOffsetsTopic {
             partitions,
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Partitions to alter.
+    #[must_use]
+    pub fn partitions(&self) -> &[AlterShareGroupOffsetsPartition] {
+        &self.partitions
+    }
 }
 
 /// One partition in an altered share-group offsets topic.
@@ -7445,6 +7584,26 @@ pub struct AlteredShareGroupOffsetsPartition {
     pub error_message: Option<String>,
 }
 
+impl AlteredShareGroupOffsetsPartition {
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+}
+
 /// One topic in an AlterShareGroupOffsets (api 91) v0 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlteredShareGroupOffsetsTopic {
@@ -7454,6 +7613,26 @@ pub struct AlteredShareGroupOffsetsTopic {
     pub topic_id: [u8; 16],
     /// Partitions in this topic.
     pub partitions: Vec<AlteredShareGroupOffsetsPartition>,
+}
+
+impl AlteredShareGroupOffsetsTopic {
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Topic id (UUID), or zeros.
+    #[must_use]
+    pub fn topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+
+    /// Per-partition results.
+    #[must_use]
+    pub fn partitions(&self) -> &[AlteredShareGroupOffsetsPartition] {
+        &self.partitions
+    }
 }
 
 /// AlterShareGroupOffsets (api 91) v0 response body.
@@ -7479,6 +7658,24 @@ impl AlteredShareGroupOffsets {
             error_message: None,
             topics: Vec::new(),
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Per-topic results.
+    #[must_use]
+    pub fn topics(&self) -> &[AlteredShareGroupOffsetsTopic] {
+        &self.topics
     }
 }
 
@@ -7656,6 +7853,12 @@ impl DeleteShareGroupOffsetsTopic {
             topic_name: topic_name.into(),
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
 }
 
 /// One topic in a DeleteShareGroupOffsets (api 92) v0 response.
@@ -7669,6 +7872,32 @@ pub struct DeletedShareGroupOffsetsTopic {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl DeletedShareGroupOffsetsTopic {
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Topic id (UUID), or zeros.
+    #[must_use]
+    pub fn topic_id(&self) -> [u8; 16] {
+        self.topic_id
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// DeleteShareGroupOffsets (api 92) v0 response body.
@@ -7696,6 +7925,24 @@ impl DeletedShareGroupOffsets {
             error_message: None,
             topics: Vec::new(),
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Per-topic results.
+    #[must_use]
+    pub fn topics(&self) -> &[DeletedShareGroupOffsetsTopic] {
+        &self.topics
     }
 }
 
@@ -13392,6 +13639,98 @@ mod tests {
     }
 
     #[test]
+    fn share_offset_getters_match_wire() {
+        let req_topic = DescribeShareGroupOffsetsTopic::new("t", vec![0, 1]);
+        assert_eq!(req_topic.topic_name(), "t");
+        assert_eq!(req_topic.partitions(), &[0, 1]);
+        let empty = DescribeShareGroupOffsetsGroup::new("g");
+        assert_eq!(empty.group_id(), "g");
+        assert_eq!(empty.topics(), Some(&[][..]));
+        let all = DescribeShareGroupOffsetsGroup::all("g2");
+        assert_eq!(all.group_id(), "g2");
+        assert!(all.topics().is_none());
+        let part = DescribedShareGroupOffsetsPartition {
+            partition_index: 0,
+            start_offset: 7,
+            leader_epoch: 3,
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(part.partition_index(), 0);
+        assert_eq!(part.start_offset(), 7);
+        assert_eq!(part.leader_epoch(), 3);
+        assert_eq!(part.error_code(), 0);
+        assert!(part.error_message().is_none());
+        let topic = DescribedShareGroupOffsetsTopic {
+            topic_name: "t".into(),
+            topic_id: [1; 16],
+            partitions: vec![part.clone()],
+        };
+        assert_eq!(topic.topic_name(), "t");
+        assert_eq!(topic.topic_id(), [1; 16]);
+        assert_eq!(topic.partitions(), std::slice::from_ref(&part));
+        let described = DescribedShareGroupOffsets {
+            group_id: "sg".into(),
+            topics: vec![topic.clone()],
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(described.group_id(), "sg");
+        assert_eq!(described.topics(), std::slice::from_ref(&topic));
+        assert_eq!(described.error_code(), 0);
+        let alter_part = AlterShareGroupOffsetsPartition::new(0, 9);
+        assert_eq!(alter_part.partition_index(), 0);
+        assert_eq!(alter_part.start_offset(), 9);
+        let alter_topic = AlterShareGroupOffsetsTopic::new("t", vec![alter_part.clone()]);
+        assert_eq!(alter_topic.topic_name(), "t");
+        assert_eq!(alter_topic.partitions(), std::slice::from_ref(&alter_part));
+        let altered_part = AlteredShareGroupOffsetsPartition {
+            partition_index: 0,
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(altered_part.partition_index(), 0);
+        assert_eq!(altered_part.error_code(), 0);
+        let altered_topic = AlteredShareGroupOffsetsTopic {
+            topic_name: "t".into(),
+            topic_id: [2; 16],
+            partitions: vec![altered_part.clone()],
+        };
+        assert_eq!(altered_topic.topic_name(), "t");
+        assert_eq!(altered_topic.topic_id(), [2; 16]);
+        assert_eq!(
+            altered_topic.partitions(),
+            std::slice::from_ref(&altered_part)
+        );
+        let altered = AlteredShareGroupOffsets {
+            error_code: 0,
+            error_message: None,
+            topics: vec![altered_topic.clone()],
+        };
+        assert_eq!(altered.error_code(), 0);
+        assert!(altered.error_message().is_none());
+        assert_eq!(altered.topics(), std::slice::from_ref(&altered_topic));
+        let del_req = DeleteShareGroupOffsetsTopic::new("t");
+        assert_eq!(del_req.topic_name(), "t");
+        let del_topic = DeletedShareGroupOffsetsTopic {
+            topic_name: "t".into(),
+            topic_id: [3; 16],
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(del_topic.topic_name(), "t");
+        assert_eq!(del_topic.topic_id(), [3; 16]);
+        assert_eq!(del_topic.error_code(), 0);
+        let deleted = DeletedShareGroupOffsets {
+            error_code: 0,
+            error_message: None,
+            topics: vec![del_topic.clone()],
+        };
+        assert_eq!(deleted.error_code(), 0);
+        assert_eq!(deleted.topics(), std::slice::from_ref(&del_topic));
+    }
+
+    #[test]
     fn describe_client_quotas_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 48
@@ -15281,10 +15620,7 @@ mod tests {
                 group_id: "g".into(),
                 topics: Some(vec![DescribeShareGroupOffsetsTopic::new("t", vec![0, 1])]),
             },
-            DescribeShareGroupOffsetsGroup {
-                group_id: "g2".into(),
-                topics: None,
-            },
+            DescribeShareGroupOffsetsGroup::all("g2"),
         ];
         let mut buf = BytesMut::new();
         encode_describe_share_group_offsets_request(&mut buf, &groups).unwrap();
