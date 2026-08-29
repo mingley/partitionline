@@ -219,7 +219,9 @@
 //! [`ConsumerGroup::commit_with_metadata`] sends [`OffsetAndMetadata`]
 //! (leader epoch and a metadata string). [`ConsumerGroup::commit_timeout`] /
 //! [`ConsumerGroup::commit_with_metadata_timeout`] are Java
-//! `commitSync(Duration)`. [`ConsumerGroup::enforce_rebalance`]
+//! `commitSync(Duration)`. [`ConsumerGroup::commit_async`] /
+//! [`ConsumerGroup::commit_async_with`] are Java `commitAsync` (OffsetCommit
+//! on the next poll / leave; no spawned task). [`ConsumerGroup::enforce_rebalance`]
 //! rejoins on the next poll. [`ConsumerConfig::on_rebalance`] receives
 //! [`TopicPartition`] slices. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::subscribe_matching`] / [`ConsumerGroup::unsubscribe`]

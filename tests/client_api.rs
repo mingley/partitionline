@@ -1041,6 +1041,145 @@ async fn commit_offsets_skips_without_poll() {
 }
 
 #[tokio::test]
+async fn commit_async_does_not_send_until_poll() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"async-poll"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ca-poll",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let before = mock.offset_commit_calls();
+    group.commit_async();
+    assert_eq!(
+        mock.offset_commit_calls(),
+        before,
+        "commitAsync must not send OffsetCommit until poll"
+    );
+    let recs = group.poll().await.unwrap();
+    assert!(recs.is_empty(), "async commit on poll must skip consumed");
+    assert_eq!(
+        mock.offset_commit_calls(),
+        before + 1,
+        "next poll must send the queued OffsetCommit"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_async_with_callback_and_leave_flushes() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"async-leave"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ca-leave",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    let got = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let got_cb = std::sync::Arc::clone(&got);
+    group.commit_async_with(move |result| {
+        *got_cb.lock().expect("callback lock") = Some(result.map(|o| o.len()));
+    });
+    let before = mock.offset_commit_calls();
+    group.leave().await.unwrap();
+    assert_eq!(
+        mock.offset_commit_calls(),
+        before + 1,
+        "leave must send a queued commitAsync OffsetCommit"
+    );
+    let n = got
+        .lock()
+        .expect("callback lock")
+        .clone()
+        .expect("commitAsync callback")
+        .expect("OffsetCommit ok");
+    assert_eq!(n, 1);
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ca-leave",
+        "t",
+    )
+    .await
+    .unwrap();
+    let recs = group.poll().await.unwrap();
+    assert!(
+        recs.is_empty(),
+        "leave-flushed commitAsync must store the high watermark"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn commit_with_metadata_async_sends_on_poll() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"async-md"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ca-md",
+        "t",
+    )
+    .await
+    .unwrap();
+    group.poll().await.unwrap();
+    let got = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let got_cb = std::sync::Arc::clone(&got);
+    group.commit_with_metadata_async_with(
+        [(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::with_metadata(1, "async"),
+        )],
+        move |result| {
+            *got_cb.lock().expect("callback lock") = Some(result.map(|o| o[0].1.metadata.clone()));
+        },
+    );
+    group.poll().await.unwrap();
+    let meta = got
+        .lock()
+        .expect("callback lock")
+        .clone()
+        .expect("commitAsync callback")
+        .expect("OffsetCommit ok");
+    assert_eq!(meta, "async");
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn producer_and_consumer_metrics() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))

@@ -37,6 +37,9 @@ use crate::protocol::sasl;
 
 pub(crate) type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
+type AsyncOffsetCommitCallback =
+    Box<dyn FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send>;
+
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
     let mut members: Vec<String> = members.to_vec();
@@ -333,6 +336,11 @@ pub struct ConsumerGroup {
     left_max_poll: Arc<AtomicBool>,
     /// Next [`poll`](Self::poll) must rejoin (Java `enforceRebalance`).
     rebalance_needed: bool,
+    /// Java `commitAsync`: OffsetCommit sent on the next poll / leave.
+    pending_async_commits: Vec<(
+        Vec<(TopicPartition, OffsetAndMetadata)>,
+        Option<AsyncOffsetCommitCallback>,
+    )>,
 }
 
 impl ConsumerGroup {
@@ -441,6 +449,7 @@ impl ConsumerGroup {
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
+            pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names().await?;
@@ -569,6 +578,7 @@ impl ConsumerGroup {
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
+            pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
             g.topics = g.matching_topic_names().await?;
@@ -848,6 +858,7 @@ impl ConsumerGroup {
         } else if force || self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
             self.rejoin().await?;
         }
+        self.flush_async_commits().await;
         let recs = match wait {
             Some(t) => self.consumer.fetch_timeout(t).await?,
             None => self.consumer.fetch().await?,
@@ -1164,6 +1175,83 @@ impl ConsumerGroup {
         Ok(())
     }
 
+    /// Queue an OffsetCommit of the current assignment (Java `commitAsync()`).
+    ///
+    /// Snapshots positions now. The RPC is sent on the next [`Self::poll`],
+    /// [`Self::leave`], [`Self::close`], or [`Self::unsubscribe`]. Does not
+    /// spawn a task. Failures are not returned from poll; use
+    /// [`Self::commit_async_with`] for a callback.
+    pub fn commit_async(&mut self) {
+        let offsets = self.assigned_commit_offsets();
+        self.pending_async_commits.push((offsets, None));
+    }
+
+    /// Java `commitAsync(OffsetCommitCallback)`.
+    ///
+    /// `callback` runs on the next poll / leave with the snapshotted offsets
+    /// or the OffsetCommit error. Poll still returns the fetch result.
+    pub fn commit_async_with<F>(&mut self, callback: F)
+    where
+        F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
+    {
+        let offsets = self.assigned_commit_offsets();
+        self.pending_async_commits
+            .push((offsets, Some(Box::new(callback))));
+    }
+
+    /// Queue these offsets (Java `commitAsync(Map, null)`).
+    ///
+    /// Same send timing as [`Self::commit_async`]. For a callback, use
+    /// [`Self::commit_with_metadata_async_with`].
+    pub fn commit_with_metadata_async(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+    ) {
+        let offsets = collect_commit_offsets(offsets);
+        self.pending_async_commits.push((offsets, None));
+    }
+
+    /// Java `commitAsync(Map, OffsetCommitCallback)`.
+    pub fn commit_with_metadata_async_with<F>(
+        &mut self,
+        offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+        callback: F,
+    ) where
+        F: FnOnce(Result<Vec<(TopicPartition, OffsetAndMetadata)>>) + Send + 'static,
+    {
+        let offsets = collect_commit_offsets(offsets);
+        self.pending_async_commits
+            .push((offsets, Some(Box::new(callback))));
+    }
+
+    fn assigned_commit_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+        self.consumer
+            .assigned_offsets()
+            .iter()
+            .map(|(topic, partition, offset)| {
+                let epoch = self.consumer.leader_epoch(topic, *partition);
+                (
+                    TopicPartition::new(topic.clone(), *partition),
+                    OffsetAndMetadata::from_wire(*offset, epoch, String::new()),
+                )
+            })
+            .collect()
+    }
+
+    async fn flush_async_commits(&mut self) {
+        let pending = std::mem::take(&mut self.pending_async_commits);
+        for (offsets, callback) in pending {
+            let send = self
+                .commit_with_metadata_timeout(offsets.clone(), self.cfg.request_timeout)
+                .await;
+            if let Some(callback) = callback {
+                callback(send.map(|()| offsets));
+            } else if let Err(err) = send {
+                let _err = err;
+            }
+        }
+    }
+
     async fn maybe_auto_commit(&mut self) -> Result<()> {
         if !self.cfg.enable_auto_commit {
             return Ok(());
@@ -1199,6 +1287,7 @@ impl ConsumerGroup {
             self.consumer.clear_assignment();
             return Ok(());
         }
+        self.flush_async_commits().await;
         if self.cfg.enable_auto_commit {
             self.commit().await?;
         }
@@ -1319,6 +1408,7 @@ impl ConsumerGroup {
             self.consumer.close_interceptors();
             return Ok(());
         }
+        self.flush_async_commits().await;
         if self.cfg.enable_auto_commit {
             self.commit().await?;
         }
@@ -2120,6 +2210,15 @@ pub(crate) fn filter_matching_topics(
     }
     names.sort();
     names
+}
+
+fn collect_commit_offsets(
+    offsets: impl IntoIterator<Item = (impl Into<TopicPartition>, impl Into<OffsetAndMetadata>)>,
+) -> Vec<(TopicPartition, OffsetAndMetadata)> {
+    offsets
+        .into_iter()
+        .map(|(tp, md)| (tp.into(), md.into()))
+        .collect()
 }
 
 pub(crate) fn group_offset_topics(

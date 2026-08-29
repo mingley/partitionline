@@ -50,7 +50,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
-| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `ConsumerRecords::next_offsets`; OffsetCommit v2–v9 epoch + metadata, v8+ flexible) | yes | **done** |
+| OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `commit_async` / `commit_async_with` are Java `commitAsync` (queued OffsetCommit on poll / leave); `ConsumerRecords::next_offsets`; OffsetCommit v2–v9 epoch + metadata, v8+ flexible) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
 | `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `assign_partitions` / `unassign`) | yes | **done** |

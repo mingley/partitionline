@@ -112,6 +112,9 @@ for the current assignment (Java `committed` / `committed(Duration)`). `commit` 
 `commitSync(Map, Duration)`. Pass
 [`ConsumerRecords::next_offsets`](../src/consumer.rs) to match Java
 `commitSync(records.nextOffsets())`. `committed` returns the same type.
+`commit_async` / `commit_async_with` are Java `commitAsync` / `commitAsync(OffsetCommitCallback)`:
+the OffsetCommit is queued and sent on the next poll, leave, close, or unsubscribe (no spawned task).
+`commit_with_metadata_async` is Java `commitAsync(Map, …)`.
 `current_lag` is high watermark minus position. `subscription` is the
 topic list. `enforce_rebalance` rejoins on the next poll.
 `subscribe` / `unsubscribe` change the topic list without dropping the
