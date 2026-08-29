@@ -119,7 +119,6 @@ use partitionline::protocol::api_keys::{
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
     WRITE_TXN_MARKERS,
 };
-use partitionline::protocol::buf;
 use partitionline::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_request, encode_consumer_group_heartbeat_response,
     ConsumerGroupHeartbeatResponse, TopicPartitions,
@@ -416,6 +415,7 @@ struct State {
     share_acquired: HashMap<(String, i32, i64), String>,
     share_epochs: HashMap<String, i32>,
     last_share_fetch_epoch: Option<i32>,
+    last_share_fetch_version: Option<i16>,
     last_share_ack_epoch: Option<i32>,
     last_share_ack_partitions: usize,
     last_share_fetch_node: Option<i32>,
@@ -709,6 +709,7 @@ fn new_state(
         share_acquired: HashMap::new(),
         share_epochs: HashMap::new(),
         last_share_fetch_epoch: None,
+        last_share_fetch_version: None,
         last_share_ack_epoch: None,
         last_share_ack_partitions: 0,
         last_share_fetch_node: None,
@@ -2012,6 +2013,10 @@ impl Mock {
         self.state.lock().last_share_fetch_epoch
     }
 
+    pub fn last_share_fetch_version(&self) -> Option<i16> {
+        self.state.lock().last_share_fetch_version
+    }
+
     pub fn last_share_ack_epoch(&self) -> Option<i32> {
         self.state.lock().last_share_ack_epoch
     }
@@ -2471,7 +2476,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (EXPIRE_DELEGATION_TOKEN, 1, 2),
         (DESCRIBE_DELEGATION_TOKEN, 1, 3),
         (SHARE_GROUP_HEARTBEAT, 0, 1),
-        (SHARE_FETCH, 1, 1),
+        (SHARE_FETCH, 0, 1),
         (SHARE_ACKNOWLEDGE, 1, 1),
         (SASL_HANDSHAKE, 0, 1),
         (API_VERSIONS, 0, 4),
@@ -2596,15 +2601,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         )
         .unwrap(),
         SHARE_ACKNOWLEDGE => encode_share_acknowledge_response(body, NC).unwrap(),
-        SHARE_FETCH => {
-            body.put_i32(0);
-            body.put_i16(NC);
-            buf::put_compact_string(body, None).unwrap();
-            body.put_i32(0);
-            buf::put_array_len(body, true, Some(0)).unwrap();
-            buf::put_array_len(body, true, Some(0)).unwrap();
-            buf::put_empty_tagged_fields(body);
-        }
+        SHARE_FETCH => encode_share_fetch_error(body, api_version, NC).unwrap(),
         OFFSET_DELETE => encode_offset_delete_response(body, NC, &[]).unwrap(),
         _ => {}
     }
@@ -4491,9 +4488,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             SHARE_FETCH => {
+                let version = header.api_version;
                 let (_gid, member_id, epoch, max_records, topics) =
-                    decode_share_fetch_request(&mut frame).unwrap();
+                    decode_share_fetch_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_share_fetch_version = Some(version);
                 let tps: Vec<(String, i32)> = topics
                     .iter()
                     .flat_map(|t| {
@@ -4507,14 +4506,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_share_fetch_epoch = Some(epoch);
                 if !tps.is_empty() && share_wrong_leader(&st, node_id, &tps) {
                     st.share_fetch_not_leader = st.share_fetch_not_leader.saturating_add(1);
-                    encode_share_fetch_error(&mut body, error::NOT_LEADER_OR_FOLLOWER).unwrap();
+                    encode_share_fetch_error(&mut body, version, error::NOT_LEADER_OR_FOLLOWER)
+                        .unwrap();
                 } else {
                     st.last_share_fetch_node = Some(node_id);
                     let sess = share_session_step(&mut st, &member_id, epoch);
                     if sess != 0 {
-                        encode_share_fetch_error(&mut body, sess).unwrap();
+                        encode_share_fetch_error(&mut body, version, sess).unwrap();
                     } else {
-                        let cap = usize::try_from(max_records.max(0)).unwrap_or(0);
+                        let cap = if version >= 1 {
+                            usize::try_from(max_records.max(0)).unwrap_or(0)
+                        } else {
+                            16
+                        };
                         let mut fetched = Vec::new();
                         for t in topics {
                             let name = topic_name_for_id(&st, t.topic_id);
@@ -4576,7 +4580,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 partitions: parts,
                             });
                         }
-                        encode_share_fetch_response(&mut body, &fetched).unwrap();
+                        encode_share_fetch_response(&mut body, version, &fetched).unwrap();
                     }
                 }
             }

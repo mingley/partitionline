@@ -58,7 +58,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |
 | `close(Duration)` | yes (`Producer::close_timeout`; `Consumer::close_timeout` drops fetch connections; `ConsumerGroup::close_timeout` / `ShareGroup::close_timeout` cap `leave`; `Admin::close_timeout` unused duration) | yes | **done** |
 | TxnOffsetCommit metadata | yes (`send_offsets_to_transaction` / `send_offsets_with_metadata` / `send_offsets_for_group` take `TopicPartition`; v3+ sends generation / member / instance from `ConsumerGroupMetadata`) | yes | **done** |
-| Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76 v0–v1, ShareFetch 78, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
+| Share groups | yes (`ShareGroup::join` / `join_topics` / `join_matching` / `subscribe` / `subscribe_matching` / `poll` / `accept` / `release` / `leave`; `ShareRecords`; ShareGroupHeartbeat 76 v0–v1, ShareFetch 78 v0–v1, ShareAcknowledge 79; ACCEPT/RELEASE; queue sharing; coordinator sockets close after `connections.max.idle.ms`) | yes | **done** |
 | Schema Registry | no | via extras | **not started** (out of scope) |
 
 TLS produce vs C **was measured** on a dedicated `apache/kafka:3.9.1` SSL

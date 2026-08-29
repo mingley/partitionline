@@ -15,7 +15,9 @@ use crate::group::{
     collect_topics, coord_roundtrip, discover_coord, filter_matching_topics, TopicMatch,
 };
 use crate::net::BrokerConn;
-use crate::protocol::api_keys::{SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT};
+use crate::protocol::api_keys::{
+    pick_version, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_HEARTBEAT,
+};
 use crate::protocol::group::COORDINATOR_SHARE;
 use crate::protocol::share::{
     decode_share_acknowledge_response, decode_share_fetch_response,
@@ -157,7 +159,7 @@ impl<'a> IntoIterator for &'a ShareRecords {
     }
 }
 
-/// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch / ShareAcknowledge).
+/// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v1 / ShareAcknowledge).
 pub struct ShareGroup {
     consumer: Consumer,
     coord: BrokerConn,
@@ -173,6 +175,9 @@ pub struct ShareGroup {
     topic_ids: HashMap<String, [u8; 16]>,
     /// Share session epoch per share-partition leader (KIP-932).
     share_epochs: HashMap<i32, i32>,
+    /// ShareFetch version negotiated from ApiVersions (`-1` unset). `0` is a
+    /// spoken version, so it cannot mean unset.
+    share_fetch_version: i16,
     hb_err: Arc<AtomicI16>,
     hb_epoch: Arc<AtomicI32>,
     hb_stop: watch::Sender<bool>,
@@ -199,6 +204,16 @@ fn new_member_id() -> Result<String> {
         }
     }
     Ok(format!("s-{hex}"))
+}
+
+fn spoken_share_fetch(version: i16) -> Result<i16> {
+    if (0..=1).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support ShareFetch v0-1".into(),
+        ))
+    }
 }
 
 fn spoken_share_group_heartbeat(version: i16) -> Result<i16> {
@@ -253,6 +268,11 @@ impl ShareGroup {
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
         let consumer = Consumer::new(cfg.clone()).await?;
+        let share_fetch_version = consumer
+            .versions()
+            .get(&SHARE_FETCH)
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .ok_or_else(|| Error::Unsupported("broker does not support ShareFetch v0-1".into()))?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -271,6 +291,7 @@ impl ShareGroup {
             assigned: Vec::new(),
             topic_ids: HashMap::new(),
             share_epochs: HashMap::new(),
+            share_fetch_version,
             hb_err,
             hb_epoch,
             hb_stop,
@@ -577,15 +598,17 @@ impl ShareGroup {
                         .collect(),
                 })
                 .collect();
+            let version = spoken_share_fetch(self.share_fetch_version)?;
             let body = self
                 .consumer
                 .roundtrip_node(
                     node,
                     SHARE_FETCH,
-                    1,
+                    version,
                     |buf| {
                         encode_share_fetch_request(
                             buf,
+                            version,
                             &self.group_id,
                             &self.member_id,
                             epoch,
@@ -607,7 +630,7 @@ impl ShareGroup {
                 }
                 Err(e) => return Err(e),
             };
-            let fetched = match decode_share_fetch_response(&mut body) {
+            let fetched = match decode_share_fetch_response(&mut body, version) {
                 Ok(f) => f,
                 Err(e) => {
                     if share_session_reset(&e) || share_leader_retriable(&e) {

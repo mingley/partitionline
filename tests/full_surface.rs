@@ -18,7 +18,7 @@ use partitionline::protocol::api_keys::{
     DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR,
     HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    RENEW_DELEGATION_TOKEN, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
+    RENEW_DELEGATION_TOKEN, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP,
     UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
@@ -2618,6 +2618,32 @@ async fn share_group_heartbeat_negotiates_v0_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn share_fetch_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SHARE_FETCH, 0);
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"share-v0"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut g = ShareGroup::join(ccfg, "sg-sf0", "t").await.unwrap();
+    let recs = g.poll().await.unwrap();
+    assert_eq!(recs[0].value.as_deref(), Some(&b"share-v0"[..]));
+    assert_eq!(
+        mock.last_share_fetch_version(),
+        Some(0),
+        "client must speak ShareFetch v0 when the broker max is 0"
+    );
+    g.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn share_fetch_accept_then_release() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
@@ -2634,6 +2660,11 @@ async fn share_fetch_accept_then_release() {
     let mut g = ShareGroup::join(ccfg, "sg-ack", "t").await.unwrap();
     let recs = g.poll().await.unwrap();
     assert!(mock.share_fetch_calls() >= 1);
+    assert_eq!(
+        mock.last_share_fetch_version(),
+        Some(1),
+        "ShareGroup must prefer ShareFetch v1 when the broker advertises it"
+    );
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-a"[..]));
     let off = recs[0].offset;
     g.accept(&recs).await.unwrap();
