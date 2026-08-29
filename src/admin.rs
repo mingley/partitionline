@@ -3519,14 +3519,29 @@ impl Admin {
     /// Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` and
     /// fenced/unknown leader epochs refresh Metadata and retry. This is
     /// not a controller hop and not a transaction-coordinator hop.
-    /// v2 `TransactionVersion` (KIP-1228) is not spoken.
+    /// v2 `TransactionVersion` (KIP-1228) is not spoken. WriteTxnMarkers
+    /// has no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::abort_transaction_timeout`].
     pub async fn abort_transaction(&mut self, spec: AbortTransactionSpec) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.abort_transaction_timeout(spec, timeout).await
+    }
+
+    /// [`Self::abort_transaction`] with a one-shot RPC deadline (Java
+    /// `AbortTransactionOptions.timeoutMs`).
+    ///
+    /// WriteTxnMarkers has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_LEADER_OR_FOLLOWER` retry budget.
+    pub async fn abort_transaction_timeout(
+        &mut self,
+        spec: AbortTransactionSpec,
+        timeout: Duration,
+    ) -> Result<()> {
         let version = self
             .versions
             .get(&WRITE_TXN_MARKERS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
             .ok_or_else(|| Error::Unsupported("broker does not support WriteTxnMarkers".into()))?;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let marker = WritableTxnMarker {

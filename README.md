@@ -100,6 +100,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::alter_replica_log_dirs_timeout` is Java `AlterReplicaLogDirsOptions.timeoutMs`.
 `Admin::create_delegation_token_timeout` / `renew_delegation_token_timeout` / `expire_delegation_token_timeout` / `describe_delegation_token_timeout` are Java `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` / `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`.
 `Admin::fence_producers` is Java `fenceProducers` (`FencedProducer`).
+`Admin::abort_transaction_timeout` is Java `AbortTransactionOptions.timeoutMs`.
 `Admin::force_terminate_transaction` is Java `forceTerminateTransaction`.
 `Admin::delete_share_groups` is Java `deleteShareGroups`.
 `Admin::describe_classic_groups` is Java `describeClassicGroups` (FindCoordinator v4+ CoordinatorKeys of N).

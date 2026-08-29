@@ -4758,6 +4758,14 @@ async fn abort_transaction_follows_partition_leader() {
         Some(1),
         "WriteTxnMarkers must follow Metadata after NOT_LEADER"
     );
+    admin
+        .abort_transaction_timeout(
+            AbortTransactionSpec::new(("t", 0), 1000, 0, 1),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(mock.last_write_txn_markers_node(), Some(1));
 }
 
 #[tokio::test]

@@ -63,6 +63,8 @@ timestamp; one ListOffsets RPC per partition leader; returns
 `Admin::force_terminate_transaction_timeout` is the same plus timeout.
 `Admin::abort_transaction` is Java `abortTransaction` (WriteTxnMarkers
 ABORT on the partition leader).
+`Admin::abort_transaction_timeout` is Java `AbortTransactionOptions.timeoutMs`
+(RPC deadline; WriteTxnMarkers has no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).
 `Admin::describe_producers_for` is Java `describeProducers(Collection)`
 (one DescribeProducers RPC per partition leader; Topics of N).
 `Admin::describe_producers_timeout` / `Admin::describe_producers_for_timeout`

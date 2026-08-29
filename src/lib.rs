@@ -250,6 +250,9 @@
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1).
+//! [`Admin::abort_transaction_timeout`] is Java
+//! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
+//! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).
 //! [`Admin::remove_members_from_consumer_group`] is Java
 //! `removeMembersFromConsumerGroup` ([`MemberToRemove`]; LeaveGroup v3–v5,
 //! [`DEFAULT_LEAVE_GROUP_REASON`] on v5).
