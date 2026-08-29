@@ -11,6 +11,8 @@ use super::buf;
 use crate::error::{Error, Result};
 
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
+pub const SCRAM_UNKNOWN: i8 = 0;
+/// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
 pub const SCRAM_SHA_256: i8 = 1;
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
 pub const SCRAM_SHA_512: i8 = 2;
@@ -19,6 +21,8 @@ pub const SCRAM_SHA_512: i8 = 2;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum ScramMechanism {
+    /// Java `UNKNOWN`.
+    Unknown = 0,
     /// SCRAM-SHA-256.
     Sha256 = 1,
     /// SCRAM-SHA-512.
@@ -28,6 +32,39 @@ pub enum ScramMechanism {
 impl From<ScramMechanism> for i8 {
     fn from(mech: ScramMechanism) -> Self {
         mech as i8
+    }
+}
+
+impl ScramMechanism {
+    /// Java `ScramMechanism.fromType` (out of range is [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            1 => Self::Sha256,
+            2 => Self::Sha512,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `ScramMechanism.fromMechanismName` (exact SASL name; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn from_mechanism_name(name: &str) -> Self {
+        match name {
+            "UNKNOWN" => Self::Unknown,
+            "SCRAM-SHA-256" => Self::Sha256,
+            "SCRAM-SHA-512" => Self::Sha512,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `ScramMechanism.mechanismName` (`toString` with `_` → `-`).
+    #[must_use]
+    pub const fn mechanism_name(self) -> &'static str {
+        match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Sha256 => "SCRAM-SHA-256",
+            Self::Sha512 => "SCRAM-SHA-512",
+        }
     }
 }
 
@@ -3162,6 +3199,29 @@ pub struct ScramCredentialInfo {
     pub iterations: i32,
 }
 
+impl ScramCredentialInfo {
+    /// Java `ScramCredentialInfo(mechanism, iterations)`.
+    #[must_use]
+    pub fn new(mechanism: impl Into<i8>, iterations: i32) -> Self {
+        Self {
+            mechanism: mechanism.into(),
+            iterations,
+        }
+    }
+
+    /// Java `ScramCredentialInfo.mechanism`.
+    #[must_use]
+    pub fn mechanism(&self) -> ScramMechanism {
+        ScramMechanism::from_id(self.mechanism)
+    }
+
+    /// Java `ScramCredentialInfo.iterations`.
+    #[must_use]
+    pub fn iterations(&self) -> i32 {
+        self.iterations
+    }
+}
+
 /// Per-user result of DescribeUserScramCredentials v0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResult {
@@ -3173,6 +3233,32 @@ pub struct DescribeUserScramCredentialsResult {
     pub error_message: Option<String>,
     /// SCRAM credentials for this user.
     pub credential_infos: Vec<ScramCredentialInfo>,
+}
+
+impl DescribeUserScramCredentialsResult {
+    /// Java `UserScramCredentialsDescription.name`.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        self.user.as_str()
+    }
+
+    /// Per-user error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `UserScramCredentialsDescription.credentialInfos`.
+    #[must_use]
+    pub fn credential_infos(&self) -> &[ScramCredentialInfo] {
+        &self.credential_infos
+    }
 }
 
 /// DescribeUserScramCredentials v0 body (api 50).

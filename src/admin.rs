@@ -107,8 +107,9 @@ use crate::protocol::txn::{
 };
 
 pub use crate::protocol::acl::{
-    AclBinding, AclBindingFilter, AclOperation, AclPatternType, AclPermission, AclResourceType,
-    DeletedAclsFilterResult,
+    AccessControlEntry, AccessControlEntryFilter, AclBinding, AclBindingFilter, AclOperation,
+    AclPatternType, AclPermission, AclResourceType, DeletedAclsFilterResult, ResourcePattern,
+    ResourcePatternFilter,
 };
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterConfigOp, AlterConfigOpType, AlterConfigsResourceResult,
@@ -153,8 +154,8 @@ pub use crate::protocol::admin::{
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
-    SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
-    UPGRADE_TYPE_UPGRADE,
+    SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UPGRADE_TYPE_SAFE_DOWNGRADE,
+    UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use crate::protocol::group::OffsetDeleteResult;
 
@@ -1462,6 +1463,18 @@ impl UserScramCredentialDeletion {
             mechanism: mechanism.into(),
         }
     }
+
+    /// Java `UserScramCredentialAlteration.user`.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `UserScramCredentialDeletion.mechanism`.
+    #[must_use]
+    pub fn mechanism(&self) -> ScramMechanism {
+        ScramMechanism::from_id(self.mechanism)
+    }
 }
 
 /// One SCRAM credential to insert or replace.
@@ -1500,6 +1513,24 @@ impl UserScramCredentialUpsertion {
             salt: salt.into(),
             salted_password: salted_password.into(),
         }
+    }
+
+    /// Java `UserScramCredentialAlteration.user`.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `UserScramCredentialUpsertion.credentialInfo`.
+    #[must_use]
+    pub fn credential_info(&self) -> ScramCredentialInfo {
+        ScramCredentialInfo::new(self.mechanism, self.iterations)
+    }
+
+    /// Java `UserScramCredentialUpsertion.salt`.
+    #[must_use]
+    pub fn salt(&self) -> &[u8] {
+        &self.salt
     }
 }
 
@@ -1561,6 +1592,26 @@ pub struct UserScramCredentialResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl UserScramCredentialResult {
+    /// User name.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        self.user.as_str()
+    }
+
+    /// Per-user error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// PID block from `Admin::allocate_producer_ids` (AllocateProducerIds api 67).
@@ -10691,6 +10742,8 @@ mod tests {
     #[test]
     fn user_scram_credential_alteration_user_matches_java() {
         let d = UserScramCredentialDeletion::new("alice", SCRAM_SHA_256);
+        assert_eq!(d.user(), "alice");
+        assert_eq!(d.mechanism(), ScramMechanism::Sha256);
         assert_eq!(UserScramCredentialAlteration::from(d).user(), "alice");
         let u = UserScramCredentialUpsertion::new(
             "bob",
@@ -10699,7 +10752,19 @@ mod tests {
             b"s".to_vec(),
             b"p".to_vec(),
         );
+        assert_eq!(u.user(), "bob");
+        assert_eq!(u.salt(), b"s");
+        assert_eq!(u.credential_info().mechanism(), ScramMechanism::Sha256);
+        assert_eq!(u.credential_info().iterations(), 4096);
         assert_eq!(UserScramCredentialAlteration::from(u).user(), "bob");
+        let result = UserScramCredentialResult {
+            user: "alice".into(),
+            error_code: 0,
+            error_message: None,
+        };
+        assert_eq!(result.user(), "alice");
+        assert_eq!(result.error_code(), 0);
+        assert!(result.error_message().is_none());
     }
 
     #[test]
@@ -10862,8 +10927,27 @@ mod tests {
 
     #[test]
     fn scram_mechanism_matches_protocol_consts() {
+        assert_eq!(i8::from(ScramMechanism::Unknown), SCRAM_UNKNOWN);
         assert_eq!(i8::from(ScramMechanism::Sha256), SCRAM_SHA_256);
         assert_eq!(i8::from(ScramMechanism::Sha512), SCRAM_SHA_512);
+        assert_eq!(
+            ScramMechanism::from_id(SCRAM_SHA_256),
+            ScramMechanism::Sha256
+        );
+        assert_eq!(ScramMechanism::from_id(0), ScramMechanism::Unknown);
+        assert_eq!(ScramMechanism::from_id(99), ScramMechanism::Unknown);
+        assert_eq!(
+            ScramMechanism::from_mechanism_name("SCRAM-SHA-256"),
+            ScramMechanism::Sha256
+        );
+        assert_eq!(
+            ScramMechanism::from_mechanism_name("SCRAM_SHA_256"),
+            ScramMechanism::Unknown
+        );
+        assert_eq!(ScramMechanism::Sha256.mechanism_name(), "SCRAM-SHA-256");
+        let info = ScramCredentialInfo::new(ScramMechanism::Sha512, 8192);
+        assert_eq!(info.mechanism(), ScramMechanism::Sha512);
+        assert_eq!(info.iterations(), 8192);
     }
 
     #[test]

@@ -19,10 +19,16 @@ pub const ACL_RESOURCE_TOPIC: i8 = 2;
 pub const ACL_OPERATION_ANY: i8 = 1;
 /// ACL operation: all.
 pub const ACL_OPERATION_ALL: i8 = 2;
+/// ACL operation: create delegation tokens (Java `CREATE_TOKENS`).
+pub const ACL_OPERATION_CREATE_TOKENS: i8 = 13;
+/// ACL operation: describe delegation tokens (Java `DESCRIBE_TOKENS`).
+pub const ACL_OPERATION_DESCRIBE_TOKENS: i8 = 14;
 /// ACL permission: any (DescribeAcls / DeleteAcls filters).
 pub const ACL_PERMISSION_ANY: i8 = 1;
 /// ACL permission: allow.
 pub const ACL_PERMISSION_ALLOW: i8 = 3;
+/// Java `ResourcePattern.WILDCARD_RESOURCE` (literal name for every resource).
+pub const WILDCARD_RESOURCE: &str = "*";
 /// Resource pattern type: any (DescribeAcls / DeleteAcls filters).
 pub const ACL_PATTERN_ANY: i8 = 1;
 /// Resource pattern type: match (DescribeAcls / DeleteAcls filters).
@@ -60,6 +66,54 @@ impl From<AclResourceType> for i8 {
     }
 }
 
+impl AclResourceType {
+    /// Java `ResourceType.fromCode` (out of range is [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            0 => Self::Unknown,
+            1 => Self::Any,
+            2 => Self::Topic,
+            3 => Self::Group,
+            4 => Self::Cluster,
+            5 => Self::TransactionalId,
+            6 => Self::DelegationToken,
+            7 => Self::User,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `ResourceType.fromString` (`toUpperCase`; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn from_string(name: &str) -> Self {
+        if name.eq_ignore_ascii_case("UNKNOWN") {
+            Self::Unknown
+        } else if name.eq_ignore_ascii_case("ANY") {
+            Self::Any
+        } else if name.eq_ignore_ascii_case("TOPIC") {
+            Self::Topic
+        } else if name.eq_ignore_ascii_case("GROUP") {
+            Self::Group
+        } else if name.eq_ignore_ascii_case("CLUSTER") {
+            Self::Cluster
+        } else if name.eq_ignore_ascii_case("TRANSACTIONAL_ID") {
+            Self::TransactionalId
+        } else if name.eq_ignore_ascii_case("DELEGATION_TOKEN") {
+            Self::DelegationToken
+        } else if name.eq_ignore_ascii_case("USER") {
+            Self::User
+        } else {
+            Self::Unknown
+        }
+    }
+
+    /// Java `ResourceType.isUnknown`.
+    #[must_use]
+    pub const fn is_unknown(self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
 /// Kafka ACL resource pattern type (`ResourcePatternType` on the wire).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
@@ -79,6 +133,49 @@ pub enum AclPatternType {
 impl From<AclPatternType> for i8 {
     fn from(ty: AclPatternType) -> Self {
         ty as i8
+    }
+}
+
+impl AclPatternType {
+    /// Java `PatternType.fromCode` (out of range is [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            0 => Self::Unknown,
+            1 => Self::Any,
+            2 => Self::Match,
+            3 => Self::Literal,
+            4 => Self::Prefixed,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `PatternType.fromString` (exact enum name; unknown is [`Self::Unknown`]).
+    ///
+    /// Unlike [`AclResourceType::from_string`], this is **case-sensitive**
+    /// (`LITERAL` matches; `literal` is Unknown).
+    #[must_use]
+    pub fn from_string(name: &str) -> Self {
+        match name {
+            "UNKNOWN" => Self::Unknown,
+            "ANY" => Self::Any,
+            "MATCH" => Self::Match,
+            "LITERAL" => Self::Literal,
+            "PREFIXED" => Self::Prefixed,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `PatternType.isUnknown`.
+    #[must_use]
+    pub const fn is_unknown(self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+
+    /// Java `PatternType.isSpecific` (not UNKNOWN / ANY / MATCH).
+    #[must_use]
+    pub const fn is_specific(self) -> bool {
+        matches!(self, Self::Literal | Self::Prefixed)
     }
 }
 
@@ -112,11 +209,84 @@ pub enum AclOperation {
     AlterConfigs = 11,
     /// Idempotent write.
     IdempotentWrite = 12,
+    /// Create delegation tokens (Java `CREATE_TOKENS`).
+    CreateTokens = 13,
+    /// Describe delegation tokens (Java `DESCRIBE_TOKENS`).
+    DescribeTokens = 14,
 }
 
 impl From<AclOperation> for i8 {
     fn from(op: AclOperation) -> Self {
         op as i8
+    }
+}
+
+impl AclOperation {
+    /// Java `AclOperation.fromCode` (out of range is [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            0 => Self::Unknown,
+            1 => Self::Any,
+            2 => Self::All,
+            3 => Self::Read,
+            4 => Self::Write,
+            5 => Self::Create,
+            6 => Self::Delete,
+            7 => Self::Alter,
+            8 => Self::Describe,
+            9 => Self::ClusterAction,
+            10 => Self::DescribeConfigs,
+            11 => Self::AlterConfigs,
+            12 => Self::IdempotentWrite,
+            13 => Self::CreateTokens,
+            14 => Self::DescribeTokens,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `AclOperation.fromString` (`toUpperCase`; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn from_string(name: &str) -> Self {
+        if name.eq_ignore_ascii_case("UNKNOWN") {
+            Self::Unknown
+        } else if name.eq_ignore_ascii_case("ANY") {
+            Self::Any
+        } else if name.eq_ignore_ascii_case("ALL") {
+            Self::All
+        } else if name.eq_ignore_ascii_case("READ") {
+            Self::Read
+        } else if name.eq_ignore_ascii_case("WRITE") {
+            Self::Write
+        } else if name.eq_ignore_ascii_case("CREATE") {
+            Self::Create
+        } else if name.eq_ignore_ascii_case("DELETE") {
+            Self::Delete
+        } else if name.eq_ignore_ascii_case("ALTER") {
+            Self::Alter
+        } else if name.eq_ignore_ascii_case("DESCRIBE") {
+            Self::Describe
+        } else if name.eq_ignore_ascii_case("CLUSTER_ACTION") {
+            Self::ClusterAction
+        } else if name.eq_ignore_ascii_case("DESCRIBE_CONFIGS") {
+            Self::DescribeConfigs
+        } else if name.eq_ignore_ascii_case("ALTER_CONFIGS") {
+            Self::AlterConfigs
+        } else if name.eq_ignore_ascii_case("IDEMPOTENT_WRITE") {
+            Self::IdempotentWrite
+        } else if name.eq_ignore_ascii_case("CREATE_TOKENS") {
+            Self::CreateTokens
+        } else if name.eq_ignore_ascii_case("DESCRIBE_TOKENS") {
+            Self::DescribeTokens
+        } else {
+            Self::Unknown
+        }
+    }
+
+    /// Java `AclOperation.isUnknown`.
+    #[must_use]
+    pub const fn is_unknown(self) -> bool {
+        matches!(self, Self::Unknown)
     }
 }
 
@@ -137,6 +307,405 @@ pub enum AclPermission {
 impl From<AclPermission> for i8 {
     fn from(perm: AclPermission) -> Self {
         perm as i8
+    }
+}
+
+impl AclPermission {
+    /// Java `AclPermissionType.fromCode` (out of range is [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            0 => Self::Unknown,
+            1 => Self::Any,
+            2 => Self::Deny,
+            3 => Self::Allow,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `AclPermissionType.fromString` (`toUpperCase`; unknown is [`Self::Unknown`]).
+    #[must_use]
+    pub fn from_string(name: &str) -> Self {
+        if name.eq_ignore_ascii_case("UNKNOWN") {
+            Self::Unknown
+        } else if name.eq_ignore_ascii_case("ANY") {
+            Self::Any
+        } else if name.eq_ignore_ascii_case("DENY") {
+            Self::Deny
+        } else if name.eq_ignore_ascii_case("ALLOW") {
+            Self::Allow
+        } else {
+            Self::Unknown
+        }
+    }
+
+    /// Java `AclPermissionType.isUnknown`.
+    #[must_use]
+    pub const fn is_unknown(self) -> bool {
+        matches!(self, Self::Unknown)
+    }
+}
+
+/// Java `ResourcePattern` (the resource half of an [`AclBinding`]).
+///
+/// Java's constructor rejects [`AclResourceType::Any`] and
+/// [`AclPatternType::Any`] / [`AclPatternType::Match`]. This crate stores
+/// the wire `i8` and does not panic; [`Self::is_unknown`] still reports
+/// UNKNOWN components.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ResourcePattern {
+    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, [`AclResourceType::Topic`], …).
+    pub resource_type: i8,
+    /// Resource name (topic name, …). [`WILDCARD_RESOURCE`] is every name.
+    pub name: String,
+    /// Pattern type (`ACL_PATTERN_LITERAL`, [`AclPatternType::Literal`], …).
+    pub pattern_type: i8,
+}
+
+impl ResourcePattern {
+    /// Java `ResourcePattern(ResourceType, String, PatternType)`.
+    #[must_use]
+    pub fn new(
+        resource_type: impl Into<i8>,
+        name: impl Into<String>,
+        pattern_type: impl Into<i8>,
+    ) -> Self {
+        Self {
+            resource_type: resource_type.into(),
+            name: name.into(),
+            pattern_type: pattern_type.into(),
+        }
+    }
+
+    /// Java `ResourcePattern.resourceType`.
+    #[must_use]
+    pub fn resource_type(&self) -> AclResourceType {
+        AclResourceType::from_id(self.resource_type)
+    }
+
+    /// Java `ResourcePattern.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ResourcePattern.patternType`.
+    #[must_use]
+    pub fn pattern_type(&self) -> AclPatternType {
+        AclPatternType::from_id(self.pattern_type)
+    }
+
+    /// Java `ResourcePattern.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        self.resource_type().is_unknown() || self.pattern_type().is_unknown()
+    }
+
+    /// Java `ResourcePattern.toFilter`.
+    #[must_use]
+    pub fn to_filter(&self) -> ResourcePatternFilter {
+        ResourcePatternFilter {
+            resource_type: self.resource_type,
+            name: Some(self.name.clone()),
+            pattern_type: self.pattern_type,
+        }
+    }
+}
+
+/// Java `AccessControlEntry` (the ACE half of an [`AclBinding`]).
+///
+/// Java's constructor rejects [`AclOperation::Any`] and
+/// [`AclPermission::Any`]. This crate stores the wire `i8` and does not
+/// panic.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AccessControlEntry {
+    /// Principal, for example `User:alice`.
+    pub principal: String,
+    /// Host filter (`*` is any).
+    pub host: String,
+    /// Operation (`ACL_OPERATION_ALL`, [`AclOperation::All`], …).
+    pub operation: i8,
+    /// Permission (`ACL_PERMISSION_ALLOW`, [`AclPermission::Allow`], …).
+    pub permission: i8,
+}
+
+impl AccessControlEntry {
+    /// Java `AccessControlEntry(principal, host, operation, permissionType)`.
+    #[must_use]
+    pub fn new(
+        principal: impl Into<String>,
+        host: impl Into<String>,
+        operation: impl Into<i8>,
+        permission: impl Into<i8>,
+    ) -> Self {
+        Self {
+            principal: principal.into(),
+            host: host.into(),
+            operation: operation.into(),
+            permission: permission.into(),
+        }
+    }
+
+    /// Java `AccessControlEntry.principal`.
+    #[must_use]
+    pub fn principal(&self) -> &str {
+        self.principal.as_str()
+    }
+
+    /// Java `AccessControlEntry.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `AccessControlEntry.operation`.
+    #[must_use]
+    pub fn operation(&self) -> AclOperation {
+        AclOperation::from_id(self.operation)
+    }
+
+    /// Java `AccessControlEntry.permissionType`.
+    #[must_use]
+    pub fn permission_type(&self) -> AclPermission {
+        AclPermission::from_id(self.permission)
+    }
+
+    /// Java `AccessControlEntry.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        self.operation().is_unknown() || self.permission_type().is_unknown()
+    }
+
+    /// Java `AccessControlEntry.toFilter`.
+    #[must_use]
+    pub fn to_filter(&self) -> AccessControlEntryFilter {
+        AccessControlEntryFilter {
+            principal: Some(self.principal.clone()),
+            host: Some(self.host.clone()),
+            operation: self.operation,
+            permission: self.permission,
+        }
+    }
+}
+
+/// Java `ResourcePatternFilter`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ResourcePatternFilter {
+    /// Resource type filter (`AclResourceType::Topic`, [`ACL_RESOURCE_ANY`], …).
+    pub resource_type: i8,
+    /// Resource name, or `None` for any.
+    pub name: Option<String>,
+    /// Pattern type (`AclPatternType::Any`, …).
+    pub pattern_type: i8,
+}
+
+impl ResourcePatternFilter {
+    /// Java `ResourcePatternFilter(ResourceType, String, PatternType)`.
+    #[must_use]
+    pub fn new(
+        resource_type: impl Into<i8>,
+        name: Option<String>,
+        pattern_type: impl Into<i8>,
+    ) -> Self {
+        Self {
+            resource_type: resource_type.into(),
+            name,
+            pattern_type: pattern_type.into(),
+        }
+    }
+
+    /// Java `ResourcePatternFilter.ANY`.
+    #[must_use]
+    pub fn any() -> Self {
+        Self::new(ACL_RESOURCE_ANY, None, ACL_PATTERN_ANY)
+    }
+
+    /// Java `ResourcePatternFilter.resourceType`.
+    #[must_use]
+    pub fn resource_type(&self) -> AclResourceType {
+        AclResourceType::from_id(self.resource_type)
+    }
+
+    /// Java `ResourcePatternFilter.name` (`None` is any).
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// Java `ResourcePatternFilter.patternType`.
+    #[must_use]
+    pub fn pattern_type(&self) -> AclPatternType {
+        AclPatternType::from_id(self.pattern_type)
+    }
+
+    /// Java `ResourcePatternFilter.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        self.resource_type().is_unknown() || self.pattern_type().is_unknown()
+    }
+
+    /// Java `ResourcePatternFilter.matches`.
+    ///
+    /// Unsupported pattern types (Java throws) are a non-match here.
+    #[must_use]
+    pub fn matches(&self, pattern: &ResourcePattern) -> bool {
+        if self.resource_type != ACL_RESOURCE_ANY && self.resource_type != pattern.resource_type {
+            return false;
+        }
+        if self.pattern_type != ACL_PATTERN_ANY
+            && self.pattern_type != ACL_PATTERN_MATCH
+            && self.pattern_type != pattern.pattern_type
+        {
+            return false;
+        }
+        let Some(ref name) = self.name else {
+            return true;
+        };
+        if self.pattern_type == ACL_PATTERN_ANY || self.pattern_type == pattern.pattern_type {
+            return name == &pattern.name;
+        }
+        match AclPatternType::from_id(pattern.pattern_type) {
+            AclPatternType::Literal => name == &pattern.name || pattern.name == WILDCARD_RESOURCE,
+            AclPatternType::Prefixed => name.starts_with(pattern.name.as_str()),
+            _ => false,
+        }
+    }
+
+    /// Java `ResourcePatternFilter.matchesAtMostOne`.
+    #[must_use]
+    pub fn matches_at_most_one(&self) -> bool {
+        self.find_indefinite_field().is_none()
+    }
+
+    /// Java `ResourcePatternFilter.findIndefiniteField`.
+    #[must_use]
+    pub fn find_indefinite_field(&self) -> Option<&'static str> {
+        match AclResourceType::from_id(self.resource_type) {
+            AclResourceType::Any => return Some("Resource type is ANY."),
+            AclResourceType::Unknown => return Some("Resource type is UNKNOWN."),
+            _ => {}
+        }
+        if self.name.is_none() {
+            return Some("Resource name is NULL.");
+        }
+        match AclPatternType::from_id(self.pattern_type) {
+            AclPatternType::Match => Some("Resource pattern type is MATCH."),
+            AclPatternType::Unknown => Some("Resource pattern type is UNKNOWN."),
+            _ => None,
+        }
+    }
+}
+
+/// Java `AccessControlEntryFilter`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AccessControlEntryFilter {
+    /// Principal, or `None` for any.
+    pub principal: Option<String>,
+    /// Host, or `None` for any.
+    pub host: Option<String>,
+    /// Operation (`AclOperation::Any`, …).
+    pub operation: i8,
+    /// Permission (`AclPermission::Any`, …).
+    pub permission: i8,
+}
+
+impl AccessControlEntryFilter {
+    /// Java `AccessControlEntryFilter(principal, host, operation, permissionType)`.
+    #[must_use]
+    pub fn new(
+        principal: Option<String>,
+        host: Option<String>,
+        operation: impl Into<i8>,
+        permission: impl Into<i8>,
+    ) -> Self {
+        Self {
+            principal,
+            host,
+            operation: operation.into(),
+            permission: permission.into(),
+        }
+    }
+
+    /// Java `AccessControlEntryFilter.ANY`.
+    #[must_use]
+    pub fn any() -> Self {
+        Self::new(None, None, ACL_OPERATION_ANY, ACL_PERMISSION_ANY)
+    }
+
+    /// Java `AccessControlEntryFilter.principal` (`None` is any).
+    #[must_use]
+    pub fn principal(&self) -> Option<&str> {
+        self.principal.as_deref()
+    }
+
+    /// Java `AccessControlEntryFilter.host` (`None` is any).
+    #[must_use]
+    pub fn host(&self) -> Option<&str> {
+        self.host.as_deref()
+    }
+
+    /// Java `AccessControlEntryFilter.operation`.
+    #[must_use]
+    pub fn operation(&self) -> AclOperation {
+        AclOperation::from_id(self.operation)
+    }
+
+    /// Java `AccessControlEntryFilter.permissionType`.
+    #[must_use]
+    pub fn permission_type(&self) -> AclPermission {
+        AclPermission::from_id(self.permission)
+    }
+
+    /// Java `AccessControlEntryFilter.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        self.operation().is_unknown() || self.permission_type().is_unknown()
+    }
+
+    /// Java `AccessControlEntryFilter.matches`.
+    #[must_use]
+    pub fn matches(&self, other: &AccessControlEntry) -> bool {
+        if let Some(ref principal) = self.principal {
+            if principal != &other.principal {
+                return false;
+            }
+        }
+        if let Some(ref host) = self.host {
+            if host != &other.host {
+                return false;
+            }
+        }
+        if self.operation != ACL_OPERATION_ANY && self.operation != other.operation {
+            return false;
+        }
+        self.permission == ACL_PERMISSION_ANY || self.permission == other.permission
+    }
+
+    /// Java `AccessControlEntryFilter.matchesAtMostOne`.
+    #[must_use]
+    pub fn matches_at_most_one(&self) -> bool {
+        self.find_indefinite_field().is_none()
+    }
+
+    /// Java `AccessControlEntryFilter.findIndefiniteField`.
+    #[must_use]
+    pub fn find_indefinite_field(&self) -> Option<&'static str> {
+        if self.principal.is_none() {
+            return Some("Principal is NULL");
+        }
+        if self.host.is_none() {
+            return Some("Host is NULL");
+        }
+        match AclOperation::from_id(self.operation) {
+            AclOperation::Any => return Some("Operation is ANY"),
+            AclOperation::Unknown => return Some("Operation is UNKNOWN"),
+            _ => {}
+        }
+        match AclPermission::from_id(self.permission) {
+            AclPermission::Any => Some("Permission type is ANY"),
+            AclPermission::Unknown => Some("Permission type is UNKNOWN"),
+            _ => None,
+        }
     }
 }
 
@@ -212,6 +781,56 @@ impl AclBinding {
         self.permission = permission.into();
         self
     }
+
+    /// Java `AclBinding(ResourcePattern, AccessControlEntry)`.
+    #[must_use]
+    pub fn new(pattern: ResourcePattern, entry: AccessControlEntry) -> Self {
+        Self {
+            resource_type: pattern.resource_type,
+            resource_name: pattern.name,
+            pattern_type: pattern.pattern_type,
+            principal: entry.principal,
+            host: entry.host,
+            operation: entry.operation,
+            permission: entry.permission,
+        }
+    }
+
+    /// Java `AclBinding.pattern`.
+    #[must_use]
+    pub fn pattern(&self) -> ResourcePattern {
+        ResourcePattern {
+            resource_type: self.resource_type,
+            name: self.resource_name.clone(),
+            pattern_type: self.pattern_type,
+        }
+    }
+
+    /// Java `AclBinding.entry`.
+    #[must_use]
+    pub fn entry(&self) -> AccessControlEntry {
+        AccessControlEntry {
+            principal: self.principal.clone(),
+            host: self.host.clone(),
+            operation: self.operation,
+            permission: self.permission,
+        }
+    }
+
+    /// Java `AclBinding.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        AclResourceType::from_id(self.resource_type).is_unknown()
+            || AclPatternType::from_id(self.pattern_type).is_unknown()
+            || AclOperation::from_id(self.operation).is_unknown()
+            || AclPermission::from_id(self.permission).is_unknown()
+    }
+
+    /// Java `AclBinding.toFilter`.
+    #[must_use]
+    pub fn to_filter(&self) -> AclBindingFilter {
+        AclBindingFilter::new(self.pattern().to_filter(), self.entry().to_filter())
+    }
 }
 
 /// Java `AclBindingFilter` for DescribeAcls / DeleteAcls.
@@ -238,6 +857,23 @@ pub struct AclBindingFilter {
 }
 
 impl AclBindingFilter {
+    /// Java `AclBindingFilter(ResourcePatternFilter, AccessControlEntryFilter)`.
+    #[must_use]
+    pub fn new(
+        pattern_filter: ResourcePatternFilter,
+        entry_filter: AccessControlEntryFilter,
+    ) -> Self {
+        Self {
+            resource_type: pattern_filter.resource_type,
+            resource_name: pattern_filter.name,
+            pattern_type: pattern_filter.pattern_type,
+            principal: entry_filter.principal,
+            host: entry_filter.host,
+            operation: entry_filter.operation,
+            permission: entry_filter.permission,
+        }
+    }
+
     /// Match every binding of this resource type (Java
     /// `AclBindingFilter` with `ResourcePatternFilter(type, null, ANY)`
     /// and `AccessControlEntryFilter.ANY`).
@@ -340,6 +976,50 @@ impl AclBindingFilter {
             return false;
         }
         true
+    }
+
+    /// Java `AclBindingFilter.patternFilter`.
+    #[must_use]
+    pub fn pattern_filter(&self) -> ResourcePatternFilter {
+        ResourcePatternFilter {
+            resource_type: self.resource_type,
+            name: self.resource_name.clone(),
+            pattern_type: self.pattern_type,
+        }
+    }
+
+    /// Java `AclBindingFilter.entryFilter`.
+    #[must_use]
+    pub fn entry_filter(&self) -> AccessControlEntryFilter {
+        AccessControlEntryFilter {
+            principal: self.principal.clone(),
+            host: self.host.clone(),
+            operation: self.operation,
+            permission: self.permission,
+        }
+    }
+
+    /// Java `AclBindingFilter.isUnknown`.
+    #[must_use]
+    pub fn is_unknown(&self) -> bool {
+        AclResourceType::from_id(self.resource_type).is_unknown()
+            || AclPatternType::from_id(self.pattern_type).is_unknown()
+            || AclOperation::from_id(self.operation).is_unknown()
+            || AclPermission::from_id(self.permission).is_unknown()
+    }
+
+    /// Java `AclBindingFilter.matchesAtMostOne`.
+    #[must_use]
+    pub fn matches_at_most_one(&self) -> bool {
+        self.find_indefinite_field().is_none()
+    }
+
+    /// Java `AclBindingFilter.findIndefiniteField`.
+    #[must_use]
+    pub fn find_indefinite_field(&self) -> Option<&'static str> {
+        self.pattern_filter()
+            .find_indefinite_field()
+            .or_else(|| self.entry_filter().find_indefinite_field())
     }
 }
 
@@ -977,6 +1657,129 @@ mod tests {
         assert_eq!(acl.operation, i8::from(AclOperation::All));
         assert_eq!(acl.permission, i8::from(AclPermission::Allow));
         assert_eq!(i8::from(AclResourceType::User), 7);
+        assert_eq!(acl.pattern().name(), "events");
+        assert_eq!(acl.pattern().resource_type(), AclResourceType::Topic);
+        assert_eq!(acl.pattern().pattern_type(), AclPatternType::Literal);
+        assert_eq!(acl.entry().principal(), "User:alice");
+        assert_eq!(acl.entry().host(), "*");
+        assert_eq!(acl.entry().operation(), AclOperation::All);
+        assert_eq!(acl.entry().permission_type(), AclPermission::Allow);
+        assert!(!acl.is_unknown());
+        let filter = acl.to_filter();
+        assert!(filter.matches(&acl));
+        assert!(filter.matches_at_most_one());
+        assert!(filter.find_indefinite_field().is_none());
+        assert_eq!(AclBinding::new(acl.pattern(), acl.entry()), acl);
+    }
+
+    #[test]
+    fn acl_java_types_match_kafka() {
+        assert_eq!(AclResourceType::from_id(2), AclResourceType::Topic);
+        assert_eq!(AclResourceType::from_id(99), AclResourceType::Unknown);
+        assert_eq!(
+            AclResourceType::from_string("topic"),
+            AclResourceType::Topic
+        );
+        assert_eq!(
+            AclResourceType::from_string("TRANSACTIONAL_ID"),
+            AclResourceType::TransactionalId
+        );
+        assert!(AclResourceType::Unknown.is_unknown());
+        assert_eq!(AclPatternType::from_id(3), AclPatternType::Literal);
+        assert_eq!(
+            AclPatternType::from_string("LITERAL"),
+            AclPatternType::Literal
+        );
+        assert_eq!(
+            AclPatternType::from_string("literal"),
+            AclPatternType::Unknown,
+            "Java PatternType.fromString is case-sensitive"
+        );
+        assert!(AclPatternType::Literal.is_specific());
+        assert!(!AclPatternType::Match.is_specific());
+        assert_eq!(
+            AclOperation::from_id(ACL_OPERATION_CREATE_TOKENS),
+            AclOperation::CreateTokens
+        );
+        assert_eq!(
+            AclOperation::from_string("CREATE_TOKENS"),
+            AclOperation::CreateTokens
+        );
+        assert_eq!(
+            AclOperation::from_string("idempotent_write"),
+            AclOperation::IdempotentWrite
+        );
+        assert_eq!(AclOperation::from_id(99), AclOperation::Unknown);
+        assert_eq!(AclPermission::from_string("deny"), AclPermission::Deny);
+        assert_eq!(AclPermission::from_id(99), AclPermission::Unknown);
+
+        let pattern =
+            ResourcePattern::new(AclResourceType::Topic, "events", AclPatternType::Literal);
+        assert_eq!(pattern.name(), "events");
+        assert!(!pattern.is_unknown());
+        let wildcard = ResourcePattern::new(
+            AclResourceType::Topic,
+            WILDCARD_RESOURCE,
+            AclPatternType::Literal,
+        );
+        let match_filter = ResourcePatternFilter::new(
+            AclResourceType::Topic,
+            Some("payments.received".into()),
+            AclPatternType::Match,
+        );
+        assert!(match_filter.matches(&ResourcePattern::new(
+            AclResourceType::Topic,
+            "payments.received",
+            AclPatternType::Literal,
+        )));
+        assert!(match_filter.matches(&wildcard));
+        let pay_prefix = ResourcePattern::new(
+            AclResourceType::Topic,
+            "payments.",
+            AclPatternType::Prefixed,
+        );
+        assert!(match_filter.matches(&pay_prefix));
+        assert!(!match_filter.matches(&pattern));
+        assert_eq!(
+            ResourcePatternFilter::any().find_indefinite_field(),
+            Some("Resource type is ANY.")
+        );
+        let specific = ResourcePatternFilter::new(
+            AclResourceType::Topic,
+            Some("t".into()),
+            AclPatternType::Literal,
+        );
+        assert!(specific.matches_at_most_one());
+        assert!(specific.matches(&ResourcePattern::new(
+            AclResourceType::Topic,
+            "t",
+            AclPatternType::Literal,
+        )));
+        assert!(!specific.matches(&wildcard));
+
+        let entry =
+            AccessControlEntry::new("User:alice", "*", AclOperation::Read, AclPermission::Allow);
+        assert_eq!(entry.principal(), "User:alice");
+        assert_eq!(entry.operation(), AclOperation::Read);
+        assert!(!entry.is_unknown());
+        assert!(entry.to_filter().matches(&entry));
+        assert!(entry.to_filter().matches_at_most_one());
+        assert!(AccessControlEntryFilter::any().matches(&entry));
+        assert_eq!(
+            AccessControlEntryFilter::any().find_indefinite_field(),
+            Some("Principal is NULL")
+        );
+
+        let binding = AclBinding::new(pattern.clone(), entry.clone());
+        assert_eq!(binding.pattern(), pattern);
+        assert_eq!(binding.entry(), entry);
+        let any = AclBindingFilter::new(
+            ResourcePatternFilter::any(),
+            AccessControlEntryFilter::any(),
+        );
+        assert_eq!(any, AclBindingFilter::any());
+        assert!(!any.matches_at_most_one());
+        assert!(!any.is_unknown());
     }
 
     #[test]

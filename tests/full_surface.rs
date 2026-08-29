@@ -4207,6 +4207,11 @@ async fn admin_partitions_alter_configs_and_acls() {
     let listed = admin.describe_acls(AclResourceType::Topic).await.unwrap();
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].principal, "User:alice");
+    assert_eq!(listed[0].entry().principal(), "User:alice");
+    assert_eq!(listed[0].pattern().name(), "acl-t");
+    assert_eq!(listed[0].pattern().resource_type(), AclResourceType::Topic);
+    assert!(!listed[0].is_unknown());
+    assert!(listed[0].to_filter().matches(&listed[0]));
     assert_eq!(listed[0].pattern_type, partitionline::ACL_PATTERN_LITERAL);
     assert_eq!(
         mock.last_describe_acls_version(),
