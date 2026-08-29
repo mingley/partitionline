@@ -1192,15 +1192,26 @@ impl Producer {
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
     /// The first call sends a zero UUID; the broker assigns one. Later calls
-    /// return the cached id without another round-trip.
+    /// return the cached id without another round-trip. Waits up to
+    /// [`ProducerConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::client_instance_id_timeout`].
     pub async fn client_instance_id(&self) -> Result<[u8; 16]> {
+        let timeout = self.inner.shared.cfg.request_timeout;
+        self.client_instance_id_timeout(timeout).await
+    }
+
+    /// [`Self::client_instance_id`] with a one-shot timeout (Java
+    /// `clientInstanceId(Duration)`).
+    ///
+    /// `timeout` is the GetTelemetrySubscriptions RPC deadline. Cached after
+    /// the first successful call; later calls ignore `timeout`.
+    pub async fn client_instance_id_timeout(&self, timeout: Duration) -> Result<[u8; 16]> {
         if let Some(id) = *self.inner.shared.client_instance_id.lock() {
             return Ok(id);
         }
         let version = self.inner.shared.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
-        let timeout = self.inner.shared.cfg.request_timeout;
         let mut meta = self.inner.shared.meta.lock().await;
         let id =
             crate::admin::fetch_client_instance_id(&mut meta, version, timeout, [0; 16]).await?;

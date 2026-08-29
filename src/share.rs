@@ -409,6 +409,12 @@ impl ShareGroup {
         self.consumer.client_instance_id().await
     }
 
+    /// [`Self::client_instance_id`] with a one-shot timeout (Java
+    /// `clientInstanceId(Duration)`).
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
+        self.consumer.client_instance_id_timeout(timeout).await
+    }
+
     /// Interrupt [`Self::poll`]. See [`crate::Consumer::wakeup`].
     pub fn wakeup(&self) {
         self.consumer.wakeup();

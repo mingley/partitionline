@@ -2574,24 +2574,107 @@ async fn client_instance_id_is_kip714() {
     let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
         .await
         .unwrap();
-    let id = admin.client_instance_id().await.unwrap();
+    let id = admin
+        .client_instance_id_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
     assert_eq!(id, [0x11; 16]);
+    assert_eq!(mock.last_get_telemetry_subscriptions(), Some([0; 16]));
     assert_eq!(admin.client_instance_id().await.unwrap(), id);
+    assert_eq!(
+        admin
+            .client_instance_id_timeout(Duration::ZERO)
+            .await
+            .unwrap(),
+        id
+    );
     admin.close().await.unwrap();
 
     let producer =
         Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
             .await
             .unwrap();
-    assert_eq!(producer.client_instance_id().await.unwrap(), [0x11; 16]);
+    assert_eq!(
+        producer
+            .client_instance_id_timeout(Duration::from_secs(5))
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    assert_eq!(
+        producer
+            .client_instance_id_timeout(Duration::ZERO)
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
     producer.close().await.unwrap();
 
     let mut consumer =
         Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
             .await
             .unwrap();
-    assert_eq!(consumer.client_instance_id().await.unwrap(), [0x11; 16]);
+    assert_eq!(
+        consumer
+            .client_instance_id_timeout(Duration::from_secs(5))
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    assert_eq!(
+        consumer
+            .client_instance_id_timeout(Duration::ZERO)
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
     consumer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "cid-group",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        group
+            .client_instance_id_timeout(Duration::from_secs(5))
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    assert_eq!(
+        group
+            .client_instance_id_timeout(Duration::ZERO)
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    group.close().await.unwrap();
+
+    let mut share = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "cid-share",
+        "t",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        share
+            .client_instance_id_timeout(Duration::from_secs(5))
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    assert_eq!(
+        share
+            .client_instance_id_timeout(Duration::ZERO)
+            .await
+            .unwrap(),
+        [0x11; 16]
+    );
+    share.close().await.unwrap();
 }
 
 #[tokio::test]

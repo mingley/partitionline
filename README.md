@@ -108,6 +108,7 @@ plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / 
 and per-topic rows on `ProducerMetrics::topics` / `ConsumerMetrics::topics` /
 `ShareMetrics::topics`. `AdminMetrics` is Java `Admin.metrics()`.
 `client_instance_id` is Java `clientInstanceId` (KIP-714) on producer, consumer, group, share, and admin.
+`client_instance_id_timeout` is Java `clientInstanceId(Duration)`.
 `max_poll_interval` is Kafka `max.poll.interval.ms` (default 5 minutes);
 the heartbeat thread leaves the group if it is exceeded.
 `Consumer::wakeup` / `WakeupHandle` interrupt fetch. Produce and fetch

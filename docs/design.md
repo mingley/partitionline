@@ -149,6 +149,7 @@ plus latency min/mean/max and p50/p99 over the last 1024 samples (produce-ack / 
 and per-topic rows on `ProducerMetrics::topics` / `ConsumerMetrics::topics` /
 `ShareMetrics::topics`. `AdminMetrics` is Java `Admin.metrics()`.
 `client_instance_id` is Java `clientInstanceId` (KIP-714).
+`client_instance_id_timeout` is Java `clientInstanceId(Duration)` (GetTelemetrySubscriptions RPC deadline; cached after the first successful call).
 `Consumer::wakeup` (and a cloneable [`WakeupHandle`](../src/consumer.rs)) interrupts
 fetch. `ProducerConfig::interceptor` / `ConsumerConfig::interceptor` observe or rewrite
 records. [`TopicPartition`](../src/consumer.rs) and `offsets_for_times` are Java

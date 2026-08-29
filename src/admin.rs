@@ -1399,8 +1399,20 @@ impl Admin {
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
     /// The first call sends a zero UUID; the broker assigns one. Later calls
-    /// return the cached id without another round-trip.
+    /// return the cached id without another round-trip. Waits up to
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::client_instance_id_timeout`].
     pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+        let timeout = self.cfg.request_timeout;
+        self.client_instance_id_timeout(timeout).await
+    }
+
+    /// [`Self::client_instance_id`] with a one-shot timeout (Java
+    /// `clientInstanceId(Duration)`).
+    ///
+    /// `timeout` is the GetTelemetrySubscriptions RPC deadline. Cached after
+    /// the first successful call; later calls ignore `timeout`.
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
         if let Some(id) = self.cached_client_instance_id {
             return Ok(id);
         }
@@ -1408,7 +1420,7 @@ impl Admin {
         let id = fetch_client_instance_id(
             &mut self.conn,
             self.get_telemetry_subscriptions_version,
-            self.cfg.request_timeout,
+            timeout,
             [0; 16],
         )
         .await?;

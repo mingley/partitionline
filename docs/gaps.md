@@ -46,7 +46,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Custom partitioner | yes (`Partitioner` trait; default murmur2 / round-robin) | yes | **done** |
 | `partitionsFor` | yes (`Producer::partitions_for` / `Producer::partitions_for_timeout` / `Consumer::partitions_for` / `Consumer::partitions_for_timeout`; `PartitionInfo.leader_epoch` / `offline_replicas`) | yes | **done** |
 | Client metrics | yes (`Producer::metrics` / `Consumer::metrics` / `ShareGroup::metrics` / `Admin::metrics` counters plus produce-ack / fetch-round / Admin-RPC latency min/mean/max and p50/p99 over the last 1024 samples; per-topic rows on produce/fetch `topics`; share includes bytes/errors; `AdminMetrics.errors` is I/O not broker `error_code`) | yes | **done** |
-| `clientInstanceId` | yes (`Producer` / `Consumer` / `ConsumerGroup` / `ShareGroup` / `Admin`; KIP-714 GetTelemetrySubscriptions, cached after first call) | yes | **done** |
+| `clientInstanceId` | yes (`Producer` / `Consumer` / `ConsumerGroup` / `ShareGroup` / `Admin`; `client_instance_id_timeout` is Java `clientInstanceId(Duration)`; KIP-714 GetTelemetrySubscriptions, cached after first call) | yes | **done** |
 | `max.poll.interval.ms` | yes (poll error and heartbeat LeaveGroup) | yes | **done** |
 | `wakeup()` | yes (`Consumer::wakeup` / `WakeupHandle`; interrupts in-flight Fetch) | yes | **done** |
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |

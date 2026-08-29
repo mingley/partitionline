@@ -77,6 +77,7 @@
 //! [`Admin::metrics`] is the same snapshot pattern for Admin RPCs
 //! ([`AdminMetrics`]; Java `Admin.metrics()`).
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
+//! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
 //!
 //! # Fetch
 //!
@@ -116,6 +117,10 @@
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
+//! [`Consumer::client_instance_id_timeout`] /
+//! [`ConsumerGroup::client_instance_id_timeout`] /
+//! [`ShareGroup::client_instance_id_timeout`] /
+//! [`Admin::client_instance_id_timeout`] are Java `clientInstanceId(Duration)`.
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`
 //! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.

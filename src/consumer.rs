@@ -1607,8 +1607,20 @@ impl Consumer {
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
     /// The first call sends a zero UUID; the broker assigns one. Later calls
-    /// return the cached id without another round-trip.
+    /// return the cached id without another round-trip. Waits up to
+    /// [`ConsumerConfig::request_timeout`]. For a one-shot timeout, use
+    /// [`Self::client_instance_id_timeout`].
     pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+        let timeout = self.cfg.request_timeout;
+        self.client_instance_id_timeout(timeout).await
+    }
+
+    /// [`Self::client_instance_id`] with a one-shot timeout (Java
+    /// `clientInstanceId(Duration)`).
+    ///
+    /// `timeout` is the GetTelemetrySubscriptions RPC deadline. Cached after
+    /// the first successful call; later calls ignore `timeout`.
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
         if let Some(id) = self.client_instance_id {
             return Ok(id);
         }
@@ -1619,13 +1631,8 @@ impl Consumer {
             let addr = self.conn.addr().to_string();
             self.conn = self.open_node_conn(&addr).await?;
         }
-        let id = crate::admin::fetch_client_instance_id(
-            &mut self.conn,
-            version,
-            self.cfg.request_timeout,
-            [0; 16],
-        )
-        .await?;
+        let id = crate::admin::fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16])
+            .await?;
         self.client_instance_id = Some(id);
         Ok(id)
     }
