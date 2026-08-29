@@ -190,7 +190,9 @@ impl fmt::Display for ShareRecord {
 /// Records from one share poll (Java `ConsumerRecords` for KIP-932).
 ///
 /// Indexes and iterates like a slice of [`ShareRecord`]. [`Self::empty`] /
-/// [`Self::is_empty`] match Java `ConsumerRecords.empty` / `isEmpty`.
+/// [`Self::is_empty`] / [`Self::partitions`] / [`Self::records`] /
+/// [`Self::next_offsets`] match Java `empty` / `isEmpty` / `partitions` /
+/// `records(TopicPartition)` / `nextOffsets`.
 #[derive(Debug, Clone, Default)]
 pub struct ShareRecords {
     records: Vec<ShareRecord>,
@@ -246,6 +248,38 @@ impl ShareRecords {
         topic: &'a str,
     ) -> impl Iterator<Item = &'a ShareRecord> {
         self.records.iter().filter(move |r| r.topic == topic)
+    }
+
+    /// Next offset to consume per partition (Java `nextOffsets`).
+    ///
+    /// For each partition that has at least one record, this is the last
+    /// record's offset plus one, with that record's leader epoch and empty
+    /// metadata. Partitions appear in first-seen order.
+    #[must_use]
+    pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
+        let mut last = HashMap::new();
+        let mut order = Vec::new();
+        for rec in &self.records {
+            let tp = rec.topic_partition();
+            if last.insert(tp.clone(), rec).is_none() {
+                order.push(tp);
+            }
+        }
+        order
+            .into_iter()
+            .filter_map(|tp| {
+                last.remove(&tp).map(|rec| {
+                    (
+                        tp,
+                        crate::OffsetAndMetadata {
+                            offset: rec.offset.saturating_add(1),
+                            leader_epoch: rec.leader_epoch,
+                            metadata: String::new(),
+                        },
+                    )
+                })
+            })
+            .collect()
     }
 }
 
@@ -1393,11 +1427,14 @@ mod tests {
 
     #[test]
     fn share_records_partitions_and_filters() {
-        let recs = ShareRecords::from(vec![rec(0, 1), rec(1, 2), rec(0, 3)]);
+        let mut last_p0 = rec(0, 3);
+        last_p0.leader_epoch = Some(7);
+        let recs = ShareRecords::from(vec![rec(0, 1), rec(1, 2), last_p0]);
         assert_eq!(recs.count(), 3);
         assert_eq!(recs.len(), 3);
         assert!(!recs.is_empty());
         assert!(ShareRecords::empty().is_empty());
+        assert!(ShareRecords::empty().next_offsets().is_empty());
         assert_eq!(recs.records_for_topic("t").count(), 3);
         assert_eq!(recs.records_for_topic("missing").count(), 0);
         assert_eq!(
@@ -1412,6 +1449,23 @@ mod tests {
             .map(|r| r.offset())
             .collect();
         assert_eq!(p0, vec![1, 3]);
+        assert_eq!(
+            recs.next_offsets(),
+            vec![
+                (
+                    crate::TopicPartition::new("t", 0),
+                    crate::OffsetAndMetadata {
+                        offset: 4,
+                        leader_epoch: Some(7),
+                        metadata: String::new(),
+                    }
+                ),
+                (
+                    crate::TopicPartition::new("t", 1),
+                    crate::OffsetAndMetadata::new(3),
+                ),
+            ]
+        );
         let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset()).collect();
         assert_eq!(via_ref, vec![1, 2, 3]);
         let first = &recs[0];

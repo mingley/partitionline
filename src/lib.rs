@@ -267,7 +267,9 @@
 //! [`Consumer::fetch`] / [`ConsumerGroup::poll`] return [`ConsumerRecords`]
 //! (Java `empty` / `isEmpty` / `count` / `partitions` / `records` /
 //! `nextOffsets`).
-//! [`ShareGroup::poll`] returns [`ShareRecords`]. [`Consumer::fetch_timeout`] /
+//! [`ShareGroup::poll`] returns [`ShareRecords`] (Java `empty` / `isEmpty` /
+//! `count` / `partitions` / `records` / `nextOffsets`).
+//! [`Consumer::fetch_timeout`] /
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java
 //! `committed(Duration)`. [`ConsumerGroup::commit_timeout`] is Java
