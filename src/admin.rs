@@ -1406,6 +1406,12 @@ impl From<ConfigResourceType> for i8 {
 }
 
 impl ConfigResourceType {
+    /// Java `ConfigResource.Type.id`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        self as i8
+    }
+
     /// Wire id to [`Self`]. Unknown ids are [`None`].
     #[must_use]
     pub const fn from_id(id: i8) -> Option<Self> {
@@ -12093,6 +12099,17 @@ mod tests {
             "ConfigResource(type=BROKER, name='')"
         );
         assert_eq!(ConfigResourceType::Topic.to_string(), "TOPIC");
+        assert_eq!(ConfigResourceType::Topic.id(), CONFIG_RESOURCE_TOPIC);
+        assert_eq!(ConfigResourceType::Broker.id(), CONFIG_RESOURCE_BROKER);
+        assert_eq!(
+            ConfigResourceType::BrokerLogger.id(),
+            CONFIG_RESOURCE_BROKER_LOGGER
+        );
+        assert_eq!(
+            ConfigResourceType::ClientMetrics.id(),
+            CONFIG_RESOURCE_CLIENT_METRICS
+        );
+        assert_eq!(ConfigResourceType::Group.id(), CONFIG_RESOURCE_GROUP);
         assert_eq!(
             ConfigResourceType::from_id(CONFIG_RESOURCE_TOPIC),
             Some(ConfigResourceType::Topic)
@@ -12178,6 +12195,10 @@ mod tests {
     #[test]
     fn alter_config_op_type_matches_java() {
         assert_eq!(i8::from(AlterConfigOpType::Set), ALTER_CONFIG_SET);
+        assert_eq!(AlterConfigOpType::Set.id(), ALTER_CONFIG_SET);
+        assert_eq!(AlterConfigOpType::Delete.id(), ALTER_CONFIG_DELETE);
+        assert_eq!(AlterConfigOpType::Append.id(), ALTER_CONFIG_APPEND);
+        assert_eq!(AlterConfigOpType::Subtract.id(), ALTER_CONFIG_SUBTRACT);
         assert_eq!(i8::from(AlterConfigOpType::Delete), ALTER_CONFIG_DELETE);
         assert_eq!(i8::from(AlterConfigOpType::Append), ALTER_CONFIG_APPEND);
         assert_eq!(i8::from(AlterConfigOpType::Subtract), ALTER_CONFIG_SUBTRACT);

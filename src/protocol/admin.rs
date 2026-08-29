@@ -1597,6 +1597,12 @@ pub enum AlterConfigOpType {
 }
 
 impl AlterConfigOpType {
+    /// Java `AlterConfigOp.OpType.id`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        self as i8
+    }
+
     /// Java `AlterConfigOp.OpType.toString`.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

@@ -171,6 +171,8 @@
 //! [`DescribeLogDirsPartition`] `Display` is Java `ReplicaInfo.toString`.
 //! [`AlterConfigOpType`] / [`AlterConfig`] `Display` match Java
 //! `AlterConfigOp.OpType.toString` / `AlterConfigOp.toString`.
+//! [`ConfigResourceType::id`] / [`AlterConfigOpType::id`] are Java
+//! `ConfigResource.Type.id` / `AlterConfigOp.OpType.id`.
 //! [`IsolationLevel`] / [`Compression`] `Display` match Java
 //! `IsolationLevel.toString` / `CompressionType.toString`.
 //! [`IsolationLevel::id`] / [`IsolationLevel::from_id`] are Java
