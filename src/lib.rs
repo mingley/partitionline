@@ -127,6 +127,9 @@
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
+//! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
+//! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
+//! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Consumer::current_lag`] is Java `currentLag`.

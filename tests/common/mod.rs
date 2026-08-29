@@ -268,14 +268,17 @@ struct State {
     controller_node: i32,
     last_create_topics_node: Option<i32>,
     last_create_topics_version: Option<i16>,
+    last_create_topics_timeout: Option<i32>,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
+    last_delete_topics_timeout: Option<i32>,
     delete_topics_not_controller: u32,
     last_describe_configs_version: Option<i16>,
     last_describe_configs_documentation: Option<bool>,
     last_create_partitions_node: Option<i32>,
     last_create_partitions_version: Option<i16>,
+    last_create_partitions_timeout: Option<i32>,
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     last_incremental_alter_configs_version: Option<i16>,
@@ -592,14 +595,17 @@ fn new_state(
         controller_node: 1,
         last_create_topics_node: None,
         last_create_topics_version: None,
+        last_create_topics_timeout: None,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         last_delete_topics_version: None,
+        last_delete_topics_timeout: None,
         delete_topics_not_controller: 0,
         last_describe_configs_version: None,
         last_describe_configs_documentation: None,
         last_create_partitions_node: None,
         last_create_partitions_version: None,
+        last_create_partitions_timeout: None,
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         last_incremental_alter_configs_version: None,
@@ -1560,6 +1566,10 @@ impl Mock {
         self.state.lock().last_create_topics_version
     }
 
+    pub fn last_create_topics_timeout(&self) -> Option<i32> {
+        self.state.lock().last_create_topics_timeout
+    }
+
     pub fn create_topics_not_controller(&self) -> u32 {
         self.state.lock().create_topics_not_controller
     }
@@ -1570,6 +1580,10 @@ impl Mock {
 
     pub fn last_delete_topics_version(&self) -> Option<i16> {
         self.state.lock().last_delete_topics_version
+    }
+
+    pub fn last_delete_topics_timeout(&self) -> Option<i32> {
+        self.state.lock().last_delete_topics_timeout
     }
 
     pub fn delete_topics_not_controller(&self) -> u32 {
@@ -1590,6 +1604,10 @@ impl Mock {
 
     pub fn last_create_partitions_version(&self) -> Option<i16> {
         self.state.lock().last_create_partitions_version
+    }
+
+    pub fn last_create_partitions_timeout(&self) -> Option<i32> {
+        self.state.lock().last_create_partitions_timeout
     }
 
     pub fn create_partitions_not_controller(&self) -> u32 {
@@ -2903,6 +2921,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut results = Vec::new();
                 let mut st = state.lock();
                 st.last_create_topics_version = Some(version);
+                st.last_create_topics_timeout = Some(req.timeout_ms);
                 if st.controller_node != node_id {
                     st.create_topics_not_controller =
                         st.create_topics_not_controller.saturating_add(1);
@@ -2987,10 +3006,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             DELETE_TOPICS => {
                 let version = header.api_version;
-                let (names, _timeout) = decode_delete_topics_request(&mut frame, version).unwrap();
+                let (names, timeout_ms) =
+                    decode_delete_topics_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
                 st.last_delete_topics_version = Some(version);
+                st.last_delete_topics_timeout = Some(timeout_ms);
                 if st.controller_node != node_id {
                     st.delete_topics_not_controller =
                         st.delete_topics_not_controller.saturating_add(1);
@@ -3140,11 +3161,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             CREATE_PARTITIONS => {
                 let version = header.api_version;
-                let (topics, validate_only) =
+                let (topics, timeout_ms, validate_only) =
                     decode_create_partitions_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
                 st.last_create_partitions_version = Some(version);
+                st.last_create_partitions_timeout = Some(timeout_ms);
                 if st.controller_node != node_id {
                     st.create_partitions_not_controller =
                         st.create_partitions_not_controller.saturating_add(1);

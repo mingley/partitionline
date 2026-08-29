@@ -1540,11 +1540,42 @@ impl Admin {
     /// Negotiates v0–v7 (v5+ flexible; v5 returns NumPartitions /
     /// ReplicationFactor / Configs, KIP-525; v7 TopicId, KIP-516).
     /// Kafka 4.0 `validVersions` is `2-7`. v8+ is not spoken.
+    /// `timeout_ms` is CreateTopics TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
+    /// drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::create_topics_timeout`].
     pub async fn create_topics(
         &mut self,
         topics: &[NewTopic],
         timeout_ms: i32,
         validate_only: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.create_topics_with(topics, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    /// [`Self::create_topics`] with a one-shot timeout (Java
+    /// `CreateTopicsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and CreateTopics TimeoutMs.
+    pub async fn create_topics_timeout(
+        &mut self,
+        topics: &[NewTopic],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.create_topics_with(topics, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    async fn create_topics_with(
+        &mut self,
+        topics: &[NewTopic],
+        timeout_ms: i32,
+        validate_only: bool,
+        timeout: Duration,
     ) -> Result<Vec<TopicResult>> {
         let req = CreateTopicsRequest {
             topics: topics
@@ -1568,7 +1599,6 @@ impl Admin {
             validate_only,
         };
         let version = self.create_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -1625,14 +1655,41 @@ impl Admin {
     ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller.
+    /// `timeout_ms` is DeleteTopics TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
+    /// drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::delete_topics_timeout`].
     pub async fn delete_topics(
         &mut self,
         names: &[impl AsRef<str>],
         timeout_ms: i32,
     ) -> Result<Vec<TopicResult>> {
         let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
-        let version = self.delete_version;
         let timeout = self.cfg.request_timeout;
+        self.delete_topics_with(names, timeout_ms, timeout).await
+    }
+
+    /// [`Self::delete_topics`] with a one-shot timeout (Java
+    /// `DeleteTopicsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and DeleteTopics TimeoutMs.
+    pub async fn delete_topics_timeout(
+        &mut self,
+        names: &[impl AsRef<str>],
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_with(names, timeout_ms, timeout).await
+    }
+
+    async fn delete_topics_with(
+        &mut self,
+        names: Vec<String>,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        let version = self.delete_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -1771,18 +1828,48 @@ impl Admin {
     /// v4+ is not spoken. [`NewPartitions::total_count`] is the new
     /// total, not a delta. Lands on the Metadata controller.
     /// `NOT_CONTROLLER` (41) refreshes Metadata and retries.
+    /// `timeout_ms` is CreatePartitions TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
+    /// drives both the RPC deadline and TimeoutMs, use
+    /// [`Self::create_partitions_timeout`].
     pub async fn create_partitions(
         &mut self,
         topics: &[NewPartitions],
         timeout_ms: i32,
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.create_partitions_with(topics, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    /// [`Self::create_partitions`] with a one-shot timeout (Java
+    /// `CreatePartitionsOptions.timeoutMs`).
+    ///
+    /// `timeout` is the RPC deadline and CreatePartitions TimeoutMs.
+    pub async fn create_partitions_timeout(
+        &mut self,
+        topics: &[NewPartitions],
+        timeout: Duration,
+        validate_only: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.create_partitions_with(topics, timeout_ms, validate_only, timeout)
+            .await
+    }
+
+    async fn create_partitions_with(
+        &mut self,
+        topics: &[NewPartitions],
+        timeout_ms: i32,
+        validate_only: bool,
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
         let topics: Vec<(String, i32)> = topics
             .iter()
             .map(|t| (t.name.clone(), t.total_count))
             .collect();
         let version = self.partitions_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

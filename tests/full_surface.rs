@@ -4764,6 +4764,56 @@ async fn create_partitions_negotiates_below_v3_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn admin_create_delete_topics_partitions_timeout() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("cto", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(mock.last_create_topics_timeout(), Some(10_000));
+    let created = admin
+        .create_topics_timeout(
+            &[NewTopic::new("cto-d", 1, 1)],
+            Duration::from_millis(1_500),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(mock.last_create_topics_timeout(), Some(1_500));
+
+    let parts = admin
+        .create_partitions(&[NewPartitions::increase_to("cto", 2)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(mock.last_create_partitions_timeout(), Some(10_000));
+    let parts = admin
+        .create_partitions_timeout(
+            &[NewPartitions::increase_to("cto", 3)],
+            Duration::from_millis(2_500),
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(mock.last_create_partitions_timeout(), Some(2_500));
+
+    let deleted = admin.delete_topics(&["cto-d"], 10_000).await.unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_delete_topics_timeout(), Some(10_000));
+    let deleted = admin
+        .delete_topics_timeout(&["cto"], Duration::from_millis(1_500))
+        .await
+        .unwrap();
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn incremental_alter_configs_follows_controller() {
     let mock = common::Mock::start_two_node().await;
     mock.set_controller(2);

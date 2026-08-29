@@ -924,11 +924,15 @@ pub fn encode_create_partitions_request(
     Ok(())
 }
 
-/// Decode a CreatePartitions request: `(name, count)` plus `validate_only`.
+/// Topics, TimeoutMs, and ValidateOnly from a CreatePartitions request.
+type CreatePartitionsDecoded = (Vec<(String, i32)>, i32, bool);
+
+/// Decode a CreatePartitions request: `(name, count)`, TimeoutMs, and
+/// `validate_only`.
 pub fn decode_create_partitions_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<(String, i32)>, bool)> {
+) -> Result<CreatePartitionsDecoded> {
     let flexible = create_partitions_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -947,12 +951,12 @@ pub fn decode_create_partitions_request<B: Buf>(
         }
         topics.push((name, count));
     }
-    let _timeout = buf::get_i32(buf)?;
+    let timeout_ms = buf::get_i32(buf)?;
     let validate_only = buf::get_bool(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((topics, validate_only))
+    Ok((topics, timeout_ms, validate_only))
 }
 
 /// Encode a CreatePartitions response.
@@ -9355,8 +9359,10 @@ mod tests {
         encode_create_partitions_request(&mut v1, 1, &topics, 5_000, false).unwrap();
         assert_eq!(&v0[..], &v1[..], "CreatePartitions v1 request matches v0");
         let mut cur = &v1[..];
-        let (decoded, validate) = decode_create_partitions_request(&mut cur, 1).unwrap();
+        let (decoded, timeout_ms, validate) =
+            decode_create_partitions_request(&mut cur, 1).unwrap();
         assert_eq!(decoded, topics);
+        assert_eq!(timeout_ms, 5_000);
         assert!(!validate);
         assert!(
             !cur.has_remaining(),
@@ -9377,8 +9383,10 @@ mod tests {
         encode_create_partitions_request(&mut buf, 2, &topics, 5_000, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let mut cur = &buf[..];
-        let (decoded, validate) = decode_create_partitions_request(&mut cur, 2).unwrap();
+        let (decoded, timeout_ms, validate) =
+            decode_create_partitions_request(&mut cur, 2).unwrap();
         assert_eq!(decoded, topics);
+        assert_eq!(timeout_ms, 5_000);
         assert!(!validate);
         assert!(
             !cur.has_remaining(),
