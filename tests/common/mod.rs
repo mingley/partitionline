@@ -374,6 +374,7 @@ struct State {
     describe_log_dirs_nodes: Vec<i32>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
     last_create_delegation_token_node: Option<i32>,
+    last_create_delegation_token_version: Option<i16>,
     last_create_delegation_token: Option<CreateDelegationTokenRequest>,
     last_renew_delegation_token_node: Option<i32>,
     last_renew_delegation_token: Option<RenewDelegationTokenRequest>,
@@ -661,6 +662,7 @@ fn new_state(
         describe_log_dirs_nodes: Vec::new(),
         last_describe_log_dirs: None,
         last_create_delegation_token_node: None,
+        last_create_delegation_token_version: None,
         last_create_delegation_token: None,
         last_renew_delegation_token_node: None,
         last_renew_delegation_token: None,
@@ -1922,6 +1924,10 @@ impl Mock {
 
     pub fn last_create_delegation_token_node(&self) -> Option<i32> {
         self.state.lock().last_create_delegation_token_node
+    }
+
+    pub fn last_create_delegation_token_version(&self) -> Option<i16> {
+        self.state.lock().last_create_delegation_token_version
     }
 
     pub fn last_create_delegation_token(&self) -> Option<CreateDelegationTokenRequest> {
@@ -5383,7 +5389,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             CREATE_DELEGATION_TOKEN => {
-                let req = decode_create_delegation_token_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_create_delegation_token_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture ack only; not
                 // a token store, not a coordinator hop, not a 41/6
@@ -5394,11 +5401,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // NOT_CONTROLLER (41) are not listed, so the wrong
                 // node does not return 16 or 41.
                 st.last_create_delegation_token_node = Some(node_id);
+                st.last_create_delegation_token_version = Some(version);
                 let owner_type = req.owner_principal_type.clone().unwrap_or_default();
                 let owner_name = req.owner_principal_name.clone().unwrap_or_default();
                 st.last_create_delegation_token = Some(req);
                 encode_create_delegation_token_response(
                     &mut body,
+                    version,
                     &CreateDelegationTokenResponse::new(
                         0,
                         owner_type,

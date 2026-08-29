@@ -1293,7 +1293,7 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
         let create_delegation_token_version = versions
             .get(&CREATE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 3, 3))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support CreateDelegationToken".into())
             })?;
@@ -5154,7 +5154,8 @@ impl Admin {
     }
 
     /// Create a delegation token (CreateDelegationToken api 38, KIP-48 /
-    /// KIP-373).
+    /// KIP-373; v1–v3, classic at v1, flexible from v2, owner /
+    /// requester principals v3).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` and `controller`. Official
@@ -5173,7 +5174,9 @@ impl Admin {
     /// `error_code` is the INT16 at bytes 0–1, first field — not after
     /// throttle, not a first-renewer field, and not a first-token
     /// field. Fixture principal / lifetime only; this is not a token
-    /// store. Speaks v3 only (`VERSIONS.max`).
+    /// store. Kafka 4.0 `validVersions` is `1-3`. This crate speaks
+    /// 1–3. v0 and v4+ are not spoken. v1–v2 omit owner on the wire
+    /// (decode fills `None`) and omit requester (decode fills empty).
     pub async fn create_delegation_token(
         &mut self,
         req: CreateDelegationTokenRequest,
@@ -5184,11 +5187,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 CREATE_DELEGATION_TOKEN,
                 version,
-                |buf| encode_create_delegation_token_request(buf, &req),
+                |buf| encode_create_delegation_token_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        decode_create_delegation_token_response(&mut body.clone())
+        decode_create_delegation_token_response(&mut body.clone(), version)
     }
 
     /// Renew a delegation token (RenewDelegationToken api 39, KIP-48 /

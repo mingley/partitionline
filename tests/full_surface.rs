@@ -12,12 +12,12 @@ mod common;
 
 use partitionline::protocol::api_keys::{
     ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, CONSUMER_GROUP_DESCRIBE,
-    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
-    DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN,
-    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES,
-    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    SYNC_GROUP, UPDATE_FEATURES,
+    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS,
+    CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS,
+    DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6057,6 +6057,11 @@ async fn create_delegation_token_follows_broker() {
         Some(1),
         "CreateDelegationToken must land on the connected broker, not the coordinator or controller"
     );
+    assert_eq!(
+        mock.last_create_delegation_token_version(),
+        Some(3),
+        "Admin must prefer CreateDelegationToken v3 when the broker advertises it"
+    );
     assert_eq!(mock.last_create_delegation_token(), Some(req));
     assert_eq!(
         mock.last_describe_log_dirs_node(),
@@ -6082,6 +6087,35 @@ async fn create_delegation_token_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "CreateDelegationToken must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn create_delegation_token_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_DELEGATION_TOKEN, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let req =
+        CreateDelegationTokenRequest::new(Some("User".into()), Some("alice".into()), vec![], -1);
+    let resp = admin.create_delegation_token(req).await.unwrap();
+    assert_eq!(resp.error_code, 0);
+    assert_eq!(
+        resp.token_requester_principal_type, "",
+        "v1 omits TokenRequesterPrincipalType; decode fills empty"
+    );
+    assert_eq!(
+        resp.token_requester_principal_name, "",
+        "v1 omits TokenRequesterPrincipalName; decode fills empty"
+    );
+    assert_eq!(
+        mock.last_create_delegation_token_version(),
+        Some(1),
+        "client must speak CreateDelegationToken v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_create_delegation_token(),
+        Some(CreateDelegationTokenRequest::new(None, None, vec![], -1)),
+        "v1 omits owner on the wire; decode fills None"
     );
 }
 
