@@ -126,7 +126,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::describe_share_groups` is Java `describeShareGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::list_client_metrics_resources` is Java `listClientMetricsResources`.
 `Admin::list_config_resources_timeout` / `list_client_metrics_resources_timeout` are Java `ListConfigResourcesOptions` / `ListClientMetricsResourcesOptions.timeoutMs`.
-`Admin::new` does not require ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs, UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures, DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials, DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs, or the delegation-token APIs.
+`Admin::new` does not require ListConfigResources, GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs, UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures, DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials, DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs, the delegation-token APIs, DescribeTransactions, or ListTransactions.
 `Admin::list_share_group_offsets` is Java `listShareGroupOffsets` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::delete_consumer_group_offsets` is Java `deleteConsumerGroupOffsets`.
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`

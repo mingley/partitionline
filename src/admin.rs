@@ -1204,8 +1204,8 @@ pub struct Admin {
     describe_client_quotas_version: Option<i16>,
     alter_client_quotas_version: Option<i16>,
     allocate_producer_ids_version: Option<i16>,
-    describe_transactions_version: i16,
-    list_transactions_version: i16,
+    describe_transactions_version: Option<i16>,
+    list_transactions_version: Option<i16>,
     consumer_group_describe_version: Option<i16>,
     describe_groups_version: i16,
     list_groups_version: i16,
@@ -1423,9 +1423,10 @@ impl Admin {
     /// UnregisterBroker, DescribeProducers, DescribeCluster,
     /// UpdateFeatures, DescribeClientQuotas, AlterClientQuotas,
     /// AlterUserScramCredentials, DescribeUserScramCredentials,
-    /// AlterReplicaLogDirs, DescribeLogDirs, and the delegation-token
-    /// APIs are optional at connect. Missing APIs fail on the method
-    /// with [`Error::Unsupported`].
+    /// AlterReplicaLogDirs, DescribeLogDirs, the delegation-token APIs,
+    /// DescribeTransactions, and ListTransactions are optional at
+    /// connect. Missing APIs fail on the method with
+    /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1567,14 +1568,10 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let describe_transactions_version = versions
             .get(&DESCRIBE_TRANSACTIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeTransactions".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let list_transactions_version = versions
             .get(&LIST_TRANSACTIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let consumer_group_describe_version = versions
             .get(&CONSUMER_GROUP_DESCRIBE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
@@ -4175,10 +4172,11 @@ impl Admin {
     /// FindCoordinator per retry for uncached transactional ids.
     /// DescribeTransactions is one RPC per coordinator. Brokers that
     /// only speak FindCoordinator v1–v3 get one FindCoordinator per
-    /// uncached id. Empty input is a no-op. DescribeTransactions has
-    /// no TimeoutMs; the RPC deadline is
-    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
-    /// [`Self::describe_transactions_timeout`].
+    /// uncached id. Empty input is a no-op. Optional at [`Self::new`]
+    /// (Kafka 2.5+ / KIP-573); a broker that omits api 65 returns
+    /// [`Error::Unsupported`]. DescribeTransactions has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::describe_transactions_timeout`].
     pub async fn describe_transactions(
         &mut self,
         transactional_ids: &[&str],
@@ -4202,6 +4200,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
+        let version = self.describe_transactions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeTransactions".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
@@ -4214,7 +4215,7 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.get(&node).cloned().unwrap_or_default();
                 match self
-                    .describe_transactions_on_node(node, &ids, &idxs, timeout)
+                    .describe_transactions_on_node(node, &ids, &idxs, version, timeout)
                     .await
                 {
                     Ok(done) => {
@@ -4257,9 +4258,11 @@ impl Admin {
     /// `error_code` (bytes 4–5), not a first-result field.
     /// Duration is unfiltered (`-1`). See
     /// [`Self::list_transactions_with_duration`] for Java
-    /// `ListTransactionsOptions.filterOnDuration`. ListTransactions has
-    /// no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
-    /// For a one-shot deadline, use [`Self::list_transactions_timeout`].
+    /// `ListTransactionsOptions.filterOnDuration`. Optional at
+    /// [`Self::new`] (Kafka 2.5+ / KIP-573); a broker that omits api 66
+    /// returns [`Error::Unsupported`]. ListTransactions has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::list_transactions_timeout`].
     pub async fn list_transactions(
         &mut self,
         state_filters: &[&str],
@@ -4355,7 +4358,9 @@ impl Admin {
         // ListTransactions has no transactional.id; FindCoordinator still
         // needs a key. Empty string is the no-id lookup used here.
         const COORD_KEY: &str = "";
-        let version = self.list_transactions_version;
+        let version = self
+            .list_transactions_version
+            .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -9242,11 +9247,11 @@ impl Admin {
         node: i32,
         ids: &[String],
         idxs: &[usize],
+        version: i16,
         timeout: Duration,
     ) -> Result<Vec<(usize, TransactionState)>> {
         let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
         self.connect_node(node).await?;
-        let version = self.describe_transactions_version;
         let body = {
             let conn = self
                 .conns

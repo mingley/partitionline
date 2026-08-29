@@ -363,9 +363,9 @@
 //! UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 //! DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs,
-//! the delegation-token APIs, ShareGroupDescribe, the
-//! share-offset RPCs, ListConfigResources, GetTelemetrySubscriptions,
-//! PushTelemetry, or AssignReplicasToDirs.
+//! the delegation-token APIs, DescribeTransactions, ListTransactions,
+//! ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
+//! GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
 //! `AssignReplicasToDirsOptions.timeoutMs` (RPC deadline;
 //! AssignReplicasToDirs has no TimeoutMs; caps `NOT_CONTROLLER`).

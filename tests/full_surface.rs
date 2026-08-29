@@ -16,12 +16,12 @@ use partitionline::protocol::api_keys::{
     CREATE_DELEGATION_TOKEN, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS,
     DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
     DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
-    DESCRIBE_PRODUCERS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN,
-    EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE,
-    SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT,
-    SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
+    DESCRIBE_PRODUCERS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
+    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    RENEW_DELEGATION_TOKEN, SASL_AUTHENTICATE, SASL_HANDSHAKE, SHARE_ACKNOWLEDGE, SHARE_FETCH,
+    SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, SYNC_GROUP, UNREGISTER_BROKER, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -7351,6 +7351,20 @@ async fn describe_transactions_follows_coordinator() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].transactional_id, "tx-desc");
+    admin.close().await.unwrap();
+    mock.hide_api(DESCRIBE_TRANSACTIONS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.describe_transactions(&["tx-desc"]).await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DescribeTransactions is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -7495,6 +7509,20 @@ async fn list_transactions_follows_coordinator() {
         .await
         .unwrap();
     assert_eq!(timed_all.len(), 1);
+    admin.close().await.unwrap();
+    mock.hide_api(LIST_TRANSACTIONS);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin.list_transactions_all().await.unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "ListTransactions is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]
