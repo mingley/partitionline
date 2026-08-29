@@ -304,6 +304,9 @@ fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<
 }
 
 /// This member's identity in a consumer group (Java `ConsumerGroupMetadata`).
+///
+/// [`Display`] is Java `ConsumerGroupMetadata.toString` (`GroupMetadata(...)`).
+/// Missing [`Self::group_instance_id`] prints as Java `Optional.orElse("")`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMetadata {
     /// Kafka `group.id`.
@@ -318,6 +321,18 @@ pub struct ConsumerGroupMetadata {
 }
 
 impl ConsumerGroupMetadata {
+    /// Java `ConsumerGroupMetadata(String)` (`generationId` `-1`, empty
+    /// `memberId`, empty `groupInstanceId`).
+    #[must_use]
+    pub fn new(group_id: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            generation_id: -1,
+            member_id: String::new(),
+            group_instance_id: None,
+        }
+    }
+
     /// Java `ConsumerGroupMetadata.groupId`.
     #[must_use]
     pub fn group_id(&self) -> &str {
@@ -347,13 +362,12 @@ impl fmt::Display for ConsumerGroupMetadata {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "(group_id={}, member_id={}, generation_id={}",
-            self.group_id, self.member_id, self.generation_id
-        )?;
-        if let Some(id) = &self.group_instance_id {
-            write!(f, ", group_instance_id={id}")?;
-        }
-        write!(f, ")")
+            "GroupMetadata(groupId = {}, generationId = {}, memberId = {}, groupInstanceId = {})",
+            self.group_id,
+            self.generation_id,
+            self.member_id,
+            self.group_instance_id.as_deref().unwrap_or("")
+        )
     }
 }
 
@@ -2696,6 +2710,10 @@ mod tests {
         assert_eq!(md.generation_id(), 4);
         assert_eq!(md.member_id(), "m");
         assert_eq!(md.group_instance_id(), Some("i"));
+        assert_eq!(
+            md.to_string(),
+            "GroupMetadata(groupId = g, generationId = 4, memberId = m, groupInstanceId = i)"
+        );
         let classic = ConsumerGroupMetadata {
             group_id: "g".into(),
             generation_id: 1,
@@ -2703,6 +2721,19 @@ mod tests {
             group_instance_id: None,
         };
         assert!(classic.group_instance_id().is_none());
+        assert_eq!(
+            classic.to_string(),
+            "GroupMetadata(groupId = g, generationId = 1, memberId = m, groupInstanceId = )"
+        );
+        let unknown = ConsumerGroupMetadata::new("g");
+        assert_eq!(unknown.group_id(), "g");
+        assert_eq!(unknown.generation_id(), -1);
+        assert_eq!(unknown.member_id(), "");
+        assert!(unknown.group_instance_id().is_none());
+        assert_eq!(
+            unknown.to_string(),
+            "GroupMetadata(groupId = g, generationId = -1, memberId = , groupInstanceId = )"
+        );
     }
 
     #[test]

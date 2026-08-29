@@ -604,6 +604,10 @@
 //! [`ConsumerGroup::subscribe_matching`] / [`ConsumerGroup::unsubscribe`]
 //! change the topic list without dropping the handle.
 //! [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
+//! [`ConsumerGroupMetadata`] `Display` is Java `toString`
+//! (`GroupMetadata(...)`; empty `groupInstanceId` is `orElse("")`).
+//! [`ConsumerGroupMetadata::new`] is Java `ConsumerGroupMetadata(String)`
+//! (`generationId` `-1`, empty `memberId`).
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on
