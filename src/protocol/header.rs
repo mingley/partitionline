@@ -143,8 +143,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         OFFSET_COMMIT if api_version >= 8 => 2,
         // OffsetFetch is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
-        // is 1-9. This crate speaks 5–9. v7 RequireStable; v8 Groups;
-        // v9 MemberId / MemberEpoch (same header as v6).
+        // is 1-9 (v0 removed). This crate speaks 1–9. v2 top-level
+        // ErrorCode. v3 ThrottleTimeMs. v5 CommittedLeaderEpoch. v7
+        // RequireStable. v8 Groups. v9 MemberId / MemberEpoch (same
+        // header as v6). v0 and v10+ are not spoken.
         OFFSET_FETCH if api_version >= 6 => 2,
         // OffsetForLeaderEpoch is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
@@ -590,8 +592,10 @@ mod tests {
     #[test]
     fn offset_fetch_v6_is_flexible_v5_is_not() {
         // Official JSON: validVersions 1-9, flexibleVersions 6+.
-        // HeaderVersion is 1 / 0 at v5 and 2 / 1 at v6–v9. This crate
-        // speaks 5–9. v7–v9 keep the v6 header (RequireStable / Groups).
+        // HeaderVersion is 1 / 0 at v1–v5 and 2 / 1 at v6–v9. This crate
+        // speaks 1–9. v7–v9 keep the v6 header (RequireStable / Groups).
+        assert_eq!(request_header_version(OFFSET_FETCH, 1), 1);
+        assert_eq!(response_header_version(OFFSET_FETCH, 1), 0);
         assert_eq!(request_header_version(OFFSET_FETCH, 5), 1);
         assert_eq!(response_header_version(OFFSET_FETCH, 5), 0);
         assert_eq!(request_header_version(OFFSET_FETCH, 6), 2);

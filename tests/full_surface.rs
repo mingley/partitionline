@@ -2293,6 +2293,39 @@ async fn offset_fetch_negotiates_below_v9_when_broker_caps() {
         Some(5),
         "client must speak OffsetFetch v5 when the broker max is 5"
     );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 4);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "of4", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(4),
+        "client must speak OffsetFetch v4 when the broker max is 4"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "of2", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(2),
+        "client must speak OffsetFetch v2 when the broker max is 2"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(OFFSET_FETCH, 1);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "of1", "t").await.unwrap();
+    assert_eq!(
+        mock.last_offset_fetch_version(),
+        Some(1),
+        "client must speak OffsetFetch v1 when the broker max is 1"
+    );
 }
 
 #[tokio::test]

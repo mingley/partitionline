@@ -29,7 +29,7 @@
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
 //! OffsetCommit v2–v9 (v2–v4 retention `-1`; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
-//! OffsetFetch v5–v9 (v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
+//! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment),

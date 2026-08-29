@@ -782,12 +782,7 @@ impl ConsumerGroup {
         topics: &[OffsetFetchTopic],
         timeout: Duration,
     ) -> Result<Vec<FetchedOffsetTopic>> {
-        let version = self.coord.offset_fetch_version;
-        if !(5..=9).contains(&version) {
-            return Err(Error::Unsupported(
-                "broker does not support OffsetFetch v5-9".into(),
-            ));
-        }
+        let version = spoken_offset_fetch(self.coord.offset_fetch_version)?;
         let require_stable = self.cfg.isolation_level == IsolationLevel::ReadCommitted;
         let (member_id, member_epoch) = if self.kip848 {
             (Some(self.member_id.as_str()), self.generation_id)
@@ -1987,6 +1982,16 @@ async fn leave_if_max_poll(
     true
 }
 
+fn spoken_offset_fetch(version: i16) -> Result<i16> {
+    if (1..=9).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support OffsetFetch v1-9".into(),
+        ))
+    }
+}
+
 fn spoken_offset_commit(version: i16) -> Result<i16> {
     if (2..=9).contains(&version) {
         Ok(version)
@@ -2299,7 +2304,7 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == OFFSET_FETCH)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
         .unwrap_or(0);
     conn.heartbeat_version = resp
         .api_keys

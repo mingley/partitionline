@@ -3612,7 +3612,7 @@ impl Admin {
 
     /// List committed offsets for `group_id` (Java `listConsumerGroupOffsets`).
     ///
-    /// OffsetFetch v5–v9 on the group coordinator. Partitions with no committed
+    /// OffsetFetch v1–v9 on the group coordinator. Partitions with no committed
     /// offset return [`crate::OffsetAndMetadata`] offset `-1`. Empty
     /// `partitions` returns an empty list. `COORDINATOR_LOAD_IN_PROGRESS` /
     /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` refresh the coordinator
@@ -3635,8 +3635,8 @@ impl Admin {
         let version = self
             .versions
             .get(&OFFSET_FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
-            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v5-9".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
+            .ok_or_else(|| Error::Unsupported("broker does not support OffsetFetch v1-9".into()))?;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;

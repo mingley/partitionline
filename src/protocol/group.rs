@@ -887,7 +887,7 @@ pub struct OffsetTopic {
     pub partitions: Vec<OffsetPartition>,
 }
 
-/// Topic + partition indexes for OffsetFetch v5–v9.
+/// Topic + partition indexes for OffsetFetch v1–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchTopic {
     /// Topic name.
@@ -896,7 +896,7 @@ pub struct OffsetFetchTopic {
     pub partitions: Vec<i32>,
 }
 
-/// One partition in an OffsetFetch v5–v9 response.
+/// One partition in an OffsetFetch v1–v9 response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
     /// Partition index.
@@ -925,7 +925,7 @@ impl FetchedOffset {
     }
 }
 
-/// Topic + committed offsets from OffsetFetch v5–v9.
+/// Topic + committed offsets from OffsetFetch v1–v9.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffsetTopic {
     /// Topic name.
@@ -1121,15 +1121,17 @@ pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Resul
 
 /// `true` when OffsetFetch `version` is flexible (v6+).
 ///
-/// v5 is classic (GroupId + Topics, committed leader epoch). v6 is compact
-/// strings/arrays plus tagged fields (Apache JSON `flexibleVersions: "6+"`).
-/// v7 adds RequireStable. v8 replaces GroupId / Topics with Groups (KIP-709).
-/// v9 adds MemberId / MemberEpoch on each group (KIP-848). Kafka 4.0
-/// `validVersions` is `1-9`. This crate speaks 5–9. v1–v4 (no leader epoch)
-/// and v10+ (topic IDs) are not spoken.
+/// v1–v5 are classic. v6–v9 are compact strings/arrays plus tagged
+/// fields (Apache JSON `flexibleVersions: "6+"`). Official JSON: v3,
+/// v4, and v5 match v2 on the request (GroupId, Topics). v2 nullable
+/// Topics and top-level ErrorCode. v3 ThrottleTimeMs. v5
+/// CommittedLeaderEpoch. v7 RequireStable. v8 Groups (KIP-709). v9
+/// MemberId / MemberEpoch (KIP-848). Kafka 4.0 `validVersions` is
+/// `1-9` (v0 removed). This crate speaks 1–9. v0 and v10+ (topic IDs)
+/// are not spoken.
 fn offset_fetch_flexible(version: i16) -> Result<bool> {
     match version {
-        5 => Ok(false),
+        1..=5 => Ok(false),
         6..=9 => Ok(true),
         other => Err(Error::protocol(format!(
             "OffsetFetch version {other} is not implemented"
@@ -1179,6 +1181,7 @@ fn decode_offset_fetch_topics<B: Buf>(
 
 fn encode_fetched_offset_topics(
     buf: &mut BytesMut,
+    version: i16,
     flexible: bool,
     topics: &[FetchedOffsetTopic],
 ) -> crate::error::Result<()> {
@@ -1189,7 +1192,9 @@ fn encode_fetched_offset_topics(
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
-            buf.put_i32(p.leader_epoch);
+            if version >= 5 {
+                buf.put_i32(p.leader_epoch);
+            }
             let meta = if p.metadata.is_empty() {
                 None
             } else {
@@ -1210,6 +1215,7 @@ fn encode_fetched_offset_topics(
 
 fn decode_fetched_offset_topics<B: Buf>(
     buf: &mut B,
+    version: i16,
     flexible: bool,
 ) -> Result<Vec<FetchedOffsetTopic>> {
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -1221,7 +1227,7 @@ fn decode_fetched_offset_topics<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = buf::get_i32(buf)?;
+            let leader_epoch = if version >= 5 { buf::get_i32(buf)? } else { -1 };
             let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             let error_code = buf::get_i16(buf)?;
             if flexible {
@@ -1243,7 +1249,12 @@ fn decode_fetched_offset_topics<B: Buf>(
     Ok(topics)
 }
 
-/// Encode OffsetFetch v5 (classic) or v6–v9 (flexible).
+/// Encode OffsetFetch v1–v9.
+///
+/// Kafka 4.0 JSON: `validVersions: "1-9"`, `flexibleVersions: "6+"`.
+/// v1–v5 request is GroupId, Topics (v2–v5 match when Topics is
+/// non-null). v7 RequireStable. v8 Groups. v9 MemberId / MemberEpoch.
+/// This crate speaks 1–9. v0 and v10+ are not spoken.
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1318,7 +1329,7 @@ pub fn decode_offset_fetch_request<B: Buf>(
     Ok((group, topics, require_stable))
 }
 
-/// Encode OffsetFetch: throttle, topics or Groups, then error / tagged fields.
+/// Encode OffsetFetch v1–v9. Throttle is `0` on v3+. Top-level error is v2–v7.
 pub fn encode_offset_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1327,14 +1338,18 @@ pub fn encode_offset_fetch_response(
     error: i16,
 ) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
-    buf.put_i32(0);
+    if version >= 3 {
+        buf.put_i32(0);
+    }
     if version <= 7 {
-        encode_fetched_offset_topics(buf, flexible, topics)?;
-        buf.put_i16(error);
+        encode_fetched_offset_topics(buf, version, flexible, topics)?;
+        if version >= 2 {
+            buf.put_i16(error);
+        }
     } else {
         buf::put_array_len(buf, true, Some(1))?;
         buf::put_compact_string(buf, Some(group_id))?;
-        encode_fetched_offset_topics(buf, true, topics)?;
+        encode_fetched_offset_topics(buf, version, true, topics)?;
         buf.put_i16(error);
         buf::put_empty_tagged_fields(buf);
     }
@@ -1345,15 +1360,18 @@ pub fn encode_offset_fetch_response(
 }
 
 /// Decode OffsetFetch. Top-level / group error is [`crate::error::Error::Broker`].
+/// Throttle is v3+. Top-level error is v2–v7. Leader epoch is v5+.
 pub fn decode_offset_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<FetchedOffsetTopic>> {
     let flexible = offset_fetch_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    if version >= 3 {
+        let _throttle = buf::get_i32(buf)?;
+    }
     let (topics, top) = if version <= 7 {
-        let topics = decode_fetched_offset_topics(buf, flexible)?;
-        let top = buf::get_i16(buf)?;
+        let topics = decode_fetched_offset_topics(buf, version, flexible)?;
+        let top = if version >= 2 { buf::get_i16(buf)? } else { 0 };
         (topics, top)
     } else {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -1362,7 +1380,7 @@ pub fn decode_offset_fetch_response<B: Buf>(
         let mut first = true;
         for _ in 0..n {
             let _gid = buf::get_compact_string(buf)?;
-            let next = decode_fetched_offset_topics(buf, true)?;
+            let next = decode_fetched_offset_topics(buf, version, true)?;
             let err = buf::get_i16(buf)?;
             buf::skip_tagged_fields(buf)?;
             if first {
@@ -2400,6 +2418,100 @@ mod tests {
     }
 
     #[test]
+    fn offset_fetch_v1_v5_match_and_v5_adds_epoch() {
+        // Official JSON: "Version 3, 4, and 5 are the same as version 2."
+        // Request: STRING "g", one topic "t" partition 0. Topics is non-null
+        // so v1 matches v2–v5.
+        const REQ: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x74, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+        let req = offset_fetch_one_topic();
+        let mut v1 = BytesMut::new();
+        encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, &req).unwrap();
+        let mut v2 = BytesMut::new();
+        encode_offset_fetch_request(&mut v2, 2, "g", None, -1, false, &req).unwrap();
+        let mut v3 = BytesMut::new();
+        encode_offset_fetch_request(&mut v3, 3, "g", None, -1, false, &req).unwrap();
+        let mut v4 = BytesMut::new();
+        encode_offset_fetch_request(&mut v4, 4, "g", None, -1, false, &req).unwrap();
+        let mut v5 = BytesMut::new();
+        encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, &req).unwrap();
+        assert_eq!(&v1[..], REQ);
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
+        assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
+        assert_eq!(v4.as_ref(), v5.as_ref(), "v4 and v5 request bodies match");
+        let mut cur = v1.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 1).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, req);
+        assert!(cur.is_empty(), "v1 request leftover-empty");
+
+        let resp = vec![FetchedOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![FetchedOffset {
+                partition: 0,
+                offset: 4,
+                leader_epoch: 2,
+                metadata: String::new(),
+                error_code: 0,
+            }],
+        }];
+        v1.clear();
+        encode_offset_fetch_response(&mut v1, 1, "g", &resp, 0).unwrap();
+        v2.clear();
+        encode_offset_fetch_response(&mut v2, 2, "g", &resp, 0).unwrap();
+        assert_ne!(
+            v1.as_ref(),
+            v2.as_ref(),
+            "v2 response adds top-level ErrorCode"
+        );
+        let mut cur = v1.as_ref();
+        let decoded = decode_offset_fetch_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded[0].partitions[0].leader_epoch, -1);
+        assert!(cur.is_empty(), "v1 response leftover-empty");
+        let mut cur = v2.as_ref();
+        let decoded = decode_offset_fetch_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded[0].partitions[0].leader_epoch, -1);
+        assert!(cur.is_empty(), "v2 response leftover-empty");
+
+        v3.clear();
+        encode_offset_fetch_response(&mut v3, 3, "g", &resp, 0).unwrap();
+        assert_ne!(v2.as_ref(), v3.as_ref(), "v3 response adds ThrottleTimeMs");
+        v4.clear();
+        encode_offset_fetch_response(&mut v4, 4, "g", &resp, 0).unwrap();
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 response bodies match");
+        let mut cur = v4.as_ref();
+        let decoded = decode_offset_fetch_response(&mut cur, 4).unwrap();
+        assert_eq!(decoded[0].partitions[0].leader_epoch, -1);
+        assert!(cur.is_empty(), "v4 response leftover-empty");
+
+        v5.clear();
+        encode_offset_fetch_response(&mut v5, 5, "g", &resp, 0).unwrap();
+        assert_ne!(
+            v4.as_ref(),
+            v5.as_ref(),
+            "v5 response adds CommittedLeaderEpoch"
+        );
+        let mut cur = v5.as_ref();
+        let decoded = decode_offset_fetch_response(&mut cur, 5).unwrap();
+        assert_eq!(decoded[0].partitions[0].leader_epoch, 2);
+        assert!(cur.is_empty(), "v5 response leftover-empty");
+
+        v1.clear();
+        let err = encode_offset_fetch_request(&mut v1, 0, "g", None, -1, false, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v0 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 1, 9), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(1, 9, 1, 9), Some(9));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 1, 9), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 1, 9), None);
+    }
+
+    #[test]
     fn offset_fetch_v6_roundtrip_is_leftover_empty() {
         let req = offset_fetch_one_topic();
         let mut buf = BytesMut::new();
@@ -2444,9 +2556,9 @@ mod tests {
         encode_offset_fetch_request(&mut v5, 5, "g", None, -1, false, &req).unwrap();
         assert_ne!(&buf[..], &v5[..], "OffsetFetch v6 must not be classic v5");
         assert!(
-            encode_offset_fetch_request(&mut BytesMut::new(), 4, "g", None, -1, false, &req)
+            encode_offset_fetch_request(&mut BytesMut::new(), 0, "g", None, -1, false, &req)
                 .is_err(),
-            "OffsetFetch v4 is not spoken"
+            "OffsetFetch v0 is not spoken"
         );
         assert!(
             encode_offset_fetch_request(&mut BytesMut::new(), 10, "g", None, -1, false, &req)
