@@ -6633,6 +6633,12 @@ async fn describe_transactions_follows_coordinator() {
         Some(1),
         "DescribeTransactions must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed = admin
+        .describe_transactions_timeout(&["tx-desc"], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].transactional_id, "tx-desc");
 }
 
 #[tokio::test]
@@ -6758,6 +6764,12 @@ async fn list_transactions_follows_coordinator() {
         Some(1),
         "ListTransactions must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed = admin
+        .list_transactions_timeout(&[], &[], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].transactional_id, "tx-list");
 }
 
 #[tokio::test]
@@ -6791,6 +6803,26 @@ async fn list_transactions_negotiates_v1_duration_filter() {
         mock.last_list_transactions_duration(),
         Some(5000),
         "list_transactions_with_duration must send DurationFilter on v1"
+    );
+    let timed = admin
+        .list_transactions_timeout(&[], &[], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(timed.is_empty());
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(-1),
+        "list_transactions_timeout must keep DurationFilter -1"
+    );
+    let timed_filter = admin
+        .list_transactions_with_duration_timeout(&[], &[], 5000, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert!(timed_filter.is_empty());
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(5000),
+        "list_transactions_with_duration_timeout must send DurationFilter on v1"
     );
 
     let mock = common::Mock::start().await;

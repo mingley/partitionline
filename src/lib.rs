@@ -209,6 +209,13 @@
 //! are Java `ListOffsetsOptions.timeoutMs` (RPC deadline and ListOffsets v10 TimeoutMs).
 //! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
+//! [`Admin::list_transactions_timeout`] /
+//! [`Admin::list_transactions_with_duration_timeout`] are Java
+//! `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
+//! has no TimeoutMs).
+//! [`Admin::describe_transactions_timeout`] is Java
+//! `DescribeTransactionsOptions.timeoutMs` (RPC deadline;
+//! DescribeTransactions has no TimeoutMs).
 //! [`Admin::describe_configs_with_documentation`] is Java `describeConfigs`
 //! plus `DescribeConfigsOptions.includeDocumentation` (DescribeConfigs v3).
 //! [`Admin::describe_configs_timeout`] /

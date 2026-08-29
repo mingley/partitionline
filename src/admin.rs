@@ -3627,16 +3627,33 @@ impl Admin {
     /// FindCoordinator per retry for uncached transactional ids.
     /// DescribeTransactions is one RPC per coordinator. Brokers that
     /// only speak FindCoordinator v1–v3 get one FindCoordinator per
-    /// uncached id. Empty input is a no-op.
+    /// uncached id. Empty input is a no-op. DescribeTransactions has
+    /// no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_transactions_timeout`].
     pub async fn describe_transactions(
         &mut self,
         transactional_ids: &[&str],
+    ) -> Result<Vec<TransactionState>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_transactions_timeout(transactional_ids, timeout)
+            .await
+    }
+
+    /// [`Self::describe_transactions`] with a one-shot RPC deadline (Java
+    /// `DescribeTransactionsOptions.timeoutMs`).
+    ///
+    /// DescribeTransactions has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget.
+    pub async fn describe_transactions_timeout(
+        &mut self,
+        transactional_ids: &[&str],
+        timeout: Duration,
     ) -> Result<Vec<TransactionState>> {
         let ids: Vec<String> = transactional_ids.iter().map(|s| (*s).to_string()).collect();
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<TransactionState>> = vec![None; ids.len()];
@@ -3692,14 +3709,39 @@ impl Admin {
     /// `error_code` (bytes 4–5), not a first-result field.
     /// Duration is unfiltered (`-1`). See
     /// [`Self::list_transactions_with_duration`] for Java
-    /// `ListTransactionsOptions.filterOnDuration`.
+    /// `ListTransactionsOptions.filterOnDuration`. ListTransactions has
+    /// no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::list_transactions_timeout`].
     pub async fn list_transactions(
         &mut self,
         state_filters: &[&str],
         producer_id_filters: &[i64],
     ) -> Result<Vec<TransactionListing>> {
-        self.list_transactions_with_duration(state_filters, producer_id_filters, -1)
+        let timeout = self.cfg.request_timeout;
+        self.list_transactions_timeout(state_filters, producer_id_filters, timeout)
             .await
+    }
+
+    /// [`Self::list_transactions`] with a one-shot RPC deadline (Java
+    /// `ListTransactionsOptions.timeoutMs`).
+    ///
+    /// ListTransactions has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget. DurationFilter stays `-1`
+    /// (unfiltered). See [`Self::list_transactions_with_duration_timeout`]
+    /// for `filterOnDuration` plus deadline.
+    pub async fn list_transactions_timeout(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+        timeout: Duration,
+    ) -> Result<Vec<TransactionListing>> {
+        self.list_transactions_with_duration_timeout(
+            state_filters,
+            producer_id_filters,
+            -1,
+            timeout,
+        )
+        .await
     }
 
     /// ListTransactions with a duration filter (Java `listTransactions`
@@ -3709,12 +3751,38 @@ impl Admin {
     /// v1 sends `DurationFilter` INT64 (KIP-994). v0 omits the field
     /// even when `duration_ms` is set. Kafka 4.0 `validVersions` is
     /// `0-1`. This crate speaks 0–1. v2 TransactionalIdPattern is not
-    /// spoken.
+    /// spoken. ListTransactions has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::list_transactions_with_duration_timeout`].
     pub async fn list_transactions_with_duration(
         &mut self,
         state_filters: &[&str],
         producer_id_filters: &[i64],
         duration_ms: i64,
+    ) -> Result<Vec<TransactionListing>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_transactions_with_duration_timeout(
+            state_filters,
+            producer_id_filters,
+            duration_ms,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::list_transactions_with_duration`] with a one-shot RPC
+    /// deadline (Java `ListTransactionsOptions.filterOnDuration` and
+    /// `timeoutMs`).
+    ///
+    /// ListTransactions has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget. `duration_ms` is DurationFilter
+    /// (v1), not TimeoutMs.
+    pub async fn list_transactions_with_duration_timeout(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
+        timeout: Duration,
     ) -> Result<Vec<TransactionListing>> {
         let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();
         let pids = producer_id_filters.to_vec();
@@ -3722,7 +3790,6 @@ impl Admin {
         // needs a key. Empty string is the no-id lookup used here.
         const COORD_KEY: &str = "";
         let version = self.list_transactions_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
