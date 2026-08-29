@@ -2398,6 +2398,35 @@ async fn sync_group_negotiates_below_v5_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn sync_group_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SYNC_GROUP, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "sg0", "t").await.unwrap();
+    assert_eq!(
+        mock.last_sync_group_version(),
+        Some(0),
+        "client must speak SyncGroup v0 when the broker max is 0"
+    );
+}
+
+#[tokio::test]
+async fn sync_group_negotiates_v2_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(SYNC_GROUP, 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-sg2".into());
+    let _group = ConsumerGroup::join(ccfg, "sg2", "t").await.unwrap();
+    assert_eq!(
+        mock.last_sync_group_version(),
+        Some(2),
+        "client must speak SyncGroup v2 when the broker max is 2"
+    );
+}
+
+#[tokio::test]
 async fn join_group_negotiates_below_v9_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(JOIN_GROUP, 8);

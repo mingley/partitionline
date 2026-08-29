@@ -369,14 +369,14 @@ pub fn decode_join_group_response<B: Buf>(
 
 /// `true` when SyncGroup `version` is flexible (v4+).
 ///
-/// v3 is classic (GroupId, GenerationId, MemberId, GroupInstanceId,
-/// Assignments). v4 is compact strings/bytes/arrays plus tagged fields
-/// (Apache JSON `flexibleVersions: "4+"`). v5 adds ProtocolType /
-/// ProtocolName (KIP-559). Kafka 4.0 `validVersions` is `0-5`. This crate
-/// speaks 3–5. v0–v2 (no instance id) and v6+ are not spoken.
+/// v0–v3 are classic. v4 is compact strings/bytes/arrays plus tagged
+/// fields (Apache JSON `flexibleVersions: "4+"`). v5 adds ProtocolType /
+/// ProtocolName (KIP-559). Kafka 4.0 `validVersions` is `0-5`. Official
+/// JSON: v1 and v2 match v0. v1+ ThrottleTimeMs. v3 GroupInstanceId.
+/// This crate speaks 0–5. v6+ is not spoken.
 fn sync_group_flexible(version: i16) -> Result<bool> {
     match version {
-        3 => Ok(false),
+        0..=3 => Ok(false),
         4..=5 => Ok(true),
         other => Err(Error::protocol(format!(
             "SyncGroup version {other} is not implemented"
@@ -384,7 +384,7 @@ fn sync_group_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// SyncGroup request (classic v3 or flexible v4–v5).
+/// SyncGroup request (classic v0–v3 or flexible v4–v5).
 #[derive(Debug, Clone, Copy)]
 pub struct SyncGroupRequest<'a> {
     /// Group id.
@@ -405,7 +405,12 @@ pub struct SyncGroupRequest<'a> {
     pub assignments: &'a [(String, Vec<u8>)],
 }
 
-/// Encode SyncGroup v3 (classic) or v4–v5 (flexible).
+/// Encode SyncGroup v0–v5.
+///
+/// Kafka 4.0 JSON: `validVersions: "0-5"`, `flexibleVersions: "4+"`.
+/// v0–v2 are GroupId + GenerationId + MemberId + Assignments (v1 and v2
+/// match v0). v3 GroupInstanceId. v4 flexible. v5 ProtocolType /
+/// ProtocolName (KIP-559). This crate speaks 0–5. v6+ is not spoken.
 pub fn encode_sync_group_request(
     buf: &mut BytesMut,
     version: i16,
@@ -415,7 +420,9 @@ pub fn encode_sync_group_request(
     buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.generation_id);
     buf::put_string(buf, flexible, Some(req.member_id))?;
-    buf::put_string(buf, flexible, req.group_instance_id)?;
+    if version >= 3 {
+        buf::put_string(buf, flexible, req.group_instance_id)?;
+    }
     if version >= 5 {
         buf::put_string(buf, true, Some(req.protocol_type))?;
         buf::put_string(buf, true, Some(req.protocol_name))?;
@@ -447,7 +454,9 @@ pub fn decode_sync_group_request<B: Buf>(
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _inst = buf::get_string(buf, flexible)?;
+    if version >= 3 {
+        let _inst = buf::get_string(buf, flexible)?;
+    }
     if version >= 5 {
         let _ptype = buf::get_string(buf, true)?;
         let _pname = buf::get_string(buf, true)?;
@@ -468,7 +477,8 @@ pub fn decode_sync_group_request<B: Buf>(
     Ok((group_id, member_id, assignments))
 }
 
-/// Encode SyncGroup: error plus this member's assignment bytes.
+/// Encode SyncGroup v0–v5. Throttle is `0` on v1+. ProtocolType /
+/// ProtocolName are v5+ (null here).
 pub fn encode_sync_group_response(
     buf: &mut BytesMut,
     version: i16,
@@ -476,7 +486,9 @@ pub fn encode_sync_group_response(
     assignment: &[u8],
 ) -> crate::error::Result<()> {
     let flexible = sync_group_flexible(version)?;
-    buf.put_i32(0);
+    if version >= 1 {
+        buf.put_i32(0);
+    }
     buf.put_i16(error_code);
     if version >= 5 {
         buf::put_string(buf, true, None)?;
@@ -489,10 +501,12 @@ pub fn encode_sync_group_response(
     Ok(())
 }
 
-/// Decode SyncGroup: `(error_code, assignment)`.
+/// Decode SyncGroup: `(error_code, assignment)`. Throttle is v1+.
 pub fn decode_sync_group_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, Vec<u8>)> {
     let flexible = sync_group_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    if version >= 1 {
+        let _throttle = buf::get_i32(buf)?;
+    }
     let error = buf::get_i16(buf)?;
     if version >= 5 {
         let _ptype = buf::get_string(buf, true)?;
@@ -2460,6 +2474,78 @@ mod tests {
     }
 
     #[test]
+    fn sync_group_v0_v2_match_and_v1_adds_throttle() {
+        // Official JSON: "Versions 1 and 2 are the same as version 0."
+        // Request: STRING "g", INT32 7, STRING "m1", empty assignments.
+        // Instance id is v3+. ProtocolType / ProtocolName are v5+.
+        const REQ: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x00, 0x07, 0x00, 0x02, 0x6d, 0x31, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        let empty: [(String, Vec<u8>); 0] = [];
+        let req = SyncGroupRequest {
+            group_id: "g",
+            generation_id: 7,
+            member_id: "m1",
+            group_instance_id: Some("ignored-on-v0"),
+            protocol_type: "consumer",
+            protocol_name: "range",
+            assignments: &empty,
+        };
+        let mut v0 = BytesMut::new();
+        encode_sync_group_request(&mut v0, 0, &req).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_sync_group_request(&mut v1, 1, &req).unwrap();
+        let mut v2 = BytesMut::new();
+        encode_sync_group_request(&mut v2, 2, &req).unwrap();
+        assert_eq!(&v0[..], REQ);
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
+        let mut cur = v0.as_ref();
+        let (gid, mid, got) = decode_sync_group_request(&mut cur, 0).unwrap();
+        assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert!(got.is_empty());
+        assert!(cur.is_empty(), "v0 request leftover-empty");
+        let mut cur = v2.as_ref();
+        let (_gid, mid, _got) = decode_sync_group_request(&mut cur, 2).unwrap();
+        assert_eq!(mid, "m1");
+        assert!(cur.is_empty(), "v2 request leftover-empty");
+
+        v0.clear();
+        encode_sync_group_response(&mut v0, 0, 0, &[]).unwrap();
+        v1.clear();
+        encode_sync_group_response(&mut v1, 1, 0, &[]).unwrap();
+        v2.clear();
+        encode_sync_group_response(&mut v2, 2, 0, &[]).unwrap();
+        // v0: error 0, empty BYTES. v1+: throttle 0 then error 0 then BYTES.
+        const RESP_V0: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const RESP_V1: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(&v0[..], RESP_V0);
+        assert_eq!(&v1[..], RESP_V1);
+        assert_ne!(v0.as_ref(), v1.as_ref(), "v1 response adds ThrottleTimeMs");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 response bodies match");
+        let mut cur = v0.as_ref();
+        let (err, asg) = decode_sync_group_response(&mut cur, 0).unwrap();
+        assert_eq!((err, asg.as_slice()), (0, &[][..]));
+        assert!(cur.is_empty(), "v0 response leftover-empty");
+        let mut cur = v1.as_ref();
+        let (err, asg) = decode_sync_group_response(&mut cur, 1).unwrap();
+        assert_eq!((err, asg.as_slice()), (0, &[][..]));
+        assert!(cur.is_empty(), "v1 response leftover-empty");
+
+        v0.clear();
+        let err = encode_sync_group_request(&mut v0, 6, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v6 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 5), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 5, 0, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(3, 5, 0, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(6, 6, 0, 5), None);
+    }
+
+    #[test]
     fn sync_group_v3_roundtrip_is_leftover_empty() {
         let assignments = vec![("m1".into(), vec![1, 2, 3])];
         let mut buf = BytesMut::new();
@@ -2550,10 +2636,6 @@ mod tests {
         let mut v3 = BytesMut::new();
         encode_sync_group_request(&mut v3, 3, &sync_req(&empty)).unwrap();
         assert_ne!(&buf[..], &v3[..], "SyncGroup v4 must not be classic v3");
-        assert!(
-            encode_sync_group_request(&mut BytesMut::new(), 2, &sync_req(&empty)).is_err(),
-            "SyncGroup v2 is not spoken"
-        );
         assert!(
             encode_sync_group_request(&mut BytesMut::new(), 6, &sync_req(&empty)).is_err(),
             "SyncGroup v6+ is not spoken"

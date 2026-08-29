@@ -155,8 +155,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         HEARTBEAT if api_version >= 4 => 2,
         // SyncGroup is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
-        // is 0-5. This crate speaks 3–5. v5 ProtocolType / ProtocolName
-        // (KIP-559) keep the v4 header. v0–v2 are not spoken.
+        // is 0-5. This crate speaks 0–5. v1 and v2 match v0. v3
+        // GroupInstanceId. v5 ProtocolType / ProtocolName (KIP-559)
+        // keep the v4 header. v6+ is not spoken.
         SYNC_GROUP if api_version >= 4 => 2,
         // JoinGroup is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
@@ -609,8 +610,13 @@ mod tests {
     #[test]
     fn sync_group_v4_is_flexible_v3_is_not() {
         // Official JSON: validVersions 0-5, flexibleVersions 4+.
-        // HeaderVersion is 1 / 0 at v3 and 2 / 1 at v4–v5. This crate
-        // speaks 3–5. v5 ProtocolType / ProtocolName keep the v4 header.
+        // HeaderVersion is 1 / 0 at v0–v3 and 2 / 1 at v4–v5. This crate
+        // speaks 0–5. v1 and v2 match v0. v3 GroupInstanceId. v5
+        // ProtocolType / ProtocolName keep the v4 header.
+        assert_eq!(request_header_version(SYNC_GROUP, 0), 1);
+        assert_eq!(response_header_version(SYNC_GROUP, 0), 0);
+        assert_eq!(request_header_version(SYNC_GROUP, 2), 1);
+        assert_eq!(response_header_version(SYNC_GROUP, 2), 0);
         assert_eq!(request_header_version(SYNC_GROUP, 3), 1);
         assert_eq!(response_header_version(SYNC_GROUP, 3), 0);
         assert_eq!(request_header_version(SYNC_GROUP, 4), 2);

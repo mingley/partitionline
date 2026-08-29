@@ -1554,12 +1554,7 @@ impl ConsumerGroup {
         } else {
             Vec::new()
         };
-        let version = self.coord.sync_group_version;
-        if version == 0 {
-            return Err(Error::Unsupported(
-                "broker does not support SyncGroup v3-5".into(),
-            ));
-        }
+        let version = spoken_sync_group(self.coord.sync_group_version)?;
         let body = coord_roundtrip(
             &mut self.coord,
             &self.cfg,
@@ -2002,6 +1997,16 @@ async fn leave_if_max_poll(
     true
 }
 
+fn spoken_sync_group(version: i16) -> Result<i16> {
+    if (0..=5).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support SyncGroup v0-5".into(),
+        ))
+    }
+}
+
 fn spoken_heartbeat(version: i16) -> Result<i16> {
     if (0..=4).contains(&version) {
         Ok(version)
@@ -2296,8 +2301,8 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == SYNC_GROUP)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 5))
-        .unwrap_or(0);
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
+        .unwrap_or(-1);
     conn.join_group_version = resp
         .api_keys
         .iter()
