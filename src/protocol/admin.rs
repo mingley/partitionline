@@ -5748,6 +5748,9 @@ impl ConsumerGroupTopicPartitions {
 }
 
 /// Current or target assignment for one described member.
+///
+/// [`Display`] is Java `MemberAssignment.toString` (comma-no-space
+/// `topic-partition` list).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConsumerGroupAssignment {
     /// Assigned topic partitions.
@@ -5767,11 +5770,30 @@ impl ConsumerGroupAssignment {
     }
 }
 
+impl fmt::Display for ConsumerGroupAssignment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("(topicPartitions=")?;
+        let mut first = true;
+        for topic in self.topic_partitions() {
+            for partition in topic.partitions() {
+                if !first {
+                    f.write_str(",")?;
+                }
+                first = false;
+                write!(f, "{}-{}", topic.topic_name(), partition)?;
+            }
+        }
+        f.write_str(")")
+    }
+}
+
 /// One member in a ConsumerGroupDescribe group.
 ///
 /// Java `MemberDescription` for a [`GroupType::Consumer`] group.
 /// `member_type` is v1+ (`-1` unknown, `0` classic, `1` consumer).
 /// v0 decode fills `-1`.
+///
+/// [`Display`] is Java `MemberDescription.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMember {
     /// Group member id.
@@ -5871,6 +5893,37 @@ impl ConsumerGroupMember {
     #[must_use]
     pub fn upgraded(&self) -> Option<bool> {
         (self.member_type != -1).then_some(self.member_type == 1)
+    }
+}
+
+impl fmt::Display for ConsumerGroupMember {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("(memberId=")?;
+        f.write_str(self.member_id())?;
+        f.write_str(", groupInstanceId=")?;
+        f.write_str(self.group_instance_id().unwrap_or("null"))?;
+        f.write_str(", clientId=")?;
+        f.write_str(self.client_id())?;
+        f.write_str(", host=")?;
+        f.write_str(self.host())?;
+        f.write_str(", assignment=")?;
+        write!(f, "{}", self.assignment())?;
+        f.write_str(", targetAssignment=")?;
+        match self.target_assignment() {
+            Some(assignment) => write!(f, "Optional[{assignment}]")?,
+            None => f.write_str("Optional.empty")?,
+        }
+        f.write_str(", memberEpoch=")?;
+        match self.member_epoch() {
+            Some(epoch) => write!(f, "{epoch}")?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(", upgraded=")?;
+        match self.upgraded() {
+            Some(upgraded) => write!(f, "{upgraded}")?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(")")
     }
 }
 
@@ -14794,6 +14847,15 @@ mod tests {
             assignment.topic_partitions(),
             std::slice::from_ref(&assigned)
         );
+        assert_eq!(assignment.to_string(), "(topicPartitions=t-0,t-1)");
+        assert_eq!(
+            ConsumerGroupAssignment::default().to_string(),
+            "(topicPartitions=)"
+        );
+        assert_eq!(
+            ConsumerGroupMember::new("m", 1, "c", "h").to_string(),
+            "(memberId=m, groupInstanceId=null, clientId=c, host=h, assignment=(topicPartitions=), targetAssignment=Optional[(topicPartitions=)], memberEpoch=1, upgraded=null)"
+        );
         let mut member = ConsumerGroupMember::new("m1", 7, "c", "h");
         member.instance_id = Some("i1".into());
         member.assignment = assignment.clone();
@@ -14807,10 +14869,18 @@ mod tests {
         assert_eq!(member.target_assignment(), Some(&assignment));
         assert_eq!(member.member_epoch(), Some(7));
         assert_eq!(member.upgraded(), Some(true));
+        assert_eq!(
+            member.to_string(),
+            "(memberId=m1, groupInstanceId=i1, clientId=c, host=h, assignment=(topicPartitions=t-0,t-1), targetAssignment=Optional[(topicPartitions=t-0,t-1)], memberEpoch=7, upgraded=true)"
+        );
         member.member_type = 0;
         assert_eq!(member.upgraded(), Some(false));
         member.member_type = -1;
         assert!(member.upgraded().is_none());
+        assert_eq!(
+            member.to_string(),
+            "(memberId=m1, groupInstanceId=i1, clientId=c, host=h, assignment=(topicPartitions=t-0,t-1), targetAssignment=Optional[(topicPartitions=t-0,t-1)], memberEpoch=7, upgraded=null)"
+        );
         let described = DescribedConsumerGroup {
             error_code: 0,
             error_message: None,

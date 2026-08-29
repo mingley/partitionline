@@ -164,6 +164,8 @@
 //! is Java `PartitionReassignment.toString`. [`TransactionListing`]
 //! `Display` is Java `TransactionListing.toString`. [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.
+//! [`ConsumerGroupAssignment`] `Display` is Java `MemberAssignment.toString`.
+//! [`ConsumerGroupMember`] `Display` is Java `MemberDescription.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
