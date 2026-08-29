@@ -32,7 +32,7 @@ use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
     decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
-    TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
+    TxnOffsetCommitMember, TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
 /// Produce settings. Prefer the chainable builders; raw fields remain writable.
@@ -753,7 +753,7 @@ impl Producer {
                 })?;
                 let end = pick(&versions, END_TXN, 0, 4)
                     .ok_or_else(|| Error::Unsupported("broker does not support EndTxn".into()))?;
-                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 2).ok_or_else(|| {
+                let toc = pick(&versions, TXN_OFFSET_COMMIT, 0, 4).ok_or_else(|| {
                     Error::Unsupported("broker does not support TxnOffsetCommit".into())
                 })?;
                 (add_p, add_o, end, toc)
@@ -1275,6 +1275,43 @@ impl Producer {
             .into_iter()
             .map(|(tp, md)| (tp.into(), md.into()))
             .collect();
+        self.send_offsets_inner(group_id, &TxnOffsetCommitMember::unknown(), offsets)
+            .await
+    }
+
+    /// [`Self::send_offsets_with_metadata`] using a group's identity.
+    ///
+    /// TxnOffsetCommit v3+ sends `generation.id`, `member.id`, and
+    /// `group.instance.id` from [`crate::ConsumerGroupMetadata`].
+    pub async fn send_offsets_for_group(
+        &self,
+        group: &crate::ConsumerGroupMetadata,
+        offsets: impl IntoIterator<
+            Item = (
+                impl Into<crate::TopicPartition>,
+                impl Into<crate::OffsetAndMetadata>,
+            ),
+        >,
+    ) -> Result<()> {
+        let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
+            .into_iter()
+            .map(|(tp, md)| (tp.into(), md.into()))
+            .collect();
+        let member = TxnOffsetCommitMember {
+            generation_id: group.generation_id,
+            member_id: group.member_id.clone(),
+            group_instance_id: group.group_instance_id.clone(),
+        };
+        self.send_offsets_inner(&group.group_id, &member, offsets)
+            .await
+    }
+
+    async fn send_offsets_inner(
+        &self,
+        group_id: &str,
+        member: &TxnOffsetCommitMember,
+        offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
+    ) -> Result<()> {
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
             return Err(Error::protocol("transactional.id is not set"));
         };
@@ -1331,32 +1368,19 @@ impl Producer {
             version,
             self.inner.shared.find_coord_version,
             |buf| {
-                encode_txn_offset_commit_request(buf, version, &tid, group_id, pid, epoch, &grouped)
+                encode_txn_offset_commit_request(
+                    buf, version, &tid, group_id, pid, epoch, member, &grouped,
+                )
             },
             timeout,
-            |body| decode_txn_offset_commit_response(&mut { body }),
+            |body| decode_txn_offset_commit_response(&mut { body }, version),
         )
         .await?;
-        let err = decode_txn_offset_commit_response(&mut body.clone())?;
+        let err = decode_txn_offset_commit_response(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "TxnOffsetCommit"));
         }
         Ok(())
-    }
-
-    /// [`Self::send_offsets_with_metadata`] using a group's identity.
-    pub async fn send_offsets_for_group(
-        &self,
-        group: &crate::ConsumerGroupMetadata,
-        offsets: impl IntoIterator<
-            Item = (
-                impl Into<crate::TopicPartition>,
-                impl Into<crate::OffsetAndMetadata>,
-            ),
-        >,
-    ) -> Result<()> {
-        self.send_offsets_with_metadata(&group.group_id, offsets)
-            .await
     }
 
     async fn end_txn(&self, committed: bool) -> Result<()> {

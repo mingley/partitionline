@@ -23,8 +23,9 @@
 //! and InitProducerId v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
 //! Groups and transactions negotiate FindCoordinator v1–v3 (v3 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), and EndTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE).
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v4
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), and TxnOffsetCommit v0–v4
+//! (v3+ flexible; GenerationId / MemberId / GroupInstanceId).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
@@ -168,6 +169,8 @@
 //! [`ConsumerGroup::group_metadata`] is Java `ConsumerGroupMetadata`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
+//! `send_offsets_for_group` also sends generation / member / instance on
+//! TxnOffsetCommit v3+.
 //! [`Producer::send_offsets_to_transaction`] takes [`TopicPartition`].
 //! [`Admin::close`] / [`Admin::close_timeout`] drop the admin connection
 //! (Java `close(Duration)`; the duration is unused).

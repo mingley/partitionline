@@ -310,7 +310,7 @@ pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16>
     Ok(err)
 }
 
-/// One partition in TxnOffsetCommit v0–2 (classic).
+/// One partition in TxnOffsetCommit v0–4.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetPartition {
     /// Partition index.
@@ -323,7 +323,7 @@ pub struct TxnOffsetPartition {
     pub metadata: String,
 }
 
-/// Topic + partitions for TxnOffsetCommit v0–2.
+/// Topic + partitions for TxnOffsetCommit v0–4.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetTopic {
     /// Topic name.
@@ -332,7 +332,49 @@ pub struct TxnOffsetTopic {
     pub partitions: Vec<TxnOffsetPartition>,
 }
 
-/// TxnOffsetCommit v0–2 (classic). `committed_leader_epoch` is v2+.
+/// Group member identity for TxnOffsetCommit v3+ (`generation.id`,
+/// `member.id`, `group.instance.id`). Ignored on v0–v2.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TxnOffsetCommitMember {
+    /// Classic generation, or `-1` when unknown.
+    pub generation_id: i32,
+    /// Coordinator-assigned member id, or empty.
+    pub member_id: String,
+    /// Kafka `group.instance.id`, if static membership is set.
+    pub group_instance_id: Option<String>,
+}
+
+impl TxnOffsetCommitMember {
+    /// v3+ JSON defaults: generation `-1`, empty member id, null instance.
+    #[must_use]
+    pub fn unknown() -> Self {
+        Self {
+            generation_id: -1,
+            member_id: String::new(),
+            group_instance_id: None,
+        }
+    }
+}
+
+/// `true` when TxnOffsetCommit `version` is flexible (v3+).
+///
+/// v0–v2 are classic (v2 adds committed leader epoch). v3–v4 are compact
+/// strings/arrays plus tagged fields, and add GenerationId / MemberId /
+/// GroupInstanceId (Apache JSON `flexibleVersions: "3+"`). v4 is
+/// TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5 (KIP-890 Part 2
+/// transaction V2) is not spoken.
+fn txn_offset_commit_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "TxnOffsetCommit version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode TxnOffsetCommit v0–v2 (classic) or v3–v4 (flexible).
+#[expect(clippy::too_many_arguments)]
 pub fn encode_txn_offset_commit_request(
     buf: &mut BytesMut,
     version: i16,
@@ -340,16 +382,23 @@ pub fn encode_txn_offset_commit_request(
     group_id: &str,
     producer_id: i64,
     producer_epoch: i16,
+    member: &TxnOffsetCommitMember,
     topics: &[TxnOffsetTopic],
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(transactional_id))?;
-    buf::put_classic_nullable_string(buf, Some(group_id))?;
+    let flexible = txn_offset_commit_flexible(version)?;
+    buf::put_string(buf, flexible, Some(transactional_id))?;
+    buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    if version >= 3 {
+        buf.put_i32(member.generation_id);
+        buf::put_string(buf, flexible, Some(&member.member_id))?;
+        buf::put_string(buf, flexible, member.group_instance_id.as_deref())?;
+    }
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i64(p.offset);
@@ -361,32 +410,57 @@ pub fn encode_txn_offset_commit_request(
             } else {
                 Some(p.metadata.as_str())
             };
-            buf::put_classic_nullable_string(buf, meta)?;
+            buf::put_string(buf, flexible, meta)?;
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode TxnOffsetCommit: `(transactional_id, group_id, topics)`.
+/// Decode TxnOffsetCommit: `(transactional_id, group_id, member, topics)`.
 pub fn decode_txn_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, Vec<TxnOffsetTopic>)> {
-    let tid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let gid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+) -> Result<(String, String, TxnOffsetCommitMember, Vec<TxnOffsetTopic>)> {
+    let flexible = txn_offset_commit_flexible(version)?;
+    let tid = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let gid = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _pid = buf::get_i64(buf)?;
     let _epoch = buf::get_i16(buf)?;
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let member = if version >= 3 {
+        let generation_id = buf::get_i32(buf)?;
+        let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_instance_id = buf::get_string(buf, flexible)?;
+        TxnOffsetCommitMember {
+            generation_id,
+            member_id,
+            group_instance_id,
+        }
+    } else {
+        TxnOffsetCommitMember::unknown()
+    };
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let topic = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
             let leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
-            let metadata = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+            let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             partitions.push(TxnOffsetPartition {
                 partition,
                 offset,
@@ -394,45 +468,72 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
                 metadata,
             });
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         topics.push(TxnOffsetTopic { topic, partitions });
     }
-    Ok((tid, gid, topics))
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((tid, gid, member, topics))
 }
 
 /// Encode TxnOffsetCommit: one error code applied to every partition.
 pub fn encode_txn_offset_commit_response(
     buf: &mut BytesMut,
+    version: i16,
     topics: &[TxnOffsetTopic],
     error: i16,
 ) -> Result<()> {
+    let flexible = txn_offset_commit_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
-        buf::put_classic_nullable_string(buf, Some(&t.topic))?;
-        buf::put_array_len(buf, false, Some(t.partitions.len()))?;
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(error);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
 /// Decode TxnOffsetCommit: first non-zero partition error, or `0`.
-pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B) -> Result<i16> {
+pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let flexible = txn_offset_commit_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let tn = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut first_err = 0i16;
     for _ in 0..tn {
-        let _topic = buf::get_classic_nullable_string(buf)?;
-        let pn = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let _topic = buf::get_string(buf, flexible)?;
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..pn {
             let _p = buf::get_i32(buf)?;
             let err = buf::get_i16(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
+            }
             if first_err == 0 && err != 0 {
                 first_err = err;
             }
         }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(first_err)
 }
@@ -776,10 +877,21 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_txn_offset_commit_request(&mut buf, 0, "tx", "g", 9, 1, &topics).unwrap();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            0,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &topics,
+        )
+        .unwrap();
         let mut cur = &buf[..];
-        let (tid, gid, got) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
+        let (tid, gid, member, got) = decode_txn_offset_commit_request(&mut cur, 0).unwrap();
         assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+        assert_eq!(member, TxnOffsetCommitMember::unknown());
         let part = got
             .first()
             .and_then(|t| t.partitions.first())
@@ -817,10 +929,21 @@ mod tests {
             ],
         }];
         let mut buf = BytesMut::new();
-        encode_txn_offset_commit_request(&mut buf, 2, "tx", "g", 9, 1, &topics).unwrap();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &topics,
+        )
+        .unwrap();
         let mut cur = &buf[..];
-        let (tid, gid, got) = decode_txn_offset_commit_request(&mut cur, 2).unwrap();
+        let (tid, gid, member, got) = decode_txn_offset_commit_request(&mut cur, 2).unwrap();
         assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+        assert_eq!(member, TxnOffsetCommitMember::unknown());
         assert_eq!(got, topics);
         assert!(
             cur.is_empty(),
@@ -829,10 +952,118 @@ mod tests {
         );
 
         buf.clear();
-        encode_txn_offset_commit_response(&mut buf, &topics, 0).unwrap();
+        encode_txn_offset_commit_response(&mut buf, 2, &topics, 0).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_txn_offset_commit_response(&mut cur).unwrap(), 0);
+        assert_eq!(decode_txn_offset_commit_response(&mut cur, 2).unwrap(), 0);
         assert!(cur.is_empty());
+    }
+
+    #[test]
+    fn txn_offset_commit_v3_roundtrip_is_leftover_empty() {
+        let member = TxnOffsetCommitMember {
+            generation_id: 7,
+            member_id: "m".into(),
+            group_instance_id: Some("i".into()),
+        };
+        let topics = vec![TxnOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![TxnOffsetPartition {
+                partition: 0,
+                offset: 7,
+                leader_epoch: 9,
+                metadata: String::new(),
+            }],
+        }];
+        let mut req = BytesMut::new();
+        encode_txn_offset_commit_request(&mut req, 3, "tx", "g", 9, 1, &member, &topics).unwrap();
+        let mut cur = &req[..];
+        let (tid, gid, got_member, got) = decode_txn_offset_commit_request(&mut cur, 3).unwrap();
+        assert_eq!((tid.as_str(), gid.as_str()), ("tx", "g"));
+        assert_eq!(got_member, member);
+        assert_eq!(got, topics);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_txn_offset_commit_response(&mut resp, 3, &topics, 0).unwrap();
+        let mut cur = &resp[..];
+        assert_eq!(decode_txn_offset_commit_response(&mut cur, 3).unwrap(), 0);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 response must consume compact tagged fields"
+        );
+
+        req.clear();
+        encode_txn_offset_commit_request(&mut req, 4, "tx", "g", 9, 1, &member, &topics).unwrap();
+        let mut cur = &req[..];
+        let (_tid, _gid, got_member, got) = decode_txn_offset_commit_request(&mut cur, 4).unwrap();
+        assert_eq!(got_member, member);
+        assert_eq!(got, topics);
+        assert!(cur.is_empty(), "TxnOffsetCommit v4 shares the v3 layout");
+        req.clear();
+        assert!(
+            encode_txn_offset_commit_request(&mut req, 5, "tx", "g", 9, 1, &member, &topics)
+                .is_err(),
+            "TxnOffsetCommit v5 transaction V2 is not spoken"
+        );
+    }
+
+    #[test]
+    fn txn_offset_commit_v3_request_matches_compact_layout() {
+        // Compact "tx"/"g", pid 9, epoch 1, generation -1, empty member,
+        // null instance, one topic "t" partition 0 offset 7 epoch 9,
+        // null metadata, tagged.
+        const REQ: &[u8] = &[
+            0x03, 0x74, 0x78, 0x02, 0x67, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00,
+            0x01, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x09, 0x00,
+            0x00, 0x00, 0x00,
+        ];
+        let topics = [TxnOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![TxnOffsetPartition {
+                partition: 0,
+                offset: 7,
+                leader_epoch: 9,
+                metadata: String::new(),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            3,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &topics,
+        )
+        .unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn txn_offset_commit_v3_response_matches_compact_layout() {
+        // Throttle 0, one topic "t" partition 0 error 0, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,
+        ];
+        let topics = [TxnOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![TxnOffsetPartition {
+                partition: 0,
+                offset: 7,
+                leader_epoch: 9,
+                metadata: String::new(),
+            }],
+        }];
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_response(&mut buf, 3, &topics, 0).unwrap();
+        assert_eq!(&buf[..], RESP);
     }
 
     #[test]

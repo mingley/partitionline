@@ -13,8 +13,8 @@ use super::api_keys::{
     FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP,
     LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
-    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER,
-    UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, TXN_OFFSET_COMMIT,
+    UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -94,6 +94,12 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // v4 is TRANSACTION_ABORTABLE (KIP-890; same layout as v3).
         // v5 adds ProducerId / ProducerEpoch on the response and is not spoken.
         END_TXN if api_version >= 3 => 2,
+        // TxnOffsetCommit is classic through v2; flexible from v3
+        // (Apache JSON flexibleVersions: "3+"). This crate speaks 0–4.
+        // v3 adds GenerationId / MemberId / GroupInstanceId. v4 is
+        // TRANSACTION_ABORTABLE (KIP-890; same layout as v3). v5
+        // (KIP-890 Part 2 transaction V2) is not spoken.
+        TXN_OFFSET_COMMIT if api_version >= 3 => 2,
         // LeaveGroup is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). This crate speaks 0–5
         // (v5 is KIP-800 Reason).
@@ -172,6 +178,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         ADD_PARTITIONS_TO_TXN if api_version >= 3 => 1,
         ADD_OFFSETS_TO_TXN if api_version >= 3 => 1,
         END_TXN if api_version >= 3 => 1,
+        TXN_OFFSET_COMMIT if api_version >= 3 => 1,
         WRITE_TXN_MARKERS if api_version >= 1 => 1,
         LEAVE_GROUP if api_version >= 4 => 1,
         LIST_OFFSETS if api_version >= 6 => 1,
@@ -393,6 +400,21 @@ mod tests {
         assert_eq!(response_header_version(END_TXN, 3), 1);
         assert_eq!(request_header_version(END_TXN, 4), 2);
         assert_eq!(response_header_version(END_TXN, 4), 1);
+    }
+
+    #[test]
+    fn txn_offset_commit_v3_is_flexible_v2_is_not() {
+        // Official JSON: validVersions 0-5, flexibleVersions 3+.
+        // HeaderVersion is 1 / 0 at v0–2 and 2 / 1 at v3+. This crate
+        // speaks 0–4. v5 (KIP-890 Part 2 transaction V2) is not spoken.
+        assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 0), 1);
+        assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 0), 0);
+        assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 2), 1);
+        assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 2), 0);
+        assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 3), 2);
+        assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 3), 1);
+        assert_eq!(request_header_version(TXN_OFFSET_COMMIT, 4), 2);
+        assert_eq!(response_header_version(TXN_OFFSET_COMMIT, 4), 1);
     }
 
     #[test]

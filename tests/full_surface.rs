@@ -902,6 +902,21 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     );
     assert_eq!(mock.last_txn_offset_commit_partitions(), 3);
     assert_eq!(
+        mock.last_txn_offset_commit_version(),
+        Some(4),
+        "Producer must prefer TxnOffsetCommit v4 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_txn_offset_generation(),
+        Some(-1),
+        "send_offsets_to_transaction must send generation -1"
+    );
+    assert_eq!(
+        mock.last_txn_offset_member_id().as_deref(),
+        Some(""),
+        "send_offsets_to_transaction must send empty member id"
+    );
+    assert_eq!(
         mock.last_add_offsets_to_txn_version(),
         Some(4),
         "Producer must prefer AddOffsetsToTxn v4 when the broker advertises it"
@@ -909,7 +924,7 @@ async fn transactional_offsets_and_partitions_one_rpc() {
     assert_eq!(
         mock.last_txn_offset_epochs(),
         vec![e0, e1, e2],
-        "TxnOffsetCommit v2 must send Metadata current_leader_epoch"
+        "TxnOffsetCommit v2+ must send Metadata current_leader_epoch"
     );
     producer.commit_transaction().await.unwrap();
     assert_eq!(

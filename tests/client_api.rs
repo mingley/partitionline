@@ -1980,6 +1980,13 @@ async fn send_offsets_with_metadata_then_committed() {
         )
         .await
         .unwrap();
+    assert_eq!(
+        mock.last_txn_offset_commit_version(),
+        Some(4),
+        "Producer must prefer TxnOffsetCommit v4 when the broker advertises it"
+    );
+    assert_eq!(mock.last_txn_offset_generation(), Some(1));
+    assert_eq!(mock.last_txn_offset_member_id().as_deref(), Some("m"));
     producer.commit_transaction().await.unwrap();
     producer.close().await.unwrap();
 

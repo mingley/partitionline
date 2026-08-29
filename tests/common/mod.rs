@@ -388,6 +388,9 @@ struct State {
     last_add_partitions_to_txn_version: Option<i16>,
     txn_offset_commit_calls: u32,
     last_txn_offset_commit_partitions: usize,
+    last_txn_offset_commit_version: Option<i16>,
+    last_txn_offset_generation: Option<i32>,
+    last_txn_offset_member_id: Option<String>,
     last_txn_offset_epochs: Vec<i32>,
     drop_gen: watch::Sender<u32>,
     refuse_conns: u32,
@@ -627,6 +630,9 @@ fn new_state(
         last_add_partitions_to_txn_version: None,
         txn_offset_commit_calls: 0,
         last_txn_offset_commit_partitions: 0,
+        last_txn_offset_commit_version: None,
+        last_txn_offset_generation: None,
+        last_txn_offset_member_id: None,
         last_txn_offset_epochs: Vec::new(),
         drop_gen: watch::channel(0).0,
         refuse_conns: 0,
@@ -1746,6 +1752,18 @@ impl Mock {
         self.state.lock().last_txn_offset_commit_partitions
     }
 
+    pub fn last_txn_offset_commit_version(&self) -> Option<i16> {
+        self.state.lock().last_txn_offset_commit_version
+    }
+
+    pub fn last_txn_offset_generation(&self) -> Option<i32> {
+        self.state.lock().last_txn_offset_generation
+    }
+
+    pub fn last_txn_offset_member_id(&self) -> Option<String> {
+        self.state.lock().last_txn_offset_member_id.clone()
+    }
+
     pub fn last_txn_offset_epochs(&self) -> Vec<i32> {
         self.state.lock().last_txn_offset_epochs.clone()
     }
@@ -2109,7 +2127,7 @@ fn versions() -> ApiVersionsResponse {
         (ADD_OFFSETS_TO_TXN, 0, 4),
         (END_TXN, 0, 4),
         (WRITE_TXN_MARKERS, 0, 1),
-        (TXN_OFFSET_COMMIT, 0, 2),
+        (TXN_OFFSET_COMMIT, 0, 4),
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
         (DESCRIBE_CONFIGS, 0, 1),
@@ -3351,11 +3369,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             TXN_OFFSET_COMMIT => {
-                let (_tid, _gid, topics) =
+                let (_tid, _gid, member, topics) =
                     decode_txn_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.coord_node != node_id {
-                    encode_txn_offset_commit_response(&mut body, &topics, 16).unwrap();
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, 16)
+                        .unwrap();
                 } else {
                     st.txn_offset_commit_calls = st.txn_offset_commit_calls.saturating_add(1);
                     let mut nparts = 0usize;
@@ -3377,7 +3396,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.last_txn_offset_commit_partitions = nparts;
                     st.last_txn_offset_epochs = epochs;
                     st.last_txn_offset_commit_node = Some(node_id);
-                    encode_txn_offset_commit_response(&mut body, &topics, 0).unwrap();
+                    st.last_txn_offset_commit_version = Some(header.api_version);
+                    st.last_txn_offset_generation = Some(member.generation_id);
+                    st.last_txn_offset_member_id = Some(member.member_id);
+                    encode_txn_offset_commit_response(&mut body, header.api_version, &topics, 0)
+                        .unwrap();
                 }
             }
             PRODUCE => {
