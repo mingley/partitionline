@@ -938,6 +938,36 @@ impl TopicDescription {
     pub fn is_internal(&self) -> bool {
         self.is_internal
     }
+
+    /// Per-topic Metadata error (`0` is success). Java `TopicDescription`
+    /// throws instead of storing this.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `TopicDescription.partitions`.
+    #[must_use]
+    pub fn partitions(&self) -> &[crate::PartitionInfo] {
+        &self.partitions
+    }
+
+    /// Java `TopicDescription.authorizedOperations` as the Metadata
+    /// bitfield, or [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn authorized_operations(&self) -> i32 {
+        self.authorized_operations
+    }
+}
+
+impl TopicResult {
+    /// Java `CreateTopicsResult.topicId` (KIP-516). Zero when the broker
+    /// omitted TopicId (CreateTopics below v7 / DeleteTopics below v6, or
+    /// an error).
+    #[must_use]
+    pub fn topic_id(&self) -> Uuid {
+        Uuid::from_bytes(self.topic_id)
+    }
 }
 
 /// One replica: topic, partition, and broker id (Java `TopicPartitionReplica`).
@@ -1202,6 +1232,41 @@ impl ConfigResource {
     #[must_use]
     pub fn resource_type(&self) -> Option<ConfigResourceType> {
         ConfigResourceType::from_id(self.resource_type)
+    }
+}
+
+impl ListedConfigResource {
+    /// Java `ConfigResource.name` (`listConfigResources` item).
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.resource_name.as_str()
+    }
+
+    /// Java `ConfigResource.type`. Unknown wire ids are [`None`].
+    #[must_use]
+    pub fn resource_type(&self) -> Option<ConfigResourceType> {
+        ConfigResourceType::from_id(self.resource_type)
+    }
+
+    /// This listing as a [`ConfigResource`] with no key filter (Java
+    /// `listConfigResources` returns `ConfigResource`).
+    #[must_use]
+    pub fn to_config_resource(&self) -> ConfigResource {
+        ConfigResource {
+            resource_type: self.resource_type,
+            name: self.resource_name.clone(),
+            keys: None,
+        }
+    }
+}
+
+impl From<ListedConfigResource> for ConfigResource {
+    fn from(listed: ListedConfigResource) -> Self {
+        Self {
+            resource_type: listed.resource_type,
+            name: listed.resource_name,
+            keys: None,
+        }
     }
 }
 
@@ -11052,6 +11117,7 @@ fn replica_log_dir_info_from(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::protocol::admin::CreatedTopicConfig;
 
     #[test]
     fn records_to_delete_before_offset_converts_to_i64() {
@@ -11467,6 +11533,51 @@ mod tests {
         assert_eq!(altered.error_code(), 0);
         assert_eq!(altered.name(), "t");
         assert!(altered.error_message().is_none());
+        let created = TopicResult {
+            name: "orders".into(),
+            error_code: 0,
+            error_message: None,
+            topic_id: Uuid::ONE.to_bytes(),
+            num_partitions: 3,
+            replication_factor: 1,
+            configs: vec![CreatedTopicConfig {
+                name: "cleanup.policy".into(),
+                value: Some("compact".into()),
+                read_only: false,
+                config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                is_sensitive: false,
+            }],
+        };
+        assert_eq!(created.name(), "orders");
+        assert_eq!(created.error_code(), 0);
+        assert!(created.error_message().is_none());
+        assert_eq!(created.topic_id(), Uuid::ONE);
+        assert_eq!(created.num_partitions(), 3);
+        assert_eq!(created.replication_factor(), 1);
+        assert_eq!(
+            created
+                .config()
+                .get("cleanup.policy")
+                .and_then(ConfigEntry::value),
+            Some("compact")
+        );
+        let listed = ListedConfigResource::new("r", CONFIG_RESOURCE_CLIENT_METRICS);
+        assert_eq!(listed.name(), "r");
+        assert_eq!(
+            listed.resource_type(),
+            Some(ConfigResourceType::ClientMetrics)
+        );
+        let resource = listed.to_config_resource();
+        assert_eq!(resource.name(), "r");
+        assert_eq!(
+            resource.resource_type(),
+            Some(ConfigResourceType::ClientMetrics)
+        );
+        let owned = ConfigResource::from(listed);
+        assert_eq!(owned.name(), "r");
+        let deleted = DeletableGroupResult::new("g", 0);
+        assert_eq!(deleted.group_id(), "g");
+        assert_eq!(deleted.error_code(), 0);
     }
 
     #[test]
@@ -11664,10 +11775,18 @@ mod tests {
         assert_eq!(described.len(), 4);
         assert_eq!(described[0].name, "ok");
         assert_eq!(described[0].partitions.len(), 1);
+        assert_eq!(described[0].partitions().len(), 1);
+        assert_eq!(described[0].error_code(), 0);
+        assert_eq!(
+            described[0].authorized_operations(),
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
         assert_eq!(described[0].partitions[0].leader_epoch, 3);
         assert_eq!(described[1].name, "gone");
         assert_eq!(described[1].error_code, error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(described[1].error_code(), error::UNKNOWN_TOPIC_OR_PARTITION);
         assert!(described[1].partitions.is_empty());
+        assert!(described[1].partitions().is_empty());
         assert!(described[2].name.is_empty());
         assert_eq!(described[2].topic_id, [2; 16]);
         assert_eq!(described[2].topic_id(), Uuid::from_bytes([2; 16]));

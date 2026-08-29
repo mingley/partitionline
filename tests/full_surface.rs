@@ -5138,10 +5138,16 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     assert!(!described[0].is_internal());
     assert_eq!(described[0].topic_id().to_bytes(), described[0].topic_id);
     assert_eq!(described[0].partitions.len(), 1);
+    assert_eq!(described[0].partitions().len(), 1);
+    assert_eq!(described[0].error_code(), 0);
     assert_eq!(described[0].partitions[0].leader, 1);
     assert_eq!(
         described[0].authorized_operations, AUTHORIZED_OPERATIONS_OMITTED,
         "describe_topics must leave TopicAuthorizedOperations unset"
+    );
+    assert_eq!(
+        described[0].authorized_operations(),
+        AUTHORIZED_OPERATIONS_OMITTED
     );
     assert_eq!(
         mock.last_describe_topic_partitions(),
@@ -5156,6 +5162,7 @@ async fn admin_list_and_describe_topics_on_bootstrap() {
     let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
     assert_eq!(with_ops.len(), 1);
     assert_eq!(with_ops[0].authorized_operations, 4);
+    assert_eq!(with_ops[0].authorized_operations(), 4);
     assert_eq!(
         mock.last_describe_topic_partitions(),
         Some((vec!["t".into()], 2000, None)),
@@ -5295,6 +5302,7 @@ async fn admin_describe_topics_falls_back_to_metadata_without_dtp() {
     let with_ops = admin.describe_topics_with(["t"], true).await.unwrap();
     assert_eq!(with_ops.len(), 1);
     assert_eq!(with_ops[0].authorized_operations, 4);
+    assert_eq!(with_ops[0].authorized_operations(), 4);
     assert_eq!(
         mock.last_metadata_include_topic_authorized(),
         Some(true),
@@ -5485,8 +5493,13 @@ async fn create_topics_follows_controller() {
         created[0].topic_id, [0u8; 16],
         "CreateTopics v7 must return TopicId"
     );
+    assert_ne!(created[0].topic_id(), Uuid::ZERO);
+    assert_eq!(created[0].name(), "ctrl2");
+    assert_eq!(created[0].error_code(), 0);
     assert_eq!(created[0].num_partitions, 1);
+    assert_eq!(created[0].num_partitions(), 1);
     assert_eq!(created[0].replication_factor, 1);
+    assert_eq!(created[0].replication_factor(), 1);
 
     mock.set_controller(1);
     let again = admin
@@ -5548,6 +5561,29 @@ async fn create_topics_follows_controller() {
         Some(Vec::new()),
         "broker_defaults sends an empty Assignments array"
     );
+    let configured = admin
+        .create_topics(
+            &[NewTopic::new("ctrl-cfg", 1, 1).config("cleanup.policy", "compact")],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(configured[0].error_code(), 0);
+    let cfg_entry = configured[0]
+        .config()
+        .get("cleanup.policy")
+        .cloned()
+        .expect("CreateTopics v5+ echoes requested configs");
+    assert_eq!(cfg_entry.value(), Some("compact"));
+    assert_eq!(cfg_entry.source(), ConfigSource::DynamicTopic);
+    let first_cfg = configured[0]
+        .configs()
+        .first()
+        .expect("CreateTopics v5+ Configs is not empty");
+    assert_eq!(first_cfg.name(), "cleanup.policy");
+    assert!(!first_cfg.is_read_only());
+    assert!(!first_cfg.is_sensitive());
 }
 
 #[tokio::test]
@@ -8738,7 +8774,18 @@ async fn list_config_resources_follows_broker() {
         .unwrap();
     assert_eq!(first.len(), 1);
     assert_eq!(first[0].resource_name, "r");
+    assert_eq!(first[0].name(), "r");
     assert_eq!(first[0].resource_type, CONFIG_RESOURCE_CLIENT_METRICS);
+    assert_eq!(
+        first[0].resource_type(),
+        Some(ConfigResourceType::ClientMetrics)
+    );
+    let listed_as_resource = first[0].to_config_resource();
+    assert_eq!(listed_as_resource.name(), "r");
+    assert_eq!(
+        listed_as_resource.resource_type(),
+        Some(ConfigResourceType::ClientMetrics)
+    );
     assert_eq!(
         mock.last_list_config_resources_node(),
         Some(1),

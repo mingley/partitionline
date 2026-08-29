@@ -268,6 +268,11 @@ pub struct CreateTopicsRequest {
 }
 
 /// Per-topic result of CreateTopics / DeleteTopics.
+///
+/// Java `CreateTopicsResult.TopicMetadataAndConfig` plus the per-topic
+/// error. DeleteTopics leaves [`Self::num_partitions`],
+/// [`Self::replication_factor`], and [`Self::configs`] omitted (`-1` /
+/// empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicResult {
     /// Topic name.
@@ -300,10 +305,60 @@ impl TopicResult {
             configs: Vec::new(),
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Per-topic error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `CreateTopicsResult.numPartitions` (`-1` when omitted).
+    #[must_use]
+    pub fn num_partitions(&self) -> i32 {
+        self.num_partitions
+    }
+
+    /// Java `CreateTopicsResult.replicationFactor` (`-1` when omitted).
+    #[must_use]
+    pub fn replication_factor(&self) -> i16 {
+        self.replication_factor
+    }
+
+    /// CreateTopics v5+ Configs (KIP-525). Empty on DeleteTopics and
+    /// on CreateTopics below v5.
+    #[must_use]
+    pub fn configs(&self) -> &[CreatedTopicConfig] {
+        &self.configs
+    }
+
+    /// Java `CreateTopicsResult.config`.
+    ///
+    /// Builds [`Config`] from CreateTopics v5+ Configs (KIP-525). Type and
+    /// documentation on each entry are unknown (Java `null`). Empty when
+    /// the broker omitted Configs or the topic failed.
+    #[must_use]
+    pub fn config(&self) -> Config {
+        Config::new(self.configs.iter().map(CreatedTopicConfig::to_config_entry))
+    }
 }
 
 /// One config entry on a CreateTopics v5+ response (KIP-525).
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`] is set
+/// (Java `ConfigEntry.toString`).
+#[derive(Clone, PartialEq, Eq)]
 pub struct CreatedTopicConfig {
     /// Config key.
     pub name: String,
@@ -315,6 +370,69 @@ pub struct CreatedTopicConfig {
     pub config_source: i8,
     /// True when the value is redacted.
     pub is_sensitive: bool,
+}
+
+impl CreatedTopicConfig {
+    /// Config key.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Config value, or `None` when unset / sensitive on the wire.
+    #[must_use]
+    pub fn value(&self) -> Option<&str> {
+        self.value.as_deref()
+    }
+
+    /// Java `ConfigEntry.isReadOnly()`.
+    #[must_use]
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    /// Java `ConfigEntry.source()`.
+    #[must_use]
+    pub fn source(&self) -> ConfigSource {
+        ConfigSource::from_id(self.config_source)
+    }
+
+    /// Java `ConfigEntry.isSensitive()`.
+    #[must_use]
+    pub fn is_sensitive(&self) -> bool {
+        self.is_sensitive
+    }
+
+    fn to_config_entry(&self) -> ConfigEntry {
+        ConfigEntry {
+            name: self.name.clone(),
+            value: self.value.clone(),
+            read_only: self.read_only,
+            source: self.config_source,
+            is_sensitive: self.is_sensitive,
+            synonyms: Vec::new(),
+            config_type: CONFIG_TYPE_UNKNOWN,
+            documentation: None,
+        }
+    }
+}
+
+impl fmt::Debug for CreatedTopicConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Java `ConfigEntry.toString` prints `Redacted` when `isSensitive`.
+        let value = if self.is_sensitive {
+            Some("Redacted")
+        } else {
+            self.value.as_deref()
+        };
+        f.debug_struct("CreatedTopicConfig")
+            .field("name", &self.name)
+            .field("value", &value)
+            .field("read_only", &self.read_only)
+            .field("config_source", &self.config_source)
+            .field("is_sensitive", &self.is_sensitive)
+            .finish()
+    }
 }
 
 /// One resource in a DescribeConfigs request.
@@ -6500,6 +6618,18 @@ impl DeletableGroupResult {
             error_code,
         }
     }
+
+    /// Kafka `group.id`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
 }
 
 /// `true` when DeleteGroups `version` is flexible.
@@ -11348,6 +11478,13 @@ mod tests {
         let mut cur = &v7[..];
         let got = decode_create_topics_response(&mut cur, 7).unwrap();
         assert_eq!(got, results);
+        assert_eq!(got[0].name(), "t");
+        assert_eq!(got[0].error_code(), 0);
+        assert!(got[0].error_message().is_none());
+        assert_eq!(got[0].num_partitions(), 1);
+        assert_eq!(got[0].replication_factor(), 1);
+        assert!(got[0].configs().is_empty());
+        assert!(got[0].config().entries().is_empty());
         assert!(
             !cur.has_remaining(),
             "CreateTopics v7 response must be leftover-empty"
@@ -13342,6 +13479,57 @@ mod tests {
             "sensitive ConfigEntry Debug must not leak the value: {debug}"
         );
         assert_eq!(secret.value(), Some("s3cret"));
+        let created = CreatedTopicConfig {
+            name: "ssl.keystore.password".into(),
+            value: Some("s3cret".into()),
+            read_only: false,
+            config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+            is_sensitive: true,
+        };
+        assert_eq!(created.name(), "ssl.keystore.password");
+        assert_eq!(created.value(), Some("s3cret"));
+        assert!(!created.is_read_only());
+        assert_eq!(created.source(), ConfigSource::DynamicTopic);
+        assert!(created.is_sensitive());
+        let created_debug = format!("{created:?}");
+        assert!(
+            created_debug.contains("Redacted"),
+            "sensitive CreatedTopicConfig Debug must match Java toString redaction: {created_debug}"
+        );
+        assert!(
+            !created_debug.contains("s3cret"),
+            "sensitive CreatedTopicConfig Debug must not leak the value: {created_debug}"
+        );
+        let topic = TopicResult {
+            name: "orders".into(),
+            error_code: 0,
+            error_message: None,
+            topic_id: [0; 16],
+            num_partitions: 3,
+            replication_factor: 1,
+            configs: vec![CreatedTopicConfig {
+                name: "cleanup.policy".into(),
+                value: Some("compact".into()),
+                read_only: false,
+                config_source: CONFIG_SOURCE_DYNAMIC_TOPIC,
+                is_sensitive: false,
+            }],
+        };
+        assert_eq!(
+            topic
+                .config()
+                .get("cleanup.policy")
+                .and_then(ConfigEntry::value),
+            Some("compact")
+        );
+        assert_eq!(
+            topic
+                .config()
+                .get("cleanup.policy")
+                .map(ConfigEntry::config_type),
+            Some(ConfigType::Unknown),
+            "CreateTopics Config type is unknown (Java null)"
+        );
     }
 
     #[test]
