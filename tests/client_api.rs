@@ -76,8 +76,8 @@ async fn produce_header_survives_fetch() {
     let recs = consumer.fetch().await.unwrap();
     assert_eq!(
         mock.last_fetch_version(),
-        Some(16),
-        "Consumer must prefer Fetch v16 when the broker advertises it"
+        Some(17),
+        "Consumer must prefer Fetch v17 when the broker advertises it"
     );
     assert_eq!(recs.len(), 1);
     assert_eq!(recs.count(), 1);

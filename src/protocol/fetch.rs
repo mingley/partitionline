@@ -1,4 +1,4 @@
-//! Fetch (api key 1). v4–v11 classic; v12–v16 flexible.
+//! Fetch (api key 1). v4–v11 classic; v12–v17 flexible.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -68,7 +68,7 @@ pub struct FetchedTopic {
     pub partitions: Vec<FetchedPartition>,
 }
 
-/// Fetch v4–v11 (classic) or v12–v16 (flexible). LastFetchedEpoch is v12+.
+/// Fetch v4–v11 (classic) or v12–v17 (flexible). LastFetchedEpoch is v12+.
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
@@ -110,6 +110,8 @@ pub fn encode_fetch_request(
             buf.put_i64(-1); // log_start_offset
             buf.put_i32(p.partition_max_bytes);
             if flexible {
+                // v17+ ReplicaDirectoryId is partition tagged field 0.
+                // Consumers omit it (empty tagged fields).
                 buf::put_empty_tagged_fields(buf);
             }
         }
@@ -134,14 +136,16 @@ pub fn encode_fetch_request(
 /// v0–v3. v13 replaces topic names with topic ids (KIP-516). v14 is the
 /// same layout as v13 (`OffsetMovedToTieredStorageException`). v15 drops
 /// untagged ReplicaId and adds ReplicaState tagged field 1 (KIP-903;
-/// consumers omit it). v16 is the same request as v15 (KIP-951). This crate
-/// speaks 4–16. Partition CurrentLeader tagged field 1 is decoded (v12+);
-/// top-level NodeEndpoints tagged field 0 is not applied. v17+
-/// (ReplicaDirectoryId) is not spoken.
+/// consumers omit it). v16 is the same request as v15 (KIP-951). v17 is
+/// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
+/// follower-only and omitted). This crate speaks 4–17. Partition
+/// CurrentLeader tagged field 1 is decoded (v12+); top-level NodeEndpoints
+/// tagged field 0 is not applied. v18+ (KIP-1166 HighWatermark) is not
+/// spoken.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
         4..=11 => Ok(false),
-        12..=16 => Ok(true),
+        12..=17 => Ok(true),
         other => Err(Error::protocol(format!(
             "Fetch version {other} is not implemented"
         ))),
@@ -306,7 +310,7 @@ pub fn decode_fetch_request<B: Buf>(
     Ok((isolation, max_bytes, topics, rack))
 }
 
-/// Encode a Fetch v4–v11 (classic) or v12–v16 (flexible) response.
+/// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
 pub fn encode_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -358,7 +362,7 @@ pub fn encode_fetch_response(
     Ok(())
 }
 
-/// Decode a Fetch v4–v11 (classic) or v12–v16 (flexible) response.
+/// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
 pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<FetchedTopic>> {
     let flexible = fetch_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
@@ -770,8 +774,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
+            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v18+ (HighWatermark) is not spoken"
         );
     }
 
@@ -890,8 +894,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
+            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v18+ (HighWatermark) is not spoken"
         );
     }
 
@@ -1027,8 +1031,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
+            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v18+ (HighWatermark) is not spoken"
         );
     }
 
@@ -1131,8 +1135,8 @@ mod tests {
         );
         v16.clear();
         assert!(
-            encode_fetch_request(&mut v16, 17, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v17+ (ReplicaDirectoryId) is not spoken"
+            encode_fetch_request(&mut v16, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v18+ (HighWatermark) is not spoken"
         );
     }
 
@@ -1187,6 +1191,79 @@ mod tests {
             &buf[..],
             &omitted[..],
             "CurrentLeader tagged field 1 must not equal empty tags"
+        );
+    }
+
+    #[test]
+    fn fetch_v17_roundtrip_matches_v16() {
+        let req_topics = vec![sample_v13_topic()];
+        let mut v16 = BytesMut::new();
+        encode_fetch_request(&mut v16, 16, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
+        let mut v17 = BytesMut::new();
+        encode_fetch_request(&mut v17, 17, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
+        assert_eq!(
+            &v16[..],
+            &v17[..],
+            "Fetch v17 consumer request must omit ReplicaDirectoryId and match v16"
+        );
+        let mut cur = &v17[..];
+        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 17).unwrap();
+        assert_eq!(iso, 1);
+        assert_eq!(max_bytes, 1024);
+        assert_eq!(decoded[0].topic_id, SAMPLE_TOPIC_ID);
+        assert_eq!(rack, "az1");
+        assert!(
+            cur.is_empty(),
+            "Fetch v17 request must consume compact tagged fields"
+        );
+
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let topics = vec![FetchedTopic {
+            topic: String::new(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 1,
+                last_stable_offset: 1,
+                log_start_offset: 0,
+                aborted_transactions: vec![(1000, 1)],
+                preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        }];
+        let mut resp16 = BytesMut::new();
+        encode_fetch_response(&mut resp16, 16, &topics).unwrap();
+        let mut resp17 = BytesMut::new();
+        encode_fetch_response(&mut resp17, 17, &topics).unwrap();
+        assert_eq!(
+            &resp16[..],
+            &resp17[..],
+            "Fetch v17 response layout must match v16"
+        );
+        let mut cur = &resp17[..];
+        let got = decode_fetch_response(&mut cur, 17).unwrap();
+        assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
+        assert_eq!(
+            got[0].partitions[0].records[0].records[0].value.as_deref(),
+            Some(&b"f"[..])
+        );
+        assert!(
+            cur.is_empty(),
+            "Fetch v17 response must consume compact tagged fields"
+        );
+        v17.clear();
+        assert!(
+            encode_fetch_request(&mut v17, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v18+ (HighWatermark) is not spoken"
         );
     }
 }

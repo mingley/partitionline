@@ -2086,7 +2086,7 @@ fn share_record_batches(taken: Vec<Record>, leader_epoch: i32) -> Vec<RecordBatc
 fn versions() -> ApiVersionsResponse {
     let keys = [
         (PRODUCE, 3, 12),
-        (FETCH, 4, 16),
+        (FETCH, 4, 17),
         (LIST_OFFSETS, 0, 10),
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
