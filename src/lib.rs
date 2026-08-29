@@ -110,7 +110,7 @@
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320). v18+
 //! is not spoken. OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
-//! v3 ReplicaId; v4 flexible). v5+ is not spoken. [`ConsumerConfig::max_bytes`] sets
+//! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken. [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
 //! [`ConsumerConfig::max_partition_fetch_bytes`] set them independently.

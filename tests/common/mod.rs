@@ -125,7 +125,8 @@ use partitionline::protocol::cgheartbeat::{
     ConsumerGroupHeartbeatResponse, TopicPartitions,
 };
 use partitionline::protocol::epoch::{
-    decode_offset_for_leader_epoch_request, encode_offset_for_leader_epoch_response,
+    decode_offset_for_leader_epoch_topics_request, encode_offset_for_leader_epoch_topics_response,
+    EpochEndOffset, OffsetForLeaderTopicResult,
 };
 use partitionline::protocol::fetch::{
     decode_fetch_request, encode_fetch_response_with_endpoints, FetchedPartition, FetchedTopic,
@@ -246,6 +247,8 @@ struct State {
     last_epoch_req: Option<(String, i32, i32)>,
     last_epoch_node: Option<i32>,
     last_epoch_version: Option<i16>,
+    last_epoch_n: Option<usize>,
+    epoch_calls: u32,
     epoch_not_leader: u32,
     last_list_offsets: Option<(String, i32, i32)>,
     last_list_offsets_node: Option<i32>,
@@ -584,6 +587,8 @@ fn new_state(
         last_epoch_req: None,
         last_epoch_node: None,
         last_epoch_version: None,
+        last_epoch_n: None,
+        epoch_calls: 0,
         epoch_not_leader: 0,
         last_list_offsets: None,
         last_list_offsets_node: None,
@@ -1132,6 +1137,33 @@ fn describe_topic_partitions_for(
     DescribeTopicPartitionsResponse::new(topics)
 }
 
+fn offset_for_leader_epoch_partition_result(
+    st: &mut State,
+    node_id: i32,
+    topic: &str,
+    partition: i32,
+    current: i32,
+    leader_epoch: i32,
+) -> EpochEndOffset {
+    st.last_epoch_req = Some((topic.to_string(), partition, leader_epoch));
+    let key = (topic.to_string(), partition);
+    let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
+    let epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
+    let end = *st.next_offset.get(&key).unwrap_or(&0);
+    let error_code = if leader != node_id {
+        st.epoch_not_leader = st.epoch_not_leader.saturating_add(1);
+        error::NOT_LEADER_OR_FOLLOWER
+    } else if current != -1 && current < epoch {
+        error::FENCED_LEADER_EPOCH
+    } else if current != -1 && current > epoch {
+        error::UNKNOWN_LEADER_EPOCH
+    } else {
+        st.last_epoch_node = Some(node_id);
+        0
+    };
+    EpochEndOffset::new(error_code, partition, epoch, end)
+}
+
 fn list_offsets_partition_result(
     st: &mut State,
     node_id: i32,
@@ -1624,6 +1656,14 @@ impl Mock {
 
     pub fn last_offset_for_leader_epoch_version(&self) -> Option<i16> {
         self.state.lock().last_epoch_version
+    }
+
+    pub fn last_offset_for_leader_epoch_n(&self) -> Option<usize> {
+        self.state.lock().last_epoch_n
+    }
+
+    pub fn offset_for_leader_epoch_calls(&self) -> u32 {
+        self.state.lock().epoch_calls
     }
 
     pub fn offset_for_leader_epoch_not_leader(&self) -> u32 {
@@ -4819,34 +4859,32 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             OFFSET_FOR_LEADER_EPOCH => {
-                let (topic, partition, current, leader_epoch) =
-                    decode_offset_for_leader_epoch_request(&mut frame, header.api_version).unwrap();
+                let topics =
+                    decode_offset_for_leader_epoch_topics_request(&mut frame, header.api_version)
+                        .unwrap();
                 let mut st = state.lock();
-                st.last_epoch_req = Some((topic.clone(), partition, leader_epoch));
+                st.epoch_calls = st.epoch_calls.saturating_add(1);
+                st.last_epoch_n = Some(topics.iter().map(|t| t.partitions.len()).sum());
                 st.last_epoch_version = Some(header.api_version);
-                let key = (topic.clone(), partition);
-                let leader = st.partition_leaders.get(&key).copied().unwrap_or(node_id);
-                let epoch = st.partition_epochs.get(&key).copied().unwrap_or(0);
-                let end = *st.next_offset.get(&key).unwrap_or(&0);
-                let error_code = if leader != node_id {
-                    st.epoch_not_leader = st.epoch_not_leader.saturating_add(1);
-                    error::NOT_LEADER_OR_FOLLOWER
-                } else if current != -1 && current < epoch {
-                    error::FENCED_LEADER_EPOCH
-                } else if current != -1 && current > epoch {
-                    error::UNKNOWN_LEADER_EPOCH
-                } else {
-                    st.last_epoch_node = Some(node_id);
-                    0
-                };
-                encode_offset_for_leader_epoch_response(
+                let mut results = Vec::with_capacity(topics.len());
+                for t in topics {
+                    let mut partitions = Vec::with_capacity(t.partitions.len());
+                    for p in t.partitions {
+                        partitions.push(offset_for_leader_epoch_partition_result(
+                            &mut st,
+                            node_id,
+                            &t.topic,
+                            p.partition,
+                            p.current_leader_epoch,
+                            p.leader_epoch,
+                        ));
+                    }
+                    results.push(OffsetForLeaderTopicResult::new(t.topic, partitions));
+                }
+                encode_offset_for_leader_epoch_topics_response(
                     &mut body,
                     header.api_version,
-                    &topic,
-                    partition,
-                    error_code,
-                    epoch,
-                    end,
+                    &results,
                 )
                 .unwrap();
             }

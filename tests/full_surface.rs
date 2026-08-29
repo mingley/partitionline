@@ -665,6 +665,61 @@ async fn fetch_recovers_from_fenced_leader_epoch() {
 }
 
 #[tokio::test]
+async fn offset_for_leader_epoch_batches_fenced_partitions() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("ofle-a", 1, 1), NewTopic::new("ofle-b", 2, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer
+        .send(ProduceRecord::to("ofle-a").partition(0).value(&b"a0"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("ofle-b").partition(0).value(&b"b0"[..]))
+        .await
+        .unwrap();
+    producer
+        .send(ProduceRecord::to("ofle-b").partition(1).value(&b"b1"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    consumer.assign("ofle-a", 0, 0).await.unwrap();
+    consumer.assign("ofle-b", 0, 0).await.unwrap();
+    consumer.assign("ofle-b", 1, 0).await.unwrap();
+    let _ = mock.bump_leader_epoch("ofle-a", 0);
+    let _ = mock.bump_leader_epoch("ofle-b", 0);
+    let _ = mock.bump_leader_epoch("ofle-b", 1);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 3);
+    assert_eq!(
+        mock.offset_for_leader_epoch_calls(),
+        1,
+        "one OffsetForLeaderEpoch RPC per leader, not one per fenced partition"
+    );
+    assert_eq!(
+        mock.last_offset_for_leader_epoch_n(),
+        Some(3),
+        "fenced Fetch partitions must recover with Topics/Partitions of N"
+    );
+}
+
+#[tokio::test]
 async fn offset_for_leader_epoch_negotiates_v3_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(OFFSET_FOR_LEADER_EPOCH, 3);

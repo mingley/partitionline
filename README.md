@@ -52,7 +52,9 @@ and sends the leader epoch as Fetch `LastFetchedEpoch`). `pause` /
 `resume` skip partitions without dropping the assignment. `fetch` talks to every
 partition leader at once when there is more than one. Fetch v12+ sends
 `LastFetchedEpoch` from the last consumed batch (or from
-`seek_with_metadata`) and seeks on `DivergingEpoch`.
+`seek_with_metadata`) and seeks on `DivergingEpoch`. Fenced Fetch
+partitions recover with OffsetForLeaderEpoch Topics/Partitions of N (one
+RPC per leader).
 `ConsumerConfig::max_bytes` sets both `fetch.max.bytes` and
 `max.partition.fetch.bytes`; `fetch_max_bytes` / `max_partition_fetch_bytes`
 set them independently. `partitions_for`

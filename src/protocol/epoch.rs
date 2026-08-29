@@ -26,6 +26,95 @@ fn offset_for_leader_epoch_flexible(version: i16) -> Result<bool> {
     Ok(offset_for_leader_epoch_spoken(version)? >= 4)
 }
 
+/// One partition in an OffsetForLeaderEpoch request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetForLeaderPartition {
+    /// Partition index.
+    pub partition: i32,
+    /// Current leader epoch (v2+). Written as `-1` below v2 on decode.
+    pub current_leader_epoch: i32,
+    /// Epoch to look up an end offset for.
+    pub leader_epoch: i32,
+}
+
+impl OffsetForLeaderPartition {
+    /// Partition `partition` at `current_leader_epoch` / `leader_epoch`.
+    #[must_use]
+    pub fn new(partition: i32, current_leader_epoch: i32, leader_epoch: i32) -> Self {
+        Self {
+            partition,
+            current_leader_epoch,
+            leader_epoch,
+        }
+    }
+}
+
+/// One topic in an OffsetForLeaderEpoch request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetForLeaderTopic {
+    /// Topic name.
+    pub topic: String,
+    /// Partitions in this topic.
+    pub partitions: Vec<OffsetForLeaderPartition>,
+}
+
+impl OffsetForLeaderTopic {
+    /// Topic `topic` with these partition queries.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partitions: Vec<OffsetForLeaderPartition>) -> Self {
+        Self {
+            topic: topic.into(),
+            partitions,
+        }
+    }
+}
+
+/// One partition in an OffsetForLeaderEpoch response (`EpochEndOffset`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpochEndOffset {
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// Partition index.
+    pub partition: i32,
+    /// Leader epoch (v1+). `-1` below v1.
+    pub leader_epoch: i32,
+    /// End offset of the epoch, or `-1`.
+    pub end_offset: i64,
+}
+
+impl EpochEndOffset {
+    /// Partition `partition` with this epoch end.
+    #[must_use]
+    pub fn new(error_code: i16, partition: i32, leader_epoch: i32, end_offset: i64) -> Self {
+        Self {
+            error_code,
+            partition,
+            leader_epoch,
+            end_offset,
+        }
+    }
+}
+
+/// One topic in an OffsetForLeaderEpoch response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetForLeaderTopicResult {
+    /// Topic name.
+    pub topic: String,
+    /// Partition results in request order.
+    pub partitions: Vec<EpochEndOffset>,
+}
+
+impl OffsetForLeaderTopicResult {
+    /// Topic `topic` with these partition results.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partitions: Vec<EpochEndOffset>) -> Self {
+        Self {
+            topic: topic.into(),
+            partitions,
+        }
+    }
+}
+
 /// Encode a single-topic, single-partition OffsetForLeaderEpoch request.
 ///
 /// `replica_id` `-1` (consumer) is written on v3+. `current_leader_epoch`
@@ -38,21 +127,50 @@ pub fn encode_offset_for_leader_epoch_request(
     current_leader_epoch: i32,
     leader_epoch: i32,
 ) -> crate::error::Result<()> {
+    encode_offset_for_leader_epoch_topics_request(
+        buf,
+        version,
+        &[OffsetForLeaderTopic::new(
+            topic,
+            vec![OffsetForLeaderPartition::new(
+                partition,
+                current_leader_epoch,
+                leader_epoch,
+            )],
+        )],
+    )
+}
+
+/// Encode OffsetForLeaderEpoch with one or more topics (v0–v3 classic, v4
+/// flexible). ReplicaId `-1` is written on v3+.
+pub fn encode_offset_for_leader_epoch_topics_request(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetForLeaderTopic],
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 3 {
         buf.put_i32(-1); // replica_id (consumer)
     }
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf::put_string(buf, flexible, Some(topic))?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i32(partition);
-    if version >= 2 {
-        buf.put_i32(current_leader_epoch);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for t in topics {
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            if version >= 2 {
+                buf.put_i32(p.current_leader_epoch);
+            }
+            buf.put_i32(p.leader_epoch);
+            if flexible {
+                buf::put_empty_tagged_fields(buf); // partition
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf); // topic
+        }
     }
-    buf.put_i32(leader_epoch);
     if flexible {
-        buf::put_empty_tagged_fields(buf); // partition
-        buf::put_empty_tagged_fields(buf); // topic
         buf::put_empty_tagged_fields(buf); // top-level
     }
     Ok(())
@@ -61,27 +179,65 @@ pub fn encode_offset_for_leader_epoch_request(
 /// Decode a single-topic, single-partition OffsetForLeaderEpoch request.
 ///
 /// Returns `(topic, partition, current_leader_epoch, leader_epoch)`.
-/// `current_leader_epoch` is `-1` below v2.
+/// `current_leader_epoch` is `-1` below v2. Empty Topics/Partitions is a
+/// protocol error.
 pub fn decode_offset_for_leader_epoch_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, i32, i32, i32)> {
+    let topics = decode_offset_for_leader_epoch_topics_request(buf, version)?;
+    let t = topics
+        .first()
+        .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Topics is empty".to_string()))?;
+    let p = t
+        .partitions
+        .first()
+        .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Partitions is empty".to_string()))?;
+    Ok((
+        t.topic.clone(),
+        p.partition,
+        p.current_leader_epoch,
+        p.leader_epoch,
+    ))
+}
+
+/// Decode OffsetForLeaderEpoch Topics of N (v0–v4).
+pub fn decode_offset_for_leader_epoch_topics_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<OffsetForLeaderTopic>> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 3 {
         let _replica = buf::get_i32(buf)?;
     }
-    let _tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let partition = buf::get_i32(buf)?;
-    let current_leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
-    let leader_epoch = buf::get_i32(buf)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let partition = buf::get_i32(buf)?;
+            let current_leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = buf::get_i32(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?; // partition
+            }
+            partitions.push(OffsetForLeaderPartition::new(
+                partition,
+                current_leader_epoch,
+                leader_epoch,
+            ));
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?; // topic
+        }
+        topics.push(OffsetForLeaderTopic::new(topic, partitions));
+    }
     if flexible {
-        buf::skip_tagged_fields(buf)?; // partition
-        buf::skip_tagged_fields(buf)?; // topic
         buf::skip_tagged_fields(buf)?; // top-level
     }
-    Ok((topic, partition, current_leader_epoch, leader_epoch))
+    Ok(topics)
 }
 
 /// Encode a single-topic, single-partition OffsetForLeaderEpoch response.
@@ -96,22 +252,53 @@ pub fn encode_offset_for_leader_epoch_response(
     leader_epoch: i32,
     end_offset: i64,
 ) -> crate::error::Result<()> {
+    encode_offset_for_leader_epoch_topics_response(
+        buf,
+        version,
+        &[OffsetForLeaderTopicResult::new(
+            topic,
+            vec![EpochEndOffset::new(
+                error_code,
+                partition,
+                leader_epoch,
+                end_offset,
+            )],
+        )],
+    )
+}
+
+/// Encode OffsetForLeaderEpoch with one or more topic results.
+///
+/// Throttle is `0` on v2+. `leader_epoch` is written on v1+.
+pub fn encode_offset_for_leader_epoch_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetForLeaderTopicResult],
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 2 {
         buf.put_i32(0);
     }
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf::put_string(buf, flexible, Some(topic))?;
-    buf::put_array_len(buf, flexible, Some(1))?;
-    buf.put_i16(error_code);
-    buf.put_i32(partition);
-    if version >= 1 {
-        buf.put_i32(leader_epoch);
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for t in topics {
+        buf::put_string(buf, flexible, Some(&t.topic))?;
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i16(p.error_code);
+            buf.put_i32(p.partition);
+            if version >= 1 {
+                buf.put_i32(p.leader_epoch);
+            }
+            buf.put_i64(p.end_offset);
+            if flexible {
+                buf::put_empty_tagged_fields(buf); // partition
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf); // topic
+        }
     }
-    buf.put_i64(end_offset);
     if flexible {
-        buf::put_empty_tagged_fields(buf); // partition
-        buf::put_empty_tagged_fields(buf); // topic
         buf::put_empty_tagged_fields(buf); // top-level
     }
     Ok(())
@@ -120,28 +307,61 @@ pub fn encode_offset_for_leader_epoch_response(
 /// Decode a single-topic, single-partition OffsetForLeaderEpoch response.
 ///
 /// Returns `(error_code, leader_epoch, end_offset)`. `leader_epoch` is `-1`
-/// below v1.
+/// below v1. Empty Topics/Partitions is a protocol error.
 pub fn decode_offset_for_leader_epoch_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i16, i32, i64)> {
+    let topics = decode_offset_for_leader_epoch_topics_response(buf, version)?;
+    let t = topics
+        .first()
+        .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Topics is empty"))?;
+    let p = t
+        .partitions
+        .first()
+        .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Partitions is empty"))?;
+    Ok((p.error_code, p.leader_epoch, p.end_offset))
+}
+
+/// Decode OffsetForLeaderEpoch Topics of N (v0–v4).
+pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<OffsetForLeaderTopicResult>> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 2 {
         let _throttle = buf::get_i32(buf)?;
     }
-    let _tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let _topic = buf::get_string(buf, flexible)?;
-    let _pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let error_code = buf::get_i16(buf)?;
-    let _partition = buf::get_i32(buf)?;
-    let leader_epoch = if version >= 1 { buf::get_i32(buf)? } else { -1 };
-    let end_offset = buf::get_i64(buf)?;
+    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(tn);
+    for _ in 0..tn {
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
+        for _ in 0..pn {
+            let error_code = buf::get_i16(buf)?;
+            let partition = buf::get_i32(buf)?;
+            let leader_epoch = if version >= 1 { buf::get_i32(buf)? } else { -1 };
+            let end_offset = buf::get_i64(buf)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?; // partition
+            }
+            partitions.push(EpochEndOffset::new(
+                error_code,
+                partition,
+                leader_epoch,
+                end_offset,
+            ));
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?; // topic
+        }
+        topics.push(OffsetForLeaderTopicResult::new(topic, partitions));
+    }
     if flexible {
-        buf::skip_tagged_fields(buf)?; // partition
-        buf::skip_tagged_fields(buf)?; // topic
         buf::skip_tagged_fields(buf)?; // top-level
     }
-    Ok((error_code, leader_epoch, end_offset))
+    Ok(topics)
 }
 
 #[cfg(test)]
@@ -260,5 +480,100 @@ mod tests {
         assert!(buf.len() < v2.len(), "v1 response must omit ThrottleTimeMs");
         let (err, epoch, end) = decode_offset_for_leader_epoch_response(&mut &buf[..], 1).unwrap();
         assert_eq!((err, epoch, end), (0, 4, 12));
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_topics_of_n_v4_compact() {
+        // ReplicaId -1, Topics of 1 "t", Partitions of 2 (p0/p1 current 3
+        // epoch 3), empty tagged fields on each partition, the topic, and
+        // the top-level.
+        const REQ_V4: &[u8] = &[
+            0xff, 0xff, 0xff, 0xff, 0x02, 0x02, 0x74, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+        ];
+        // Topics of 2 "a"/"b", each one partition 0.
+        const REQ_V4_TWO_TOPICS: &[u8] = &[
+            0xff, 0xff, 0xff, 0xff, 0x03, 0x02, 0x61, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x02, 0x62, 0x02, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+        ];
+        const RESP_V4: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x74, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x0d, 0x00, 0x00, 0x00,
+        ];
+        let topics = [OffsetForLeaderTopic::new(
+            "t",
+            vec![
+                OffsetForLeaderPartition::new(0, 3, 3),
+                OffsetForLeaderPartition::new(1, 3, 3),
+            ],
+        )];
+        let mut buf = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request(&mut buf, 4, &topics).unwrap();
+        assert_eq!(&buf[..], REQ_V4);
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_offset_for_leader_epoch_topics_request(&mut cur, 4).unwrap(),
+            topics
+        );
+        assert!(
+            !cur.has_remaining(),
+            "OffsetForLeaderEpoch v4 Topics of 1 / Partitions of 2 must be leftover-empty"
+        );
+
+        let two = [
+            OffsetForLeaderTopic::new("a", vec![OffsetForLeaderPartition::new(0, 3, 3)]),
+            OffsetForLeaderTopic::new("b", vec![OffsetForLeaderPartition::new(0, 3, 3)]),
+        ];
+        buf.clear();
+        encode_offset_for_leader_epoch_topics_request(&mut buf, 4, &two).unwrap();
+        assert_eq!(&buf[..], REQ_V4_TWO_TOPICS);
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_offset_for_leader_epoch_topics_request(&mut cur, 4).unwrap(),
+            two
+        );
+        assert!(!cur.has_remaining(), "Topics of 2 must be leftover-empty");
+
+        let resp = [OffsetForLeaderTopicResult::new(
+            "t",
+            vec![
+                EpochEndOffset::new(0, 0, 4, 12),
+                EpochEndOffset::new(0, 1, 4, 13),
+            ],
+        )];
+        buf.clear();
+        encode_offset_for_leader_epoch_topics_response(&mut buf, 4, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V4);
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_offset_for_leader_epoch_topics_response(&mut cur, 4).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "OffsetForLeaderEpoch v4 response Partitions of 2 must be leftover-empty"
+        );
+
+        buf.clear();
+        encode_offset_for_leader_epoch_topics_request(
+            &mut buf,
+            4,
+            &[OffsetForLeaderTopic::new(
+                "t",
+                vec![OffsetForLeaderPartition::new(0, 3, 3)],
+            )],
+        )
+        .unwrap();
+        let mut one = BytesMut::new();
+        encode_offset_for_leader_epoch_request(&mut one, 4, "t", 0, 3, 3).unwrap();
+        assert_eq!(
+            &buf[..],
+            &one[..],
+            "Topics of 1 must match encode_offset_for_leader_epoch_request"
+        );
     }
 }

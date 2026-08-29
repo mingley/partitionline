@@ -1,5 +1,6 @@
 //! Fetch client with manual partition assignment.
 
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Deref;
@@ -21,7 +22,8 @@ use crate::protocol::api_keys::{
     OFFSET_FOR_LEADER_EPOCH,
 };
 use crate::protocol::epoch::{
-    decode_offset_for_leader_epoch_response, encode_offset_for_leader_epoch_request,
+    decode_offset_for_leader_epoch_topics_response, encode_offset_for_leader_epoch_topics_request,
+    OffsetForLeaderPartition, OffsetForLeaderTopic, OffsetForLeaderTopicResult,
 };
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
@@ -1446,6 +1448,14 @@ impl Consumer {
     }
 
     async fn recover_leader_epoch(&mut self, topic: &str, partition: i32) -> Result<()> {
+        self.recover_leader_epochs(&[(topic.to_string(), partition)])
+            .await
+    }
+
+    async fn recover_leader_epochs(&mut self, coords: &[(String, i32)]) -> Result<()> {
+        if coords.is_empty() {
+            return Ok(());
+        }
         let version = self
             .versions
             .get(&OFFSET_FOR_LEADER_EPOCH)
@@ -1455,81 +1465,147 @@ impl Consumer {
             })?;
         // Preferred replica may have returned the fence; OffsetForLeaderEpoch is leader-only.
         // Refresh Metadata first so `current_leader_epoch` is not the value that just fenced us.
-        let _ = self.preferred.remove(&(topic.to_string(), partition));
-        let deadline = Instant::now() + self.cfg.request_timeout;
-        {
-            let topics = [topic.to_string()];
-            self.refresh_metadata(Some(&topics)).await?;
+        for (topic, partition) in coords {
+            let _ = self.preferred.remove(&(topic.clone(), *partition));
         }
+        let deadline = Instant::now() + self.cfg.request_timeout;
+        let mut names: Vec<String> = coords.iter().map(|(t, _)| t.clone()).collect();
+        names.sort();
+        names.dedup();
+        self.refresh_metadata(Some(&names)).await?;
+        let mut remaining: Vec<(String, i32)> = coords.to_vec();
+        remaining.sort();
+        remaining.dedup();
         loop {
-            if self.cluster.leader(topic, partition).is_err() {
-                let topics = [topic.to_string()];
-                self.refresh_metadata(Some(&topics)).await?;
+            if remaining.is_empty() {
+                return Ok(());
             }
-            let (node, _) = self.cluster.leader(topic, partition)?;
-            self.connect_node(node).await?;
-            let current = self.cluster.leader_epoch(topic, partition);
-            let timeout = self.cfg.request_timeout;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing epoch conn"))?;
-                conn.roundtrip(
-                    OFFSET_FOR_LEADER_EPOCH,
-                    version,
-                    |buf| {
-                        encode_offset_for_leader_epoch_request(
-                            buf, version, topic, partition, current, current,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    if Instant::now() >= deadline {
-                        return Err(Error::Timeout);
+            let mut missing_leader = false;
+            for (topic, partition) in &remaining {
+                if self.cluster.leader(topic, *partition).is_err() {
+                    missing_leader = true;
+                    break;
+                }
+            }
+            if missing_leader {
+                self.refresh_metadata(Some(&names)).await?;
+            }
+            let mut by_leader: HashMap<i32, Vec<(String, i32)>> = HashMap::new();
+            let mut retry = Vec::new();
+            for (topic, partition) in remaining {
+                match self.cluster.leader(&topic, partition) {
+                    Ok((node, _)) => by_leader.entry(node).or_default().push((topic, partition)),
+                    Err(_) => retry.push((topic, partition)),
+                }
+            }
+            let mut nodes: Vec<i32> = by_leader.keys().copied().collect();
+            nodes.sort_unstable();
+            for node in nodes {
+                let Some(parts) = by_leader.remove(&node) else {
+                    continue;
+                };
+                self.connect_node(node).await?;
+                let topics = offset_for_leader_epoch_topics(&self.cluster, &parts);
+                let timeout = self.cfg.request_timeout;
+                let body = {
+                    let conn = self
+                        .conns
+                        .get_mut(&node)
+                        .ok_or_else(|| Error::protocol("missing epoch conn"))?;
+                    conn.roundtrip(
+                        OFFSET_FOR_LEADER_EPOCH,
+                        version,
+                        |buf| encode_offset_for_leader_epoch_topics_request(buf, version, &topics),
+                        timeout,
+                    )
+                    .await
+                };
+                let body = match body {
+                    Ok(b) => b,
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        retry.extend(parts);
+                        continue;
+                    }
+                    Err(e) => return Err(e),
+                };
+                match decode_offset_for_leader_epoch_topics_response(&mut body.clone(), version) {
+                    Ok(got) => {
+                        let more = self.apply_epoch_end_offsets(&parts, &got)?;
+                        if !more.is_empty() {
+                            let _ = self.conns.remove(&node);
+                            retry.extend(more);
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        let _ = self.conns.remove(&node);
+                        retry.extend(parts);
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            remaining = retry;
+            remaining.sort();
+            remaining.dedup();
+            if remaining.is_empty() {
+                return Ok(());
+            }
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
+            }
+            let mut retry_names: Vec<String> = remaining.iter().map(|(t, _)| t.clone()).collect();
+            retry_names.sort();
+            retry_names.dedup();
+            self.refresh_metadata(Some(&retry_names)).await?;
+        }
+    }
+
+    fn apply_epoch_end_offsets(
+        &mut self,
+        requested: &[(String, i32)],
+        topics: &[OffsetForLeaderTopicResult],
+    ) -> Result<Vec<(String, i32)>> {
+        let mut seen = HashSet::new();
+        let mut retry = Vec::new();
+        for t in topics {
+            for p in &t.partitions {
+                let _ = seen.insert((t.topic.clone(), p.partition));
+                if p.error_code == 0 {
+                    self.cluster
+                        .set_leader_epoch(&t.topic, p.partition, p.leader_epoch);
+                    let assigned = self
+                        .assigned
+                        .iter()
+                        .find(|(name, part, _)| name == &t.topic && *part == p.partition)
+                        .map(|(_, _, o)| *o);
+                    if let Some(off) = assigned {
+                        if off > p.end_offset {
+                            self.advance(&t.topic, p.partition, p.end_offset);
+                            self.set_last_fetched_epoch(&t.topic, p.partition, p.leader_epoch);
+                        }
                     }
                     continue;
                 }
-                Err(e) => return Err(e),
-            };
-            let (err, epoch, end_offset) =
-                decode_offset_for_leader_epoch_response(&mut body.clone(), version)?;
-            if err == 0 {
-                self.cluster.set_leader_epoch(topic, partition, epoch);
-                let assigned = self
-                    .assigned
-                    .iter()
-                    .find(|(t, p, _)| t == topic && *p == partition)
-                    .map(|(_, _, o)| *o);
-                if let Some(off) = assigned {
-                    if off > end_offset {
-                        self.advance(topic, partition, end_offset);
-                        self.set_last_fetched_epoch(topic, partition, epoch);
-                    }
+                let e = Error::broker(
+                    p.error_code,
+                    format!("OffsetForLeaderEpoch {}-{}", t.topic, p.partition),
+                );
+                let fence = p.error_code == error::FENCED_LEADER_EPOCH
+                    || p.error_code == error::UNKNOWN_LEADER_EPOCH;
+                if e.is_retriable() || fence {
+                    self.cluster.invalidate_topic(&t.topic);
+                    retry.push((t.topic.clone(), p.partition));
+                    continue;
                 }
-                return Ok(());
+                return Err(e);
             }
-            let e = Error::broker(err, format!("OffsetForLeaderEpoch {topic}-{partition}"));
-            let fence = err == error::FENCED_LEADER_EPOCH || err == error::UNKNOWN_LEADER_EPOCH;
-            if e.is_retriable() || fence {
-                // NOT_LEADER_OR_FOLLOWER (6) / fence: Metadata, then the new leader/epoch.
-                self.cluster.invalidate_topic(topic);
-                let _ = self.conns.remove(&node);
-                if Instant::now() >= deadline {
-                    return Err(Error::Timeout);
-                }
-                let topics = [topic.to_string()];
-                self.refresh_metadata(Some(&topics)).await?;
-                continue;
-            }
-            return Err(e);
         }
+        for coord in requested {
+            if !seen.contains(coord) {
+                retry.push(coord.clone());
+            }
+        }
+        Ok(retry)
     }
 
     /// Fetch one round from every assigned partition that is not paused.
@@ -1798,6 +1874,7 @@ impl Consumer {
             let bodies = self.fetch_from_leaders(by_leader).await?;
             let mut out = Vec::new();
             let mut retry = FetchRetry::None;
+            let mut fenced = Vec::new();
             for (node, body) in bodies {
                 let mut body = match body {
                     Ok(b) => b,
@@ -1808,7 +1885,14 @@ impl Consumer {
                     }
                     Err(e) => return Err(e),
                 };
-                retry = retry.merge(self.apply_fetch_body(node, &mut body, &mut out).await?);
+                retry =
+                    retry.merge(self.apply_fetch_body(node, &mut body, &mut out, &mut fenced)?);
+            }
+            if !fenced.is_empty() {
+                fenced.sort();
+                fenced.dedup();
+                self.recover_leader_epochs(&fenced).await?;
+                retry = retry.merge(FetchRetry::Backoff);
             }
             if retry.should_retry() {
                 if Instant::now() >= deadline {
@@ -1949,11 +2033,12 @@ impl Consumer {
         Ok(out)
     }
 
-    async fn apply_fetch_body(
+    fn apply_fetch_body(
         &mut self,
         node: i32,
         body: &mut Bytes,
         out: &mut Vec<FetchedRecord>,
+        fenced: &mut Vec<(String, i32)>,
     ) -> Result<FetchRetry> {
         let (fetched, endpoints) = decode_fetch_response(body, self.fetch_version)?;
         self.cluster.apply_node_endpoints(&endpoints);
@@ -1986,8 +2071,7 @@ impl Consumer {
                 if part.error_code == error::FENCED_LEADER_EPOCH
                     || part.error_code == error::UNKNOWN_LEADER_EPOCH
                 {
-                    self.recover_leader_epoch(&name, part.partition).await?;
-                    retry = retry.merge(FetchRetry::Backoff);
+                    fenced.push((name.clone(), part.partition));
                     continue;
                 }
                 if part.error_code != 0 {
@@ -2626,6 +2710,33 @@ fn fetch_topics(
             topic_id: name_ids.get(&topic).copied().unwrap_or([0u8; 16]),
             topic,
             partitions,
+        })
+        .collect()
+}
+
+fn offset_for_leader_epoch_topics(
+    cluster: &Cluster,
+    parts: &[(String, i32)],
+) -> Vec<OffsetForLeaderTopic> {
+    let mut by_topic: HashMap<String, Vec<OffsetForLeaderPartition>> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for (topic, partition) in parts {
+        let current = cluster.leader_epoch(topic, *partition);
+        let part = OffsetForLeaderPartition::new(*partition, current, current);
+        match by_topic.entry(topic.clone()) {
+            Entry::Vacant(v) => {
+                order.push(topic.clone());
+                let _ = v.insert(vec![part]);
+            }
+            Entry::Occupied(mut o) => o.get_mut().push(part),
+        }
+    }
+    order
+        .into_iter()
+        .map(|name| {
+            let mut partitions = by_topic.remove(&name).unwrap_or_default();
+            partitions.sort_by_key(|p| p.partition);
+            OffsetForLeaderTopic::new(name, partitions)
         })
         .collect()
 }
