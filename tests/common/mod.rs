@@ -397,6 +397,8 @@ struct State {
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
     last_init_producer_id_version: Option<i16>,
+    last_init_producer_id_producer_id: Option<i64>,
+    last_init_producer_id_producer_epoch: Option<i16>,
     init_producer_id_nodes: Vec<i32>,
     init_producer_id_not_coordinator: u32,
     stale_txn_finds: u32,
@@ -630,6 +632,8 @@ fn new_state(
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
         last_init_producer_id_version: None,
+        last_init_producer_id_producer_id: None,
+        last_init_producer_id_producer_epoch: None,
         init_producer_id_nodes: Vec::new(),
         init_producer_id_not_coordinator: 0,
         stale_txn_finds: 0,
@@ -1806,6 +1810,14 @@ impl Mock {
         self.state.lock().last_init_producer_id_version
     }
 
+    pub fn last_init_producer_id_producer_id(&self) -> Option<i64> {
+        self.state.lock().last_init_producer_id_producer_id
+    }
+
+    pub fn last_init_producer_id_producer_epoch(&self) -> Option<i16> {
+        self.state.lock().last_init_producer_id_producer_epoch
+    }
+
     pub fn init_producer_id_nodes(&self) -> Vec<i32> {
         self.state.lock().init_producer_id_nodes.clone()
     }
@@ -2068,7 +2080,7 @@ fn versions() -> ApiVersionsResponse {
         (ALLOCATE_PRODUCER_IDS, 0, 0),
         (DESCRIBE_TRANSACTIONS, 0, 0),
         (LIST_TRANSACTIONS, 0, 2),
-        (INIT_PRODUCER_ID, 0, 4),
+        (INIT_PRODUCER_ID, 0, 5),
         (ADD_PARTITIONS_TO_TXN, 0, 1),
         (ADD_OFFSETS_TO_TXN, 0, 1),
         (END_TXN, 0, 1),
@@ -3196,11 +3208,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     .unwrap();
             }
             INIT_PRODUCER_ID => {
-                let (tid, txn_timeout) =
+                let (tid, txn_timeout, producer_id, producer_epoch) =
                     decode_init_producer_id_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_init_producer_id_timeout = Some(txn_timeout);
                 st.last_init_producer_id_version = Some(header.api_version);
+                st.last_init_producer_id_producer_id = Some(producer_id);
+                st.last_init_producer_id_producer_epoch = Some(producer_epoch);
                 st.init_producer_id_nodes.push(node_id);
                 if tid.is_some() && st.txn_coord_node != node_id {
                     st.init_producer_id_not_coordinator =

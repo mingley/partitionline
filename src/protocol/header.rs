@@ -45,7 +45,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         PRODUCE if api_version >= 9 => 2,
         FETCH if api_version >= 12 => 2,
         // InitProducerId is classic through v1; flexible from v2
-        // (Apache JSON flexibleVersions: "2+"). This crate speaks 0–2.
+        // (Apache JSON flexibleVersions: "2+"). This crate speaks 0–5.
         INIT_PRODUCER_ID if api_version >= 2 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
@@ -374,13 +374,15 @@ mod tests {
     fn init_producer_id_v2_is_flexible_v1_is_not() {
         // Official JSON: validVersions 0-5, flexibleVersions 2+.
         // HeaderVersion is 1 / 0 at v0–1 and 2 / 1 at v2+. This crate
-        // speaks 0–2. v3+ (KIP-360 ProducerId) is not spoken.
+        // speaks 0–5. v6+ (KIP-939 2PC) is not spoken.
         assert_eq!(request_header_version(INIT_PRODUCER_ID, 0), 1);
         assert_eq!(response_header_version(INIT_PRODUCER_ID, 0), 0);
         assert_eq!(request_header_version(INIT_PRODUCER_ID, 1), 1);
         assert_eq!(response_header_version(INIT_PRODUCER_ID, 1), 0);
         assert_eq!(request_header_version(INIT_PRODUCER_ID, 2), 2);
         assert_eq!(response_header_version(INIT_PRODUCER_ID, 2), 1);
+        assert_eq!(request_header_version(INIT_PRODUCER_ID, 5), 2);
+        assert_eq!(response_header_version(INIT_PRODUCER_ID, 5), 1);
     }
 
     #[test]

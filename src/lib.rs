@@ -19,7 +19,8 @@
 //! For many records, [`Producer::send_all`] waits for every offset after
 //! queuing, and [`Producer::try_send`] plus [`Producer::flush`] is the
 //! throughput path (see `examples/bench_produce.rs`).
-//! The producer negotiates Produce v3–v9 (v3–v8 classic; v9 flexible).
+//! The producer negotiates Produce v3–v9 (v3–v8 classic; v9 flexible)
+//! and InitProducerId v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
@@ -211,7 +212,7 @@
 //! Kafka `retry.backoff.ms` / `retry.backoff.max.ms` on admin RPCs
 //! (`NOT_CONTROLLER`, coordinator moves, retriable IO; default 100ms / 1s).
 //! [`ProducerConfig::transaction_timeout`] is Kafka `transaction.timeout.ms`
-//! on InitProducerId v0–v2 (default 60s, same as Java).
+//! on InitProducerId v0–v5 (default 60s, same as Java).
 //! [`ProducerConfig::metadata_max_age`] / [`ConsumerConfig::metadata_max_age`]
 //! are Kafka `metadata.max.age.ms` (default 5 minutes; zero refreshes every
 //! lookup).

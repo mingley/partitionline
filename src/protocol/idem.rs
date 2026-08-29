@@ -1,56 +1,78 @@
-//! InitProducerId (api key 22). v0–v1 classic; v2 flexible.
+//! InitProducerId (api key 22). v0–v1 classic; v2–v5 flexible.
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use crate::error::{Error, Result};
 
-/// `true` when InitProducerId `version` is flexible (v2).
+/// `true` when InitProducerId `version` is flexible (v2+).
 ///
 /// v0–v1 are classic. v2 is compact strings plus tagged fields
-/// (Apache JSON `flexibleVersions: "2+"`). v3+ (ProducerId / ProducerEpoch
-/// on the request, KIP-360) is not spoken.
+/// (Apache JSON `flexibleVersions: "2+"`). v3+ adds ProducerId /
+/// ProducerEpoch on the request (KIP-360). v4 is PRODUCER_FENCED; v5
+/// is TRANSACTION_ABORTABLE (KIP-890). Kafka 4.0 `validVersions` is
+/// `0-5`. v6+ (KIP-939 2PC Enable2Pc / KeepPreparedTxn) is not spoken.
 fn init_producer_id_flexible(version: i16) -> Result<bool> {
     match version {
         0..=1 => Ok(false),
-        2 => Ok(true),
+        2..=5 => Ok(true),
         other => Err(Error::protocol(format!(
             "InitProducerId version {other} is not implemented"
         ))),
     }
 }
 
-/// InitProducerId v0–v1 (classic) or v2 (flexible).
+/// InitProducerId v0–v1 (classic) or v2–v5 (flexible).
 ///
 /// `transaction_timeout_ms` is Kafka `transaction.timeout.ms` (INT32 after
-/// the nullable transactional id).
+/// the nullable transactional id). `producer_id` / `producer_epoch` are
+/// written at v3+ (KIP-360); first init sends `-1` / `-1`. Ignored on
+/// v0–v2.
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,
     transactional_id: Option<&str>,
     transaction_timeout_ms: i32,
+    producer_id: i64,
+    producer_epoch: i16,
 ) -> crate::error::Result<()> {
     let flexible = init_producer_id_flexible(version)?;
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
+    if version >= 3 {
+        buf.put_i64(producer_id);
+        buf.put_i16(producer_epoch);
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode InitProducerId request: `(transactional_id, transaction_timeout_ms)`.
+/// Decode InitProducerId request: `(transactional_id, timeout, producer_id, producer_epoch)`.
+///
+/// `producer_id` / `producer_epoch` are `-1` when the version is below 3.
 pub fn decode_init_producer_id_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Option<String>, i32)> {
+) -> Result<(Option<String>, i32, i64, i16)> {
     let flexible = init_producer_id_flexible(version)?;
     let transactional_id = buf::get_string(buf, flexible)?;
     let transaction_timeout_ms = buf::get_i32(buf)?;
+    let (producer_id, producer_epoch) = if version >= 3 {
+        (buf::get_i64(buf)?, buf::get_i16(buf)?)
+    } else {
+        (-1, -1)
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((transactional_id, transaction_timeout_ms))
+    Ok((
+        transactional_id,
+        transaction_timeout_ms,
+        producer_id,
+        producer_epoch,
+    ))
 }
 
 /// Decode InitProducerId: `(error_code, producer_id, producer_epoch)`.
@@ -98,11 +120,13 @@ mod tests {
     #[test]
     fn init_producer_id_v1_roundtrip() {
         let mut req = BytesMut::new();
-        encode_init_producer_id_request(&mut req, 1, Some("tid"), 45_000).unwrap();
+        encode_init_producer_id_request(&mut req, 1, Some("tid"), 45_000, -1, -1).unwrap();
         let mut cur = &req[..];
-        let (tid, timeout) = decode_init_producer_id_request(&mut cur, 1).unwrap();
+        let (tid, timeout, pid, epoch) = decode_init_producer_id_request(&mut cur, 1).unwrap();
         assert_eq!(tid.as_deref(), Some("tid"));
         assert_eq!(timeout, 45_000);
+        assert_eq!(pid, -1);
+        assert_eq!(epoch, -1);
         assert!(cur.is_empty());
 
         let mut resp = BytesMut::new();
@@ -118,11 +142,13 @@ mod tests {
     #[test]
     fn init_producer_id_v2_roundtrip_is_leftover_empty() {
         let mut req = BytesMut::new();
-        encode_init_producer_id_request(&mut req, 2, Some("tid"), 45_000).unwrap();
+        encode_init_producer_id_request(&mut req, 2, Some("tid"), 45_000, -1, -1).unwrap();
         let mut cur = &req[..];
-        let (tid, timeout) = decode_init_producer_id_request(&mut cur, 2).unwrap();
+        let (tid, timeout, pid, epoch) = decode_init_producer_id_request(&mut cur, 2).unwrap();
         assert_eq!(tid.as_deref(), Some("tid"));
         assert_eq!(timeout, 45_000);
+        assert_eq!(pid, -1);
+        assert_eq!(epoch, -1);
         assert!(
             cur.is_empty(),
             "InitProducerId v2 request must consume compact tagged fields"
@@ -139,10 +165,38 @@ mod tests {
             cur.is_empty(),
             "InitProducerId v2 response must consume compact tagged fields"
         );
+    }
+
+    #[test]
+    fn init_producer_id_v5_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_init_producer_id_request(&mut req, 5, Some("tid"), 45_000, 1234, 7).unwrap();
+        let mut cur = &req[..];
+        let (tid, timeout, pid, epoch) = decode_init_producer_id_request(&mut cur, 5).unwrap();
+        assert_eq!(tid.as_deref(), Some("tid"));
+        assert_eq!(timeout, 45_000);
+        assert_eq!(pid, 1234);
+        assert_eq!(epoch, 7);
+        assert!(
+            cur.is_empty(),
+            "InitProducerId v5 request must consume ProducerId, ProducerEpoch, and tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_init_producer_id_response(&mut resp, 5, 0, 1234, 7).unwrap();
+        let mut cur = &resp[..];
+        let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, 5).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(pid, 1234);
+        assert_eq!(epoch, 7);
+        assert!(
+            cur.is_empty(),
+            "InitProducerId v5 response must consume compact tagged fields"
+        );
         req.clear();
         assert!(
-            encode_init_producer_id_request(&mut req, 3, Some("tid"), 45_000).is_err(),
-            "InitProducerId v3+ (KIP-360 ProducerId) is not spoken"
+            encode_init_producer_id_request(&mut req, 6, Some("tid"), 45_000, -1, -1).is_err(),
+            "InitProducerId v6+ (KIP-939 2PC) is not spoken"
         );
     }
 
@@ -151,7 +205,34 @@ mod tests {
         // Compact nullable "tid" (n+1 = 4), timeout 45000, tagged.
         const REQ: &[u8] = &[0x04, 0x74, 0x69, 0x64, 0x00, 0x00, 0xaf, 0xc8, 0x00];
         let mut buf = BytesMut::new();
-        encode_init_producer_id_request(&mut buf, 2, Some("tid"), 45_000).unwrap();
+        encode_init_producer_id_request(&mut buf, 2, Some("tid"), 45_000, -1, -1).unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn init_producer_id_v3_request_matches_compact_layout() {
+        // v2 body plus ProducerId 1234, ProducerEpoch 7, tagged.
+        const REQ: &[u8] = &[
+            0x04, 0x74, 0x69, 0x64, 0x00, 0x00, 0xaf, 0xc8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x04, 0xd2, 0x00, 0x07, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_init_producer_id_request(&mut buf, 3, Some("tid"), 45_000, 1234, 7).unwrap();
+        assert_eq!(&buf[..], REQ);
+        buf.clear();
+        encode_init_producer_id_request(&mut buf, 5, Some("tid"), 45_000, 1234, 7).unwrap();
+        assert_eq!(&buf[..], REQ, "v4/v5 request body matches v3");
+    }
+
+    #[test]
+    fn init_producer_id_v3_first_init_sends_minus_one() {
+        // Compact "tid", timeout 45000, ProducerId -1, ProducerEpoch -1, tagged.
+        const REQ: &[u8] = &[
+            0x04, 0x74, 0x69, 0x64, 0x00, 0x00, 0xaf, 0xc8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_init_producer_id_request(&mut buf, 3, Some("tid"), 45_000, -1, -1).unwrap();
         assert_eq!(&buf[..], REQ);
     }
 
@@ -165,6 +246,9 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_init_producer_id_response(&mut buf, 2, 0, 1234, 7).unwrap();
         assert_eq!(&buf[..], RESP);
+        buf.clear();
+        encode_init_producer_id_response(&mut buf, 5, 0, 1234, 7).unwrap();
+        assert_eq!(&buf[..], RESP, "v3–v5 response body matches v2");
     }
 
     #[test]

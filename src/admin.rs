@@ -2373,7 +2373,7 @@ impl Admin {
 
     /// Fence transactional producers (Java `Admin.fenceProducers`).
     ///
-    /// InitProducerId v0–v2 on each `transactional.id`'s transaction
+    /// InitProducerId v0–v5 on each `transactional.id`'s transaction
     /// coordinator (`FindCoordinator` `key_type=1`). Empty
     /// `transactional_ids` returns an empty list. Coordinator load /
     /// move errors refresh and retry. [`AdminConfig::request_timeout`]
@@ -2420,7 +2420,7 @@ impl Admin {
         let version = self
             .versions
             .get(&INIT_PRODUCER_ID)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
             .ok_or_else(|| Error::Unsupported("broker does not support InitProducerId".into()))?;
         let timeout = self.cfg.request_timeout;
         let txn_timeout_ms = crate::consumer::duration_millis_i32(timeout);
@@ -2455,6 +2455,8 @@ impl Admin {
                             version,
                             Some(transactional_id),
                             txn_timeout_ms,
+                            -1,
+                            -1,
                         )
                     },
                     timeout,

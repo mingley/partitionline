@@ -757,7 +757,7 @@ impl Producer {
             None
         };
         if cfg.enable_idempotence {
-            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 2).ok_or_else(|| {
+            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 5).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
             let body = init_producer_id_roundtrip(&cfg, &mut txn, &mut meta, ipid_version).await?;
@@ -1565,7 +1565,16 @@ async fn init_producer_id_roundtrip(
         conn.roundtrip(
             INIT_PRODUCER_ID,
             version,
-            |buf| encode_init_producer_id_request(buf, version, txn_id.as_deref(), txn_timeout_ms),
+            |buf| {
+                encode_init_producer_id_request(
+                    buf,
+                    version,
+                    txn_id.as_deref(),
+                    txn_timeout_ms,
+                    -1,
+                    -1,
+                )
+            },
             timeout,
         )
         .await
@@ -1591,7 +1600,16 @@ async fn init_producer_id_roundtrip(
     conn.roundtrip(
         INIT_PRODUCER_ID,
         version,
-        |buf| encode_init_producer_id_request(buf, version, Some(tid.as_str()), txn_timeout_ms),
+        |buf| {
+            encode_init_producer_id_request(
+                buf,
+                version,
+                Some(tid.as_str()),
+                txn_timeout_ms,
+                -1,
+                -1,
+            )
+        },
         timeout,
     )
     .await
