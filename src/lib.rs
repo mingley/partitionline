@@ -145,10 +145,11 @@
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
-//! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`]
-//! `Display` match Java `toString`. [`AclBinding`] / [`ResourcePattern`] /
-//! [`AccessControlEntry`] / [`AclBindingFilter`] `Display` match Java
-//! `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
+//! [`CreatedTopicConfig`] `Display` match Java `toString`
+//! (`ConfigEntry.toString` on [`CreatedTopicConfig`]). [`AclBinding`] /
+//! [`ResourcePattern`] / [`AccessControlEntry`] / [`AclBindingFilter`]
+//! `Display` match Java `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
@@ -244,9 +245,10 @@
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).
 //! [`ConfigEntry::source`] / [`ConfigEntry::config_type`] /
-//! [`ConfigEntry::is_default`] are Java `ConfigEntry.source` / `type` /
-//! `isDefault` ([`ConfigSource`] / [`ConfigType`]). [`Config`] /
-//! [`ConfigEntry`] / [`ConfigResource`] `Display` match Java `toString`
+//! [`ConfigEntry::is_default`] / [`CreatedTopicConfig::is_default`] are Java
+//! `ConfigEntry.source` / `type` / `isDefault` ([`ConfigSource`] /
+//! [`ConfigType`]). [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
+//! [`CreatedTopicConfig`] `Display` match Java `toString`
 //! ([`ConfigEntry`] redacts sensitive values). [`ConfigResource::is_default`]
 //! is Java `ConfigResource.isDefault`.
 //! [`Admin::incremental_alter_configs_timeout`] /

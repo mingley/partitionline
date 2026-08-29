@@ -414,8 +414,9 @@ impl TopicResult {
 
 /// One config entry on a CreateTopics v5+ response (KIP-525).
 ///
-/// [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`] is set
-/// (Java `ConfigEntry.toString`).
+/// [`Display`] is Java `ConfigEntry.toString` (type and documentation are
+/// unknown). [`Debug`] redacts [`Self::value`] when [`Self::is_sensitive`]
+/// is set.
 #[derive(Clone, PartialEq, Eq)]
 pub struct CreatedTopicConfig {
     /// Config key.
@@ -461,6 +462,12 @@ impl CreatedTopicConfig {
         self.is_sensitive
     }
 
+    /// Java `ConfigEntry.isDefault()`.
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        self.config_source == CONFIG_SOURCE_DEFAULT
+    }
+
     fn to_config_entry(&self) -> ConfigEntry {
         ConfigEntry {
             name: self.name.clone(),
@@ -490,6 +497,12 @@ impl fmt::Debug for CreatedTopicConfig {
             .field("config_source", &self.config_source)
             .field("is_sensitive", &self.is_sensitive)
             .finish()
+    }
+}
+
+impl fmt::Display for CreatedTopicConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.to_config_entry(), f)
     }
 }
 
@@ -14837,6 +14850,27 @@ mod tests {
         assert!(!created.is_read_only());
         assert_eq!(created.source(), ConfigSource::DynamicTopic);
         assert!(created.is_sensitive());
+        assert!(!created.is_default());
+        assert_eq!(
+            created.to_string(),
+            "ConfigEntry(name=ssl.keystore.password, value=Redacted, source=DYNAMIC_TOPIC_CONFIG, isSensitive=true, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)"
+        );
+        assert!(
+            !created.to_string().contains("s3cret"),
+            "sensitive CreatedTopicConfig Display must not leak the value"
+        );
+        let defaulted = CreatedTopicConfig {
+            name: "retention.ms".into(),
+            value: Some("86400000".into()),
+            read_only: false,
+            config_source: CONFIG_SOURCE_DEFAULT,
+            is_sensitive: false,
+        };
+        assert!(defaulted.is_default());
+        assert_eq!(
+            defaulted.to_string(),
+            "ConfigEntry(name=retention.ms, value=86400000, source=DEFAULT_CONFIG, isSensitive=false, isReadOnly=false, synonyms=[], type=UNKNOWN, documentation=null)"
+        );
         let created_debug = format!("{created:?}");
         assert!(
             created_debug.contains("Redacted"),
