@@ -339,7 +339,9 @@
 //! no TimeoutMs).
 //! [`Admin::describe_cluster_with`] is Java `describeCluster` plus
 //! `DescribeClusterOptions` (DescribeCluster v0–v2; v1 EndpointType, v2
-//! IncludeFencedBrokers).
+//! IncludeFencedBrokers). [`EndpointType::id`] / [`EndpointType::from_id`]
+//! are Java `EndpointType.id` / `fromId` (Java `UNKNOWN` is `None`).
+//! [`EndpointType`] `Display` is Java `EndpointType.toString` (`BROKER`).
 //! [`Admin::describe_cluster_timeout`] / [`Admin::describe_cluster_with_timeout`]
 //! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java

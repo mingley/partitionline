@@ -2652,6 +2652,8 @@ pub const ENDPOINT_TYPE_BROKERS: i8 = 1;
 pub const ENDPOINT_TYPE_CONTROLLERS: i8 = 2;
 
 /// DescribeCluster `EndpointType` (KIP-919). `1` = brokers, `2` = controllers.
+///
+/// [`Display`] is Java `EndpointType.toString` (`BROKER`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum EndpointType {
@@ -2664,6 +2666,40 @@ pub enum EndpointType {
 impl From<EndpointType> for i8 {
     fn from(ty: EndpointType) -> Self {
         ty as i8
+    }
+}
+
+impl EndpointType {
+    /// Java `EndpointType.id`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        self as i8
+    }
+
+    /// Java `EndpointType.fromId`. Unknown ids (including Java `UNKNOWN`
+    /// `0`) return `None`.
+    #[must_use]
+    pub const fn from_id(id: i8) -> Option<Self> {
+        match id {
+            ENDPOINT_TYPE_BROKERS => Some(Self::Brokers),
+            ENDPOINT_TYPE_CONTROLLERS => Some(Self::Controllers),
+            _ => None,
+        }
+    }
+
+    /// Java `EndpointType.toString` (`BROKER` / `CONTROLLER`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Brokers => "BROKER",
+            Self::Controllers => "CONTROLLER",
+        }
+    }
+}
+
+impl fmt::Display for EndpointType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -13822,6 +13858,20 @@ mod tests {
 
     #[test]
     fn describe_cluster_v0_roundtrip() {
+        assert_eq!(EndpointType::Brokers.id(), ENDPOINT_TYPE_BROKERS);
+        assert_eq!(EndpointType::Controllers.id(), ENDPOINT_TYPE_CONTROLLERS);
+        assert_eq!(
+            EndpointType::from_id(ENDPOINT_TYPE_BROKERS),
+            Some(EndpointType::Brokers)
+        );
+        assert_eq!(
+            EndpointType::from_id(ENDPOINT_TYPE_CONTROLLERS),
+            Some(EndpointType::Controllers)
+        );
+        assert!(EndpointType::from_id(0).is_none());
+        assert!(EndpointType::from_id(99).is_none());
+        assert_eq!(EndpointType::Brokers.to_string(), "BROKER");
+        assert_eq!(EndpointType::Controllers.to_string(), "CONTROLLER");
         let desc = ClusterDescription {
             error_code: 0,
             error_message: None,
