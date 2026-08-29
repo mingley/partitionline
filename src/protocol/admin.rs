@@ -39,6 +39,12 @@ impl From<ScramMechanism> for i8 {
 }
 
 impl ScramMechanism {
+    /// Java `ScramMechanism.type`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        self as i8
+    }
+
     /// Java `ScramMechanism.fromType` (out of range is [`Self::Unknown`]).
     #[must_use]
     pub const fn from_id(id: i8) -> Self {

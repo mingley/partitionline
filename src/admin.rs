@@ -12702,6 +12702,9 @@ mod tests {
         assert_eq!(i8::from(ScramMechanism::Unknown), SCRAM_UNKNOWN);
         assert_eq!(i8::from(ScramMechanism::Sha256), SCRAM_SHA_256);
         assert_eq!(i8::from(ScramMechanism::Sha512), SCRAM_SHA_512);
+        assert_eq!(ScramMechanism::Unknown.id(), SCRAM_UNKNOWN);
+        assert_eq!(ScramMechanism::Sha256.id(), SCRAM_SHA_256);
+        assert_eq!(ScramMechanism::Sha512.id(), SCRAM_SHA_512);
         assert_eq!(
             ScramMechanism::from_id(SCRAM_SHA_256),
             ScramMechanism::Sha256
