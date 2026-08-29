@@ -118,6 +118,68 @@ pub struct Record {
     pub headers: Vec<Header>,
 }
 
+impl Record {
+    /// Java `Record.offset`.
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `Record.timestamp`.
+    #[must_use]
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `Record.key` (`None` is Java `null`).
+    #[must_use]
+    pub fn key(&self) -> Option<&[u8]> {
+        self.key.as_deref()
+    }
+
+    /// Java `Record.hasKey`.
+    #[must_use]
+    pub fn has_key(&self) -> bool {
+        self.key.is_some()
+    }
+
+    /// Java `Record.value` (`None` is Java `null`).
+    #[must_use]
+    pub fn value(&self) -> Option<&[u8]> {
+        self.value.as_deref()
+    }
+
+    /// Java `Record.hasValue`.
+    #[must_use]
+    pub fn has_value(&self) -> bool {
+        self.value.is_some()
+    }
+
+    /// Java `Record.keySize` (`-1` when there is no key).
+    #[must_use]
+    pub fn key_size(&self) -> i32 {
+        self.key
+            .as_ref()
+            .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+            .unwrap_or(-1)
+    }
+
+    /// Java `Record.valueSize` (`-1` when the value is null).
+    #[must_use]
+    pub fn value_size(&self) -> i32 {
+        self.value
+            .as_ref()
+            .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
+            .unwrap_or(-1)
+    }
+
+    /// Java `Record.headers`.
+    #[must_use]
+    pub fn headers(&self) -> &[Header] {
+        &self.headers
+    }
+}
+
 /// RecordBatch attributes: transactional.
 pub const ATTR_TRANSACTIONAL: i16 = 0x10;
 /// RecordBatch attributes: control batch (commit/abort marker).
@@ -272,6 +334,40 @@ impl RecordBatch {
             TimestampType::CreateTime | TimestampType::NoTimestampType => {
                 self.attributes &= !ATTR_TIMESTAMP_TYPE;
             }
+        }
+        self
+    }
+
+    /// Java `DefaultRecordBatch.isTransactional`.
+    #[must_use]
+    pub fn is_transactional(&self) -> bool {
+        self.attributes & ATTR_TRANSACTIONAL != 0
+    }
+
+    /// Java `DefaultRecordBatch.isControlBatch`.
+    #[must_use]
+    pub fn is_control_batch(&self) -> bool {
+        self.attributes & ATTR_CONTROL != 0
+    }
+
+    /// Set [`ATTR_TRANSACTIONAL`].
+    #[must_use]
+    pub fn with_transactional(mut self, transactional: bool) -> Self {
+        if transactional {
+            self.attributes |= ATTR_TRANSACTIONAL;
+        } else {
+            self.attributes &= !ATTR_TRANSACTIONAL;
+        }
+        self
+    }
+
+    /// Set [`ATTR_CONTROL`].
+    #[must_use]
+    pub fn with_control_batch(mut self, control: bool) -> Self {
+        if control {
+            self.attributes |= ATTR_CONTROL;
+        } else {
+            self.attributes &= !ATTR_CONTROL;
         }
         self
     }
@@ -742,6 +838,52 @@ mod tests {
         let n = Header::null("n");
         assert_eq!(n.key(), "n");
         assert!(n.value().is_none());
+    }
+
+    #[test]
+    fn record_and_batch_getters_match_java() {
+        let rec = Record {
+            offset: 7,
+            timestamp: 9,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"val")),
+            headers: vec![Header::new("h", Bytes::from_static(b"v"))],
+        };
+        assert_eq!(rec.offset(), 7);
+        assert_eq!(rec.timestamp(), 9);
+        assert_eq!(rec.key(), Some(&b"k"[..]));
+        assert!(rec.has_key());
+        assert_eq!(rec.key_size(), 1);
+        assert_eq!(rec.value(), Some(&b"val"[..]));
+        assert!(rec.has_value());
+        assert_eq!(rec.value_size(), 3);
+        assert_eq!(rec.headers().len(), 1);
+        let empty = Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: None,
+            headers: vec![],
+        };
+        assert!(!empty.has_key());
+        assert!(!empty.has_value());
+        assert_eq!(empty.key_size(), -1);
+        assert_eq!(empty.value_size(), -1);
+        let batch = RecordBatch::from_records(vec![rec])
+            .with_transactional(true)
+            .with_control_batch(true);
+        assert!(batch.is_transactional());
+        assert!(batch.is_control_batch());
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert!(decoded.is_transactional());
+        assert!(decoded.is_control_batch());
+        assert_eq!(decoded.records[0].offset(), 0);
+        assert_eq!(decoded.records[0].value(), Some(&b"val"[..]));
+        let cleared = decoded.with_transactional(false).with_control_batch(false);
+        assert!(!cleared.is_transactional());
+        assert!(!cleared.is_control_batch());
     }
 
     #[test]

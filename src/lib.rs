@@ -133,6 +133,8 @@
 //! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
 //! [`FetchedRecord::timestamp_type`] is Java `timestampType` ([`TimestampType`]).
+//! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
+//! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
