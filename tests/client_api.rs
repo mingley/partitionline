@@ -18,7 +18,8 @@ use partitionline::{
     Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
     ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
     DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP,
-    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
+    LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -487,6 +488,10 @@ async fn classic_join_sends_group_instance_id() {
     );
     let members = mock.last_leave_group_members().expect("LeaveGroup members");
     assert_eq!(members[0].group_instance_id.as_deref(), Some("worker-1"));
+    assert_eq!(
+        members[0].reason.as_deref(),
+        Some(LEAVE_GROUP_REASON_CLOSED)
+    );
 }
 
 #[tokio::test]
@@ -1454,6 +1459,13 @@ async fn max_poll_interval_heartbeat_leaves_group() {
         1,
         "first member must have left after max.poll.interval"
     );
+    assert_eq!(
+        mock.last_leave_group_members()
+            .expect("max poll LeaveGroup")[0]
+            .reason
+            .as_deref(),
+        Some(LEAVE_GROUP_REASON_POLL_TIMEOUT)
+    );
     let err = a.poll().await.unwrap_err();
     assert!(
         matches!(err, Error::MaxPollInterval),
@@ -1757,6 +1769,13 @@ async fn group_metadata_and_unsubscribe_resubscribe() {
     group.unsubscribe().await.unwrap();
     assert!(group.assignment().is_empty());
     assert!(group.subscription().is_empty());
+    assert_eq!(
+        mock.last_leave_group_members()
+            .expect("unsubscribe LeaveGroup")[0]
+            .reason
+            .as_deref(),
+        Some(LEAVE_GROUP_REASON_UNSUBSCRIBED)
+    );
     group.subscribe(["t"]).await.unwrap();
     assert_eq!(group.subscription(), &["t".to_string()]);
     assert!(!group.assignment().is_empty());

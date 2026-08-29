@@ -47,6 +47,15 @@ type PendingAsyncCommit = (
 /// Java default JoinGroup `Reason` for [`ConsumerGroup::enforce_rebalance`] (KIP-800).
 pub const DEFAULT_ENFORCE_REBALANCE_REASON: &str = "rebalance enforced by user";
 
+/// Java LeaveGroup `Reason` on [`ConsumerGroup::leave`] / [`ConsumerGroup::close`] (KIP-800).
+pub const LEAVE_GROUP_REASON_CLOSED: &str = "the consumer is being closed";
+
+/// Java LeaveGroup `Reason` on [`ConsumerGroup::unsubscribe`] (KIP-800).
+pub const LEAVE_GROUP_REASON_UNSUBSCRIBED: &str = "the consumer unsubscribed from all topics";
+
+/// Java LeaveGroup `Reason` when `max.poll.interval.ms` expires (KIP-800).
+pub const LEAVE_GROUP_REASON_POLL_TIMEOUT: &str = "consumer poll timeout has expired.";
+
 /// JoinGroup / LeaveGroup Reason is a STRING truncated to 255 characters (KIP-800).
 fn truncate_group_reason(reason: &str) -> String {
     const MAX: usize = 255;
@@ -1324,7 +1333,8 @@ impl ConsumerGroup {
 
     /// Leave the group and drop the subscription (Java `unsubscribe`).
     ///
-    /// Heartbeats stop and the assignment is cleared. [`Self::subscribe`] joins
+    /// Heartbeats stop and the assignment is cleared. Classic LeaveGroup v5
+    /// sends [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]. [`Self::subscribe`] joins
     /// again with a new topic list. [`Self::leave`] after this is a no-op.
     pub async fn unsubscribe(&mut self) -> Result<()> {
         if self.member_id.is_empty() {
@@ -1339,7 +1349,8 @@ impl ConsumerGroup {
         }
         self.hb_stop.send(true).unwrap_or(());
         let revoked = self.assignment();
-        self.leave_coordinator().await?;
+        self.leave_coordinator(LEAVE_GROUP_REASON_UNSUBSCRIBED)
+            .await?;
         if !revoked.is_empty() {
             self.cfg.rebalance.call(&revoked, &[]);
         }
@@ -1448,6 +1459,8 @@ impl ConsumerGroup {
     }
 
     /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).
+    ///
+    /// Classic LeaveGroup v5 sends [`LEAVE_GROUP_REASON_CLOSED`].
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
@@ -1459,7 +1472,7 @@ impl ConsumerGroup {
             self.commit().await?;
         }
         self.hb_stop.send(true).unwrap_or(());
-        let out = self.leave_coordinator().await;
+        let out = self.leave_coordinator(LEAVE_GROUP_REASON_CLOSED).await;
         self.consumer.close_interceptors();
         out
     }
@@ -1481,7 +1494,7 @@ impl ConsumerGroup {
         }
     }
 
-    async fn leave_coordinator(&mut self) -> Result<()> {
+    async fn leave_coordinator(&mut self, reason: &str) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         if self.kip848 {
             let version =
@@ -1520,7 +1533,7 @@ impl ConsumerGroup {
         let members = [LeaveGroupMember {
             member_id: self.member_id.clone(),
             group_instance_id: self.cfg.group_instance_id.clone(),
-            reason: None,
+            reason: Some(truncate_group_reason(reason)),
         }];
         let body = coord_roundtrip(
             &mut self.coord,
@@ -2103,7 +2116,7 @@ async fn leave_if_max_poll(
             let members = [LeaveGroupMember {
                 member_id: member_id.to_string(),
                 group_instance_id: cfg.group_instance_id.clone(),
-                reason: None,
+                reason: Some(LEAVE_GROUP_REASON_POLL_TIMEOUT.into()),
             }];
             drop(
                 c.roundtrip(

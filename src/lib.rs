@@ -33,7 +33,9 @@
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment),
-//! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason),
+//! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
+//! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
+//! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry),
@@ -387,7 +389,10 @@ pub use consumer::{
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
-pub use group::{ConsumerGroup, ConsumerGroupMetadata, DEFAULT_ENFORCE_REBALANCE_REASON};
+pub use group::{
+    ConsumerGroup, ConsumerGroupMetadata, DEFAULT_ENFORCE_REBALANCE_REASON,
+    LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
+};
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
     AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics, TopicFetchMetrics,
