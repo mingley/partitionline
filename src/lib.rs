@@ -152,7 +152,8 @@
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
-//! match Java `toString`.
+//! match Java `toString`. [`FeatureUpdate`] / [`UpgradeType`] /
+//! [`RecordsToDelete`] `Display` match Java `toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

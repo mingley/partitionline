@@ -7044,10 +7044,12 @@ async fn update_features_follows_controller() {
     mock.set_controller(2);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
-    let results = admin
-        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
-        .await
-        .unwrap();
+    let update = FeatureUpdate::new("metadata.version", 17);
+    assert_eq!(
+        update.to_string(),
+        "FeatureUpdate{maxVersionLevel:17, upgradeType:UPGRADE}"
+    );
+    let results = admin.update_features(&[update], 10_000).await.unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].error_code, 0);
     assert_eq!(
@@ -7164,12 +7166,13 @@ async fn update_features_negotiates_v1_when_broker_caps() {
 async fn update_features_with_sends_validate_only_and_upgrade_type() {
     let mock = common::Mock::start().await;
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let safe = FeatureUpdate::new("metadata.version", 17).upgrade_type(UpgradeType::SafeDowngrade);
+    assert_eq!(
+        safe.to_string(),
+        "FeatureUpdate{maxVersionLevel:17, upgradeType:SAFE_DOWNGRADE}"
+    );
     let results = admin
-        .update_features_with(
-            &[FeatureUpdate::new("metadata.version", 17).upgrade_type(UpgradeType::SafeDowngrade)],
-            10_000,
-            true,
-        )
+        .update_features_with(&[safe], 10_000, true)
         .await
         .unwrap();
     assert_eq!(results.len(), 1);

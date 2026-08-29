@@ -506,6 +506,7 @@ impl fmt::Display for NewTopic {
 ///
 /// Converts to the DeleteRecords Offset INT64: records strictly before
 /// this offset are deleted; records at or after it are kept.
+/// [`Display`] is Java `RecordsToDelete.toString`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RecordsToDelete {
     offset: i64,
@@ -522,6 +523,12 @@ impl RecordsToDelete {
     #[must_use]
     pub const fn offset(self) -> i64 {
         self.offset
+    }
+}
+
+impl fmt::Display for RecordsToDelete {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(beforeOffset = {})", self.offset)
     }
 }
 
@@ -1764,6 +1771,10 @@ impl OngoingReassignment {
 }
 
 /// One finalized-feature update for `Admin::update_features`.
+///
+/// [`Display`] is Java `FeatureUpdate.toString` (no feature name; that is
+/// the `updateFeatures` map key). Unknown upgrade-type codes print
+/// `UNKNOWN`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdate {
     /// Feature name (for example `metadata.version`).
@@ -1823,6 +1834,21 @@ impl FeatureUpdate {
     #[must_use]
     pub fn max_version_level(&self) -> i16 {
         self.max_version_level
+    }
+}
+
+impl fmt::Display for FeatureUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("FeatureUpdate{maxVersionLevel:")?;
+        write!(f, "{}", self.max_version_level)?;
+        f.write_str(", upgradeType:")?;
+        f.write_str(match self.upgrade_type {
+            UPGRADE_TYPE_UPGRADE => "UPGRADE",
+            UPGRADE_TYPE_SAFE_DOWNGRADE => "SAFE_DOWNGRADE",
+            UPGRADE_TYPE_UNSAFE_DOWNGRADE => "UNSAFE_DOWNGRADE",
+            _ => "UNKNOWN",
+        })?;
+        f.write_str("}")
     }
 }
 
@@ -11567,6 +11593,10 @@ mod tests {
     fn records_to_delete_before_offset_converts_to_i64() {
         assert_eq!(i64::from(RecordsToDelete::before_offset(42)), 42);
         assert_eq!(RecordsToDelete::before_offset(7).offset(), 7);
+        assert_eq!(
+            RecordsToDelete::before_offset(42).to_string(),
+            "(beforeOffset = 42)"
+        );
     }
 
     #[test]
@@ -11761,6 +11791,31 @@ mod tests {
         let update = FeatureUpdate::new("metadata.version", 20);
         assert_eq!(update.name(), "metadata.version");
         assert_eq!(update.max_version_level(), 20);
+        assert_eq!(
+            update.to_string(),
+            "FeatureUpdate{maxVersionLevel:20, upgradeType:UPGRADE}"
+        );
+        assert_eq!(
+            FeatureUpdate::new("metadata.version", 20)
+                .upgrade_type(UpgradeType::SafeDowngrade)
+                .to_string(),
+            "FeatureUpdate{maxVersionLevel:20, upgradeType:SAFE_DOWNGRADE}"
+        );
+        assert_eq!(
+            FeatureUpdate::new("metadata.version", 0)
+                .upgrade_type(UpgradeType::UnsafeDowngrade)
+                .to_string(),
+            "FeatureUpdate{maxVersionLevel:0, upgradeType:UNSAFE_DOWNGRADE}"
+        );
+        assert_eq!(UpgradeType::Upgrade.to_string(), "UPGRADE");
+        assert_eq!(UpgradeType::SafeDowngrade.to_string(), "SAFE_DOWNGRADE");
+        assert_eq!(UpgradeType::UnsafeDowngrade.to_string(), "UNSAFE_DOWNGRADE");
+        assert_eq!(
+            FeatureUpdate::new("metadata.version", 1)
+                .upgrade_type(0_i8)
+                .to_string(),
+            "FeatureUpdate{maxVersionLevel:1, upgradeType:UNKNOWN}"
+        );
         let range = SupportedVersionRange::new("metadata.version", 1, 20);
         assert_eq!(range.min_version(), 1);
         assert_eq!(range.max_version(), 20);

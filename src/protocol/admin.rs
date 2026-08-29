@@ -3267,6 +3267,9 @@ pub const UPGRADE_TYPE_UNSAFE_DOWNGRADE: i8 = 3;
 
 /// UpdateFeatures `UpgradeType` (v1+). `1` = upgrade, `2` = safe downgrade,
 /// `3` = unsafe downgrade.
+///
+/// [`Display`] is Java `FeatureUpdate.UpgradeType.toString` (`UPGRADE`,
+/// `SAFE_DOWNGRADE`, `UNSAFE_DOWNGRADE`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i8)]
 pub enum UpgradeType {
@@ -3281,6 +3284,24 @@ pub enum UpgradeType {
 impl From<UpgradeType> for i8 {
     fn from(ty: UpgradeType) -> Self {
         ty as i8
+    }
+}
+
+impl UpgradeType {
+    /// Java `FeatureUpdate.UpgradeType.toString`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Upgrade => "UPGRADE",
+            Self::SafeDowngrade => "SAFE_DOWNGRADE",
+            Self::UnsafeDowngrade => "UNSAFE_DOWNGRADE",
+        }
+    }
+}
+
+impl fmt::Display for UpgradeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
