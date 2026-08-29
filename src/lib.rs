@@ -138,6 +138,9 @@
 //! [`Admin::describe_cluster_with`] is Java `describeCluster` plus
 //! `DescribeClusterOptions` (DescribeCluster v0–v2; v1 EndpointType, v2
 //! IncludeFencedBrokers).
+//! [`Admin::update_features_with`] is Java `updateFeatures` plus
+//! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
+//! UpgradeType / ValidateOnly; v2 omits Results).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
@@ -331,7 +334,7 @@ pub use admin::{
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
     TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
-    TransactionTopic, UserScramCredentialDeletion, UserScramCredentialResult,
+    TransactionTopic, UpgradeType, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
@@ -339,7 +342,8 @@ pub use admin::{
     CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
     CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
     ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
+    UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{

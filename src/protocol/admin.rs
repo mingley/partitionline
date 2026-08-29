@@ -2042,15 +2042,65 @@ pub fn decode_list_partition_reassignments_response<B: Buf>(
     })
 }
 
-/// One finalized-feature update in UpdateFeatures v0 (flexible; KIP-584).
+/// UpdateFeatures upgrade type: upgrade only (v1+ default).
+pub const UPGRADE_TYPE_UPGRADE: i8 = 1;
+/// UpdateFeatures upgrade type: safe (lossless) downgrade.
+pub const UPGRADE_TYPE_SAFE_DOWNGRADE: i8 = 2;
+/// UpdateFeatures upgrade type: unsafe (lossy) downgrade.
+pub const UPGRADE_TYPE_UNSAFE_DOWNGRADE: i8 = 3;
+
+/// UpdateFeatures `UpgradeType` (v1+). `1` = upgrade, `2` = safe downgrade,
+/// `3` = unsafe downgrade.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum UpgradeType {
+    /// Upgrade only (`1`).
+    Upgrade = 1,
+    /// Safe lossless downgrade (`2`).
+    SafeDowngrade = 2,
+    /// Unsafe lossy downgrade (`3`).
+    UnsafeDowngrade = 3,
+}
+
+impl From<UpgradeType> for i8 {
+    fn from(ty: UpgradeType) -> Self {
+        ty as i8
+    }
+}
+
+fn upgrade_type_from_allow_downgrade(allow_downgrade: bool) -> i8 {
+    if allow_downgrade {
+        UPGRADE_TYPE_SAFE_DOWNGRADE
+    } else {
+        UPGRADE_TYPE_UPGRADE
+    }
+}
+
+/// One finalized-feature update in UpdateFeatures (flexible; KIP-584).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdateKey {
     /// Topic, resource, group, or feature name.
     pub name: String,
     /// Maximum feature version to set.
     pub max_version_level: i16,
-    /// When true, the broker may lower the feature level.
+    /// When true, the broker may lower the feature level (v0 `AllowDowngrade`).
     pub allow_downgrade: bool,
+    /// Upgrade type (v1+ `UpgradeType`). `1` upgrade, `2` safe downgrade,
+    /// `3` unsafe downgrade.
+    pub upgrade_type: i8,
+}
+
+impl FeatureUpdateKey {
+    /// Construct [`Self`]. v1+ `upgrade_type` follows `allow_downgrade`
+    /// (Java `FeatureUpdate(short, boolean)`).
+    pub fn new(name: impl Into<String>, max_version_level: i16, allow_downgrade: bool) -> Self {
+        Self {
+            name: name.into(),
+            max_version_level,
+            allow_downgrade,
+            upgrade_type: upgrade_type_from_allow_downgrade(allow_downgrade),
+        }
+    }
 }
 
 /// Per-feature result of UpdateFeatures v0.
@@ -2064,7 +2114,9 @@ pub struct UpdatableFeatureResult {
     pub error_message: Option<String>,
 }
 
-/// UpdateFeatures v0 response (top-level error after throttle).
+/// UpdateFeatures response (top-level error after throttle).
+///
+/// v2 omits per-feature Results.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFeaturesResponse {
     /// Kafka error code (`0` is success).
@@ -2075,85 +2127,140 @@ pub struct UpdateFeaturesResponse {
     pub results: Vec<UpdatableFeatureResult>,
 }
 
-/// UpdateFeatures v0 (flexible from v0; KIP-584).
+/// Check that UpdateFeatures `version` is spoken (0–2).
 ///
-/// Official Apache JSON (`validVersions: "0-2"`, `flexibleVersions: "0+"`)
-/// and kafka-protocol 0.18.0: v0 encodes `AllowDowngrade` BOOLEAN; v1+
-/// replaces it with `UpgradeType` and adds top-level `ValidateOnly`.
-/// This crate targets v0.
+/// Flexible from v0. v0 encodes `AllowDowngrade`. v1+ replaces it with
+/// `UpgradeType` and adds top-level `ValidateOnly`. v2 omits per-feature
+/// Results. Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2.
+/// v3+ is not spoken.
+fn update_features_spoken(version: i16) -> Result<i16> {
+    match version {
+        0..=2 => Ok(version),
+        other => Err(Error::protocol(format!(
+            "UpdateFeatures version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode an UpdateFeatures request (v0–2; flexible from v0).
 pub fn encode_update_features_request(
     buf: &mut BytesMut,
+    version: i16,
     timeout_ms: i32,
     updates: &[FeatureUpdateKey],
+    validate_only: bool,
 ) -> crate::error::Result<()> {
+    let _ = update_features_spoken(version)?;
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
     for u in updates {
         buf::put_compact_string(buf, Some(&u.name))?;
         buf.put_i16(u.max_version_level);
-        buf.put_u8(u8::from(u.allow_downgrade));
+        if version == 0 {
+            buf.put_u8(u8::from(u.allow_downgrade));
+        } else {
+            buf.put_i8(u.upgrade_type);
+        }
         buf::put_empty_tagged_fields(buf);
+    }
+    if version >= 1 {
+        buf.put_u8(u8::from(validate_only));
     }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode an UpdateFeatures request.
-pub fn decode_update_features_request<B: Buf>(buf: &mut B) -> Result<(i32, Vec<FeatureUpdateKey>)> {
+///
+/// Returns `(timeout_ms, updates, validate_only)`. v0 fills `validate_only`
+/// = `false` and `upgrade_type` from `AllowDowngrade`. v1+ fills
+/// `allow_downgrade` from `UpgradeType != 1`.
+pub fn decode_update_features_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i32, Vec<FeatureUpdateKey>, bool)> {
+    let _ = update_features_spoken(version)?;
     let timeout_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut updates = Vec::with_capacity(n);
     for _ in 0..n {
         let name = buf::get_compact_string(buf)?.unwrap_or_default();
         let max_version_level = buf::get_i16(buf)?;
-        let allow_downgrade = buf::get_bool(buf)?;
+        let (allow_downgrade, upgrade_type) = if version == 0 {
+            let allow = buf::get_bool(buf)?;
+            (allow, upgrade_type_from_allow_downgrade(allow))
+        } else {
+            let upgrade_type = buf::get_i8(buf)?;
+            (upgrade_type != UPGRADE_TYPE_UPGRADE, upgrade_type)
+        };
         buf::skip_tagged_fields(buf)?;
         updates.push(FeatureUpdateKey {
             name,
             max_version_level,
             allow_downgrade,
+            upgrade_type,
         });
     }
+    let validate_only = if version >= 1 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
     buf::skip_tagged_fields(buf)?;
-    Ok((timeout_ms, updates))
+    Ok((timeout_ms, updates, validate_only))
 }
 
-/// Encode an UpdateFeatures response.
+/// Encode an UpdateFeatures response (v0–2; flexible from v0).
+///
+/// v2 omits Results (Kafka 4.0 JSON `versions: "0-1"`).
 pub fn encode_update_features_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &UpdateFeaturesResponse,
 ) -> crate::error::Result<()> {
+    let _ = update_features_spoken(version)?;
     buf.put_i32(0);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
-    buf::put_array_len(buf, true, Some(resp.results.len()))?;
-    for r in &resp.results {
-        buf::put_compact_string(buf, Some(&r.name))?;
-        buf.put_i16(r.error_code);
-        buf::put_compact_string(buf, r.error_message.as_deref())?;
-        buf::put_empty_tagged_fields(buf);
+    if version < 2 {
+        buf::put_array_len(buf, true, Some(resp.results.len()))?;
+        for r in &resp.results {
+            buf::put_compact_string(buf, Some(&r.name))?;
+            buf.put_i16(r.error_code);
+            buf::put_compact_string(buf, r.error_message.as_deref())?;
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode an UpdateFeatures response.
-pub fn decode_update_features_response<B: Buf>(buf: &mut B) -> Result<UpdateFeaturesResponse> {
+///
+/// v2 fills `results` empty (no Results array on the wire).
+pub fn decode_update_features_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<UpdateFeaturesResponse> {
+    let _ = update_features_spoken(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut results = Vec::with_capacity(n);
-    for _ in 0..n {
-        let name = buf::get_compact_string(buf)?.unwrap_or_default();
-        let feat_err = buf::get_i16(buf)?;
-        let feat_msg = buf::get_compact_string(buf)?;
-        buf::skip_tagged_fields(buf)?;
-        results.push(UpdatableFeatureResult {
-            name,
-            error_code: feat_err,
-            error_message: feat_msg,
-        });
+    let mut results = Vec::new();
+    if version < 2 {
+        let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+        results.reserve(n);
+        for _ in 0..n {
+            let name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let feat_err = buf::get_i16(buf)?;
+            let feat_msg = buf::get_compact_string(buf)?;
+            buf::skip_tagged_fields(buf)?;
+            results.push(UpdatableFeatureResult {
+                name,
+                error_code: feat_err,
+                error_message: feat_msg,
+            });
+        }
     }
     buf::skip_tagged_fields(buf)?;
     Ok(UpdateFeaturesResponse {
@@ -9424,19 +9531,11 @@ mod tests {
             0x74, 0x72, 0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x01, 0x00,
         ];
         let updates = vec![
-            FeatureUpdateKey {
-                name: "metadata.version".into(),
-                max_version_level: 17,
-                allow_downgrade: false,
-            },
-            FeatureUpdateKey {
-                name: "group.version".into(),
-                max_version_level: 1,
-                allow_downgrade: true,
-            },
+            FeatureUpdateKey::new("metadata.version", 17, false),
+            FeatureUpdateKey::new("group.version", 1, true),
         ];
         let mut buf = BytesMut::new();
-        encode_update_features_request(&mut buf, 10_000, &updates).unwrap();
+        encode_update_features_request(&mut buf, 0, 10_000, &updates, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = UpdateFeaturesResponse {
             error_code: crate::error::NOT_CONTROLLER,
@@ -9444,30 +9543,23 @@ mod tests {
             results: Vec::new(),
         };
         buf.clear();
-        encode_update_features_response(&mut buf, &resp).unwrap();
+        encode_update_features_response(&mut buf, 0, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);
     }
 
     #[test]
     fn update_features_v0_roundtrip_is_leftover_empty() {
         let updates = vec![
-            FeatureUpdateKey {
-                name: "metadata.version".into(),
-                max_version_level: 17,
-                allow_downgrade: false,
-            },
-            FeatureUpdateKey {
-                name: "group.version".into(),
-                max_version_level: 1,
-                allow_downgrade: true,
-            },
+            FeatureUpdateKey::new("metadata.version", 17, false),
+            FeatureUpdateKey::new("group.version", 1, true),
         ];
         let mut buf = BytesMut::new();
-        encode_update_features_request(&mut buf, 10_000, &updates).unwrap();
+        encode_update_features_request(&mut buf, 0, 10_000, &updates, false).unwrap();
         let mut cur = &buf[..];
-        let (timeout, got) = decode_update_features_request(&mut cur).unwrap();
+        let (timeout, got, validate) = decode_update_features_request(&mut cur, 0).unwrap();
         assert_eq!(timeout, 10_000);
         assert_eq!(got, updates);
+        assert!(!validate);
         assert!(
             !cur.has_remaining(),
             "UpdateFeatures v0 request must be leftover-empty"
@@ -9490,9 +9582,9 @@ mod tests {
             ],
         };
         buf.clear();
-        encode_update_features_response(&mut buf, &resp).unwrap();
+        encode_update_features_response(&mut buf, 0, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_update_features_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_update_features_response(&mut cur, 0).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "UpdateFeatures v0 response must be leftover-empty"
@@ -9510,7 +9602,7 @@ mod tests {
             results: Vec::new(),
         };
         let mut buf = BytesMut::new();
-        encode_update_features_response(&mut buf, &resp).unwrap();
+        encode_update_features_response(&mut buf, 0, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_eq!(
@@ -9519,10 +9611,92 @@ mod tests {
             "v0 throttle then top-level error must be 41 at bytes 4-5"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_update_features_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_update_features_response(&mut cur, 0).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "UpdateFeatures v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn update_features_v2_compact_layout_matches_independent_encode() {
+        // timeout 1000, 1 update "f" max 1, UpgradeType upgrade, ValidateOnly
+        // false, empty tagged fields on the feature and top-level.
+        const REQ_V1: &[u8] = &[
+            0x00, 0x00, 0x03, 0xe8, 0x02, 0x02, 0x66, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00,
+        ];
+        const REQ_V0: &[u8] = &[
+            0x00, 0x00, 0x03, 0xe8, 0x02, 0x02, 0x66, 0x00, 0x01, 0x00, 0x00, 0x00,
+        ];
+        let updates = vec![FeatureUpdateKey::new("f", 1, false)];
+        let mut buf = BytesMut::new();
+        encode_update_features_request(&mut buf, 2, 1000, &updates, false).unwrap();
+        assert_eq!(&buf[..], REQ_V1);
+        let mut v1 = BytesMut::new();
+        encode_update_features_request(&mut v1, 1, 1000, &updates, false).unwrap();
+        assert_eq!(&v1[..], REQ_V1, "UpdateFeatures v2 request matches v1");
+        let mut v0 = BytesMut::new();
+        encode_update_features_request(&mut v0, 0, 1000, &updates, false).unwrap();
+        assert_eq!(&v0[..], REQ_V0);
+        assert_ne!(
+            &buf[..],
+            &v0[..],
+            "UpdateFeatures v1+ must send UpgradeType"
+        );
+        let mut cur = &buf[..];
+        let (timeout, got, validate) = decode_update_features_request(&mut cur, 2).unwrap();
+        assert_eq!(timeout, 1000);
+        assert_eq!(got, updates);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v2 request must consume compact fields and tagged fields"
+        );
+        buf.clear();
+        encode_update_features_request(&mut buf, 2, 1000, &updates, true).unwrap();
+        assert_eq!(
+            &buf[..],
+            &[0x00, 0x00, 0x03, 0xe8, 0x02, 0x02, 0x66, 0x00, 0x01, 0x01, 0x00, 0x01, 0x00]
+        );
+        assert!(
+            encode_update_features_request(&mut BytesMut::new(), 3, 1000, &updates, false).is_err(),
+            "UpdateFeatures v3+ is not spoken"
+        );
+
+        let resp = UpdateFeaturesResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![UpdatableFeatureResult {
+                name: "f".into(),
+                error_code: 0,
+                error_message: None,
+            }],
+        };
+        // v2 omits Results: throttle 0, error 0, null message, tagged.
+        const RESP_V2: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        buf.clear();
+        encode_update_features_response(&mut buf, 2, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V2);
+        let mut cur = &buf[..];
+        let got = decode_update_features_response(&mut cur, 2).unwrap();
+        assert_eq!(got.error_code, 0);
+        assert!(got.results.is_empty(), "UpdateFeatures v2 omits Results");
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v2 response must be leftover-empty"
+        );
+        let mut v1r = BytesMut::new();
+        encode_update_features_response(&mut v1r, 1, &resp).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1r[..],
+            "UpdateFeatures v2 response must omit Results"
+        );
+        let mut cur = &v1r[..];
+        assert_eq!(decode_update_features_response(&mut cur, 1).unwrap(), resp);
+        assert!(
+            encode_update_features_response(&mut BytesMut::new(), 3, &resp).is_err(),
+            "UpdateFeatures v3+ is not spoken"
         );
     }
 

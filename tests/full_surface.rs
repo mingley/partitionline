@@ -14,7 +14,7 @@ use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS,
     DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
     HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, SYNC_GROUP,
+    OFFSET_FETCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -30,9 +30,9 @@ use partitionline::{
     FeatureUpdate, IsolationLevel, NewPartitions, NewTopic, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RenewDelegationTokenRequest,
     ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UserScramCredentialDeletion, UserScramCredentialUpsertion,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -4267,6 +4267,11 @@ async fn update_features_follows_controller() {
         "UpdateFeatures must land on the controller, not bootstrap"
     );
     assert_eq!(
+        mock.last_update_features_version(),
+        Some(2),
+        "Admin must prefer UpdateFeatures v2 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_feature_update(),
         Some(("metadata.version".into(), 17, false)),
         "controller must store the feature update"
@@ -4301,6 +4306,88 @@ async fn update_features_follows_controller() {
         "first hop mutation must stay"
     );
     assert_eq!(mock.feature_level("group.version"), Some(1));
+}
+
+#[tokio::test]
+async fn update_features_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(UPDATE_FEATURES, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let results = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_update_features_version(),
+        Some(0),
+        "client must speak UpdateFeatures v0 when the broker max is 0"
+    );
+    assert_eq!(
+        mock.last_update_features_validate_only(),
+        Some(false),
+        "UpdateFeatures v0 has no ValidateOnly"
+    );
+}
+
+#[tokio::test]
+async fn update_features_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(UPDATE_FEATURES, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let results = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_update_features_version(),
+        Some(1),
+        "client must speak UpdateFeatures v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_update_features_upgrade_type(),
+        Some(1),
+        "UpdateFeatures v1 must send UpgradeType upgrade"
+    );
+}
+
+#[tokio::test]
+async fn update_features_with_sends_validate_only_and_upgrade_type() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let results = admin
+        .update_features_with(
+            &[FeatureUpdate::new("metadata.version", 17).upgrade_type(UpgradeType::SafeDowngrade)],
+            10_000,
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].error_code, 0);
+    assert_eq!(
+        mock.last_update_features_version(),
+        Some(2),
+        "update_features_with must keep UpdateFeatures v2"
+    );
+    assert_eq!(
+        mock.last_update_features_validate_only(),
+        Some(true),
+        "update_features_with must send ValidateOnly on v1+"
+    );
+    assert_eq!(
+        mock.last_update_features_upgrade_type(),
+        Some(2),
+        "update_features_with must send UpgradeType safe downgrade"
+    );
+    assert_eq!(
+        mock.feature_level("metadata.version"),
+        None,
+        "validate_only must not apply the feature mutation"
+    );
 }
 
 #[tokio::test]

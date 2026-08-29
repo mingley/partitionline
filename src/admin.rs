@@ -129,7 +129,7 @@ pub use crate::protocol::admin::{
     ListedGroup, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
     RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
     ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
-    TransactionState, TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    TransactionState, TransactionTopic, UpgradeType, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
     CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
     CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
@@ -138,7 +138,8 @@ pub use crate::protocol::admin::{
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
+    UPGRADE_TYPE_UPGRADE,
 };
 pub use crate::protocol::group::OffsetDeleteResult;
 
@@ -621,15 +622,18 @@ pub struct OngoingReassignment {
     pub removing_replicas: Vec<i32>,
 }
 
-/// One finalized-feature update for `Admin::update_features` (v0).
+/// One finalized-feature update for `Admin::update_features`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdate {
     /// Feature name (for example `metadata.version`).
     pub name: String,
     /// Target finalized version.
     pub max_version_level: i16,
-    /// When true, allow a downgrade (unsafe).
+    /// When true, allow a downgrade (v0 `AllowDowngrade`; Java maps this
+    /// to safe downgrade).
     pub allow_downgrade: bool,
+    /// Upgrade type (v1+). [`UPGRADE_TYPE_UPGRADE`] / safe / unsafe.
+    pub upgrade_type: i8,
 }
 
 impl FeatureUpdate {
@@ -640,13 +644,31 @@ impl FeatureUpdate {
             name: name.into(),
             max_version_level,
             allow_downgrade: false,
+            upgrade_type: UPGRADE_TYPE_UPGRADE,
         }
     }
 
-    /// Allow a downgrade of this feature.
+    /// Allow a downgrade of this feature (Java `FeatureUpdate(short, true)`
+    /// → safe downgrade). v0 sends `AllowDowngrade`. v1+ sends
+    /// [`UPGRADE_TYPE_SAFE_DOWNGRADE`].
     #[must_use]
     pub fn allow_downgrade(mut self, allow: bool) -> Self {
         self.allow_downgrade = allow;
+        self.upgrade_type = if allow {
+            UPGRADE_TYPE_SAFE_DOWNGRADE
+        } else {
+            UPGRADE_TYPE_UPGRADE
+        };
+        self
+    }
+
+    /// Set v1+ [`UpgradeType`] (`1` upgrade, `2` safe, `3` unsafe).
+    /// v0 sends `AllowDowngrade` when the type is not upgrade-only.
+    #[must_use]
+    pub fn upgrade_type(mut self, upgrade_type: impl Into<i8>) -> Self {
+        let upgrade_type = upgrade_type.into();
+        self.upgrade_type = upgrade_type;
+        self.allow_downgrade = upgrade_type != UPGRADE_TYPE_UPGRADE;
         self
     }
 }
@@ -1137,8 +1159,10 @@ impl Admin {
             })?;
         let update_features_version = versions
             .get(&UPDATE_FEATURES)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support UpdateFeatures".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
+            })?;
         let alter_user_scram_version = versions
             .get(&ALTER_USER_SCRAM_CREDENTIALS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -1962,12 +1986,31 @@ impl Admin {
 
     /// Update finalized feature versions (UpdateFeatures api 57).
     ///
-    /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
-    /// Metadata and retries on the new controller.
+    /// Negotiates v0–v2 (flexible from v0). v0 sends `AllowDowngrade`.
+    /// v1+ sends `UpgradeType` and `ValidateOnly` false. v2 omits
+    /// per-feature Results; this method synthesizes success rows from
+    /// the request when the top-level error is `0`. Kafka 4.0
+    /// `validVersions` is `0-2`. v3+ is not spoken. Lands on the
+    /// Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata
+    /// and retries. See [`Self::update_features_with`] for Java
+    /// `UpdateFeaturesOptions.validateOnly`.
     pub async fn update_features(
         &mut self,
         updates: &[FeatureUpdate],
         timeout_ms: i32,
+    ) -> Result<Vec<FeatureUpdateResult>> {
+        self.update_features_with(updates, timeout_ms, false).await
+    }
+
+    /// UpdateFeatures with validate-only (Java `updateFeatures` plus
+    /// `UpdateFeaturesOptions.validateOnly`).
+    ///
+    /// v1+ sends `ValidateOnly`. v0 omits the field even when set.
+    pub async fn update_features_with(
+        &mut self,
+        updates: &[FeatureUpdate],
+        timeout_ms: i32,
+        validate_only: bool,
     ) -> Result<Vec<FeatureUpdateResult>> {
         let keys: Vec<FeatureUpdateKey> = updates
             .iter()
@@ -1975,6 +2018,7 @@ impl Admin {
                 name: u.name.clone(),
                 max_version_level: u.max_version_level,
                 allow_downgrade: u.allow_downgrade,
+                upgrade_type: u.upgrade_type,
             })
             .collect();
         let version = self.update_features_version;
@@ -1995,7 +2039,15 @@ impl Admin {
                 conn.roundtrip(
                     UPDATE_FEATURES,
                     version,
-                    |buf| encode_update_features_request(buf, timeout_ms, &keys),
+                    |buf| {
+                        encode_update_features_request(
+                            buf,
+                            version,
+                            timeout_ms,
+                            &keys,
+                            validate_only,
+                        )
+                    },
                     timeout,
                 )
                 .await
@@ -2010,7 +2062,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let resp = decode_update_features_response(&mut body.clone())?;
+            let resp = decode_update_features_response(&mut body.clone(), version)?;
             if resp.error_code == error::NOT_CONTROLLER
                 || resp
                     .results
@@ -2026,6 +2078,16 @@ impl Admin {
             }
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "UpdateFeatures"));
+            }
+            if version >= 2 {
+                return Ok(keys
+                    .iter()
+                    .map(|k| FeatureUpdateResult {
+                        name: k.name.clone(),
+                        error_code: 0,
+                        error_message: None,
+                    })
+                    .collect());
             }
             return Ok(resp
                 .results

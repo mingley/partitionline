@@ -286,6 +286,9 @@ struct State {
     last_list_reassignments_node: Option<i32>,
     list_reassignments_not_controller: u32,
     last_update_features_node: Option<i32>,
+    last_update_features_version: Option<i16>,
+    last_update_features_validate_only: Option<bool>,
+    last_update_features_upgrade_type: Option<i8>,
     update_features_not_controller: u32,
     last_feature_update: Option<(String, i16, bool)>,
     features: HashMap<String, i16>,
@@ -561,6 +564,9 @@ fn new_state(
         last_list_reassignments_node: None,
         list_reassignments_not_controller: 0,
         last_update_features_node: None,
+        last_update_features_version: None,
+        last_update_features_validate_only: None,
+        last_update_features_upgrade_type: None,
         update_features_not_controller: 0,
         last_feature_update: None,
         features: HashMap::new(),
@@ -1530,6 +1536,18 @@ impl Mock {
         self.state.lock().last_update_features_node
     }
 
+    pub fn last_update_features_version(&self) -> Option<i16> {
+        self.state.lock().last_update_features_version
+    }
+
+    pub fn last_update_features_validate_only(&self) -> Option<bool> {
+        self.state.lock().last_update_features_validate_only
+    }
+
+    pub fn last_update_features_upgrade_type(&self) -> Option<i8> {
+        self.state.lock().last_update_features_upgrade_type
+    }
+
     pub fn update_features_not_controller(&self) -> u32 {
         self.state.lock().update_features_not_controller
     }
@@ -2353,7 +2371,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (INCREMENTAL_ALTER_CONFIGS, 0, 1),
         (ALTER_PARTITION_REASSIGNMENTS, 0, 0),
         (LIST_PARTITION_REASSIGNMENTS, 0, 0),
-        (UPDATE_FEATURES, 0, 0),
+        (UPDATE_FEATURES, 0, 2),
         (ALTER_USER_SCRAM_CREDENTIALS, 0, 0),
         (DESCRIBE_USER_SCRAM_CREDENTIALS, 0, 0),
         (UNREGISTER_BROKER, 0, 0),
@@ -3159,14 +3177,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             UPDATE_FEATURES => {
-                let (_timeout, updates) = decode_update_features_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (_timeout, updates, validate_only) =
+                    decode_update_features_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_update_features_version = Some(version);
+                st.last_update_features_validate_only = Some(validate_only);
                 if st.controller_node != node_id {
                     st.update_features_not_controller =
                         st.update_features_not_controller.saturating_add(1);
                     // 41 only. Do not apply the feature mutation on the wrong node.
                     encode_update_features_response(
                         &mut body,
+                        version,
                         &UpdateFeaturesResponse {
                             error_code: error::NOT_CONTROLLER,
                             error_message: Some("Not controller".into()),
@@ -3180,7 +3203,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     for u in updates {
                         st.last_feature_update =
                             Some((u.name.clone(), u.max_version_level, u.allow_downgrade));
-                        let _ = st.features.insert(u.name.clone(), u.max_version_level);
+                        st.last_update_features_upgrade_type = Some(u.upgrade_type);
+                        if !validate_only {
+                            let _ = st.features.insert(u.name.clone(), u.max_version_level);
+                        }
                         results.push(UpdatableFeatureResult {
                             name: u.name,
                             error_code: 0,
@@ -3189,6 +3215,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     encode_update_features_response(
                         &mut body,
+                        version,
                         &UpdateFeaturesResponse {
                             error_code: 0,
                             error_message: None,

@@ -64,9 +64,12 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // v1 EndpointType (KIP-919). v2 IncludeFencedBrokers / IsFenced
         // (KIP-1073). v3+ is not spoken.
         DESCRIBE_CLUSTER
+        // UpdateFeatures is flexible from v0 (Apache JSON flexibleVersions: "0+").
+        // Kafka 4.0 validVersions is 0-2. This crate speaks 0–2.
+        // v1 UpgradeType / ValidateOnly. v2 omits Results. v3+ is not spoken.
+        | UPDATE_FEATURES
         | ALTER_PARTITION_REASSIGNMENTS
         | LIST_PARTITION_REASSIGNMENTS
-        | UPDATE_FEATURES
         | ALTER_USER_SCRAM_CREDENTIALS
         | DESCRIBE_USER_SCRAM_CREDENTIALS
         | ALLOCATE_PRODUCER_IDS
@@ -393,9 +396,13 @@ mod tests {
     }
 
     #[test]
-    fn update_features_v0_is_flexible() {
-        assert_eq!(request_header_version(UPDATE_FEATURES, 0), 2);
-        assert_eq!(response_header_version(UPDATE_FEATURES, 0), 1);
+    fn update_features_v0_to_v2_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions 0-2, flexibleVersions 0+.
+        // HeaderVersion is 2 / 1 at every spoken version. This crate speaks 0–2.
+        for version in 0..=2 {
+            assert_eq!(request_header_version(UPDATE_FEATURES, version), 2);
+            assert_eq!(response_header_version(UPDATE_FEATURES, version), 1);
+        }
     }
 
     #[test]
