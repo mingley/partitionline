@@ -4365,10 +4365,11 @@ pub fn decode_describe_groups_response<B: Buf>(
     Ok(groups)
 }
 
-/// One listed group in ListGroups (api 16) v5.
+/// One listed group in ListGroups (api 16).
 ///
 /// There is no per-group ErrorCode. The response error sits at the top
-/// of the body, after throttle.
+/// of the body (after throttle on v1+). `group_state` is v4+;
+/// `group_type` is v5+.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedGroup {
     /// Kafka `group.id`.
@@ -4393,27 +4394,42 @@ impl ListedGroup {
     }
 }
 
-/// ListGroups v5 body (classic through v2; flexible from v3; KIP-518 / KIP-848).
+/// `true` when ListGroups `version` is flexible.
+///
+/// v0–v2 are classic. v3 is the first flexible version. v4 adds
+/// StatesFilter / GroupState (KIP-518). v5 adds TypesFilter / GroupType
+/// (KIP-848). Kafka 4.0 `validVersions` is `0-5`. This crate speaks
+/// 0–5. v6+ is not spoken.
+fn list_groups_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=5 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ListGroups version {other} is not implemented"
+        ))),
+    }
+}
+
+/// ListGroups v0–5 (classic through v2; flexible from v3; KIP-518 / KIP-848).
 ///
 /// Official Apache JSON (`apiKey: 16`, request `listeners: ["broker"]`,
 /// `validVersions: "0-5"`, `flexibleVersions: "3+"`) and
 /// kafka-protocol 0.18.0 (`ListGroupsRequest` /
-/// `ListGroupsResponse`, `VERSIONS` min=0 max=5). This crate
-/// targets v5, the version a client encodes (`VERSIONS.max`). Request
-/// encode used `features = ["client"]`; response encode used `broker`.
-/// Official listed errors (`ListGroupsRequest.java`):
+/// `ListGroupsResponse`, `VERSIONS` min=0 max=5). Request encode used
+/// `features = ["client"]`; response encode used `broker`. Official
+/// listed errors (`ListGroupsRequest.java`):
 /// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
 /// (15), `AUTHORIZATION_FAILED` (29). `NOT_COORDINATOR` (16) is **not**
-/// listed. Request: compact `StatesFilter` (v4+), compact `TypesFilter`
-/// (v5+), tagged. Response: `ThrottleTimeMs` INT32 (v1+), top-level
-/// `ErrorCode` INT16, compact `Groups` of `{GroupId, ProtocolType,
-/// GroupState (v4+), GroupType (v5+), tagged}`, tagged. **ErrorCode is
-/// top-level**, after throttle — not a first-group field. Measured
-/// independently on leftover-empty fixture group `"g"`: the top-level
-/// ErrorCode is the INT16 at **bytes 4–5** — not bytes 5–6
-/// (DescribeGroups / ConsumerGroupDescribe first-group) or 12–13
-/// (DescribeProducers first partition). This is broker-only: no
-/// FindCoordinator hop, no controller hop, no partition-leader hop.
+/// listed. Request: empty through v2; tagged only at v3; `StatesFilter`
+/// (v4+); `TypesFilter` (v5+). Response: `ThrottleTimeMs` INT32 (v1+),
+/// top-level `ErrorCode` INT16, `Groups` of `{GroupId, ProtocolType,
+/// GroupState (v4+), GroupType (v5+), tagged (v3+)}`, tagged (v3+).
+/// **ErrorCode is top-level**, after throttle on v1+ — not a first-group
+/// field. Measured independently on leftover-empty fixture group `"g"`
+/// at **v5**: the top-level ErrorCode is the INT16 at **bytes 4–5** —
+/// not bytes 5–6 (DescribeGroups / ConsumerGroupDescribe first-group)
+/// or 12–13 (DescribeProducers first partition). This is broker-only:
+/// no FindCoordinator hop, no controller hop, no partition-leader hop.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListGroupsResponse {
     /// Kafka error code (`0` is success).
@@ -4422,71 +4438,131 @@ pub struct ListGroupsResponse {
     pub groups: Vec<ListedGroup>,
 }
 
-/// Encode a ListGroups request.
+/// Encode a ListGroups request (v0–5).
+///
+/// v0–v2 write an empty body. v3 writes tagged fields only. v4+ sends
+/// `states_filter`. v5 sends `types_filter`.
 pub fn encode_list_groups_request(
     buf: &mut BytesMut,
+    version: i16,
     states_filter: &[String],
     types_filter: &[String],
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(states_filter.len()))?;
-    for state in states_filter {
-        buf::put_compact_string(buf, Some(state))?;
+    let flexible = list_groups_flexible(version)?;
+    if version >= 4 {
+        buf::put_array_len(buf, flexible, Some(states_filter.len()))?;
+        for state in states_filter {
+            buf::put_string(buf, flexible, Some(state))?;
+        }
     }
-    buf::put_array_len(buf, true, Some(types_filter.len()))?;
-    for ty in types_filter {
-        buf::put_compact_string(buf, Some(ty))?;
+    if version >= 5 {
+        buf::put_array_len(buf, flexible, Some(types_filter.len()))?;
+        for ty in types_filter {
+            buf::put_string(buf, flexible, Some(ty))?;
+        }
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a ListGroups request.
-pub fn decode_list_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, Vec<String>)> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut states_filter = Vec::with_capacity(n);
-    for _ in 0..n {
-        states_filter.push(buf::get_compact_string(buf)?.unwrap_or_default());
+///
+/// v0–v3 fill empty `states_filter`. v0–v4 fill empty `types_filter`.
+pub fn decode_list_groups_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, Vec<String>)> {
+    let flexible = list_groups_flexible(version)?;
+    let states_filter = if version >= 4 {
+        let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut states_filter = Vec::with_capacity(n);
+        for _ in 0..n {
+            states_filter.push(buf::get_string(buf, flexible)?.unwrap_or_default());
+        }
+        states_filter
+    } else {
+        Vec::new()
+    };
+    let types_filter = if version >= 5 {
+        let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut types_filter = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            types_filter.push(buf::get_string(buf, flexible)?.unwrap_or_default());
+        }
+        types_filter
+    } else {
+        Vec::new()
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
-    let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
-    let mut types_filter = Vec::with_capacity(tn);
-    for _ in 0..tn {
-        types_filter.push(buf::get_compact_string(buf)?.unwrap_or_default());
-    }
-    buf::skip_tagged_fields(buf)?;
     Ok((states_filter, types_filter))
 }
 
-/// Encode a ListGroups response.
+/// Encode a ListGroups response (v0–5).
 pub fn encode_list_groups_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &ListGroupsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    let flexible = list_groups_flexible(version)?;
+    if version >= 1 {
+        buf.put_i32(0);
+    }
     buf.put_i16(resp.error_code);
-    buf::put_array_len(buf, true, Some(resp.groups.len()))?;
+    buf::put_array_len(buf, flexible, Some(resp.groups.len()))?;
     for g in &resp.groups {
-        buf::put_compact_string(buf, Some(&g.group_id))?;
-        buf::put_compact_string(buf, Some(&g.protocol_type))?;
-        buf::put_compact_string(buf, Some(&g.group_state))?;
-        buf::put_compact_string(buf, Some(&g.group_type))?;
+        buf::put_string(buf, flexible, Some(&g.group_id))?;
+        buf::put_string(buf, flexible, Some(&g.protocol_type))?;
+        if version >= 4 {
+            buf::put_string(buf, flexible, Some(&g.group_state))?;
+        }
+        if version >= 5 {
+            buf::put_string(buf, flexible, Some(&g.group_type))?;
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a ListGroups response.
-pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResponse> {
-    let _th = buf::get_i32(buf)?;
+///
+/// v0 has no throttle. v0–v3 fill `group_state` = `""`. v0–v4 fill
+/// `group_type` = `""`.
+pub fn decode_list_groups_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<ListGroupsResponse> {
+    let flexible = list_groups_flexible(version)?;
+    if version >= 1 {
+        let _th = buf::get_i32(buf)?;
+    }
     let error_code = buf::get_i16(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let protocol_type = buf::get_compact_string(buf)?.unwrap_or_default();
-        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
-        let group_type = buf::get_compact_string(buf)?.unwrap_or_default();
-        buf::skip_tagged_fields(buf)?;
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let protocol_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_state = if version >= 4 {
+            buf::get_string(buf, flexible)?.unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let group_type = if version >= 5 {
+            buf::get_string(buf, flexible)?.unwrap_or_default()
+        } else {
+            String::new()
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         groups.push(ListedGroup {
             group_id,
             protocol_type,
@@ -4494,7 +4570,9 @@ pub fn decode_list_groups_response<B: Buf>(buf: &mut B) -> Result<ListGroupsResp
             group_type,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(ListGroupsResponse { error_code, groups })
 }
 
@@ -11224,11 +11302,11 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 16
         // validVersions 0-5, flexibleVersions 3+, listeners broker only.
-        // This crate targets v5. Not copied from DescribeGroups
-        // (first-group ErrorCode at bytes 5-6), DescribeClientQuotas
-        // (top-level ErrorCode at bytes 4-5, different fields after),
-        // or DescribeProducers (first-partition ErrorCode at bytes
-        // 12-13).
+        // This crate speaks 0–5; this fixture is v5. Not copied from
+        // DescribeGroups (first-group ErrorCode at bytes 5-6),
+        // DescribeClientQuotas (top-level ErrorCode at bytes 4-5,
+        // different fields after), or DescribeProducers
+        // (first-partition ErrorCode at bytes 12-13).
         const REQ: &[u8] = &[
             0x02, 0x07, 0x53, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x02, 0x08, 0x63, 0x6c, 0x61, 0x73,
             0x73, 0x69, 0x63, 0x00,
@@ -11239,15 +11317,72 @@ mod tests {
         let states = vec!["Stable".to_string()];
         let types = vec!["classic".to_string()];
         let mut buf = BytesMut::new();
-        encode_list_groups_request(&mut buf, &states, &types).unwrap();
+        encode_list_groups_request(&mut buf, 5, &states, &types).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = ListGroupsResponse {
             error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
             groups: vec![ListedGroup::new("g")],
         };
         buf.clear();
-        encode_list_groups_response(&mut buf, &resp).unwrap();
+        encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         assert_eq!(&buf[..], RESP_15);
+    }
+
+    #[test]
+    fn list_groups_v0_v3_v4_omit_later_fields() {
+        const REQ_V0: &[u8] = &[];
+        const REQ_V3: &[u8] = &[0x00];
+        const REQ_V4: &[u8] = &[0x02, 0x07, 0x53, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x00];
+        const RESP_V0_15: &[u8] = &[
+            0x00, 0x0f, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67, 0x00, 0x00,
+        ];
+        const RESP_V3_15: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x02, 0x02, 0x67, 0x01, 0x00, 0x00,
+        ];
+        const RESP_V4_15: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x02, 0x02, 0x67, 0x01, 0x01, 0x00, 0x00,
+        ];
+        const RESP_V5_15: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x02, 0x02, 0x67, 0x01, 0x01, 0x01, 0x00, 0x00,
+        ];
+        let states = vec!["Stable".to_string()];
+        let types = vec!["classic".to_string()];
+        let resp = ListGroupsResponse {
+            error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
+            groups: vec![ListedGroup::new("g")],
+        };
+        let mut buf = BytesMut::new();
+        encode_list_groups_request(&mut buf, 0, &states, &types).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        let mut cur = &buf[..];
+        let (got_s, got_t) = decode_list_groups_request(&mut cur, 0).unwrap();
+        assert!(got_s.is_empty() && got_t.is_empty());
+        assert!(!cur.has_remaining(), "ListGroups v0 request leftover-empty");
+        buf.clear();
+        encode_list_groups_request(&mut buf, 3, &states, &types).unwrap();
+        assert_eq!(&buf[..], REQ_V3);
+        buf.clear();
+        encode_list_groups_request(&mut buf, 4, &states, &types).unwrap();
+        assert_eq!(&buf[..], REQ_V4);
+        let mut cur = &buf[..];
+        let (got_s, got_t) = decode_list_groups_request(&mut cur, 4).unwrap();
+        assert_eq!(got_s, states);
+        assert!(got_t.is_empty(), "v4 must not send TypesFilter");
+        assert!(!cur.has_remaining(), "ListGroups v4 request leftover-empty");
+        buf.clear();
+        encode_list_groups_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_15);
+        buf.clear();
+        encode_list_groups_response(&mut buf, 3, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V3_15);
+        buf.clear();
+        encode_list_groups_response(&mut buf, 4, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V4_15);
+        assert_ne!(RESP_V4_15, RESP_V5_15, "v4 must not send GroupType");
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 5, 0, 5), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 4, 0, 5), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 5), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(6, 6, 0, 5), None);
     }
 
     #[test]
@@ -11255,9 +11390,9 @@ mod tests {
         let states = vec!["Stable".to_string(), "Empty".to_string()];
         let types = vec!["classic".to_string(), "consumer".to_string()];
         let mut buf = BytesMut::new();
-        encode_list_groups_request(&mut buf, &states, &types).unwrap();
+        encode_list_groups_request(&mut buf, 5, &states, &types).unwrap();
         let mut cur = &buf[..];
-        let (got_states, got_types) = decode_list_groups_request(&mut cur).unwrap();
+        let (got_states, got_types) = decode_list_groups_request(&mut cur, 5).unwrap();
         assert_eq!(got_states, states);
         assert_eq!(got_types, types);
         assert!(
@@ -11275,12 +11410,22 @@ mod tests {
             }],
         };
         buf.clear();
-        encode_list_groups_response(&mut buf, &resp).unwrap();
+        encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_list_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "ListGroups v5 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn list_groups_v6_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_list_groups_request(&mut buf, 6, &[], &[]).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v6+ is not spoken, got {err}"
         );
     }
 
@@ -11300,7 +11445,7 @@ mod tests {
             groups: vec![ListedGroup::new("g")],
         };
         let mut buf = BytesMut::new();
-        encode_list_groups_response(&mut buf, &resp).unwrap();
+        encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_eq!(
@@ -11322,7 +11467,7 @@ mod tests {
             "v5 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_list_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "ListGroups v5 ErrorCode body must be leftover-empty"

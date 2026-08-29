@@ -38,6 +38,7 @@
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage),
+//! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible),

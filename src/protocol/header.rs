@@ -89,6 +89,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_GROUPS if api_version >= 5 => 2,
         // ListGroups is classic through v2; flexible from v3
         // (Apache JSON flexibleVersions: "3+", kafka-protocol 0.18.0).
+        // Kafka 4.0 validVersions is 0-5. This crate speaks 0–5.
+        // v4 StatesFilter / GroupState. v5 TypesFilter / GroupType.
+        // v6+ is not spoken.
         LIST_GROUPS if api_version >= 3 => 2,
         // DeleteGroups is classic through v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
@@ -831,7 +834,7 @@ mod tests {
     fn list_groups_v5_is_flexible_v2_is_not() {
         // Official JSON: validVersions 0-5, flexibleVersions 3+.
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v3–5; 1 / 0
-        // at v0–2. This crate speaks v5 (VERSIONS.max).
+        // at v0–2. This crate speaks 0–5.
         assert_eq!(request_header_version(LIST_GROUPS, 0), 1);
         assert_eq!(response_header_version(LIST_GROUPS, 0), 0);
         assert_eq!(request_header_version(LIST_GROUPS, 2), 1);

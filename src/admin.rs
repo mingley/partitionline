@@ -1221,8 +1221,8 @@ impl Admin {
             })?;
         let list_groups_version = versions
             .get(&LIST_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
-            .ok_or_else(|| Error::Unsupported("broker does not support ListGroups".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
+            .ok_or_else(|| Error::Unsupported("broker does not support ListGroups v0-5".into()))?;
         let delete_groups_version = versions
             .get(&DELETE_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
@@ -4005,8 +4005,9 @@ impl Admin {
     /// and not a partition-leader hop: there is no FindCoordinator,
     /// no Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41)
     /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
-    /// `error_code` is the INT16 at bytes 4–5, after throttle — not a
-    /// first-group field. Java `listConsumerGroups` is
+    /// `error_code` is the INT16 at bytes 4–5 on v1+ (after throttle) — not a
+    /// first-group field. Negotiates v0–v5 (v3 flexible; v4 StatesFilter /
+    /// GroupState; v5 TypesFilter / GroupType). Java `listConsumerGroups` is
     /// [`Self::list_consumer_groups`].
     pub async fn list_groups(
         &mut self,
@@ -4021,11 +4022,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 LIST_GROUPS,
                 version,
-                |buf| encode_list_groups_request(buf, &states, &types),
+                |buf| encode_list_groups_request(buf, version, &states, &types),
                 timeout,
             )
             .await?;
-        let resp = decode_list_groups_response(&mut body.clone())?;
+        let resp = decode_list_groups_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ListGroups"));
         }

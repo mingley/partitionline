@@ -14,8 +14,8 @@ use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
     DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP,
-    UPDATE_FEATURES,
+    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5252,6 +5252,11 @@ async fn list_groups_follows_broker() {
         "ListGroups must land on the connected broker, not the coordinator or controller"
     );
     assert_eq!(
+        mock.last_list_groups_version(),
+        Some(5),
+        "Admin must prefer ListGroups v5 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_list_groups(),
         Some((vec!["Stable".into()], vec!["classic".into()]))
     );
@@ -5265,6 +5270,70 @@ async fn list_groups_follows_broker() {
         None,
         "ListGroups must not hop via Metadata controller_id"
     );
+}
+
+#[tokio::test]
+async fn list_groups_negotiates_v4_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LIST_GROUPS, 4);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin.list_groups(&["Stable"], &["classic"]).await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].group_id, "g");
+    assert_eq!(listed[0].group_state, "Stable");
+    assert!(
+        listed[0].group_type.is_empty(),
+        "v4 has no GroupType; decode fills empty"
+    );
+    assert_eq!(
+        mock.last_list_groups_version(),
+        Some(4),
+        "client must speak ListGroups v4 when the broker max is 4"
+    );
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec!["Stable".into()], vec![])),
+        "v4 must send StatesFilter and omit TypesFilter"
+    );
+}
+
+#[tokio::test]
+async fn list_groups_negotiates_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LIST_GROUPS, 3);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin.list_groups(&["Stable"], &["classic"]).await.unwrap();
+    assert_eq!(listed[0].group_id, "g");
+    assert!(listed[0].group_state.is_empty(), "v3 has no GroupState");
+    assert!(listed[0].group_type.is_empty(), "v3 has no GroupType");
+    assert_eq!(
+        mock.last_list_groups_version(),
+        Some(3),
+        "client must speak ListGroups v3 when the broker max is 3"
+    );
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec![], vec![])),
+        "v3 must omit StatesFilter and TypesFilter"
+    );
+}
+
+#[tokio::test]
+async fn list_groups_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(LIST_GROUPS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let listed = admin.list_groups(&["Stable"], &["classic"]).await.unwrap();
+    assert_eq!(listed[0].group_id, "g");
+    assert_eq!(listed[0].protocol_type, "consumer");
+    assert!(listed[0].group_state.is_empty());
+    assert!(listed[0].group_type.is_empty());
+    assert_eq!(
+        mock.last_list_groups_version(),
+        Some(0),
+        "client must speak ListGroups v0 when the broker max is 0"
+    );
+    assert_eq!(mock.last_list_groups(), Some((vec![], vec![])));
 }
 
 #[tokio::test]

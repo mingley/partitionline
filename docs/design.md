@@ -65,7 +65,7 @@ tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `describeTopics`. `Admin::describe_classic_groups` is Java
 `describeClassicGroups` (DescribeGroups v0–v6). `Admin::describe_consumer_groups` is Java
 `describeConsumerGroups` (DescribeGroups v0–v6). `Admin::list_consumer_groups` is Java
-`listConsumerGroups` (ListGroups). `Admin::delete_consumer_groups` is Java
+`listConsumerGroups` (ListGroups v0–v5). `Admin::delete_consumer_groups` is Java
 `deleteConsumerGroups` (DeleteGroups). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe). `Admin::list_client_metrics_resources` is Java
 `listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
@@ -173,6 +173,7 @@ topics.
 - CreatePartitions v0–v1 are classic. v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 is the same layout (KIP-599 THROTTLING_QUOTA_EXCEEDED). Kafka 4.0 `validVersions` is `0-3`. This crate speaks 0–3. v4+ is not spoken.
 - IncrementalAlterConfigs v0 is classic. v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
 - DescribeGroups v0–v4 are classic. v5–v6 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v3 IncludeAuthorizedOperations / AuthorizedOperations. v4 GroupInstanceId. v6 ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043). Kafka 4.0 `validVersions` is `0-6`. This crate speaks 0–6. v7+ is not spoken.
+- ListGroups v0–v2 are classic. v3–v5 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v4 StatesFilter / GroupState (KIP-518). v5 TypesFilter / GroupType (KIP-848). Kafka 4.0 `validVersions` is `0-5`. This crate speaks 0–5. v6+ is not spoken.
 - AlterConfigs (legacy api 33) v0–v1 are classic. v1 response adds ThrottleTimeMs (KIP-219). v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 - DeleteRecords v0–v1 are classic. v1 response adds ThrottleTimeMs (KIP-219). v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 - CreateAcls / DescribeAcls / DeleteAcls v0–v1 are classic. v1 adds ResourcePatternType / PatternTypeFilter (LITERAL on create; ANY on describe/delete filters). v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 is the same layout (user resource type). Kafka 4.0 `validVersions` is `1-3` (v0 removed). This crate speaks 0–3. v4+ is not spoken.

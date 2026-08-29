@@ -339,6 +339,7 @@ struct State {
     last_leave_group_version: Option<i16>,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
+    last_list_groups_version: Option<i16>,
     last_delete_groups_node: Option<i32>,
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
@@ -618,6 +619,7 @@ fn new_state(
         last_leave_group_version: None,
         last_list_groups_node: None,
         last_list_groups: None,
+        last_list_groups_version: None,
         last_delete_groups_node: None,
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
@@ -1762,6 +1764,10 @@ impl Mock {
 
     pub fn last_list_groups(&self) -> Option<(Vec<String>, Vec<String>)> {
         self.state.lock().last_list_groups.clone()
+    }
+
+    pub fn last_list_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_list_groups_version
     }
 
     pub fn last_delete_groups_node(&self) -> Option<i32> {
@@ -4946,16 +4952,19 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             LIST_GROUPS => {
-                let (states, types) = decode_list_groups_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (states, types) = decode_list_groups_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture list only; not a
                 // group store, not a coordinator hop, not a 41/6 path.
                 // Official listed errors do not include NOT_COORDINATOR
                 // (16), so the wrong node does not return 16.
                 st.last_list_groups_node = Some(node_id);
+                st.last_list_groups_version = Some(version);
                 st.last_list_groups = Some((states, types));
                 encode_list_groups_response(
                     &mut body,
+                    version,
                     &ListGroupsResponse {
                         error_code: 0,
                         groups: vec![ListedGroup {
