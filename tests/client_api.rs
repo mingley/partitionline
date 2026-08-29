@@ -3063,6 +3063,9 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     assert_eq!(fenced[0].transactional_id, "tid-fence");
     assert_eq!(fenced[0].producer_id, 1000);
     assert_eq!(fenced[0].epoch, 0);
+    assert_eq!(fenced[0].transactional_id(), "tid-fence");
+    assert_eq!(fenced[0].producer_id(), 1000);
+    assert_eq!(fenced[0].epoch(), 0);
     assert_eq!(mock.last_init_producer_id_node(), Some(1));
     assert_eq!(mock.last_init_producer_id_timeout(), Some(30_000));
     assert_eq!(

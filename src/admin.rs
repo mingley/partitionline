@@ -1681,6 +1681,20 @@ pub struct ProducerIdBlock {
     pub producer_id_len: i32,
 }
 
+impl ProducerIdBlock {
+    /// First producer id in the allocated block.
+    #[must_use]
+    pub fn producer_id_start(&self) -> i64 {
+        self.producer_id_start
+    }
+
+    /// Number of ids in the block.
+    #[must_use]
+    pub fn producer_id_len(&self) -> i32 {
+        self.producer_id_len
+    }
+}
+
 /// One transactional.id fenced by [`Admin::fence_producers`].
 ///
 /// Java `FenceProducersResult`: [`Self::producer_id`] is `producerId`,
@@ -1693,6 +1707,26 @@ pub struct FencedProducer {
     pub producer_id: i64,
     /// Producer epoch after InitProducerId.
     pub epoch: i16,
+}
+
+impl FencedProducer {
+    /// Kafka `transactional.id`.
+    #[must_use]
+    pub fn transactional_id(&self) -> &str {
+        self.transactional_id.as_str()
+    }
+
+    /// Java `FenceProducersResult.producerId`.
+    #[must_use]
+    pub fn producer_id(&self) -> i64 {
+        self.producer_id
+    }
+
+    /// Java `FenceProducersResult.epochId`.
+    #[must_use]
+    pub fn epoch(&self) -> i16 {
+        self.epoch
+    }
 }
 
 /// Spec for [`Admin::abort_transaction`] (Java `AbortTransactionSpec`).
@@ -10939,6 +10973,11 @@ mod tests {
             entries: vec![entry.clone()],
         };
         assert_eq!(described.config().get("retention.ms"), Some(&entry));
+        assert_eq!(described.name(), "t");
+        assert_eq!(described.error_code(), 0);
+        assert_eq!(described.entries().len(), 1);
+        assert_eq!(entry.name(), "retention.ms");
+        assert_eq!(entry.value(), Some("1000"));
         let replacement = ConfigReplacement::from_config(ConfigResource::topic("t"), &config);
         assert_eq!(replacement.resource.name, "t");
         assert_eq!(
@@ -11040,6 +11079,20 @@ mod tests {
         assert!(def.is_default());
         assert_eq!(def.source(), ConfigSource::Default);
         assert_eq!(def.config_type(), ConfigType::Int);
+        assert_eq!(def.name(), "k");
+        assert_eq!(def.value(), Some("v"));
+        assert!(!def.is_sensitive());
+        assert!(!def.is_read_only());
+        assert!(def.synonyms().is_empty());
+        assert!(def.documentation().is_none());
+        let syn = ConfigSynonym {
+            name: "k".into(),
+            value: Some("v".into()),
+            source: CONFIG_SOURCE_DEFAULT,
+        };
+        assert_eq!(syn.name(), "k");
+        assert_eq!(syn.value(), Some("v"));
+        assert_eq!(syn.source(), ConfigSource::Default);
     }
 
     #[test]
@@ -11096,6 +11149,52 @@ mod tests {
         };
         assert_eq!(listed.group_state(), GroupState::Stable);
         assert_eq!(listed.group_type(), GroupType::Classic);
+        assert_eq!(listed.group_id(), "g");
+        assert_eq!(listed.protocol(), "consumer");
+        assert!(!listed.is_simple_consumer_group());
+        let simple = ListedGroup {
+            group_id: "s".into(),
+            protocol_type: String::new(),
+            group_state: "Empty".into(),
+            group_type: "classic".into(),
+        };
+        assert!(simple.is_simple_consumer_group());
+        assert_eq!(simple.protocol(), "");
+    }
+
+    #[test]
+    fn remaining_admin_result_getters_match_java() {
+        let pid = ProducerIdBlock {
+            producer_id_start: 1000,
+            producer_id_len: 1000,
+        };
+        assert_eq!(pid.producer_id_start(), 1000);
+        assert_eq!(pid.producer_id_len(), 1000);
+        let fenced = FencedProducer {
+            transactional_id: "tid".into(),
+            producer_id: 9,
+            epoch: 1,
+        };
+        assert_eq!(fenced.transactional_id(), "tid");
+        assert_eq!(fenced.producer_id(), 9);
+        assert_eq!(fenced.epoch(), 1);
+        let deleted = DeletedAclsFilterResult {
+            error_code: 0,
+            error_message: None,
+            matching: vec![AclBinding::allow_topic("t", "User:alice")],
+        };
+        assert_eq!(deleted.error_code(), 0);
+        assert!(deleted.error_message().is_none());
+        assert_eq!(deleted.matching().len(), 1);
+        let altered = AlterConfigsResourceResult {
+            error_code: 0,
+            error_message: None,
+            resource_type: CONFIG_RESOURCE_TOPIC,
+            name: "t".into(),
+        };
+        assert_eq!(altered.error_code(), 0);
+        assert_eq!(altered.name(), "t");
+        assert!(altered.error_message().is_none());
     }
 
     #[test]

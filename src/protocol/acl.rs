@@ -1034,6 +1034,26 @@ pub struct DeletedAclsFilterResult {
     pub matching: Vec<AclBinding>,
 }
 
+impl DeletedAclsFilterResult {
+    /// Filter-level error, or `0`.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Filter-level error message.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Bindings that matched this filter (Java `FilterResults.values` bindings).
+    #[must_use]
+    pub fn matching(&self) -> &[AclBinding] {
+        &self.matching
+    }
+}
+
 /// `true` when CreateAcls / DescribeAcls / DeleteAcls `version` is flexible.
 ///
 /// v0–v1 are classic. v2 is the first flexible version. v3 is the same

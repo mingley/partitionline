@@ -340,6 +340,18 @@ pub struct ConfigSynonym {
 }
 
 impl ConfigSynonym {
+    /// Java `ConfigSynonym.name()`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ConfigSynonym.value()` (`None` is Java `null`).
+    #[must_use]
+    pub fn value(&self) -> Option<&str> {
+        self.value.as_deref()
+    }
+
     /// Java `ConfigSynonym.source()`.
     #[must_use]
     pub fn source(&self) -> ConfigSource {
@@ -403,6 +415,42 @@ impl ConfigEntry {
     pub fn is_default(&self) -> bool {
         self.source == CONFIG_SOURCE_DEFAULT
     }
+
+    /// Java `ConfigEntry.name()`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ConfigEntry.value()` (`None` is Java `null`).
+    #[must_use]
+    pub fn value(&self) -> Option<&str> {
+        self.value.as_deref()
+    }
+
+    /// Java `ConfigEntry.isSensitive()`.
+    #[must_use]
+    pub fn is_sensitive(&self) -> bool {
+        self.is_sensitive
+    }
+
+    /// Java `ConfigEntry.isReadOnly()`.
+    #[must_use]
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    /// Java `ConfigEntry.synonyms()`.
+    #[must_use]
+    pub fn synonyms(&self) -> &[ConfigSynonym] {
+        &self.synonyms
+    }
+
+    /// Java `ConfigEntry.documentation()` (`None` is Java `null`).
+    #[must_use]
+    pub fn documentation(&self) -> Option<&str> {
+        self.documentation.as_deref()
+    }
 }
 
 /// Java `org.apache.kafka.clients.admin.Config`: entries for one resource.
@@ -458,6 +506,30 @@ impl DescribeConfigsResult {
     #[must_use]
     pub fn config(&self) -> Config {
         Config::new(self.entries.iter().cloned())
+    }
+
+    /// Per-resource error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Resource name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Config keys on this resource.
+    #[must_use]
+    pub fn entries(&self) -> &[ConfigEntry] {
+        &self.entries
     }
 }
 
@@ -1517,6 +1589,26 @@ pub struct AlterConfigsResourceResult {
     pub resource_type: i8,
     /// Resource name.
     pub name: String,
+}
+
+impl AlterConfigsResourceResult {
+    /// Resource error, or `0`.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Resource error message.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Resource name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
 }
 
 /// `true` when IncrementalAlterConfigs `version` is flexible.
@@ -5544,9 +5636,9 @@ impl From<GroupState> for String {
 
 /// One listed group in ListGroups (api 16).
 ///
-/// There is no per-group ErrorCode. The response error sits at the top
-/// of the body (after throttle on v1+). `group_state` is v4+;
-/// `group_type` is v5+.
+/// Java `GroupListing`. There is no per-group ErrorCode. The response
+/// error sits at the top of the body (after throttle on v1+).
+/// `group_state` is v4+; `group_type` is v5+.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedGroup {
     /// Kafka `group.id`.
@@ -5576,10 +5668,28 @@ impl ListedGroup {
         GroupType::parse(&self.group_type)
     }
 
-    /// Java `ListedGroup.groupState` as [`GroupState`].
+    /// Java `GroupListing.groupState` as [`GroupState`].
     #[must_use]
     pub fn group_state(&self) -> GroupState {
         GroupState::parse(&self.group_state)
+    }
+
+    /// Java `GroupListing.groupId`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Java `GroupListing.protocol`.
+    #[must_use]
+    pub fn protocol(&self) -> &str {
+        self.protocol_type.as_str()
+    }
+
+    /// Java `GroupListing.isSimpleConsumerGroup` (CLASSIC type and empty protocol).
+    #[must_use]
+    pub fn is_simple_consumer_group(&self) -> bool {
+        self.group_type() == GroupType::Classic && self.protocol_type.is_empty()
     }
 }
 
@@ -12164,6 +12274,10 @@ mod tests {
         assert_eq!(entry.config_type, CONFIG_TYPE_UNKNOWN);
         assert_eq!(entry.config_type(), ConfigType::Unknown);
         assert!(!entry.is_default());
+        assert_eq!(entry.name(), "cleanup.policy");
+        assert_eq!(entry.value(), Some("compact"));
+        assert!(!entry.is_sensitive());
+        assert!(!entry.is_read_only());
         let result = DescribeConfigsResult {
             error_code: 0,
             error_message: None,
@@ -12172,6 +12286,9 @@ mod tests {
             entries: vec![entry.clone()],
         };
         assert_eq!(result.config().get("cleanup.policy"), Some(&entry));
+        assert_eq!(result.name(), "orders");
+        assert_eq!(result.error_code(), 0);
+        assert_eq!(result.entries().len(), 1);
     }
 
     #[test]

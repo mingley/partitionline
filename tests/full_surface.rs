@@ -4006,6 +4006,10 @@ async fn admin_delete_and_describe() {
     assert_eq!(entry.config_type(), ConfigType::String);
     assert_eq!(entry.source(), ConfigSource::DynamicTopic);
     assert!(!entry.is_default());
+    assert_eq!(entry.name(), "cleanup.policy");
+    assert_eq!(entry.value(), Some("compact"));
+    assert!(!entry.is_sensitive());
+    assert!(entry.documentation().is_none());
     assert_eq!(entry.documentation, None);
 
     let mapped = admin
@@ -7663,6 +7667,8 @@ async fn allocate_producer_ids_follows_controller() {
     let first = admin.allocate_producer_ids(7, 42).await.unwrap();
     assert_eq!(first.producer_id_start, 1000);
     assert_eq!(first.producer_id_len, 1000);
+    assert_eq!(first.producer_id_start(), 1000);
+    assert_eq!(first.producer_id_len(), 1000);
     assert_eq!(
         mock.last_allocate_producer_ids_node(),
         Some(2),
@@ -8500,6 +8506,7 @@ async fn list_consumer_groups_follows_broker() {
         .unwrap();
     assert_eq!(first.len(), 1);
     assert_eq!(first[0].group_id, "g");
+    assert_eq!(first[0].group_id(), "g");
     assert_eq!(
         mock.last_list_groups_node(),
         Some(1),
