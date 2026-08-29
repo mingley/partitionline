@@ -1305,7 +1305,7 @@ impl Admin {
             })?;
         let expire_delegation_token_version = versions
             .get(&EXPIRE_DELEGATION_TOKEN)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support ExpireDelegationToken".into())
             })?;
@@ -5235,7 +5235,7 @@ impl Admin {
     }
 
     /// Expire a delegation token (ExpireDelegationToken api 40, KIP-48 /
-    /// KIP-373).
+    /// KIP-373; v1–v2, classic at v1, flexible from v2).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` and `controller`. Official
@@ -5253,8 +5253,9 @@ impl Admin {
     /// retry, and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level
     /// `error_code` is the INT16 at bytes 0–1, first field — not after
     /// throttle and not a first-token field. Fixture hmac / period
-    /// only; this is not a token store. Speaks v2 only
-    /// (`VERSIONS.max`). Do not copy RenewDelegationToken just
+    /// only; this is not a token store. Kafka 4.0 `validVersions` is
+    /// `1-2`. This crate speaks 1–2. v0 and v3+ are not spoken. Same
+    /// fields on v1 and v2. Do not copy RenewDelegationToken just
     /// because it is the previous slice.
     pub async fn expire_delegation_token(
         &mut self,
@@ -5266,11 +5267,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 EXPIRE_DELEGATION_TOKEN,
                 version,
-                |buf| encode_expire_delegation_token_request(buf, &req),
+                |buf| encode_expire_delegation_token_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        decode_expire_delegation_token_response(&mut body.clone())
+        decode_expire_delegation_token_response(&mut body.clone(), version)
     }
 
     /// Describe delegation tokens (DescribeDelegationToken api 41,

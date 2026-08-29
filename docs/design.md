@@ -78,7 +78,8 @@ throttle v0+). `Admin::describe_share_groups` is Java
 `alterClientQuotas` (v0–v1; classic v0, flexible v1). `Admin::alter_replica_log_dirs` is Java
 `alterReplicaLogDirs` (v1–v2; classic v1, flexible v2). `Admin::create_delegation_token` is Java
 `createDelegationToken` (v1–v3; classic v1, flexible v2, owner/requester v3). `Admin::renew_delegation_token` is Java
-`renewDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::describe_replica_log_dirs` is Java
+`renewDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::expire_delegation_token` is Java
+`expireDelegationToken` (v1–v2; classic v1, flexible v2). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs v1–v4 on
 each broker). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`
@@ -183,6 +184,7 @@ topics.
 - DescribeLogDirs v1 is classic. v2–v4 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 top-level ErrorCode (KIP-784). v4 TotalBytes / UsableBytes (KIP-827; decode fills `-1` on v1–v3). Kafka 4.0 `validVersions` is `1-4` (v0 removed). This crate speaks 1–4. v0 and v5+ are not spoken. v5 is a named STATUS hole.
 - CreateDelegationToken v1 is classic. v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 OwnerPrincipalType / OwnerPrincipalName and TokenRequesterPrincipalType / TokenRequesterPrincipalName (decode fills `None` / empty on v1–v2). ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-3` (v0 removed). This crate speaks 1–3. v0 and v4+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - RenewDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
+- ExpireDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - DescribeGroups v0–v4 are classic. v5–v6 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v3 IncludeAuthorizedOperations / AuthorizedOperations. v4 GroupInstanceId. v6 ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043). Kafka 4.0 `validVersions` is `0-6`. This crate speaks 0–6. v7+ is not spoken.
 - ListGroups v0–v2 are classic. v3–v5 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v4 StatesFilter / GroupState (KIP-518). v5 TypesFilter / GroupType (KIP-848). Kafka 4.0 `validVersions` is `0-5`. This crate speaks 0–5. v6+ is not spoken.
 - AlterConfigs (legacy api 33) v0–v1 are classic. v1 response adds ThrottleTimeMs (KIP-219). v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
