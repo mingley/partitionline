@@ -8010,9 +8010,10 @@ impl Admin {
     /// field. Resources have no ErrorCode.
     ///
     /// `resource_types` is [`ConfigResourceType`] or a protocol `i8`
-    /// (`CONFIG_RESOURCE_TOPIC`, …). ListConfigResources has no TimeoutMs;
-    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
-    /// one-shot deadline, use [`Self::list_config_resources_timeout`].
+    /// (`CONFIG_RESOURCE_TOPIC`, …). Empty is Java `listConfigResources()`
+    /// ([`Self::list_config_resources_all`]). ListConfigResources has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::list_config_resources_timeout`].
     pub async fn list_config_resources(
         &mut self,
         resource_types: impl IntoIterator<Item = impl Into<i8>>,
@@ -8048,6 +8049,27 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "ListConfigResources"));
         }
         Ok(resp.config_resources)
+    }
+
+    /// List every configuration resource (Java `listConfigResources()`).
+    ///
+    /// Same wire as [`Self::list_config_resources`] with an empty
+    /// ResourceTypes array (Java `Set.of()`). Kafka 4.1 Admin; Kafka 4.0
+    /// has [`Self::list_client_metrics_resources`] only.
+    pub async fn list_config_resources_all(&mut self) -> Result<Vec<ListedConfigResource>> {
+        self.list_config_resources(std::iter::empty::<i8>()).await
+    }
+
+    /// [`Self::list_config_resources_all`] with a one-shot RPC deadline
+    /// (Java `ListConfigResourcesOptions.timeoutMs`).
+    ///
+    /// ListConfigResources has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn list_config_resources_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<ListedConfigResource>> {
+        self.list_config_resources_timeout(std::iter::empty::<i8>(), timeout)
+            .await
     }
 
     /// List client-metrics resources (Java

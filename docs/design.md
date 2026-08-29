@@ -135,6 +135,7 @@ TimeoutMs). `Admin::describe_share_groups` is Java
 are Java `DescribeShareGroupsOptions.timeoutMs` (RPC deadline;
 ShareGroupDescribe has no TimeoutMs). `Admin::list_client_metrics_resources` is Java
 `listClientMetricsResources` (ListConfigResources v0–v1 CLIENT_METRICS).
+`Admin::list_config_resources_all` is Java `listConfigResources()`.
 `Admin::list_config_resources_timeout` /
 `Admin::list_client_metrics_resources_timeout` are Java
 `ListConfigResourcesOptions` / `ListClientMetricsResourcesOptions.timeoutMs`

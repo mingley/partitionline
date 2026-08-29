@@ -300,6 +300,7 @@
 //! `describeConsumerGroups` is [`Admin::describe_consumer_groups_timeout`]
 //! (api 69 first, then DescribeGroups).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
+//! [`Admin::list_config_resources_all`] is Java `listConfigResources()`.
 //! [`Admin::list_config_resources_timeout`] /
 //! [`Admin::list_client_metrics_resources_timeout`] are Java
 //! `ListConfigResourcesOptions` / `ListClientMetricsResourcesOptions.timeoutMs`
