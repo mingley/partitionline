@@ -1144,6 +1144,88 @@ async fn fetch_sends_split_max_bytes() {
 }
 
 #[tokio::test]
+async fn fetch_sends_last_fetched_epoch_after_records() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(-1),
+        "first Fetch has no last consumed batch"
+    );
+
+    let recs = consumer.fetch().await.unwrap();
+    assert!(recs.is_empty());
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(0),
+        "Fetch v12+ must send LastFetchedEpoch from the last consumed batch"
+    );
+
+    consumer.seek("t", 0, 0).unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 1);
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(-1),
+        "seek must clear LastFetchedEpoch"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn fetch_truncates_on_diverging_epoch() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    producer
+        .send_all([
+            ProduceRecord::to("t").value(&b"a"[..]),
+            ProduceRecord::to("t").value(&b"b"[..]),
+            ProduceRecord::to("t").value(&b"c"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(recs.len(), 3);
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 3)]);
+
+    mock.set_next_diverging_epoch("t", 0, 0, 1);
+    let recs = consumer.fetch().await.unwrap();
+    assert_eq!(
+        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+        vec![1, 2],
+        "DivergingEpoch must seek to EndOffset and refetch"
+    );
+    assert_eq!(consumer.positions(), vec![(TopicPartition::new("t", 0), 3)]);
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_sends_current_leader_epoch() {
     let mock = common::Mock::start().await;
     let bumped = mock.bump_leader_epoch("t", 0);

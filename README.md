@@ -48,7 +48,8 @@ let recs = consumer.fetch().await?;
 `seek_to_beginning` / `seek_to_end` / `seek_to_beginning_of` /
 `seek_to_end_of` move the next fetch offset. `pause` /
 `resume` skip partitions without dropping the assignment. `fetch` talks to every
-partition leader at once when there is more than one.
+partition leader at once when there is more than one. Fetch v12+ sends
+`LastFetchedEpoch` from the last consumed batch and seeks on `DivergingEpoch`.
 `ConsumerConfig::max_bytes` sets both `fetch.max.bytes` and
 `max.partition.fetch.bytes`; `fetch_max_bytes` / `max_partition_fetch_bytes`
 set them independently. `partitions_for`

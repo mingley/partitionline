@@ -820,6 +820,8 @@ pub struct Consumer {
     cluster: Cluster,
     conns: HashMap<i32, BrokerConn>,
     assigned: Vec<(String, i32, i64)>,
+    /// Last consumed record-batch leader epoch (Fetch v12+ `LastFetchedEpoch`).
+    last_fetched_epochs: HashMap<(String, i32), i32>,
     preferred: HashMap<(String, i32), i32>,
     paused: HashSet<(String, i32)>,
     pending: VecDeque<FetchedRecord>,
@@ -918,6 +920,7 @@ impl Consumer {
             cluster: Cluster::default(),
             conns: HashMap::new(),
             assigned: Vec::new(),
+            last_fetched_epochs: HashMap::new(),
             preferred: HashMap::new(),
             paused: HashSet::new(),
             pending: VecDeque::new(),
@@ -948,6 +951,7 @@ impl Consumer {
         self.drop_pending_for(&topic, partition);
         self.assigned
             .retain(|(t, p, _)| !(t == &topic && *p == partition));
+        self.set_last_fetched_epoch(&topic, partition, -1);
         self.assigned.push((topic, partition, offset));
         Ok(())
     }
@@ -1046,6 +1050,7 @@ impl Consumer {
         self.assigned.retain(|(t, _, _)| t != &topic);
         for p in parts {
             self.drop_pending_for(&topic, p);
+            self.set_last_fetched_epoch(&topic, p, -1);
             self.assigned.push((topic.clone(), p, offset));
         }
         Ok(())
@@ -1081,6 +1086,25 @@ impl Consumer {
 
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
         self.cluster.leader_epoch(topic, partition)
+    }
+
+    pub(crate) fn last_fetched_epoch(&self, topic: &str, partition: i32) -> i32 {
+        self.last_fetched_epochs
+            .get(&(topic.to_string(), partition))
+            .copied()
+            .unwrap_or(-1)
+    }
+
+    pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
+        if epoch >= 0 {
+            let _prev = self
+                .last_fetched_epochs
+                .insert((topic.to_string(), partition), epoch);
+        } else {
+            let _removed = self
+                .last_fetched_epochs
+                .remove(&(topic.to_string(), partition));
+        }
     }
 
     /// Next fetch offset for an assigned partition.
@@ -1130,6 +1154,7 @@ impl Consumer {
     pub(crate) fn clear_assignment(&mut self) {
         self.assigned.clear();
         self.pending.clear();
+        self.last_fetched_epochs.clear();
     }
 
     /// Replace the assignment. One Metadata refresh for the topic set.
@@ -1506,6 +1531,7 @@ impl Consumer {
                 if let Some(off) = assigned {
                     if off > end_offset {
                         self.advance(topic, partition, end_offset);
+                        self.set_last_fetched_epoch(topic, partition, epoch);
                     }
                 }
                 return Ok(());
@@ -1757,7 +1783,7 @@ impl Consumer {
                                 partition: *part,
                                 current_leader_epoch: self.cluster.leader_epoch(topic, *part),
                                 fetch_offset: *offset,
-                                last_fetched_epoch: -1,
+                                last_fetched_epoch: self.last_fetched_epoch(topic, *part),
                                 partition_max_bytes: self.cfg.max_partition_fetch_bytes,
                             });
                     }
@@ -1966,6 +1992,7 @@ impl Consumer {
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
                     self.advance(&name, part.partition, part.log_start_offset);
+                    self.set_last_fetched_epoch(&name, part.partition, -1);
                     continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
@@ -1997,12 +2024,21 @@ impl Consumer {
                     }
                     return Err(e);
                 }
+                if part.diverging_epoch >= 0 && part.diverging_end_offset >= 0 {
+                    self.advance(&name, part.partition, part.diverging_end_offset);
+                    self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
+                    self.drop_pending_for(&name, part.partition);
+                    retry = retry.merge(FetchRetry::Redirect);
+                    continue;
+                }
                 let mut next = None;
+                let mut last_epoch = -1;
                 let isolation = self.cfg.isolation_level;
                 for batch in part.records {
                     if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {
                         if let Some(last) = batch.records.last() {
                             next = Some(last.offset + 1);
+                            last_epoch = batch.partition_leader_epoch;
                         }
                         continue;
                     }
@@ -2014,6 +2050,7 @@ impl Consumer {
                             break;
                         }
                         next = Some(offset + 1);
+                        last_epoch = batch.partition_leader_epoch;
                         if isolation == crate::IsolationLevel::ReadCommitted {
                             let aborted = part
                                 .aborted_transactions
@@ -2038,6 +2075,7 @@ impl Consumer {
                 }
                 if let Some(n) = next {
                     self.advance(&name, part.partition, n);
+                    self.set_last_fetched_epoch(&name, part.partition, last_epoch);
                 }
             }
         }
@@ -2214,6 +2252,7 @@ impl Consumer {
             .find(|(t, p, _)| t == topic && *p == partition)
         {
             slot.2 = offset;
+            self.set_last_fetched_epoch(topic, partition, -1);
             self.drop_pending_for(topic, partition);
             return Ok(());
         }
@@ -2534,7 +2573,7 @@ impl Consumer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum FetchRetry {
     None,
-    /// Preferred replica (KIP-392). Retry the Fetch immediately.
+    /// Preferred replica (KIP-392) or DivergingEpoch seek. Retry Fetch immediately.
     Redirect,
     /// Retriable broker / IO error. Wait `retry.backoff.ms`.
     Backoff,

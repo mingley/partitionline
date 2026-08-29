@@ -1587,6 +1587,11 @@ impl ConsumerGroup {
             .iter()
             .map(|(t, p, o)| ((t.clone(), *p), *o))
             .collect();
+        let kept_epochs: HashMap<(String, i32), i32> = wanted
+            .iter()
+            .filter(|(t, p)| current.contains_key(&(t.clone(), *p)))
+            .map(|(t, p)| ((t.clone(), *p), self.consumer.last_fetched_epoch(t, *p)))
+            .collect();
         let added: Vec<(String, i32)> = wanted
             .iter()
             .filter(|(t, p)| !current.contains_key(&(t.clone(), *p)))
@@ -1641,6 +1646,15 @@ impl ConsumerGroup {
             starts.push((topic.clone(), *part, start));
         }
         self.consumer.assign_all(&starts).await?;
+        for (topic, part) in wanted {
+            let key = (topic.clone(), *part);
+            if let Some(epoch) = kept_epochs.get(&key) {
+                self.consumer.set_last_fetched_epoch(topic, *part, *epoch);
+            } else if let Some(md) = map.get(&key) {
+                self.consumer
+                    .set_last_fetched_epoch(topic, *part, md.wire_epoch());
+            }
+        }
         let prev: HashSet<(String, i32)> = current.keys().cloned().collect();
         let next: HashSet<(String, i32)> = wanted.iter().cloned().collect();
         let revoked: Vec<(String, i32)> = prev.difference(&next).cloned().collect();

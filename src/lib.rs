@@ -60,7 +60,8 @@
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. Fetch negotiates v4–v17 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
-//! v16 CurrentLeader, KIP-951; v17 omits ReplicaDirectoryId, KIP-853). v18+
+//! v16 CurrentLeader, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
+//! v12+ LastFetchedEpoch from the last consumed batch, KIP-320). v18+
 //! is not spoken. [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /

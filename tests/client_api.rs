@@ -962,6 +962,11 @@ async fn auto_commit_on_poll_then_rejoin() {
         recs.is_empty(),
         "auto-commit must have stored the high watermark"
     );
+    assert_eq!(
+        mock.last_fetched_epoch(),
+        Some(0),
+        "rejoin must send OffsetFetch leader_epoch as LastFetchedEpoch"
+    );
     group.leave().await.unwrap();
 }
 

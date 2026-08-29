@@ -53,6 +53,10 @@ pub struct FetchedPartition {
     pub current_leader_id: i32,
     /// Fetch v12+ CurrentLeader `LeaderEpoch` (tagged field 1), or `-1`.
     pub current_leader_epoch: i32,
+    /// Fetch v12+ DivergingEpoch `Epoch` (tagged field 0), or `-1`.
+    pub diverging_epoch: i32,
+    /// Fetch v12+ DivergingEpoch `EndOffset` (tagged field 0), or `-1`.
+    pub diverging_end_offset: i64,
     /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
 }
@@ -139,9 +143,9 @@ pub fn encode_fetch_request(
 /// consumers omit it). v16 is the same request as v15 (KIP-951). v17 is
 /// the same consumer request as v16 (ReplicaDirectoryId tagged field 0 is
 /// follower-only and omitted). This crate speaks 4–17. Partition
-/// CurrentLeader tagged field 1 is decoded (v12+); top-level NodeEndpoints
-/// tagged field 0 is not applied. v18+ (KIP-1166 HighWatermark) is not
-/// spoken.
+/// CurrentLeader tagged field 1 and DivergingEpoch tagged field 0 are
+/// decoded (v12+); top-level NodeEndpoints tagged field 0 is not applied.
+/// v18+ (KIP-1166 HighWatermark) is not spoken.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
         4..=11 => Ok(false),
@@ -182,6 +186,27 @@ fn get_fetch_topic_identity<B: Buf>(
     }
 }
 
+/// EpochEndOffset inside Fetch partition tagged field 0 (13 bytes when
+/// present: INT32 + INT64 + empty nested tagged fields).
+fn encode_diverging_epoch(epoch: i32, end_offset: i64) -> Bytes {
+    let mut inner = BytesMut::new();
+    inner.put_i32(epoch);
+    inner.put_i64(end_offset);
+    buf::put_empty_tagged_fields(&mut inner);
+    inner.freeze()
+}
+
+fn decode_diverging_epoch(value: &Bytes) -> Result<(i32, i64)> {
+    let mut cur = value.as_ref();
+    let epoch = buf::get_i32(&mut cur)?;
+    let end_offset = buf::get_i64(&mut cur)?;
+    buf::skip_tagged_fields(&mut cur)?;
+    if !cur.is_empty() {
+        return Err(Error::protocol("DivergingEpoch leftover bytes"));
+    }
+    Ok((epoch, end_offset))
+}
+
 /// LeaderIdAndEpoch inside Fetch partition tagged field 1 (9 bytes when
 /// present: INT32 + INT32 + empty nested tagged fields).
 fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
@@ -205,33 +230,51 @@ fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
 
 fn encode_fetch_partition_tags(
     buf: &mut BytesMut,
+    diverging_epoch: i32,
+    diverging_end_offset: i64,
     current_leader_id: i32,
     current_leader_epoch: i32,
 ) -> Result<()> {
+    let mut fields: Vec<(u32, Bytes)> = Vec::new();
+    if diverging_epoch >= 0 {
+        fields.push((
+            0,
+            encode_diverging_epoch(diverging_epoch, diverging_end_offset),
+        ));
+    }
     if current_leader_id >= 0 {
-        buf::put_tagged_fields(
-            buf,
-            &[(
-                1,
-                encode_current_leader(current_leader_id, current_leader_epoch),
-            )],
-        )
-    } else {
+        fields.push((
+            1,
+            encode_current_leader(current_leader_id, current_leader_epoch),
+        ));
+    }
+    if fields.is_empty() {
         buf::put_empty_tagged_fields(buf);
         Ok(())
+    } else {
+        buf::put_tagged_fields(buf, &fields)
     }
 }
 
-fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
+fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32)> {
     let tags = buf::get_tagged_fields(buf)?;
+    let mut diverging_epoch = -1;
+    let mut diverging_end_offset = -1;
     let mut current_leader_id = -1;
     let mut current_leader_epoch = -1;
     for (tag, value) in tags {
-        if tag == 1 {
-            (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?;
+        match tag {
+            0 => (diverging_epoch, diverging_end_offset) = decode_diverging_epoch(&value)?,
+            1 => (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?,
+            _ => {}
         }
     }
-    Ok((current_leader_id, current_leader_epoch))
+    Ok((
+        diverging_epoch,
+        diverging_end_offset,
+        current_leader_id,
+        current_leader_epoch,
+    ))
 }
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
@@ -349,7 +392,13 @@ pub fn encode_fetch_response(
                 buf::put_bytes(buf, flexible, Some(&recs))?;
             }
             if flexible {
-                encode_fetch_partition_tags(buf, p.current_leader_id, p.current_leader_epoch)?;
+                encode_fetch_partition_tags(
+                    buf,
+                    p.diverging_epoch,
+                    p.diverging_end_offset,
+                    p.current_leader_id,
+                    p.current_leader_epoch,
+                )?;
             }
         }
         if flexible {
@@ -402,11 +451,12 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<Fe
                 let mut rec_buf = rec_bytes;
                 records::decode_record_batches(&mut rec_buf)?
             };
-            let (current_leader_id, current_leader_epoch) = if flexible {
-                decode_fetch_partition_tags(buf)?
-            } else {
-                (-1, -1)
-            };
+            let (diverging_epoch, diverging_end_offset, current_leader_id, current_leader_epoch) =
+                if flexible {
+                    decode_fetch_partition_tags(buf)?
+                } else {
+                    (-1, -1, -1, -1)
+                };
             partitions.push(FetchedPartition {
                 partition,
                 error_code,
@@ -417,6 +467,8 @@ pub fn decode_fetch_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<Fe
                 preferred_read_replica,
                 current_leader_id,
                 current_leader_epoch,
+                diverging_epoch,
+                diverging_end_offset,
                 records,
             });
         }
@@ -535,6 +587,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -576,6 +630,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![batch],
             }],
         }];
@@ -604,6 +660,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![],
             }],
         }];
@@ -688,6 +746,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![batch],
             }],
         }];
@@ -716,7 +776,7 @@ mod tests {
                 partition: 0,
                 current_leader_epoch: 7,
                 fetch_offset: 3,
-                last_fetched_epoch: -1,
+                last_fetched_epoch: 4,
                 partition_max_bytes: 1024,
             }],
         }];
@@ -728,7 +788,7 @@ mod tests {
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
-        assert_eq!(decoded[0].partitions[0].last_fetched_epoch, -1);
+        assert_eq!(decoded[0].partitions[0].last_fetched_epoch, 4);
         assert_eq!(rack, "az1");
         assert!(
             cur.is_empty(),
@@ -755,6 +815,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -867,6 +929,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -1004,6 +1068,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -1108,6 +1174,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];
@@ -1162,6 +1230,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: 2,
                 current_leader_epoch: 7,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         };
@@ -1172,6 +1242,8 @@ mod tests {
         let got = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].current_leader_id, 2);
         assert_eq!(got[0].partitions[0].current_leader_epoch, 7);
+        assert_eq!(got[0].partitions[0].diverging_epoch, -1);
+        assert_eq!(got[0].partitions[0].diverging_end_offset, -1);
         assert!(
             cur.is_empty(),
             "Fetch CurrentLeader tagged field 1 must consume nested tagged fields"
@@ -1191,6 +1263,63 @@ mod tests {
             &buf[..],
             &omitted[..],
             "CurrentLeader tagged field 1 must not equal empty tags"
+        );
+    }
+
+    #[test]
+    fn fetch_v16_diverging_epoch_tagged_is_leftover_empty() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"f")),
+            headers: vec![],
+        };
+        let mut with_div = FetchedTopic {
+            topic: String::new(),
+            topic_id: SAMPLE_TOPIC_ID,
+            partitions: vec![FetchedPartition {
+                partition: 0,
+                error_code: 0,
+                high_watermark: 0,
+                last_stable_offset: 0,
+                log_start_offset: 0,
+                aborted_transactions: Vec::new(),
+                preferred_read_replica: -1,
+                current_leader_id: -1,
+                current_leader_epoch: -1,
+                diverging_epoch: 3,
+                diverging_end_offset: 12,
+                records: vec![RecordBatch::from_records(vec![rec])],
+            }],
+        };
+        let topics = vec![with_div.clone()];
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 16, &topics).unwrap();
+        let mut cur = &buf[..];
+        let got = decode_fetch_response(&mut cur, 16).unwrap();
+        assert_eq!(got[0].partitions[0].diverging_epoch, 3);
+        assert_eq!(got[0].partitions[0].diverging_end_offset, 12);
+        assert_eq!(got[0].partitions[0].current_leader_id, -1);
+        assert!(
+            cur.is_empty(),
+            "Fetch DivergingEpoch tagged field 0 must consume nested tagged fields"
+        );
+        let mut v12 = BytesMut::new();
+        encode_fetch_response(&mut v12, 12, &topics).unwrap();
+        assert_eq!(
+            &v12[..],
+            &buf[..],
+            "Fetch v12+ DivergingEpoch layout is unchanged at v16"
+        );
+        with_div.partitions[0].diverging_epoch = -1;
+        with_div.partitions[0].diverging_end_offset = -1;
+        let mut omitted = BytesMut::new();
+        encode_fetch_response(&mut omitted, 16, &[with_div]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &omitted[..],
+            "DivergingEpoch tagged field 0 must not equal empty tags"
         );
     }
 
@@ -1237,6 +1366,8 @@ mod tests {
                 preferred_read_replica: -1,
                 current_leader_id: -1,
                 current_leader_epoch: -1,
+                diverging_epoch: -1,
+                diverging_end_offset: -1,
                 records: vec![RecordBatch::from_records(vec![rec])],
             }],
         }];

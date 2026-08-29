@@ -354,6 +354,8 @@ struct State {
     last_fetch_max_bytes: i32,
     last_fetch_partition_max_bytes: i32,
     last_fetch_version: Option<i16>,
+    last_fetched_epoch: Option<i32>,
+    next_diverging: HashMap<(String, i32), (i32, i64)>,
     last_group_instance_id: Option<String>,
     last_group_rack: Option<String>,
     in_txn: bool,
@@ -598,6 +600,8 @@ fn new_state(
         last_fetch_max_bytes: 0,
         last_fetch_partition_max_bytes: 0,
         last_fetch_version: None,
+        last_fetched_epoch: None,
+        next_diverging: HashMap::new(),
         last_group_instance_id: None,
         last_group_rack: None,
         in_txn: false,
@@ -1179,6 +1183,24 @@ impl Mock {
 
     pub fn last_fetch_version(&self) -> Option<i16> {
         self.state.lock().last_fetch_version
+    }
+
+    pub fn last_fetched_epoch(&self) -> Option<i32> {
+        self.state.lock().last_fetched_epoch
+    }
+
+    pub fn set_next_diverging_epoch(
+        &self,
+        topic: &str,
+        partition: i32,
+        epoch: i32,
+        end_offset: i64,
+    ) {
+        let _prev = self
+            .state
+            .lock()
+            .next_diverging
+            .insert((topic.to_string(), partition), (epoch, end_offset));
     }
 
     pub fn last_group_instance_id(&self) -> Option<String> {
@@ -3546,6 +3568,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_fetch_rack = rack.clone();
                 st.last_fetch_max_bytes = max_bytes;
                 st.last_fetch_version = Some(header.api_version);
+                st.last_fetched_epoch = req
+                    .first()
+                    .and_then(|t| t.partitions.first())
+                    .map(|p| p.last_fetched_epoch);
                 st.last_fetch_partition_max_bytes = req
                     .first()
                     .and_then(|t| t.partitions.first())
@@ -3574,6 +3600,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             .get(&(topic.clone(), p.partition))
                             .copied()
                             .unwrap_or(node_id);
+                        if let Some((epoch, end_offset)) =
+                            st.next_diverging.remove(&(topic.clone(), p.partition))
+                        {
+                            parts.push(FetchedPartition {
+                                partition: p.partition,
+                                error_code: 0,
+                                high_watermark: 0,
+                                last_stable_offset: 0,
+                                log_start_offset: 0,
+                                aborted_transactions: Vec::new(),
+                                preferred_read_replica: -1,
+                                current_leader_id: -1,
+                                current_leader_epoch: -1,
+                                diverging_epoch: epoch,
+                                diverging_end_offset: end_offset,
+                                records: Vec::new(),
+                            });
+                            continue;
+                        }
                         if leader != node_id && rack.is_empty() {
                             parts.push(FetchedPartition {
                                 partition: p.partition,
@@ -3585,6 +3630,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 preferred_read_replica: -1,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3604,6 +3651,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     preferred_read_replica: f.node_id,
                                     current_leader_id: -1,
                                     current_leader_epoch: -1,
+                                    diverging_epoch: -1,
+                                    diverging_end_offset: -1,
                                     records: Vec::new(),
                                 });
                                 continue;
@@ -3625,6 +3674,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 preferred_read_replica: -1,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3640,6 +3691,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 preferred_read_replica: -1,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
+                                diverging_epoch: -1,
+                                diverging_end_offset: -1,
                                 records: Vec::new(),
                             });
                             continue;
@@ -3715,6 +3768,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             preferred_read_replica: -1,
                             current_leader_id: -1,
                             current_leader_epoch: -1,
+                            diverging_epoch: -1,
+                            diverging_end_offset: -1,
                             records: batches,
                         });
                     }
