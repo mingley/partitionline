@@ -5100,11 +5100,29 @@ impl Admin {
     ///
     /// Each item is a [`crate::TopicPartition`] (or anything that converts
     /// to one). Java `deleteConsumerGroupOffsets` is
-    /// [`Self::delete_consumer_group_offsets`].
+    /// [`Self::delete_consumer_group_offsets`]. OffsetDelete has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::delete_offsets_timeout`].
     pub async fn delete_offsets(
         &mut self,
         group_id: &str,
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+    ) -> Result<Vec<OffsetDeleteResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_offsets_timeout(group_id, partitions, timeout)
+            .await
+    }
+
+    /// [`Self::delete_offsets`] with a one-shot RPC deadline (Java
+    /// `DeleteConsumerGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// OffsetDelete has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget.
+    pub async fn delete_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        timeout: Duration,
     ) -> Result<Vec<OffsetDeleteResult>> {
         let partitions: Vec<(String, i32)> = partitions
             .into_iter()
@@ -5115,7 +5133,6 @@ impl Admin {
             .collect();
         let topics = offset_delete_topics(&partitions);
         let version = self.offset_delete_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let group_id = group_id.to_string();
@@ -5175,13 +5192,32 @@ impl Admin {
     /// Delete committed offsets (Java `Admin.deleteConsumerGroupOffsets`).
     ///
     /// Same wire as [`Self::delete_offsets`]: OffsetDelete api 47 on the
-    /// group coordinator.
+    /// group coordinator. OffsetDelete has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::delete_consumer_group_offsets_timeout`].
     pub async fn delete_consumer_group_offsets(
         &mut self,
         group_id: &str,
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
     ) -> Result<Vec<OffsetDeleteResult>> {
-        self.delete_offsets(group_id, partitions).await
+        let timeout = self.cfg.request_timeout;
+        self.delete_consumer_group_offsets_timeout(group_id, partitions, timeout)
+            .await
+    }
+
+    /// [`Self::delete_consumer_group_offsets`] with a one-shot RPC deadline
+    /// (Java `DeleteConsumerGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// OffsetDelete has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget.
+    pub async fn delete_consumer_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        timeout: Duration,
+    ) -> Result<Vec<OffsetDeleteResult>> {
+        self.delete_offsets_timeout(group_id, partitions, timeout)
+            .await
     }
 
     /// List committed offsets for `group_id` (Java `listConsumerGroupOffsets`).
@@ -5588,10 +5624,29 @@ impl Admin {
     /// OffsetCommit v2–v9 on the group coordinator with generation `-1` and an
     /// empty member id (admin, not a group member). Empty `offsets` is a
     /// no-op. Coordinator load / move errors refresh and retry.
+    /// OffsetCommit has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_consumer_group_offsets_timeout`].
     pub async fn alter_consumer_group_offsets(
         &mut self,
         group_id: &str,
         offsets: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, crate::OffsetAndMetadata)>,
+    ) -> Result<()> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_consumer_group_offsets_timeout(group_id, offsets, timeout)
+            .await
+    }
+
+    /// [`Self::alter_consumer_group_offsets`] with a one-shot RPC deadline
+    /// (Java `AlterConsumerGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// OffsetCommit has no TimeoutMs; `timeout` is the RPC deadline and
+    /// the coordinator retry budget. v2–v4 RetentionTimeMs stays `-1`.
+    pub async fn alter_consumer_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        offsets: impl IntoIterator<Item = (impl Into<crate::TopicPartition>, crate::OffsetAndMetadata)>,
+        timeout: Duration,
     ) -> Result<()> {
         let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
             .into_iter()
@@ -5608,7 +5663,6 @@ impl Admin {
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support OffsetCommit v2-9".into())
             })?;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let group_id = group_id.to_string();

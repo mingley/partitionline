@@ -2827,6 +2827,16 @@ async fn admin_list_and_alter_consumer_group_offsets() {
     assert_eq!(all_stable.len(), 1);
     assert_eq!(mock.last_offset_fetch_require_stable(), Some(true));
     assert_eq!(mock.last_offset_fetch_null_topics(), Some(true));
+    let timed_tp = TopicPartition::new("t", 0);
+    let timed_md = OffsetAndMetadata::with_metadata(3, "admin").with_leader_epoch(0);
+    admin
+        .alter_consumer_group_offsets_timeout(
+            "g-off",
+            [(timed_tp, timed_md)],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
     admin
         .alter_consumer_group_offsets(
             "g-off-b",
@@ -3287,6 +3297,12 @@ async fn admin_delete_consumer_group_offsets_uses_offset_delete() {
     assert_eq!(deleted.len(), 1);
     assert_eq!(deleted[0].error_code, 0);
     assert_eq!(mock.last_offset_delete_node(), Some(1));
+    let timed_tp = TopicPartition::new("t", 0);
+    let timed = admin
+        .delete_consumer_group_offsets_timeout("g-off", [timed_tp], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
     admin.close().await.unwrap();
 }
 

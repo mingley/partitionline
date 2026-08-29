@@ -279,6 +279,12 @@
 //! `AlterShareGroupOffsetsOptions` / `DeleteShareGroupOffsetsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.
+//! [`Admin::delete_offsets_timeout`] / [`Admin::delete_consumer_group_offsets_timeout`]
+//! are Java `DeleteConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
+//! OffsetDelete has no TimeoutMs).
+//! [`Admin::alter_consumer_group_offsets_timeout`] is Java
+//! `AlterConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
+//! OffsetCommit has no TimeoutMs).
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1).

@@ -9161,6 +9161,12 @@ async fn offset_delete_follows_group_coordinator() {
         Some(1),
         "OffsetDelete must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed_tp = TopicPartition::new("t", 0);
+    let timed = admin
+        .delete_offsets_timeout("od-coord", [timed_tp], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
 }
 
 #[tokio::test]
@@ -9179,6 +9185,12 @@ async fn delete_consumer_group_offsets_follows_group_coordinator() {
         Some(2),
         "deleteConsumerGroupOffsets must land on the group coordinator"
     );
+    let timed_tp = TopicPartition::new("t", 0);
+    let timed = admin
+        .delete_consumer_group_offsets_timeout("g-off", [timed_tp], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
     admin.close().await.unwrap();
 }
 
