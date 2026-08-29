@@ -1289,7 +1289,7 @@ impl Admin {
             })?;
         let describe_log_dirs_version = versions
             .get(&DESCRIBE_LOG_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 4))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 4))
             .ok_or_else(|| Error::Unsupported("broker does not support DescribeLogDirs".into()))?;
         let create_delegation_token_version = versions
             .get(&CREATE_DELEGATION_TOKEN)
@@ -4992,7 +4992,8 @@ impl Admin {
     }
 
     /// Describe log directories (DescribeLogDirs api 35, KIP-113 /
-    /// KIP-784 / KIP-827).
+    /// KIP-784 / KIP-827; v1–v4, classic at v1, flexible from v2,
+    /// top-level ErrorCode v3+, TotalBytes / UsableBytes v4).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` only. Official JSON lists no
@@ -5000,7 +5001,8 @@ impl Admin {
     /// `KafkaApis.handleDescribeLogDirsRequest` answers from the
     /// connected broker (`replicaManager.describeLogDirs`). Auth
     /// failure writes `CLUSTER_AUTHORIZATION_FAILED` (31) onto the
-    /// top-level ErrorCode. Official `ReplicaManager.describeLogDirs`
+    /// top-level ErrorCode (v3+; v1–v2 omit that field and decode
+    /// fills `0`). Official `ReplicaManager.describeLogDirs`
     /// writes `KAFKA_STORAGE_ERROR` (56) onto a first-directory
     /// ErrorCode when that dir is offline. `NOT_COORDINATOR` (16) is
     /// not listed. `NOT_CONTROLLER` (41) is not listed. This is not a
@@ -5008,11 +5010,11 @@ impl Admin {
     /// partition-leader hop: there is no FindCoordinator, no Metadata
     /// `controller_id` lookup, no `NOT_CONTROLLER` (41) retry, and no
     /// `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code` is the
-    /// INT16 at bytes 4–5, after throttle — not a first-directory
-    /// field and not a first-partition field. Fixture directory path
-    /// and topic/partition indexes only; this is not a log-dir store.
-    /// Speaks v4 only (`VERSIONS.max`). Java
-    /// `describeLogDirs(Collection<Integer>)` is
+    /// INT16 at bytes 4–5 on leftover-empty **v3+**, after throttle —
+    /// not a first-directory field and not a first-partition field.
+    /// Fixture directory path and topic/partition indexes only; this
+    /// is not a log-dir store. v5 is a named STATUS hole and is not
+    /// spoken. Java `describeLogDirs(Collection<Integer>)` is
     /// [`Self::describe_broker_log_dirs`].
     pub async fn describe_log_dirs(
         &mut self,
@@ -5025,11 +5027,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_LOG_DIRS,
                 version,
-                |buf| encode_describe_log_dirs_request(buf, &req),
+                |buf| encode_describe_log_dirs_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        decode_describe_log_dirs_response(&mut body.clone())
+        decode_describe_log_dirs_response(&mut body.clone(), version)
     }
 
     /// Replica log directories (Java `Admin.describeReplicaLogDirs`).
@@ -5122,7 +5124,7 @@ impl Admin {
                 conn.roundtrip(
                     DESCRIBE_LOG_DIRS,
                     version,
-                    |buf| encode_describe_log_dirs_request(buf, &req),
+                    |buf| encode_describe_log_dirs_request(buf, version, &req),
                     timeout,
                 )
                 .await
@@ -5136,7 +5138,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            return decode_describe_log_dirs_response(&mut body.clone());
+            return decode_describe_log_dirs_response(&mut body.clone(), version);
         }
     }
 

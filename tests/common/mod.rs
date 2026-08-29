@@ -370,6 +370,7 @@ struct State {
     last_alter_replica_log_dirs_version: Option<i16>,
     last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
     last_describe_log_dirs_node: Option<i32>,
+    last_describe_log_dirs_version: Option<i16>,
     describe_log_dirs_nodes: Vec<i32>,
     last_describe_log_dirs: Option<DescribeLogDirsRequest>,
     last_create_delegation_token_node: Option<i32>,
@@ -656,6 +657,7 @@ fn new_state(
         last_alter_replica_log_dirs_version: None,
         last_alter_replica_log_dirs: None,
         last_describe_log_dirs_node: None,
+        last_describe_log_dirs_version: None,
         describe_log_dirs_nodes: Vec::new(),
         last_describe_log_dirs: None,
         last_create_delegation_token_node: None,
@@ -1904,6 +1906,10 @@ impl Mock {
 
     pub fn last_describe_log_dirs_node(&self) -> Option<i32> {
         self.state.lock().last_describe_log_dirs_node
+    }
+
+    pub fn last_describe_log_dirs_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_log_dirs_version
     }
 
     pub fn describe_log_dirs_nodes(&self) -> Vec<i32> {
@@ -5335,7 +5341,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             DESCRIBE_LOG_DIRS => {
-                let req = decode_describe_log_dirs_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_describe_log_dirs_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture ack only; not
                 // a log-dir store, not a coordinator hop, not a
@@ -5344,6 +5351,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // or NOT_CONTROLLER (41), so the wrong node does not
                 // return 16 or 41.
                 st.last_describe_log_dirs_node = Some(node_id);
+                st.last_describe_log_dirs_version = Some(version);
                 st.describe_log_dirs_nodes.push(node_id);
                 let topics = req
                     .topics
@@ -5366,6 +5374,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_describe_log_dirs = Some(req);
                 encode_describe_log_dirs_response(
                     &mut body,
+                    version,
                     &DescribeLogDirsResponse::new(
                         0,
                         vec![DescribeLogDirsResult::new(0, "/d", topics, -1, -1)],

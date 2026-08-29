@@ -44,6 +44,7 @@
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible),
+//! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible),

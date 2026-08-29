@@ -14,9 +14,10 @@ use partitionline::protocol::api_keys::{
     ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, CONSUMER_GROUP_DESCRIBE,
     CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
     DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
-    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
-    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS,
-    METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, END_TXN,
+    FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES,
+    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
+    SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5832,6 +5833,11 @@ async fn describe_log_dirs_follows_broker() {
         "DescribeLogDirs must land on the connected broker, not the coordinator or controller"
     );
     assert_eq!(
+        mock.last_describe_log_dirs_version(),
+        Some(4),
+        "Admin must prefer DescribeLogDirs v4 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_describe_log_dirs(),
         Some(DescribeLogDirsRequest::new(topics))
     );
@@ -5859,6 +5865,54 @@ async fn describe_log_dirs_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "DescribeLogDirs must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn describe_log_dirs_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let topics = Some(vec![DescribableLogDirTopic::new("t", vec![0])]);
+    let resp = admin.describe_log_dirs(topics.clone()).await.unwrap();
+    assert_eq!(
+        resp.error_code, 0,
+        "v1 omits top-level ErrorCode; decode fills 0"
+    );
+    assert_eq!(resp.results.len(), 1);
+    assert_eq!(resp.results[0].log_dir, "/d");
+    assert_eq!(
+        resp.results[0].total_bytes, -1,
+        "v1 omits TotalBytes; decode fills -1"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs_version(),
+        Some(1),
+        "client must speak DescribeLogDirs v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs(),
+        Some(DescribeLogDirsRequest::new(topics))
+    );
+}
+
+#[tokio::test]
+async fn describe_log_dirs_negotiates_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_LOG_DIRS, 3);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let topics = Some(vec![DescribableLogDirTopic::new("t", vec![0])]);
+    let resp = admin.describe_log_dirs(topics).await.unwrap();
+    assert_eq!(resp.error_code, 0);
+    assert_eq!(resp.results[0].log_dir, "/d");
+    assert_eq!(
+        resp.results[0].total_bytes, -1,
+        "v3 omits TotalBytes; decode fills -1"
+    );
+    assert_eq!(
+        mock.last_describe_log_dirs_version(),
+        Some(3),
+        "client must speak DescribeLogDirs v3 when the broker max is 3"
     );
 }
 
