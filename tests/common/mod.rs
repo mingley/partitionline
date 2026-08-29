@@ -36,7 +36,7 @@ use partitionline::protocol::admin::{
     decode_consumer_group_describe_request, decode_create_delegation_token_request,
     decode_create_partitions_request, decode_create_topics_request, decode_delete_groups_request,
     decode_delete_records_topics_request, decode_delete_share_group_offsets_request,
-    decode_delete_topics_request, decode_describe_client_quotas_request,
+    decode_delete_topics_states_request, decode_describe_client_quotas_request,
     decode_describe_cluster_request, decode_describe_configs_request,
     decode_describe_delegation_token_request, decode_describe_groups_request,
     decode_describe_log_dirs_request, decode_describe_producers_topics_request,
@@ -76,24 +76,25 @@ use partitionline::protocol::admin::{
     AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
     ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
     ConfigEntry, CreateDelegationTokenRequest, CreateDelegationTokenResponse, CreatedTopicConfig,
-    DeletableGroupResult, DeletedRecordsPartition, DeletedRecordsTopic, DeletedShareGroupOffsets,
-    DescribeClientQuotasResponse, DescribeClusterBroker, DescribeConfigsResult,
-    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
-    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
-    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
-    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
-    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
-    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
-    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
-    GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
-    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
-    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment, PushTelemetryResponse,
-    ReassignmentPartitionResult, ReassignmentTopicResult, RenewDelegationTokenRequest,
-    RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
-    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
-    UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
-    RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    DeletableGroupResult, DeleteTopicState, DeletedRecordsPartition, DeletedRecordsTopic,
+    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeClusterBroker,
+    DescribeConfigsResult, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
+    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
+    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
+    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
+    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
+    DescribedConsumerGroup, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
+    DescribedShareGroupOffsets, DescribedTopicPartition, DescribedTopicPartitions,
+    ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse,
+    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
+    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
+    OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
+    ReassignmentTopicResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
+    ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
+    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_DELETE,
+    ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_metadata_request, decode_produce_request, encode_api_versions_response,
@@ -275,6 +276,7 @@ struct State {
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
     last_delete_topics_timeout: Option<i32>,
+    last_delete_topics_ids: Option<usize>,
     delete_topics_not_controller: u32,
     last_describe_configs_version: Option<i16>,
     last_describe_configs_documentation: Option<bool>,
@@ -611,6 +613,7 @@ fn new_state(
         last_delete_topics_node: None,
         last_delete_topics_version: None,
         last_delete_topics_timeout: None,
+        last_delete_topics_ids: None,
         delete_topics_not_controller: 0,
         last_describe_configs_version: None,
         last_describe_configs_documentation: None,
@@ -1622,6 +1625,10 @@ impl Mock {
         self.state.lock().last_delete_topics_timeout
     }
 
+    pub fn last_delete_topics_ids(&self) -> Option<usize> {
+        self.state.lock().last_delete_topics_ids
+    }
+
     pub fn delete_topics_not_controller(&self) -> u32 {
         self.state.lock().delete_topics_not_controller
     }
@@ -2590,6 +2597,69 @@ fn topic_name_for_id(st: &State, id: [u8; 16]) -> String {
         .unwrap_or_else(|| "t".into())
 }
 
+fn delete_topic_result(st: &mut State, version: i16, t: DeleteTopicState) -> TopicResult {
+    if let Some(name) = t.name.filter(|n| !n.is_empty()) {
+        let error_code = if st.created_topics.remove(&name).is_some() {
+            0
+        } else {
+            error::UNKNOWN_TOPIC_OR_PARTITION
+        };
+        let topic_id = if version >= 6 && error_code == 0 {
+            mock_topic_id(&name)
+        } else {
+            [0; 16]
+        };
+        return TopicResult {
+            name,
+            error_code,
+            error_message: None,
+            topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        };
+    }
+    if t.topic_id == [0u8; 16] {
+        return TopicResult {
+            name: String::new(),
+            error_code: error::UNKNOWN_TOPIC_OR_PARTITION,
+            error_message: None,
+            topic_id: t.topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        };
+    }
+    let found = st
+        .created_topics
+        .keys()
+        .find(|name| mock_topic_id(name) == t.topic_id)
+        .cloned();
+    match found {
+        Some(name) => {
+            let _ = st.created_topics.remove(&name);
+            TopicResult {
+                name,
+                error_code: 0,
+                error_message: None,
+                topic_id: t.topic_id,
+                num_partitions: -1,
+                replication_factor: -1,
+                configs: Vec::new(),
+            }
+        }
+        None => TopicResult {
+            name: String::new(),
+            error_code: error::UNKNOWN_TOPIC_ID,
+            error_message: Some("Unknown topic id.".into()),
+            topic_id: t.topic_id,
+            num_partitions: -1,
+            replication_factor: -1,
+            configs: Vec::new(),
+        },
+    }
+}
+
 fn apply_share_acks(
     st: &mut State,
     member_id: &str,
@@ -3071,44 +3141,36 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             DELETE_TOPICS => {
                 let version = header.api_version;
-                let (names, timeout_ms) =
-                    decode_delete_topics_request(&mut frame, version).unwrap();
+                let (topics, timeout_ms) =
+                    decode_delete_topics_states_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
                 st.last_delete_topics_version = Some(version);
                 st.last_delete_topics_timeout = Some(timeout_ms);
+                st.last_delete_topics_ids = Some(
+                    topics
+                        .iter()
+                        .filter(|t| t.name.is_none() && t.topic_id != [0u8; 16])
+                        .count(),
+                );
                 if st.controller_node != node_id {
                     st.delete_topics_not_controller =
                         st.delete_topics_not_controller.saturating_add(1);
-                    for name in names {
-                        results.push(TopicResult::new(
-                            name,
-                            error::NOT_CONTROLLER,
-                            Some("Not controller".into()),
-                        ));
-                    }
-                } else {
-                    st.last_delete_topics_node = Some(node_id);
-                    for name in names {
-                        let error_code = if st.created_topics.remove(&name).is_some() {
-                            0
-                        } else {
-                            3
-                        };
-                        let topic_id = if version >= 6 && error_code == 0 {
-                            mock_topic_id(&name)
-                        } else {
-                            [0; 16]
-                        };
+                    for t in topics {
                         results.push(TopicResult {
-                            name,
-                            error_code,
-                            error_message: None,
-                            topic_id,
+                            name: t.name.unwrap_or_default(),
+                            error_code: error::NOT_CONTROLLER,
+                            error_message: Some("Not controller".into()),
+                            topic_id: t.topic_id,
                             num_partitions: -1,
                             replication_factor: -1,
                             configs: Vec::new(),
                         });
+                    }
+                } else {
+                    st.last_delete_topics_node = Some(node_id);
+                    for t in topics {
+                        results.push(delete_topic_result(&mut st, version, t));
                     }
                 }
                 encode_delete_topics_response(&mut body, version, &results).unwrap();

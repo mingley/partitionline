@@ -72,6 +72,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::delete_records_timeout` / `delete_records_for_timeout` are Java `DeleteRecordsOptions.timeoutMs`.
 `Admin::create_topics_timeout` is Java `CreateTopicsOptions.timeoutMs`.
 `Admin::delete_topics_timeout` is Java `DeleteTopicsOptions.timeoutMs`.
+`Admin::delete_topics_by_id` is Java `deleteTopics(TopicCollection.ofTopicIds)` (DeleteTopics v6 null Name + TopicId).
 `Admin::create_partitions_timeout` is Java `CreatePartitionsOptions.timeoutMs`.
 `Admin::alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs`.
 `Admin::list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs`.

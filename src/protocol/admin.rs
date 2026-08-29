@@ -511,25 +511,79 @@ fn delete_topics_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// One topic in a DeleteTopics v6 Topics array (KIP-516).
+///
+/// Java `deleteTopics(Collection<String>)` sends [`Self::by_name`]
+/// (Name set, TopicId zero). Java `deleteTopics(TopicCollection.ofTopicIds)`
+/// sends [`Self::by_id`] (Name null, TopicId set).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteTopicState {
+    /// Topic name, or `None` when deleting by TopicId.
+    pub name: Option<String>,
+    /// Topic UUID. Zero when deleting by name.
+    pub topic_id: [u8; 16],
+}
+
+impl DeleteTopicState {
+    /// Name-based delete (TopicId zero).
+    #[must_use]
+    pub fn by_name(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            topic_id: [0; 16],
+        }
+    }
+
+    /// Id-based delete (Name null).
+    #[must_use]
+    pub fn by_id(topic_id: [u8; 16]) -> Self {
+        Self {
+            name: None,
+            topic_id,
+        }
+    }
+}
+
 /// DeleteTopics v0–6 (classic through v3; flexible from v4).
+///
+/// Name-based: v6 sends Topics of Name + zero TopicId (Java
+/// `deleteTopics(Collection<String>)`). For TopicId deletes, use
+/// [`encode_delete_topics_states_request`].
 pub fn encode_delete_topics_request(
     buf: &mut BytesMut,
     version: i16,
     names: &[String],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
+    let topics: Vec<DeleteTopicState> = names
+        .iter()
+        .map(|name| DeleteTopicState::by_name(name.clone()))
+        .collect();
+    encode_delete_topics_states_request(buf, version, &topics, timeout_ms)
+}
+
+/// DeleteTopics Topics of N (v6 Name + TopicId; v0–5 TopicNames).
+///
+/// Java `deleteTopics(TopicCollection.ofTopicIds)` sends Name null and
+/// TopicId set. Brokers below v6 have no TopicId field: Name-only.
+pub fn encode_delete_topics_states_request(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeleteTopicState],
+    timeout_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_topics_flexible(version)?;
     if version >= 6 {
-        buf::put_array_len(buf, true, Some(names.len()))?;
-        for name in names {
-            buf::put_compact_string(buf, Some(name))?;
-            buf.extend_from_slice(&[0u8; 16]);
+        buf::put_array_len(buf, true, Some(topics.len()))?;
+        for t in topics {
+            buf::put_compact_string(buf, t.name.as_deref())?;
+            buf.extend_from_slice(&t.topic_id);
             buf::put_empty_tagged_fields(buf);
         }
     } else {
-        buf::put_array_len(buf, flexible, Some(names.len()))?;
-        for name in names {
-            buf::put_string(buf, flexible, Some(name))?;
+        buf::put_array_len(buf, flexible, Some(topics.len()))?;
+        for t in topics {
+            buf::put_string(buf, flexible, t.name.as_deref())?;
         }
     }
     buf.put_i32(timeout_ms);
@@ -541,39 +595,51 @@ pub fn encode_delete_topics_request(
 
 /// Decode a DeleteTopics request: `(names, timeout_ms)`.
 ///
-/// v6 Topics entries with a null Name are skipped (this crate deletes
-/// by name and sends TopicId as zero).
+/// v6 Topics entries with a null Name are skipped (id-based deletes).
+/// See [`decode_delete_topics_states_request`] for every Topics entry.
 pub fn decode_delete_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Vec<String>, i32)> {
+    let (topics, timeout_ms) = decode_delete_topics_states_request(buf, version)?;
+    let names = topics
+        .into_iter()
+        .filter_map(|t| t.name.filter(|n| !n.is_empty()))
+        .collect();
+    Ok((names, timeout_ms))
+}
+
+/// Decode DeleteTopics: every topic (Name and/or TopicId) plus TimeoutMs.
+pub fn decode_delete_topics_states_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<DeleteTopicState>, i32)> {
     let flexible = delete_topics_flexible(version)?;
-    let mut names = Vec::new();
+    let mut topics = Vec::new();
     if version >= 6 {
         let n = buf::get_array_len(buf, true)?.unwrap_or(0);
-        names.reserve(n);
+        topics.reserve(n);
         for _ in 0..n {
             let name = buf::get_compact_string(buf)?;
-            let _id = buf::get_uuid(buf)?;
+            let topic_id = buf::get_uuid(buf)?;
             buf::skip_tagged_fields(buf)?;
-            if let Some(name) = name {
-                if !name.is_empty() {
-                    names.push(name);
-                }
-            }
+            topics.push(DeleteTopicState { name, topic_id });
         }
     } else {
         let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        names.reserve(n);
+        topics.reserve(n);
         for _ in 0..n {
-            names.push(buf::get_string(buf, flexible)?.unwrap_or_default());
+            topics.push(DeleteTopicState {
+                name: buf::get_string(buf, flexible)?,
+                topic_id: [0; 16],
+            });
         }
     }
     let timeout_ms = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((names, timeout_ms))
+    Ok((topics, timeout_ms))
 }
 
 /// Encode a DeleteTopics response.
@@ -589,7 +655,14 @@ pub fn encode_delete_topics_response(
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         if version >= 6 {
-            buf::put_compact_string(buf, Some(&r.name))?;
+            buf::put_compact_string(
+                buf,
+                if r.name.is_empty() {
+                    None
+                } else {
+                    Some(r.name.as_str())
+                },
+            )?;
             buf.extend_from_slice(&r.topic_id);
         } else {
             buf::put_string(buf, flexible, Some(&r.name))?;
@@ -9407,6 +9480,32 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v6 request must be leftover-empty"
+        );
+
+        // Compact Topics[1] { Name null, TopicId "t" padded, tagged } + timeout + tagged.
+        const V6_ID: &[u8] = &[
+            0x02, 0x00, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00,
+        ];
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let by_id = [DeleteTopicState::by_id(id)];
+        let mut id_buf = BytesMut::new();
+        encode_delete_topics_states_request(&mut id_buf, 6, &by_id, 5_000).unwrap();
+        assert_eq!(&id_buf[..], V6_ID);
+        let mut cur = &id_buf[..];
+        let (got, timeout) = decode_delete_topics_states_request(&mut cur, 6).unwrap();
+        assert_eq!(got, by_id);
+        assert_eq!(timeout, 5_000);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 TopicId request must be leftover-empty"
+        );
+        let mut cur = &id_buf[..];
+        let (names_only, _) = decode_delete_topics_request(&mut cur, 6).unwrap();
+        assert!(
+            names_only.is_empty(),
+            "name-only decode skips null-Name TopicId deletes"
         );
     }
 

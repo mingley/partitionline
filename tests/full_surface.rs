@@ -4715,6 +4715,11 @@ async fn delete_topics_follows_controller() {
         "DeleteTopics v6 must return TopicId"
     );
     assert_eq!(
+        mock.last_delete_topics_ids(),
+        Some(0),
+        "name-based deleteTopics sends TopicId zero, not ofTopicIds"
+    );
+    assert_eq!(
         mock.last_delete_topics_node(),
         Some(2),
         "DeleteTopics must land on the controller, not bootstrap"
@@ -4755,6 +4760,14 @@ async fn delete_topics_negotiates_below_v6_when_broker_caps() {
     assert_eq!(
         deleted[0].topic_id, [0u8; 16],
         "DeleteTopics v5 has no TopicId"
+    );
+    let err = admin
+        .delete_topics_by_id(&[[1u8; 16]], 10_000)
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "DeleteTopics below v6 cannot delete by TopicId: {err}"
     );
 
     let mock = common::Mock::start().await;
@@ -4991,6 +5004,75 @@ async fn admin_create_delete_topics_partitions_timeout() {
         .await
         .unwrap();
     assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
+    admin.close().await.unwrap();
+}
+
+/// Java `deleteTopics(TopicCollection.ofTopicIds)` sends DeleteTopics v6
+/// Topics of null Name + TopicId.
+#[tokio::test]
+async fn admin_delete_topics_by_id() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(
+            &[NewTopic::new("dti-a", 1, 1), NewTopic::new("dti-b", 1, 1)],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    assert_ne!(created[0].topic_id, [0u8; 16]);
+    assert_ne!(created[1].topic_id, [0u8; 16]);
+    let empty = admin.delete_topics_by_id(&[], 10_000).await.unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_delete_topics_ids(),
+        None,
+        "empty delete_topics_by_id is a no-op"
+    );
+    let deleted = admin
+        .delete_topics_by_id(&[created[0].topic_id, created[1].topic_id], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(deleted.len(), 2);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[1].error_code, 0);
+    assert_eq!(deleted[0].topic_id, created[0].topic_id);
+    assert_eq!(deleted[1].topic_id, created[1].topic_id);
+    assert_eq!(deleted[0].name, "dti-a");
+    assert_eq!(deleted[1].name, "dti-b");
+    assert_eq!(
+        mock.last_delete_topics_ids(),
+        Some(2),
+        "delete_topics_by_id sends Topics of null Name + TopicId"
+    );
+    assert_eq!(mock.last_delete_topics_version(), Some(6));
+    let listed = admin.list_topics().await.unwrap();
+    assert!(
+        !listed
+            .iter()
+            .any(|t| t.name == "dti-a" || t.name == "dti-b"),
+        "TopicId deletes must remove the topics"
+    );
+    let missing = admin
+        .delete_topics_by_id(&[[0xff; 16]], 10_000)
+        .await
+        .unwrap();
+    assert_eq!(missing[0].error_code, error::UNKNOWN_TOPIC_ID);
+    assert_eq!(missing[0].topic_id, [0xff; 16]);
+    let created = admin
+        .create_topics(&[NewTopic::new("dti-c", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let timed = admin
+        .delete_topics_by_id_timeout(&[created[0].topic_id], Duration::from_millis(1_500))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].error_code, 0);
     assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
     admin.close().await.unwrap();
 }

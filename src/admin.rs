@@ -45,7 +45,7 @@ use crate::protocol::admin::{
     encode_create_delegation_token_request, encode_create_partitions_request,
     encode_create_topics_request, encode_delete_groups_request,
     encode_delete_records_topics_request, encode_delete_share_group_offsets_request,
-    encode_delete_topics_request, encode_describe_client_quotas_request,
+    encode_delete_topics_states_request, encode_describe_client_quotas_request,
     encode_describe_cluster_request, encode_describe_configs_request,
     encode_describe_delegation_token_request, encode_describe_groups_request,
     encode_describe_log_dirs_request, encode_describe_producers_topics_request,
@@ -58,7 +58,7 @@ use crate::protocol::admin::{
     encode_renew_delegation_token_request, encode_share_group_describe_request,
     encode_unregister_broker_request, encode_update_features_request, AlterConfigsResource,
     AlterableResource, CreatableTopic, CreateTopicsRequest, DeleteRecordsPartition,
-    DeleteRecordsTopic, DescribeConfigsResource, DescribeConfigsResult,
+    DeleteRecordsTopic, DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
     DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
     ReassignableTopic, ScramCredentialDeletion, ScramCredentialUpsertion, TopicConfig, TopicResult,
     RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS, RESOURCE_GROUP,
@@ -1738,6 +1738,8 @@ impl Admin {
     /// Negotiates v0–v6 (v4+ flexible; v5 ErrorMessage, KIP-599; v6
     /// Topics of Name + TopicId, KIP-516). Name-based deletes send a
     /// zero UUID at v6 (Java `deleteTopics(Collection<String>)`).
+    /// For TopicId deletes (Java `TopicCollection.ofTopicIds`), use
+    /// [`Self::delete_topics_by_id`].
     /// Kafka 4.0 `validVersions` is `1-6`. v7+ is not spoken.
     ///
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
@@ -1770,9 +1772,71 @@ impl Admin {
         self.delete_topics_with(names, timeout_ms, timeout).await
     }
 
+    /// Delete topics by TopicId (Java `deleteTopics(TopicCollection.ofTopicIds)`).
+    ///
+    /// DeleteTopics v6 sends Topics of null Name + TopicId. Brokers that
+    /// only speak v0–v5 return [`Error::Unsupported`]. Empty `ids` is a
+    /// no-op. Unknown ids return `UNKNOWN_TOPIC_ID` (100) per topic.
+    /// `timeout_ms` is DeleteTopics TimeoutMs. The RPC deadline is
+    /// [`AdminConfig::request_timeout`]. See
+    /// [`Self::delete_topics_by_id_timeout`].
+    pub async fn delete_topics_by_id(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout_ms: i32,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout)
+            .await
+    }
+
+    /// [`Self::delete_topics_by_id`] with a one-shot timeout (Java
+    /// `DeleteTopicsOptions.timeoutMs`).
+    pub async fn delete_topics_by_id_timeout(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.delete_topics_by_id_with(ids, timeout_ms, timeout)
+            .await
+    }
+
+    async fn delete_topics_by_id_with(
+        &mut self,
+        ids: &[[u8; 16]],
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        if self.delete_version < 6 {
+            return Err(Error::Unsupported(
+                "broker does not support DeleteTopics v6 topic IDs".into(),
+            ));
+        }
+        let topics: Vec<DeleteTopicState> =
+            ids.iter().copied().map(DeleteTopicState::by_id).collect();
+        self.delete_topics_states_with(topics, timeout_ms, timeout)
+            .await
+    }
+
     async fn delete_topics_with(
         &mut self,
         names: Vec<String>,
+        timeout_ms: i32,
+        timeout: Duration,
+    ) -> Result<Vec<TopicResult>> {
+        let topics: Vec<DeleteTopicState> =
+            names.into_iter().map(DeleteTopicState::by_name).collect();
+        self.delete_topics_states_with(topics, timeout_ms, timeout)
+            .await
+    }
+
+    async fn delete_topics_states_with(
+        &mut self,
+        topics: Vec<DeleteTopicState>,
         timeout_ms: i32,
         timeout: Duration,
     ) -> Result<Vec<TopicResult>> {
@@ -1793,7 +1857,7 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_TOPICS,
                     version,
-                    |buf| encode_delete_topics_request(buf, version, &names, timeout_ms),
+                    |buf| encode_delete_topics_states_request(buf, version, &topics, timeout_ms),
                     timeout,
                 )
                 .await

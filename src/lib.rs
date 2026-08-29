@@ -48,7 +48,7 @@
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
-//! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
+//! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType),
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N),
@@ -130,6 +130,8 @@
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
+//! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`
+//! (DeleteTopics v6 null Name + TopicId).
 //! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.
 //! [`Admin::alter_partition_reassignments_timeout`] is Java
 //! `AlterPartitionReassignmentsOptions.timeoutMs`.
