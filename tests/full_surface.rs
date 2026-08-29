@@ -357,6 +357,30 @@ async fn transactional_abort_reinit_sends_last_pid_epoch() {
 }
 
 #[tokio::test]
+async fn transactional_commit_after_unknown_pid_still_fails() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    pcfg.transactional_id = Some("tx-commit-fail".into());
+    let producer = Producer::new(pcfg).await.unwrap();
+    producer.begin_transaction().await.unwrap();
+    mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
+    let err = producer
+        .send(ProduceRecord::to("t").value(&b"fenced"[..]))
+        .await
+        .unwrap_err();
+    assert_eq!(err.broker_code(), Some(error::UNKNOWN_PRODUCER_ID));
+    let commit_err = producer.commit_transaction().await.unwrap_err();
+    assert_eq!(
+        commit_err.broker_code(),
+        Some(error::UNKNOWN_PRODUCER_ID),
+        "commit must still fail flush after a failed Produce; only abort ignores it"
+    );
+    producer.abort_transaction().await.unwrap();
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn idempotent_unkeyed_multi_conn_stays_in_order() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

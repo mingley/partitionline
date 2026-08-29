@@ -1277,16 +1277,31 @@ impl Producer {
         self.end_txn(true).await
     }
 
-    /// Flush, then abort the current transaction (`EndTxn` abort).
+    /// Drain in-flight Produce, then abort (`EndTxn` abort).
     ///
     /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
     /// INVALID_PRODUCER_ID_MAPPING, EndTxn below v5 follows with
     /// InitProducerId using the last producer id and epoch (KIP-360).
     /// EndTxn v5 already returns the bumped identity.
+    ///
+    /// A Produce that already completed [`Self::send`] with a broker error
+    /// does not fail abort: Java still EndTxn-aborts, then optionally re-inits.
+    /// [`Self::commit_transaction`] still fails `flush` on that error.
     pub async fn abort_transaction(&self) -> Result<()> {
-        self.flush().await?;
+        self.drain_before_abort().await?;
         self.end_txn(false).await?;
         self.maybe_bump_epoch_after_abort().await
+    }
+
+    /// Wait for in-flight Produce the same way [`Self::flush`] does. Delivery
+    /// errors already completed the caller's `send()` and must not block
+    /// EndTxn. Closed / timeout still fail so abort does not race inflight.
+    async fn drain_before_abort(&self) -> Result<()> {
+        match self.flush().await {
+            Ok(()) => Ok(()),
+            Err(e) if matches!(e, Error::Closed | Error::Timeout) => Err(e),
+            Err(_) => Ok(()),
+        }
     }
 
     async fn maybe_bump_epoch_after_abort(&self) -> Result<()> {
