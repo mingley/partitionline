@@ -1283,7 +1283,7 @@ impl Admin {
             })?;
         let alter_replica_log_dirs_version = versions
             .get(&ALTER_REPLICA_LOG_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
             .ok_or_else(|| {
                 Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
             })?;
@@ -4948,7 +4948,7 @@ impl Admin {
     }
 
     /// Alter replica log directories (AlterReplicaLogDirs api 34,
-    /// KIP-113).
+    /// KIP-113; v1–v2, classic at v1, flexible from v2).
     ///
     /// Lands on the connected broker (bootstrap is fine). Official
     /// Apache JSON listeners are `broker` only. Official JSON lists no
@@ -4968,9 +4968,11 @@ impl Admin {
     /// FindCoordinator, no Metadata `controller_id` lookup, no
     /// `NOT_CONTROLLER` (41) retry, and no `NOT_LEADER_OR_FOLLOWER`
     /// (6) hop. First-partition `error_code` is the INT16 at bytes
-    /// 12–13 on leftover-empty fixture topic `"t"` partition `0` —
-    /// not a top-level field after throttle. Fixture directory path
-    /// and topic/partition indexes only; this is not a log-dir store.
+    /// 12–13 on leftover-empty **v2** fixture topic `"t"` partition `0`
+    /// — not a top-level field after throttle. Classic **v1** places
+    /// that ErrorCode later (bytes 19–20 on the same fixture). Fixture
+    /// directory path and topic/partition indexes only; this is not a
+    /// log-dir store.
     pub async fn alter_replica_log_dirs(
         &mut self,
         dirs: Vec<AlterReplicaLogDirsDirectory>,
@@ -4982,11 +4984,11 @@ impl Admin {
             .roundtrip_bootstrap(
                 ALTER_REPLICA_LOG_DIRS,
                 version,
-                |buf| encode_alter_replica_log_dirs_request(buf, &req),
+                |buf| encode_alter_replica_log_dirs_request(buf, version, &req),
                 timeout,
             )
             .await?;
-        decode_alter_replica_log_dirs_response(&mut body.clone())
+        decode_alter_replica_log_dirs_response(&mut body.clone(), version)
     }
 
     /// Describe log directories (DescribeLogDirs api 35, KIP-113 /

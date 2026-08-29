@@ -219,6 +219,7 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         | ASSIGN_REPLICAS_TO_DIRS => 2,
         // AlterReplicaLogDirs is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
+        // This crate speaks 1–2. v0 was removed in Kafka 4.0.
         ALTER_REPLICA_LOG_DIRS if api_version >= 2 => 2,
         // DescribeLogDirs is classic at v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+", kafka-protocol 0.18.0).
@@ -976,7 +977,7 @@ mod tests {
     fn alter_replica_log_dirs_v2_is_flexible_v1_is_not() {
         // Official JSON: validVersions 1-2, flexibleVersions 2+.
         // kafka-protocol 0.18.0 VERSIONS min=1 max=2; HeaderVersion is
-        // 2 / 1 at v2; 1 / 0 at v1. This crate speaks v2 (VERSIONS.max).
+        // 2 / 1 at v2; 1 / 0 at v1. This crate speaks 1–2.
         assert_eq!(request_header_version(ALTER_REPLICA_LOG_DIRS, 1), 1);
         assert_eq!(response_header_version(ALTER_REPLICA_LOG_DIRS, 1), 0);
         assert_eq!(request_header_version(ALTER_REPLICA_LOG_DIRS, 2), 2);

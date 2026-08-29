@@ -11,12 +11,12 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT,
-    CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
-    OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_REPLICA_LOG_DIRS, CONSUMER_GROUP_DESCRIBE,
+    CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
+    DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLIENT_QUOTAS,
+    DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_TRANSACTIONS,
+    METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5756,6 +5756,11 @@ async fn alter_replica_log_dirs_follows_broker() {
         "AlterReplicaLogDirs must land on the connected broker, not the coordinator or controller"
     );
     assert_eq!(
+        mock.last_alter_replica_log_dirs_version(),
+        Some(2),
+        "Admin must prefer AlterReplicaLogDirs v2 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_alter_replica_log_dirs(),
         Some(AlterReplicaLogDirsRequest::new(vec![dir]))
     );
@@ -5778,6 +5783,31 @@ async fn alter_replica_log_dirs_follows_broker() {
         mock.last_alter_client_quotas_node(),
         None,
         "AlterReplicaLogDirs must not hop via Metadata controller_id"
+    );
+}
+
+#[tokio::test]
+async fn alter_replica_log_dirs_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(ALTER_REPLICA_LOG_DIRS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let dir =
+        AlterReplicaLogDirsDirectory::new("/d", vec![AlterReplicaLogDirsTopic::new("t", vec![0])]);
+    let resp = admin
+        .alter_replica_log_dirs(vec![dir.clone()])
+        .await
+        .unwrap();
+    assert_eq!(resp.results.len(), 1);
+    assert_eq!(resp.results[0].topic_name, "t");
+    assert_eq!(resp.results[0].partitions[0].error_code, 0);
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_version(),
+        Some(1),
+        "client must speak AlterReplicaLogDirs v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs(),
+        Some(AlterReplicaLogDirsRequest::new(vec![dir]))
     );
 }
 

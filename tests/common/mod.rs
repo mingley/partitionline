@@ -367,6 +367,7 @@ struct State {
     assign_replicas_to_dirs_not_controller: u32,
     last_assign_replicas_to_dirs: Option<AssignReplicasToDirsRequest>,
     last_alter_replica_log_dirs_node: Option<i32>,
+    last_alter_replica_log_dirs_version: Option<i16>,
     last_alter_replica_log_dirs: Option<AlterReplicaLogDirsRequest>,
     last_describe_log_dirs_node: Option<i32>,
     describe_log_dirs_nodes: Vec<i32>,
@@ -652,6 +653,7 @@ fn new_state(
         assign_replicas_to_dirs_not_controller: 0,
         last_assign_replicas_to_dirs: None,
         last_alter_replica_log_dirs_node: None,
+        last_alter_replica_log_dirs_version: None,
         last_alter_replica_log_dirs: None,
         last_describe_log_dirs_node: None,
         describe_log_dirs_nodes: Vec::new(),
@@ -1890,6 +1892,10 @@ impl Mock {
 
     pub fn last_alter_replica_log_dirs_node(&self) -> Option<i32> {
         self.state.lock().last_alter_replica_log_dirs_node
+    }
+
+    pub fn last_alter_replica_log_dirs_version(&self) -> Option<i16> {
+        self.state.lock().last_alter_replica_log_dirs_version
     }
 
     pub fn last_alter_replica_log_dirs(&self) -> Option<AlterReplicaLogDirsRequest> {
@@ -5295,7 +5301,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             ALTER_REPLICA_LOG_DIRS => {
-                let req = decode_alter_replica_log_dirs_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let req = decode_alter_replica_log_dirs_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 // Any connected broker answers. Fixture ack only; not
                 // a log-dir store, not a coordinator hop, not a
@@ -5304,6 +5311,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 // or NOT_CONTROLLER (41), so the wrong node does not
                 // return 16 or 41.
                 st.last_alter_replica_log_dirs_node = Some(node_id);
+                st.last_alter_replica_log_dirs_version = Some(version);
                 let results = req
                     .dirs
                     .iter()
@@ -5321,6 +5329,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_alter_replica_log_dirs = Some(req);
                 encode_alter_replica_log_dirs_response(
                     &mut body,
+                    version,
                     &AlterReplicaLogDirsResponse::new(results),
                 )
                 .unwrap();
