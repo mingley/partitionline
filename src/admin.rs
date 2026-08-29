@@ -4265,6 +4265,24 @@ impl Admin {
         .await
     }
 
+    /// List every transaction (Java `Admin.listTransactions()`).
+    ///
+    /// Same wire as [`Self::list_transactions`] with empty state and
+    /// producer-id filters and DurationFilter `-1` (Java
+    /// `ListTransactionsOptions` default).
+    pub async fn list_transactions_all(&mut self) -> Result<Vec<TransactionListing>> {
+        self.list_transactions(&[], &[]).await
+    }
+
+    /// [`Self::list_transactions_all`] with a one-shot RPC deadline (Java
+    /// `ListTransactionsOptions.timeoutMs`).
+    pub async fn list_transactions_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<TransactionListing>> {
+        self.list_transactions_timeout(&[], &[], timeout).await
+    }
+
     /// ListTransactions with a duration filter (Java `listTransactions`
     /// plus `ListTransactionsOptions.filterOnDuration`).
     ///
@@ -6721,6 +6739,20 @@ impl Admin {
         Ok(resp.groups)
     }
 
+    /// List every group (Java `Admin.listGroups()`).
+    ///
+    /// Same wire as [`Self::list_groups`] with empty StatesFilter and
+    /// TypesFilter (Java `ListGroupsOptions` default).
+    pub async fn list_groups_all(&mut self) -> Result<Vec<ListedGroup>> {
+        self.list_groups(&[], &[]).await
+    }
+
+    /// [`Self::list_groups_all`] with a one-shot RPC deadline (Java
+    /// `ListGroupsOptions.timeoutMs`).
+    pub async fn list_groups_all_timeout(&mut self, timeout: Duration) -> Result<Vec<ListedGroup>> {
+        self.list_groups_timeout(&[], &[], timeout).await
+    }
+
     /// List consumer groups (Java `Admin.listConsumerGroups`).
     ///
     /// Same wire as [`Self::list_groups`]: ListGroups api 16 on the
@@ -6748,6 +6780,23 @@ impl Admin {
     ) -> Result<Vec<ListedGroup>> {
         self.list_groups_timeout(states_filter, types_filter, timeout)
             .await
+    }
+
+    /// List every consumer group (Java `Admin.listConsumerGroups()`).
+    ///
+    /// Same wire as [`Self::list_consumer_groups`] with empty StatesFilter
+    /// and TypesFilter (Java `ListConsumerGroupsOptions` default).
+    pub async fn list_consumer_groups_all(&mut self) -> Result<Vec<ListedGroup>> {
+        self.list_groups_all().await
+    }
+
+    /// [`Self::list_consumer_groups_all`] with a one-shot RPC deadline
+    /// (Java `ListConsumerGroupsOptions.timeoutMs`).
+    pub async fn list_consumer_groups_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<ListedGroup>> {
+        self.list_groups_all_timeout(timeout).await
     }
 
     /// Delete consumer groups (DeleteGroups api 42).

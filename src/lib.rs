@@ -238,6 +238,7 @@
 //! [`Admin::list_transactions_with_duration_timeout`] are Java
 //! `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
 //! has no TimeoutMs).
+//! [`Admin::list_transactions_all`] is Java `listTransactions()`.
 //! [`Admin::describe_transactions_timeout`] is Java
 //! `DescribeTransactionsOptions.timeoutMs` (RPC deadline;
 //! DescribeTransactions has no TimeoutMs).
@@ -272,6 +273,8 @@
 //! `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`
 //! (RPC deadline; neither RPC has TimeoutMs).
 //! [`Admin::list_consumer_groups`] is Java `listConsumerGroups`.
+//! [`Admin::list_groups_all`] / [`Admin::list_consumer_groups_all`] are Java
+//! `listGroups()` / `listConsumerGroups()`.
 //! [`Admin::list_groups_timeout`] / [`Admin::list_consumer_groups_timeout`]
 //! are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`
 //! (RPC deadline; ListGroups has no TimeoutMs).

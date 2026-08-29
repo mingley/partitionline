@@ -7301,6 +7301,19 @@ async fn list_transactions_follows_coordinator() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].transactional_id, "tx-list");
+    let all = admin.list_transactions_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].transactional_id, "tx-list");
+    assert_eq!(
+        mock.last_list_transactions_duration(),
+        Some(-1),
+        "listTransactions() sends DurationFilter -1"
+    );
+    let timed_all = admin
+        .list_transactions_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 1);
 }
 
 #[tokio::test]
@@ -7768,6 +7781,18 @@ async fn list_groups_follows_broker() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].group_id, "g");
+    let all = admin.list_groups_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec![], vec![])),
+        "listGroups() sends empty StatesFilter and TypesFilter"
+    );
+    let timed_all = admin
+        .list_groups_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 1);
 }
 
 #[tokio::test]
@@ -7867,6 +7892,18 @@ async fn list_consumer_groups_follows_broker() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].group_id, "g");
+    let all = admin.list_consumer_groups_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec![], vec![])),
+        "listConsumerGroups() sends empty StatesFilter and TypesFilter"
+    );
+    let timed_all = admin
+        .list_consumer_groups_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 1);
 }
 
 #[tokio::test]

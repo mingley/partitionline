@@ -94,6 +94,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::list_offsets_with_isolation` is Java `ListOffsetsOptions.isolationLevel`.
 `Admin::list_offsets_timeout` / `list_offsets_with_isolation_timeout` are Java `ListOffsetsOptions.timeoutMs`.
 `Admin::list_transactions_with_duration` is Java `ListTransactionsOptions.filterOnDuration`.
+`Admin::list_transactions_all` is Java `listTransactions()`.
 `Admin::describe_configs_with_documentation` is Java `DescribeConfigsOptions.includeDocumentation`.
 `Admin::describe_configs_timeout` is Java `DescribeConfigsOptions.timeoutMs`.
 `Admin::describe_cluster_with` is Java `DescribeClusterOptions` (EndpointType / fenced brokers).
@@ -118,6 +119,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::describe_consumer_groups` is Java `describeConsumerGroups` (ConsumerGroupDescribe then DescribeGroups; FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::describe_classic_groups_timeout` / `describe_consumer_groups_timeout` / `describe_groups_timeout` are Java `DescribeClassicGroupsOptions` / `DescribeConsumerGroupsOptions.timeoutMs`.
 `Admin::list_consumer_groups` is Java `listConsumerGroups`.
+`Admin::list_groups_all` / `list_consumer_groups_all` are Java `listGroups()` / `listConsumerGroups()`.
 `Admin::list_groups_timeout` / `list_consumer_groups_timeout` are Java `ListGroupsOptions` / `ListConsumerGroupsOptions.timeoutMs`.
 `Admin::delete_consumer_groups` is Java `deleteConsumerGroups` (FindCoordinator v4+ CoordinatorKeys of N).
 `Admin::describe_share_groups` is Java `describeShareGroups` (FindCoordinator v4+ CoordinatorKeys of N).

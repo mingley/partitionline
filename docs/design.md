@@ -71,6 +71,7 @@ has no TimeoutMs; caps coordinator retries).
 `Admin::list_transactions_timeout` / `Admin::list_transactions_with_duration_timeout`
 are Java `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions
 has no TimeoutMs; `with_duration` is `filterOnDuration`, not TimeoutMs).
+`Admin::list_transactions_all` is Java `listTransactions()`.
 `Admin::describe_producers_for` is Java `describeProducers(Collection)`
 (one DescribeProducers RPC per partition leader; Topics of N).
 `Admin::describe_producers_for_on_broker` is Java
@@ -117,7 +118,8 @@ ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType; FindCoordinator 
 `Admin::consumer_group_describe_timeout` is the crate-first RPC deadline
 (ConsumerGroupDescribe has no TimeoutMs). Java `describeConsumerGroups` is
 `Admin::describe_consumer_groups_timeout` (api 69 first, then DescribeGroups). `Admin::list_consumer_groups` is Java
-`listConsumerGroups` (ListGroups v0–v5). `Admin::list_groups_timeout` /
+`listConsumerGroups` (ListGroups v0–v5). `Admin::list_groups_all` / `Admin::list_consumer_groups_all` are Java
+`listGroups()` / `listConsumerGroups()`. `Admin::list_groups_timeout` /
 `Admin::list_consumer_groups_timeout` are Java `ListGroupsOptions` /
 `ListConsumerGroupsOptions.timeoutMs` (RPC deadline; ListGroups has no
 TimeoutMs). `Admin::delete_consumer_groups` is Java

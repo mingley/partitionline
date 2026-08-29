@@ -3282,6 +3282,13 @@ async fn admin_list_consumer_groups_uses_list_groups() {
         Some((vec!["Stable".into()], vec!["classic".into()]))
     );
     assert_eq!(mock.last_list_groups_node(), Some(1));
+    let all = admin.list_consumer_groups_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(
+        mock.last_list_groups(),
+        Some((vec![], vec![])),
+        "listConsumerGroups() sends empty StatesFilter and TypesFilter"
+    );
     admin.close().await.unwrap();
 }
 
