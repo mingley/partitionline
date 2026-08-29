@@ -263,6 +263,14 @@
 //! (RPC deadline; ListConfigResources has no TimeoutMs).
 //! [`Admin::list_share_group_offsets`] is Java `listShareGroupOffsets`
 //! (DescribeShareGroupOffsets; FindCoordinator v4+ CoordinatorKeys of N).
+//! [`Admin::describe_share_group_offsets_timeout`] /
+//! [`Admin::list_share_group_offsets_timeout`] are Java
+//! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;
+//! DescribeShareGroupOffsets has no TimeoutMs).
+//! [`Admin::alter_share_group_offsets_timeout`] /
+//! [`Admin::delete_share_group_offsets_timeout`] are Java
+//! `AlterShareGroupOffsetsOptions` / `DeleteShareGroupOffsetsOptions.timeoutMs`
+//! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`

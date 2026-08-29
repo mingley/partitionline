@@ -8855,6 +8855,13 @@ async fn describe_share_group_offsets_follows_group_coordinator() {
         Some(1),
         "DescribeShareGroupOffsets must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed_groups = [DescribeShareGroupOffsetsGroup::new("sg-off")];
+    let timed = admin
+        .describe_share_group_offsets_timeout(&timed_groups, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "sg-off");
 }
 
 #[tokio::test]
@@ -8916,6 +8923,13 @@ async fn list_share_group_offsets_follows_group_coordinator() {
         Some(2),
         "listShareGroupOffsets must land on the group coordinator"
     );
+    let timed_groups = [DescribeShareGroupOffsetsGroup::new("sg-list")];
+    let timed = admin
+        .list_share_group_offsets_timeout(&timed_groups, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "sg-list");
     admin.close().await.unwrap();
 }
 
@@ -8962,6 +8976,12 @@ async fn alter_share_group_offsets_follows_group_coordinator() {
         Some(1),
         "AlterShareGroupOffsets must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed_topics = [AlterShareGroupOffsetsTopic::new("t", vec![])];
+    let timed = admin
+        .alter_share_group_offsets_timeout("sg-alt", &timed_topics, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]
@@ -9007,6 +9027,12 @@ async fn delete_share_group_offsets_follows_group_coordinator() {
         Some(1),
         "DeleteShareGroupOffsets must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed_topics = [DeleteShareGroupOffsetsTopic::new("t")];
+    let timed = admin
+        .delete_share_group_offsets_timeout("sg-del", &timed_topics, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]

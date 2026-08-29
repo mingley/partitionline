@@ -3265,6 +3265,12 @@ async fn admin_list_share_group_offsets_uses_describe() {
     assert_eq!(mock.last_describe_share_group_offsets_node(), Some(1));
     let empty = admin.list_share_group_offsets(&[]).await.unwrap();
     assert!(empty.is_empty());
+    let timed_groups = [DescribeShareGroupOffsetsGroup::new("sg-off")];
+    let timed = admin
+        .list_share_group_offsets_timeout(&timed_groups, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "sg-off");
     admin.close().await.unwrap();
 }
 

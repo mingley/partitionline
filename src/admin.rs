@@ -6465,17 +6465,33 @@ impl Admin {
     /// FindCoordinator per retry for uncached groups. DescribeShareGroupOffsets
     /// is one RPC per coordinator. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
-    /// a no-op.
+    /// a no-op. DescribeShareGroupOffsets has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_share_group_offsets_timeout`].
     pub async fn describe_share_group_offsets(
         &mut self,
         groups: &[DescribeShareGroupOffsetsGroup],
+    ) -> Result<Vec<DescribedShareGroupOffsets>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_share_group_offsets_timeout(groups, timeout)
+            .await
+    }
+
+    /// [`Self::describe_share_group_offsets`] with a one-shot RPC deadline
+    /// (Java `ListShareGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// DescribeShareGroupOffsets has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget.
+    pub async fn describe_share_group_offsets_timeout(
+        &mut self,
+        groups: &[DescribeShareGroupOffsetsGroup],
+        timeout: Duration,
     ) -> Result<Vec<DescribedShareGroupOffsets>> {
         if groups.is_empty() {
             return Ok(Vec::new());
         }
         let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
         let version = self.describe_share_group_offsets_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedShareGroupOffsets>> = vec![None; groups.len()];
@@ -6527,12 +6543,29 @@ impl Admin {
     /// Same wire as [`Self::describe_share_group_offsets`]:
     /// DescribeShareGroupOffsets api 90 on the group coordinator.
     /// Java's `ListShareGroupOffsetsHandler` sends that RPC. Empty
-    /// input is a no-op.
+    /// input is a no-op. DescribeShareGroupOffsets has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::list_share_group_offsets_timeout`].
     pub async fn list_share_group_offsets(
         &mut self,
         groups: &[DescribeShareGroupOffsetsGroup],
     ) -> Result<Vec<DescribedShareGroupOffsets>> {
-        self.describe_share_group_offsets(groups).await
+        let timeout = self.cfg.request_timeout;
+        self.list_share_group_offsets_timeout(groups, timeout).await
+    }
+
+    /// [`Self::list_share_group_offsets`] with a one-shot RPC deadline (Java
+    /// `ListShareGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// DescribeShareGroupOffsets has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget.
+    pub async fn list_share_group_offsets_timeout(
+        &mut self,
+        groups: &[DescribeShareGroupOffsetsGroup],
+        timeout: Duration,
+    ) -> Result<Vec<DescribedShareGroupOffsets>> {
+        self.describe_share_group_offsets_timeout(groups, timeout)
+            .await
     }
 
     /// Alter KIP-932 share-group offsets (AlterShareGroupOffsets
@@ -6553,14 +6586,32 @@ impl Admin {
     /// throttle (bytes 4–5 on leftover-empty fixture group `"g"`),
     /// not first-group and not first-partition (bytes 31–32 when
     /// leftover-empty topic `"t"` partition `0` is present).
+    /// AlterShareGroupOffsets has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_share_group_offsets_timeout`].
     pub async fn alter_share_group_offsets(
         &mut self,
         group_id: &str,
         topics: &[AlterShareGroupOffsetsTopic],
     ) -> Result<AlteredShareGroupOffsets> {
+        let timeout = self.cfg.request_timeout;
+        self.alter_share_group_offsets_timeout(group_id, topics, timeout)
+            .await
+    }
+
+    /// [`Self::alter_share_group_offsets`] with a one-shot RPC deadline (Java
+    /// `AlterShareGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// AlterShareGroupOffsets has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget.
+    pub async fn alter_share_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        topics: &[AlterShareGroupOffsetsTopic],
+        timeout: Duration,
+    ) -> Result<AlteredShareGroupOffsets> {
         let coord_key = group_id.to_string();
         let version = self.alter_share_group_offsets_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -6631,15 +6682,33 @@ impl Admin {
     /// throttle (bytes 4–5 on leftover-empty fixture group `"g"`),
     /// not first-group and not first-topic (bytes 26–27 when
     /// leftover-empty topic `"t"` is present). Official request topics
-    /// are names only — no partitions.
+    /// are names only — no partitions. DeleteShareGroupOffsets has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use
+    /// [`Self::delete_share_group_offsets_timeout`].
     pub async fn delete_share_group_offsets(
         &mut self,
         group_id: &str,
         topics: &[DeleteShareGroupOffsetsTopic],
     ) -> Result<DeletedShareGroupOffsets> {
+        let timeout = self.cfg.request_timeout;
+        self.delete_share_group_offsets_timeout(group_id, topics, timeout)
+            .await
+    }
+
+    /// [`Self::delete_share_group_offsets`] with a one-shot RPC deadline
+    /// (Java `DeleteShareGroupOffsetsOptions.timeoutMs`).
+    ///
+    /// DeleteShareGroupOffsets has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget.
+    pub async fn delete_share_group_offsets_timeout(
+        &mut self,
+        group_id: &str,
+        topics: &[DeleteShareGroupOffsetsTopic],
+        timeout: Duration,
+    ) -> Result<DeletedShareGroupOffsets> {
         let coord_key = group_id.to_string();
         let version = self.delete_share_group_offsets_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
