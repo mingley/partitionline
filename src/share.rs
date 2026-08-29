@@ -61,6 +61,54 @@ impl ShareRecord {
         crate::TopicPartition::new(self.topic.clone(), self.partition)
     }
 
+    /// Java `ConsumerRecord.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `ConsumerRecord.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `ConsumerRecord.offset`.
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `ConsumerRecord.timestamp`.
+    #[must_use]
+    pub fn timestamp(&self) -> i64 {
+        self.timestamp
+    }
+
+    /// Java `ConsumerRecord.key`.
+    #[must_use]
+    pub fn key(&self) -> Option<&[u8]> {
+        self.key.as_deref()
+    }
+
+    /// Java `ConsumerRecord.value`.
+    #[must_use]
+    pub fn value(&self) -> Option<&[u8]> {
+        self.value.as_deref()
+    }
+
+    /// Broker delivery count for this share (KIP-932).
+    #[must_use]
+    pub fn delivery_count(&self) -> i16 {
+        self.delivery_count
+    }
+
+    /// Java `ConsumerRecord.leaderEpoch`.
+    #[must_use]
+    pub fn leader_epoch(&self) -> Option<i32> {
+        self.leader_epoch
+    }
+
     /// Serialized key size in bytes, or `-1` if there is no key (Java `serializedKeySize`).
     #[must_use]
     pub fn serialized_key_size(&self) -> i32 {
@@ -1270,10 +1318,21 @@ mod tests {
         );
         let p0: Vec<_> = recs
             .records(crate::TopicPartition::new("t", 0))
-            .map(|r| r.offset)
+            .map(|r| r.offset())
             .collect();
         assert_eq!(p0, vec![1, 3]);
-        let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset).collect();
+        let via_ref: Vec<_> = (&recs).into_iter().map(|r| r.offset()).collect();
         assert_eq!(via_ref, vec![1, 2, 3]);
+        let first = &recs[0];
+        assert_eq!(first.topic(), "t");
+        assert_eq!(first.partition(), 0);
+        assert_eq!(first.offset(), 1);
+        assert_eq!(first.timestamp(), 0);
+        assert!(first.key().is_none());
+        assert!(first.value().is_none());
+        assert_eq!(first.delivery_count(), 1);
+        assert!(first.leader_epoch().is_none());
+        assert_eq!(first.serialized_key_size(), -1);
+        assert_eq!(first.serialized_value_size(), -1);
     }
 }

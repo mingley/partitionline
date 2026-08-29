@@ -9530,10 +9530,16 @@ async fn create_delegation_token_follows_broker() {
         CreateDelegationTokenRequest::new(None, None, vec![CreatableRenewer::new("User", "r")], -1);
     let first = admin.create_delegation_token(req.clone()).await.unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(first.principal_type, "");
+    assert_eq!(first.principal_type(), "");
     assert_eq!(first.principal_name, "");
     assert_eq!(first.token_id, "");
+    assert_eq!(first.token_id(), "");
     assert!(first.hmac.is_empty());
+    assert!(first.hmac().is_empty());
+    assert_eq!(first.hmac_as_base64_string(), "");
+    assert_eq!(first.owner_as_string(), ":");
     assert_eq!(
         mock.last_create_delegation_token_node(),
         Some(1),
@@ -9650,7 +9656,9 @@ async fn renew_delegation_token_follows_broker() {
     let req = RenewDelegationTokenRequest::new(vec![0xaa], -1);
     let first = admin.renew_delegation_token(req.clone()).await.unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(first.expiry_timestamp_ms, 0);
+    assert_eq!(first.expiry_timestamp(), 0);
     assert_eq!(
         mock.last_renew_delegation_token_node(),
         Some(1),
@@ -9759,7 +9767,9 @@ async fn expire_delegation_token_follows_broker() {
     let req = ExpireDelegationTokenRequest::new(vec![0xaa], -1);
     let first = admin.expire_delegation_token(req.clone()).await.unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(first.expiry_timestamp_ms, 0);
+    assert_eq!(first.expiry_timestamp(), 0);
     assert_eq!(
         mock.last_expire_delegation_token_node(),
         Some(1),
@@ -9878,7 +9888,9 @@ async fn describe_delegation_token_follows_broker() {
     )]));
     let first = admin.describe_delegation_token(req.clone()).await.unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert!(first.tokens.is_empty());
+    assert!(first.tokens().is_empty());
     assert_eq!(
         mock.last_describe_delegation_token_node(),
         Some(1),

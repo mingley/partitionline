@@ -11581,6 +11581,98 @@ mod tests {
     }
 
     #[test]
+    fn delegation_token_getters_match_java() {
+        let renewer = CreatableRenewer::new("User", "r");
+        assert_eq!(renewer.principal_type(), "User");
+        assert_eq!(renewer.principal_name(), "r");
+        assert_eq!(renewer.to_string(), "User:r");
+        let req = CreateDelegationTokenRequest::new(
+            Some("User".into()),
+            Some("alice".into()),
+            vec![renewer],
+            -1,
+        );
+        assert_eq!(req.owner_principal_type(), Some("User"));
+        assert_eq!(req.owner_principal_name(), Some("alice"));
+        assert_eq!(req.renewers().len(), 1);
+        assert_eq!(req.max_lifetime_ms(), -1);
+        let created = CreateDelegationTokenResponse::new(
+            0,
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xaa],
+        );
+        assert_eq!(created.error_code(), 0);
+        assert_eq!(created.principal_type(), "User");
+        assert_eq!(created.principal_name(), "alice");
+        assert_eq!(created.owner_as_string(), "User:alice");
+        assert_eq!(created.token_requester_as_string(), "User:bob");
+        assert_eq!(created.issue_timestamp(), 1);
+        assert_eq!(created.expiry_timestamp(), 2);
+        assert_eq!(created.max_timestamp(), 3);
+        assert_eq!(created.token_id(), "tid");
+        assert_eq!(created.hmac(), &[0xaa]);
+        assert_eq!(created.hmac_as_base64_string(), "qg==");
+        let created_debug = format!("{created:?}");
+        assert!(
+            created_debug.contains("[*******]"),
+            "Java DelegationToken.toString redacts hmac: {created_debug}"
+        );
+        assert!(
+            !created_debug.contains("aa") && !created_debug.contains("170"),
+            "Debug must not leak hmac bytes: {created_debug}"
+        );
+        let owner = DescribeDelegationTokenOwner::new("User", "alice");
+        assert_eq!(owner.to_string(), "User:alice");
+        let described_req = DescribeDelegationTokenRequest::new(Some(vec![owner]));
+        assert_eq!(
+            described_req
+                .owners()
+                .map(<[DescribeDelegationTokenOwner]>::len),
+            Some(1)
+        );
+        let token = DescribedDelegationToken::new(
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xaa],
+            vec![DescribedDelegationTokenRenewer::new("User", "r")],
+        );
+        assert_eq!(token.owner_as_string(), "User:alice");
+        assert_eq!(token.hmac_as_base64_string(), "qg==");
+        assert_eq!(token.renewers()[0].to_string(), "User:r");
+        let token_debug = format!("{token:?}");
+        assert!(token_debug.contains("[*******]"));
+        assert!(!token_debug.contains("170"));
+        let listed = DescribeDelegationTokenResponse::new(0, vec![token]);
+        assert_eq!(listed.error_code(), 0);
+        assert_eq!(listed.tokens().len(), 1);
+        let renewed = RenewDelegationTokenResponse::new(0, 9);
+        assert_eq!(renewed.error_code(), 0);
+        assert_eq!(renewed.expiry_timestamp(), 9);
+        let expired = ExpireDelegationTokenResponse::new(0, 8);
+        assert_eq!(expired.error_code(), 0);
+        assert_eq!(expired.expiry_timestamp(), 8);
+        let renew_req = RenewDelegationTokenRequest::new(vec![0xaa], -1);
+        assert_eq!(renew_req.hmac(), &[0xaa]);
+        assert_eq!(renew_req.renew_period_ms(), -1);
+        let expire_req = ExpireDelegationTokenRequest::new(vec![0xaa], -1);
+        assert_eq!(expire_req.hmac(), &[0xaa]);
+        assert_eq!(expire_req.expiry_time_period_ms(), -1);
+    }
+
+    #[test]
     fn new_partition_reassignment_matches_java() {
         let neu = NewPartitionReassignment::new([2, 1]).unwrap();
         assert_eq!(neu.target_replicas(), &[2, 1]);

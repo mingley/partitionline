@@ -2405,6 +2405,8 @@ async fn share_subscribe_switches_topics() {
     assert_eq!(recs.partitions(), vec![TopicPartition::new("u", 0)]);
     assert_eq!(recs.records(TopicPartition::new("u", 0)).count(), 1);
     assert_eq!(recs[0].topic, "u");
+    assert_eq!(recs[0].topic(), "u");
+    assert_eq!(recs[0].partition(), 0);
     group.accept(&recs).await.unwrap();
     group.leave().await.unwrap();
 }

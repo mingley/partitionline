@@ -10166,6 +10166,16 @@ pub fn decode_describe_log_dirs_response<B: Buf>(
     })
 }
 
+/// Java `KafkaPrincipal.toString` (`type:name`).
+fn kafka_principal_as_string(principal_type: &str, principal_name: &str) -> String {
+    format!("{principal_type}:{principal_name}")
+}
+
+/// Java `DelegationToken.hmacAsBase64String` (standard Base64 with padding).
+fn encode_hmac_as_base64(hmac: &[u8]) -> String {
+    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, hmac)
+}
+
 /// One renewer principal in a CreateDelegationToken (api 38) request.
 ///
 /// Official JSON `CreatableRenewers` has PrincipalType and
@@ -10185,6 +10195,24 @@ impl CreatableRenewer {
             principal_type: principal_type.into(),
             principal_name: principal_name.into(),
         }
+    }
+
+    /// Java `KafkaPrincipal.getPrincipalType`.
+    #[must_use]
+    pub fn principal_type(&self) -> &str {
+        self.principal_type.as_str()
+    }
+
+    /// Java `KafkaPrincipal.getName`.
+    #[must_use]
+    pub fn principal_name(&self) -> &str {
+        self.principal_name.as_str()
+    }
+}
+
+impl fmt::Display for CreatableRenewer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.principal_type, self.principal_name)
     }
 }
 
@@ -10233,13 +10261,46 @@ impl Default for CreateDelegationTokenRequest {
     }
 }
 
+impl CreateDelegationTokenRequest {
+    /// Java `CreateDelegationTokenOptions` owner type (`None` is the
+    /// request principal).
+    #[must_use]
+    pub fn owner_principal_type(&self) -> Option<&str> {
+        self.owner_principal_type.as_deref()
+    }
+
+    /// Java `CreateDelegationTokenOptions` owner name (`None` is the
+    /// request principal).
+    #[must_use]
+    pub fn owner_principal_name(&self) -> Option<&str> {
+        self.owner_principal_name.as_deref()
+    }
+
+    /// Java `CreateDelegationTokenOptions.renewers`.
+    #[must_use]
+    pub fn renewers(&self) -> &[CreatableRenewer] {
+        &self.renewers
+    }
+
+    /// Java `CreateDelegationTokenOptions.maxLifeTimeMs` (`-1` is broker
+    /// default).
+    #[must_use]
+    pub fn max_lifetime_ms(&self) -> i64 {
+        self.max_lifetime_ms
+    }
+}
+
 /// CreateDelegationToken (api 38) v1–v3 response body.
 ///
-/// **ErrorCode is top-level**, first field — not after throttle.
+/// Java `DelegationToken` plus `TokenInformation` (no `renewers` on
+/// create). **ErrorCode is top-level**, first field — not after throttle.
 /// Official JSON places `ThrottleTimeMs` last. This is a single token,
 /// not a token array: there is no first-token ErrorCode and no
 /// first-renewer ErrorCode (renewers are request-only).
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// [`Debug`] redacts [`Self::hmac`] (Java `DelegationToken.toString`
+/// prints `hmac=[*******]`).
+#[derive(Clone, PartialEq, Eq)]
 pub struct CreateDelegationTokenResponse {
     /// Kafka error code (`0` is success).
     pub error_code: i16,
@@ -10294,9 +10355,111 @@ impl CreateDelegationTokenResponse {
             hmac,
         }
     }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `TokenInformation.owner` principal type.
+    #[must_use]
+    pub fn principal_type(&self) -> &str {
+        self.principal_type.as_str()
+    }
+
+    /// Java `TokenInformation.owner` principal name.
+    #[must_use]
+    pub fn principal_name(&self) -> &str {
+        self.principal_name.as_str()
+    }
+
+    /// Java `TokenInformation.ownerAsString`.
+    #[must_use]
+    pub fn owner_as_string(&self) -> String {
+        kafka_principal_as_string(&self.principal_type, &self.principal_name)
+    }
+
+    /// Java `TokenInformation.tokenRequester` principal type.
+    #[must_use]
+    pub fn token_requester_principal_type(&self) -> &str {
+        self.token_requester_principal_type.as_str()
+    }
+
+    /// Java `TokenInformation.tokenRequester` principal name.
+    #[must_use]
+    pub fn token_requester_principal_name(&self) -> &str {
+        self.token_requester_principal_name.as_str()
+    }
+
+    /// Java `TokenInformation.tokenRequesterAsString`.
+    #[must_use]
+    pub fn token_requester_as_string(&self) -> String {
+        kafka_principal_as_string(
+            &self.token_requester_principal_type,
+            &self.token_requester_principal_name,
+        )
+    }
+
+    /// Java `TokenInformation.issueTimestamp`.
+    #[must_use]
+    pub fn issue_timestamp(&self) -> i64 {
+        self.issue_timestamp_ms
+    }
+
+    /// Java `TokenInformation.expiryTimestamp`.
+    #[must_use]
+    pub fn expiry_timestamp(&self) -> i64 {
+        self.expiry_timestamp_ms
+    }
+
+    /// Java `TokenInformation.maxTimestamp`.
+    #[must_use]
+    pub fn max_timestamp(&self) -> i64 {
+        self.max_timestamp_ms
+    }
+
+    /// Java `TokenInformation.tokenId`.
+    #[must_use]
+    pub fn token_id(&self) -> &str {
+        self.token_id.as_str()
+    }
+
+    /// Java `DelegationToken.hmac`.
+    #[must_use]
+    pub fn hmac(&self) -> &[u8] {
+        &self.hmac
+    }
+
+    /// Java `DelegationToken.hmacAsBase64String`.
+    #[must_use]
+    pub fn hmac_as_base64_string(&self) -> String {
+        encode_hmac_as_base64(&self.hmac)
+    }
 }
 
-/// `true` when CreateDelegationToken `version` is flexible.
+impl fmt::Debug for CreateDelegationTokenResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CreateDelegationTokenResponse")
+            .field("error_code", &self.error_code)
+            .field("principal_type", &self.principal_type)
+            .field("principal_name", &self.principal_name)
+            .field(
+                "token_requester_principal_type",
+                &self.token_requester_principal_type,
+            )
+            .field(
+                "token_requester_principal_name",
+                &self.token_requester_principal_name,
+            )
+            .field("issue_timestamp_ms", &self.issue_timestamp_ms)
+            .field("expiry_timestamp_ms", &self.expiry_timestamp_ms)
+            .field("max_timestamp_ms", &self.max_timestamp_ms)
+            .field("token_id", &self.token_id)
+            .field("hmac", &"[*******]")
+            .finish()
+    }
+}
 ///
 /// v1 is classic. v2–v3 are flexible. Kafka 4.0 `validVersions` is
 /// `1-3` (v0 removed). This crate speaks 1–3. v0 and v4+ are not
@@ -10517,6 +10680,19 @@ impl RenewDelegationTokenRequest {
             renew_period_ms,
         }
     }
+
+    /// Java `renewDelegationToken` HMAC bytes.
+    #[must_use]
+    pub fn hmac(&self) -> &[u8] {
+        &self.hmac
+    }
+
+    /// Java `RenewDelegationTokenOptions.renewTimePeriodMs` (`-1` is broker
+    /// default).
+    #[must_use]
+    pub fn renew_period_ms(&self) -> i64 {
+        self.renew_period_ms
+    }
 }
 
 /// RenewDelegationToken (api 39) v1–v2 response body.
@@ -10539,6 +10715,18 @@ impl RenewDelegationTokenResponse {
             error_code,
             expiry_timestamp_ms,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `RenewDelegationTokenResult.expiryTimestamp`.
+    #[must_use]
+    pub fn expiry_timestamp(&self) -> i64 {
+        self.expiry_timestamp_ms
     }
 }
 
@@ -10690,6 +10878,19 @@ impl ExpireDelegationTokenRequest {
             expiry_time_period_ms,
         }
     }
+
+    /// Java `expireDelegationToken` HMAC bytes.
+    #[must_use]
+    pub fn hmac(&self) -> &[u8] {
+        &self.hmac
+    }
+
+    /// Java `ExpireDelegationTokenOptions.expiryTimePeriodMs` (`-1` expires
+    /// immediately).
+    #[must_use]
+    pub fn expiry_time_period_ms(&self) -> i64 {
+        self.expiry_time_period_ms
+    }
 }
 
 /// ExpireDelegationToken (api 40) v1–v2 response body.
@@ -10712,6 +10913,18 @@ impl ExpireDelegationTokenResponse {
             error_code,
             expiry_timestamp_ms,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `ExpireDelegationTokenResult.expiryTimestamp`.
+    #[must_use]
+    pub fn expiry_timestamp(&self) -> i64 {
+        self.expiry_timestamp_ms
     }
 }
 
@@ -10861,6 +11074,24 @@ impl DescribeDelegationTokenOwner {
             principal_name: principal_name.into(),
         }
     }
+
+    /// Java `KafkaPrincipal.getPrincipalType`.
+    #[must_use]
+    pub fn principal_type(&self) -> &str {
+        self.principal_type.as_str()
+    }
+
+    /// Java `KafkaPrincipal.getName`.
+    #[must_use]
+    pub fn principal_name(&self) -> &str {
+        self.principal_name.as_str()
+    }
+}
+
+impl fmt::Display for DescribeDelegationTokenOwner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.principal_type, self.principal_name)
+    }
 }
 
 /// DescribeDelegationToken (api 41) v1–v3 request body.
@@ -10881,6 +11112,13 @@ impl DescribeDelegationTokenRequest {
     /// Construct [`Self`].
     pub fn new(owners: Option<Vec<DescribeDelegationTokenOwner>>) -> Self {
         Self { owners }
+    }
+
+    /// Java `DescribeDelegationTokenOptions.owners` (`None` is every
+    /// visible token; empty describes none).
+    #[must_use]
+    pub fn owners(&self) -> Option<&[DescribeDelegationTokenOwner]> {
+        self.owners.as_deref()
     }
 }
 
@@ -10912,14 +11150,35 @@ impl DescribedDelegationTokenRenewer {
             principal_name: principal_name.into(),
         }
     }
+
+    /// Java `KafkaPrincipal.getPrincipalType`.
+    #[must_use]
+    pub fn principal_type(&self) -> &str {
+        self.principal_type.as_str()
+    }
+
+    /// Java `KafkaPrincipal.getName`.
+    #[must_use]
+    pub fn principal_name(&self) -> &str {
+        self.principal_name.as_str()
+    }
+}
+
+impl fmt::Display for DescribedDelegationTokenRenewer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.principal_type, self.principal_name)
+    }
 }
 
 /// One token in a DescribeDelegationToken (api 41) v1–v3 response.
 ///
-/// Official JSON `Tokens` has no per-token ErrorCode. v3 adds
-/// TokenRequesterPrincipalType / TokenRequesterPrincipalName
-/// (decode fills empty on v1–v2).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Java `DelegationToken` plus `TokenInformation`. Official JSON `Tokens`
+/// has no per-token ErrorCode. v3 adds TokenRequesterPrincipalType /
+/// TokenRequesterPrincipalName (decode fills empty on v1–v2).
+///
+/// [`Debug`] redacts [`Self::hmac`] (Java `DelegationToken.toString`
+/// prints `hmac=[*******]`).
+#[derive(Clone, PartialEq, Eq)]
 pub struct DescribedDelegationToken {
     /// Principal type (for example `User`).
     pub principal_type: String,
@@ -10974,9 +11233,111 @@ impl DescribedDelegationToken {
             renewers,
         }
     }
+
+    /// Java `TokenInformation.owner` principal type.
+    #[must_use]
+    pub fn principal_type(&self) -> &str {
+        self.principal_type.as_str()
+    }
+
+    /// Java `TokenInformation.owner` principal name.
+    #[must_use]
+    pub fn principal_name(&self) -> &str {
+        self.principal_name.as_str()
+    }
+
+    /// Java `TokenInformation.ownerAsString`.
+    #[must_use]
+    pub fn owner_as_string(&self) -> String {
+        kafka_principal_as_string(&self.principal_type, &self.principal_name)
+    }
+
+    /// Java `TokenInformation.tokenRequester` principal type.
+    #[must_use]
+    pub fn token_requester_principal_type(&self) -> &str {
+        self.token_requester_principal_type.as_str()
+    }
+
+    /// Java `TokenInformation.tokenRequester` principal name.
+    #[must_use]
+    pub fn token_requester_principal_name(&self) -> &str {
+        self.token_requester_principal_name.as_str()
+    }
+
+    /// Java `TokenInformation.tokenRequesterAsString`.
+    #[must_use]
+    pub fn token_requester_as_string(&self) -> String {
+        kafka_principal_as_string(
+            &self.token_requester_principal_type,
+            &self.token_requester_principal_name,
+        )
+    }
+
+    /// Java `TokenInformation.issueTimestamp`.
+    #[must_use]
+    pub fn issue_timestamp(&self) -> i64 {
+        self.issue_timestamp
+    }
+
+    /// Java `TokenInformation.expiryTimestamp`.
+    #[must_use]
+    pub fn expiry_timestamp(&self) -> i64 {
+        self.expiry_timestamp
+    }
+
+    /// Java `TokenInformation.maxTimestamp`.
+    #[must_use]
+    pub fn max_timestamp(&self) -> i64 {
+        self.max_timestamp
+    }
+
+    /// Java `TokenInformation.tokenId`.
+    #[must_use]
+    pub fn token_id(&self) -> &str {
+        self.token_id.as_str()
+    }
+
+    /// Java `DelegationToken.hmac`.
+    #[must_use]
+    pub fn hmac(&self) -> &[u8] {
+        &self.hmac
+    }
+
+    /// Java `DelegationToken.hmacAsBase64String`.
+    #[must_use]
+    pub fn hmac_as_base64_string(&self) -> String {
+        encode_hmac_as_base64(&self.hmac)
+    }
+
+    /// Java `TokenInformation.renewers`.
+    #[must_use]
+    pub fn renewers(&self) -> &[DescribedDelegationTokenRenewer] {
+        &self.renewers
+    }
 }
 
-/// DescribeDelegationToken (api 41) v1–v3 response body.
+impl fmt::Debug for DescribedDelegationToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DescribedDelegationToken")
+            .field("principal_type", &self.principal_type)
+            .field("principal_name", &self.principal_name)
+            .field(
+                "token_requester_principal_type",
+                &self.token_requester_principal_type,
+            )
+            .field(
+                "token_requester_principal_name",
+                &self.token_requester_principal_name,
+            )
+            .field("issue_timestamp", &self.issue_timestamp)
+            .field("expiry_timestamp", &self.expiry_timestamp)
+            .field("max_timestamp", &self.max_timestamp)
+            .field("token_id", &self.token_id)
+            .field("hmac", &"[*******]")
+            .field("renewers", &self.renewers)
+            .finish()
+    }
+}
 ///
 /// **ErrorCode is top-level**, first field — not after throttle and
 /// not a first-token field. Official JSON places `Tokens` next and
@@ -10993,6 +11354,18 @@ impl DescribeDelegationTokenResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, tokens: Vec<DescribedDelegationToken>) -> Self {
         Self { error_code, tokens }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `describeDelegationToken` tokens (`DelegationToken` list).
+    #[must_use]
+    pub fn tokens(&self) -> &[DescribedDelegationToken] {
+        &self.tokens
     }
 }
 
