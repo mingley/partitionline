@@ -596,9 +596,64 @@ impl RecordBatch {
         self.base_sequence
     }
 
+    /// Java `DefaultRecordBatch.lastSequence`.
+    ///
+    /// [`Self::NO_SEQUENCE`] when [`Self::base_sequence`] is unset. Otherwise
+    /// [`Self::increment_sequence`] of the base and last-offset delta
+    /// (`count - 1`, or `0` when empty — same as the encode path).
+    #[must_use]
+    pub fn last_sequence(&self) -> i32 {
+        if self.base_sequence == Self::NO_SEQUENCE {
+            return Self::NO_SEQUENCE;
+        }
+        Self::increment_sequence(self.base_sequence, self.last_offset_delta())
+    }
+
+    /// Java `DefaultRecordBatch.incrementSequence` (wraps past [`i32::MAX`]
+    /// to `0`).
+    #[must_use]
+    pub fn increment_sequence(sequence: i32, increment: i32) -> i32 {
+        if sequence > i32::MAX.wrapping_sub(increment) {
+            increment
+                .wrapping_sub(i32::MAX.wrapping_sub(sequence))
+                .wrapping_sub(1)
+        } else {
+            sequence.wrapping_add(increment)
+        }
+    }
+
+    /// Java `DefaultRecordBatch.decrementSequence` (wraps below `0` to
+    /// [`i32::MAX`]).
+    #[must_use]
+    pub fn decrement_sequence(sequence: i32, decrement: i32) -> i32 {
+        if sequence < decrement {
+            i32::MAX
+                .wrapping_sub(decrement.wrapping_sub(sequence))
+                .wrapping_add(1)
+        } else {
+            sequence.wrapping_sub(decrement)
+        }
+    }
+
     /// Java `DefaultRecordBatch.compressionType`.
     pub fn compression_type(&self) -> Result<Compression> {
         Compression::from_attributes(self.attributes)
+    }
+
+    /// Java `RecordBatch.isCompressed` (attributes codec bits are not
+    /// [`Compression::None`]).
+    #[must_use]
+    pub fn is_compressed(&self) -> bool {
+        self.attributes & 0x07 != 0
+    }
+
+    fn last_offset_delta(&self) -> i32 {
+        let count = i32::try_from(self.records.len()).unwrap_or(i32::MAX);
+        if count <= 0 {
+            0
+        } else {
+            count - 1
+        }
     }
 
     fn record_count_i64(&self) -> i64 {
@@ -1137,6 +1192,8 @@ mod tests {
         assert_eq!(batch.base_offset(), 0);
         assert_eq!(batch.last_offset(), 0);
         assert_eq!(batch.next_offset(), 1);
+        assert_eq!(batch.last_sequence(), RecordBatch::NO_SEQUENCE);
+        assert!(!batch.is_compressed());
         assert_eq!(batch.count(), 1);
         assert_eq!(batch.records().len(), 1);
         assert_eq!(
@@ -1154,12 +1211,13 @@ mod tests {
         assert_eq!(empty_batch.count(), 0);
         assert_eq!(empty_batch.last_offset(), -1);
         assert_eq!(empty_batch.next_offset(), 0);
+        assert_eq!(empty_batch.last_sequence(), RecordBatch::NO_SEQUENCE);
         assert_eq!(RecordBatch::NO_TIMESTAMP, -1);
         assert_eq!(RecordBatch::NO_PRODUCER_ID, -1);
         assert_eq!(RecordBatch::NO_PRODUCER_EPOCH, -1);
         assert_eq!(RecordBatch::NO_SEQUENCE, -1);
         assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
-        let mut with_pid = RecordBatch::from_records(vec![empty]);
+        let mut with_pid = RecordBatch::from_records(vec![empty.clone()]);
         with_pid.producer_id = 5;
         with_pid.producer_epoch = 1;
         with_pid.base_sequence = 0;
@@ -1168,7 +1226,17 @@ mod tests {
         assert_eq!(with_pid.producer_id(), 5);
         assert_eq!(with_pid.producer_epoch(), 1);
         assert_eq!(with_pid.base_sequence(), 0);
+        assert_eq!(with_pid.last_sequence(), 0);
         assert_eq!(with_pid.partition_leader_epoch(), 3);
+        let mut three =
+            RecordBatch::from_records(vec![empty.clone(), empty.clone(), empty.clone()]);
+        three.base_sequence = 10;
+        assert_eq!(three.last_sequence(), 12);
+        let mut wrap = RecordBatch::from_records(vec![empty.clone(), empty]);
+        wrap.base_sequence = i32::MAX;
+        assert_eq!(wrap.last_sequence(), 0);
+        assert_eq!(RecordBatch::increment_sequence(i32::MAX, 1), 0);
+        assert_eq!(RecordBatch::decrement_sequence(0, 1), i32::MAX);
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
         let decoded = decode_record_batch(&mut &buf[..]).unwrap();
@@ -1346,6 +1414,7 @@ mod tests {
         };
         let batch = RecordBatch::from_records(vec![rec]).with_compression(Compression::Gzip);
         assert_eq!(batch.attributes & 0x07, Compression::Gzip as i16);
+        assert!(batch.is_compressed());
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, &batch).unwrap();
         let decoded = decode_record_batch(&mut &buf[..]).unwrap();

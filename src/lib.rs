@@ -181,8 +181,9 @@
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
-//! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
-//! `lastOffset` / `nextOffset`.
+//! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
+//! [`RecordBatch::last_sequence`] are Java `lastOffset` / `nextOffset` /
+//! `lastSequence`. [`RecordBatch::is_compressed`] is Java `isCompressed`.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
