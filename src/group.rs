@@ -317,6 +317,32 @@ pub struct ConsumerGroupMetadata {
     pub group_instance_id: Option<String>,
 }
 
+impl ConsumerGroupMetadata {
+    /// Java `ConsumerGroupMetadata.groupId`.
+    #[must_use]
+    pub fn group_id(&self) -> &str {
+        self.group_id.as_str()
+    }
+
+    /// Java `ConsumerGroupMetadata.generationId`.
+    #[must_use]
+    pub fn generation_id(&self) -> i32 {
+        self.generation_id
+    }
+
+    /// Java `ConsumerGroupMetadata.memberId`.
+    #[must_use]
+    pub fn member_id(&self) -> &str {
+        self.member_id.as_str()
+    }
+
+    /// Java `ConsumerGroupMetadata.groupInstanceId`.
+    #[must_use]
+    pub fn group_instance_id(&self) -> Option<&str> {
+        self.group_instance_id.as_deref()
+    }
+}
+
 impl fmt::Display for ConsumerGroupMetadata {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -2655,6 +2681,27 @@ mod tests {
     use super::*;
     use crate::protocol::group::FetchedOffset;
     use std::collections::HashMap;
+
+    #[test]
+    fn consumer_group_metadata_getters_match_java() {
+        let md = ConsumerGroupMetadata {
+            group_id: "g".into(),
+            generation_id: 4,
+            member_id: "m".into(),
+            group_instance_id: Some("i".into()),
+        };
+        assert_eq!(md.group_id(), "g");
+        assert_eq!(md.generation_id(), 4);
+        assert_eq!(md.member_id(), "m");
+        assert_eq!(md.group_instance_id(), Some("i"));
+        let classic = ConsumerGroupMetadata {
+            group_id: "g".into(),
+            generation_id: 1,
+            member_id: "m".into(),
+            group_instance_id: None,
+        };
+        assert!(classic.group_instance_id().is_none());
+    }
 
     #[test]
     fn range_splits_all_partitions_without_overlap() {
