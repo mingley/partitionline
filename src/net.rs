@@ -268,6 +268,10 @@ pub struct BrokerConn {
     /// JoinGroup version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 5–9 from ApiVersions.
     pub(crate) join_group_version: i16,
+    /// ConsumerGroupHeartbeat version negotiated on coordinator sockets
+    /// (`-1` unset). KIP-848 groups pick 0–1 from ApiVersions. `0` is a
+    /// spoken version, so it cannot mean unset.
+    pub(crate) consumer_group_heartbeat_version: i16,
 }
 
 impl BrokerConn {
@@ -326,6 +330,7 @@ impl BrokerConn {
             heartbeat_version: 0,
             sync_group_version: 0,
             join_group_version: 0,
+            consumer_group_heartbeat_version: -1,
         })
     }
 

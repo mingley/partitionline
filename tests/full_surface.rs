@@ -11,10 +11,10 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    ALTER_CONFIGS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS, DELETE_RECORDS,
-    DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
-    HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
-    OFFSET_FETCH, SYNC_GROUP, UPDATE_FEATURES,
+    ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
+    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS,
+    METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -2468,6 +2468,53 @@ async fn kip848_join_fetch_leave_without_classic_join() {
     );
     assert_eq!(mock.last_group_instance_id(), None);
     assert_eq!(mock.last_group_rack(), None);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn consumer_group_heartbeat_negotiates_v1_when_broker_advertises() {
+    let mock = common::Mock::start().await;
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join_consumer(ccfg, "cgh1", "t")
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_consumer_group_heartbeat_version(),
+        Some(1),
+        "ConsumerGroup must prefer ConsumerGroupHeartbeat v1 when the broker advertises it"
+    );
+    let join_id = mock
+        .last_consumer_group_heartbeat_join_member_id()
+        .expect("join member id");
+    assert!(
+        !join_id.is_empty(),
+        "ConsumerGroupHeartbeat v1 must send a client-generated MemberId (KIP-1082), got {join_id:?}"
+    );
+    assert_eq!(group.member_id(), join_id);
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn consumer_group_heartbeat_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CONSUMER_GROUP_HEARTBEAT, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join_consumer(ccfg, "cgh0", "t")
+        .await
+        .unwrap();
+    assert_eq!(
+        mock.last_consumer_group_heartbeat_version(),
+        Some(0),
+        "client must speak ConsumerGroupHeartbeat v0 when the broker max is 0"
+    );
+    assert_eq!(
+        mock.last_consumer_group_heartbeat_join_member_id()
+            .as_deref(),
+        Some(""),
+        "ConsumerGroupHeartbeat v0 join must send empty MemberId"
+    );
     group.leave().await.unwrap();
 }
 

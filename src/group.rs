@@ -285,7 +285,8 @@ pub struct ConsumerGroupMetadata {
     pub group_id: String,
     /// Classic generation, or KIP-848 member epoch.
     pub generation_id: i32,
-    /// Coordinator-assigned member id.
+    /// Member id (coordinator-assigned on ConsumerGroupHeartbeat v0;
+    /// client-generated on v1, KIP-1082).
     pub member_id: String,
     /// Kafka `group.instance.id`, if static membership is set.
     pub group_instance_id: Option<String>,
@@ -1358,6 +1359,8 @@ impl ConsumerGroup {
     async fn leave_coordinator(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         if self.kip848 {
+            let version =
+                spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
             let req = ConsumerGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
@@ -1365,6 +1368,7 @@ impl ConsumerGroup {
                 instance_id: self.cfg.group_instance_id.clone(),
                 rack_id: self.cfg.rack.clone(),
                 subscribed_topic_names: None,
+                subscribed_topic_regex: None,
                 topic_partitions: None,
             };
             let body = coord_roundtrip(
@@ -1373,12 +1377,12 @@ impl ConsumerGroup {
                 &self.group_id,
                 COORDINATOR_GROUP,
                 CONSUMER_GROUP_HEARTBEAT,
-                0,
-                |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                version,
+                |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                 timeout,
             )
             .await?;
-            let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
+            let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
             if resp.error_code != 0 {
                 return Err(Error::broker(
                     resp.error_code,
@@ -1590,6 +1594,10 @@ impl ConsumerGroup {
     async fn heartbeat_join(&mut self) -> Result<()> {
         let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
+        let version = spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
+        if version >= 1 && self.member_id.is_empty() {
+            self.member_id = new_kip848_member_id()?;
+        }
         let req = ConsumerGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
@@ -1597,6 +1605,7 @@ impl ConsumerGroup {
             instance_id: self.cfg.group_instance_id.clone(),
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(self.topics.clone()),
+            subscribed_topic_regex: None,
             topic_partitions: None,
         };
         let body = coord_roundtrip(
@@ -1605,12 +1614,12 @@ impl ConsumerGroup {
             &self.group_id,
             COORDINATOR_GROUP,
             CONSUMER_GROUP_HEARTBEAT,
-            0,
-            |buf| encode_consumer_group_heartbeat_request(buf, &req),
+            version,
+            |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
             timeout,
         )
         .await?;
-        let resp = decode_consumer_group_heartbeat_response(&mut body.clone())?;
+        let resp = decode_consumer_group_heartbeat_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ConsumerGroupHeartbeat"));
         }
@@ -1767,6 +1776,11 @@ impl ConsumerGroup {
                         let timeout = cfg.request_timeout;
                         let epoch = hb_generation.load(Ordering::SeqCst);
                         let topic_partitions = hb_ack.lock().clone();
+                        let version = c.consumer_group_heartbeat_version;
+                        if spoken_consumer_group_heartbeat(version).is_err() {
+                            conn = None;
+                            continue;
+                        }
                         let req = ConsumerGroupHeartbeatRequest {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
@@ -1774,21 +1788,23 @@ impl ConsumerGroup {
                             instance_id: cfg.group_instance_id.clone(),
                             rack_id: cfg.rack.clone(),
                             subscribed_topic_names: None,
+                            subscribed_topic_regex: None,
                             topic_partitions,
                         };
                         let res = c
                             .roundtrip(
                                 CONSUMER_GROUP_HEARTBEAT,
-                                0,
-                                |buf| encode_consumer_group_heartbeat_request(buf, &req),
+                                version,
+                                |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
                                 timeout,
                             )
                             .await;
                         match res {
                             Ok(body) => {
-                                if let Ok(resp) =
-                                    decode_consumer_group_heartbeat_response(&mut body.clone())
-                                {
+                                if let Ok(resp) = decode_consumer_group_heartbeat_response(
+                                    &mut body.clone(),
+                                    version,
+                                ) {
                                     if error::coordinator_retriable(resp.error_code) {
                                         conn = None;
                                     } else {
@@ -1931,24 +1947,28 @@ async fn leave_if_max_poll(
     if let Ok(mut c) = discover_coord(cfg, group_id, COORDINATOR_GROUP).await {
         let timeout = cfg.request_timeout;
         if kip848 {
-            let req = ConsumerGroupHeartbeatRequest {
-                group_id: group_id.to_string(),
-                member_id: member_id.to_string(),
-                member_epoch: -1,
-                instance_id: cfg.group_instance_id.clone(),
-                rack_id: cfg.rack.clone(),
-                subscribed_topic_names: None,
-                topic_partitions: None,
-            };
-            drop(
-                c.roundtrip(
-                    CONSUMER_GROUP_HEARTBEAT,
-                    0,
-                    |buf| encode_consumer_group_heartbeat_request(buf, &req),
-                    timeout,
-                )
-                .await,
-            );
+            let version = c.consumer_group_heartbeat_version;
+            if spoken_consumer_group_heartbeat(version).is_ok() {
+                let req = ConsumerGroupHeartbeatRequest {
+                    group_id: group_id.to_string(),
+                    member_id: member_id.to_string(),
+                    member_epoch: -1,
+                    instance_id: cfg.group_instance_id.clone(),
+                    rack_id: cfg.rack.clone(),
+                    subscribed_topic_names: None,
+                    subscribed_topic_regex: None,
+                    topic_partitions: None,
+                };
+                drop(
+                    c.roundtrip(
+                        CONSUMER_GROUP_HEARTBEAT,
+                        version,
+                        |buf| encode_consumer_group_heartbeat_request(buf, version, &req),
+                        timeout,
+                    )
+                    .await,
+                );
+            }
         } else {
             let gid = group_id.to_string();
             let mid = member_id.to_string();
@@ -1964,6 +1984,25 @@ async fn leave_if_max_poll(
         }
     }
     true
+}
+
+fn spoken_consumer_group_heartbeat(version: i16) -> Result<i16> {
+    if (0..=1).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support ConsumerGroupHeartbeat v0-1".into(),
+        ))
+    }
+}
+
+fn new_kip848_member_id() -> Result<String> {
+    let mut raw = [0u8; 16];
+    getrandom::getrandom(&mut raw).map_err(|_| Error::protocol("consumer member id rng"))?;
+    Ok(base64::Engine::encode(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+        raw,
+    ))
 }
 
 fn wanted_from_kip848(
@@ -2240,6 +2279,12 @@ async fn open_coord_with_find_version(
         .find(|k| k.api_key == JOIN_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
         .unwrap_or(0);
+    conn.consumer_group_heartbeat_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == CONSUMER_GROUP_HEARTBEAT)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+        .unwrap_or(-1);
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),

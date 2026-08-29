@@ -1,9 +1,9 @@
-//! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0.
+//! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0–v1.
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Topic UUID plus partition indexes in a KIP-848 assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,7 +19,7 @@ pub struct TopicPartitions {
 pub struct ConsumerGroupHeartbeatRequest {
     /// Group id.
     pub group_id: String,
-    /// Member id (`""` on join).
+    /// Member id (`""` on v0 join; client-generated on v1, KIP-1082).
     pub member_id: String,
     /// Member epoch (`0` join, `-1` leave, otherwise heartbeat).
     pub member_epoch: i32,
@@ -29,6 +29,8 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub rack_id: Option<String>,
     /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
+    /// Subscribed topic regex (`None` means unchanged). v1+ (KIP-848).
+    pub subscribed_topic_regex: Option<String>,
     /// Owned partitions (`None` means unchanged).
     pub topic_partitions: Option<Vec<TopicPartitions>>,
 }
@@ -50,11 +52,28 @@ pub struct ConsumerGroupHeartbeatResponse {
     pub assignment: Option<Vec<TopicPartitions>>,
 }
 
-/// Encode a flexible v0 ConsumerGroupHeartbeat request.
+/// Check that ConsumerGroupHeartbeat `version` is spoken (0–1).
+///
+/// Flexible from v0. v1 adds SubscribedTopicRegex (KIP-848) and requires
+/// the consumer to generate its own MemberId (KIP-1082). Kafka 4.0
+/// `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
+/// v1 response matches v0 (`INVALID_REGULAR_EXPRESSION` is v1+).
+fn consumer_group_heartbeat_spoken(version: i16) -> Result<i16> {
+    match version {
+        0..=1 => Ok(version),
+        other => Err(Error::protocol(format!(
+            "ConsumerGroupHeartbeat version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a flexible v0–v1 ConsumerGroupHeartbeat request.
 pub fn encode_consumer_group_heartbeat_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &ConsumerGroupHeartbeatRequest,
 ) -> crate::error::Result<()> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
@@ -70,16 +89,25 @@ pub fn encode_consumer_group_heartbeat_request(
             }
         }
     }
+    if version >= 1 {
+        buf::put_compact_string(buf, req.subscribed_topic_regex.as_deref())?;
+    } else if req.subscribed_topic_regex.is_some() {
+        return Err(Error::protocol(
+            "SubscribedTopicRegex requires ConsumerGroupHeartbeat v1",
+        ));
+    }
     buf::put_compact_string(buf, None)?; // server_assignor
     encode_topic_partitions(buf, req.topic_partitions.as_deref())?;
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
-/// Decode a flexible v0 ConsumerGroupHeartbeat request.
+/// Decode a flexible v0–v1 ConsumerGroupHeartbeat request.
 pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ConsumerGroupHeartbeatRequest> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
     let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
@@ -99,6 +127,11 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
             }
         }
     };
+    let subscribed_topic_regex = if version >= 1 {
+        buf::get_compact_string(buf)?
+    } else {
+        None
+    };
     let _assignor = buf::get_compact_string(buf)?;
     let topic_partitions = decode_topic_partitions(buf)?;
     buf::skip_tagged_fields(buf)?;
@@ -109,15 +142,18 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
         instance_id,
         rack_id,
         subscribed_topic_names,
+        subscribed_topic_regex,
         topic_partitions,
     })
 }
 
-/// Encode a flexible v0 ConsumerGroupHeartbeat response (throttle `0`).
+/// Encode a flexible v0–v1 ConsumerGroupHeartbeat response (throttle `0`).
 pub fn encode_consumer_group_heartbeat_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &ConsumerGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
     buf.put_i32(0);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
@@ -136,10 +172,12 @@ pub fn encode_consumer_group_heartbeat_response(
     Ok(())
 }
 
-/// Decode a flexible v0 ConsumerGroupHeartbeat response.
+/// Decode a flexible v0–v1 ConsumerGroupHeartbeat response.
 pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ConsumerGroupHeartbeatResponse> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
@@ -211,22 +249,28 @@ fn decode_topic_partitions<B: Buf>(buf: &mut B) -> Result<Option<Vec<TopicPartit
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytes::Buf;
 
-    #[test]
-    fn consumer_group_heartbeat_v0_roundtrip_join() {
-        let req = ConsumerGroupHeartbeatRequest {
+    fn join_req() -> ConsumerGroupHeartbeatRequest {
+        ConsumerGroupHeartbeatRequest {
             group_id: "g".into(),
             member_id: String::new(),
             member_epoch: 0,
             instance_id: Some("worker-1".into()),
             rack_id: Some("az1".into()),
             subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
             topic_partitions: None,
-        };
+        }
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v0_roundtrip_join() {
+        let req = join_req();
         let mut buf = BytesMut::new();
-        encode_consumer_group_heartbeat_request(&mut buf, &req).unwrap();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
         assert_eq!(
-            decode_consumer_group_heartbeat_request(&mut &buf[..]).unwrap(),
+            decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap(),
             req
         );
 
@@ -243,9 +287,9 @@ mod tests {
             }]),
         };
         buf.clear();
-        encode_consumer_group_heartbeat_response(&mut buf, &resp).unwrap();
+        encode_consumer_group_heartbeat_response(&mut buf, 0, &resp).unwrap();
         assert_eq!(
-            decode_consumer_group_heartbeat_response(&mut &buf[..]).unwrap(),
+            decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap(),
             resp
         );
     }
@@ -259,12 +303,139 @@ mod tests {
             instance_id: None,
             rack_id: None,
             subscribed_topic_names: None,
+            subscribed_topic_regex: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
-        encode_consumer_group_heartbeat_request(&mut buf, &req).unwrap();
-        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..]).unwrap();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap();
         assert_eq!(decoded.member_epoch, -1);
         assert_eq!(decoded.member_id, "m1");
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v1_compact_layout_matches_independent_encode() {
+        // group "g", empty member, epoch 0, null instance/rack, timeout
+        // 45000, topics ["t"], null regex, null assignor, null partitions,
+        // empty tagged. Compact string length is n+1.
+        const REQ_V0: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x00, 0x00, 0x00,
+        ];
+        const REQ_V1: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const REQ_V1_REGEX: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x04, 0x74, 0x2e, 0x2a, 0x00, 0x00, 0x00,
+        ];
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: String::new(),
+            member_epoch: 0,
+            instance_id: None,
+            rack_id: None,
+            subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        buf.clear();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V1);
+        let mut with_regex = req.clone();
+        with_regex.subscribed_topic_regex = Some("t.*".into());
+        buf.clear();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &with_regex).unwrap();
+        assert_eq!(&buf[..], REQ_V1_REGEX);
+        assert_eq!(
+            decode_consumer_group_heartbeat_request(&mut &buf[..], 1).unwrap(),
+            with_regex
+        );
+        assert!(
+            encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 0, &with_regex).is_err(),
+            "SubscribedTopicRegex must not encode on v0"
+        );
+        assert!(
+            encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 2, &req).is_err(),
+            "ConsumerGroupHeartbeat v2+ is not spoken"
+        );
+        buf.clear();
+        encode_consumer_group_heartbeat_response(
+            &mut buf,
+            1,
+            &ConsumerGroupHeartbeatResponse {
+                error_code: 0,
+                error_message: None,
+                member_id: Some("m1".into()),
+                member_epoch: 1,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap();
+        let mut v0 = BytesMut::new();
+        encode_consumer_group_heartbeat_response(
+            &mut v0,
+            0,
+            &ConsumerGroupHeartbeatResponse {
+                error_code: 0,
+                error_message: None,
+                member_id: Some("m1".into()),
+                member_epoch: 1,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(&buf[..], &v0[..], "v1 response layout matches v0");
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v1_roundtrip_is_leftover_empty() {
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: "m1".into(),
+            member_epoch: 1,
+            instance_id: None,
+            rack_id: None,
+            subscribed_topic_names: None,
+            subscribed_topic_regex: Some("t.*".into()),
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_heartbeat_request(&mut cur, 1).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupHeartbeat v1 request must be leftover-empty"
+        );
+
+        let resp = ConsumerGroupHeartbeatResponse {
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        buf.clear();
+        encode_consumer_group_heartbeat_response(&mut buf, 1, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_heartbeat_response(&mut cur, 1).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupHeartbeat v1 response must be leftover-empty"
+        );
     }
 }

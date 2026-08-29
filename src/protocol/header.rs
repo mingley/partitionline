@@ -185,6 +185,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // ResourcePatternType. v3 user resource type (same layout as v2).
         // v4+ is not spoken.
         CREATE_ACLS | DESCRIBE_ACLS | DELETE_ACLS if api_version >= 2 => 2,
+        // ConsumerGroupHeartbeat is flexible from v0 (Apache JSON
+        // flexibleVersions: "0+"). Kafka 4.0 validVersions is 0-1.
+        // This crate speaks 0–1. v1 SubscribedTopicRegex (KIP-848) and
+        // client-generated MemberId (KIP-1082). v2+ is not spoken.
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -840,6 +844,20 @@ mod tests {
         assert_eq!(response_header_version(CONSUMER_GROUP_DESCRIBE, 0), 1);
         assert_eq!(request_header_version(CONSUMER_GROUP_DESCRIBE, 1), 2);
         assert_eq!(response_header_version(CONSUMER_GROUP_DESCRIBE, 1), 1);
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v0_to_v1_are_flexible() {
+        // Official Kafka 4.0 JSON: validVersions 0-1, flexibleVersions 0+.
+        // HeaderVersion is 2 / 1 at every spoken version. This crate
+        // speaks 0–1. v1 SubscribedTopicRegex (KIP-848) / KIP-1082.
+        for version in 0..=1 {
+            assert_eq!(request_header_version(CONSUMER_GROUP_HEARTBEAT, version), 2);
+            assert_eq!(
+                response_header_version(CONSUMER_GROUP_HEARTBEAT, version),
+                1
+            );
+        }
     }
 
     #[test]

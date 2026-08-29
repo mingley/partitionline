@@ -33,6 +33,7 @@
 //! Heartbeat v3–v4 (v4 flexible),
 //! SyncGroup v3–v5 (v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
+//! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),

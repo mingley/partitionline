@@ -416,6 +416,8 @@ struct State {
     last_heartbeat_version: Option<i16>,
     last_sync_group_version: Option<i16>,
     last_join_group_version: Option<i16>,
+    last_consumer_group_heartbeat_version: Option<i16>,
+    last_consumer_group_heartbeat_join_member_id: Option<String>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
@@ -690,6 +692,8 @@ fn new_state(
         last_heartbeat_version: None,
         last_sync_group_version: None,
         last_join_group_version: None,
+        last_consumer_group_heartbeat_version: None,
+        last_consumer_group_heartbeat_join_member_id: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
@@ -1962,6 +1966,17 @@ impl Mock {
         self.state.lock().last_join_group_version
     }
 
+    pub fn last_consumer_group_heartbeat_version(&self) -> Option<i16> {
+        self.state.lock().last_consumer_group_heartbeat_version
+    }
+
+    pub fn last_consumer_group_heartbeat_join_member_id(&self) -> Option<String> {
+        self.state
+            .lock()
+            .last_consumer_group_heartbeat_join_member_id
+            .clone()
+    }
+
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
     }
@@ -2333,7 +2348,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (HEARTBEAT, 0, 4),
         (SYNC_GROUP, 0, 5),
         (LEAVE_GROUP, 0, 5),
-        (CONSUMER_GROUP_HEARTBEAT, 0, 0),
+        (CONSUMER_GROUP_HEARTBEAT, 0, 1),
         (CONSUMER_GROUP_DESCRIBE, 0, 1),
         (DESCRIBE_GROUPS, 0, 6),
         (LIST_GROUPS, 0, 5),
@@ -2454,6 +2469,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
         .unwrap(),
         CONSUMER_GROUP_HEARTBEAT => encode_consumer_group_heartbeat_response(
             body,
+            api_version,
             &ConsumerGroupHeartbeatResponse {
                 error_code: NC,
                 error_message: None,
@@ -4478,9 +4494,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             CONSUMER_GROUP_HEARTBEAT => {
-                let req = decode_consumer_group_heartbeat_request(&mut frame).unwrap();
+                let req = decode_consumer_group_heartbeat_request(&mut frame, header.api_version)
+                    .unwrap();
                 let mut st = state.lock();
                 st.cg_heartbeat_calls = st.cg_heartbeat_calls.saturating_add(1);
+                st.last_consumer_group_heartbeat_version = Some(header.api_version);
                 st.last_group_instance_id = req.instance_id.clone();
                 st.last_group_rack = req.rack_id.clone();
                 let n = st.hb_by_node.entry(node_id).or_insert(0);
@@ -4501,8 +4519,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         (req.member_id, -1, None)
                     }
                     std::cmp::Ordering::Equal => {
-                        st.member_seq += 1;
-                        let id = format!("k-{}", st.member_seq);
+                        st.last_consumer_group_heartbeat_join_member_id =
+                            Some(req.member_id.clone());
+                        let id = if req.member_id.is_empty() {
+                            st.member_seq += 1;
+                            format!("k-{}", st.member_seq)
+                        } else {
+                            req.member_id.clone()
+                        };
                         let topic_names = match &req.subscribed_topic_names {
                             Some(n) if n.is_empty() => Vec::new(),
                             Some(n) => n.clone(),
@@ -4551,6 +4575,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 };
                 encode_consumer_group_heartbeat_response(
                     &mut body,
+                    header.api_version,
                     &ConsumerGroupHeartbeatResponse {
                         error_code: 0,
                         error_message: None,
