@@ -394,6 +394,7 @@ struct State {
     last_offset_commit_version: Option<i16>,
     last_heartbeat_version: Option<i16>,
     last_sync_group_version: Option<i16>,
+    last_join_group_version: Option<i16>,
     offset_commit_not_coordinator: u32,
     offset_commit_load_left: u32,
     offset_commit_load_in_progress: u32,
@@ -648,6 +649,7 @@ fn new_state(
         last_offset_commit_version: None,
         last_heartbeat_version: None,
         last_sync_group_version: None,
+        last_join_group_version: None,
         offset_commit_not_coordinator: 0,
         offset_commit_load_left: 0,
         offset_commit_load_in_progress: 0,
@@ -1840,6 +1842,10 @@ impl Mock {
         self.state.lock().last_sync_group_version
     }
 
+    pub fn last_join_group_version(&self) -> Option<i16> {
+        self.state.lock().last_join_group_version
+    }
+
     pub fn offset_commit_not_coordinator(&self) -> u32 {
         self.state.lock().offset_commit_not_coordinator
     }
@@ -2207,7 +2213,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (OFFSET_COMMIT, 2, 9),
         (OFFSET_FETCH, 1, 9),
         (FIND_COORDINATOR, 0, 6),
-        (JOIN_GROUP, 0, 5),
+        (JOIN_GROUP, 0, 9),
         (HEARTBEAT, 0, 4),
         (SYNC_GROUP, 0, 5),
         (LEAVE_GROUP, 0, 5),
@@ -2305,7 +2311,9 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
     match api_key {
         HEARTBEAT => encode_heartbeat_response(body, api_version, NC).unwrap(),
         LEAVE_GROUP => encode_leave_group_response_version(body, api_version, NC, &[]).unwrap(),
-        JOIN_GROUP => encode_join_group_response(body, NC, -1, "", "", "", &[]).unwrap(),
+        JOIN_GROUP => {
+            encode_join_group_response(body, api_version, NC, -1, "", "", "", &[]).unwrap()
+        }
         SYNC_GROUP => encode_sync_group_response(body, api_version, NC, &[]).unwrap(),
         OFFSET_COMMIT => encode_offset_commit_response(
             body,
@@ -4340,15 +4348,25 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             JOIN_GROUP => {
                 let (gid, member_id, instance, metadata) =
-                    decode_join_group_request(&mut frame).unwrap();
+                    decode_join_group_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.join_group_calls = st.join_group_calls.saturating_add(1);
+                st.last_join_group_version = Some(header.api_version);
                 st.last_group_instance_id = instance.clone();
                 if member_id.is_empty() {
                     st.member_seq += 1;
                     let assigned = format!("m-{}", st.member_seq);
-                    encode_join_group_response(&mut body, 79, -1, "range", "", &assigned, &[])
-                        .unwrap();
+                    encode_join_group_response(
+                        &mut body,
+                        header.api_version,
+                        79,
+                        -1,
+                        "range",
+                        "",
+                        &assigned,
+                        &[],
+                    )
+                    .unwrap();
                 } else {
                     let notify = st.assign_notify.clone();
                     let g = st.groups.entry(gid).or_insert_with(|| GroupReg {
@@ -4386,7 +4404,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         notify.notify_waiters();
                     }
                     encode_join_group_response(
-                        &mut body, 0, gen, "range", &leader, &member_id, &members,
+                        &mut body,
+                        header.api_version,
+                        0,
+                        gen,
+                        "range",
+                        &leader,
+                        &member_id,
+                        &members,
                     )
                     .unwrap();
                 }

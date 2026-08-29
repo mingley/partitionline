@@ -166,7 +166,25 @@ pub fn decode_find_coordinator_response<B: Buf>(
     Ok((error, node_id, host, port))
 }
 
-/// JoinGroup request (classic v5–7 shape this crate speaks).
+/// `true` when JoinGroup `version` is flexible (v6+).
+///
+/// v5 is classic (GroupInstanceId). v6 is compact strings/bytes/arrays
+/// plus tagged fields (Apache JSON `flexibleVersions: "6+"`). v7 is the
+/// same request as v6; the response adds ProtocolType (KIP-559) and
+/// nullable ProtocolName. v8 adds Reason (KIP-800). v9 adds
+/// SkipAssignment on the response. Kafka 4.0 `validVersions` is `2-9`.
+/// This crate speaks 5–9. v2–v4 (no instance id) and v10+ are not spoken.
+fn join_group_flexible(version: i16) -> Result<bool> {
+    match version {
+        5 => Ok(false),
+        6..=9 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "JoinGroup version {other} is not implemented"
+        ))),
+    }
+}
+
+/// JoinGroup request (classic v5 or flexible v6–v9).
 #[derive(Debug, Clone, Copy)]
 pub struct JoinGroupRequest<'a> {
     /// Group id.
@@ -183,40 +201,64 @@ pub struct JoinGroupRequest<'a> {
     pub protocol_name: &'a str,
     /// Subscription metadata bytes.
     pub metadata: &'a [u8],
+    /// Why the member (re-)joins (v8+, KIP-800). `None` is a null reason.
+    pub reason: Option<&'a str>,
 }
 
-/// Encode JoinGroup.
+/// Encode JoinGroup v5 (classic) or v6–v9 (flexible).
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &JoinGroupRequest<'_>,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(req.group_id))?;
+    let flexible = join_group_flexible(version)?;
+    buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.session_timeout_ms);
     buf.put_i32(req.session_timeout_ms); // rebalance timeout
-    buf::put_classic_nullable_string(buf, Some(req.member_id))?;
-    buf::put_classic_nullable_string(buf, req.group_instance_id)?;
-    buf::put_classic_nullable_string(buf, Some(req.protocol_type))?;
-    buf::put_array_len(buf, false, Some(1))?;
-    buf::put_classic_nullable_string(buf, Some(req.protocol_name))?;
-    buf::put_classic_bytes(buf, Some(req.metadata))?;
+    buf::put_string(buf, flexible, Some(req.member_id))?;
+    buf::put_string(buf, flexible, req.group_instance_id)?;
+    buf::put_string(buf, flexible, Some(req.protocol_type))?;
+    buf::put_array_len(buf, flexible, Some(1))?;
+    buf::put_string(buf, flexible, Some(req.protocol_name))?;
+    buf::put_bytes(buf, flexible, Some(req.metadata))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
+    if version >= 8 {
+        buf::put_string(buf, true, req.reason)?;
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode JoinGroup: `(group_id, member_id, instance_id, metadata)`.
 pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<(String, String, Option<String>, Vec<u8>)> {
-    let group_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let flexible = join_group_flexible(version)?;
+    let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _session = buf::get_i32(buf)?;
     let _rebalance = buf::get_i32(buf)?;
-    let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let instance = buf::get_classic_nullable_string(buf)?;
-    let _ptype = buf::get_classic_nullable_string(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let instance = buf::get_string(buf, flexible)?;
+    let _ptype = buf::get_string(buf, flexible)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut metadata = Vec::new();
     for _ in 0..n {
-        let _name = buf::get_classic_nullable_string(buf)?;
-        metadata = buf::get_classic_bytes(buf)?.unwrap_or_default();
+        let _name = buf::get_string(buf, flexible)?;
+        metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+    }
+    if version >= 8 {
+        let _reason = buf::get_string(buf, true)?;
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok((group_id, member_id, instance, metadata))
 }
@@ -231,8 +273,13 @@ pub struct JoinMember {
 }
 
 /// Encode JoinGroup: generation, protocol, leader, members.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "JoinGroup response fields match the Apache JSON layout"
+)]
 pub fn encode_join_group_response(
     buf: &mut BytesMut,
+    version: i16,
     error_code: i16,
     generation_id: i32,
     protocol_name: &str,
@@ -240,43 +287,84 @@ pub fn encode_join_group_response(
     member_id: &str,
     members: &[JoinMember],
 ) -> crate::error::Result<()> {
+    let flexible = join_group_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
-    buf::put_classic_nullable_string(buf, Some(protocol_name))?;
-    buf::put_classic_nullable_string(buf, Some(leader))?;
-    buf::put_classic_nullable_string(buf, Some(member_id))?;
-    buf::put_array_len(buf, false, Some(members.len()))?;
+    if version >= 7 {
+        buf::put_string(buf, true, None)?;
+    }
+    buf::put_string(buf, flexible, Some(protocol_name))?;
+    buf::put_string(buf, flexible, Some(leader))?;
+    if version >= 9 {
+        buf.put_u8(0);
+    }
+    buf::put_string(buf, flexible, Some(member_id))?;
+    buf::put_array_len(buf, flexible, Some(members.len()))?;
     for m in members {
-        buf::put_classic_nullable_string(buf, Some(&m.member_id))?;
-        buf::put_classic_nullable_string(buf, None)?;
-        buf::put_classic_bytes(buf, Some(&m.metadata))?;
+        buf::put_string(buf, flexible, Some(&m.member_id))?;
+        buf::put_string(buf, flexible, None)?;
+        buf::put_bytes(buf, flexible, Some(&m.metadata))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, members)`.
+/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members)`.
+#[expect(
+    clippy::type_complexity,
+    reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members"
+)]
 pub fn decode_join_group_response<B: Buf>(
     buf: &mut B,
-) -> Result<(i16, i32, String, String, String, Vec<JoinMember>)> {
+    version: i16,
+) -> Result<(i16, i32, String, String, String, bool, Vec<JoinMember>)> {
+    let flexible = join_group_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
     let generation = buf::get_i32(buf)?;
-    let protocol = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let leader = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let member_id = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    if version >= 7 {
+        let _ptype = buf::get_string(buf, true)?;
+    }
+    let protocol = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let leader = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let skip_assignment = if version >= 9 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut members = Vec::with_capacity(n);
     for _ in 0..n {
-        let mid = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let _inst = buf::get_classic_nullable_string(buf)?;
-        let metadata = buf::get_classic_bytes(buf)?.unwrap_or_default();
+        let mid = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let _inst = buf::get_string(buf, flexible)?;
+        let metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         members.push(JoinMember {
             member_id: mid,
             metadata,
         });
     }
-    Ok((error, generation, protocol, leader, member_id, members))
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((
+        error,
+        generation,
+        protocol,
+        leader,
+        member_id,
+        skip_assignment,
+        members,
+    ))
 }
 
 /// `true` when SyncGroup `version` is flexible (v4+).
@@ -1651,6 +1739,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_join_group_request(
             &mut buf,
+            5,
             &JoinGroupRequest {
                 group_id: "g",
                 session_timeout_ms: 10_000,
@@ -1659,14 +1748,209 @@ mod tests {
                 protocol_type: "consumer",
                 protocol_name: "range",
                 metadata: &[1, 2, 3],
+                reason: None,
             },
         )
         .unwrap();
-        let (gid, member, instance, meta) = decode_join_group_request(&mut &buf[..]).unwrap();
+        let mut cur = &buf[..];
+        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 5).unwrap();
         assert_eq!(gid, "g");
         assert_eq!(member, "m1");
         assert_eq!(instance.as_deref(), Some("worker-1"));
         assert_eq!(meta, vec![1, 2, 3]);
+        assert!(cur.is_empty(), "v5 decoder leftover {} bytes", cur.len());
+    }
+
+    fn join_req(metadata: &[u8]) -> JoinGroupRequest<'_> {
+        JoinGroupRequest {
+            group_id: "g",
+            session_timeout_ms: 10_000,
+            member_id: "m1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            metadata,
+            reason: None,
+        }
+    }
+
+    #[test]
+    fn join_group_v6_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_join_group_request(&mut req, 6, &join_req(&[1, 2, 3])).unwrap();
+        let mut cur = &req[..];
+        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 6).unwrap();
+        assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
+        assert_eq!(instance, None);
+        assert_eq!(meta, vec![1, 2, 3]);
+        assert!(
+            cur.is_empty(),
+            "v6 decoder must consume compact fields and tagged fields; leftover {} bytes",
+            cur.len()
+        );
+
+        let members = [JoinMember {
+            member_id: "m1".into(),
+            metadata: vec![1, 2, 3],
+        }];
+        let mut resp = BytesMut::new();
+        encode_join_group_response(&mut resp, 6, 0, 7, "range", "l", "m1", &members).unwrap();
+        let mut cur = &resp[..];
+        let (err, gen, proto, leader, mid, skip, got) =
+            decode_join_group_response(&mut cur, 6).unwrap();
+        assert_eq!(
+            (
+                err,
+                gen,
+                proto.as_str(),
+                leader.as_str(),
+                mid.as_str(),
+                skip
+            ),
+            (0, 7, "range", "l", "m1", false)
+        );
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].metadata, vec![1, 2, 3]);
+        assert!(cur.is_empty(), "v6 response leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn join_group_v8_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        let mut body = join_req(&[1, 2, 3]);
+        body.reason = Some("rejoin");
+        encode_join_group_request(&mut req, 8, &body).unwrap();
+        let mut cur = &req[..];
+        let (gid, member, _, meta) = decode_join_group_request(&mut cur, 8).unwrap();
+        assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
+        assert_eq!(meta, vec![1, 2, 3]);
+        assert!(
+            cur.is_empty(),
+            "v8 decoder must consume Reason; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut resp = BytesMut::new();
+        encode_join_group_response(&mut resp, 8, 0, 7, "range", "l", "m1", &[]).unwrap();
+        let mut cur = &resp[..];
+        let (err, _, _, _, _, skip, members) = decode_join_group_response(&mut cur, 8).unwrap();
+        assert_eq!((err, skip, members.len()), (0, false, 0));
+        assert!(cur.is_empty(), "v8 response leftover {} bytes", cur.len());
+    }
+
+    #[test]
+    fn join_group_v9_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_join_group_request(&mut req, 9, &join_req(&[1, 2, 3])).unwrap();
+        let mut v8 = BytesMut::new();
+        encode_join_group_request(&mut v8, 8, &join_req(&[1, 2, 3])).unwrap();
+        assert_eq!(&req[..], &v8[..], "JoinGroup v9 request matches v8");
+        let mut cur = &req[..];
+        let _ = decode_join_group_request(&mut cur, 9).unwrap();
+        assert!(cur.is_empty(), "v9 request leftover {} bytes", cur.len());
+
+        let mut resp = BytesMut::new();
+        encode_join_group_response(&mut resp, 9, 0, 7, "range", "l", "m1", &[]).unwrap();
+        let mut cur = &resp[..];
+        let (err, _, _, _, _, skip, _) = decode_join_group_response(&mut cur, 9).unwrap();
+        assert_eq!((err, skip), (0, false));
+        assert!(
+            cur.is_empty(),
+            "v9 response must consume SkipAssignment; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn join_group_v6_request_matches_compact_layout() {
+        // Compact "g", session/rebalance 10000, compact "m1", null instance,
+        // compact "consumer", one protocol "range" metadata [1,2,3], tagged.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x27, 0x10, 0x00, 0x00, 0x27, 0x10, 0x03, 0x6d, 0x31, 0x00,
+            0x09, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x02, 0x06, 0x72, 0x61, 0x6e,
+            0x67, 0x65, 0x04, 0x01, 0x02, 0x03, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_join_group_request(&mut buf, 6, &join_req(&[1, 2, 3])).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v5 = BytesMut::new();
+        encode_join_group_request(&mut v5, 5, &join_req(&[1, 2, 3])).unwrap();
+        assert_ne!(&buf[..], &v5[..], "JoinGroup v6 must not be classic v5");
+        assert!(
+            encode_join_group_request(&mut BytesMut::new(), 4, &join_req(&[1, 2, 3])).is_err(),
+            "JoinGroup v4 is not spoken"
+        );
+        assert!(
+            encode_join_group_request(&mut BytesMut::new(), 10, &join_req(&[1, 2, 3])).is_err(),
+            "JoinGroup v10+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn join_group_v8_request_matches_compact_layout() {
+        // v6 body plus null Reason before top-level tagged fields.
+        const REQ: &[u8] = &[
+            0x02, 0x67, 0x00, 0x00, 0x27, 0x10, 0x00, 0x00, 0x27, 0x10, 0x03, 0x6d, 0x31, 0x00,
+            0x09, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x02, 0x06, 0x72, 0x61, 0x6e,
+            0x67, 0x65, 0x04, 0x01, 0x02, 0x03, 0x00, 0x00, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_join_group_request(&mut buf, 8, &join_req(&[1, 2, 3])).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut v6 = BytesMut::new();
+        encode_join_group_request(&mut v6, 6, &join_req(&[1, 2, 3])).unwrap();
+        assert_ne!(&buf[..], &v6[..], "JoinGroup v8 must include Reason");
+    }
+
+    #[test]
+    fn join_group_v6_response_matches_compact_layout() {
+        // Throttle 0, error 0, generation 7, compact "range", compact "l",
+        // compact "m1", empty members, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x06, 0x72, 0x61, 0x6e,
+            0x67, 0x65, 0x02, 0x6c, 0x03, 0x6d, 0x31, 0x01, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_join_group_response(&mut buf, 6, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn join_group_v7_response_matches_compact_layout() {
+        // v6 plus null ProtocolType before ProtocolName.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x06, 0x72, 0x61,
+            0x6e, 0x67, 0x65, 0x02, 0x6c, 0x03, 0x6d, 0x31, 0x01, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_join_group_response(&mut buf, 7, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut v6 = BytesMut::new();
+        encode_join_group_response(&mut v6, 6, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v6[..],
+            "JoinGroup v7 response must include ProtocolType"
+        );
+    }
+
+    #[test]
+    fn join_group_v9_response_matches_compact_layout() {
+        // v7 plus SkipAssignment 0 after Leader.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x06, 0x72, 0x61,
+            0x6e, 0x67, 0x65, 0x02, 0x6c, 0x00, 0x03, 0x6d, 0x31, 0x01, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_join_group_response(&mut buf, 9, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut v7 = BytesMut::new();
+        encode_join_group_response(&mut v7, 7, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v7[..],
+            "JoinGroup v9 response must include SkipAssignment"
+        );
     }
 
     fn offset_commit_topics() -> Vec<OffsetTopic> {

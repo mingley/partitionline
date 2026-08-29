@@ -32,6 +32,7 @@
 //! OffsetFetch v5–v9 (v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v3–v4 (v4 flexible),
 //! SyncGroup v3–v5 (v4+ flexible; v5 ProtocolType / ProtocolName),
+//! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),

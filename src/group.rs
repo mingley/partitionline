@@ -1427,6 +1427,12 @@ impl ConsumerGroup {
     async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
         let timeout = self.cfg.request_timeout;
         let metadata = self.join_metadata()?;
+        let version = self.coord.join_group_version;
+        if version == 0 {
+            return Err(Error::Unsupported(
+                "broker does not support JoinGroup v5-9".into(),
+            ));
+        }
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
                 &mut self.coord,
@@ -1434,10 +1440,11 @@ impl ConsumerGroup {
                 &self.group_id,
                 COORDINATOR_GROUP,
                 JOIN_GROUP,
-                5,
+                version,
                 |buf| {
                     encode_join_group_request(
                         buf,
+                        version,
                         &JoinGroupRequest {
                             group_id: &self.group_id,
                             session_timeout_ms: self.cfg.session_timeout_ms,
@@ -1446,13 +1453,15 @@ impl ConsumerGroup {
                             protocol_type: "consumer",
                             protocol_name: &self.protocol,
                             metadata: &metadata,
+                            reason: None,
                         },
                     )
                 },
                 timeout,
             )
             .await?;
-            let (error, _, _, _, assigned_id, _) = decode_join_group_response(&mut body.clone())?;
+            let (error, _, _, _, assigned_id, _, _) =
+                decode_join_group_response(&mut body.clone(), version)?;
             self.member_id = assigned_id;
             if error != 0 && error != error::MEMBER_ID_REQUIRED {
                 return Err(Error::broker(error, "JoinGroup"));
@@ -1465,10 +1474,11 @@ impl ConsumerGroup {
             &self.group_id,
             COORDINATOR_GROUP,
             JOIN_GROUP,
-            5,
+            version,
             |buf| {
                 encode_join_group_request(
                     buf,
+                    version,
                     &JoinGroupRequest {
                         group_id: &self.group_id,
                         session_timeout_ms: self.cfg.session_timeout_ms,
@@ -1477,14 +1487,15 @@ impl ConsumerGroup {
                         protocol_type: "consumer",
                         protocol_name: &self.protocol,
                         metadata: &metadata,
+                        reason: None,
                     },
                 )
             },
             timeout,
         )
         .await?;
-        let (error, generation, protocol, leader, assigned_id, members) =
-            decode_join_group_response(&mut body.clone())?;
+        let (error, generation, protocol, leader, assigned_id, skip_assignment, members) =
+            decode_join_group_response(&mut body.clone(), version)?;
         if error != 0 {
             return Err(Error::broker(error, "JoinGroup"));
         }
@@ -1514,7 +1525,7 @@ impl ConsumerGroup {
         for topic in &topic_set {
             by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
         }
-        let assignments = if leader == self.member_id {
+        let assignments = if leader == self.member_id && !skip_assignment {
             let map = match self.protocol.as_str() {
                 "cooperative-sticky" => {
                     assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
@@ -2222,6 +2233,12 @@ async fn open_coord_with_find_version(
         .iter()
         .find(|k| k.api_key == SYNC_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 3, 5))
+        .unwrap_or(0);
+    conn.join_group_version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == JOIN_GROUP)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
         .unwrap_or(0);
     sasl::authenticate(
         &mut conn,

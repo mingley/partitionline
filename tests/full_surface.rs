@@ -11,7 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    END_TXN, FIND_COORDINATOR, HEARTBEAT, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, METADATA, OFFSET_COMMIT, OFFSET_FETCH,
+    SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -1994,6 +1995,11 @@ async fn consumer_group_join_fetch_commit() {
         Some(5),
         "ConsumerGroup must prefer SyncGroup v5 when the broker advertises it"
     );
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(9),
+        "ConsumerGroup must prefer JoinGroup v9 when the broker advertises it"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
@@ -2151,6 +2157,42 @@ async fn sync_group_negotiates_below_v5_when_broker_caps() {
         mock.last_sync_group_version(),
         Some(3),
         "client must speak SyncGroup v3 when the broker max is 3"
+    );
+}
+
+#[tokio::test]
+async fn join_group_negotiates_below_v9_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(JOIN_GROUP, 8);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "jg8", "t").await.unwrap();
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(8),
+        "client must speak JoinGroup v8 when the broker max is 8"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(JOIN_GROUP, 6);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "jg6", "t").await.unwrap();
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(6),
+        "client must speak JoinGroup v6 when the broker max is 6"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(JOIN_GROUP, 5);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "jg5", "t").await.unwrap();
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(5),
+        "client must speak JoinGroup v5 when the broker max is 5"
     );
 }
 
