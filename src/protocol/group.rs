@@ -693,10 +693,6 @@ fn offset_commit_flexible(version: i16) -> Result<bool> {
 }
 
 /// Encode OffsetCommit v7 (classic) or v8–v9 (flexible).
-#[expect(
-    clippy::too_many_arguments,
-    reason = "OffsetCommit request body needs version, group identity, and topics together"
-)]
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     version: i16,
