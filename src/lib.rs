@@ -30,7 +30,7 @@
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
 //! OffsetCommit v7–v9 (v8+ flexible; v9 KIP-848 errors),
 //! OffsetFetch v5–v9 (v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
-//! Heartbeat v3–v4 (v4 flexible),
+//! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v3–v5 (v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v5–v9 (v6+ flexible; v8 Reason; v9 SkipAssignment),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason),

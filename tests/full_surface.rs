@@ -2340,6 +2340,39 @@ async fn heartbeat_negotiates_below_v4_when_broker_caps() {
 }
 
 #[tokio::test]
+async fn heartbeat_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(HEARTBEAT, 0);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let group = ConsumerGroup::join(ccfg, "hb0", "t").await.unwrap();
+    common::wait_pred("classic Heartbeat v0", || mock.heartbeat_total("hb0") >= 1).await;
+    assert_eq!(
+        mock.last_heartbeat_version(),
+        Some(0),
+        "client must speak Heartbeat v0 when the broker max is 0"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn heartbeat_negotiates_v2_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(HEARTBEAT, 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-hb2".into());
+    let group = ConsumerGroup::join(ccfg, "hb2", "t").await.unwrap();
+    common::wait_pred("classic Heartbeat v2", || mock.heartbeat_total("hb2") >= 1).await;
+    assert_eq!(
+        mock.last_heartbeat_version(),
+        Some(2),
+        "client must speak Heartbeat v2 when the broker max is 2"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn sync_group_negotiates_below_v5_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(SYNC_GROUP, 4);

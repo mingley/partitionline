@@ -1892,7 +1892,9 @@ impl ConsumerGroup {
                         let mid = member_id.clone();
                         let instance = cfg.group_instance_id.clone();
                         let generation = hb_generation.load(Ordering::SeqCst);
-                        let version = c.heartbeat_version;
+                        let Ok(version) = spoken_heartbeat(c.heartbeat_version) else {
+                            continue;
+                        };
                         let res = c
                             .roundtrip(
                                 HEARTBEAT,
@@ -1998,6 +2000,16 @@ async fn leave_if_max_poll(
         }
     }
     true
+}
+
+fn spoken_heartbeat(version: i16) -> Result<i16> {
+    if (0..=4).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support Heartbeat v0-4".into(),
+        ))
+    }
 }
 
 fn spoken_leave_group(version: i16) -> Result<i16> {
@@ -2278,8 +2290,8 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == HEARTBEAT)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 3, 4))
-        .unwrap_or(0);
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
+        .unwrap_or(-1);
     conn.sync_group_version = resp
         .api_keys
         .iter()

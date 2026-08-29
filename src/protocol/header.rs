@@ -150,8 +150,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         OFFSET_FOR_LEADER_EPOCH if api_version >= 4 => 2,
         // Heartbeat is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
-        // is 0-4. This crate speaks 3–4. v0–v2 (no instance id) are
-        // not spoken.
+        // is 0-4. This crate speaks 0–4. v1 and v2 match v0. v3
+        // GroupInstanceId. v5+ is not spoken.
         HEARTBEAT if api_version >= 4 => 2,
         // SyncGroup is classic through v3; flexible from v4
         // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
@@ -594,8 +594,12 @@ mod tests {
     #[test]
     fn heartbeat_v4_is_flexible_v3_is_not() {
         // Official JSON: validVersions 0-4, flexibleVersions 4+.
-        // HeaderVersion is 1 / 0 at v3 and 2 / 1 at v4. This crate
-        // speaks 3–4. v0–v2 (no instance id) are not spoken.
+        // HeaderVersion is 1 / 0 at v0–v3 and 2 / 1 at v4. This crate
+        // speaks 0–4. v1 and v2 match v0. v3 GroupInstanceId.
+        assert_eq!(request_header_version(HEARTBEAT, 0), 1);
+        assert_eq!(response_header_version(HEARTBEAT, 0), 0);
+        assert_eq!(request_header_version(HEARTBEAT, 2), 1);
+        assert_eq!(response_header_version(HEARTBEAT, 2), 0);
         assert_eq!(request_header_version(HEARTBEAT, 3), 1);
         assert_eq!(response_header_version(HEARTBEAT, 3), 0);
         assert_eq!(request_header_version(HEARTBEAT, 4), 2);

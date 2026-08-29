@@ -507,13 +507,13 @@ pub fn decode_sync_group_response<B: Buf>(buf: &mut B, version: i16) -> Result<(
 
 /// `true` when Heartbeat `version` is flexible (v4+).
 ///
-/// v3 is classic (GroupId, GenerationId, MemberId, GroupInstanceId).
-/// v4 is compact strings plus tagged fields (Apache JSON
-/// `flexibleVersions: "4+"`). Kafka 4.0 `validVersions` is `0-4`. This
-/// crate speaks 3–4. v0–v2 (no instance id) and v5+ are not spoken.
+/// v0–v3 are classic. v4 is compact strings plus tagged fields (Apache
+/// JSON `flexibleVersions: "4+"`). Kafka 4.0 `validVersions` is `0-4`.
+/// Official JSON: v1 and v2 match v0. v1+ ThrottleTimeMs. v3
+/// GroupInstanceId. This crate speaks 0–4. v5+ is not spoken.
 fn heartbeat_flexible(version: i16) -> Result<bool> {
     match version {
-        3 => Ok(false),
+        0..=3 => Ok(false),
         4 => Ok(true),
         other => Err(Error::protocol(format!(
             "Heartbeat version {other} is not implemented"
@@ -521,7 +521,12 @@ fn heartbeat_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// Encode Heartbeat v3 (classic) or v4 (flexible).
+/// Encode Heartbeat v0–v4.
+///
+/// Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "4+"`.
+/// v0–v2 are GroupId + GenerationId + MemberId (v1 and v2 match v0).
+/// v3 GroupInstanceId. v4 flexible. This crate speaks 0–4. v5+ is not
+/// spoken.
 pub fn encode_heartbeat_request(
     buf: &mut BytesMut,
     version: i16,
@@ -534,7 +539,9 @@ pub fn encode_heartbeat_request(
     buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i32(generation_id);
     buf::put_string(buf, flexible, Some(member_id))?;
-    buf::put_string(buf, flexible, group_instance_id)?;
+    if version >= 3 {
+        buf::put_string(buf, flexible, group_instance_id)?;
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -550,21 +557,25 @@ pub fn decode_heartbeat_request<B: Buf>(
     let g = buf::get_string(buf, flexible)?.unwrap_or_default();
     let gen = buf::get_i32(buf)?;
     let m = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _inst = buf::get_string(buf, flexible)?;
+    if version >= 3 {
+        let _inst = buf::get_string(buf, flexible)?;
+    }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
     Ok((g, gen, m))
 }
 
-/// Encode Heartbeat: throttle `0` plus error code.
+/// Encode Heartbeat v0–v4. Throttle is `0` on v1+.
 pub fn encode_heartbeat_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
 ) -> crate::error::Result<()> {
     let flexible = heartbeat_flexible(version)?;
-    buf.put_i32(0);
+    if version >= 1 {
+        buf.put_i32(0);
+    }
     buf.put_i16(error_code);
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -572,10 +583,12 @@ pub fn encode_heartbeat_response(
     Ok(())
 }
 
-/// Decode Heartbeat: error code.
+/// Decode Heartbeat: error code. Throttle is v1+.
 pub fn decode_heartbeat_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
     let flexible = heartbeat_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    if version >= 1 {
+        let _throttle = buf::get_i32(buf)?;
+    }
     let err = buf::get_i16(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -2300,6 +2313,63 @@ mod tests {
     }
 
     #[test]
+    fn heartbeat_v0_v2_match_and_v1_adds_throttle() {
+        // Official JSON: "Version 1 and version 2 are the same as version 0."
+        // Request: STRING "g", INT32 7, STRING "m1". Instance id is v3+.
+        const REQ: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x00, 0x07, 0x00, 0x02, 0x6d, 0x31,
+        ];
+        let mut v0 = BytesMut::new();
+        encode_heartbeat_request(&mut v0, 0, "g", 7, "m1", Some("ignored-on-v0")).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_heartbeat_request(&mut v1, 1, "g", 7, "m1", Some("ignored-on-v1")).unwrap();
+        let mut v2 = BytesMut::new();
+        encode_heartbeat_request(&mut v2, 2, "g", 7, "m1", Some("ignored-on-v2")).unwrap();
+        assert_eq!(&v0[..], REQ);
+        assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
+        let mut cur = v0.as_ref();
+        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 0).unwrap();
+        assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+        assert!(cur.is_empty(), "v0 request leftover-empty");
+        let mut cur = v2.as_ref();
+        let (_gid, _gen, mid) = decode_heartbeat_request(&mut cur, 2).unwrap();
+        assert_eq!(mid, "m1");
+        assert!(cur.is_empty(), "v2 request leftover-empty");
+
+        v0.clear();
+        encode_heartbeat_response(&mut v0, 0, 0).unwrap();
+        v1.clear();
+        encode_heartbeat_response(&mut v1, 1, 0).unwrap();
+        v2.clear();
+        encode_heartbeat_response(&mut v2, 2, 0).unwrap();
+        // v0: error 0. v1+: throttle 0 then error 0.
+        const RESP_V0: &[u8] = &[0x00, 0x00];
+        const RESP_V1: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        assert_eq!(&v0[..], RESP_V0);
+        assert_eq!(&v1[..], RESP_V1);
+        assert_ne!(v0.as_ref(), v1.as_ref(), "v1 response adds ThrottleTimeMs");
+        assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 response bodies match");
+        let mut cur = v0.as_ref();
+        assert_eq!(decode_heartbeat_response(&mut cur, 0).unwrap(), 0);
+        assert!(cur.is_empty(), "v0 response leftover-empty");
+        let mut cur = v1.as_ref();
+        assert_eq!(decode_heartbeat_response(&mut cur, 1).unwrap(), 0);
+        assert!(cur.is_empty(), "v1 response leftover-empty");
+
+        v0.clear();
+        let err = encode_heartbeat_request(&mut v0, 5, "g", 7, "m1", None).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 4), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 4, 0, 4), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(3, 4, 0, 4), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(5, 5, 0, 4), None);
+    }
+
+    #[test]
     fn heartbeat_v3_roundtrip_is_leftover_empty() {
         let mut buf = BytesMut::new();
         encode_heartbeat_request(&mut buf, 3, "g", 7, "m1", Some("i")).unwrap();
@@ -2355,10 +2425,6 @@ mod tests {
         let mut v3 = BytesMut::new();
         encode_heartbeat_request(&mut v3, 3, "g", 7, "m1", None).unwrap();
         assert_ne!(&buf[..], &v3[..], "Heartbeat v4 must not be classic v3");
-        assert!(
-            encode_heartbeat_request(&mut BytesMut::new(), 2, "g", 7, "m1", None).is_err(),
-            "Heartbeat v2 is not spoken"
-        );
         assert!(
             encode_heartbeat_request(&mut BytesMut::new(), 5, "g", 7, "m1", None).is_err(),
             "Heartbeat v5+ is not spoken"
