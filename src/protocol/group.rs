@@ -209,8 +209,8 @@ pub struct JoinGroupRequest<'a> {
 /// Encode JoinGroup v2–v9.
 ///
 /// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "6+"`.
-/// v2–v4 are GroupId + SessionTimeoutMs + RebalanceTimeoutMs + MemberId
-/// + ProtocolType + Protocols (v2 and v3 match). v5 GroupInstanceId.
+/// v2–v4 are GroupId, SessionTimeoutMs, RebalanceTimeoutMs, MemberId,
+/// ProtocolType, and Protocols (v2 and v3 match). v5 GroupInstanceId.
 /// v6 flexible. v8 Reason. This crate speaks 2–9. v0–v1 and v10+ are
 /// not spoken.
 pub fn encode_join_group_request(
