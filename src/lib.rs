@@ -80,7 +80,8 @@
 //! with per-topic rows on [`ProducerMetrics::topics`].
 //! [`Admin::metrics`] is the same snapshot pattern for Admin RPCs
 //! ([`AdminMetrics`]; Java `Admin.metrics()`).
-//! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
+//! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
+//! returns [`Uuid`]).
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
 //!
 //! # Fetch
@@ -120,7 +121,8 @@
 //! [`PartitionInfo::offline_replicas`], [`PartitionInfo::leader_epoch`]).
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
-//! [`Consumer::client_instance_id`] is Java `clientInstanceId` (KIP-714).
+//! [`Consumer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
+//! returns [`Uuid`]).
 //! [`Consumer::client_instance_id_timeout`] /
 //! [`ConsumerGroup::client_instance_id_timeout`] /
 //! [`ShareGroup::client_instance_id_timeout`] /

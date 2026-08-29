@@ -8776,6 +8776,48 @@ impl GetTelemetrySubscriptionsResponse {
             requested_metrics,
         }
     }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Subscription generation.
+    #[must_use]
+    pub fn subscription_id(&self) -> i32 {
+        self.subscription_id
+    }
+
+    /// Compression codecs the broker accepts for PushTelemetry.
+    #[must_use]
+    pub fn accepted_compression_types(&self) -> &[i8] {
+        &self.accepted_compression_types
+    }
+
+    /// How often to PushTelemetry, in milliseconds.
+    #[must_use]
+    pub fn push_interval_ms(&self) -> i32 {
+        self.push_interval_ms
+    }
+
+    /// Max PushTelemetry payload size.
+    #[must_use]
+    pub fn telemetry_max_bytes(&self) -> i32 {
+        self.telemetry_max_bytes
+    }
+
+    /// When true, metric values are deltas since the last push.
+    #[must_use]
+    pub fn delta_temporality(&self) -> bool {
+        self.delta_temporality
+    }
+
+    /// Metric names the broker wants.
+    #[must_use]
+    pub fn requested_metrics(&self) -> &[String] {
+        &self.requested_metrics
+    }
 }
 
 /// GetTelemetrySubscriptions v0 (flexible from v0; KIP-714).
@@ -8945,6 +8987,12 @@ impl PushTelemetryResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self { error_code }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
     }
 }
 

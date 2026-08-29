@@ -8904,13 +8904,21 @@ async fn get_telemetry_subscriptions_follows_broker() {
 
     let first = admin.get_telemetry_subscriptions([0; 16]).await.unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(first.client_instance_id, [0x11; 16]);
+    assert_eq!(first.client_instance_id(), Uuid::from_bytes([0x11; 16]));
     assert_eq!(first.subscription_id, 1);
+    assert_eq!(first.subscription_id(), 1);
     assert_eq!(first.accepted_compression_types, vec![1]);
+    assert_eq!(first.accepted_compression_types(), &[1]);
     assert_eq!(first.push_interval_ms, 1000);
+    assert_eq!(first.push_interval_ms(), 1000);
     assert_eq!(first.telemetry_max_bytes, 100);
+    assert_eq!(first.telemetry_max_bytes(), 100);
     assert!(first.delta_temporality);
+    assert!(first.delta_temporality());
     assert_eq!(first.requested_metrics, vec!["m".to_string()]);
+    assert_eq!(first.requested_metrics(), &["m".to_string()]);
     assert_eq!(
         mock.last_get_telemetry_subscriptions_node(),
         Some(1),
@@ -8946,6 +8954,7 @@ async fn push_telemetry_follows_broker() {
         .await
         .unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(
         mock.last_push_telemetry_node(),
         Some(1),

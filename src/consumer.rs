@@ -1822,11 +1822,12 @@ impl Consumer {
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
-    /// The first call sends a zero UUID; the broker assigns one. Later calls
-    /// return the cached id without another round-trip. Waits up to
+    /// Returns [`crate::Uuid`] (Java `Uuid`). The first call sends a zero
+    /// UUID; the broker assigns one. Later calls return the cached id
+    /// without another round-trip. Waits up to
     /// [`ConsumerConfig::request_timeout`]. For a one-shot timeout, use
     /// [`Self::client_instance_id_timeout`].
-    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+    pub async fn client_instance_id(&mut self) -> Result<crate::Uuid> {
         let timeout = self.cfg.request_timeout;
         self.client_instance_id_timeout(timeout).await
     }
@@ -1836,9 +1837,9 @@ impl Consumer {
     ///
     /// `timeout` is the GetTelemetrySubscriptions RPC deadline. Cached after
     /// the first successful call; later calls ignore `timeout`.
-    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<crate::Uuid> {
         if let Some(id) = self.client_instance_id {
-            return Ok(id);
+            return Ok(crate::Uuid::from_bytes(id));
         }
         let version = self.telemetry_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
@@ -1850,7 +1851,7 @@ impl Consumer {
         let id = crate::admin::fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16])
             .await?;
         self.client_instance_id = Some(id);
-        Ok(id)
+        Ok(crate::Uuid::from_bytes(id))
     }
 
     /// Interrupt [`Self::fetch`] (and group `poll` that calls it).

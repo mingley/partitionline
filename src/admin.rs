@@ -970,6 +970,14 @@ impl TopicResult {
     }
 }
 
+impl GetTelemetrySubscriptionsResponse {
+    /// Java `clientInstanceId` (KIP-714). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn client_instance_id(&self) -> Uuid {
+        Uuid::from_bytes(self.client_instance_id)
+    }
+}
+
 /// One replica: topic, partition, and broker id (Java `TopicPartitionReplica`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TopicPartitionReplica {
@@ -2683,11 +2691,11 @@ impl Admin {
 
     /// Java `clientInstanceId` (KIP-714 GetTelemetrySubscriptions).
     ///
-    /// The first call sends a zero UUID; the broker assigns one. Later calls
-    /// return the cached id without another round-trip. Waits up to
-    /// [`AdminConfig::request_timeout`]. For a one-shot timeout, use
-    /// [`Self::client_instance_id_timeout`].
-    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+    /// Returns [`Uuid`] (Java `Uuid`). The first call sends a zero UUID;
+    /// the broker assigns one. Later calls return the cached id without
+    /// another round-trip. Waits up to [`AdminConfig::request_timeout`].
+    /// For a one-shot timeout, use [`Self::client_instance_id_timeout`].
+    pub async fn client_instance_id(&mut self) -> Result<Uuid> {
         let timeout = self.cfg.request_timeout;
         self.client_instance_id_timeout(timeout).await
     }
@@ -2697,9 +2705,9 @@ impl Admin {
     ///
     /// `timeout` is the GetTelemetrySubscriptions RPC deadline. Cached after
     /// the first successful call; later calls ignore `timeout`.
-    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<Uuid> {
         if let Some(id) = self.cached_client_instance_id {
-            return Ok(id);
+            return Ok(Uuid::from_bytes(id));
         }
         self.ensure_bootstrap().await?;
         let version = self.get_telemetry_subscriptions_version.ok_or_else(|| {
@@ -2707,7 +2715,7 @@ impl Admin {
         })?;
         let id = fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16]).await?;
         self.cached_client_instance_id = Some(id);
-        Ok(id)
+        Ok(Uuid::from_bytes(id))
     }
 
     /// Create topics (`CreateTopics`).
@@ -11578,6 +11586,25 @@ mod tests {
         let deleted = DeletableGroupResult::new("g", 0);
         assert_eq!(deleted.group_id(), "g");
         assert_eq!(deleted.error_code(), 0);
+        let telemetry = GetTelemetrySubscriptionsResponse::new(
+            0,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        assert_eq!(telemetry.error_code(), 0);
+        assert_eq!(telemetry.client_instance_id(), Uuid::from_bytes([0x11; 16]));
+        assert_eq!(telemetry.subscription_id(), 1);
+        assert_eq!(telemetry.accepted_compression_types(), &[1]);
+        assert_eq!(telemetry.push_interval_ms(), 1000);
+        assert_eq!(telemetry.telemetry_max_bytes(), 100);
+        assert!(telemetry.delta_temporality());
+        assert_eq!(telemetry.requested_metrics(), &["m".to_string()]);
+        assert_eq!(PushTelemetryResponse::new(0).error_code(), 0);
     }
 
     #[test]

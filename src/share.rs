@@ -453,13 +453,15 @@ impl ShareGroup {
     }
 
     /// Java `clientInstanceId` (KIP-714). Delegates to [`crate::Consumer::client_instance_id`].
-    pub async fn client_instance_id(&mut self) -> Result<[u8; 16]> {
+    ///
+    /// Returns [`crate::Uuid`] (Java `Uuid`).
+    pub async fn client_instance_id(&mut self) -> Result<crate::Uuid> {
         self.consumer.client_instance_id().await
     }
 
     /// [`Self::client_instance_id`] with a one-shot timeout (Java
     /// `clientInstanceId(Duration)`).
-    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<[u8; 16]> {
+    pub async fn client_instance_id_timeout(&mut self, timeout: Duration) -> Result<crate::Uuid> {
         self.consumer.client_instance_id_timeout(timeout).await
     }
 

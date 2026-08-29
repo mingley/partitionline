@@ -22,7 +22,7 @@ use partitionline::{
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, IsolationLevel,
     ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
     Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
-    ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica,
+    ReplicaLogDirInfo, Sasl, ShareGroup, TopicPartition, TopicPartitionReplica, Uuid,
     CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON,
     EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP,
     LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
@@ -2587,7 +2587,7 @@ async fn client_instance_id_is_kip714() {
         .client_instance_id_timeout(Duration::from_secs(5))
         .await
         .unwrap();
-    assert_eq!(id, [0x11; 16]);
+    assert_eq!(id, Uuid::from_bytes([0x11; 16]));
     assert_eq!(mock.last_get_telemetry_subscriptions(), Some([0; 16]));
     assert_eq!(admin.client_instance_id().await.unwrap(), id);
     assert_eq!(
@@ -2608,14 +2608,14 @@ async fn client_instance_id_is_kip714() {
             .client_instance_id_timeout(Duration::from_secs(5))
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     assert_eq!(
         producer
             .client_instance_id_timeout(Duration::ZERO)
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     producer.close().await.unwrap();
 
@@ -2628,14 +2628,14 @@ async fn client_instance_id_is_kip714() {
             .client_instance_id_timeout(Duration::from_secs(5))
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     assert_eq!(
         consumer
             .client_instance_id_timeout(Duration::ZERO)
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     consumer.close().await.unwrap();
 
@@ -2651,14 +2651,14 @@ async fn client_instance_id_is_kip714() {
             .client_instance_id_timeout(Duration::from_secs(5))
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     assert_eq!(
         group
             .client_instance_id_timeout(Duration::ZERO)
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     group.close().await.unwrap();
 
@@ -2674,14 +2674,14 @@ async fn client_instance_id_is_kip714() {
             .client_instance_id_timeout(Duration::from_secs(5))
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     assert_eq!(
         share
             .client_instance_id_timeout(Duration::ZERO)
             .await
             .unwrap(),
-        [0x11; 16]
+        Uuid::from_bytes([0x11; 16])
     );
     share.close().await.unwrap();
 }
