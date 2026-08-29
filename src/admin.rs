@@ -1225,8 +1225,10 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support ListGroups v0-5".into()))?;
         let delete_groups_version = versions
             .get(&DELETE_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 2))
-            .ok_or_else(|| Error::Unsupported("broker does not support DeleteGroups".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DeleteGroups v0-2".into())
+            })?;
         let share_group_describe_version = versions
             .get(&SHARE_GROUP_DESCRIBE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 1))
@@ -4049,15 +4051,18 @@ impl Admin {
     /// Delete consumer groups (DeleteGroups api 42).
     ///
     /// Lands on the group coordinator (`FindCoordinator` `key_type=0`).
-    /// Official Apache JSON listeners are `broker` only. Official
-    /// listed per-group errors include `NOT_COORDINATOR` (16). This is
-    /// not a controller hop and not a partition-leader hop: there is no
-    /// Metadata `controller_id` lookup, no `NOT_CONTROLLER` (41) retry,
-    /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. `COORDINATOR_LOAD_IN_PROGRESS`
-    /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
+    /// Negotiates DeleteGroups v0–v2 (Kafka 4.0 `validVersions` `0-2`).
+    /// v0–v1 are classic; v2 is the first flexible version. Response
+    /// ThrottleTimeMs is present on every spoken version. Official Apache
+    /// JSON listeners are `broker` only. Official listed per-group errors
+    /// include `NOT_COORDINATOR` (16). This is not a controller hop and
+    /// not a partition-leader hop: there is no Metadata `controller_id`
+    /// lookup, no `NOT_CONTROLLER` (41) retry, and no
+    /// `NOT_LEADER_OR_FOLLOWER` (6) hop. `COORDINATOR_LOAD_IN_PROGRESS` /
+    /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. ErrorCode is per-group after GroupId
-    /// (bytes 7–8 on leftover-empty fixture group `"g"`), not top-level
-    /// after throttle. Java `deleteShareGroups` is
+    /// (bytes 7–8 on leftover-empty fixture group `"g"` on v2; classic
+    /// v0–v1 place that ErrorCode later). Java `deleteShareGroups` is
     /// [`Self::delete_share_groups`]. Java `deleteConsumerGroups` is
     /// [`Self::delete_consumer_groups`].
     pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
@@ -4096,7 +4101,7 @@ impl Admin {
                 conn.roundtrip(
                     DELETE_GROUPS,
                     version,
-                    |buf| encode_delete_groups_request(buf, &ids),
+                    |buf| encode_delete_groups_request(buf, version, &ids),
                     timeout,
                 )
                 .await
@@ -4111,7 +4116,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_delete_groups_response(&mut body.clone())?;
+            let results = decode_delete_groups_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))

@@ -341,6 +341,7 @@ struct State {
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_list_groups_version: Option<i16>,
     last_delete_groups_node: Option<i32>,
+    last_delete_groups_version: Option<i16>,
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
     share_group_describe_not_coordinator: u32,
@@ -621,6 +622,7 @@ fn new_state(
         last_list_groups: None,
         last_list_groups_version: None,
         last_delete_groups_node: None,
+        last_delete_groups_version: None,
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
         share_group_describe_not_coordinator: 0,
@@ -1772,6 +1774,10 @@ impl Mock {
 
     pub fn last_delete_groups_node(&self) -> Option<i32> {
         self.state.lock().last_delete_groups_node
+    }
+
+    pub fn last_delete_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_delete_groups_version
     }
 
     pub fn delete_groups_not_coordinator(&self) -> u32 {
@@ -4978,8 +4984,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             DELETE_GROUPS => {
-                let ids = decode_delete_groups_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let ids = decode_delete_groups_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_delete_groups_version = Some(version);
                 if st.coord_node != node_id {
                     st.delete_groups_not_coordinator =
                         st.delete_groups_not_coordinator.saturating_add(1);
@@ -4989,14 +4997,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .into_iter()
                         .map(|group_id| DeletableGroupResult::new(group_id, error::NOT_COORDINATOR))
                         .collect();
-                    encode_delete_groups_response(&mut body, &results).unwrap();
+                    encode_delete_groups_response(&mut body, version, &results).unwrap();
                 } else {
                     st.last_delete_groups_node = Some(node_id);
                     let results: Vec<DeletableGroupResult> = ids
                         .into_iter()
                         .map(|group_id| DeletableGroupResult::new(group_id, 0))
                         .collect();
-                    encode_delete_groups_response(&mut body, &results).unwrap();
+                    encode_delete_groups_response(&mut body, version, &results).unwrap();
                 }
             }
             SHARE_GROUP_DESCRIBE => {

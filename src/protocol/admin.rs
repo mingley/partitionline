@@ -4576,7 +4576,7 @@ pub fn decode_list_groups_response<B: Buf>(
     Ok(ListGroupsResponse { error_code, groups })
 }
 
-/// One deletion result in DeleteGroups (api 42) v2.
+/// One deletion result in DeleteGroups (api 42).
 ///
 /// ErrorCode sits here after GroupId, not at the top of the response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4597,86 +4597,122 @@ impl DeletableGroupResult {
     }
 }
 
-/// DeleteGroups v2 body (classic through v1; flexible from v2).
+/// `true` when DeleteGroups `version` is flexible.
+///
+/// v0–v1 are classic (same request/response layout). v2 is the first
+/// flexible version. Kafka 4.0 `validVersions` is `0-2`. This crate
+/// speaks 0–2. v3+ is not spoken.
+fn delete_groups_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(false),
+        2 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DeleteGroups version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DeleteGroups v0–2 (classic through v1; flexible from v2).
 ///
 /// Official Apache JSON (`apiKey: 42`, request `listeners: ["broker"]`,
-/// `validVersions: "0-2"`, `flexibleVersions: "2+"`; Kafka 4.1.0, the
-/// release kafka-protocol 0.18.0 was generated against) and
+/// `validVersions: "0-2"`, `flexibleVersions: "2+"`) and
 /// kafka-protocol 0.18.0 (`DeleteGroupsRequest` /
-/// `DeleteGroupsResponse`, `VERSIONS` min=0 max=2). This crate
-/// targets v2, the version a client encodes (`VERSIONS.max`). Request
-/// encode used `features = ["client"]`; response encode used `broker`.
+/// `DeleteGroupsResponse`, `VERSIONS` min=0 max=2). Request encode
+/// used `features = ["client"]`; response encode used `broker`.
 /// Official listed errors (`DeleteGroupsResponse.java`):
 /// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
 /// (15), `NOT_COORDINATOR` (16), `INVALID_GROUP_ID` (24),
 /// `GROUP_AUTHORIZATION_FAILED` (30), `NON_EMPTY_GROUP` (68),
-/// `GROUP_ID_NOT_FOUND` (69). Request: compact `GroupsNames`, tagged.
-/// Response: `ThrottleTimeMs` INT32, compact `Results` of `{compact
-/// GroupId, ErrorCode INT16, tagged}`, tagged. **ErrorCode is
-/// per-group**, the second field of each DeletableGroupResult after
-/// GroupId — not a top-level code after throttle. Measured
-/// independently on leftover-empty fixture group `"g"`: the first-group
-/// ErrorCode is the INT16 at **bytes 7–8**, after throttle, the compact
-/// results length, and compact GroupId `"g"` — not bytes 4–5
-/// (ListGroups / DescribeClientQuotas top-level) or 5–6 (DescribeGroups
-/// / ConsumerGroupDescribe first-group first field) or 12–13
+/// `GROUP_ID_NOT_FOUND` (69). Request: `GroupsNames` (classic STRING[]
+/// through v1; compact v2+), tagged (v2+). Response: `ThrottleTimeMs`
+/// INT32 (v0+), `Results` of `{GroupId, ErrorCode INT16, tagged
+/// (v2+)}`, tagged (v2+). **ErrorCode is per-group**, the second field
+/// of each DeletableGroupResult after GroupId — not a top-level code
+/// after throttle. Measured independently on leftover-empty fixture
+/// group `"g"` at **v2**: the first-group ErrorCode is the INT16 at
+/// **bytes 7–8**, after throttle, the compact results length, and
+/// compact GroupId `"g"` — not bytes 4–5 (ListGroups /
+/// DescribeClientQuotas top-level) or 5–6 (DescribeGroups /
+/// ConsumerGroupDescribe first-group first field) or 12–13
 /// (DescribeProducers first partition). Because `NOT_COORDINATOR` (16)
 /// is listed, this is a group-coordinator hop, not a controller hop
 /// and not a partition-leader hop.
 pub fn encode_delete_groups_request(
     buf: &mut BytesMut,
+    version: i16,
     group_ids: &[String],
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    let flexible = delete_groups_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_compact_string(buf, Some(id))?;
+        buf::put_string(buf, flexible, Some(id))?;
     }
-    buf::put_empty_tagged_fields(buf);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DeleteGroups request.
-pub fn decode_delete_groups_request<B: Buf>(buf: &mut B) -> Result<Vec<String>> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+pub fn decode_delete_groups_request<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<String>> {
+    let flexible = delete_groups_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
     for _ in 0..n {
-        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+        group_ids.push(buf::get_string(buf, flexible)?.unwrap_or_default());
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(group_ids)
 }
 
-/// Encode a DeleteGroups response.
+/// Encode a DeleteGroups response (v0–2). ThrottleTimeMs is present on
+/// every spoken version.
 pub fn encode_delete_groups_response(
     buf: &mut BytesMut,
+    version: i16,
     results: &[DeletableGroupResult],
 ) -> crate::error::Result<()> {
+    let flexible = delete_groups_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, true, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
-        buf::put_compact_string(buf, Some(&r.group_id))?;
+        buf::put_string(buf, flexible, Some(&r.group_id))?;
         buf.put_i16(r.error_code);
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a DeleteGroups response.
-pub fn decode_delete_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DeletableGroupResult>> {
+pub fn decode_delete_groups_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<DeletableGroupResult>> {
+    let flexible = delete_groups_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
         let error_code = buf::get_i16(buf)?;
-        buf::skip_tagged_fields(buf)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         results.push(DeletableGroupResult {
             group_id,
             error_code,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(results)
 }
 
@@ -11479,34 +11515,71 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 42
         // validVersions 0-2, flexibleVersions 2+, listeners broker only.
-        // This crate targets v2. Not copied from ListGroups (top-level
-        // ErrorCode at bytes 4-5), DescribeGroups / ConsumerGroupDescribe
-        // (first-group ErrorCode at bytes 5-6), or DescribeProducers
-        // (first-partition ErrorCode at bytes 12-13).
+        // This crate speaks 0–2; this fixture is v2. Not copied from
+        // ListGroups (top-level ErrorCode at bytes 4-5), DescribeGroups
+        // / ConsumerGroupDescribe (first-group ErrorCode at bytes 5-6),
+        // or DescribeProducers (first-partition ErrorCode at bytes 12-13).
         const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00];
         const RESP_16: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, 0x02, 0x02, 0x67, 0x00, 0x10, 0x00, 0x00,
         ];
         let ids = vec!["g".to_string()];
         let mut buf = BytesMut::new();
-        encode_delete_groups_request(&mut buf, &ids).unwrap();
+        encode_delete_groups_request(&mut buf, 2, &ids).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DeletableGroupResult::new(
             "g",
             crate::error::NOT_COORDINATOR,
         )];
         buf.clear();
-        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn delete_groups_v0_is_classic_v1_matches_v0() {
+        const REQ_V0: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67];
+        const RESP_V0_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67, 0x00, 0x10,
+        ];
+        const REQ_V2: &[u8] = &[0x02, 0x02, 0x67, 0x00];
+        let ids = vec!["g".to_string()];
+        let resp = vec![DeletableGroupResult::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_delete_groups_request(&mut buf, 0, &ids).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        let mut cur = &buf[..];
+        assert_eq!(decode_delete_groups_request(&mut cur, 0).unwrap(), ids);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteGroups v0 request leftover-empty"
+        );
+        buf.clear();
+        encode_delete_groups_request(&mut buf, 1, &ids).unwrap();
+        assert_eq!(&buf[..], REQ_V0, "v1 request matches v0");
+        buf.clear();
+        encode_delete_groups_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_16);
+        buf.clear();
+        encode_delete_groups_response(&mut buf, 1, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_16, "v1 response matches v0");
+        assert_ne!(REQ_V0, REQ_V2, "v2 must use compact arrays");
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 2, 0, 2), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 2), Some(1));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 2), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(3, 3, 0, 2), None);
     }
 
     #[test]
     fn delete_groups_v2_roundtrip_is_leftover_empty() {
         let ids = vec!["g".to_string(), "g2".to_string()];
         let mut buf = BytesMut::new();
-        encode_delete_groups_request(&mut buf, &ids).unwrap();
+        encode_delete_groups_request(&mut buf, 2, &ids).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_groups_request(&mut cur).unwrap(), ids);
+        assert_eq!(decode_delete_groups_request(&mut cur, 2).unwrap(), ids);
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 request must be leftover-empty"
@@ -11517,12 +11590,22 @@ mod tests {
             DeletableGroupResult::new("g2", crate::error::NOT_COORDINATOR),
         ];
         buf.clear();
-        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn delete_groups_v3_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_delete_groups_request(&mut buf, 3, &[]).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v3+ is not spoken, got {err}"
         );
     }
 
@@ -11541,7 +11624,7 @@ mod tests {
             crate::error::NOT_COORDINATOR,
         )];
         let mut buf = BytesMut::new();
-        encode_delete_groups_response(&mut buf, &resp).unwrap();
+        encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         let b7 = buf.get(7).copied().unwrap();
         let b8 = buf.get(8).copied().unwrap();
         assert_eq!(
@@ -11567,7 +11650,7 @@ mod tests {
             "leftover-empty fixture is shorter than DescribeProducers bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 ErrorCode body must be leftover-empty"

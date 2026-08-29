@@ -66,12 +66,13 @@ tagged fields; [`FeatureMetadata`](../src/admin.rs)).
 `describeClassicGroups` (DescribeGroups v0–v6). `Admin::describe_consumer_groups` is Java
 `describeConsumerGroups` (DescribeGroups v0–v6). `Admin::list_consumer_groups` is Java
 `listConsumerGroups` (ListGroups v0–v5). `Admin::delete_consumer_groups` is Java
-`deleteConsumerGroups` (DeleteGroups). `Admin::describe_share_groups` is Java
+`deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
+throttle v0+). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe). `Admin::list_client_metrics_resources` is Java
 `listClientMetricsResources` (ListConfigResources CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
 `listShareGroupOffsets` (DescribeShareGroupOffsets). `Admin::delete_consumer_group_offsets` is Java
 `deleteConsumerGroupOffsets` (OffsetDelete). `Admin::delete_share_groups` is Java
-`deleteShareGroups` (DeleteGroups). `Admin::describe_replica_log_dirs` is Java
+`deleteShareGroups` (DeleteGroups v0–v2). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs on
 each broker). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`

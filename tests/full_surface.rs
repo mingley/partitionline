@@ -12,10 +12,10 @@ mod common;
 
 use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
-    DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
-    LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH,
-    SYNC_GROUP, UPDATE_FEATURES,
+    DELETE_ACLS, DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER,
+    DESCRIBE_CONFIGS, DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
+    INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_GROUPS, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT,
+    OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -6075,6 +6075,11 @@ async fn delete_groups_follows_group_coordinator() {
         Some(2),
         "DeleteGroups must land on the group coordinator, not bootstrap"
     );
+    assert_eq!(
+        mock.last_delete_groups_version(),
+        Some(2),
+        "Admin must prefer DeleteGroups v2 when the broker advertises it"
+    );
     assert!(
         mock.find_coordinator_key_types()
             .contains(&COORDINATOR_GROUP),
@@ -6099,6 +6104,38 @@ async fn delete_groups_follows_group_coordinator() {
         mock.last_delete_groups_node(),
         Some(1),
         "DeleteGroups must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
+async fn delete_groups_negotiates_v1_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_GROUPS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin.delete_groups(&["g-v1"]).await.unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[0].group_id, "g-v1");
+    assert_eq!(
+        mock.last_delete_groups_version(),
+        Some(1),
+        "client must speak DeleteGroups v1 when the broker max is 1"
+    );
+}
+
+#[tokio::test]
+async fn delete_groups_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DELETE_GROUPS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin.delete_groups(&["g-v0"]).await.unwrap();
+    assert_eq!(deleted.len(), 1);
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[0].group_id, "g-v0");
+    assert_eq!(
+        mock.last_delete_groups_version(),
+        Some(0),
+        "client must speak DeleteGroups v0 when the broker max is 0"
     );
 }
 
