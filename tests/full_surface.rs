@@ -8952,6 +8952,9 @@ async fn get_telemetry_subscriptions_follows_broker() {
         "GetTelemetrySubscriptions must land on the connected broker, not the coordinator or controller"
     );
     assert_eq!(mock.last_get_telemetry_subscriptions(), Some([0; 16]));
+    let via_uuid = admin.get_telemetry_subscriptions(Uuid::ZERO).await.unwrap();
+    assert_eq!(via_uuid.client_instance_id(), Uuid::from_bytes([0x11; 16]));
+    assert_eq!(mock.last_get_telemetry_subscriptions(), Some([0; 16]));
     assert_eq!(
         mock.last_describe_groups_node(),
         None,
@@ -8987,6 +8990,21 @@ async fn push_telemetry_follows_broker() {
         Some(1),
         "PushTelemetry must land on the connected broker, not the coordinator or controller"
     );
+    assert_eq!(
+        mock.last_push_telemetry(),
+        Some(common::LastPushTelemetry {
+            client_instance_id: [0x11; 16],
+            subscription_id: 1,
+            terminating: false,
+            compression_type: 0,
+            metrics: b"m".to_vec(),
+        })
+    );
+    let via_uuid = admin
+        .push_telemetry(Uuid::from_bytes([0x11; 16]), 1, false, 0, b"m")
+        .await
+        .unwrap();
+    assert_eq!(via_uuid.error_code(), 0);
     assert_eq!(
         mock.last_push_telemetry(),
         Some(common::LastPushTelemetry {

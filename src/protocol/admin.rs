@@ -8842,7 +8842,7 @@ impl GetTelemetrySubscriptionsResponse {
     /// Construct [`Self`].
     pub fn new(
         error_code: i16,
-        client_instance_id: [u8; 16],
+        client_instance_id: impl Into<[u8; 16]>,
         subscription_id: i32,
         accepted_compression_types: Vec<i8>,
         push_interval_ms: i32,
@@ -8852,7 +8852,7 @@ impl GetTelemetrySubscriptionsResponse {
     ) -> Self {
         Self {
             error_code,
-            client_instance_id,
+            client_instance_id: client_instance_id.into(),
             subscription_id,
             accepted_compression_types,
             push_interval_ms,
@@ -9040,20 +9040,46 @@ pub struct PushTelemetryRequest {
 
 impl PushTelemetryRequest {
     /// Construct [`Self`].
+    ///
+    /// `client_instance_id` is a 16-byte Kafka UUID (Java `Uuid`).
     pub fn new(
-        client_instance_id: [u8; 16],
+        client_instance_id: impl Into<[u8; 16]>,
         subscription_id: i32,
         terminating: bool,
         compression_type: i8,
         metrics: Vec<u8>,
     ) -> Self {
         Self {
-            client_instance_id,
+            client_instance_id: client_instance_id.into(),
             subscription_id,
             terminating,
             compression_type,
             metrics,
         }
+    }
+
+    /// Telemetry subscription generation.
+    #[must_use]
+    pub fn subscription_id(&self) -> i32 {
+        self.subscription_id
+    }
+
+    /// When true, this is the last PushTelemetry for the process.
+    #[must_use]
+    pub fn terminating(&self) -> bool {
+        self.terminating
+    }
+
+    /// Compression codec for the metrics payload.
+    #[must_use]
+    pub fn compression_type(&self) -> i8 {
+        self.compression_type
+    }
+
+    /// Encoded client metrics payload.
+    #[must_use]
+    pub fn metrics(&self) -> &[u8] {
+        &self.metrics
     }
 }
 

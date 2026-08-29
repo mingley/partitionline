@@ -83,6 +83,8 @@
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
 //! returns [`Uuid`]).
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
+//! [`Admin::get_telemetry_subscriptions`] / [`Admin::push_telemetry`] take
+//! [`Uuid`] or `[u8; 16]`.
 //!
 //! # Fetch
 //!

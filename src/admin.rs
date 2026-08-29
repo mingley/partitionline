@@ -978,6 +978,14 @@ impl GetTelemetrySubscriptionsResponse {
     }
 }
 
+impl PushTelemetryRequest {
+    /// Java `clientInstanceId` (KIP-714). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn client_instance_id(&self) -> Uuid {
+        Uuid::from_bytes(self.client_instance_id)
+    }
+}
+
 impl AssignReplicasToDirsTopic {
     /// Topic id (KIP-858). Wire field stays `[u8; 16]`.
     #[must_use]
@@ -9475,14 +9483,16 @@ impl Admin {
     /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code`
     /// is the INT16 at bytes 4–5, after throttle — not a first-
     /// subscription field and not a first-metric field.
+    /// `client_instance_id` is Java `Uuid` ([`Uuid`]) or `[u8; 16]`.
     pub async fn get_telemetry_subscriptions(
         &mut self,
-        client_instance_id: [u8; 16],
+        client_instance_id: impl Into<[u8; 16]>,
     ) -> Result<GetTelemetrySubscriptionsResponse> {
         let version = self.get_telemetry_subscriptions_version.ok_or_else(|| {
             Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
         })?;
         let timeout = self.cfg.request_timeout;
+        let client_instance_id = client_instance_id.into();
         let body = self
             .roundtrip_bootstrap(
                 GET_TELEMETRY_SUBSCRIPTIONS,
@@ -9517,9 +9527,10 @@ impl Admin {
     /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. Top-level `error_code`
     /// is the INT16 at bytes 4–5, after throttle — not a first-metric
     /// field and not a first-payload field.
+    /// `client_instance_id` is Java `Uuid` ([`Uuid`]) or `[u8; 16]`.
     pub async fn push_telemetry(
         &mut self,
-        client_instance_id: [u8; 16],
+        client_instance_id: impl Into<[u8; 16]>,
         subscription_id: i32,
         terminating: bool,
         compression_type: i8,
@@ -11882,7 +11893,7 @@ mod tests {
         assert_eq!(deleted.error_code(), 0);
         let telemetry = GetTelemetrySubscriptionsResponse::new(
             0,
-            [0x11; 16],
+            Uuid::from_bytes([0x11; 16]),
             1,
             vec![1],
             1000,
@@ -11899,6 +11910,13 @@ mod tests {
         assert!(telemetry.delta_temporality());
         assert_eq!(telemetry.requested_metrics(), &["m".to_string()]);
         assert_eq!(PushTelemetryResponse::new(0).error_code(), 0);
+        let push =
+            PushTelemetryRequest::new(Uuid::from_bytes([0x11; 16]), 1, false, 0, b"m".to_vec());
+        assert_eq!(push.client_instance_id(), Uuid::from_bytes([0x11; 16]));
+        assert_eq!(push.subscription_id(), 1);
+        assert!(!push.terminating());
+        assert_eq!(push.compression_type(), 0);
+        assert_eq!(push.metrics(), b"m");
         let cluster = ClusterDescription {
             error_code: 0,
             error_message: None,
