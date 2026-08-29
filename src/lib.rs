@@ -219,6 +219,8 @@
 //! `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::describe_producers_for`] is Java `describeProducers(Collection)`
 //! (one DescribeProducers RPC per leader; Topics of N).
+//! [`Admin::describe_producers_for_on_broker`] is Java
+//! `DescribeProducersOptions.brokerId`.
 //! [`Admin::describe_producers_timeout`] /
 //! [`Admin::describe_producers_for_timeout`] are Java
 //! `DescribeProducersOptions.timeoutMs` (RPC deadline; DescribeProducers

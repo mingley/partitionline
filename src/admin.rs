@@ -5110,15 +5110,18 @@ impl Admin {
     /// `describeProducers(Collection)`; DescribeProducers Topics of N).
     ///
     /// Groups by Metadata leader and sends one RPC per leader. Empty
-    /// `partitions` is a no-op. DescribeProducers has no TimeoutMs; the
-    /// RPC deadline is [`AdminConfig::request_timeout`]. For a one-shot
-    /// deadline, use [`Self::describe_producers_for_timeout`].
+    /// `partitions` is a no-op. To pin every partition to one broker
+    /// (Java `DescribeProducersOptions.brokerId`), use
+    /// [`Self::describe_producers_for_on_broker`]. DescribeProducers has
+    /// no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_producers_for_timeout`].
     pub async fn describe_producers_for(
         &mut self,
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
     ) -> Result<Vec<DescribeProducersTopic>> {
         let timeout = self.cfg.request_timeout;
-        self.describe_producers_for_timeout(partitions, timeout)
+        self.describe_producers_for_with(partitions, timeout, None)
             .await
     }
 
@@ -5132,6 +5135,47 @@ impl Admin {
         partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
         timeout: Duration,
     ) -> Result<Vec<DescribeProducersTopic>> {
+        self.describe_producers_for_with(partitions, timeout, None)
+            .await
+    }
+
+    /// [`Self::describe_producers_for`] pinned to one broker (Java
+    /// `DescribeProducersOptions.brokerId`).
+    ///
+    /// Sends one DescribeProducers RPC to `broker_id` for every
+    /// partition. `NOT_LEADER_OR_FOLLOWER` (6) is returned on that
+    /// partition and is not retried on the Metadata leader.
+    pub async fn describe_producers_for_on_broker(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        broker_id: i32,
+    ) -> Result<Vec<DescribeProducersTopic>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_producers_for_with(partitions, timeout, Some(broker_id))
+            .await
+    }
+
+    /// [`Self::describe_producers_for_on_broker`] with a one-shot RPC
+    /// deadline (Java `DescribeProducersOptions.brokerId` + `timeoutMs`).
+    ///
+    /// DescribeProducers has no TimeoutMs; `timeout` is the RPC deadline.
+    /// `NOT_LEADER_OR_FOLLOWER` is not retried onto another broker.
+    pub async fn describe_producers_for_on_broker_timeout(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        broker_id: i32,
+        timeout: Duration,
+    ) -> Result<Vec<DescribeProducersTopic>> {
+        self.describe_producers_for_with(partitions, timeout, Some(broker_id))
+            .await
+    }
+
+    async fn describe_producers_for_with(
+        &mut self,
+        partitions: impl IntoIterator<Item = impl Into<crate::TopicPartition>>,
+        timeout: Duration,
+        broker_id: Option<i32>,
+    ) -> Result<Vec<DescribeProducersTopic>> {
         let partitions: Vec<crate::TopicPartition> =
             partitions.into_iter().map(Into::into).collect();
         if partitions.is_empty() {
@@ -5142,38 +5186,46 @@ impl Admin {
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribeProducersPartition>> = vec![None; partitions.len()];
         let mut pending: Vec<usize> = (0..partitions.len()).collect();
+        let pin_broker = broker_id.is_some();
         loop {
             if pending.is_empty() {
                 break;
             }
-            let mut need: Vec<String> = Vec::new();
-            for &i in &pending {
-                let Some(tp) = partitions.get(i) else {
-                    continue;
-                };
-                if self.cluster.leader(&tp.topic, tp.partition).is_err()
-                    && !need.iter().any(|t| t == &tp.topic)
-                {
-                    need.push(tp.topic.clone());
+            if !pin_broker {
+                let mut need: Vec<String> = Vec::new();
+                for &i in &pending {
+                    let Some(tp) = partitions.get(i) else {
+                        continue;
+                    };
+                    if self.cluster.leader(&tp.topic, tp.partition).is_err()
+                        && !need.iter().any(|t| t == &tp.topic)
+                    {
+                        need.push(tp.topic.clone());
+                    }
                 }
-            }
-            if !need.is_empty() {
-                self.refresh_metadata(Some(&need)).await?;
+                if !need.is_empty() {
+                    self.refresh_metadata(Some(&need)).await?;
+                }
             }
             let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
             let mut nodes: Vec<i32> = Vec::new();
-            for &i in &pending {
-                let tp = partitions
-                    .get(i)
-                    .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
-                let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
-                match by_node.entry(node) {
-                    std::collections::hash_map::Entry::Vacant(slot) => {
-                        nodes.push(node);
-                        let _ = slot.insert(vec![i]);
-                    }
-                    std::collections::hash_map::Entry::Occupied(mut slot) => {
-                        slot.get_mut().push(i);
+            if let Some(id) = broker_id {
+                let _prev = by_node.insert(id, pending.clone());
+                nodes.push(id);
+            } else {
+                for &i in &pending {
+                    let tp = partitions
+                        .get(i)
+                        .ok_or_else(|| Error::protocol("missing DescribeProducers query"))?;
+                    let (node, _) = self.cluster.leader(&tp.topic, tp.partition)?;
+                    match by_node.entry(node) {
+                        std::collections::hash_map::Entry::Vacant(slot) => {
+                            nodes.push(node);
+                            let _ = slot.insert(vec![i]);
+                        }
+                        std::collections::hash_map::Entry::Occupied(mut slot) => {
+                            slot.get_mut().push(i);
+                        }
                     }
                 }
             }
@@ -5181,7 +5233,14 @@ impl Admin {
             for node in nodes {
                 let idxs = by_node.remove(&node).unwrap_or_default();
                 match self
-                    .describe_producers_on_node(node, version, &partitions, &idxs, timeout)
+                    .describe_producers_on_node(
+                        node,
+                        version,
+                        &partitions,
+                        &idxs,
+                        timeout,
+                        pin_broker,
+                    )
                     .await
                 {
                     Ok((done, retry)) => {
@@ -5204,6 +5263,9 @@ impl Admin {
                 break;
             }
             self.wait_retry(&mut attempt, deadline).await?;
+            if pin_broker {
+                continue;
+            }
             for &i in &pending {
                 if let Some(tp) = partitions.get(i) {
                     self.cluster.invalidate_topic(&tp.topic);
@@ -5242,6 +5304,7 @@ impl Admin {
         partitions: &[crate::TopicPartition],
         idxs: &[usize],
         timeout: Duration,
+        pin_broker: bool,
     ) -> Result<DescribeProducersNodeOutcome> {
         let topics = describe_producers_topics(partitions, idxs);
         self.connect_node(node).await?;
@@ -5284,7 +5347,7 @@ impl Admin {
                 continue;
             }
             let e = Error::broker(part.error_code, format!("{}-{}", tp.topic, tp.partition));
-            if e.is_retriable() {
+            if !pin_broker && e.is_retriable() {
                 retry.push(i);
             } else {
                 done.push((i, part));

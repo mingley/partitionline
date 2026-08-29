@@ -3901,8 +3901,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let topics = decode_describe_producers_topics_request(&mut frame).unwrap();
                 let mut st = state.lock();
                 st.last_describe_producers_topics = Some(topics.len());
+                st.last_describe_producers_node = Some(node_id);
                 let mut out = Vec::with_capacity(topics.len());
-                let mut any_leader = false;
                 for t in topics {
                     let mut parts = Vec::with_capacity(t.partition_indexes.len());
                     for partition in t.partition_indexes {
@@ -3918,7 +3918,6 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 vec![],
                             ));
                         } else {
-                            any_leader = true;
                             parts.push(DescribeProducersPartition::new(
                                 partition,
                                 0,
@@ -3928,9 +3927,6 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                     out.push(DescribeProducersTopic::new(t.name, parts));
-                }
-                if any_leader {
-                    st.last_describe_producers_node = Some(node_id);
                 }
                 encode_describe_producers_response(&mut body, &DescribeProducersResponse::new(out))
                     .unwrap();

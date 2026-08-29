@@ -4782,6 +4782,34 @@ async fn describe_producers_follows_partition_leader() {
         .unwrap();
     assert_eq!(timed.error_code, 0);
     assert_eq!(timed.partition_index, 0);
+
+    let not_leader = mock.describe_producers_not_leader();
+    let pinned_fail = admin
+        .describe_producers_for_on_broker([("t", 0)], 2)
+        .await
+        .unwrap();
+    assert_eq!(pinned_fail.len(), 1);
+    assert_eq!(
+        pinned_fail[0].partitions[0].error_code,
+        error::NOT_LEADER_OR_FOLLOWER,
+        "brokerId pin must not retry NOT_LEADER onto the Metadata leader"
+    );
+    assert_eq!(
+        mock.last_describe_producers_node(),
+        Some(2),
+        "DescribeProducersOptions.brokerId must land on that broker"
+    );
+    assert_eq!(
+        mock.describe_producers_not_leader(),
+        not_leader + 1,
+        "pinned follower must return NOT_LEADER_OR_FOLLOWER once"
+    );
+    let pinned_ok = admin
+        .describe_producers_for_on_broker_timeout([("t", 0)], 1, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(pinned_ok[0].partitions[0].error_code, 0);
+    assert_eq!(mock.last_describe_producers_node(), Some(1));
 }
 
 /// Java `describeProducers(Collection<TopicPartition>)` sends DescribeProducers Topics of N

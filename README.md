@@ -67,6 +67,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `describe_producers_for` / `list_offsets` / `delete_offsets` / `list_consumer_group_offsets` /
 `alter_consumer_group_offsets` take `TopicPartition`.
 `Admin::describe_producers_for` is Java `describeProducers(Collection)` (Topics of N per leader).
+`Admin::describe_producers_for_on_broker` is Java `DescribeProducersOptions.brokerId`.
 `Admin::describe_producers_timeout` / `describe_producers_for_timeout` are Java `DescribeProducersOptions.timeoutMs`.
 `Admin::list_all_consumer_group_offsets` is Java `listConsumerGroupOffsets(groupId)` (OffsetFetch null Topics).
 `Admin::list_consumer_group_offsets_with` is Java `ListConsumerGroupOffsetsOptions.requireStable` / `timeoutMs`.
