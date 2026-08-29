@@ -32,8 +32,8 @@ use partitionline::{
     AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
     ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent,
     ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement, ConfigResource,
-    ConfigResourceType, ConfigResourceUpdate, Consumer, ConsumerConfig, ConsumerGroup,
-    CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
+    ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig,
+    ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
     DescribableLogDirTopic, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, EndpointType, Error,
     ExpireDelegationTokenRequest, FeatureUpdate, IsolationLevel, ListConsumerGroupOffsetsSpec,
@@ -3998,6 +3998,9 @@ async fn admin_delete_and_describe() {
         "Admin must prefer DescribeConfigs v4 when the broker advertises it"
     );
     assert_eq!(entry.config_type, partitionline::CONFIG_TYPE_STRING);
+    assert_eq!(entry.config_type(), ConfigType::String);
+    assert_eq!(entry.source(), ConfigSource::DynamicTopic);
+    assert!(!entry.is_default());
     assert_eq!(entry.documentation, None);
 
     let mapped = admin

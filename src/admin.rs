@@ -119,13 +119,13 @@ pub use crate::protocol::admin::{
     AssignReplicasToDirsResponseTopic, AssignReplicasToDirsTopic, ClientQuotaAlteration,
     ClientQuotaAlterationResult, ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter,
     ClientQuotaFilterComponent, ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config,
-    ConfigEntry, ConfigSynonym, ConsumerGroupAssignment, ConsumerGroupMember,
-    ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
-    CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
-    DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic, DescribableLogDirTopic,
-    DescribeClusterBroker, DescribeDelegationTokenOwner, DescribeDelegationTokenRequest,
-    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
-    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    ConfigEntry, ConfigSource, ConfigSynonym, ConfigType, ConsumerGroupAssignment,
+    ConsumerGroupMember, ConsumerGroupTopicPartitions, CreatableRenewer,
+    CreateDelegationTokenRequest, CreateDelegationTokenResponse, DeletableGroupResult,
+    DeleteShareGroupOffsetsTopic, DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic,
+    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeDelegationTokenResponse, DescribeLogDirsPartition,
+    DescribeLogDirsRequest, DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
     DescribeProducersPartition, DescribeProducersTopic, DescribeShareGroupOffsetsGroup,
     DescribeShareGroupOffsetsTopic, DescribeTopicPartitionsResponse,
     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
@@ -138,10 +138,14 @@ pub use crate::protocol::admin::{
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
     TransactionTopic, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
-    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
-    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS,
-    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
+    CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
+    CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
+    CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
+    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
+    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
+    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
@@ -10025,6 +10029,44 @@ mod tests {
             ConfigResource::topic("t").resource_type,
             i8::from(ConfigResourceType::Topic)
         );
+    }
+
+    #[test]
+    fn config_type_and_source_match_wire_ids() {
+        assert_eq!(i8::from(ConfigType::Unknown), CONFIG_TYPE_UNKNOWN);
+        assert_eq!(i8::from(ConfigType::String), CONFIG_TYPE_STRING);
+        assert_eq!(i8::from(ConfigType::Password), CONFIG_TYPE_PASSWORD);
+        assert_eq!(ConfigType::from_id(CONFIG_TYPE_STRING), ConfigType::String);
+        assert_eq!(ConfigType::from_id(99), ConfigType::Unknown);
+        assert_eq!(i8::from(ConfigSource::Unknown), CONFIG_SOURCE_UNKNOWN);
+        assert_eq!(
+            i8::from(ConfigSource::DynamicTopic),
+            CONFIG_SOURCE_DYNAMIC_TOPIC
+        );
+        assert_eq!(i8::from(ConfigSource::Default), CONFIG_SOURCE_DEFAULT);
+        assert_eq!(
+            i8::from(ConfigSource::DynamicGroup),
+            CONFIG_SOURCE_DYNAMIC_GROUP
+        );
+        assert_eq!(
+            ConfigSource::from_id(CONFIG_SOURCE_DEFAULT),
+            ConfigSource::Default
+        );
+        assert_eq!(ConfigSource::from_id(-1), ConfigSource::Unknown);
+        assert_eq!(ConfigSource::from_id(99), ConfigSource::Unknown);
+        let def = ConfigEntry {
+            name: "k".into(),
+            value: Some("v".into()),
+            read_only: false,
+            source: CONFIG_SOURCE_DEFAULT,
+            is_sensitive: false,
+            synonyms: Vec::new(),
+            config_type: CONFIG_TYPE_INT,
+            documentation: None,
+        };
+        assert!(def.is_default());
+        assert_eq!(def.source(), ConfigSource::Default);
+        assert_eq!(def.config_type(), ConfigType::Int);
     }
 
     #[test]

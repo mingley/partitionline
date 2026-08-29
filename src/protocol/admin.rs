@@ -41,10 +41,24 @@ pub const RESOURCE_BROKER_LOGGER: i8 = 8;
 pub const RESOURCE_CLIENT_METRICS: i8 = 16;
 /// Config resource type for consumer groups (KIP-1142).
 pub const RESOURCE_GROUP: i8 = 32;
-/// Config source: dynamic topic config.
+/// Config source: unknown (Java `ConfigSource.UNKNOWN`; alterConfigs entries).
+pub const CONFIG_SOURCE_UNKNOWN: i8 = 0;
+/// Config source: dynamic topic config (Java `DYNAMIC_TOPIC_CONFIG`).
 pub const CONFIG_SOURCE_DYNAMIC_TOPIC: i8 = 1;
-/// Config source: default.
+/// Config source: dynamic broker config.
+pub const CONFIG_SOURCE_DYNAMIC_BROKER: i8 = 2;
+/// Config source: dynamic default broker config.
+pub const CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER: i8 = 3;
+/// Config source: static broker config (`server.properties`).
+pub const CONFIG_SOURCE_STATIC_BROKER: i8 = 4;
+/// Config source: default (Java `DEFAULT_CONFIG`).
 pub const CONFIG_SOURCE_DEFAULT: i8 = 5;
+/// Config source: dynamic broker logger config.
+pub const CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER: i8 = 6;
+/// Config source: dynamic client metrics config.
+pub const CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS: i8 = 7;
+/// Config source: dynamic group config.
+pub const CONFIG_SOURCE_DYNAMIC_GROUP: i8 = 8;
 /// DescribeConfigs v3+ ConfigType: unknown (Java `ConfigType.UNKNOWN`).
 pub const CONFIG_TYPE_UNKNOWN: i8 = 0;
 /// DescribeConfigs v3+ ConfigType: boolean.
@@ -65,6 +79,112 @@ pub const CONFIG_TYPE_LIST: i8 = 7;
 pub const CONFIG_TYPE_CLASS: i8 = 8;
 /// DescribeConfigs v3+ ConfigType: password.
 pub const CONFIG_TYPE_PASSWORD: i8 = 9;
+
+/// Java `ConfigEntry.ConfigSource` (DescribeConfigs ConfigSource on the wire).
+///
+/// Wire ids match `DescribeConfigsResponse.ConfigSource.id`, not Java enum
+/// ordinals (`DYNAMIC_TOPIC_CONFIG` is `1`, not `0`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum ConfigSource {
+    /// Java `UNKNOWN` (wire `0`).
+    Unknown = CONFIG_SOURCE_UNKNOWN,
+    /// Java `DYNAMIC_TOPIC_CONFIG` (wire `1`).
+    DynamicTopic = CONFIG_SOURCE_DYNAMIC_TOPIC,
+    /// Java `DYNAMIC_BROKER_CONFIG` (wire `2`).
+    DynamicBroker = CONFIG_SOURCE_DYNAMIC_BROKER,
+    /// Java `DYNAMIC_DEFAULT_BROKER_CONFIG` (wire `3`).
+    DynamicDefaultBroker = CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
+    /// Java `STATIC_BROKER_CONFIG` (wire `4`).
+    StaticBroker = CONFIG_SOURCE_STATIC_BROKER,
+    /// Java `DEFAULT_CONFIG` (wire `5`).
+    Default = CONFIG_SOURCE_DEFAULT,
+    /// Java `DYNAMIC_BROKER_LOGGER_CONFIG` (wire `6`).
+    DynamicBrokerLogger = CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
+    /// Java `DYNAMIC_CLIENT_METRICS_CONFIG` (wire `7`).
+    DynamicClientMetrics = CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS,
+    /// Java `DYNAMIC_GROUP_CONFIG` (wire `8`).
+    DynamicGroup = CONFIG_SOURCE_DYNAMIC_GROUP,
+}
+
+impl ConfigSource {
+    /// Java `DescribeConfigsResponse.ConfigSource.forId` (out of range is
+    /// [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            CONFIG_SOURCE_UNKNOWN => Self::Unknown,
+            CONFIG_SOURCE_DYNAMIC_TOPIC => Self::DynamicTopic,
+            CONFIG_SOURCE_DYNAMIC_BROKER => Self::DynamicBroker,
+            CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER => Self::DynamicDefaultBroker,
+            CONFIG_SOURCE_STATIC_BROKER => Self::StaticBroker,
+            CONFIG_SOURCE_DEFAULT => Self::Default,
+            CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER => Self::DynamicBrokerLogger,
+            CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS => Self::DynamicClientMetrics,
+            CONFIG_SOURCE_DYNAMIC_GROUP => Self::DynamicGroup,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl From<ConfigSource> for i8 {
+    fn from(source: ConfigSource) -> Self {
+        source as i8
+    }
+}
+
+/// Java `ConfigEntry.ConfigType` (DescribeConfigs ConfigType on the wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum ConfigType {
+    /// Java `UNKNOWN` (wire `0`; below v3).
+    Unknown = CONFIG_TYPE_UNKNOWN,
+    /// Java `BOOLEAN`.
+    Boolean = CONFIG_TYPE_BOOLEAN,
+    /// Java `STRING`.
+    String = CONFIG_TYPE_STRING,
+    /// Java `INT`.
+    Int = CONFIG_TYPE_INT,
+    /// Java `SHORT`.
+    Short = CONFIG_TYPE_SHORT,
+    /// Java `LONG`.
+    Long = CONFIG_TYPE_LONG,
+    /// Java `DOUBLE`.
+    Double = CONFIG_TYPE_DOUBLE,
+    /// Java `LIST`.
+    List = CONFIG_TYPE_LIST,
+    /// Java `CLASS`.
+    Class = CONFIG_TYPE_CLASS,
+    /// Java `PASSWORD`.
+    Password = CONFIG_TYPE_PASSWORD,
+}
+
+impl ConfigType {
+    /// Java `DescribeConfigsResponse.ConfigType.forId` (out of range is
+    /// [`Self::Unknown`]).
+    #[must_use]
+    pub const fn from_id(id: i8) -> Self {
+        match id {
+            CONFIG_TYPE_UNKNOWN => Self::Unknown,
+            CONFIG_TYPE_BOOLEAN => Self::Boolean,
+            CONFIG_TYPE_STRING => Self::String,
+            CONFIG_TYPE_INT => Self::Int,
+            CONFIG_TYPE_SHORT => Self::Short,
+            CONFIG_TYPE_LONG => Self::Long,
+            CONFIG_TYPE_DOUBLE => Self::Double,
+            CONFIG_TYPE_LIST => Self::List,
+            CONFIG_TYPE_CLASS => Self::Class,
+            CONFIG_TYPE_PASSWORD => Self::Password,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl From<ConfigType> for i8 {
+    fn from(ty: ConfigType) -> Self {
+        ty as i8
+    }
+}
 
 /// Manual replica assignment for one CreateTopics partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,6 +302,14 @@ pub struct ConfigSynonym {
     pub source: i8,
 }
 
+impl ConfigSynonym {
+    /// Java `ConfigSynonym.source()`.
+    #[must_use]
+    pub fn source(&self) -> ConfigSource {
+        ConfigSource::from_id(self.source)
+    }
+}
+
 /// One key from DescribeConfigs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigEntry {
@@ -205,19 +333,38 @@ pub struct ConfigEntry {
 
 impl ConfigEntry {
     /// Java `ConfigEntry(String, String)` for [`Config`]. `value` `None` is
-    /// Java `null`. Source is unknown (`0`); type is [`CONFIG_TYPE_UNKNOWN`].
+    /// Java `null`. Source is [`ConfigSource::Unknown`]; type is
+    /// [`ConfigType::Unknown`].
     #[must_use]
     pub fn new(name: impl Into<String>, value: Option<String>) -> Self {
         Self {
             name: name.into(),
             value,
             read_only: false,
-            source: 0,
+            source: CONFIG_SOURCE_UNKNOWN,
             is_sensitive: false,
             synonyms: Vec::new(),
             config_type: CONFIG_TYPE_UNKNOWN,
             documentation: None,
         }
+    }
+
+    /// Java `ConfigEntry.source()`.
+    #[must_use]
+    pub fn source(&self) -> ConfigSource {
+        ConfigSource::from_id(self.source)
+    }
+
+    /// Java `ConfigEntry.type()`.
+    #[must_use]
+    pub fn config_type(&self) -> ConfigType {
+        ConfigType::from_id(self.config_type)
+    }
+
+    /// Java `ConfigEntry.isDefault()`.
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        self.source == CONFIG_SOURCE_DEFAULT
     }
 }
 
@@ -11625,8 +11772,11 @@ mod tests {
         assert_eq!(config.entries().len(), 1);
         assert_eq!(config.get("cleanup.policy"), Some(&entry));
         assert_eq!(config.get("retention.ms"), None);
-        assert_eq!(entry.source, 0);
+        assert_eq!(entry.source, CONFIG_SOURCE_UNKNOWN);
+        assert_eq!(entry.source(), ConfigSource::Unknown);
         assert_eq!(entry.config_type, CONFIG_TYPE_UNKNOWN);
+        assert_eq!(entry.config_type(), ConfigType::Unknown);
+        assert!(!entry.is_default());
         let result = DescribeConfigsResult {
             error_code: 0,
             error_message: None,
