@@ -267,6 +267,11 @@
 //! ([`TopicPartitionReplica`] / [`ReplicaLogDirInfo`]).
 //! [`Admin::describe_broker_log_dirs`] is Java
 //! `describeLogDirs(Collection<Integer>)`.
+//! [`Admin::describe_log_dirs_timeout`] /
+//! [`Admin::describe_replica_log_dirs_timeout`] /
+//! [`Admin::describe_broker_log_dirs_timeout`] are Java
+//! `DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has
+//! no TimeoutMs).
 //! [`Admin::metrics`] is Java `Admin.metrics()` ([`AdminMetrics`]).
 //! [`AclBinding::allow_topic`] / [`AclBindingFilter`] / [`AclResourceType`] /
 //! [`AclOperation`] / [`AclPermission`] cover CreateAcls / DescribeAcls /

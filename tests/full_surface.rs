@@ -7658,6 +7658,15 @@ async fn describe_log_dirs_follows_broker() {
         None,
         "DescribeLogDirs must not hop via Metadata controller_id"
     );
+    let timed = admin
+        .describe_log_dirs_timeout(
+            Some(vec![DescribableLogDirTopic::new("t", vec![0])]),
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
+    assert_eq!(timed.results[0].log_dir, "/d");
 }
 
 #[tokio::test]
@@ -7839,6 +7848,15 @@ async fn describe_replica_log_dirs_follows_replica_broker() {
         None,
         "describe_replica_log_dirs must not hop via DescribeGroups or FindCoordinator"
     );
+    let timed = admin
+        .describe_replica_log_dirs_timeout(
+            [TopicPartitionReplica::new("t", 0, 2)],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].0.broker_id, 2);
 }
 
 #[tokio::test]
@@ -7898,6 +7916,12 @@ async fn describe_broker_log_dirs_follows_each_broker() {
     );
     assert!(m.requests >= 2, "ApiVersions plus DescribeLogDirs: {m:?}");
     assert_eq!(m.errors, 0);
+    let timed = admin
+        .describe_broker_log_dirs_timeout([1], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].0, 1);
     admin.close().await.unwrap();
 }
 

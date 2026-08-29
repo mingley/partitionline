@@ -6782,13 +6782,27 @@ impl Admin {
     /// Fixture directory path and topic/partition indexes only; this
     /// is not a log-dir store. v5 is a named STATUS hole and is not
     /// spoken. Java `describeLogDirs(Collection<Integer>)` is
-    /// [`Self::describe_broker_log_dirs`].
+    /// [`Self::describe_broker_log_dirs`]. DescribeLogDirs has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use [`Self::describe_log_dirs_timeout`].
     pub async fn describe_log_dirs(
         &mut self,
         topics: Option<Vec<DescribableLogDirTopic>>,
     ) -> Result<DescribeLogDirsResponse> {
-        let version = self.describe_log_dirs_version;
         let timeout = self.cfg.request_timeout;
+        self.describe_log_dirs_timeout(topics, timeout).await
+    }
+
+    /// [`Self::describe_log_dirs`] with a one-shot RPC deadline (Java
+    /// `DescribeLogDirsOptions.timeoutMs`).
+    ///
+    /// DescribeLogDirs has no TimeoutMs; `timeout` is the RPC deadline.
+    pub async fn describe_log_dirs_timeout(
+        &mut self,
+        topics: Option<Vec<DescribableLogDirTopic>>,
+        timeout: Duration,
+    ) -> Result<DescribeLogDirsResponse> {
+        let version = self.describe_log_dirs_version;
         let req = DescribeLogDirsRequest::new(topics);
         let body = self
             .roundtrip_bootstrap(
@@ -6808,9 +6822,27 @@ impl Admin {
     /// input is a no-op. This is not [`Self::describe_log_dirs`]
     /// (bootstrap only) and not a controller or partition-leader hop.
     /// Replicas missing from the response get [`ReplicaLogDirInfo::unknown`].
+    /// DescribeLogDirs has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_replica_log_dirs_timeout`].
     pub async fn describe_replica_log_dirs(
         &mut self,
         replicas: impl IntoIterator<Item = TopicPartitionReplica>,
+    ) -> Result<Vec<(TopicPartitionReplica, ReplicaLogDirInfo)>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_replica_log_dirs_timeout(replicas, timeout)
+            .await
+    }
+
+    /// [`Self::describe_replica_log_dirs`] with a one-shot RPC deadline
+    /// (Java `describeReplicaLogDirs` plus `DescribeLogDirsOptions.timeoutMs`).
+    ///
+    /// DescribeLogDirs has no TimeoutMs; `timeout` is the RPC deadline
+    /// for each replica-broker hop.
+    pub async fn describe_replica_log_dirs_timeout(
+        &mut self,
+        replicas: impl IntoIterator<Item = TopicPartitionReplica>,
+        timeout: Duration,
     ) -> Result<Vec<(TopicPartitionReplica, ReplicaLogDirInfo)>> {
         let replicas: Vec<TopicPartitionReplica> = replicas.into_iter().collect();
         if replicas.is_empty() {
@@ -6820,7 +6852,9 @@ impl Admin {
         for broker_id in replica_broker_ids(&replicas) {
             self.ensure_broker(broker_id).await?;
             let topics = describable_topics_for_broker(&replicas, broker_id);
-            let resp = self.describe_log_dirs_on(broker_id, Some(topics)).await?;
+            let resp = self
+                .describe_log_dirs_on(broker_id, Some(topics), timeout)
+                .await?;
             if resp.error_code != 0 {
                 return Err(Error::broker(resp.error_code, "DescribeLogDirs"));
             }
@@ -6848,10 +6882,28 @@ impl Admin {
     /// Empty input is a no-op. Unknown broker ids refresh Metadata
     /// then fail. This is not [`Self::describe_log_dirs`] (bootstrap,
     /// optional topic filter) and not
-    /// [`Self::describe_replica_log_dirs`].
+    /// [`Self::describe_replica_log_dirs`]. DescribeLogDirs has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use
+    /// [`Self::describe_broker_log_dirs_timeout`].
     pub async fn describe_broker_log_dirs(
         &mut self,
         brokers: impl IntoIterator<Item = i32>,
+    ) -> Result<Vec<(i32, DescribeLogDirsResponse)>> {
+        let timeout = self.cfg.request_timeout;
+        self.describe_broker_log_dirs_timeout(brokers, timeout)
+            .await
+    }
+
+    /// [`Self::describe_broker_log_dirs`] with a one-shot RPC deadline
+    /// (Java `describeLogDirs` plus `DescribeLogDirsOptions.timeoutMs`).
+    ///
+    /// DescribeLogDirs has no TimeoutMs; `timeout` is the RPC deadline
+    /// for each broker hop.
+    pub async fn describe_broker_log_dirs_timeout(
+        &mut self,
+        brokers: impl IntoIterator<Item = i32>,
+        timeout: Duration,
     ) -> Result<Vec<(i32, DescribeLogDirsResponse)>> {
         let mut ids = Vec::new();
         for id in brokers {
@@ -6865,7 +6917,7 @@ impl Admin {
         let mut out = Vec::with_capacity(ids.len());
         for broker_id in ids {
             self.ensure_broker(broker_id).await?;
-            let resp = self.describe_log_dirs_on(broker_id, None).await?;
+            let resp = self.describe_log_dirs_on(broker_id, None, timeout).await?;
             out.push((broker_id, resp));
         }
         Ok(out)
@@ -6875,9 +6927,9 @@ impl Admin {
         &mut self,
         node: i32,
         topics: Option<Vec<DescribableLogDirTopic>>,
+        timeout: Duration,
     ) -> Result<DescribeLogDirsResponse> {
         let version = self.describe_log_dirs_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let req = DescribeLogDirsRequest::new(topics);

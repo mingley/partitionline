@@ -105,7 +105,11 @@ throttle v0+; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_share_
 `describeDelegationToken` (v1–v3; classic v1, flexible v2, TokenRequester v3). `Admin::describe_replica_log_dirs` is Java
 `describeReplicaLogDirs`. `Admin::describe_broker_log_dirs` is Java
 `describeLogDirs(Collection<Integer>)` (null-topics DescribeLogDirs v1–v4 on
-each broker). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`
+each broker). `Admin::describe_log_dirs_timeout` /
+`Admin::describe_replica_log_dirs_timeout` /
+`Admin::describe_broker_log_dirs_timeout` are Java
+`DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has no
+TimeoutMs). `Admin::metrics` is Java `Admin.metrics()` (`AdminMetrics`
 snapshot; I/O errors, not broker `error_code`). `assignment` is Java `assignment`
 (`assigned_partitions` is the same list; `positions` is next fetch offset).
 `max.poll.records` caps
@@ -226,7 +230,7 @@ topics.
 - UpdateFeatures v0–v2 are flexible from v0 (compact strings/arrays plus tagged fields; request header 2, response header 1). v0 AllowDowngrade. v1 UpgradeType / ValidateOnly. v2 omits Results. `update_features_timeout` / `update_features_with_timeout` are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 - IncrementalAlterConfigs v0 is classic. v1 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). `incremental_alter_configs_for` is Java `incrementalAlterConfigs(Map)` (Resources of N). `incremental_alter_configs_timeout` is Java `AlterConfigsOptions.timeoutMs` (RPC deadline; IncrementalAlterConfigs has no TimeoutMs). Kafka 4.0 `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
 - AlterReplicaLogDirs v1 is classic. v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Same fields. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken.
-- DescribeLogDirs v1 is classic. v2–v4 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 top-level ErrorCode (KIP-784). v4 TotalBytes / UsableBytes (KIP-827; decode fills `-1` on v1–v3). Kafka 4.0 `validVersions` is `1-4` (v0 removed). This crate speaks 1–4. v0 and v5+ are not spoken. v5 is a named STATUS hole.
+- DescribeLogDirs v1 is classic. v2–v4 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 top-level ErrorCode (KIP-784). v4 TotalBytes / UsableBytes (KIP-827; decode fills `-1` on v1–v3). `describe_log_dirs_timeout` / `describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` are Java `DescribeLogDirsOptions.timeoutMs` (RPC deadline; DescribeLogDirs has no TimeoutMs). Kafka 4.0 `validVersions` is `1-4` (v0 removed). This crate speaks 1–4. v0 and v5+ are not spoken. v5 is a named STATUS hole.
 - CreateDelegationToken v1 is classic. v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). v3 OwnerPrincipalType / OwnerPrincipalName and TokenRequesterPrincipalType / TokenRequesterPrincipalName (decode fills `None` / empty on v1–v2). ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-3` (v0 removed). This crate speaks 1–3. v0 and v4+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - RenewDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - ExpireDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.

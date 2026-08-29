@@ -107,7 +107,9 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::remove_members_from_consumer_group` is Java `removeMembersFromConsumerGroup`
 (`MemberToRemove`). `Admin::remove_all_members_from_consumer_group` is Java
 `RemoveMembersFromConsumerGroupOptions.removeAll`. `Admin::describe_broker_log_dirs` is Java
-`describeLogDirs(Collection<Integer>)`. `PartitionReassignment::assign`
+`describeLogDirs(Collection<Integer>)`. `Admin::describe_log_dirs_timeout` /
+`describe_replica_log_dirs_timeout` / `describe_broker_log_dirs_timeout` are Java
+`DescribeLogDirsOptions.timeoutMs`. `PartitionReassignment::assign`
 takes `TopicPartition`. `send_offsets_to_transaction` takes
 `TopicPartition`. `AclBinding::allow_topic`, `AclBindingFilter`, `AclResourceType`,
 `AclOperation`, `AclPermission`, and `AclPatternType` cover CreateAcls /
