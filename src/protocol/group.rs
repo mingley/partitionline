@@ -168,15 +168,16 @@ pub fn decode_find_coordinator_response<B: Buf>(
 
 /// `true` when JoinGroup `version` is flexible (v6+).
 ///
-/// v5 is classic (GroupInstanceId). v6 is compact strings/bytes/arrays
-/// plus tagged fields (Apache JSON `flexibleVersions: "6+"`). v7 is the
-/// same request as v6; the response adds ProtocolType (KIP-559) and
-/// nullable ProtocolName. v8 adds Reason (KIP-800). v9 adds
-/// SkipAssignment on the response. Kafka 4.0 `validVersions` is `2-9`.
-/// This crate speaks 5–9. v2–v4 (no instance id) and v10+ are not spoken.
+/// v2–v5 are classic. v6 is compact strings/bytes/arrays plus tagged
+/// fields (Apache JSON `flexibleVersions: "6+"`). Official JSON: v2 and
+/// v3 match v1 (RebalanceTimeoutMs). v4 second join with assigned id.
+/// v5 GroupInstanceId. v7 response ProtocolType / nullable ProtocolName
+/// (KIP-559). v8 Reason (KIP-800). v9 SkipAssignment. Kafka 4.0
+/// `validVersions` is `2-9` (v0–v1 removed). This crate speaks 2–9.
+/// v0–v1 and v10+ are not spoken.
 fn join_group_flexible(version: i16) -> Result<bool> {
     match version {
-        5 => Ok(false),
+        2..=5 => Ok(false),
         6..=9 => Ok(true),
         other => Err(Error::protocol(format!(
             "JoinGroup version {other} is not implemented"
@@ -184,7 +185,7 @@ fn join_group_flexible(version: i16) -> Result<bool> {
     }
 }
 
-/// JoinGroup request (classic v5 or flexible v6–v9).
+/// JoinGroup request (classic v2–v5 or flexible v6–v9).
 #[derive(Debug, Clone, Copy)]
 pub struct JoinGroupRequest<'a> {
     /// Group id.
@@ -205,7 +206,13 @@ pub struct JoinGroupRequest<'a> {
     pub reason: Option<&'a str>,
 }
 
-/// Encode JoinGroup v5 (classic) or v6–v9 (flexible).
+/// Encode JoinGroup v2–v9.
+///
+/// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "6+"`.
+/// v2–v4 are GroupId + SessionTimeoutMs + RebalanceTimeoutMs + MemberId
+/// + ProtocolType + Protocols (v2 and v3 match). v5 GroupInstanceId.
+/// v6 flexible. v8 Reason. This crate speaks 2–9. v0–v1 and v10+ are
+/// not spoken.
 pub fn encode_join_group_request(
     buf: &mut BytesMut,
     version: i16,
@@ -216,7 +223,9 @@ pub fn encode_join_group_request(
     buf.put_i32(req.session_timeout_ms);
     buf.put_i32(req.session_timeout_ms); // rebalance timeout
     buf::put_string(buf, flexible, Some(req.member_id))?;
-    buf::put_string(buf, flexible, req.group_instance_id)?;
+    if version >= 5 {
+        buf::put_string(buf, flexible, req.group_instance_id)?;
+    }
     buf::put_string(buf, flexible, Some(req.protocol_type))?;
     buf::put_array_len(buf, flexible, Some(1))?;
     buf::put_string(buf, flexible, Some(req.protocol_name))?;
@@ -243,7 +252,11 @@ pub fn decode_join_group_request<B: Buf>(
     let _session = buf::get_i32(buf)?;
     let _rebalance = buf::get_i32(buf)?;
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let instance = buf::get_string(buf, flexible)?;
+    let instance = if version >= 5 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
     let _ptype = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut metadata = Vec::new();
@@ -303,7 +316,9 @@ pub fn encode_join_group_response(
     buf::put_array_len(buf, flexible, Some(members.len()))?;
     for m in members {
         buf::put_string(buf, flexible, Some(&m.member_id))?;
-        buf::put_string(buf, flexible, None)?;
+        if version >= 5 {
+            buf::put_string(buf, flexible, None)?;
+        }
         buf::put_bytes(buf, flexible, Some(&m.metadata))?;
         if flexible {
             buf::put_empty_tagged_fields(buf);
@@ -343,7 +358,9 @@ pub fn decode_join_group_response<B: Buf>(
     let mut members = Vec::with_capacity(n);
     for _ in 0..n {
         let mid = buf::get_string(buf, flexible)?.unwrap_or_default();
-        let _inst = buf::get_string(buf, flexible)?;
+        if version >= 5 {
+            let _inst = buf::get_string(buf, flexible)?;
+        }
         let metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
         if flexible {
             buf::skip_tagged_fields(buf)?;
@@ -1813,6 +1830,107 @@ mod tests {
     }
 
     #[test]
+    fn join_group_v2_v4_match_and_omit_instance() {
+        // Official JSON: "Version 2 and 3 are the same as version 1."
+        // Kafka 4.0 removed v0–v1. Request: "g", session/rebalance 10000,
+        // "m1", "consumer", one protocol "range" metadata [1,2,3].
+        // Instance id is v5+.
+        const REQ: &[u8] = &[
+            0x00, 0x01, 0x67, 0x00, 0x00, 0x27, 0x10, 0x00, 0x00, 0x27, 0x10, 0x00, 0x02, 0x6d,
+            0x31, 0x00, 0x08, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6d, 0x65, 0x72, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x05, 0x72, 0x61, 0x6e, 0x67, 0x65, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02,
+            0x03,
+        ];
+        let req = JoinGroupRequest {
+            group_id: "g",
+            session_timeout_ms: 10_000,
+            member_id: "m1",
+            group_instance_id: Some("ignored-on-v2"),
+            protocol_type: "consumer",
+            protocol_name: "range",
+            metadata: &[1, 2, 3],
+            reason: None,
+        };
+        let mut v2 = BytesMut::new();
+        encode_join_group_request(&mut v2, 2, &req).unwrap();
+        let mut v3 = BytesMut::new();
+        encode_join_group_request(&mut v3, 3, &req).unwrap();
+        let mut v4 = BytesMut::new();
+        encode_join_group_request(&mut v4, 4, &req).unwrap();
+        assert_eq!(&v2[..], REQ);
+        assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
+        let mut cur = v2.as_ref();
+        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 2).unwrap();
+        assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
+        assert_eq!(instance, None);
+        assert_eq!(meta, vec![1, 2, 3]);
+        assert!(cur.is_empty(), "v2 request leftover-empty");
+        let mut cur = v4.as_ref();
+        let (_gid, _member, instance, _meta) = decode_join_group_request(&mut cur, 4).unwrap();
+        assert_eq!(instance, None);
+        assert!(cur.is_empty(), "v4 request leftover-empty");
+
+        let mut v5 = BytesMut::new();
+        encode_join_group_request(&mut v5, 5, &req).unwrap();
+        assert_ne!(v2.as_ref(), v5.as_ref(), "v5 request adds GroupInstanceId");
+
+        let members = [JoinMember {
+            member_id: "m1".into(),
+            metadata: vec![1, 2, 3],
+        }];
+        v2.clear();
+        encode_join_group_response(&mut v2, 2, 0, 7, "range", "l", "m1", &members).unwrap();
+        v3.clear();
+        encode_join_group_response(&mut v3, 3, 0, 7, "range", "l", "m1", &members).unwrap();
+        v4.clear();
+        encode_join_group_response(&mut v4, 4, 0, 7, "range", "l", "m1", &members).unwrap();
+        v5.clear();
+        encode_join_group_response(&mut v5, 5, 0, 7, "range", "l", "m1", &members).unwrap();
+        assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 response bodies match");
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 response bodies match");
+        assert_ne!(
+            v2.as_ref(),
+            v5.as_ref(),
+            "v5 response members add GroupInstanceId"
+        );
+        let mut cur = v2.as_ref();
+        let (err, gen, proto, leader, mid, skip, got) =
+            decode_join_group_response(&mut cur, 2).unwrap();
+        assert_eq!(
+            (
+                err,
+                gen,
+                proto.as_str(),
+                leader.as_str(),
+                mid.as_str(),
+                skip
+            ),
+            (0, 7, "range", "l", "m1", false)
+        );
+        assert_eq!(got[0].member_id, "m1");
+        assert_eq!(got[0].metadata, vec![1, 2, 3]);
+        assert!(cur.is_empty(), "v2 response leftover-empty");
+
+        v2.clear();
+        let err = encode_join_group_request(&mut v2, 0, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v0 is not spoken, got {err}"
+        );
+        v2.clear();
+        let err = encode_join_group_request(&mut v2, 1, &req).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v1 is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 2, 9), Some(2));
+        assert_eq!(crate::protocol::api_keys::pick_version(2, 9, 2, 9), Some(9));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 2, 9), None);
+        assert_eq!(crate::protocol::api_keys::pick_version(10, 10, 2, 9), None);
+    }
+
+    #[test]
     fn join_group_v6_roundtrip_is_leftover_empty() {
         let mut req = BytesMut::new();
         encode_join_group_request(&mut req, 6, &join_req(&[1, 2, 3])).unwrap();
@@ -1915,8 +2033,8 @@ mod tests {
         encode_join_group_request(&mut v5, 5, &join_req(&[1, 2, 3])).unwrap();
         assert_ne!(&buf[..], &v5[..], "JoinGroup v6 must not be classic v5");
         assert!(
-            encode_join_group_request(&mut BytesMut::new(), 4, &join_req(&[1, 2, 3])).is_err(),
-            "JoinGroup v4 is not spoken"
+            encode_join_group_request(&mut BytesMut::new(), 1, &join_req(&[1, 2, 3])).is_err(),
+            "JoinGroup v0–v1 are not spoken"
         );
         assert!(
             encode_join_group_request(&mut BytesMut::new(), 10, &join_req(&[1, 2, 3])).is_err(),

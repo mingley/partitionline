@@ -2460,6 +2460,29 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         Some(5),
         "client must speak JoinGroup v5 when the broker max is 5"
     );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(JOIN_GROUP, 4);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    ccfg.group_instance_id = Some("worker-jg4".into());
+    let _group = ConsumerGroup::join(ccfg, "jg4", "t").await.unwrap();
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(4),
+        "client must speak JoinGroup v4 when the broker max is 4"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(JOIN_GROUP, 2);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "jg2", "t").await.unwrap();
+    assert_eq!(
+        mock.last_join_group_version(),
+        Some(2),
+        "client must speak JoinGroup v2 when the broker max is 2"
+    );
 }
 
 #[tokio::test]

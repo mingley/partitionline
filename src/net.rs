@@ -268,7 +268,8 @@ pub struct BrokerConn {
     /// version, so it cannot mean unset.
     pub(crate) sync_group_version: i16,
     /// JoinGroup version negotiated on coordinator sockets (`0` unset).
-    /// Classic consumer groups pick 5–9 from ApiVersions.
+    /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0
+    /// removed v0–v1, so `0` is not a spoken version.
     pub(crate) join_group_version: i16,
     /// LeaveGroup version negotiated on coordinator sockets (`-1` unset).
     /// Classic consumer groups pick 0–5 from ApiVersions. `0` is a spoken

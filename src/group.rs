@@ -1441,12 +1441,7 @@ impl ConsumerGroup {
     async fn rejoin_once(&mut self) -> Result<Vec<(String, i32)>> {
         let timeout = self.cfg.request_timeout;
         let metadata = self.join_metadata()?;
-        let version = self.coord.join_group_version;
-        if version == 0 {
-            return Err(Error::Unsupported(
-                "broker does not support JoinGroup v5-9".into(),
-            ));
-        }
+        let version = spoken_join_group(self.coord.join_group_version)?;
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
                 &mut self.coord,
@@ -1997,6 +1992,16 @@ async fn leave_if_max_poll(
     true
 }
 
+fn spoken_join_group(version: i16) -> Result<i16> {
+    if (2..=9).contains(&version) {
+        Ok(version)
+    } else {
+        Err(Error::Unsupported(
+            "broker does not support JoinGroup v2-9".into(),
+        ))
+    }
+}
+
 fn spoken_sync_group(version: i16) -> Result<i16> {
     if (0..=5).contains(&version) {
         Ok(version)
@@ -2307,7 +2312,7 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == JOIN_GROUP)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 5, 9))
+        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
         .unwrap_or(0);
     conn.leave_group_version = resp
         .api_keys

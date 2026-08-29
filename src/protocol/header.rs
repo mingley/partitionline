@@ -161,8 +161,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         SYNC_GROUP if api_version >= 4 => 2,
         // JoinGroup is classic through v5; flexible from v6
         // (Apache JSON flexibleVersions: "6+"). Kafka 4.0 validVersions
-        // is 2-9. This crate speaks 5–9. v8 Reason and v9 SkipAssignment
-        // keep the v6 header. v2–v4 are not spoken.
+        // is 2-9 (v0–v1 removed). This crate speaks 2–9. v5
+        // GroupInstanceId. v8 Reason and v9 SkipAssignment keep the v6
+        // header. v0–v1 and v10+ are not spoken.
         JOIN_GROUP if api_version >= 6 => 2,
         // CreateTopics is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+"). Kafka 4.0 validVersions
@@ -628,8 +629,12 @@ mod tests {
     #[test]
     fn join_group_v6_is_flexible_v5_is_not() {
         // Official JSON: validVersions 2-9, flexibleVersions 6+.
-        // HeaderVersion is 1 / 0 at v5 and 2 / 1 at v6–v9. This crate
-        // speaks 5–9. v8 Reason and v9 SkipAssignment keep the v6 header.
+        // HeaderVersion is 1 / 0 at v2–v5 and 2 / 1 at v6–v9. This crate
+        // speaks 2–9. v8 Reason and v9 SkipAssignment keep the v6 header.
+        assert_eq!(request_header_version(JOIN_GROUP, 2), 1);
+        assert_eq!(response_header_version(JOIN_GROUP, 2), 0);
+        assert_eq!(request_header_version(JOIN_GROUP, 4), 1);
+        assert_eq!(response_header_version(JOIN_GROUP, 4), 0);
         assert_eq!(request_header_version(JOIN_GROUP, 5), 1);
         assert_eq!(response_header_version(JOIN_GROUP, 5), 0);
         assert_eq!(request_header_version(JOIN_GROUP, 6), 2);
