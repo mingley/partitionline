@@ -436,6 +436,7 @@ struct State {
     last_heartbeat_version: Option<i16>,
     last_sync_group_version: Option<i16>,
     last_join_group_version: Option<i16>,
+    last_join_group_reason: Option<String>,
     last_consumer_group_heartbeat_version: Option<i16>,
     last_consumer_group_heartbeat_join_member_id: Option<String>,
     last_share_group_heartbeat_version: Option<i16>,
@@ -735,6 +736,7 @@ fn new_state(
         last_heartbeat_version: None,
         last_sync_group_version: None,
         last_join_group_version: None,
+        last_join_group_reason: None,
         last_consumer_group_heartbeat_version: None,
         last_consumer_group_heartbeat_join_member_id: None,
         last_share_group_heartbeat_version: None,
@@ -2096,6 +2098,10 @@ impl Mock {
 
     pub fn last_join_group_version(&self) -> Option<i16> {
         self.state.lock().last_join_group_version
+    }
+
+    pub fn last_join_group_reason(&self) -> Option<String> {
+        self.state.lock().last_join_group_reason.clone()
     }
 
     pub fn last_consumer_group_heartbeat_version(&self) -> Option<i16> {
@@ -4789,11 +4795,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             JOIN_GROUP => {
-                let (gid, member_id, instance, metadata) =
+                let (gid, member_id, instance, metadata, reason) =
                     decode_join_group_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.join_group_calls = st.join_group_calls.saturating_add(1);
                 st.last_join_group_version = Some(header.api_version);
+                st.last_join_group_reason = reason;
                 st.last_group_instance_id = instance.clone();
                 if member_id.is_empty() {
                     st.member_seq += 1;

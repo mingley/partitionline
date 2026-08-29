@@ -242,11 +242,13 @@ pub fn encode_join_group_request(
     Ok(())
 }
 
-/// Decode JoinGroup: `(group_id, member_id, instance_id, metadata)`.
+/// Decode JoinGroup: `(group_id, member_id, instance_id, metadata, reason)`.
+///
+/// `reason` is `None` below v8 (KIP-800).
 pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, Option<String>, Vec<u8>)> {
+) -> Result<(String, String, Option<String>, Vec<u8>, Option<String>)> {
     let flexible = join_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _session = buf::get_i32(buf)?;
@@ -267,13 +269,15 @@ pub fn decode_join_group_request<B: Buf>(
             buf::skip_tagged_fields(buf)?;
         }
     }
-    if version >= 8 {
-        let _reason = buf::get_string(buf, true)?;
-    }
+    let reason = if version >= 8 {
+        buf::get_string(buf, true)?
+    } else {
+        None
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, instance, metadata))
+    Ok((group_id, member_id, instance, metadata, reason))
 }
 
 /// One member in a JoinGroup response (leader sees all).
@@ -1848,11 +1852,12 @@ mod tests {
         )
         .unwrap();
         let mut cur = &buf[..];
-        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 5).unwrap();
+        let (gid, member, instance, meta, reason) = decode_join_group_request(&mut cur, 5).unwrap();
         assert_eq!(gid, "g");
         assert_eq!(member, "m1");
         assert_eq!(instance.as_deref(), Some("worker-1"));
         assert_eq!(meta, vec![1, 2, 3]);
+        assert_eq!(reason, None);
         assert!(cur.is_empty(), "v5 decoder leftover {} bytes", cur.len());
     }
 
@@ -1901,13 +1906,15 @@ mod tests {
         assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
         assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
         let mut cur = v2.as_ref();
-        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 2).unwrap();
+        let (gid, member, instance, meta, reason) = decode_join_group_request(&mut cur, 2).unwrap();
         assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
         assert_eq!(instance, None);
         assert_eq!(meta, vec![1, 2, 3]);
+        assert_eq!(reason, None);
         assert!(cur.is_empty(), "v2 request leftover-empty");
         let mut cur = v4.as_ref();
-        let (_gid, _member, instance, _meta) = decode_join_group_request(&mut cur, 4).unwrap();
+        let (_gid, _member, instance, _meta, _reason) =
+            decode_join_group_request(&mut cur, 4).unwrap();
         assert_eq!(instance, None);
         assert!(cur.is_empty(), "v4 request leftover-empty");
 
@@ -1975,10 +1982,11 @@ mod tests {
         let mut req = BytesMut::new();
         encode_join_group_request(&mut req, 6, &join_req(&[1, 2, 3])).unwrap();
         let mut cur = &req[..];
-        let (gid, member, instance, meta) = decode_join_group_request(&mut cur, 6).unwrap();
+        let (gid, member, instance, meta, reason) = decode_join_group_request(&mut cur, 6).unwrap();
         assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
         assert_eq!(instance, None);
         assert_eq!(meta, vec![1, 2, 3]);
+        assert_eq!(reason, None);
         assert!(
             cur.is_empty(),
             "v6 decoder must consume compact fields and tagged fields; leftover {} bytes",
@@ -2017,9 +2025,10 @@ mod tests {
         body.reason = Some("rejoin");
         encode_join_group_request(&mut req, 8, &body).unwrap();
         let mut cur = &req[..];
-        let (gid, member, _, meta) = decode_join_group_request(&mut cur, 8).unwrap();
+        let (gid, member, _, meta, reason) = decode_join_group_request(&mut cur, 8).unwrap();
         assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
         assert_eq!(meta, vec![1, 2, 3]);
+        assert_eq!(reason.as_deref(), Some("rejoin"));
         assert!(
             cur.is_empty(),
             "v8 decoder must consume Reason; leftover {} bytes",

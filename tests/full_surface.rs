@@ -2177,6 +2177,11 @@ async fn consumer_group_join_fetch_commit() {
         Some(9),
         "ConsumerGroup must prefer JoinGroup v9 when the broker advertises it"
     );
+    assert_eq!(
+        mock.last_join_group_reason(),
+        None,
+        "first JoinGroup must send a null Reason"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));

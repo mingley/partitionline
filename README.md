@@ -123,8 +123,9 @@ metadata string. `seek_with_metadata` is Java
 metadata string ignored). `commit_with_metadata(recs.next_offsets())` is Java
 `commitSync(records.nextOffsets())`. `commit_timeout` /
 `commit_with_metadata_timeout` are Java `commitSync(Duration)`. `ProduceRecord::null_header` is a
-null header value. `current_lag` is Java `currentLag`. `enforce_rebalance`
-rejoins on the next poll. `subscription` is the topic list.
+null header value. `current_lag` is Java `currentLag`. `enforce_rebalance` /
+`enforce_rebalance_with` rejoin on the next poll (Java `enforceRebalance`
+/ `enforceRebalance(String)`; JoinGroup v8+ Reason). `subscription` is the topic list.
 `subscribe` / `unsubscribe` change topics without dropping the handle.
 `subscribe_matching` / `join_matching` / `join_sticky_matching` /
 `join_cooperative_sticky_matching` / `join_consumer_matching` are Java

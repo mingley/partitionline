@@ -125,7 +125,9 @@ from the leader epoch; metadata string ignored).
 the OffsetCommit is queued and sent on the next poll, leave, close, or unsubscribe (no spawned task).
 `commit_with_metadata_async` is Java `commitAsync(Map, …)`.
 `current_lag` is high watermark minus position. `subscription` is the
-topic list. `enforce_rebalance` rejoins on the next poll.
+topic list. `enforce_rebalance` / `enforce_rebalance_with` rejoin on the
+next poll (Java `enforceRebalance` / `enforceRebalance(String)`; JoinGroup
+v8+ Reason, default `"rebalance enforced by user"`).
 `subscribe` / `unsubscribe` change the topic list without dropping the
 handle. `subscribe_matching` / `join_matching` / `join_sticky_matching` /
 `join_cooperative_sticky_matching` / `join_consumer_matching` are Java

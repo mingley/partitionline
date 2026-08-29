@@ -52,7 +52,7 @@ application needs**, not cloning `rd_kafka_*` symbols.
 | Interceptors | yes (`ProducerInterceptor` / `ConsumerInterceptor`; `close`; consumer `on_commit`) | yes | **done** |
 | OffsetAndMetadata / commit metadata | yes (`commit_with_metadata`; `seek_with_metadata` is Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch `LastFetchedEpoch`); `commit_timeout` / `commit_with_metadata_timeout` are Java `commitSync(Duration)`; `commit_async` / `commit_async_with` are Java `commitAsync` (queued OffsetCommit on poll / leave); `ConsumerRecords::next_offsets`; OffsetCommit v2–v9 epoch + metadata, v8+ flexible) | yes | **done** |
 | `currentLag` | yes (`Consumer::current_lag` / `ConsumerGroup::current_lag`) | yes | **done** |
-| `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` on next poll) | yes | **done** |
+| `enforceRebalance` | yes (`ConsumerGroup::enforce_rebalance` / `enforce_rebalance_with` on next poll; JoinGroup v8+ Reason, default `"rebalance enforced by user"`) | yes | **done** |
 | `subscribe` / `unsubscribe` | yes (`ConsumerGroup` and `ShareGroup`; `subscribe_matching` / `join_matching` / `join_sticky_matching` / `join_cooperative_sticky_matching` / `join_consumer_matching` are Java `subscribe(Pattern)`, re-list on poll; `Consumer::assign_many` / `assign_partitions` / `unassign`) | yes | **done** |
 | `listTopics` / `ConsumerGroupMetadata` | yes (`list_topics_timeout` is Java `listTopics(Duration)`; `partitions_for_timeout` / `beginning_offsets_timeout` / `end_offsets_timeout` / `offsets_for_times_timeout` match the Java `Duration` overloads) | yes | **done** |
 | `poll(Duration)` | yes (`fetch_timeout` / `poll_timeout` on consumer, group, and share; `ConsumerRecords` / `ShareRecords`) | yes | **done** |

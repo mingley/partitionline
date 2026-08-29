@@ -231,7 +231,9 @@
 //! `commitSync(Duration)`. [`ConsumerGroup::commit_async`] /
 //! [`ConsumerGroup::commit_async_with`] are Java `commitAsync` (OffsetCommit
 //! on the next poll / leave; no spawned task). [`ConsumerGroup::enforce_rebalance`]
-//! rejoins on the next poll. [`ConsumerConfig::on_rebalance`] receives
+//! / [`ConsumerGroup::enforce_rebalance_with`] rejoin on the next poll (Java
+//! `enforceRebalance` / `enforceRebalance(String)`; JoinGroup v8+ Reason,
+//! default [`DEFAULT_ENFORCE_REBALANCE_REASON`]). [`ConsumerConfig::on_rebalance`] receives
 //! [`TopicPartition`] slices. [`ConsumerGroup::subscribe`] /
 //! [`ConsumerGroup::subscribe_matching`] / [`ConsumerGroup::unsubscribe`]
 //! change the topic list without dropping the handle.
@@ -385,7 +387,7 @@ pub use consumer::{
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicPartition, WakeupHandle,
 };
 pub use error::{Error, Result};
-pub use group::{ConsumerGroup, ConsumerGroupMetadata};
+pub use group::{ConsumerGroup, ConsumerGroupMetadata, DEFAULT_ENFORCE_REBALANCE_REASON};
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
     AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics, TopicFetchMetrics,

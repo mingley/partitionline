@@ -44,6 +44,15 @@ type PendingAsyncCommit = (
     Option<AsyncOffsetCommitCallback>,
 );
 
+/// Java default JoinGroup `Reason` for [`ConsumerGroup::enforce_rebalance`] (KIP-800).
+pub const DEFAULT_ENFORCE_REBALANCE_REASON: &str = "rebalance enforced by user";
+
+/// JoinGroup / LeaveGroup Reason is a STRING truncated to 255 characters (KIP-800).
+fn truncate_group_reason(reason: &str) -> String {
+    const MAX: usize = 255;
+    reason.chars().take(MAX).collect()
+}
+
 /// Split `partitions` across sorted `members` (Java range assignor).
 pub fn assign_range(members: &[String], partitions: &[i32]) -> HashMap<String, Vec<i32>> {
     let mut members: Vec<String> = members.to_vec();
@@ -340,6 +349,8 @@ pub struct ConsumerGroup {
     left_max_poll: Arc<AtomicBool>,
     /// Next [`poll`](Self::poll) must rejoin (Java `enforceRebalance`).
     rebalance_needed: bool,
+    /// JoinGroup v8+ Reason for the next rejoin (KIP-800).
+    rebalance_reason: Option<String>,
     /// Java `commitAsync`: OffsetCommit sent on the next poll / leave.
     pending_async_commits: Vec<PendingAsyncCommit>,
 }
@@ -450,6 +461,7 @@ impl ConsumerGroup {
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
+            rebalance_reason: None,
             pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
@@ -579,6 +591,7 @@ impl ConsumerGroup {
             last_poll: Arc::new(parking_lot::Mutex::new(None)),
             left_max_poll: Arc::new(AtomicBool::new(false)),
             rebalance_needed: false,
+            rebalance_reason: None,
             pending_async_commits: Vec::new(),
         };
         if g.topic_match.is_some() {
@@ -867,6 +880,7 @@ impl ConsumerGroup {
         if self.kip848 {
             self.apply_pending_assignment().await?;
             if force {
+                self.rebalance_reason = None;
                 self.heartbeat_join().await?;
             }
         } else if force || self.hb_err.load(Ordering::SeqCst) == error::REBALANCE_IN_PROGRESS {
@@ -1060,9 +1074,27 @@ impl ConsumerGroup {
 
     /// Ask the coordinator to rebalance on the next [`Self::poll`] (Java `enforceRebalance`).
     ///
-    /// Classic groups rejoin. KIP-848 members send a join heartbeat.
+    /// Classic groups rejoin and send JoinGroup v8+ Reason
+    /// [`DEFAULT_ENFORCE_REBALANCE_REASON`]. KIP-848 members send a join
+    /// heartbeat (no Reason field). For a custom reason, use
+    /// [`Self::enforce_rebalance_with`].
     pub fn enforce_rebalance(&mut self) {
+        self.enforce_rebalance_with(DEFAULT_ENFORCE_REBALANCE_REASON);
+    }
+
+    /// [`Self::enforce_rebalance`] with a JoinGroup v8+ Reason (Java
+    /// `enforceRebalance(String)`).
+    ///
+    /// Empty reason uses [`DEFAULT_ENFORCE_REBALANCE_REASON`]. The string is
+    /// truncated to 255 characters (KIP-800).
+    pub fn enforce_rebalance_with(&mut self, reason: impl Into<String>) {
         self.rebalance_needed = true;
+        let reason = reason.into();
+        self.rebalance_reason = Some(if reason.is_empty() {
+            DEFAULT_ENFORCE_REBALANCE_REASON.to_string()
+        } else {
+            truncate_group_reason(&reason)
+        });
     }
 
     /// Commit the next fetch offsets for the current assignment
@@ -1536,6 +1568,7 @@ impl ConsumerGroup {
         let timeout = self.cfg.request_timeout;
         let metadata = self.join_metadata()?;
         let version = spoken_join_group(self.coord.join_group_version)?;
+        let reason = self.rebalance_reason.take();
         if self.member_id.is_empty() {
             let body = coord_roundtrip(
                 &mut self.coord,
@@ -1556,7 +1589,7 @@ impl ConsumerGroup {
                             protocol_type: "consumer",
                             protocol_name: &self.protocol,
                             metadata: &metadata,
-                            reason: None,
+                            reason: reason.as_deref(),
                         },
                     )
                 },
@@ -1590,7 +1623,7 @@ impl ConsumerGroup {
                         protocol_type: "consumer",
                         protocol_name: &self.protocol,
                         metadata: &metadata,
-                        reason: None,
+                        reason: reason.as_deref(),
                     },
                 )
             },

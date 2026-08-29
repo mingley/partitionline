@@ -17,8 +17,8 @@ use partitionline::{
     MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp, Partitioner, ProduceRecord,
     Producer, ProducerConfig, ProducerInterceptor, RecordMetadata, ReplicaLogDirInfo, Sasl,
     ShareGroup, TopicPartition, TopicPartitionReplica, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP,
-    LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
+    DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 use std::time::Duration;
 
@@ -1696,12 +1696,43 @@ async fn enforce_rebalance_rejoins_on_next_poll() {
     .unwrap();
     let before = mock.join_group_calls();
     assert!(before >= 1);
+    assert_eq!(
+        mock.last_join_group_reason(),
+        None,
+        "first JoinGroup must send a null Reason"
+    );
     group.enforce_rebalance();
     let _recs = group.poll().await.unwrap();
     let after = mock.join_group_calls();
     assert!(
         after > before,
         "enforce_rebalance must JoinGroup again (before {before}, after {after})"
+    );
+    assert_eq!(
+        mock.last_join_group_reason().as_deref(),
+        Some(DEFAULT_ENFORCE_REBALANCE_REASON),
+        "enforce_rebalance must send JoinGroup v8 Reason"
+    );
+    group.enforce_rebalance_with("need new assignment");
+    let _recs = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_join_group_reason().as_deref(),
+        Some("need new assignment")
+    );
+    group.enforce_rebalance_with("");
+    let _recs = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_join_group_reason().as_deref(),
+        Some(DEFAULT_ENFORCE_REBALANCE_REASON),
+        "empty enforceRebalance reason must use the Java default"
+    );
+    let long = "x".repeat(300);
+    group.enforce_rebalance_with(long);
+    let _recs = group.poll().await.unwrap();
+    assert_eq!(
+        mock.last_join_group_reason().as_deref().map(str::len),
+        Some(255),
+        "JoinGroup Reason must truncate to 255 characters"
     );
     group.leave().await.unwrap();
 }
