@@ -506,6 +506,8 @@ impl ProduceRecord {
 }
 
 /// Broker acknowledgement for a produced record.
+///
+/// Java `RecordMetadata`. [`Self::has_offset`] is Java `hasOffset` (`offset != -1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordMetadata {
     /// Topic name.
@@ -514,6 +516,32 @@ pub struct RecordMetadata {
     pub partition: i32,
     /// Assigned offset, or `-1` when `acks=0`.
     pub offset: i64,
+}
+
+impl RecordMetadata {
+    /// Java `RecordMetadata.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `RecordMetadata.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `RecordMetadata.offset` (`-1` when `acks=0`).
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `RecordMetadata.hasOffset`.
+    #[must_use]
+    pub fn has_offset(&self) -> bool {
+        self.offset != -1
+    }
 }
 
 struct Pending {
@@ -3016,4 +3044,28 @@ fn now_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn record_metadata_getters_match_java() {
+        let md = RecordMetadata {
+            topic: "events".into(),
+            partition: 2,
+            offset: 9,
+        };
+        assert_eq!(md.topic(), "events");
+        assert_eq!(md.partition(), 2);
+        assert_eq!(md.offset(), 9);
+        assert!(md.has_offset());
+        let acks0 = RecordMetadata {
+            topic: "events".into(),
+            partition: 0,
+            offset: -1,
+        };
+        assert!(!acks0.has_offset());
+    }
 }

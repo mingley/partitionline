@@ -88,6 +88,18 @@ impl Header {
             value: None,
         }
     }
+
+    /// Java `RecordHeader.key`.
+    #[must_use]
+    pub fn key(&self) -> &str {
+        self.key.as_str()
+    }
+
+    /// Java `RecordHeader.value` (`None` is Java `null`).
+    #[must_use]
+    pub fn value(&self) -> Option<&[u8]> {
+        self.value.as_deref()
+    }
 }
 
 /// One record inside a magic-v2 batch.
@@ -625,6 +637,16 @@ fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn header_getters_match_java() {
+        let h = Header::new("k", Bytes::from_static(b"v"));
+        assert_eq!(h.key(), "k");
+        assert_eq!(h.value(), Some(&b"v"[..]));
+        let n = Header::null("n");
+        assert_eq!(n.key(), "n");
+        assert!(n.value().is_none());
+    }
 
     #[test]
     fn idempotent_batch_preserves_pid_and_seq() {
