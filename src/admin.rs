@@ -1724,6 +1724,9 @@ impl ReassignmentResult {
 
 /// Flattened ongoing reassignment from ListPartitionReassignments
 /// (Java `PartitionReassignment`).
+///
+/// [`Display`] is Java `PartitionReassignment.toString` (no topic or
+/// partition; those are the `listPartitionReassignments` map keys).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingReassignment {
     /// Topic name.
@@ -1767,6 +1770,18 @@ impl OngoingReassignment {
     #[must_use]
     pub fn removing_replicas(&self) -> &[i32] {
         &self.removing_replicas
+    }
+}
+
+impl fmt::Display for OngoingReassignment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PartitionReassignment(replicas=")?;
+        write_java_int_list(f, &self.replicas)?;
+        f.write_str(", addingReplicas=")?;
+        write_java_int_list(f, &self.adding_replicas)?;
+        f.write_str(", removingReplicas=")?;
+        write_java_int_list(f, &self.removing_replicas)?;
+        f.write_str(")")
     }
 }
 
@@ -12420,6 +12435,10 @@ mod tests {
         assert_eq!(ongoing.replicas(), &[2, 1]);
         assert_eq!(ongoing.adding_replicas(), &[2]);
         assert_eq!(ongoing.removing_replicas(), &[3]);
+        assert_eq!(
+            ongoing.to_string(),
+            "PartitionReassignment(replicas=[2, 1], addingReplicas=[2], removingReplicas=[3])"
+        );
         let result = ReassignmentResult {
             topic: "t".into(),
             partition: 0,

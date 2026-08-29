@@ -6887,6 +6887,10 @@ async fn list_partition_reassignments_follows_controller() {
     assert!(listed[0].adding_replicas().is_empty());
     assert!(listed[0].removing_replicas().is_empty());
     assert_eq!(
+        listed[0].to_string(),
+        "PartitionReassignment(replicas=[2, 1], addingReplicas=[], removingReplicas=[])"
+    );
+    assert_eq!(
         mock.last_list_reassignments_node(),
         Some(2),
         "ListPartitionReassignments must land on the controller, not bootstrap"

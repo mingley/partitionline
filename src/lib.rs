@@ -158,7 +158,8 @@
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on
 //! [`DescribeUserScramCredentialsResult`]). [`ActiveProducer`] `Display`
-//! is Java `ProducerState.toString`.
+//! is Java `ProducerState.toString`. [`OngoingReassignment`] `Display`
+//! is Java `PartitionReassignment.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java
