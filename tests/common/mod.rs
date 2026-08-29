@@ -214,7 +214,7 @@ struct State {
     next_pid: i64,
     last_producer_id: Option<i64>,
     last_produce_version: Option<i16>,
-    expected_seq: HashMap<(i64, String, i32), i32>,
+    expected_seq: HashMap<(i64, i16, String, i32), i32>,
     produce_error: Option<i16>,
     produce_error_left: Option<u32>,
     log_start: HashMap<(String, i32), i64>,
@@ -3459,9 +3459,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         };
                         if error_code == 0 {
                             let pid = p.records.producer_id;
+                            let epoch = p.records.producer_epoch;
                             let seq = p.records.base_sequence;
                             if pid >= 0 && seq >= 0 {
-                                let skey = (pid, topic.topic.clone(), p.index);
+                                let skey = (pid, epoch, topic.topic.clone(), p.index);
                                 let expected = *st.expected_seq.get(&skey).unwrap_or(&0);
                                 if seq != expected {
                                     error_code = 45;
