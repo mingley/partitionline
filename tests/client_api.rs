@@ -3845,6 +3845,13 @@ async fn admin_describe_replica_log_dirs() {
         ReplicaLogDirInfo::new(Some("/d".into()), 0, None, -1)
     );
     assert_eq!(mock.last_describe_log_dirs_node(), Some(1));
+    let altered = admin
+        .alter_replica_log_dirs_for([(TopicPartitionReplica::new("t", 0, 1), "/d")])
+        .await
+        .unwrap();
+    assert_eq!(altered.len(), 1);
+    assert_eq!(altered[0].0, TopicPartitionReplica::new("t", 0, 1));
+    assert_eq!(altered[0].1, 0);
     admin.close().await.unwrap();
 }
 

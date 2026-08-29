@@ -428,6 +428,8 @@
 //! [`Admin::alter_replica_log_dirs_timeout`] is Java
 //! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
 //! AlterReplicaLogDirs has no TimeoutMs).
+//! [`Admin::alter_replica_log_dirs_for`] is Java
+//! `alterReplicaLogDirs(Map)` (one AlterReplicaLogDirs per replica broker).
 //! [`Admin::create_delegation_token_timeout`] /
 //! [`Admin::renew_delegation_token_timeout`] /
 //! [`Admin::expire_delegation_token_timeout`] /

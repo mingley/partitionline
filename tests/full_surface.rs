@@ -9010,14 +9010,28 @@ async fn assign_replicas_to_dirs_follows_controller() {
         .await
         .unwrap();
     assert_eq!(first.error_code, 0);
+    assert_eq!(first.error_code(), 0);
     assert_eq!(first.directories.len(), 1);
     assert_eq!(first.directories[0].id, [0x11; 16]);
+    assert_eq!(first.directories()[0].id(), Uuid::from_bytes([0x11; 16]));
     assert_eq!(first.directories[0].topics[0].topic_id, [0x22; 16]);
+    assert_eq!(
+        first.directories()[0].topics()[0].topic_id(),
+        Uuid::from_bytes([0x22; 16])
+    );
     assert_eq!(
         first.directories[0].topics[0].partitions[0].partition_index,
         0
     );
+    assert_eq!(
+        first.directories()[0].topics()[0].partitions()[0].partition_index(),
+        0
+    );
     assert_eq!(first.directories[0].topics[0].partitions[0].error_code, 0);
+    assert_eq!(
+        first.directories()[0].topics()[0].partitions()[0].error_code(),
+        0
+    );
     assert_eq!(
         mock.last_assign_replicas_to_dirs_node(),
         Some(2),
@@ -9068,6 +9082,17 @@ async fn alter_replica_log_dirs_follows_broker() {
     mock.set_controller(2);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
 
+    let empty = admin
+        .alter_replica_log_dirs_for(Vec::<(TopicPartitionReplica, String)>::new())
+        .await
+        .unwrap();
+    assert!(empty.is_empty());
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        None,
+        "empty alter_replica_log_dirs_for is a no-op"
+    );
+
     let dir =
         AlterReplicaLogDirsDirectory::new("/d", vec![AlterReplicaLogDirsTopic::new("t", vec![0])]);
     let first = admin
@@ -9076,8 +9101,11 @@ async fn alter_replica_log_dirs_follows_broker() {
         .unwrap();
     assert_eq!(first.results.len(), 1);
     assert_eq!(first.results[0].topic_name, "t");
+    assert_eq!(first.results()[0].topic_name(), "t");
     assert_eq!(first.results[0].partitions[0].partition_index, 0);
+    assert_eq!(first.results()[0].partitions()[0].partition_index(), 0);
     assert_eq!(first.results[0].partitions[0].error_code, 0);
+    assert_eq!(first.results()[0].partitions()[0].error_code(), 0);
     assert_eq!(
         mock.last_alter_replica_log_dirs_node(),
         Some(1),
@@ -9120,6 +9148,37 @@ async fn alter_replica_log_dirs_follows_broker() {
         .unwrap();
     assert_eq!(timed.results.len(), 1);
     assert_eq!(timed.results[0].partitions[0].error_code, 0);
+
+    let mapped = admin
+        .alter_replica_log_dirs_for([(TopicPartitionReplica::new("t", 0, 2), "/d")])
+        .await
+        .unwrap();
+    assert_eq!(mapped.len(), 1);
+    assert_eq!(mapped[0].0, TopicPartitionReplica::new("t", 0, 2));
+    assert_eq!(mapped[0].1, 0);
+    assert_eq!(
+        mock.last_alter_replica_log_dirs_node(),
+        Some(2),
+        "alter_replica_log_dirs_for must send AlterReplicaLogDirs to the replica broker"
+    );
+    assert_eq!(
+        mock.last_alter_replica_log_dirs(),
+        Some(AlterReplicaLogDirsRequest::new(vec![
+            AlterReplicaLogDirsDirectory::new(
+                "/d",
+                vec![AlterReplicaLogDirsTopic::new("t", vec![0])]
+            )
+        ]))
+    );
+    let timed_map = admin
+        .alter_replica_log_dirs_for_timeout(
+            [(TopicPartitionReplica::new("t", 0, 2), "/d")],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_map.len(), 1);
+    assert_eq!(timed_map[0].1, 0);
     admin.close().await.unwrap();
     mock.hide_api(ALTER_REPLICA_LOG_DIRS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();

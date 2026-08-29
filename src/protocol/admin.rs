@@ -9096,6 +9096,12 @@ impl AssignReplicasToDirsPartition {
     pub fn new(partition_index: i32) -> Self {
         Self { partition_index }
     }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
 }
 
 /// One topic in an AssignReplicasToDirs (api 73) request.
@@ -9109,11 +9115,20 @@ pub struct AssignReplicasToDirsTopic {
 
 impl AssignReplicasToDirsTopic {
     /// Construct [`Self`].
-    pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsPartition>) -> Self {
+    pub fn new(
+        topic_id: impl Into<[u8; 16]>,
+        partitions: Vec<AssignReplicasToDirsPartition>,
+    ) -> Self {
         Self {
-            topic_id,
+            topic_id: topic_id.into(),
             partitions,
         }
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[AssignReplicasToDirsPartition] {
+        &self.partitions
     }
 }
 
@@ -9128,8 +9143,17 @@ pub struct AssignReplicasToDirsDirectory {
 
 impl AssignReplicasToDirsDirectory {
     /// Construct [`Self`].
-    pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsTopic>) -> Self {
-        Self { id, topics }
+    pub fn new(id: impl Into<[u8; 16]>, topics: Vec<AssignReplicasToDirsTopic>) -> Self {
+        Self {
+            id: id.into(),
+            topics,
+        }
+    }
+
+    /// Topics in this directory.
+    #[must_use]
+    pub fn topics(&self) -> &[AssignReplicasToDirsTopic] {
+        &self.topics
     }
 }
 
@@ -9161,6 +9185,24 @@ impl AssignReplicasToDirsRequest {
             directories,
         }
     }
+
+    /// Broker id.
+    #[must_use]
+    pub fn broker_id(&self) -> i32 {
+        self.broker_id
+    }
+
+    /// Broker epoch.
+    #[must_use]
+    pub fn broker_epoch(&self) -> i64 {
+        self.broker_epoch
+    }
+
+    /// Log directories.
+    #[must_use]
+    pub fn directories(&self) -> &[AssignReplicasToDirsDirectory] {
+        &self.directories
+    }
 }
 
 /// One partition in an AssignReplicasToDirs (api 73) response.
@@ -9180,6 +9222,18 @@ impl AssignReplicasToDirsResponsePartition {
             error_code,
         }
     }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
 }
 
 /// One topic in an AssignReplicasToDirs (api 73) response.
@@ -9193,11 +9247,20 @@ pub struct AssignReplicasToDirsResponseTopic {
 
 impl AssignReplicasToDirsResponseTopic {
     /// Construct [`Self`].
-    pub fn new(topic_id: [u8; 16], partitions: Vec<AssignReplicasToDirsResponsePartition>) -> Self {
+    pub fn new(
+        topic_id: impl Into<[u8; 16]>,
+        partitions: Vec<AssignReplicasToDirsResponsePartition>,
+    ) -> Self {
         Self {
-            topic_id,
+            topic_id: topic_id.into(),
             partitions,
         }
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[AssignReplicasToDirsResponsePartition] {
+        &self.partitions
     }
 }
 
@@ -9212,8 +9275,17 @@ pub struct AssignReplicasToDirsResponseDirectory {
 
 impl AssignReplicasToDirsResponseDirectory {
     /// Construct [`Self`].
-    pub fn new(id: [u8; 16], topics: Vec<AssignReplicasToDirsResponseTopic>) -> Self {
-        Self { id, topics }
+    pub fn new(id: impl Into<[u8; 16]>, topics: Vec<AssignReplicasToDirsResponseTopic>) -> Self {
+        Self {
+            id: id.into(),
+            topics,
+        }
+    }
+
+    /// Topics in this directory.
+    #[must_use]
+    pub fn topics(&self) -> &[AssignReplicasToDirsResponseTopic] {
+        &self.topics
     }
 }
 
@@ -9237,6 +9309,18 @@ impl AssignReplicasToDirsResponse {
             error_code,
             directories,
         }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Log directories.
+    #[must_use]
+    pub fn directories(&self) -> &[AssignReplicasToDirsResponseDirectory] {
+        &self.directories
     }
 }
 
@@ -9438,6 +9522,18 @@ impl AlterReplicaLogDirsTopic {
             partitions,
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
 }
 
 /// One directory in an AlterReplicaLogDirs (api 34) request.
@@ -9457,6 +9553,18 @@ impl AlterReplicaLogDirsDirectory {
             topics,
         }
     }
+
+    /// Log directory path.
+    #[must_use]
+    pub fn path(&self) -> &str {
+        self.path.as_str()
+    }
+
+    /// Topics in this directory.
+    #[must_use]
+    pub fn topics(&self) -> &[AlterReplicaLogDirsTopic] {
+        &self.topics
+    }
 }
 
 /// AlterReplicaLogDirs (api 34) v1–v2 request body.
@@ -9474,6 +9582,12 @@ impl AlterReplicaLogDirsRequest {
     /// Construct [`Self`].
     pub fn new(dirs: Vec<AlterReplicaLogDirsDirectory>) -> Self {
         Self { dirs }
+    }
+
+    /// Log directories in this request.
+    #[must_use]
+    pub fn dirs(&self) -> &[AlterReplicaLogDirsDirectory] {
+        &self.dirs
     }
 }
 
@@ -9493,6 +9607,18 @@ impl AlterReplicaLogDirsResponsePartition {
             partition_index,
             error_code,
         }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
     }
 }
 
@@ -9516,6 +9642,18 @@ impl AlterReplicaLogDirsResponseTopic {
             partitions,
         }
     }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic_name(&self) -> &str {
+        self.topic_name.as_str()
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[AlterReplicaLogDirsResponsePartition] {
+        &self.partitions
+    }
 }
 
 /// AlterReplicaLogDirs (api 34) v1–v2 response body.
@@ -9534,6 +9672,12 @@ impl AlterReplicaLogDirsResponse {
     /// Construct [`Self`].
     pub fn new(results: Vec<AlterReplicaLogDirsResponseTopic>) -> Self {
         Self { results }
+    }
+
+    /// Per-item results.
+    #[must_use]
+    pub fn results(&self) -> &[AlterReplicaLogDirsResponseTopic] {
+        &self.results
     }
 }
 

@@ -978,6 +978,38 @@ impl GetTelemetrySubscriptionsResponse {
     }
 }
 
+impl AssignReplicasToDirsTopic {
+    /// Topic id (KIP-858). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn topic_id(&self) -> Uuid {
+        Uuid::from_bytes(self.topic_id)
+    }
+}
+
+impl AssignReplicasToDirsDirectory {
+    /// Directory id (KIP-858). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn id(&self) -> Uuid {
+        Uuid::from_bytes(self.id)
+    }
+}
+
+impl AssignReplicasToDirsResponseTopic {
+    /// Topic id (KIP-858). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn topic_id(&self) -> Uuid {
+        Uuid::from_bytes(self.topic_id)
+    }
+}
+
+impl AssignReplicasToDirsResponseDirectory {
+    /// Directory id (KIP-858). Wire field stays `[u8; 16]`.
+    #[must_use]
+    pub fn id(&self) -> Uuid {
+        Uuid::from_bytes(self.id)
+    }
+}
+
 /// One replica: topic, partition, and broker id (Java `TopicPartitionReplica`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TopicPartitionReplica {
@@ -9646,7 +9678,8 @@ impl Admin {
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
     /// deadline, use [`Self::alter_replica_log_dirs_timeout`]. Optional at
     /// [`Self::new`] (Kafka 1.1+ / KIP-113); a broker that omits api 34
-    /// returns [`Error::Unsupported`].
+    /// returns [`Error::Unsupported`]. Java `alterReplicaLogDirs(Map)` is
+    /// [`Self::alter_replica_log_dirs_for`].
     pub async fn alter_replica_log_dirs(
         &mut self,
         dirs: Vec<AlterReplicaLogDirsDirectory>,
@@ -9677,6 +9710,73 @@ impl Admin {
             )
             .await?;
         decode_alter_replica_log_dirs_response(&mut body.clone(), version)
+    }
+
+    /// Java `Admin.alterReplicaLogDirs(Map)`.
+    ///
+    /// Groups by [`TopicPartitionReplica::broker_id`] and sends
+    /// AlterReplicaLogDirs (api 34) to each replica's broker. Empty
+    /// input is a no-op. Per-replica error codes follow input order
+    /// (`0` is success). This is not [`Self::alter_replica_log_dirs`]
+    /// (bootstrap only) and not a coordinator or controller hop.
+    /// AlterReplicaLogDirs has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_replica_log_dirs_for_timeout`].
+    pub async fn alter_replica_log_dirs_for<I, Dir>(
+        &mut self,
+        replica_assignment: I,
+    ) -> Result<Vec<(TopicPartitionReplica, i16)>>
+    where
+        I: IntoIterator<Item = (TopicPartitionReplica, Dir)>,
+        Dir: Into<String>,
+    {
+        let timeout = self.cfg.request_timeout;
+        self.alter_replica_log_dirs_for_timeout(replica_assignment, timeout)
+            .await
+    }
+
+    /// [`Self::alter_replica_log_dirs_for`] with a one-shot RPC deadline
+    /// (Java `alterReplicaLogDirs` plus `AlterReplicaLogDirsOptions.timeoutMs`).
+    ///
+    /// AlterReplicaLogDirs has no TimeoutMs; `timeout` is the RPC deadline
+    /// for each replica-broker hop.
+    pub async fn alter_replica_log_dirs_for_timeout<I, Dir>(
+        &mut self,
+        replica_assignment: I,
+        timeout: Duration,
+    ) -> Result<Vec<(TopicPartitionReplica, i16)>>
+    where
+        I: IntoIterator<Item = (TopicPartitionReplica, Dir)>,
+        Dir: Into<String>,
+    {
+        let assignment: Vec<(TopicPartitionReplica, String)> = replica_assignment
+            .into_iter()
+            .map(|(replica, dir)| (replica, dir.into()))
+            .collect();
+        if assignment.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut errors: HashMap<TopicPartitionReplica, i16> = HashMap::new();
+        for (broker_id, dirs) in group_alter_replica_log_dirs(&assignment) {
+            self.ensure_broker(broker_id).await?;
+            let resp = self
+                .alter_replica_log_dirs_on(broker_id, dirs, timeout)
+                .await?;
+            for (replica, _) in assignment.iter().filter(|(r, _)| r.broker_id == broker_id) {
+                let code = alter_replica_partition_error(
+                    &resp.results,
+                    replica.topic(),
+                    replica.partition,
+                );
+                let _ = errors.insert(replica.clone(), code);
+            }
+        }
+        let mut out = Vec::with_capacity(assignment.len());
+        for (replica, _) in assignment {
+            let code = errors.get(&replica).copied().unwrap_or(0);
+            out.push((replica, code));
+        }
+        Ok(out)
     }
 
     /// Describe log directories (DescribeLogDirs api 35, KIP-113 /
@@ -9885,6 +9985,46 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             return decode_describe_log_dirs_response(&mut body.clone(), version);
+        }
+    }
+
+    async fn alter_replica_log_dirs_on(
+        &mut self,
+        node: i32,
+        dirs: Vec<AlterReplicaLogDirsDirectory>,
+        timeout: Duration,
+    ) -> Result<AlterReplicaLogDirsResponse> {
+        let version = self.alter_replica_log_dirs_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterReplicaLogDirs".into())
+        })?;
+        let deadline = Instant::now() + timeout;
+        let mut attempt = 0u32;
+        let req = AlterReplicaLogDirsRequest::new(dirs);
+        loop {
+            self.connect_node(node).await?;
+            let body = {
+                let conn = self
+                    .conns
+                    .get_mut(&node)
+                    .ok_or_else(|| Error::protocol("missing alter_replica_log_dirs conn"))?;
+                conn.roundtrip(
+                    ALTER_REPLICA_LOG_DIRS,
+                    version,
+                    |buf| encode_alter_replica_log_dirs_request(buf, version, &req),
+                    timeout,
+                )
+                .await
+            };
+            let body = match body {
+                Ok(b) => b,
+                Err(e) if e.is_retriable() => {
+                    let _ = self.conns.remove(&node);
+                    self.wait_retry(&mut attempt, deadline).await?;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            return decode_alter_replica_log_dirs_response(&mut body.clone(), version);
         }
     }
 
@@ -11061,6 +11201,92 @@ fn replica_broker_ids(replicas: &[TopicPartitionReplica]) -> Vec<i32> {
     ids
 }
 
+fn group_alter_replica_log_dirs(
+    assignment: &[(TopicPartitionReplica, String)],
+) -> Vec<(i32, Vec<AlterReplicaLogDirsDirectory>)> {
+    let replicas: Vec<TopicPartitionReplica> = assignment.iter().map(|(r, _)| r.clone()).collect();
+    replica_broker_ids(&replicas)
+        .into_iter()
+        .map(|broker_id| {
+            (
+                broker_id,
+                alter_replica_dirs_for_broker(assignment, broker_id),
+            )
+        })
+        .collect()
+}
+
+fn alter_replica_dirs_for_broker(
+    assignment: &[(TopicPartitionReplica, String)],
+    broker_id: i32,
+) -> Vec<AlterReplicaLogDirsDirectory> {
+    let mut path_order: Vec<String> = Vec::new();
+    let mut topics_by_path: HashMap<String, Vec<String>> = HashMap::new();
+    let mut partitions_by_path_topic: HashMap<(String, String), Vec<i32>> = HashMap::new();
+    for (replica, path) in assignment {
+        if replica.broker_id != broker_id {
+            continue;
+        }
+        if !path_order.contains(path) {
+            path_order.push(path.clone());
+        }
+        match topics_by_path.entry(path.clone()) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                let _ = slot.insert(vec![replica.topic.clone()]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                if !slot.get().contains(&replica.topic) {
+                    slot.get_mut().push(replica.topic.clone());
+                }
+            }
+        }
+        match partitions_by_path_topic.entry((path.clone(), replica.topic.clone())) {
+            std::collections::hash_map::Entry::Vacant(slot) => {
+                let _ = slot.insert(vec![replica.partition]);
+            }
+            std::collections::hash_map::Entry::Occupied(mut slot) => {
+                if !slot.get().contains(&replica.partition) {
+                    slot.get_mut().push(replica.partition);
+                }
+            }
+        }
+    }
+    path_order
+        .into_iter()
+        .map(|path| {
+            let topics = topics_by_path.remove(&path).unwrap_or_default();
+            let topics = topics
+                .into_iter()
+                .map(|name| {
+                    let partitions = partitions_by_path_topic
+                        .remove(&(path.clone(), name.clone()))
+                        .unwrap_or_default();
+                    AlterReplicaLogDirsTopic { name, partitions }
+                })
+                .collect();
+            AlterReplicaLogDirsDirectory { path, topics }
+        })
+        .collect()
+}
+
+fn alter_replica_partition_error(
+    results: &[AlterReplicaLogDirsResponseTopic],
+    topic: &str,
+    partition: i32,
+) -> i16 {
+    for result in results {
+        if result.topic_name != topic {
+            continue;
+        }
+        for part in &result.partitions {
+            if part.partition_index == partition {
+                return part.error_code;
+            }
+        }
+    }
+    0
+}
+
 fn describable_topics_for_broker(
     replicas: &[TopicPartitionReplica],
     broker_id: i32,
@@ -11184,6 +11410,62 @@ mod tests {
             )
             .total_bytes(),
             None
+        );
+        let grouped = group_alter_replica_log_dirs(&[
+            (TopicPartitionReplica::new("t", 0, 2), "/d1".into()),
+            (TopicPartitionReplica::new("u", 1, 2), "/d1".into()),
+            (TopicPartitionReplica::new("t", 0, 1), "/d2".into()),
+        ]);
+        assert_eq!(grouped.len(), 2);
+        assert_eq!(grouped[0].0, 2);
+        assert_eq!(grouped[0].1[0].path(), "/d1");
+        assert_eq!(grouped[0].1[0].topics()[0].name(), "t");
+        assert_eq!(grouped[0].1[0].topics()[0].partitions(), &[0]);
+        assert_eq!(grouped[0].1[0].topics()[1].name(), "u");
+        assert_eq!(grouped[1].0, 1);
+        assert_eq!(grouped[1].1[0].path(), "/d2");
+        let dir = AssignReplicasToDirsDirectory::new(
+            Uuid::from_bytes([0x11; 16]),
+            vec![AssignReplicasToDirsTopic::new(
+                Uuid::from_bytes([0x22; 16]),
+                vec![AssignReplicasToDirsPartition::new(0)],
+            )],
+        );
+        assert_eq!(dir.id(), Uuid::from_bytes([0x11; 16]));
+        assert_eq!(dir.topics()[0].topic_id(), Uuid::from_bytes([0x22; 16]));
+        assert_eq!(dir.topics()[0].partitions()[0].partition_index(), 0);
+        let assigned = AssignReplicasToDirsResponse::new(
+            0,
+            vec![AssignReplicasToDirsResponseDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsResponseTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsResponsePartition::new(0, 0)],
+                )],
+            )],
+        );
+        assert_eq!(assigned.error_code(), 0);
+        assert_eq!(assigned.directories()[0].id(), Uuid::from_bytes([0x11; 16]));
+        assert_eq!(
+            assigned.directories()[0].topics()[0].topic_id(),
+            Uuid::from_bytes([0x22; 16])
+        );
+        assert_eq!(
+            assigned.directories()[0].topics()[0].partitions()[0].error_code(),
+            0
+        );
+        let altered =
+            AlterReplicaLogDirsResponse::new(vec![AlterReplicaLogDirsResponseTopic::new(
+                "t",
+                vec![AlterReplicaLogDirsResponsePartition::new(0, 0)],
+            )]);
+        assert_eq!(altered.results()[0].topic_name(), "t");
+        assert_eq!(altered.results()[0].partitions()[0].partition_index(), 0);
+        assert_eq!(altered.results()[0].partitions()[0].error_code(), 0);
+        assert_eq!(alter_replica_partition_error(altered.results(), "t", 0), 0);
+        assert_eq!(
+            alter_replica_partition_error(altered.results(), "missing", 0),
+            0
         );
     }
 
