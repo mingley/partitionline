@@ -1215,12 +1215,12 @@ pub struct Admin {
     alter_share_group_offsets_version: Option<i16>,
     delete_share_group_offsets_version: Option<i16>,
     describe_topic_partitions_version: Option<i16>,
-    list_config_resources_version: i16,
-    get_telemetry_subscriptions_version: i16,
+    list_config_resources_version: Option<i16>,
+    get_telemetry_subscriptions_version: Option<i16>,
     /// Cached KIP-714 client instance UUID (`None` until first fetch).
     cached_client_instance_id: Option<[u8; 16]>,
-    push_telemetry_version: i16,
-    assign_replicas_to_dirs_version: i16,
+    push_telemetry_version: Option<i16>,
+    assign_replicas_to_dirs_version: Option<i16>,
     alter_replica_log_dirs_version: i16,
     describe_log_dirs_version: i16,
     create_delegation_token_version: i16,
@@ -1418,8 +1418,10 @@ impl Admin {
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     ///
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
-    /// the share-offset RPCs, and AllocateProducerIds are optional at
-    /// connect. Missing APIs fail on the method with [`Error::Unsupported`].
+    /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
+    /// GetTelemetrySubscriptions, PushTelemetry, and AssignReplicasToDirs
+    /// are optional at connect. Missing APIs fail on the method with
+    /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1627,26 +1629,16 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let list_config_resources_version = versions
             .get(&LIST_CONFIG_RESOURCES)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support ListConfigResources v0-1".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let get_telemetry_subscriptions_version = versions
             .get(&GET_TELEMETRY_SUBSCRIPTIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let push_telemetry_version = versions
             .get(&PUSH_TELEMETRY)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| Error::Unsupported("broker does not support PushTelemetry".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let assign_replicas_to_dirs_version = versions
             .get(&ASSIGN_REPLICAS_TO_DIRS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AssignReplicasToDirs".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
         let alter_replica_log_dirs_version = versions
             .get(&ALTER_REPLICA_LOG_DIRS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
@@ -1794,13 +1786,10 @@ impl Admin {
             return Ok(id);
         }
         self.ensure_bootstrap().await?;
-        let id = fetch_client_instance_id(
-            &mut self.conn,
-            self.get_telemetry_subscriptions_version,
-            timeout,
-            [0; 16],
-        )
-        .await?;
+        let version = self.get_telemetry_subscriptions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
+        })?;
+        let id = fetch_client_instance_id(&mut self.conn, version, timeout, [0; 16]).await?;
         self.cached_client_instance_id = Some(id);
         Ok(id)
     }
@@ -7754,7 +7743,9 @@ impl Admin {
         timeout: Duration,
     ) -> Result<Vec<ListedConfigResource>> {
         let types: Vec<i8> = resource_types.into_iter().map(Into::into).collect();
-        let version = self.list_config_resources_version;
+        let version = self.list_config_resources_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support ListConfigResources v0-1".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 LIST_CONFIG_RESOURCES,
@@ -7818,7 +7809,9 @@ impl Admin {
         &mut self,
         client_instance_id: [u8; 16],
     ) -> Result<GetTelemetrySubscriptionsResponse> {
-        let version = self.get_telemetry_subscriptions_version;
+        let version = self.get_telemetry_subscriptions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support GetTelemetrySubscriptions".into())
+        })?;
         let timeout = self.cfg.request_timeout;
         let body = self
             .roundtrip_bootstrap(
@@ -7862,7 +7855,9 @@ impl Admin {
         compression_type: i8,
         metrics: &[u8],
     ) -> Result<PushTelemetryResponse> {
-        let version = self.push_telemetry_version;
+        let version = self
+            .push_telemetry_version
+            .ok_or_else(|| Error::Unsupported("broker does not support PushTelemetry".into()))?;
         let timeout = self.cfg.request_timeout;
         let req = PushTelemetryRequest::new(
             client_instance_id,
@@ -7933,7 +7928,9 @@ impl Admin {
         directories: Vec<AssignReplicasToDirsDirectory>,
         timeout: Duration,
     ) -> Result<AssignReplicasToDirsResponse> {
-        let version = self.assign_replicas_to_dirs_version;
+        let version = self.assign_replicas_to_dirs_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AssignReplicasToDirs".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);

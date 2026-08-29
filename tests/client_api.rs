@@ -12,8 +12,9 @@ mod common;
 
 use partitionline::error;
 use partitionline::protocol::api_keys::{
-    ALLOCATE_PRODUCER_IDS, ALTER_SHARE_GROUP_OFFSETS, CONSUMER_GROUP_DESCRIBE,
-    DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_SHARE_GROUP_OFFSETS, SHARE_GROUP_DESCRIBE,
+    ALLOCATE_PRODUCER_IDS, ALTER_SHARE_GROUP_OFFSETS, ASSIGN_REPLICAS_TO_DIRS,
+    CONSUMER_GROUP_DESCRIBE, DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_SHARE_GROUP_OFFSETS,
+    GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, PUSH_TELEMETRY, SHARE_GROUP_DESCRIBE,
 };
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
@@ -3398,6 +3399,53 @@ async fn admin_list_client_metrics_resources() {
         Some(vec![CONFIG_RESOURCE_CLIENT_METRICS])
     );
     assert_eq!(mock.last_list_config_resources_node(), Some(1));
+    admin.close().await.unwrap();
+    mock.hide_api(LIST_CONFIG_RESOURCES);
+    mock.hide_api(GET_TELEMETRY_SUBSCRIPTIONS);
+    mock.hide_api(PUSH_TELEMETRY);
+    mock.hide_api(ASSIGN_REPLICAS_TO_DIRS);
+    let mut admin = Admin::new(AdminConfig::bootstrap([mock.addr.clone()]))
+        .await
+        .unwrap();
+    let list_err = admin.list_client_metrics_resources().await.unwrap_err();
+    assert!(
+        list_err.to_string().contains("unsupported"),
+        "ListConfigResources is optional at connect: {list_err}"
+    );
+    let tel_err = admin
+        .get_telemetry_subscriptions([0; 16])
+        .await
+        .unwrap_err();
+    assert!(
+        tel_err.to_string().contains("unsupported"),
+        "GetTelemetrySubscriptions is optional at connect: {tel_err}"
+    );
+    let id_err = admin.client_instance_id().await.unwrap_err();
+    assert!(
+        id_err.to_string().contains("unsupported"),
+        "clientInstanceId needs GetTelemetrySubscriptions: {id_err}"
+    );
+    let push_err = admin
+        .push_telemetry([0; 16], 1, false, 0, b"")
+        .await
+        .unwrap_err();
+    assert!(
+        push_err.to_string().contains("unsupported"),
+        "PushTelemetry is optional at connect: {push_err}"
+    );
+    let assign_err = admin
+        .assign_replicas_to_dirs(7, -1, vec![])
+        .await
+        .unwrap_err();
+    assert!(
+        assign_err.to_string().contains("unsupported"),
+        "AssignReplicasToDirs is optional at connect: {assign_err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
     admin.close().await.unwrap();
 }
 
