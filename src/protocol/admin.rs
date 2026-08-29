@@ -5372,6 +5372,9 @@ fn list_transactions_flexible(version: i16) -> Result<bool> {
 ///
 /// Java `TransactionListing`. This is not [`TransactionState`]
 /// (DescribeTransactions api 65).
+///
+/// [`Display`] is Java `TransactionListing.toString`. The state is the
+/// broker string, not a crate enum.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionListing {
     /// Kafka `transactional.id`.
@@ -5399,6 +5402,18 @@ impl TransactionListing {
     #[must_use]
     pub fn state(&self) -> &str {
         self.transaction_state.as_str()
+    }
+}
+
+impl fmt::Display for TransactionListing {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TransactionListing(transactionalId='")?;
+        f.write_str(self.transactional_id())?;
+        f.write_str("', producerId=")?;
+        write!(f, "{}", self.producer_id())?;
+        f.write_str(", transactionState=")?;
+        f.write_str(self.state())?;
+        f.write_str(")")
     }
 }
 
@@ -14754,6 +14769,10 @@ mod tests {
         assert_eq!(listing.transactional_id(), "tx");
         assert_eq!(listing.producer_id(), 1001);
         assert_eq!(listing.state(), "Ongoing");
+        assert_eq!(
+            listing.to_string(),
+            "TransactionListing(transactionalId='tx', producerId=1001, transactionState=Ongoing)"
+        );
         let listed = ListTransactionsResponse {
             error_code: 0,
             unknown_state_filters: vec!["Nope".into()],

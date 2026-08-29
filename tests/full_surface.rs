@@ -8101,6 +8101,10 @@ async fn list_transactions_follows_coordinator() {
     assert_eq!(first[0].state(), "Ongoing");
     assert_eq!(first[0].producer_id(), 1001);
     assert_eq!(
+        first[0].to_string(),
+        "TransactionListing(transactionalId='tx-list', producerId=1001, transactionState=Ongoing)"
+    );
+    assert_eq!(
         mock.last_list_transactions_node(),
         Some(2),
         "ListTransactions must land on the transaction coordinator, not bootstrap"
