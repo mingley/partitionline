@@ -9390,6 +9390,10 @@ async fn describe_log_dirs_follows_broker() {
         0
     );
     assert!(!first.results()[0].topics()[0].partitions()[0].is_future());
+    assert_eq!(
+        first.results()[0].topics()[0].partitions()[0].to_string(),
+        "ReplicaInfo(size=0, offsetLag=0, isFuture=false)"
+    );
     assert_eq!(first.results[0].topics[0].name, "t");
     assert_eq!(first.results[0].topics[0].partitions[0].partition_index, 0);
     assert_eq!(

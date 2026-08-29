@@ -168,6 +168,7 @@
 //! [`ConsumerGroupMember`] `Display` is Java `MemberDescription.toString`.
 //! [`ShareGroupAssignment`] `Display` is Java `ShareMemberAssignment.toString`.
 //! [`ShareGroupMember`] `Display` is Java `ShareMemberDescription.toString`.
+//! [`DescribeLogDirsPartition`] `Display` is Java `ReplicaInfo.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] are Java

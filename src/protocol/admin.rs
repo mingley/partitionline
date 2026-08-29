@@ -10481,6 +10481,9 @@ pub const UNKNOWN_VOLUME_BYTES: i64 = -1;
 ///
 /// Java `ReplicaInfo`. Official JSON has no partition ErrorCode. Fields
 /// are PartitionIndex, PartitionSize, OffsetLag, IsFutureKey.
+///
+/// [`Display`] is Java `ReplicaInfo.toString` (no partition index; that
+/// is the `replicaInfos` map key).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsPartition {
     /// Partition index.
@@ -10531,6 +10534,18 @@ impl DescribeLogDirsPartition {
     #[must_use]
     pub fn is_future(&self) -> bool {
         self.is_future_key
+    }
+}
+
+impl fmt::Display for DescribeLogDirsPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ReplicaInfo(size=")?;
+        write!(f, "{}", self.size())?;
+        f.write_str(", offsetLag=")?;
+        write!(f, "{}", self.offset_lag())?;
+        f.write_str(", isFuture=")?;
+        write!(f, "{}", self.is_future())?;
+        f.write_str(")")
     }
 }
 
@@ -14971,6 +14986,10 @@ mod tests {
         assert_eq!(replica.size(), 10);
         assert_eq!(replica.offset_lag(), 3);
         assert!(replica.is_future());
+        assert_eq!(
+            replica.to_string(),
+            "ReplicaInfo(size=10, offsetLag=3, isFuture=true)"
+        );
         let topic = DescribeLogDirsTopic::new("t", vec![replica.clone()]);
         assert_eq!(topic.name(), "t");
         assert_eq!(topic.partitions(), std::slice::from_ref(&replica));
