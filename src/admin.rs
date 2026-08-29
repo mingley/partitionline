@@ -138,7 +138,7 @@ pub use crate::protocol::admin::{
     DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
     EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
     GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListedConfigResource, ListedGroup,
-    PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+    Node, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
     RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
     ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing,
     TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType, ALTER_CONFIG_APPEND,
@@ -11575,6 +11575,19 @@ mod tests {
         assert!(empty.is_empty());
         assert_eq!(empty.id_string(), "-1");
         assert_eq!(empty.to_string(), ":-1 (id: -1 rack: null isFenced: false)");
+        let from_broker: Node =
+            crate::protocol::api::Broker::new(1, "127.0.0.1", 9092, Some("r".into())).into();
+        assert_eq!(from_broker.id(), 1);
+        assert_eq!(from_broker.host(), "127.0.0.1");
+        assert!(!from_broker.is_fenced());
+        let from_endpoint: Node =
+            crate::protocol::api::NodeEndpoint::new(2, "h2", 9093, None).into();
+        assert_eq!(from_endpoint.id_string(), "2");
+        assert!(!from_endpoint.has_rack());
+        assert_eq!(
+            from_endpoint.to_string(),
+            "h2:9093 (id: 2 rack: null isFenced: false)"
+        );
     }
 
     #[test]

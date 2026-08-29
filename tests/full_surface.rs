@@ -38,7 +38,7 @@ use partitionline::{
     DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
     EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType,
     IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions,
-    NewTopic, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
+    NewTopic, Node, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
     RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
     TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
@@ -4438,6 +4438,10 @@ async fn admin_alter_configs_delete_records_describe_cluster() {
     assert_eq!(
         cluster.controller().map(DescribeClusterBroker::id),
         Some(cluster.controller_id())
+    );
+    assert_eq!(
+        cluster.controller().map(Node::id),
+        cluster.controller().map(DescribeClusterBroker::id)
     );
     assert_eq!(
         cluster.controller().map(DescribeClusterBroker::id_string),

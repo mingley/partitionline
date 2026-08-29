@@ -1,5 +1,6 @@
 //! ApiVersions, Metadata, and Produce codecs.
 
+use std::fmt;
 use std::time::Duration;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -402,6 +403,26 @@ fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsT
     })
 }
 
+/// Java `Node.toString`: `{host}:{port} (id: {id} rack: {rack|null} isFenced: {bool})`.
+pub(crate) fn format_java_node(
+    f: &mut fmt::Formatter<'_>,
+    host: &str,
+    port: i32,
+    id: i32,
+    rack: Option<&str>,
+    is_fenced: bool,
+) -> fmt::Result {
+    write!(
+        f,
+        "{}:{} (id: {} rack: {} isFenced: {})",
+        host,
+        port,
+        id,
+        rack.unwrap_or("null"),
+        is_fenced
+    )
+}
+
 /// One broker in a Metadata response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Broker {
@@ -415,6 +436,85 @@ pub struct Broker {
     pub rack: Option<String>,
 }
 
+impl Broker {
+    /// Construct [`Self`] (Java `Node(id, host, port, rack)`).
+    pub fn new(node_id: i32, host: impl Into<String>, port: i32, rack: Option<String>) -> Self {
+        Self {
+            node_id,
+            host: host.into(),
+            port,
+            rack,
+        }
+    }
+
+    /// Java `Node.id`.
+    #[must_use]
+    pub fn id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `Node.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `Node.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+
+    /// Java `Node.rack`.
+    #[must_use]
+    pub fn rack(&self) -> Option<&str> {
+        self.rack.as_deref()
+    }
+
+    /// Java `Node.hasRack`.
+    #[must_use]
+    pub fn has_rack(&self) -> bool {
+        self.rack.is_some()
+    }
+
+    /// Java `Node.isFenced`. Metadata brokers are never fenced.
+    #[must_use]
+    pub fn is_fenced(&self) -> bool {
+        false
+    }
+
+    /// Java `Node.idString` (`Integer.toString(id)`).
+    #[must_use]
+    pub fn id_string(&self) -> String {
+        self.node_id.to_string()
+    }
+
+    /// Java `Node.isEmpty` (empty host or negative port).
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.host.is_empty() || self.port < 0
+    }
+
+    /// Java `Node.noNode` (`id` `-1`, empty host, port `-1`).
+    #[must_use]
+    pub fn no_node() -> Self {
+        Self::new(-1, "", -1, None)
+    }
+}
+
+impl fmt::Display for Broker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_java_node(
+            f,
+            self.host.as_str(),
+            self.port,
+            self.node_id,
+            self.rack.as_deref(),
+            false,
+        )
+    }
+}
+
 /// Produce v10+ / Fetch v16+ `NodeEndpoint` (KIP-951).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeEndpoint {
@@ -426,6 +526,107 @@ pub struct NodeEndpoint {
     pub port: i32,
     /// Rack id, or `None`.
     pub rack: Option<String>,
+}
+
+impl NodeEndpoint {
+    /// Construct [`Self`] (Java `Node(id, host, port, rack)`).
+    pub fn new(node_id: i32, host: impl Into<String>, port: i32, rack: Option<String>) -> Self {
+        Self {
+            node_id,
+            host: host.into(),
+            port,
+            rack,
+        }
+    }
+
+    /// Java `Node.id`.
+    #[must_use]
+    pub fn id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `Node.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `Node.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+
+    /// Java `Node.rack`.
+    #[must_use]
+    pub fn rack(&self) -> Option<&str> {
+        self.rack.as_deref()
+    }
+
+    /// Java `Node.hasRack`.
+    #[must_use]
+    pub fn has_rack(&self) -> bool {
+        self.rack.is_some()
+    }
+
+    /// Java `Node.isFenced`. NodeEndpoints are never fenced.
+    #[must_use]
+    pub fn is_fenced(&self) -> bool {
+        false
+    }
+
+    /// Java `Node.idString` (`Integer.toString(id)`).
+    #[must_use]
+    pub fn id_string(&self) -> String {
+        self.node_id.to_string()
+    }
+
+    /// Java `Node.isEmpty` (empty host or negative port).
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.host.is_empty() || self.port < 0
+    }
+
+    /// Java `Node.noNode` (`id` `-1`, empty host, port `-1`).
+    #[must_use]
+    pub fn no_node() -> Self {
+        Self::new(-1, "", -1, None)
+    }
+}
+
+impl fmt::Display for NodeEndpoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_java_node(
+            f,
+            self.host.as_str(),
+            self.port,
+            self.node_id,
+            self.rack.as_deref(),
+            false,
+        )
+    }
+}
+
+impl From<Broker> for NodeEndpoint {
+    fn from(b: Broker) -> Self {
+        Self {
+            node_id: b.node_id,
+            host: b.host,
+            port: b.port,
+            rack: b.rack,
+        }
+    }
+}
+
+impl From<NodeEndpoint> for Broker {
+    fn from(e: NodeEndpoint) -> Self {
+        Self {
+            node_id: e.node_id,
+            host: e.host,
+            port: e.port,
+            rack: e.rack,
+        }
+    }
 }
 
 /// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
@@ -1720,6 +1921,40 @@ mod tests {
         let mut empty = BytesMut::new();
         encode_produce_response(&mut empty, 9, &parts).unwrap();
         assert_eq!(&v9[..], &empty[..], "Produce v9 must omit NodeEndpoints");
+    }
+
+    #[test]
+    fn metadata_broker_and_node_endpoint_match_java_node() {
+        let broker = Broker::new(1, "127.0.0.1", 9092, Some("r".into()));
+        assert_eq!(broker.id(), 1);
+        assert_eq!(broker.id_string(), "1");
+        assert_eq!(broker.host(), "127.0.0.1");
+        assert_eq!(broker.port(), 9092);
+        assert_eq!(broker.rack(), Some("r"));
+        assert!(broker.has_rack());
+        assert!(!broker.is_fenced());
+        assert!(!broker.is_empty());
+        assert_eq!(
+            broker.to_string(),
+            "127.0.0.1:9092 (id: 1 rack: r isFenced: false)"
+        );
+        let endpoint = NodeEndpoint::from(broker.clone());
+        assert_eq!(endpoint.id(), 1);
+        assert_eq!(endpoint.host(), "127.0.0.1");
+        assert_eq!(endpoint.port(), 9092);
+        assert_eq!(endpoint.rack(), Some("r"));
+        assert!(endpoint.has_rack());
+        assert!(!endpoint.is_fenced());
+        assert_eq!(endpoint.to_string(), broker.to_string());
+        assert_eq!(Broker::from(endpoint.clone()), broker);
+        let empty = Broker::no_node();
+        assert_eq!(empty.id(), -1);
+        assert!(empty.is_empty());
+        assert_eq!(empty.id_string(), "-1");
+        assert_eq!(empty.to_string(), ":-1 (id: -1 rack: null isFenced: false)");
+        let empty_ep = NodeEndpoint::no_node();
+        assert!(empty_ep.is_empty());
+        assert_eq!(empty_ep.to_string(), empty.to_string());
     }
 
     #[test]

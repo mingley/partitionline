@@ -290,10 +290,11 @@
 //! [`Admin::describe_cluster_timeout`] / [`Admin::describe_cluster_with_timeout`]
 //! are Java `DescribeClusterOptions.timeoutMs` (RPC deadline).
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
-//! `DescribeClusterResult.nodes` / `controller`.
-//! [`DescribeClusterBroker::id_string`] / [`DescribeClusterBroker::is_empty`] /
-//! [`DescribeClusterBroker::no_node`] are Java `Node.idString` / `isEmpty` /
-//! `noNode`.
+//! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
+//! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
+//! [`Node::id_string`] / [`Node::is_empty`] / [`Node::no_node`] are Java
+//! `Node.idString` / `isEmpty` / `noNode`. Metadata `Broker` and
+//! Produce/Fetch `NodeEndpoint` have the same getters and convert with `From`.
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results).
@@ -661,13 +662,14 @@ pub use admin::{
     ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
     FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, GroupState,
     GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove,
-    NewPartitionReassignment, NewPartitions, NewTopic, OffsetDeleteResult, OngoingReassignment,
-    PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, ReassignmentResult,
-    RecordsToDelete, RemovedMember, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter, ScramCredentialInfo, ScramMechanism,
-    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, SupportedVersionRange,
-    TopicCollection, TopicDescription, TopicListing, TopicPartitionCursor, TopicPartitionReplica,
-    TransactionListing, TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType,
+    NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetDeleteResult,
+    OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse,
+    ReassignmentResult, RecordsToDelete, RemovedMember, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ReplicaLogDirInfo, ResourcePattern, ResourcePatternFilter,
+    ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
+    ShareGroupTopicPartitions, SupportedVersionRange, TopicCollection, TopicDescription,
+    TopicListing, TopicPartitionCursor, TopicPartitionReplica, TransactionListing,
+    TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType,
     UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialResult,
     UserScramCredentialUpsertion, Uuid, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,

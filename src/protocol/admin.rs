@@ -2552,14 +2552,13 @@ impl DescribeClusterBroker {
 
 impl fmt::Display for DescribeClusterBroker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
+        super::api::format_java_node(
             f,
-            "{}:{} (id: {} rack: {} isFenced: {})",
-            self.host,
+            self.host.as_str(),
             self.port,
             self.node_id,
-            self.rack.as_deref().unwrap_or("null"),
-            self.is_fenced
+            self.rack.as_deref(),
+            self.is_fenced,
         )
     }
 }
@@ -2575,6 +2574,36 @@ impl From<super::api::Broker> for DescribeClusterBroker {
         }
     }
 }
+
+impl From<super::api::NodeEndpoint> for DescribeClusterBroker {
+    fn from(e: super::api::NodeEndpoint) -> Self {
+        Self {
+            node_id: e.node_id,
+            host: e.host,
+            port: e.port,
+            rack: e.rack,
+            is_fenced: false,
+        }
+    }
+}
+
+impl From<DescribeClusterBroker> for super::api::Broker {
+    fn from(n: DescribeClusterBroker) -> Self {
+        Self {
+            node_id: n.node_id,
+            host: n.host,
+            port: n.port,
+            rack: n.rack,
+        }
+    }
+}
+
+/// Java `org.apache.kafka.common.Node`.
+///
+/// Same type as [`DescribeClusterBroker`]. Metadata
+/// [`super::api::Broker`] and Produce/Fetch [`super::api::NodeEndpoint`]
+/// convert with `From` (`is_fenced` is `false` on those RPCs).
+pub type Node = DescribeClusterBroker;
 
 /// DescribeCluster response: cluster id, controller, and brokers.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2624,14 +2653,14 @@ impl ClusterDescription {
 
     /// Java `DescribeClusterResult.nodes`.
     #[must_use]
-    pub fn nodes(&self) -> &[DescribeClusterBroker] {
+    pub fn nodes(&self) -> &[Node] {
         self.brokers()
     }
 
     /// Java `DescribeClusterResult.controller`. Empty when
     /// [`Self::controller_id`] is `-1` or the id is not in [`Self::nodes`].
     #[must_use]
-    pub fn controller(&self) -> Option<&DescribeClusterBroker> {
+    pub fn controller(&self) -> Option<&Node> {
         if self.controller_id < 0 {
             return None;
         }
