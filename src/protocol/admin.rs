@@ -45,6 +45,26 @@ pub const RESOURCE_GROUP: i8 = 32;
 pub const CONFIG_SOURCE_DYNAMIC_TOPIC: i8 = 1;
 /// Config source: default.
 pub const CONFIG_SOURCE_DEFAULT: i8 = 5;
+/// DescribeConfigs v3+ ConfigType: unknown (Java `ConfigType.UNKNOWN`).
+pub const CONFIG_TYPE_UNKNOWN: i8 = 0;
+/// DescribeConfigs v3+ ConfigType: boolean.
+pub const CONFIG_TYPE_BOOLEAN: i8 = 1;
+/// DescribeConfigs v3+ ConfigType: string.
+pub const CONFIG_TYPE_STRING: i8 = 2;
+/// DescribeConfigs v3+ ConfigType: int.
+pub const CONFIG_TYPE_INT: i8 = 3;
+/// DescribeConfigs v3+ ConfigType: short.
+pub const CONFIG_TYPE_SHORT: i8 = 4;
+/// DescribeConfigs v3+ ConfigType: long.
+pub const CONFIG_TYPE_LONG: i8 = 5;
+/// DescribeConfigs v3+ ConfigType: double.
+pub const CONFIG_TYPE_DOUBLE: i8 = 6;
+/// DescribeConfigs v3+ ConfigType: list.
+pub const CONFIG_TYPE_LIST: i8 = 7;
+/// DescribeConfigs v3+ ConfigType: class.
+pub const CONFIG_TYPE_CLASS: i8 = 8;
+/// DescribeConfigs v3+ ConfigType: password.
+pub const CONFIG_TYPE_PASSWORD: i8 = 9;
 
 /// Manual replica assignment for one CreateTopics partition.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -177,6 +197,10 @@ pub struct ConfigEntry {
     pub is_sensitive: bool,
     /// Synonyms / parents of this key.
     pub synonyms: Vec<ConfigSynonym>,
+    /// Kafka config type (`CONFIG_TYPE_STRING`, …). `0` below v3.
+    pub config_type: i8,
+    /// Broker documentation, when present (v3+ IncludeDocumentation).
+    pub documentation: Option<String>,
 }
 
 /// Per-resource result of DescribeConfigs.
@@ -211,28 +235,32 @@ fn get_i32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
     Ok(out)
 }
 
-fn get_string_array<B: Buf>(buf: &mut B) -> Result<Option<Vec<String>>> {
-    let n = buf::get_array_len(buf, false)?;
+fn get_string_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Option<Vec<String>>> {
+    let n = buf::get_array_len(buf, flexible)?;
     let Some(n) = n else {
         return Ok(None);
     };
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
         out.push(
-            buf::get_classic_nullable_string(buf)?
+            buf::get_string(buf, flexible)?
                 .ok_or_else(|| Error::protocol("null string in array"))?,
         );
     }
     Ok(Some(out))
 }
 
-fn put_string_array(buf: &mut BytesMut, items: Option<&[String]>) -> crate::error::Result<()> {
+fn put_string_array(
+    buf: &mut BytesMut,
+    flexible: bool,
+    items: Option<&[String]>,
+) -> crate::error::Result<()> {
     match items {
-        None => buf::put_array_len(buf, false, None)?,
+        None => buf::put_array_len(buf, flexible, None)?,
         Some(items) => {
-            buf::put_array_len(buf, false, Some(items.len()))?;
+            buf::put_array_len(buf, flexible, Some(items.len()))?;
             for s in items {
-                buf::put_classic_nullable_string(buf, Some(s))?;
+                buf::put_string(buf, flexible, Some(s))?;
             }
         }
     }
@@ -627,36 +655,68 @@ pub fn decode_delete_topics_response<B: Buf>(
     Ok(out)
 }
 
-/// DescribeConfigs v0–1 (classic; flexible from v4). v1 adds synonyms + config source.
+/// `true` when DescribeConfigs `version` is flexible.
+///
+/// v0–v3 are classic. v1 adds IncludeSynonyms / ConfigSource / Synonyms.
+/// v2 is the same layout as v1 (quota throttle timing). v3 adds
+/// IncludeDocumentation, ConfigType, and Documentation (KIP-226).
+/// v4 is the first flexible version. Kafka 4.0 `validVersions` is
+/// `1-4` (v0 removed). This crate speaks 0–4. v5+ is not spoken.
+fn describe_configs_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=3 => Ok(false),
+        4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DescribeConfigs version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DescribeConfigs v0–4 (classic through v3; flexible from v4).
 pub fn encode_describe_configs_request(
     buf: &mut BytesMut,
     version: i16,
     resources: &[DescribeConfigsResource],
     include_synonyms: bool,
+    include_documentation: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(resources.len()))?;
+    let flexible = describe_configs_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
     for r in resources {
         buf.put_i8(r.resource_type);
-        buf::put_classic_nullable_string(buf, Some(&r.name))?;
-        put_string_array(buf, r.keys.as_deref())?;
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        put_string_array(buf, flexible, r.keys.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     if version >= 1 {
         buf.put_u8(u8::from(include_synonyms));
     }
+    if version >= 3 {
+        buf.put_u8(u8::from(include_documentation));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a DescribeConfigs request.
+/// Decode a DescribeConfigs request: `(resources, include_synonyms, include_documentation)`.
 pub fn decode_describe_configs_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<DescribeConfigsResource>, bool)> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+) -> Result<(Vec<DescribeConfigsResource>, bool, bool)> {
+    let flexible = describe_configs_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut resources = Vec::with_capacity(n);
     for _ in 0..n {
         let resource_type = buf::get_i8(buf)?;
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let keys = get_string_array(buf)?;
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let keys = get_string_array(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         resources.push(DescribeConfigsResource {
             resource_type,
             name,
@@ -668,7 +728,15 @@ pub fn decode_describe_configs_request<B: Buf>(
     } else {
         false
     };
-    Ok((resources, include_synonyms))
+    let include_documentation = if version >= 3 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((resources, include_synonyms, include_documentation))
 }
 
 /// Encode a DescribeConfigs response.
@@ -677,17 +745,18 @@ pub fn encode_describe_configs_response(
     version: i16,
     results: &[DescribeConfigsResult],
 ) -> crate::error::Result<()> {
+    let flexible = describe_configs_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
-        buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
         buf.put_i8(r.resource_type);
-        buf::put_classic_nullable_string(buf, Some(&r.name))?;
-        buf::put_array_len(buf, false, Some(r.entries.len()))?;
+        buf::put_string(buf, flexible, Some(&r.name))?;
+        buf::put_array_len(buf, flexible, Some(r.entries.len()))?;
         for e in &r.entries {
-            buf::put_classic_nullable_string(buf, Some(&e.name))?;
-            buf::put_classic_nullable_string(buf, e.value.as_deref())?;
+            buf::put_string(buf, flexible, Some(&e.name))?;
+            buf::put_string(buf, flexible, e.value.as_deref())?;
             buf.put_u8(u8::from(e.read_only));
             if version == 0 {
                 buf.put_u8(u8::from(e.source == CONFIG_SOURCE_DEFAULT));
@@ -696,14 +765,30 @@ pub fn encode_describe_configs_response(
             }
             buf.put_u8(u8::from(e.is_sensitive));
             if version >= 1 {
-                buf::put_array_len(buf, false, Some(e.synonyms.len()))?;
+                buf::put_array_len(buf, flexible, Some(e.synonyms.len()))?;
                 for s in &e.synonyms {
-                    buf::put_classic_nullable_string(buf, Some(&s.name))?;
-                    buf::put_classic_nullable_string(buf, s.value.as_deref())?;
+                    buf::put_string(buf, flexible, Some(&s.name))?;
+                    buf::put_string(buf, flexible, s.value.as_deref())?;
                     buf.put_i8(s.source);
+                    if flexible {
+                        buf::put_empty_tagged_fields(buf);
+                    }
                 }
             }
+            if version >= 3 {
+                buf.put_i8(e.config_type);
+                buf::put_string(buf, flexible, e.documentation.as_deref())?;
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
         }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
@@ -713,19 +798,20 @@ pub fn decode_describe_configs_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<DescribeConfigsResult>> {
+    let flexible = describe_configs_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_classic_nullable_string(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
         let resource_type = buf::get_i8(buf)?;
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-        let en = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let en = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut entries = Vec::with_capacity(en);
         for _ in 0..en {
-            let ename = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-            let value = buf::get_classic_nullable_string(buf)?;
+            let ename = buf::get_string(buf, flexible)?.unwrap_or_default();
+            let value = buf::get_string(buf, flexible)?;
             let read_only = buf::get_bool(buf)?;
             let source = if version == 0 {
                 if buf::get_bool(buf)? {
@@ -739,18 +825,29 @@ pub fn decode_describe_configs_response<B: Buf>(
             let is_sensitive = buf::get_bool(buf)?;
             let mut synonyms = Vec::new();
             if version >= 1 {
-                let sn = buf::get_array_len(buf, false)?.unwrap_or(0);
+                let sn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
                 synonyms.reserve(sn);
                 for _ in 0..sn {
-                    let sname = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
-                    let svalue = buf::get_classic_nullable_string(buf)?;
+                    let sname = buf::get_string(buf, flexible)?.unwrap_or_default();
+                    let svalue = buf::get_string(buf, flexible)?;
                     let ssource = buf::get_i8(buf)?;
+                    if flexible {
+                        buf::skip_tagged_fields(buf)?;
+                    }
                     synonyms.push(ConfigSynonym {
                         name: sname,
                         value: svalue,
                         source: ssource,
                     });
                 }
+            }
+            let (config_type, documentation) = if version >= 3 {
+                (buf::get_i8(buf)?, buf::get_string(buf, flexible)?)
+            } else {
+                (CONFIG_TYPE_UNKNOWN, None)
+            };
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
             }
             entries.push(ConfigEntry {
                 name: ename,
@@ -759,7 +856,12 @@ pub fn decode_describe_configs_response<B: Buf>(
                 source,
                 is_sensitive,
                 synonyms,
+                config_type,
+                documentation,
             });
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
         }
         out.push(DescribeConfigsResult {
             error_code,
@@ -768,6 +870,9 @@ pub fn decode_describe_configs_response<B: Buf>(
             name,
             entries,
         });
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(out)
 }
@@ -7931,10 +8036,16 @@ mod tests {
             keys: Some(vec!["cleanup.policy".into()]),
         }];
         let mut buf = BytesMut::new();
-        encode_describe_configs_request(&mut buf, 1, &resources, true).unwrap();
-        let (decoded, syn) = decode_describe_configs_request(&mut &buf[..], 1).unwrap();
+        encode_describe_configs_request(&mut buf, 1, &resources, true, false).unwrap();
+        let mut cur = &buf[..];
+        let (decoded, syn, docs) = decode_describe_configs_request(&mut cur, 1).unwrap();
         assert_eq!(decoded, resources);
         assert!(syn);
+        assert!(!docs);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v1 request must be leftover-empty"
+        );
 
         let results = vec![DescribeConfigsResult {
             error_code: 0,
@@ -7952,13 +8063,20 @@ mod tests {
                     value: Some("delete".into()),
                     source: CONFIG_SOURCE_DEFAULT,
                 }],
+                config_type: CONFIG_TYPE_UNKNOWN,
+                documentation: None,
             }],
         }];
         buf.clear();
         encode_describe_configs_response(&mut buf, 1, &results).unwrap();
+        let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_configs_response(&mut &buf[..], 1).unwrap(),
+            decode_describe_configs_response(&mut cur, 1).unwrap(),
             results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v1 response must be leftover-empty"
         );
     }
 
@@ -7976,13 +8094,169 @@ mod tests {
                 source: CONFIG_SOURCE_DEFAULT,
                 is_sensitive: false,
                 synonyms: vec![],
+                config_type: CONFIG_TYPE_UNKNOWN,
+                documentation: None,
             }],
         }];
         let mut buf = BytesMut::new();
         encode_describe_configs_response(&mut buf, 0, &results).unwrap();
-        let decoded = decode_describe_configs_response(&mut &buf[..], 0).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_describe_configs_response(&mut cur, 0).unwrap();
         assert_eq!(decoded[0].entries[0].source, CONFIG_SOURCE_DEFAULT);
         assert!(decoded[0].entries[0].synonyms.is_empty());
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v0 response must be leftover-empty"
+        );
+    }
+
+    fn sample_describe_configs_resources() -> Vec<DescribeConfigsResource> {
+        vec![DescribeConfigsResource {
+            resource_type: RESOURCE_TOPIC,
+            name: "t".into(),
+            keys: None,
+        }]
+    }
+
+    fn sample_describe_configs_results() -> Vec<DescribeConfigsResult> {
+        vec![DescribeConfigsResult {
+            error_code: 0,
+            error_message: None,
+            resource_type: RESOURCE_TOPIC,
+            name: "t".into(),
+            entries: vec![ConfigEntry {
+                name: "cleanup.policy".into(),
+                value: Some("delete".into()),
+                read_only: false,
+                source: CONFIG_SOURCE_DEFAULT,
+                is_sensitive: false,
+                synonyms: Vec::new(),
+                config_type: CONFIG_TYPE_STRING,
+                documentation: Some("docs".into()),
+            }],
+        }]
+    }
+
+    #[test]
+    fn describe_configs_v2_request_matches_v1() {
+        let resources = sample_describe_configs_resources();
+        let mut v1 = BytesMut::new();
+        encode_describe_configs_request(&mut v1, 1, &resources, false, false).unwrap();
+        let mut v2 = BytesMut::new();
+        encode_describe_configs_request(&mut v2, 2, &resources, false, false).unwrap();
+        assert_eq!(&v1[..], &v2[..], "DescribeConfigs v2 request matches v1");
+        let mut cur = &v2[..];
+        let (decoded, syn, docs) = decode_describe_configs_request(&mut cur, 2).unwrap();
+        assert_eq!(decoded, resources);
+        assert!(!syn);
+        assert!(!docs);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v2 request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_configs_v3_adds_include_documentation_and_config_type() {
+        let resources = sample_describe_configs_resources();
+        let mut v2 = BytesMut::new();
+        encode_describe_configs_request(&mut v2, 2, &resources, false, true).unwrap();
+        let mut v3 = BytesMut::new();
+        encode_describe_configs_request(&mut v3, 3, &resources, false, true).unwrap();
+        assert_ne!(
+            &v2[..],
+            &v3[..],
+            "DescribeConfigs v3 request must include IncludeDocumentation"
+        );
+        let mut cur = &v3[..];
+        let (decoded, syn, docs) = decode_describe_configs_request(&mut cur, 3).unwrap();
+        assert_eq!(decoded, resources);
+        assert!(!syn);
+        assert!(docs);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v3 request must be leftover-empty"
+        );
+
+        let results = sample_describe_configs_results();
+        let mut v2r = BytesMut::new();
+        encode_describe_configs_response(&mut v2r, 2, &results).unwrap();
+        let mut v3r = BytesMut::new();
+        encode_describe_configs_response(&mut v3r, 3, &results).unwrap();
+        assert_ne!(
+            &v2r[..],
+            &v3r[..],
+            "DescribeConfigs v3 response must include ConfigType and Documentation"
+        );
+        let mut cur = &v3r[..];
+        assert_eq!(
+            decode_describe_configs_response(&mut cur, 3).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v3 response must be leftover-empty"
+        );
+        let mut cur = &v2r[..];
+        let got2 = decode_describe_configs_response(&mut cur, 2).unwrap();
+        assert_eq!(got2[0].entries[0].config_type, CONFIG_TYPE_UNKNOWN);
+        assert_eq!(got2[0].entries[0].documentation, None);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v2 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_configs_v4_compact_layout_matches_independent_encode() {
+        // Compact 1 resource type=2 name "t", null keys, IncludeSynonyms
+        // false, IncludeDocumentation false, empty tagged fields.
+        const REQ: &[u8] = &[0x02, 0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let resources = sample_describe_configs_resources();
+        let mut buf = BytesMut::new();
+        encode_describe_configs_request(&mut buf, 4, &resources, false, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (decoded, syn, docs) = decode_describe_configs_request(&mut cur, 4).unwrap();
+        assert_eq!(decoded, resources);
+        assert!(!syn);
+        assert!(!docs);
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v4 request must consume compact fields and tagged fields"
+        );
+        let mut v3 = BytesMut::new();
+        encode_describe_configs_request(&mut v3, 3, &resources, false, false).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v3[..],
+            "DescribeConfigs v4 must not be classic v3"
+        );
+        assert!(
+            encode_describe_configs_request(&mut BytesMut::new(), 5, &resources, false, false)
+                .is_err(),
+            "DescribeConfigs v5+ is not spoken"
+        );
+
+        let results = sample_describe_configs_results();
+        buf.clear();
+        encode_describe_configs_response(&mut buf, 4, &results).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v4 response must be leftover-empty"
+        );
+        let mut v3r = BytesMut::new();
+        encode_describe_configs_response(&mut v3r, 3, &results).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v3r[..],
+            "DescribeConfigs v4 response must not be classic v3"
+        );
     }
 
     #[test]

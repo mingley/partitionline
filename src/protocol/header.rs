@@ -8,11 +8,11 @@ use super::api_keys::{
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, ASSIGN_REPLICAS_TO_DIRS, CONSUMER_GROUP_DESCRIBE,
     CONSUMER_GROUP_HEARTBEAT, CREATE_DELEGATION_TOKEN, CREATE_TOPICS, DELETE_GROUPS,
     DELETE_SHARE_GROUP_OFFSETS, DELETE_TOPICS, DESCRIBE_CLIENT_QUOTAS, DESCRIBE_CLUSTER,
-    DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS, DESCRIBE_PRODUCERS,
-    DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS, DESCRIBE_TRANSACTIONS,
-    DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN, FETCH, FIND_COORDINATOR,
-    GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP, LEAVE_GROUP,
-    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    DESCRIBE_CONFIGS, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
+    DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
+    DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, END_TXN, EXPIRE_DELEGATION_TOKEN,
+    FETCH, FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, HEARTBEAT, INIT_PRODUCER_ID, JOIN_GROUP,
+    LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
     LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, PRODUCE, PUSH_TELEMETRY,
     RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
     SHARE_GROUP_HEARTBEAT, SYNC_GROUP, TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES,
@@ -147,6 +147,11 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // is 1-6 (v0 removed). This crate speaks 0–6. v5 ErrorMessage
         // (KIP-599); v6 Topics + TopicId (KIP-516). v7+ is not spoken.
         DELETE_TOPICS if api_version >= 4 => 2,
+        // DescribeConfigs is classic through v3; flexible from v4
+        // (Apache JSON flexibleVersions: "4+"). Kafka 4.0 validVersions
+        // is 1-4 (v0 removed). This crate speaks 0–4. v3 IncludeDocumentation
+        // / ConfigType (KIP-226). v5+ is not spoken.
+        DESCRIBE_CONFIGS if api_version >= 4 => 2,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -228,6 +233,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         JOIN_GROUP if api_version >= 6 => 1,
         CREATE_TOPICS if api_version >= 5 => 1,
         DELETE_TOPICS if api_version >= 4 => 1,
+        DESCRIBE_CONFIGS if api_version >= 4 => 1,
         CONSUMER_GROUP_DESCRIBE
         | CONSUMER_GROUP_HEARTBEAT
         | SHARE_GROUP_DESCRIBE
@@ -553,6 +559,17 @@ mod tests {
         assert_eq!(response_header_version(DELETE_TOPICS, 4), 1);
         assert_eq!(request_header_version(DELETE_TOPICS, 6), 2);
         assert_eq!(response_header_version(DELETE_TOPICS, 6), 1);
+    }
+
+    #[test]
+    fn describe_configs_v4_is_flexible_v3_is_not() {
+        // Official Kafka 4.0 JSON: validVersions 1-4, flexibleVersions 4+.
+        // HeaderVersion is 1 / 0 at v0–3 and 2 / 1 at v4. This crate
+        // speaks 0–4. v3 IncludeDocumentation / ConfigType.
+        assert_eq!(request_header_version(DESCRIBE_CONFIGS, 3), 1);
+        assert_eq!(response_header_version(DESCRIBE_CONFIGS, 3), 0);
+        assert_eq!(request_header_version(DESCRIBE_CONFIGS, 4), 2);
+        assert_eq!(response_header_version(DESCRIBE_CONFIGS, 4), 1);
     }
 
     #[test]

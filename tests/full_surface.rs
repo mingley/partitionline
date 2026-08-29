@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    CREATE_TOPICS, DELETE_TOPICS, END_TXN, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP,
-    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
+    JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3163,6 +3163,13 @@ async fn admin_delete_and_describe() {
         .find(|e| e.name == "cleanup.policy")
         .expect("cleanup.policy");
     assert_eq!(entry.value.as_deref(), Some("compact"));
+    assert_eq!(
+        mock.last_describe_configs_version(),
+        Some(4),
+        "Admin must prefer DescribeConfigs v4 when the broker advertises it"
+    );
+    assert_eq!(entry.config_type, partitionline::CONFIG_TYPE_STRING);
+    assert_eq!(entry.documentation, None);
 
     let missing = admin
         .describe_configs(&[ConfigResource::topic("nope")], false)
@@ -3626,6 +3633,70 @@ async fn delete_topics_negotiates_below_v6_when_broker_caps() {
         Some(3),
         "client must speak DeleteTopics v3 when the broker max is 3"
     );
+}
+
+#[tokio::test]
+async fn describe_configs_negotiates_below_v4_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_CONFIGS, 3);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("dc3", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let described = admin
+        .describe_configs_with_documentation(&[ConfigResource::topic("dc3")], false, true)
+        .await
+        .unwrap();
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_configs_version(),
+        Some(3),
+        "client must speak DescribeConfigs v3 when the broker max is 3"
+    );
+    assert_eq!(
+        mock.last_describe_configs_documentation(),
+        Some(true),
+        "v3 must send IncludeDocumentation"
+    );
+    assert_eq!(
+        described[0].entries[0].config_type,
+        partitionline::CONFIG_TYPE_STRING
+    );
+    assert!(
+        described[0].entries[0].documentation.is_some(),
+        "DescribeConfigs v3 with documentation must fill Documentation"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_CONFIGS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("dc1", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let described = admin
+        .describe_configs_with_documentation(&[ConfigResource::topic("dc1")], false, true)
+        .await
+        .unwrap();
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_configs_version(),
+        Some(1),
+        "client must speak DescribeConfigs v1 when the broker max is 1"
+    );
+    assert_eq!(
+        mock.last_describe_configs_documentation(),
+        Some(false),
+        "v1 omits IncludeDocumentation even when the caller asked for it"
+    );
+    assert_eq!(
+        described[0].entries[0].config_type,
+        partitionline::CONFIG_TYPE_UNKNOWN
+    );
+    assert_eq!(described[0].entries[0].documentation, None);
 }
 
 #[tokio::test]

@@ -91,7 +91,8 @@ use partitionline::protocol::admin::{
     RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
     TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
     UpdateFeaturesResponse, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, CONFIG_SOURCE_DEFAULT,
-    CONFIG_SOURCE_DYNAMIC_TOPIC, RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_metadata_request, decode_produce_request, encode_api_versions_response,
@@ -259,6 +260,8 @@ struct State {
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
     delete_topics_not_controller: u32,
+    last_describe_configs_version: Option<i16>,
+    last_describe_configs_documentation: Option<bool>,
     last_create_partitions_node: Option<i32>,
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
@@ -522,6 +525,8 @@ fn new_state(
         last_delete_topics_node: None,
         last_delete_topics_version: None,
         delete_topics_not_controller: 0,
+        last_describe_configs_version: None,
+        last_describe_configs_documentation: None,
         last_create_partitions_node: None,
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
@@ -1406,6 +1411,14 @@ impl Mock {
 
     pub fn delete_topics_not_controller(&self) -> u32 {
         self.state.lock().delete_topics_not_controller
+    }
+
+    pub fn last_describe_configs_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_configs_version
+    }
+
+    pub fn last_describe_configs_documentation(&self) -> Option<bool> {
+        self.state.lock().last_describe_configs_documentation
     }
 
     pub fn last_create_partitions_node(&self) -> Option<i32> {
@@ -2296,7 +2309,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (TXN_OFFSET_COMMIT, 0, 5),
         (OFFSET_DELETE, 0, 0),
         (OFFSET_FOR_LEADER_EPOCH, 0, 2),
-        (DESCRIBE_CONFIGS, 0, 1),
+        (DESCRIBE_CONFIGS, 0, 4),
         (SASL_AUTHENTICATE, 0, 1),
     ];
     ApiVersionsResponse {
@@ -2624,10 +2637,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_delete_topics_response(&mut body, version, &results).unwrap();
             }
             DESCRIBE_CONFIGS => {
-                let (resources, _syn) =
-                    decode_describe_configs_request(&mut frame, header.api_version).unwrap();
-                let st = state.lock();
+                let version = header.api_version;
+                let (resources, _syn, include_documentation) =
+                    decode_describe_configs_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
+                let mut st = state.lock();
+                st.last_describe_configs_version = Some(version);
+                st.last_describe_configs_documentation = Some(include_documentation);
+                let config_type = if version >= 3 {
+                    CONFIG_TYPE_STRING
+                } else {
+                    CONFIG_TYPE_UNKNOWN
+                };
                 for r in resources {
                     if r.resource_type == RESOURCE_TOPIC {
                         match st.created_topics.get(&r.name) {
@@ -2655,6 +2676,13 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                             source,
                                             is_sensitive: false,
                                             synonyms: Vec::new(),
+                                            config_type,
+                                            documentation: if version >= 3 && include_documentation
+                                            {
+                                                Some(format!("{name} docs"))
+                                            } else {
+                                                None
+                                            },
                                         });
                                     }
                                 };
@@ -2699,6 +2727,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 source: CONFIG_SOURCE_DEFAULT,
                                 is_sensitive: false,
                                 synonyms: Vec::new(),
+                                config_type,
+                                documentation: if version >= 3 && include_documentation {
+                                    Some("log.retention.hours docs".into())
+                                } else {
+                                    None
+                                },
                             }],
                         });
                     } else {

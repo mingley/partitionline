@@ -128,7 +128,9 @@ pub use crate::protocol::admin::{
     ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, TopicPartitionCursor, TransactionListing, TransactionState,
     TransactionTopic, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, AUTHORIZED_OPERATIONS_OMITTED,
-    QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
+    CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST,
+    CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
+    CONFIG_TYPE_UNKNOWN, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
     RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
@@ -1050,9 +1052,9 @@ impl Admin {
             })?;
         let describe_version = versions
             .get(&DESCRIBE_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeConfigs v0-1".into())
+                Error::Unsupported("broker does not support DescribeConfigs v0-4".into())
             })?;
         let partitions_version = versions
             .get(&CREATE_PARTITIONS)
@@ -1556,10 +1558,31 @@ impl Admin {
     }
 
     /// Describe broker or topic configs (`DescribeConfigs`).
+    ///
+    /// Negotiates v0–v4 (v1 IncludeSynonyms / ConfigSource / Synonyms;
+    /// v3 IncludeDocumentation / ConfigType, KIP-226; v4 flexible).
+    /// Kafka 4.0 `validVersions` is `1-4`. v5+ is not spoken.
+    /// Documentation is omitted (`false`); see
+    /// [`Self::describe_configs_with_documentation`].
     pub async fn describe_configs(
         &mut self,
         resources: &[ConfigResource],
         include_synonyms: bool,
+    ) -> Result<Vec<DescribeConfigsResult>> {
+        self.describe_configs_with_documentation(resources, include_synonyms, false)
+            .await
+    }
+
+    /// DescribeConfigs with documentation (Java `describeConfigs` plus
+    /// `DescribeConfigsOptions.includeDocumentation`).
+    ///
+    /// v3+ sends IncludeDocumentation. v0–v2 omit the field even when
+    /// `include_documentation` is set.
+    pub async fn describe_configs_with_documentation(
+        &mut self,
+        resources: &[ConfigResource],
+        include_synonyms: bool,
+        include_documentation: bool,
     ) -> Result<Vec<DescribeConfigsResult>> {
         let req: Vec<DescribeConfigsResource> = resources
             .iter()
@@ -1575,7 +1598,15 @@ impl Admin {
             .roundtrip_bootstrap(
                 DESCRIBE_CONFIGS,
                 version,
-                |buf| encode_describe_configs_request(buf, version, &req, include_synonyms),
+                |buf| {
+                    encode_describe_configs_request(
+                        buf,
+                        version,
+                        &req,
+                        include_synonyms,
+                        include_documentation,
+                    )
+                },
                 timeout,
             )
             .await?;

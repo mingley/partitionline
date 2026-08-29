@@ -36,6 +36,7 @@
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId),
+//! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
@@ -127,6 +128,8 @@
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
 //! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
+//! [`Admin::describe_configs_with_documentation`] is Java `describeConfigs`
+//! plus `DescribeConfigsOptions.includeDocumentation` (DescribeConfigs v3).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
 //! [`Admin::force_terminate_transaction`] is Java `forceTerminateTransaction`.
 //! [`Admin::describe_classic_groups`] is Java `describeClassicGroups`.
@@ -323,8 +326,10 @@ pub use admin::{
     UserScramCredentialUpsertion, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER,
     CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC,
-    DEFAULT_LEAVE_GROUP_REASON, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST,
+    CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING,
+    CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
