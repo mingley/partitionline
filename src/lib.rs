@@ -269,6 +269,9 @@
 //! `AlterUserScramCredentialsOptions` /
 //! `DescribeUserScramCredentialsOptions.timeoutMs` (RPC deadline; these
 //! RPCs have no TimeoutMs).
+//! [`Admin::unregister_broker_timeout`] is Java
+//! `UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has
+//! no TimeoutMs; caps `NOT_CONTROLLER`).
 //! [`Admin::alter_replica_log_dirs_timeout`] is Java
 //! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
 //! AlterReplicaLogDirs has no TimeoutMs).

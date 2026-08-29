@@ -6327,6 +6327,15 @@ async fn unregister_broker_follows_controller() {
         mock.has_unregistered_broker(4),
         "retry on the new controller must record the fixture unregistration"
     );
+    admin
+        .unregister_broker_timeout(5, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(mock.last_unregistered_broker_id(), Some(5));
+    assert!(
+        mock.has_unregistered_broker(5),
+        "timeout overload must record the fixture unregistration"
+    );
 }
 
 #[tokio::test]

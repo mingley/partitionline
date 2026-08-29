@@ -3112,10 +3112,25 @@ impl Admin {
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. Top-level `error_code`
     /// (bytes 4–5), after throttle. Fixture broker id only; this is not
-    /// a live KRaft unregistration.
+    /// a live KRaft unregistration. UnregisterBroker has no TimeoutMs;
+    /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
+    /// one-shot deadline, use [`Self::unregister_broker_timeout`].
     pub async fn unregister_broker(&mut self, broker_id: i32) -> Result<()> {
-        let version = self.unregister_broker_version;
         let timeout = self.cfg.request_timeout;
+        self.unregister_broker_timeout(broker_id, timeout).await
+    }
+
+    /// [`Self::unregister_broker`] with a one-shot RPC deadline (Java
+    /// `UnregisterBrokerOptions.timeoutMs`).
+    ///
+    /// UnregisterBroker has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_CONTROLLER` retry budget.
+    pub async fn unregister_broker_timeout(
+        &mut self,
+        broker_id: i32,
+        timeout: Duration,
+    ) -> Result<()> {
+        let version = self.unregister_broker_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

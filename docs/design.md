@@ -111,6 +111,9 @@ are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
 `Admin::describe_user_scram_credentials_timeout` are Java
 `AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`
 (RPC deadline; these RPCs have no TimeoutMs; both cap `NOT_CONTROLLER`).
+`Admin::unregister_broker_timeout` is Java
+`UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has no
+TimeoutMs; caps `NOT_CONTROLLER`).
 `Admin::alter_replica_log_dirs` is Java
 `alterReplicaLogDirs` (v1–v2; classic v1, flexible v2).
 `Admin::alter_replica_log_dirs_timeout` is Java
