@@ -13,8 +13,9 @@ mod common;
 use partitionline::protocol::api_keys::{
     ALTER_CONFIGS, CONSUMER_GROUP_HEARTBEAT, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS,
     DELETE_ACLS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CLUSTER, DESCRIBE_CONFIGS,
-    END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP, LIST_TRANSACTIONS,
-    METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP, UPDATE_FEATURES,
+    DESCRIBE_GROUPS, END_TXN, FIND_COORDINATOR, HEARTBEAT, INCREMENTAL_ALTER_CONFIGS, JOIN_GROUP,
+    LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, OFFSET_FOR_LEADER_EPOCH, SYNC_GROUP,
+    UPDATE_FEATURES,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -5063,6 +5064,11 @@ async fn describe_groups_follows_group_coordinator() {
         Some(2),
         "DescribeGroups must land on the group coordinator, not bootstrap"
     );
+    assert_eq!(
+        mock.last_describe_groups_version(),
+        Some(6),
+        "Admin must prefer DescribeGroups v6 when the broker advertises it"
+    );
     assert!(
         mock.find_coordinator_key_types()
             .contains(&COORDINATOR_GROUP),
@@ -5087,6 +5093,94 @@ async fn describe_groups_follows_group_coordinator() {
         mock.last_describe_groups_node(),
         Some(1),
         "DescribeGroups must FindCoordinator after NOT_COORDINATOR"
+    );
+}
+
+#[tokio::test]
+async fn describe_groups_negotiates_v5_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_GROUPS, 5);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin.describe_groups(&["g-v5"], true).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert!(
+        described[0].error_message.is_none(),
+        "v5 has no ErrorMessage"
+    );
+    assert_eq!(
+        mock.last_describe_groups_version(),
+        Some(5),
+        "client must speak DescribeGroups v5 when the broker max is 5"
+    );
+    assert_eq!(
+        mock.last_describe_groups_include(),
+        Some(true),
+        "v5 must send IncludeAuthorizedOperations"
+    );
+}
+
+#[tokio::test]
+async fn describe_groups_negotiates_v4_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_GROUPS, 4);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin.describe_groups(&["g-v4"], true).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_groups_version(),
+        Some(4),
+        "client must speak DescribeGroups v4 when the broker max is 4"
+    );
+    assert_eq!(
+        mock.last_describe_groups_include(),
+        Some(true),
+        "v4 must send IncludeAuthorizedOperations"
+    );
+}
+
+#[tokio::test]
+async fn describe_groups_negotiates_v0_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_GROUPS, 0);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin.describe_groups(&["g-v0"], true).await.unwrap();
+    assert_eq!(described.len(), 1);
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        described[0].authorized_operations,
+        i32::MIN,
+        "v0 has no AuthorizedOperations; decode fills omitted"
+    );
+    assert_eq!(
+        mock.last_describe_groups_version(),
+        Some(0),
+        "client must speak DescribeGroups v0 when the broker max is 0"
+    );
+    assert_eq!(
+        mock.last_describe_groups_include(),
+        Some(false),
+        "v0 has no IncludeAuthorizedOperations; decode fills false"
+    );
+}
+
+#[tokio::test]
+async fn describe_groups_negotiates_v2_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(DESCRIBE_GROUPS, 2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let described = admin.describe_groups(&["g-v2"], true).await.unwrap();
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(
+        mock.last_describe_groups_version(),
+        Some(2),
+        "client must speak DescribeGroups v2 when the broker max is 2"
+    );
+    assert_eq!(
+        mock.last_describe_groups_include(),
+        Some(false),
+        "v2 must not send IncludeAuthorizedOperations"
     );
 }
 

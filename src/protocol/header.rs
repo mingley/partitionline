@@ -83,6 +83,9 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         DESCRIBE_CLIENT_QUOTAS | ALTER_CLIENT_QUOTAS if api_version >= 1 => 2,
         // DescribeGroups is classic through v4; flexible from v5
         // (Apache JSON flexibleVersions: "5+", kafka-protocol 0.18.0).
+        // Kafka 4.0 validVersions is 0-6. This crate speaks 0–6.
+        // v3 IncludeAuthorizedOperations. v4 GroupInstanceId. v6
+        // ErrorMessage (KIP-1043). v7+ is not spoken.
         DESCRIBE_GROUPS if api_version >= 5 => 2,
         // ListGroups is classic through v2; flexible from v3
         // (Apache JSON flexibleVersions: "3+", kafka-protocol 0.18.0).
@@ -843,7 +846,7 @@ mod tests {
     fn describe_groups_v6_is_flexible_v4_is_not() {
         // Official JSON: validVersions 0-6, flexibleVersions 5+.
         // kafka-protocol 0.18.0 HeaderVersion is 2 / 1 at v5–6; 1 / 0
-        // at v0–4. This crate speaks v6 (VERSIONS.max).
+        // at v0–4. This crate speaks 0–6.
         assert_eq!(request_header_version(DESCRIBE_GROUPS, 0), 1);
         assert_eq!(response_header_version(DESCRIBE_GROUPS, 0), 0);
         assert_eq!(request_header_version(DESCRIBE_GROUPS, 4), 1);

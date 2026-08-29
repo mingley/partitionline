@@ -4061,7 +4061,7 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
     Ok(groups)
 }
 
-/// One member in a classic DescribeGroups (api 15) v6 group.
+/// One member in a classic DescribeGroups (api 15) group.
 ///
 /// `group_instance_id` is v4+ (nullable). Metadata and assignment are
 /// protocol bytes, not a parsed member store.
@@ -4099,9 +4099,10 @@ impl DescribedGroupMember {
     }
 }
 
-/// One described group in DescribeGroups (api 15) v6.
+/// One described group in DescribeGroups (api 15).
 ///
 /// ErrorCode sits here, not at the top of the response body.
+/// `error_message` is v6+ (nullable). `authorized_operations` is v3+.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedGroup {
     /// Kafka error code (`0` is success).
@@ -4138,81 +4139,129 @@ impl DescribedGroup {
     }
 }
 
-/// DescribeGroups v6 (classic through v4; flexible from v5; KIP-1043).
+/// `true` when DescribeGroups `version` is flexible.
+///
+/// v0–v4 are classic. v5 is the first flexible version. v6 adds
+/// ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043). Kafka 4.0
+/// `validVersions` is `0-6`. This crate speaks 0–6. v7+ is not spoken.
+fn describe_groups_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=4 => Ok(false),
+        5..=6 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "DescribeGroups version {other} is not implemented"
+        ))),
+    }
+}
+
+/// DescribeGroups v0–6 (classic through v4; flexible from v5; KIP-1043).
 ///
 /// Official Apache JSON (`apiKey: 15`, request `listeners: ["broker"]`,
 /// `validVersions: "0-6"`, `flexibleVersions: "5+"`) and
 /// kafka-protocol 0.18.0 (`DescribeGroupsRequest` /
-/// `DescribeGroupsResponse`, `VERSIONS` min=0 max=6). This crate
-/// targets v6, the version a client encodes (`VERSIONS.max`). Request
-/// encode used `features = ["client"]`; response encode used `broker`.
-/// Request: compact `Groups`, `IncludeAuthorizedOperations` BOOLEAN
-/// (v3+), tagged. Response: `ThrottleTimeMs` INT32 (v1+), compact
-/// `Groups` of `{ErrorCode INT16, compact nullable ErrorMessage (v6+),
-/// GroupId, GroupState, ProtocolType, ProtocolData, compact Members of
-/// {MemberId, compact nullable GroupInstanceId (v4+), ClientId,
-/// ClientHost, compact MemberMetadata BYTES, compact MemberAssignment
-/// BYTES, tagged}, AuthorizedOperations INT32 (v3+), tagged}`, tagged.
-/// **ErrorCode is per-group**, the first field of each DescribedGroup
-/// — not a top-level code after throttle. Measured independently on
-/// leftover-empty fixture group `"g"`: the first-group ErrorCode is
-/// the INT16 at **bytes 5–6**, after throttle and the compact groups
-/// length — not bytes 4–5 (DescribeClientQuotas) or 5–6 assumed from
-/// ConsumerGroupDescribe or 12–13 (DescribeProducers first
-/// partition). Official listed per-group errors include
-/// `COORDINATOR_LOAD_IN_PROGRESS` (14), `COORDINATOR_NOT_AVAILABLE`
-/// (15), `NOT_COORDINATOR` (16), `AUTHORIZATION_FAILED` (29);
-/// version 6 also returns `GROUP_ID_NOT_FOUND`. This is a
-/// group-coordinator hop, not a controller hop and not a
-/// partition-leader hop.
+/// `DescribeGroupsResponse`, `VERSIONS` min=0 max=6). Request encode
+/// used `features = ["client"]`; response encode used `broker`.
+/// Request: `Groups` (classic STRING[] through v4; compact v5+),
+/// `IncludeAuthorizedOperations` BOOLEAN (v3+), tagged (v5+).
+/// Response: `ThrottleTimeMs` INT32 (v1+), `Groups` of `{ErrorCode INT16,
+/// nullable ErrorMessage (v6+), GroupId, GroupState, ProtocolType,
+/// ProtocolData, Members of {MemberId, nullable GroupInstanceId (v4+),
+/// ClientId, ClientHost, MemberMetadata BYTES, MemberAssignment BYTES,
+/// tagged (v5+)}, AuthorizedOperations INT32 (v3+), tagged (v5+)}`,
+/// tagged (v5+). **ErrorCode is per-group**, the first field of each
+/// DescribedGroup — not a top-level code after throttle. Measured
+/// independently on leftover-empty fixture group `"g"` at **v6**: the
+/// first-group ErrorCode is the INT16 at **bytes 5–6**, after throttle
+/// and the compact groups length — not bytes 4–5 (DescribeClientQuotas
+/// / v0 first-group after a classic array length) or 12–13
+/// (DescribeProducers first partition). Official listed per-group
+/// errors include `COORDINATOR_LOAD_IN_PROGRESS` (14),
+/// `COORDINATOR_NOT_AVAILABLE` (15), `NOT_COORDINATOR` (16),
+/// `AUTHORIZATION_FAILED` (29); version 6 also returns
+/// `GROUP_ID_NOT_FOUND`. This is a group-coordinator hop, not a
+/// controller hop and not a partition-leader hop.
 pub fn encode_describe_groups_request(
     buf: &mut BytesMut,
+    version: i16,
     group_ids: &[String],
     include_authorized_operations: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, true, Some(group_ids.len()))?;
+    let flexible = describe_groups_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(group_ids.len()))?;
     for id in group_ids {
-        buf::put_compact_string(buf, Some(id))?;
+        buf::put_string(buf, flexible, Some(id))?;
     }
-    buf.put_u8(u8::from(include_authorized_operations));
-    buf::put_empty_tagged_fields(buf);
+    if version >= 3 {
+        buf.put_u8(u8::from(include_authorized_operations));
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode a DescribeGroups request.
-pub fn decode_describe_groups_request<B: Buf>(buf: &mut B) -> Result<(Vec<String>, bool)> {
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+///
+/// v0–v2 fill `include_authorized_operations` = `false`.
+pub fn decode_describe_groups_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<String>, bool)> {
+    let flexible = describe_groups_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut group_ids = Vec::with_capacity(n);
     for _ in 0..n {
-        group_ids.push(buf::get_compact_string(buf)?.unwrap_or_default());
+        group_ids.push(buf::get_string(buf, flexible)?.unwrap_or_default());
     }
-    let include_authorized_operations = buf::get_bool(buf)?;
-    buf::skip_tagged_fields(buf)?;
+    let include_authorized_operations = if version >= 3 {
+        buf::get_bool(buf)?
+    } else {
+        false
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((group_ids, include_authorized_operations))
 }
 
 fn encode_described_group_member(
     buf: &mut BytesMut,
+    version: i16,
     member: &DescribedGroupMember,
 ) -> crate::error::Result<()> {
-    buf::put_compact_string(buf, Some(&member.member_id))?;
-    buf::put_compact_string(buf, member.group_instance_id.as_deref())?;
-    buf::put_compact_string(buf, Some(&member.client_id))?;
-    buf::put_compact_string(buf, Some(&member.client_host))?;
-    buf::put_compact_bytes(buf, Some(&member.member_metadata))?;
-    buf::put_compact_bytes(buf, Some(&member.member_assignment))?;
-    buf::put_empty_tagged_fields(buf);
+    let flexible = describe_groups_flexible(version)?;
+    buf::put_string(buf, flexible, Some(&member.member_id))?;
+    if version >= 4 {
+        buf::put_string(buf, flexible, member.group_instance_id.as_deref())?;
+    }
+    buf::put_string(buf, flexible, Some(&member.client_id))?;
+    buf::put_string(buf, flexible, Some(&member.client_host))?;
+    buf::put_bytes(buf, flexible, Some(&member.member_metadata))?;
+    buf::put_bytes(buf, flexible, Some(&member.member_assignment))?;
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-fn decode_described_group_member<B: Buf>(buf: &mut B) -> Result<DescribedGroupMember> {
-    let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let group_instance_id = buf::get_compact_string(buf)?;
-    let client_id = buf::get_compact_string(buf)?.unwrap_or_default();
-    let client_host = buf::get_compact_string(buf)?.unwrap_or_default();
-    let member_metadata = buf::get_compact_bytes(buf)?.unwrap_or_default();
-    let member_assignment = buf::get_compact_bytes(buf)?.unwrap_or_default();
-    buf::skip_tagged_fields(buf)?;
+fn decode_described_group_member<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<DescribedGroupMember> {
+    let flexible = describe_groups_flexible(version)?;
+    let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let group_instance_id = if version >= 4 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
+    let client_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let client_host = buf::get_string(buf, flexible)?.unwrap_or_default();
+    let member_metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+    let member_assignment = buf::get_bytes(buf, flexible)?.unwrap_or_default();
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(DescribedGroupMember {
         member_id,
         group_instance_id,
@@ -4223,50 +4272,82 @@ fn decode_described_group_member<B: Buf>(buf: &mut B) -> Result<DescribedGroupMe
     })
 }
 
-/// Encode a DescribeGroups response.
+/// Encode a DescribeGroups response (v0–6).
 pub fn encode_describe_groups_response(
     buf: &mut BytesMut,
+    version: i16,
     groups: &[DescribedGroup],
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
-    buf::put_array_len(buf, true, Some(groups.len()))?;
+    let flexible = describe_groups_flexible(version)?;
+    if version >= 1 {
+        buf.put_i32(0);
+    }
+    buf::put_array_len(buf, flexible, Some(groups.len()))?;
     for g in groups {
         buf.put_i16(g.error_code);
-        buf::put_compact_string(buf, g.error_message.as_deref())?;
-        buf::put_compact_string(buf, Some(&g.group_id))?;
-        buf::put_compact_string(buf, Some(&g.group_state))?;
-        buf::put_compact_string(buf, Some(&g.protocol_type))?;
-        buf::put_compact_string(buf, Some(&g.protocol_data))?;
-        buf::put_array_len(buf, true, Some(g.members.len()))?;
-        for m in &g.members {
-            encode_described_group_member(buf, m)?;
+        if version >= 6 {
+            buf::put_string(buf, flexible, g.error_message.as_deref())?;
         }
-        buf.put_i32(g.authorized_operations);
+        buf::put_string(buf, flexible, Some(&g.group_id))?;
+        buf::put_string(buf, flexible, Some(&g.group_state))?;
+        buf::put_string(buf, flexible, Some(&g.protocol_type))?;
+        buf::put_string(buf, flexible, Some(&g.protocol_data))?;
+        buf::put_array_len(buf, flexible, Some(g.members.len()))?;
+        for m in &g.members {
+            encode_described_group_member(buf, version, m)?;
+        }
+        if version >= 3 {
+            buf.put_i32(g.authorized_operations);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
         buf::put_empty_tagged_fields(buf);
     }
-    buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
 /// Decode a DescribeGroups response.
-pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<DescribedGroup>> {
-    let _th = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+///
+/// v0 has no throttle. v0–v2 fill `authorized_operations` =
+/// [`AUTHORIZED_OPERATIONS_OMITTED`]. v0–v5 fill `error_message` =
+/// `None`. v0–v3 fill each member `group_instance_id` = `None`.
+pub fn decode_describe_groups_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<DescribedGroup>> {
+    let flexible = describe_groups_flexible(version)?;
+    if version >= 1 {
+        let _th = buf::get_i32(buf)?;
+    }
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
         let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_compact_string(buf)?;
-        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
-        let group_state = buf::get_compact_string(buf)?.unwrap_or_default();
-        let protocol_type = buf::get_compact_string(buf)?.unwrap_or_default();
-        let protocol_data = buf::get_compact_string(buf)?.unwrap_or_default();
-        let mn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        let error_message = if version >= 6 {
+            buf::get_string(buf, flexible)?
+        } else {
+            None
+        };
+        let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let group_state = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let protocol_type = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let protocol_data = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let mn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut members = Vec::with_capacity(mn);
         for _ in 0..mn {
-            members.push(decode_described_group_member(buf)?);
+            members.push(decode_described_group_member(buf, version)?);
         }
-        let authorized_operations = buf::get_i32(buf)?;
-        buf::skip_tagged_fields(buf)?;
+        let authorized_operations = if version >= 3 {
+            buf::get_i32(buf)?
+        } else {
+            AUTHORIZED_OPERATIONS_OMITTED
+        };
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         groups.push(DescribedGroup {
             error_code,
             error_message,
@@ -4278,7 +4359,9 @@ pub fn decode_describe_groups_response<B: Buf>(buf: &mut B) -> Result<Vec<Descri
             authorized_operations,
         });
     }
-    buf::skip_tagged_fields(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok(groups)
 }
 
@@ -10913,10 +10996,10 @@ mod tests {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 15
         // validVersions 0-6, flexibleVersions 5+, listeners broker only.
-        // This crate targets v6. Not copied from DescribeClientQuotas
-        // (top-level ErrorCode at bytes 4-5), ConsumerGroupDescribe
-        // (first-group ErrorCode at bytes 5-6), or DescribeProducers
-        // (first-partition ErrorCode at bytes 12-13).
+        // This crate speaks 0–6; this fixture is v6. Not copied from
+        // DescribeClientQuotas (top-level ErrorCode at bytes 4-5),
+        // ConsumerGroupDescribe (first-group ErrorCode at bytes 5-6),
+        // or DescribeProducers (first-partition ErrorCode at bytes 12-13).
         const REQ: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00];
         const RESP_16: &[u8] = &[
             0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x01, 0x01, 0x01,
@@ -10924,21 +11007,136 @@ mod tests {
         ];
         let ids = vec!["g".to_string()];
         let mut buf = BytesMut::new();
-        encode_describe_groups_request(&mut buf, &ids, false).unwrap();
+        encode_describe_groups_request(&mut buf, 6, &ids, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
         buf.clear();
-        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        encode_describe_groups_response(&mut buf, 6, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
+    }
+
+    #[test]
+    fn describe_groups_v2_request_omits_include_authorized_operations() {
+        // Official JSON: IncludeAuthorizedOperations is v3+. v0–v2 are
+        // the same request: classic Groups only.
+        const REQ_V2: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67];
+        const REQ_V3: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67, 0x01];
+        let ids = vec!["g".to_string()];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_request(&mut buf, 2, &ids, true).unwrap();
+        assert_eq!(&buf[..], REQ_V2);
+        let mut cur = &buf[..];
+        let (got, include) = decode_describe_groups_request(&mut cur, 2).unwrap();
+        assert_eq!(got, ids);
+        assert!(
+            !include,
+            "v2 has no IncludeAuthorizedOperations; decode fills false"
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v2 request leftover-empty"
+        );
+        buf.clear();
+        encode_describe_groups_request(&mut buf, 3, &ids, true).unwrap();
+        assert_eq!(&buf[..], REQ_V3);
+        assert_ne!(REQ_V2, REQ_V3, "v3 must send IncludeAuthorizedOperations");
+    }
+
+    #[test]
+    fn describe_groups_v0_and_v4_and_v5_fixtures() {
+        const REQ_V0: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x67];
+        const RESP_V0_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x01, 0x67, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const RESP_V4_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x01, 0x67, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+        ];
+        const RESP_V5_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x02, 0x67, 0x01, 0x01, 0x01, 0x01, 0x80,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const RESP_V6_16: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x02, 0x67, 0x01, 0x01, 0x01, 0x01,
+            0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let ids = vec!["g".to_string()];
+        let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_request(&mut buf, 0, &ids, true).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        buf.clear();
+        encode_describe_groups_response(&mut buf, 0, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V0_16);
+        buf.clear();
+        encode_describe_groups_response(&mut buf, 4, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V4_16);
+        buf.clear();
+        encode_describe_groups_response(&mut buf, 5, &resp).unwrap();
+        assert_eq!(&buf[..], RESP_V5_16);
+        assert_ne!(
+            RESP_V5_16, RESP_V6_16,
+            "v5 must not send ErrorMessage (v6+)"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 6, 0, 6), Some(6));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 5, 0, 6), Some(5));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 6), Some(0));
+        assert_eq!(crate::protocol::api_keys::pick_version(7, 7, 0, 6), None);
+    }
+
+    #[test]
+    fn describe_groups_v4_sends_group_instance_id_v3_does_not() {
+        let mut member = DescribedGroupMember::new("m", "c", "h");
+        member.group_instance_id = Some("i1".into());
+        let resp = vec![DescribedGroup {
+            error_code: 0,
+            error_message: Some("x".into()),
+            group_id: "g".into(),
+            group_state: String::new(),
+            protocol_type: String::new(),
+            protocol_data: String::new(),
+            members: vec![member.clone()],
+            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+        }];
+        let mut buf = BytesMut::new();
+        encode_describe_groups_response(&mut buf, 3, &resp).unwrap();
+        let mut cur = &buf[..];
+        let got = decode_describe_groups_response(&mut cur, 3).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v3 response leftover-empty"
+        );
+        assert!(
+            got[0].members[0].group_instance_id.is_none(),
+            "v3 must not send GroupInstanceId"
+        );
+        assert!(
+            got[0].error_message.is_none(),
+            "v3 must not send ErrorMessage"
+        );
+        buf.clear();
+        encode_describe_groups_response(&mut buf, 4, &resp).unwrap();
+        let mut cur = &buf[..];
+        let got = decode_describe_groups_response(&mut cur, 4).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "DescribeGroups v4 response leftover-empty"
+        );
+        assert_eq!(got[0].members[0].group_instance_id.as_deref(), Some("i1"));
+        assert!(
+            got[0].error_message.is_none(),
+            "v4 must not send ErrorMessage"
+        );
     }
 
     #[test]
     fn describe_groups_v6_roundtrip_is_leftover_empty() {
         let ids = vec!["g".to_string(), "g2".to_string()];
         let mut buf = BytesMut::new();
-        encode_describe_groups_request(&mut buf, &ids, true).unwrap();
+        encode_describe_groups_request(&mut buf, 6, &ids, true).unwrap();
         let mut cur = &buf[..];
-        let (got, include) = decode_describe_groups_request(&mut cur).unwrap();
+        let (got, include) = decode_describe_groups_request(&mut cur, 6).unwrap();
         assert_eq!(got, ids);
         assert!(include);
         assert!(
@@ -10961,12 +11159,22 @@ mod tests {
             authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
         }];
         buf.clear();
-        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        encode_describe_groups_response(&mut buf, 6, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_describe_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_describe_groups_response(&mut cur, 6).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v6 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_groups_v7_is_not_spoken() {
+        let mut buf = BytesMut::new();
+        let err = encode_describe_groups_request(&mut buf, 7, &[], false).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v7+ is not spoken, got {err}"
         );
     }
 
@@ -10981,7 +11189,7 @@ mod tests {
         // or bytes 12-13 from DescribeProducers.
         let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
         let mut buf = BytesMut::new();
-        encode_describe_groups_response(&mut buf, &resp).unwrap();
+        encode_describe_groups_response(&mut buf, 6, &resp).unwrap();
         let b5 = buf.get(5).copied().unwrap();
         let b6 = buf.get(6).copied().unwrap();
         assert_eq!(
@@ -11004,7 +11212,7 @@ mod tests {
             "v6 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_describe_groups_response(&mut cur).unwrap(), resp);
+        assert_eq!(decode_describe_groups_response(&mut cur, 6).unwrap(), resp);
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v6 ErrorCode body must be leftover-empty"

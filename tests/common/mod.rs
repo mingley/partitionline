@@ -331,6 +331,8 @@ struct State {
     last_consumer_group_describe_node: Option<i32>,
     consumer_group_describe_not_coordinator: u32,
     last_describe_groups_node: Option<i32>,
+    last_describe_groups_version: Option<i16>,
+    last_describe_groups_include: Option<bool>,
     describe_groups_not_coordinator: u32,
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
@@ -608,6 +610,8 @@ fn new_state(
         last_consumer_group_describe_node: None,
         consumer_group_describe_not_coordinator: 0,
         last_describe_groups_node: None,
+        last_describe_groups_version: None,
+        last_describe_groups_include: None,
         describe_groups_not_coordinator: 0,
         last_leave_group_node: None,
         last_leave_group_members: None,
@@ -1726,6 +1730,14 @@ impl Mock {
 
     pub fn last_describe_groups_node(&self) -> Option<i32> {
         self.state.lock().last_describe_groups_node
+    }
+
+    pub fn last_describe_groups_version(&self) -> Option<i16> {
+        self.state.lock().last_describe_groups_version
+    }
+
+    pub fn last_describe_groups_include(&self) -> Option<bool> {
+        self.state.lock().last_describe_groups_include
     }
 
     pub fn describe_groups_not_coordinator(&self) -> u32 {
@@ -4893,8 +4905,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             DESCRIBE_GROUPS => {
-                let (ids, _include) = decode_describe_groups_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (ids, include) = decode_describe_groups_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
+                st.last_describe_groups_version = Some(version);
+                st.last_describe_groups_include = Some(include);
                 if st.coord_node != node_id {
                     st.describe_groups_not_coordinator =
                         st.describe_groups_not_coordinator.saturating_add(1);
@@ -4904,7 +4919,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .into_iter()
                         .map(|group_id| DescribedGroup::new(group_id, error::NOT_COORDINATOR))
                         .collect();
-                    encode_describe_groups_response(&mut body, &results).unwrap();
+                    encode_describe_groups_response(&mut body, version, &results).unwrap();
                 } else {
                     st.last_describe_groups_node = Some(node_id);
                     let results: Vec<DescribedGroup> = ids
@@ -4927,7 +4942,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             g
                         })
                         .collect();
-                    encode_describe_groups_response(&mut body, &results).unwrap();
+                    encode_describe_groups_response(&mut body, version, &results).unwrap();
                 }
             }
             LIST_GROUPS => {

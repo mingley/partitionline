@@ -1215,8 +1215,10 @@ impl Admin {
             })?;
         let describe_groups_version = versions
             .get(&DESCRIBE_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 6, 6))
-            .ok_or_else(|| Error::Unsupported("broker does not support DescribeGroups".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support DescribeGroups v0-6".into())
+            })?;
         let list_groups_version = versions
             .get(&LIST_GROUPS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 5, 5))
@@ -3887,7 +3889,9 @@ impl Admin {
     /// and no `NOT_LEADER_OR_FOLLOWER` (6) hop. `COORDINATOR_LOAD_IN_PROGRESS`
     /// / `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
     /// coordinator and retry. ErrorCode is per-group (bytes 5–6 on
-    /// leftover-empty fixture group `"g"`), not top-level after throttle.
+    /// leftover-empty fixture group `"g"` at v6), not top-level after throttle.
+    /// Negotiates v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId;
+    /// v5 flexible; v6 ErrorMessage / GROUP_ID_NOT_FOUND).
     /// Java `describeClassicGroups` is [`Self::describe_classic_groups`].
     /// Java `describeConsumerGroups` is [`Self::describe_consumer_groups`].
     pub async fn describe_groups(
@@ -3926,7 +3930,14 @@ impl Admin {
                 conn.roundtrip(
                     DESCRIBE_GROUPS,
                     version,
-                    |buf| encode_describe_groups_request(buf, &ids, include_authorized_operations),
+                    |buf| {
+                        encode_describe_groups_request(
+                            buf,
+                            version,
+                            &ids,
+                            include_authorized_operations,
+                        )
+                    },
                     timeout,
                 )
                 .await
@@ -3941,7 +3952,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_describe_groups_response(&mut body.clone())?;
+            let results = decode_describe_groups_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| error::coordinator_retriable(r.error_code))
