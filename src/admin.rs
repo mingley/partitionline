@@ -6782,15 +6782,33 @@ impl Admin {
     /// `error_code` is the INT16 at bytes 4–5, after throttle — not a
     /// first-directory field and not a first-partition field. Fixture
     /// broker id/epoch and directory UUIDs only; this is not a replica
-    /// directory store.
+    /// directory store. AssignReplicasToDirs has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::assign_replicas_to_dirs_timeout`].
     pub async fn assign_replicas_to_dirs(
         &mut self,
         broker_id: i32,
         broker_epoch: i64,
         directories: Vec<AssignReplicasToDirsDirectory>,
     ) -> Result<AssignReplicasToDirsResponse> {
-        let version = self.assign_replicas_to_dirs_version;
         let timeout = self.cfg.request_timeout;
+        self.assign_replicas_to_dirs_timeout(broker_id, broker_epoch, directories, timeout)
+            .await
+    }
+
+    /// [`Self::assign_replicas_to_dirs`] with a one-shot RPC deadline (Java
+    /// `AssignReplicasToDirsOptions.timeoutMs`).
+    ///
+    /// AssignReplicasToDirs has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the `NOT_CONTROLLER` retry budget.
+    pub async fn assign_replicas_to_dirs_timeout(
+        &mut self,
+        broker_id: i32,
+        broker_epoch: i64,
+        directories: Vec<AssignReplicasToDirsDirectory>,
+        timeout: Duration,
+    ) -> Result<AssignReplicasToDirsResponse> {
+        let version = self.assign_replicas_to_dirs_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let req = AssignReplicasToDirsRequest::new(broker_id, broker_epoch, directories);

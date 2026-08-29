@@ -7589,6 +7589,11 @@ async fn assign_replicas_to_dirs_follows_controller() {
         Some(1),
         "AssignReplicasToDirs must follow Metadata after NOT_CONTROLLER"
     );
+    let timed = admin
+        .assign_replicas_to_dirs_timeout(7, -1, vec![dir.clone()], Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.error_code, 0);
 }
 
 #[tokio::test]
