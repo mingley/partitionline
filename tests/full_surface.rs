@@ -5872,6 +5872,41 @@ async fn describe_groups_follows_group_coordinator() {
 }
 
 #[tokio::test]
+async fn describe_groups_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_desc = mock.describe_groups_calls();
+    let described = admin.describe_groups(&["g-a", "g-b"], false).await.unwrap();
+    assert_eq!(described.len(), 2);
+    assert_eq!(described[0].group_id, "g-a");
+    assert_eq!(described[1].group_id, "g-b");
+    assert_eq!(described[0].error_code, 0);
+    assert_eq!(described[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "describeGroups must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_describe_groups_n(),
+        2,
+        "describeGroups must send Groups of N on one coordinator"
+    );
+    assert_eq!(
+        mock.describe_groups_calls().saturating_sub(before_desc),
+        1,
+        "groups that share a coordinator must be one DescribeGroups"
+    );
+    admin.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn describe_groups_negotiates_v5_when_broker_caps() {
     let mock = common::Mock::start().await;
     mock.set_api_max(DESCRIBE_GROUPS, 5);
@@ -7181,6 +7216,41 @@ async fn delete_groups_follows_group_coordinator() {
         Some(1),
         "DeleteGroups must FindCoordinator after NOT_COORDINATOR"
     );
+}
+
+#[tokio::test]
+async fn delete_groups_batches_find_coordinator() {
+    let mock = common::Mock::start().await;
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let before_find = mock.find_coordinator_calls();
+    let before_del = mock.delete_groups_calls();
+    let deleted = admin.delete_groups(&["g-a", "g-b"]).await.unwrap();
+    assert_eq!(deleted.len(), 2);
+    assert_eq!(deleted[0].group_id, "g-a");
+    assert_eq!(deleted[1].group_id, "g-b");
+    assert_eq!(deleted[0].error_code, 0);
+    assert_eq!(deleted[1].error_code, 0);
+    assert_eq!(
+        mock.last_find_coordinator_key_count(),
+        2,
+        "deleteGroups must send CoordinatorKeys of N on v4+"
+    );
+    assert_eq!(
+        mock.find_coordinator_calls().saturating_sub(before_find),
+        1,
+        "groups that share a coordinator must be one FindCoordinator"
+    );
+    assert_eq!(
+        mock.last_delete_groups_n(),
+        2,
+        "deleteGroups must send GroupId array of N on one coordinator"
+    );
+    assert_eq!(
+        mock.delete_groups_calls().saturating_sub(before_del),
+        1,
+        "groups that share a coordinator must be one DeleteGroups"
+    );
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

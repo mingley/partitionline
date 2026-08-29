@@ -342,6 +342,8 @@ struct State {
     last_describe_groups_node: Option<i32>,
     last_describe_groups_version: Option<i16>,
     last_describe_groups_include: Option<bool>,
+    last_describe_groups_n: usize,
+    describe_groups_calls: u32,
     describe_groups_not_coordinator: u32,
     last_leave_group_node: Option<i32>,
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
@@ -353,6 +355,8 @@ struct State {
     last_list_groups_version: Option<i16>,
     last_delete_groups_node: Option<i32>,
     last_delete_groups_version: Option<i16>,
+    last_delete_groups_n: usize,
+    delete_groups_calls: u32,
     delete_groups_not_coordinator: u32,
     last_share_group_describe_node: Option<i32>,
     last_share_group_describe_version: Option<i16>,
@@ -650,6 +654,8 @@ fn new_state(
         last_describe_groups_node: None,
         last_describe_groups_version: None,
         last_describe_groups_include: None,
+        last_describe_groups_n: 0,
+        describe_groups_calls: 0,
         describe_groups_not_coordinator: 0,
         last_leave_group_node: None,
         last_leave_group_members: None,
@@ -661,6 +667,8 @@ fn new_state(
         last_list_groups_version: None,
         last_delete_groups_node: None,
         last_delete_groups_version: None,
+        last_delete_groups_n: 0,
+        delete_groups_calls: 0,
         delete_groups_not_coordinator: 0,
         last_share_group_describe_node: None,
         last_share_group_describe_version: None,
@@ -1834,6 +1842,14 @@ impl Mock {
         self.state.lock().last_describe_groups_include
     }
 
+    pub fn last_describe_groups_n(&self) -> usize {
+        self.state.lock().last_describe_groups_n
+    }
+
+    pub fn describe_groups_calls(&self) -> u32 {
+        self.state.lock().describe_groups_calls
+    }
+
     pub fn describe_groups_not_coordinator(&self) -> u32 {
         self.state.lock().describe_groups_not_coordinator
     }
@@ -1876,6 +1892,14 @@ impl Mock {
 
     pub fn last_delete_groups_version(&self) -> Option<i16> {
         self.state.lock().last_delete_groups_version
+    }
+
+    pub fn last_delete_groups_n(&self) -> usize {
+        self.state.lock().last_delete_groups_n
+    }
+
+    pub fn delete_groups_calls(&self) -> u32 {
+        self.state.lock().delete_groups_calls
     }
 
     pub fn delete_groups_not_coordinator(&self) -> u32 {
@@ -5205,6 +5229,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_describe_groups_version = Some(version);
                 st.last_describe_groups_include = Some(include);
+                st.last_describe_groups_n = ids.len();
+                st.describe_groups_calls = st.describe_groups_calls.saturating_add(1);
                 if st.coord_node != node_id {
                     st.describe_groups_not_coordinator =
                         st.describe_groups_not_coordinator.saturating_add(1);
@@ -5271,6 +5297,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let ids = decode_delete_groups_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_delete_groups_version = Some(version);
+                st.last_delete_groups_n = ids.len();
+                st.delete_groups_calls = st.delete_groups_calls.saturating_add(1);
                 if st.coord_node != node_id {
                     st.delete_groups_not_coordinator =
                         st.delete_groups_not_coordinator.saturating_add(1);

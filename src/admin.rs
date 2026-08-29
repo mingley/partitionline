@@ -1024,6 +1024,7 @@ pub struct Admin {
     conns: HashMap<i32, BrokerConn>,
     reconnect_fails: HashMap<i32, u32>,
     group_coord: Option<(String, i32)>,
+    group_coords: HashMap<String, i32>,
     txn_coord: Option<(String, i32)>,
     stats: Arc<crate::metrics::AdminTracker>,
 }
@@ -1463,6 +1464,7 @@ impl Admin {
             conns: HashMap::new(),
             reconnect_fails: HashMap::new(),
             group_coord: None,
+            group_coords: HashMap::new(),
             txn_coord: None,
             stats,
         })
@@ -4559,77 +4561,71 @@ impl Admin {
     /// v5 flexible; v6 ErrorMessage / GROUP_ID_NOT_FOUND).
     /// Java `describeClassicGroups` is [`Self::describe_classic_groups`].
     /// Java `describeConsumerGroups` is [`Self::describe_consumer_groups`].
+    /// FindCoordinator v4+ CoordinatorKeys array of N (KIP-699): one
+    /// FindCoordinator per retry for uncached groups. DescribeGroups is
+    /// one RPC per coordinator. Brokers that only speak FindCoordinator
+    /// v1–v3 get one FindCoordinator per uncached group. Empty input is
+    /// a no-op.
     pub async fn describe_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
-        let Some(coord_key) = ids.first().cloned() else {
+        if ids.is_empty() {
             return Ok(Vec::new());
-        };
+        }
         let version = self.describe_groups_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
-            if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
-                self.group_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing describe_groups conn"))?;
-                conn.roundtrip(
-                    DESCRIBE_GROUPS,
-                    version,
-                    |buf| {
-                        encode_describe_groups_request(
-                            buf,
-                            version,
-                            &ids,
-                            include_authorized_operations,
-                        )
-                    },
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .describe_groups_on_node(
+                        node,
+                        version,
+                        &ids,
+                        &idxs,
+                        include_authorized_operations,
+                        timeout,
+                    )
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_describe_groups_response(&mut body.clone(), version)?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new group coordinator.
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| g.ok_or_else(|| Error::protocol(format!("DescribeGroups missing {id}"))))
+            .collect()
     }
 
     /// Describe classic groups (Java `Admin.describeClassicGroups`).
@@ -4727,71 +4723,64 @@ impl Admin {
     /// (bytes 7–8 on leftover-empty fixture group `"g"` on v2; classic
     /// v0–v1 place that ErrorCode later). Java `deleteShareGroups` is
     /// [`Self::delete_share_groups`]. Java `deleteConsumerGroups` is
-    /// [`Self::delete_consumer_groups`].
+    /// [`Self::delete_consumer_groups`]. FindCoordinator v4+
+    /// CoordinatorKeys array of N (KIP-699): one FindCoordinator per
+    /// retry for uncached groups. DeleteGroups is one RPC per
+    /// coordinator. Brokers that only speak FindCoordinator v1–v3 get
+    /// one FindCoordinator per uncached group. Empty input is a no-op.
     pub async fn delete_groups(&mut self, group_ids: &[&str]) -> Result<Vec<DeletableGroupResult>> {
         self.delete_group_ids(group_ids.iter().map(|s| (*s).to_string()).collect())
             .await
     }
 
     async fn delete_group_ids(&mut self, ids: Vec<String>) -> Result<Vec<DeletableGroupResult>> {
-        let Some(coord_key) = ids.first().cloned() else {
+        if ids.is_empty() {
             return Ok(Vec::new());
-        };
+        }
         let version = self.delete_groups_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
+        let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
+        let mut pending: Vec<usize> = (0..ids.len()).collect();
         loop {
-            let stale = self
-                .group_coord
-                .as_ref()
-                .is_none_or(|(g, _)| g != &coord_key);
-            if stale {
-                let node = self.discover_group_coord(&coord_key).await?;
-                self.group_coord = Some((coord_key.clone(), node));
-            }
-            let node = self
-                .group_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing group coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
-                let conn = self
-                    .conns
-                    .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing delete_groups conn"))?;
-                conn.roundtrip(
-                    DELETE_GROUPS,
-                    version,
-                    |buf| encode_delete_groups_request(buf, version, &ids),
-                    timeout,
-                )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.group_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+            nodes.sort_unstable();
+            let mut still = Vec::new();
+            for node in nodes {
+                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+                match self
+                    .delete_groups_on_node(node, version, &ids, &idxs, timeout)
+                    .await
+                {
+                    Ok(done) => {
+                        for (i, g) in done {
+                            if error::coordinator_retriable(g.error_code) {
+                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+                                still.push(i);
+                            } else if let Some(slot) = out.get_mut(i) {
+                                *slot = Some(g);
+                            }
+                        }
+                    }
+                    Err(e) if e.is_retriable() => {
+                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+                        still.extend(idxs);
+                    }
+                    Err(e) => return Err(e),
                 }
-                Err(e) => return Err(e),
-            };
-            let results = decode_delete_groups_response(&mut body.clone(), version)?;
-            if results
-                .iter()
-                .any(|r| error::coordinator_retriable(r.error_code))
-            {
-                // 14/15/16: FindCoordinator, then the new group coordinator.
-                self.group_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
             }
-            return Ok(results);
+            pending = still;
+            if pending.is_empty() {
+                break;
+            }
+            self.wait_retry(&mut attempt, deadline).await?;
         }
+        out.into_iter()
+            .zip(ids)
+            .map(|(g, id)| g.ok_or_else(|| Error::protocol(format!("DeleteGroups missing {id}"))))
+            .collect()
     }
 
     /// Delete share groups (Java `Admin.deleteShareGroups`).
@@ -6110,6 +6099,139 @@ impl Admin {
             }
             return Ok(out);
         }
+    }
+
+    async fn group_coord_nodes(
+        &mut self,
+        ids: &[String],
+        pending: &[usize],
+    ) -> Result<HashMap<i32, Vec<usize>>> {
+        let mut need: Vec<String> = Vec::new();
+        for &i in pending {
+            let Some(id) = ids.get(i) else {
+                continue;
+            };
+            if !self.group_coords.contains_key(id) && !need.iter().any(|k| k == id) {
+                need.push(id.clone());
+            }
+        }
+        if !need.is_empty() {
+            let found = self.discover_group_coords(&need).await?;
+            self.group_coords.extend(found);
+        }
+        let mut by_node: HashMap<i32, Vec<usize>> = HashMap::new();
+        for &i in pending {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let node = *self
+                .group_coords
+                .get(id)
+                .ok_or_else(|| Error::protocol(format!("missing coordinator for {id}")))?;
+            by_node.entry(node).or_default().push(i);
+        }
+        Ok(by_node)
+    }
+
+    fn invalidate_group_coord_idxs(&mut self, ids: &[String], idxs: &[usize], node: i32) {
+        let _ = self.conns.remove(&node);
+        for &i in idxs {
+            if let Some(id) = ids.get(i) {
+                let _ = self.group_coords.remove(id);
+            }
+        }
+    }
+
+    async fn describe_groups_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        ids: &[String],
+        idxs: &[usize],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<(usize, DescribedGroup)>> {
+        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing describe_groups conn"))?;
+            conn.roundtrip(
+                DESCRIBE_GROUPS,
+                version,
+                |buf| {
+                    encode_describe_groups_request(
+                        buf,
+                        version,
+                        &subset,
+                        include_authorized_operations,
+                    )
+                },
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_describe_groups_response(&mut body.clone(), version)?;
+        let mut by_id: HashMap<String, VecDeque<DescribedGroup>> = HashMap::new();
+        for g in results {
+            by_id.entry(g.group_id.clone()).or_default().push_back(g);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let g = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| Error::protocol(format!("DescribeGroups missing {id}")))?;
+            out.push((i, g));
+        }
+        Ok(out)
+    }
+
+    async fn delete_groups_on_node(
+        &mut self,
+        node: i32,
+        version: i16,
+        ids: &[String],
+        idxs: &[usize],
+        timeout: Duration,
+    ) -> Result<Vec<(usize, DeletableGroupResult)>> {
+        let subset: Vec<String> = idxs.iter().filter_map(|&i| ids.get(i).cloned()).collect();
+        self.connect_node(node).await?;
+        let body = {
+            let conn = self
+                .conns
+                .get_mut(&node)
+                .ok_or_else(|| Error::protocol("missing delete_groups conn"))?;
+            conn.roundtrip(
+                DELETE_GROUPS,
+                version,
+                |buf| encode_delete_groups_request(buf, version, &subset),
+                timeout,
+            )
+            .await
+        }?;
+        let results = decode_delete_groups_response(&mut body.clone(), version)?;
+        let mut by_id: HashMap<String, VecDeque<DeletableGroupResult>> = HashMap::new();
+        for g in results {
+            by_id.entry(g.group_id.clone()).or_default().push_back(g);
+        }
+        let mut out = Vec::new();
+        for &i in idxs {
+            let id = ids
+                .get(i)
+                .ok_or_else(|| Error::protocol("missing group id"))?;
+            let g = by_id
+                .get_mut(id)
+                .and_then(VecDeque::pop_front)
+                .ok_or_else(|| Error::protocol(format!("DeleteGroups missing {id}")))?;
+            out.push((i, g));
+        }
+        Ok(out)
     }
 
     async fn discover_txn_coord(&mut self, transactional_id: &str) -> Result<i32> {

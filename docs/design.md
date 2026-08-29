@@ -73,12 +73,12 @@ tagged fields; v4 SupportedFeatures.MinVersion 0, KAFKA-17011;
 [`FeatureMetadata`](../src/admin.rs)).
 `Admin::list_topics` / `Admin::describe_topics` are Java `listTopics` /
 `describeTopics`. `Admin::describe_classic_groups` is Java
-`describeClassicGroups` (DescribeGroups v0–v6). `Admin::describe_consumer_groups` is Java
-`describeConsumerGroups` (DescribeGroups v0–v6). `Admin::consumer_group_describe` is
+`describeClassicGroups` (DescribeGroups v0–v6; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_consumer_groups` is Java
+`describeConsumerGroups` (DescribeGroups v0–v6; FindCoordinator v4+ CoordinatorKeys of N). `Admin::consumer_group_describe` is
 ConsumerGroupDescribe v0–v1 (flexible from v0; v1 MemberType). `Admin::list_consumer_groups` is Java
 `listConsumerGroups` (ListGroups v0–v5). `Admin::delete_consumer_groups` is Java
 `deleteConsumerGroups` (DeleteGroups v0–v2; classic through v1, flexible v2,
-throttle v0+). `Admin::describe_share_groups` is Java
+throttle v0+; FindCoordinator v4+ CoordinatorKeys of N). `Admin::describe_share_groups` is Java
 `describeShareGroups` (ShareGroupDescribe v0–v1). `Admin::list_client_metrics_resources` is Java
 `listClientMetricsResources` (ListConfigResources v0–v1 CLIENT_METRICS). `Admin::list_share_group_offsets` is Java
 `listShareGroupOffsets` (DescribeShareGroupOffsets). `Admin::delete_consumer_group_offsets` is Java
@@ -213,7 +213,7 @@ topics.
 - RenewDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - ExpireDelegationToken v1 is classic. v2 is flexible (compact bytes plus tagged fields; request header 2, response header 1). Same fields. ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-2` (v0 removed). This crate speaks 1–2. v0 and v3+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); broker-side `forwardToController` is not a client 41 hop.
 - DescribeDelegationToken v1 is classic. v2–v3 are flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Request Owners is the same on v1–v3. v3 TokenRequesterPrincipalType / TokenRequesterPrincipalName on each token (decode fills empty on v1–v2). ErrorCode is the first field (bytes 0–1); ThrottleTimeMs is last. Kafka 4.0 `validVersions` is `1-3` (v0 removed). This crate speaks 1–3. v0 and v4+ are not spoken. Broker-only (`LeastLoadedNodeProvider`); the handler does not `forwardToController`.
-- DescribeGroups v0–v4 are classic. v5–v6 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v3 IncludeAuthorizedOperations / AuthorizedOperations. v4 GroupInstanceId. v6 ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043). Kafka 4.0 `validVersions` is `0-6`. This crate speaks 0–6. v7+ is not spoken.
+- DescribeGroups v0–v4 are classic. v5–v6 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v3 IncludeAuthorizedOperations / AuthorizedOperations. v4 GroupInstanceId. v6 ErrorMessage and GROUP_ID_NOT_FOUND (KIP-1043). `describe_groups` / `describe_classic_groups` / `describe_consumer_groups` send FindCoordinator v4+ CoordinatorKeys of N (KIP-699) and one DescribeGroups RPC per coordinator. Kafka 4.0 `validVersions` is `0-6`. This crate speaks 0–6. v7+ is not spoken.
 - ListGroups v0–v2 are classic. v3–v5 are flexible (compact strings/arrays plus tagged fields; request header 2, response header 1). v1 ThrottleTimeMs. v4 StatesFilter / GroupState (KIP-518). v5 TypesFilter / GroupType (KIP-848). Kafka 4.0 `validVersions` is `0-5`. This crate speaks 0–5. v6+ is not spoken.
 - AlterConfigs (legacy api 33) v0–v1 are classic. v1 response adds ThrottleTimeMs (KIP-219). v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 - DeleteRecords v0–v1 are classic. v1 response adds ThrottleTimeMs (KIP-219). v2 is flexible (compact arrays/strings plus tagged fields; request header 2, response header 1). `delete_records_for` sends one Topics/Partitions array per leader (Java `deleteRecords(Map)`). `delete_records_timeout` / `delete_records_for_timeout` are Java `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs). Kafka 4.0 `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
