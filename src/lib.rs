@@ -248,6 +248,14 @@
 //! (RPC deadline; DeleteGroups has no TimeoutMs).
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
+//! [`Admin::share_group_describe_timeout`] /
+//! [`Admin::describe_share_groups_timeout`] are Java
+//! `DescribeShareGroupsOptions.timeoutMs` (RPC deadline;
+//! ShareGroupDescribe has no TimeoutMs).
+//! [`Admin::consumer_group_describe_timeout`] is the crate-first
+//! ConsumerGroupDescribe (api 69) RPC deadline; Java
+//! `describeConsumerGroups` uses DescribeGroups
+//! ([`Admin::describe_consumer_groups_timeout`]).
 //! [`Admin::list_client_metrics_resources`] is Java `listClientMetricsResources`.
 //! [`Admin::list_config_resources_timeout`] /
 //! [`Admin::list_client_metrics_resources_timeout`] are Java

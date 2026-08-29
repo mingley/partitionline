@@ -5618,18 +5618,37 @@ impl Admin {
     /// FindCoordinator per retry for uncached groups. ConsumerGroupDescribe
     /// is one RPC per coordinator. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
-    /// a no-op.
+    /// a no-op. ConsumerGroupDescribe has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::consumer_group_describe_timeout`].
     pub async fn consumer_group_describe(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedConsumerGroup>> {
+        let timeout = self.cfg.request_timeout;
+        self.consumer_group_describe_timeout(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::consumer_group_describe`] with a one-shot RPC deadline.
+    ///
+    /// ConsumerGroupDescribe has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the coordinator retry budget. Java
+    /// `Admin.describeConsumerGroups` uses DescribeGroups (api 15), not
+    /// this RPC; that path is [`Self::describe_consumer_groups_timeout`].
+    /// This overload is the crate-first KIP-848 describe.
+    pub async fn consumer_group_describe_timeout(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<Vec<DescribedConsumerGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
         if ids.is_empty() {
             return Ok(Vec::new());
         }
         let version = self.consumer_group_describe_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedConsumerGroup>> = vec![None; ids.len()];
@@ -6308,18 +6327,35 @@ impl Admin {
     /// FindCoordinator per retry for uncached groups. ShareGroupDescribe
     /// is one RPC per coordinator. Brokers that only speak FindCoordinator
     /// v1–v3 get one FindCoordinator per uncached group. Empty input is
-    /// a no-op.
+    /// a no-op. ShareGroupDescribe has no TimeoutMs; the RPC deadline
+    /// is [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::share_group_describe_timeout`].
     pub async fn share_group_describe(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
+    ) -> Result<Vec<DescribedShareGroup>> {
+        let timeout = self.cfg.request_timeout;
+        self.share_group_describe_timeout(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::share_group_describe`] with a one-shot RPC deadline (Java
+    /// `DescribeShareGroupsOptions.timeoutMs`).
+    ///
+    /// ShareGroupDescribe has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget.
+    pub async fn share_group_describe_timeout(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
     ) -> Result<Vec<DescribedShareGroup>> {
         let ids: Vec<String> = group_ids.iter().map(|s| (*s).to_string()).collect();
         if ids.is_empty() {
             return Ok(Vec::new());
         }
         let version = self.share_group_describe_version;
-        let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedShareGroup>> = vec![None; ids.len()];
@@ -6378,13 +6414,31 @@ impl Admin {
     /// Same wire as [`Self::share_group_describe`]: ShareGroupDescribe
     /// api 77 v0–v1 on the group coordinator. Java's
     /// `DescribeShareGroupsHandler` uses `CoordinatorType.GROUP`. Empty
-    /// input is a no-op.
+    /// input is a no-op. ShareGroupDescribe has no TimeoutMs; the RPC
+    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
+    /// deadline, use [`Self::describe_share_groups_timeout`].
     pub async fn describe_share_groups(
         &mut self,
         group_ids: &[&str],
         include_authorized_operations: bool,
     ) -> Result<Vec<DescribedShareGroup>> {
-        self.share_group_describe(group_ids, include_authorized_operations)
+        let timeout = self.cfg.request_timeout;
+        self.describe_share_groups_timeout(group_ids, include_authorized_operations, timeout)
+            .await
+    }
+
+    /// [`Self::describe_share_groups`] with a one-shot RPC deadline (Java
+    /// `DescribeShareGroupsOptions.timeoutMs`).
+    ///
+    /// ShareGroupDescribe has no TimeoutMs; `timeout` is the RPC deadline
+    /// and the coordinator retry budget.
+    pub async fn describe_share_groups_timeout(
+        &mut self,
+        group_ids: &[&str],
+        include_authorized_operations: bool,
+        timeout: Duration,
+    ) -> Result<Vec<DescribedShareGroup>> {
+        self.share_group_describe_timeout(group_ids, include_authorized_operations, timeout)
             .await
     }
 

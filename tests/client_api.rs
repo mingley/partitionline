@@ -3224,6 +3224,11 @@ async fn admin_describe_share_groups_uses_share_group_describe() {
     assert_eq!(mock.last_share_group_describe_node(), Some(1));
     let empty = admin.describe_share_groups(&[], false).await.unwrap();
     assert!(empty.is_empty());
+    let timed = admin
+        .describe_share_groups_timeout(&["g-share"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed[0].group_id, "g-share");
     admin.close().await.unwrap();
 }
 

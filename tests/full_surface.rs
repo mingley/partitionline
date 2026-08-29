@@ -6867,6 +6867,12 @@ async fn consumer_group_describe_follows_group_coordinator() {
         Some(1),
         "ConsumerGroupDescribe must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed = admin
+        .consumer_group_describe_timeout(&["cg-desc"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "cg-desc");
 }
 
 #[tokio::test]
@@ -8712,6 +8718,12 @@ async fn share_group_describe_follows_group_coordinator() {
         Some(1),
         "ShareGroupDescribe must FindCoordinator after NOT_COORDINATOR"
     );
+    let timed = admin
+        .share_group_describe_timeout(&["sg-desc"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "sg-desc");
 }
 
 #[tokio::test]
@@ -8787,6 +8799,12 @@ async fn describe_share_groups_follows_group_coordinator() {
         Some(2),
         "describeShareGroups must land on the group coordinator"
     );
+    let timed = admin
+        .describe_share_groups_timeout(&["sg-java"], false, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.len(), 1);
+    assert_eq!(timed[0].group_id, "sg-java");
     admin.close().await.unwrap();
 }
 
