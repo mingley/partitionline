@@ -3710,7 +3710,9 @@ impl Admin {
     /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
     /// one-shot deadline, use [`Self::describe_client_quotas_timeout`].
     /// Optional at [`Self::new`] (Kafka 2.6+ / KIP-219); a broker that
-    /// omits api 48 returns [`Error::Unsupported`].
+    /// omits api 48 returns [`Error::Unsupported`]. See
+    /// [`Self::describe_client_quotas_all`] for Java
+    /// `ClientQuotaFilter.all()`.
     pub async fn describe_client_quotas(
         &mut self,
         components: &[ClientQuotaFilterComponent],
@@ -3748,6 +3750,24 @@ impl Admin {
             return Err(Error::broker(resp.error_code, "DescribeClientQuotas"));
         }
         Ok(resp.entries.unwrap_or_default())
+    }
+
+    /// Describe every client quota (Java `ClientQuotaFilter.all()`).
+    ///
+    /// Same wire as [`Self::describe_client_quotas`] with empty components
+    /// and `strict = false`.
+    pub async fn describe_client_quotas_all(&mut self) -> Result<Vec<ClientQuotaEntry>> {
+        self.describe_client_quotas(&[], false).await
+    }
+
+    /// [`Self::describe_client_quotas_all`] with a one-shot RPC deadline
+    /// (Java `DescribeClientQuotasOptions.timeoutMs`).
+    pub async fn describe_client_quotas_all_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Vec<ClientQuotaEntry>> {
+        self.describe_client_quotas_timeout(&[], false, timeout)
+            .await
     }
 
     /// Upsert or delete client quotas (AlterClientQuotas api 49).

@@ -7119,6 +7119,18 @@ async fn describe_client_quotas_follows_broker() {
         .unwrap();
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].values[0].key, "producer_byte_rate");
+    let all = admin.describe_client_quotas_all().await.unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(
+        mock.last_describe_client_quotas(),
+        Some((vec![], false)),
+        "ClientQuotaFilter.all() sends empty components and strict false"
+    );
+    let timed_all = admin
+        .describe_client_quotas_all_timeout(Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed_all.len(), 1);
     admin.close().await.unwrap();
     mock.hide_api(DESCRIBE_CLIENT_QUOTAS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();

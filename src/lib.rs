@@ -347,6 +347,8 @@
 //! [`Admin::alter_client_quotas_timeout`] are Java
 //! `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
+//! [`Admin::describe_client_quotas_all`] is Java
+//! `describeClientQuotas(ClientQuotaFilter.all())`.
 //! [`Admin::alter_user_scram_credentials_timeout`] /
 //! [`Admin::describe_user_scram_credentials_timeout`] are Java
 //! `AlterUserScramCredentialsOptions` /
