@@ -770,8 +770,8 @@ impl Producer {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
         }
-        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 3).ok_or_else(|| {
-            Error::Unsupported("broker does not support FindCoordinator v1-3".into())
+        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6).ok_or_else(|| {
+            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
         })?;
         let produce_version = pick(&versions, PRODUCE, 3, 12)
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-12".into()))?;

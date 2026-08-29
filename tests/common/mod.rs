@@ -2169,7 +2169,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
-        (FIND_COORDINATOR, 0, 3),
+        (FIND_COORDINATOR, 0, 6),
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
@@ -4018,7 +4018,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                let (_key, key_type) =
+                let (key, key_type) =
                     decode_find_coordinator_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.find_coordinator_key_types.push(key_type);
@@ -4038,8 +4038,15 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.coord_node
                 };
                 let (host, port) = broker_host_port(&st, coord);
-                encode_find_coordinator_response(&mut body, header.api_version, coord, &host, port)
-                    .unwrap();
+                encode_find_coordinator_response(
+                    &mut body,
+                    header.api_version,
+                    coord,
+                    &host,
+                    port,
+                    &key,
+                )
+                .unwrap();
             }
             SHARE_GROUP_HEARTBEAT => {
                 let req = decode_share_group_heartbeat_request(&mut frame).unwrap();

@@ -1100,9 +1100,9 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let find_coord_version = versions
             .get(&FIND_COORDINATOR)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support FindCoordinator v1-3".into())
+                Error::Unsupported("broker does not support FindCoordinator v1-6".into())
             })?;
         let offset_delete_version = versions
             .get(&OFFSET_DELETE)

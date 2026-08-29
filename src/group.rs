@@ -2154,8 +2154,8 @@ async fn open_coord_with_find_version(
         .api_keys
         .iter()
         .find(|k| k.api_key == FIND_COORDINATOR)
-        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
-        .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-3".into()))?;
+        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
+        .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))?;
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),

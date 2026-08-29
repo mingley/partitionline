@@ -49,8 +49,8 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // (Apache JSON flexibleVersions: "2+"). This crate speaks 0–5.
         INIT_PRODUCER_ID if api_version >= 2 => 2,
         // FindCoordinator is classic through v2; flexible from v3
-        // (Apache JSON flexibleVersions: "3+"). This crate speaks 1–3.
-        // v4+ (KIP-699 CoordinatorKeys batch) is not spoken.
+        // (Apache JSON flexibleVersions: "3+"). This crate speaks 1–6.
+        // v4+ is KIP-699 CoordinatorKeys (same header as v3).
         FIND_COORDINATOR if api_version >= 3 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
@@ -492,13 +492,17 @@ mod tests {
     fn find_coordinator_v3_is_flexible_v2_is_not() {
         // Official JSON: validVersions 0-6, flexibleVersions 3+.
         // HeaderVersion is 1 / 0 at v1–2 and 2 / 1 at v3+. This crate
-        // speaks 1–3. v4+ (KIP-699 CoordinatorKeys) is not spoken.
+        // speaks 1–6. v4–v6 keep the v3 header (CoordinatorKeys body).
         assert_eq!(request_header_version(FIND_COORDINATOR, 1), 1);
         assert_eq!(response_header_version(FIND_COORDINATOR, 1), 0);
         assert_eq!(request_header_version(FIND_COORDINATOR, 2), 1);
         assert_eq!(response_header_version(FIND_COORDINATOR, 2), 0);
         assert_eq!(request_header_version(FIND_COORDINATOR, 3), 2);
         assert_eq!(response_header_version(FIND_COORDINATOR, 3), 1);
+        assert_eq!(request_header_version(FIND_COORDINATOR, 4), 2);
+        assert_eq!(response_header_version(FIND_COORDINATOR, 4), 1);
+        assert_eq!(request_header_version(FIND_COORDINATOR, 6), 2);
+        assert_eq!(response_header_version(FIND_COORDINATOR, 6), 1);
     }
 
     #[test]

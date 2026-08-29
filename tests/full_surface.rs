@@ -10,7 +10,7 @@
 
 mod common;
 
-use partitionline::protocol::api_keys::END_TXN;
+use partitionline::protocol::api_keys::{END_TXN, FIND_COORDINATOR};
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
     error, AbortTransactionSpec, AclBinding, AclResourceType, Admin, AdminConfig, AlterConfig,
@@ -1147,8 +1147,8 @@ async fn transactional_producer_finds_txn_coordinator() {
     );
     assert_eq!(
         mock.last_find_coordinator_version(),
-        Some(3),
-        "Producer must prefer FindCoordinator v3 when the broker advertises it"
+        Some(6),
+        "Producer must prefer FindCoordinator v6 when the broker advertises it"
     );
     assert_eq!(
         mock.last_init_producer_id_node(),
@@ -1940,13 +1940,38 @@ async fn consumer_group_join_fetch_commit() {
     assert_eq!(mock.last_group_instance_id(), None);
     assert_eq!(
         mock.last_find_coordinator_version(),
-        Some(3),
-        "ConsumerGroup must prefer FindCoordinator v3 when the broker advertises it"
+        Some(6),
+        "ConsumerGroup must prefer FindCoordinator v6 when the broker advertises it"
     );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));
     group.commit().await.unwrap();
+}
+
+#[tokio::test]
+async fn find_coordinator_negotiates_below_v6_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(FIND_COORDINATOR, 4);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "g4", "t").await.unwrap();
+    assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(4),
+        "client must speak FindCoordinator v4 when the broker max is 4"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(FIND_COORDINATOR, 3);
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let _group = ConsumerGroup::join(ccfg, "g3", "t").await.unwrap();
+    assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(3),
+        "client must speak FindCoordinator v3 when the broker max is 3"
+    );
 }
 
 #[tokio::test]
