@@ -85,6 +85,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::describe_topics` is Java `describeTopics(TopicCollection.ofTopicNames)` (DescribeTopicPartitions api 75; Metadata fallback when the broker omits api 75).
 `Admin::describe_topics_timeout` is Java `DescribeTopicsOptions.timeoutMs`.
 `Admin::create_partitions_timeout` is Java `CreatePartitionsOptions.timeoutMs`.
+`Admin::create_partitions_with_quota_retry` is Java `CreatePartitionsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 `Admin::alter_partition_reassignments_timeout` is Java `AlterPartitionReassignmentsOptions.timeoutMs`.
 `Admin::list_partition_reassignments_timeout` is Java `ListPartitionReassignmentsOptions.timeoutMs`.
 `Admin::list_offsets` is Java `listOffsets` (`OffsetAndTimestamp`).

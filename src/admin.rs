@@ -1330,6 +1330,17 @@ fn delete_state_matches(topic: &DeleteTopicState, result: &TopicResult) -> bool 
     }
 }
 
+fn partitions_from_new(topics: &[NewPartitions]) -> Vec<CreatePartitionsTopic> {
+    topics
+        .iter()
+        .map(|t| CreatePartitionsTopic {
+            name: t.name.clone(),
+            count: t.total_count,
+            assignments: t.assignments.clone(),
+        })
+        .collect()
+}
+
 impl Admin {
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
@@ -2450,6 +2461,9 @@ impl Admin {
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
     /// drives both the RPC deadline and TimeoutMs, use
     /// [`Self::create_partitions_timeout`].
+    /// Java `CreatePartitionsOptions.retryOnQuotaViolation` defaults to
+    /// `true` (KIP-599); use [`Self::create_partitions_with_quota_retry`]
+    /// to disable.
     pub async fn create_partitions(
         &mut self,
         topics: &[NewPartitions],
@@ -2457,7 +2471,7 @@ impl Admin {
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
         let timeout = self.cfg.request_timeout;
-        self.create_partitions_with(topics, timeout_ms, validate_only, timeout)
+        self.create_partitions_with(topics, timeout_ms, validate_only, timeout, true)
             .await
     }
 
@@ -2472,8 +2486,53 @@ impl Admin {
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.create_partitions_with(topics, timeout_ms, validate_only, timeout)
+        self.create_partitions_with(topics, timeout_ms, validate_only, timeout, true)
             .await
+    }
+
+    /// [`Self::create_partitions`] with Java `CreatePartitionsOptions.retryOnQuotaViolation`.
+    ///
+    /// [`Self::create_partitions`] defaults this to `true` (KIP-599). When
+    /// true, topics that return `THROTTLING_QUOTA_EXCEEDED` (89) are
+    /// retried alone until the RPC deadline.
+    pub async fn create_partitions_with_quota_retry(
+        &mut self,
+        topics: &[NewPartitions],
+        timeout_ms: i32,
+        validate_only: bool,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.create_partitions_with(
+            topics,
+            timeout_ms,
+            validate_only,
+            timeout,
+            retry_on_quota_violation,
+        )
+        .await
+    }
+
+    /// [`Self::create_partitions_with_quota_retry`] with a one-shot timeout
+    /// (Java `CreatePartitionsOptions.timeoutMs` + `retryOnQuotaViolation`).
+    ///
+    /// `timeout` is the RPC deadline and CreatePartitions TimeoutMs.
+    pub async fn create_partitions_timeout_with_quota_retry(
+        &mut self,
+        topics: &[NewPartitions],
+        timeout: Duration,
+        validate_only: bool,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.create_partitions_with(
+            topics,
+            timeout_ms,
+            validate_only,
+            timeout,
+            retry_on_quota_violation,
+        )
+        .await
     }
 
     async fn create_partitions_with(
@@ -2482,19 +2541,15 @@ impl Admin {
         timeout_ms: i32,
         validate_only: bool,
         timeout: Duration,
+        retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let topics: Vec<CreatePartitionsTopic> = topics
-            .iter()
-            .map(|t| CreatePartitionsTopic {
-                name: t.name.clone(),
-                count: t.total_count,
-                assignments: t.assignments.clone(),
-            })
-            .collect();
+        let mut pending: Vec<NewPartitions> = topics.to_vec();
+        let mut finished: HashMap<String, TopicResult> = HashMap::new();
         let version = self.partitions_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            let encoded = partitions_from_new(&pending);
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
             }
@@ -2512,7 +2567,7 @@ impl Admin {
                         encode_create_partitions_request(
                             buf,
                             version,
-                            &topics,
+                            &encoded,
                             timeout_ms,
                             validate_only,
                         )
@@ -2543,7 +2598,29 @@ impl Admin {
                 self.refresh_metadata(None).await?;
                 continue;
             }
-            return Ok(results);
+            let mut next_pending = Vec::new();
+            for r in results {
+                if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
+                    if let Some(t) = pending.iter().find(|t| t.name == r.name) {
+                        next_pending.push(t.clone());
+                    }
+                } else {
+                    let name = r.name.clone();
+                    let _prev = finished.insert(name, r);
+                }
+            }
+            if next_pending.is_empty() {
+                let mut out = Vec::with_capacity(topics.len());
+                for t in topics {
+                    let r = finished.remove(&t.name).ok_or_else(|| {
+                        Error::protocol(format!("missing create_partitions result for {}", t.name))
+                    })?;
+                    out.push(r);
+                }
+                return Ok(out);
+            }
+            pending = next_pending;
+            self.wait_retry(&mut attempt, deadline).await?;
         }
     }
 

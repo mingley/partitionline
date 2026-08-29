@@ -149,6 +149,8 @@
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`
 //! (DeleteTopics v6 null Name + TopicId).
 //! [`Admin::create_partitions_timeout`] is Java `CreatePartitionsOptions.timeoutMs`.
+//! [`Admin::create_partitions_with_quota_retry`] is Java
+//! `CreatePartitionsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::alter_partition_reassignments_timeout`] is Java
 //! `AlterPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_timeout`] is Java

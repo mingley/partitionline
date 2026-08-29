@@ -5759,6 +5759,83 @@ async fn admin_create_delete_topics_partitions_timeout() {
         "quota retry resends only THROTTLING_QUOTA_EXCEEDED topics"
     );
     assert_eq!(mock.delete_topics_quota_hits(), 3);
+
+    let created = admin
+        .create_topics(&[NewTopic::new("cpo-q", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.create_partitions_quota_once("cpo-q");
+    let parts = admin
+        .create_partitions(&[NewPartitions::increase_to("cpo-q", 2)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(
+        mock.create_partitions_quota_hits(),
+        1,
+        "create_partitions retries THROTTLING_QUOTA_EXCEEDED by default"
+    );
+
+    let created = admin
+        .create_topics(&[NewTopic::new("cpo-qn", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    mock.create_partitions_quota_once("cpo-qn");
+    let parts = admin
+        .create_partitions_with_quota_retry(
+            &[NewPartitions::increase_to("cpo-qn", 2)],
+            10_000,
+            false,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, error::THROTTLING_QUOTA_EXCEEDED);
+    assert_eq!(mock.create_partitions_quota_hits(), 2);
+    let described = admin.describe_topics(&["cpo-qn"]).await.unwrap();
+    assert_eq!(
+        described[0].partitions.len(),
+        1,
+        "quota retry disabled must not create partitions"
+    );
+
+    let created = admin
+        .create_topics(
+            &[
+                NewTopic::new("cpo-mix-ok", 1, 1),
+                NewTopic::new("cpo-mix-q", 1, 1),
+            ],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    mock.create_partitions_quota_once("cpo-mix-q");
+    let mix_ok = NewPartitions::increase_to("cpo-mix-ok", 2);
+    let mix_q = NewPartitions::increase_to("cpo-mix-q", 2);
+    let parts = admin
+        .create_partitions_timeout_with_quota_retry(
+            &[mix_ok, mix_q],
+            Duration::from_secs(10),
+            false,
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(parts[1].error_code, 0);
+    assert_eq!(parts[0].name, "cpo-mix-ok");
+    assert_eq!(parts[1].name, "cpo-mix-q");
+    assert_eq!(
+        mock.last_create_partitions_names(),
+        Some(vec!["cpo-mix-q".to_string()]),
+        "quota retry resends only THROTTLING_QUOTA_EXCEEDED topics"
+    );
+    assert_eq!(mock.create_partitions_quota_hits(), 3);
     admin.close().await.unwrap();
 }
 

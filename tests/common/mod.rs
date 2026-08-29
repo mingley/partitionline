@@ -305,6 +305,9 @@ struct State {
     last_create_partitions_timeout: Option<i32>,
     last_create_partitions_null_assignments: Option<bool>,
     last_create_partitions_replica_assignments: Option<Vec<Vec<i32>>>,
+    last_create_partitions_names: Option<Vec<String>>,
+    create_partitions_quota_once: HashSet<String>,
+    create_partitions_quota_hits: u32,
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     last_incremental_alter_configs_version: Option<i16>,
@@ -659,6 +662,9 @@ fn new_state(
         last_create_partitions_timeout: None,
         last_create_partitions_null_assignments: None,
         last_create_partitions_replica_assignments: None,
+        last_create_partitions_names: None,
+        create_partitions_quota_once: HashSet::new(),
+        create_partitions_quota_hits: 0,
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         last_incremental_alter_configs_version: None,
@@ -1968,6 +1974,22 @@ impl Mock {
             .lock()
             .last_create_partitions_replica_assignments
             .clone()
+    }
+
+    pub fn last_create_partitions_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_create_partitions_names.clone()
+    }
+
+    pub fn create_partitions_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .create_partitions_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn create_partitions_quota_hits(&self) -> u32 {
+        self.state.lock().create_partitions_quota_hits
     }
 
     pub fn create_partitions_not_controller(&self) -> u32 {
@@ -3672,6 +3694,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_create_partitions_version = Some(version);
                 st.last_create_partitions_timeout = Some(timeout_ms);
+                st.last_create_partitions_names =
+                    Some(topics.iter().map(|t| t.name.clone()).collect());
                 if let Some(t) = topics.first() {
                     st.last_create_partitions_null_assignments = Some(t.assignments.is_none());
                     st.last_create_partitions_replica_assignments = t.assignments.clone();
@@ -3689,6 +3713,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     st.last_create_partitions_node = Some(node_id);
                     for t in topics {
+                        if st.create_partitions_quota_once.remove(&t.name) {
+                            st.create_partitions_quota_hits =
+                                st.create_partitions_quota_hits.saturating_add(1);
+                            results.push(TopicResult::new(
+                                t.name,
+                                error::THROTTLING_QUOTA_EXCEEDED,
+                                Some("Throttling quota exceeded".into()),
+                            ));
+                            continue;
+                        }
                         match st.created_topics.get_mut(&t.name) {
                             None => results.push(TopicResult::new(
                                 t.name,
