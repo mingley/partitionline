@@ -1058,8 +1058,10 @@ impl Admin {
             })?;
         let partitions_version = versions
             .get(&CREATE_PARTITIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
-            .ok_or_else(|| Error::Unsupported("broker does not support CreatePartitions".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
+            .ok_or_else(|| {
+                Error::Unsupported("broker does not support CreatePartitions v0-3".into())
+            })?;
         let alter_version = versions
             .get(&INCREMENTAL_ALTER_CONFIGS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -1615,9 +1617,11 @@ impl Admin {
 
     /// Increase partition count (`CreatePartitions`).
     ///
-    /// [`NewPartitions::total_count`] is the new total, not a delta. Lands on
-    /// the Metadata controller. `NOT_CONTROLLER` (41) refreshes Metadata and
-    /// retries.
+    /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible; v3 KIP-599
+    /// THROTTLING_QUOTA_EXCEEDED). Kafka 4.0 `validVersions` is `0-3`.
+    /// v4+ is not spoken. [`NewPartitions::total_count`] is the new
+    /// total, not a delta. Lands on the Metadata controller.
+    /// `NOT_CONTROLLER` (41) refreshes Metadata and retries.
     pub async fn create_partitions(
         &mut self,
         topics: &[NewPartitions],
@@ -1646,7 +1650,15 @@ impl Admin {
                 conn.roundtrip(
                     CREATE_PARTITIONS,
                     version,
-                    |buf| encode_create_partitions_request(buf, &topics, timeout_ms, validate_only),
+                    |buf| {
+                        encode_create_partitions_request(
+                            buf,
+                            version,
+                            &topics,
+                            timeout_ms,
+                            validate_only,
+                        )
+                    },
                     timeout,
                 )
                 .await
@@ -1661,7 +1673,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_create_partitions_response(&mut body.clone())?;
+            let results = decode_create_partitions_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)

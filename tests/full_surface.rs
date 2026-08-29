@@ -11,8 +11,8 @@
 mod common;
 
 use partitionline::protocol::api_keys::{
-    CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR, HEARTBEAT,
-    JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    CREATE_PARTITIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_CONFIGS, END_TXN, FIND_COORDINATOR,
+    HEARTBEAT, JOIN_GROUP, LIST_TRANSACTIONS, METADATA, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
@@ -3721,6 +3721,11 @@ async fn create_partitions_follows_controller() {
         .unwrap();
     assert_eq!(parts[0].error_code, 0);
     assert_eq!(
+        mock.last_create_partitions_version(),
+        Some(3),
+        "Admin must prefer CreatePartitions v3 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_create_partitions_node(),
         Some(2),
         "CreatePartitions must land on the controller, not bootstrap"
@@ -3741,6 +3746,47 @@ async fn create_partitions_follows_controller() {
         mock.last_create_partitions_node(),
         Some(1),
         "CreatePartitions must follow Metadata after NOT_CONTROLLER"
+    );
+}
+
+#[tokio::test]
+async fn create_partitions_negotiates_below_v3_when_broker_caps() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_PARTITIONS, 2);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("cp2", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let parts = admin
+        .create_partitions(&[NewPartitions::increase_to("cp2", 3)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_partitions_version(),
+        Some(2),
+        "client must speak CreatePartitions v2 when the broker max is 2"
+    );
+
+    let mock = common::Mock::start().await;
+    mock.set_api_max(CREATE_PARTITIONS, 1);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let created = admin
+        .create_topics(&[NewTopic::new("cp1", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    let parts = admin
+        .create_partitions(&[NewPartitions::increase_to("cp1", 2)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(parts[0].error_code, 0);
+    assert_eq!(
+        mock.last_create_partitions_version(),
+        Some(1),
+        "client must speak CreatePartitions v1 when the broker max is 1"
     );
 }
 

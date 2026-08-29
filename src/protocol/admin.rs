@@ -882,70 +882,122 @@ pub const ALTER_CONFIG_SET: i8 = 0;
 /// Incremental AlterConfigs op: delete a key.
 pub const ALTER_CONFIG_DELETE: i8 = 1;
 
-/// Encode a CreatePartitions request.
+/// `true` when CreatePartitions `version` is flexible.
+///
+/// v0–v1 are classic (v1 is quota-throttle timing only). v2 is the
+/// first flexible version. v3 is the same layout (KIP-599
+/// THROTTLING_QUOTA_EXCEEDED). Kafka 4.0 `validVersions` is `0-3`.
+/// This crate speaks 0–3. v4+ is not spoken.
+fn create_partitions_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=1 => Ok(false),
+        2..=3 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "CreatePartitions version {other} is not implemented"
+        ))),
+    }
+}
+
+/// CreatePartitions v0–3 (classic through v1; flexible from v2).
 pub fn encode_create_partitions_request(
     buf: &mut BytesMut,
+    version: i16,
     topics: &[(String, i32)],
     timeout_ms: i32,
     validate_only: bool,
 ) -> crate::error::Result<()> {
-    buf::put_array_len(buf, false, Some(topics.len()))?;
+    let flexible = create_partitions_flexible(version)?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for (name, count) in topics {
-        buf::put_classic_nullable_string(buf, Some(name))?;
+        buf::put_string(buf, flexible, Some(name))?;
         buf.put_i32(*count);
-        buf::put_array_len(buf, false, Some(0))?;
+        buf::put_array_len(buf, flexible, Some(0))?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
     }
     buf.put_i32(timeout_ms);
     buf.put_u8(u8::from(validate_only));
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
-/// Decode a CreatePartitions request.
-pub fn decode_create_partitions_request<B: Buf>(buf: &mut B) -> Result<(Vec<(String, i32)>, bool)> {
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+/// Decode a CreatePartitions request: `(name, count)` plus `validate_only`.
+pub fn decode_create_partitions_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<(String, i32)>, bool)> {
+    let flexible = create_partitions_flexible(version)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let count = buf::get_i32(buf)?;
-        let an = buf::get_array_len(buf, false)?.unwrap_or(0);
+        let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         for _ in 0..an {
-            let bn = buf::get_array_len(buf, false)?.unwrap_or(0);
-            for _ in 0..bn {
-                let _ = buf::get_i32(buf)?;
+            let _brokers = get_i32_array(buf, flexible)?;
+            if flexible {
+                buf::skip_tagged_fields(buf)?;
             }
+        }
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
         }
         topics.push((name, count));
     }
     let _timeout = buf::get_i32(buf)?;
-    let validate_only = buf.get_u8() != 0;
+    let validate_only = buf::get_bool(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((topics, validate_only))
 }
 
 /// Encode a CreatePartitions response.
 pub fn encode_create_partitions_response(
     buf: &mut BytesMut,
+    version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    let flexible = create_partitions_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, false, Some(results.len()))?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
-        buf::put_classic_nullable_string(buf, Some(&r.name))?;
+        buf::put_string(buf, flexible, Some(&r.name))?;
         buf.put_i16(r.error_code);
-        buf::put_classic_nullable_string(buf, r.error_message.as_deref())?;
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
 /// Decode a CreatePartitions response.
-pub fn decode_create_partitions_response<B: Buf>(buf: &mut B) -> Result<Vec<TopicResult>> {
+pub fn decode_create_partitions_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<TopicResult>> {
+    let flexible = create_partitions_flexible(version)?;
     let _th = buf::get_i32(buf)?;
-    let n = buf::get_array_len(buf, false)?.unwrap_or(0);
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
-        let name = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
         let error_code = buf::get_i16(buf)?;
-        let error_message = buf::get_classic_nullable_string(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
         out.push(TopicResult::new(name, error_code, error_message));
+    }
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
     }
     Ok(out)
 }
@@ -7966,7 +8018,7 @@ mod tests {
     fn create_partitions_not_controller_is_not_at_byte_four() {
         let results = vec![TopicResult::new("t", crate::error::NOT_CONTROLLER, None)];
         let mut buf = BytesMut::new();
-        encode_create_partitions_response(&mut buf, &results).unwrap();
+        encode_create_partitions_response(&mut buf, 1, &results).unwrap();
         let b4 = buf.get(4).copied().unwrap();
         let b5 = buf.get(5).copied().unwrap();
         assert_ne!(
@@ -7976,13 +8028,115 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_create_partitions_response(&mut cur).unwrap(),
+            decode_create_partitions_response(&mut cur, 1).unwrap(),
             results
         );
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v1 NOT_CONTROLLER must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn create_partitions_v1_request_matches_v0() {
+        let topics = vec![("t".into(), 3)];
+        let mut v0 = BytesMut::new();
+        encode_create_partitions_request(&mut v0, 0, &topics, 5_000, false).unwrap();
+        let mut v1 = BytesMut::new();
+        encode_create_partitions_request(&mut v1, 1, &topics, 5_000, false).unwrap();
+        assert_eq!(&v0[..], &v1[..], "CreatePartitions v1 request matches v0");
+        let mut cur = &v1[..];
+        let (decoded, validate) = decode_create_partitions_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded, topics);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v1 request must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn create_partitions_v2_compact_layout_matches_independent_encode() {
+        // Compact 1 topic "t", count 3, empty assignments, timeout 5000,
+        // validateOnly false, empty tagged fields.
+        const REQ: &[u8] = &[
+            0x02, 0x02, 0x74, 0x00, 0x00, 0x00, 0x03, 0x01, 0x00, 0x00, 0x00, 0x13, 0x88, 0x00,
+            0x00,
+        ];
+        let topics = vec![("t".into(), 3)];
+        let mut buf = BytesMut::new();
+        encode_create_partitions_request(&mut buf, 2, &topics, 5_000, false).unwrap();
+        assert_eq!(&buf[..], REQ);
+        let mut cur = &buf[..];
+        let (decoded, validate) = decode_create_partitions_request(&mut cur, 2).unwrap();
+        assert_eq!(decoded, topics);
+        assert!(!validate);
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v2 request must consume compact fields and tagged fields"
+        );
+        let mut v1 = BytesMut::new();
+        encode_create_partitions_request(&mut v1, 1, &topics, 5_000, false).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1[..],
+            "CreatePartitions v2 must not be classic v1"
+        );
+        let mut v3 = BytesMut::new();
+        encode_create_partitions_request(&mut v3, 3, &topics, 5_000, false).unwrap();
+        assert_eq!(&buf[..], &v3[..], "CreatePartitions v3 request matches v2");
+        assert!(
+            encode_create_partitions_request(&mut BytesMut::new(), 4, &topics, 5_000, false)
+                .is_err(),
+            "CreatePartitions v4+ is not spoken"
+        );
+
+        let results = vec![TopicResult::new("t", 0, None)];
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 2, &results).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 2).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v2 response must be leftover-empty"
+        );
+        let mut v3r = BytesMut::new();
+        encode_create_partitions_response(&mut v3r, 3, &results).unwrap();
+        assert_eq!(
+            &buf[..],
+            &v3r[..],
+            "CreatePartitions v3 response matches v2"
+        );
+        let mut v1r = BytesMut::new();
+        encode_create_partitions_response(&mut v1r, 1, &results).unwrap();
+        assert_ne!(
+            &buf[..],
+            &v1r[..],
+            "CreatePartitions v2 response must not be classic v1"
+        );
+    }
+
+    #[test]
+    fn create_partitions_flexible_not_controller_is_leftover_empty() {
+        let results = vec![TopicResult::new(
+            "t",
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+        )];
+        for version in [2i16, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_partitions_response(&mut buf, version, &results).unwrap();
+            let mut cur = &buf[..];
+            let got = decode_create_partitions_response(&mut cur, version).unwrap();
+            assert_eq!(got, results);
+            assert!(
+                !cur.has_remaining(),
+                "CreatePartitions v{version} NOT_CONTROLLER must be leftover-empty"
+            );
+        }
     }
 
     #[test]

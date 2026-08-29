@@ -263,6 +263,7 @@ struct State {
     last_describe_configs_version: Option<i16>,
     last_describe_configs_documentation: Option<bool>,
     last_create_partitions_node: Option<i32>,
+    last_create_partitions_version: Option<i16>,
     create_partitions_not_controller: u32,
     last_incremental_alter_configs_node: Option<i32>,
     incremental_alter_configs_not_controller: u32,
@@ -528,6 +529,7 @@ fn new_state(
         last_describe_configs_version: None,
         last_describe_configs_documentation: None,
         last_create_partitions_node: None,
+        last_create_partitions_version: None,
         create_partitions_not_controller: 0,
         last_incremental_alter_configs_node: None,
         incremental_alter_configs_not_controller: 0,
@@ -1425,6 +1427,10 @@ impl Mock {
         self.state.lock().last_create_partitions_node
     }
 
+    pub fn last_create_partitions_version(&self) -> Option<i16> {
+        self.state.lock().last_create_partitions_version
+    }
+
     pub fn create_partitions_not_controller(&self) -> u32 {
         self.state.lock().create_partitions_not_controller
     }
@@ -2281,7 +2287,7 @@ fn versions(st: &State) -> ApiVersionsResponse {
         (API_VERSIONS, 0, 4),
         (CREATE_TOPICS, 0, 7),
         (DELETE_TOPICS, 0, 6),
-        (CREATE_PARTITIONS, 0, 1),
+        (CREATE_PARTITIONS, 0, 3),
         (DELETE_RECORDS, 0, 1),
         (ALTER_CONFIGS, 0, 1),
         (DESCRIBE_CLUSTER, 0, 0),
@@ -2748,9 +2754,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_describe_configs_response(&mut body, header.api_version, &results).unwrap();
             }
             CREATE_PARTITIONS => {
-                let (topics, validate_only) = decode_create_partitions_request(&mut frame).unwrap();
+                let version = header.api_version;
+                let (topics, validate_only) =
+                    decode_create_partitions_request(&mut frame, version).unwrap();
                 let mut results = Vec::new();
                 let mut st = state.lock();
+                st.last_create_partitions_version = Some(version);
                 if st.controller_node != node_id {
                     st.create_partitions_not_controller =
                         st.create_partitions_not_controller.saturating_add(1);
@@ -2782,7 +2791,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         }
                     }
                 }
-                encode_create_partitions_response(&mut body, &results).unwrap();
+                encode_create_partitions_response(&mut body, version, &results).unwrap();
             }
             INCREMENTAL_ALTER_CONFIGS => {
                 let (rt, name, configs, validate_only) =
