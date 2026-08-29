@@ -392,6 +392,24 @@ impl NewTopic {
         self.configs.push((name.into(), Some(value.into())));
         self
     }
+
+    /// Java `NewTopic.configs(Map)`.
+    ///
+    /// Replaces any configs set by [`Self::config`]. Each pair is
+    /// `(name, value)`.
+    #[must_use]
+    pub fn configs<I, K, V>(mut self, configs: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.configs = configs
+            .into_iter()
+            .map(|(name, value)| (name.into(), Some(value.into())))
+            .collect();
+        self
+    }
 }
 
 /// One topic from [`Admin::list_topics`] (Java `TopicListing`).

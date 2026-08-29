@@ -3986,6 +3986,37 @@ async fn admin_delete_and_describe() {
     assert_eq!(entry.config_type, partitionline::CONFIG_TYPE_STRING);
     assert_eq!(entry.documentation, None);
 
+    let mapped = admin
+        .create_topics(
+            &[NewTopic::new("orders-map", 1, 1)
+                .configs([("cleanup.policy", "compact"), ("retention.ms", "1000")])],
+            10_000,
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(mapped[0].error_code, 0);
+    let mapped_cfg = admin
+        .describe_configs(
+            &[ConfigResource::topic("orders-map").keys(["cleanup.policy", "retention.ms"])],
+            false,
+        )
+        .await
+        .unwrap();
+    assert_eq!(mapped_cfg[0].error_code, 0);
+    let policy = mapped_cfg[0]
+        .entries
+        .iter()
+        .find(|e| e.name == "cleanup.policy")
+        .expect("cleanup.policy");
+    assert_eq!(policy.value.as_deref(), Some("compact"));
+    let retention = mapped_cfg[0]
+        .entries
+        .iter()
+        .find(|e| e.name == "retention.ms")
+        .expect("retention.ms");
+    assert_eq!(retention.value.as_deref(), Some("1000"));
+
     let timed = admin
         .describe_configs_timeout(
             &[ConfigResource::topic("orders").keys(["cleanup.policy"])],
