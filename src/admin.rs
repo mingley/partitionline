@@ -1049,6 +1049,43 @@ impl std::fmt::Debug for UserScramCredentialUpsertion {
     }
 }
 
+/// Java `UserScramCredentialAlteration` for
+/// [`Admin::alter_user_scram_credentials_with`].
+///
+/// Java `alterUserScramCredentials(List)` is a mixed list of
+/// [`UserScramCredentialDeletion`] and [`UserScramCredentialUpsertion`].
+/// The wire request still splits Deletions then Upsertions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum UserScramCredentialAlteration {
+    /// Java `UserScramCredentialDeletion`.
+    Deletion(UserScramCredentialDeletion),
+    /// Java `UserScramCredentialUpsertion`.
+    Upsertion(UserScramCredentialUpsertion),
+}
+
+impl UserScramCredentialAlteration {
+    /// Java `UserScramCredentialAlteration.user()`.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        match self {
+            Self::Deletion(d) => d.name.as_str(),
+            Self::Upsertion(u) => u.name.as_str(),
+        }
+    }
+}
+
+impl From<UserScramCredentialDeletion> for UserScramCredentialAlteration {
+    fn from(deletion: UserScramCredentialDeletion) -> Self {
+        Self::Deletion(deletion)
+    }
+}
+
+impl From<UserScramCredentialUpsertion> for UserScramCredentialAlteration {
+    fn from(upsertion: UserScramCredentialUpsertion) -> Self {
+        Self::Upsertion(upsertion)
+    }
+}
+
 /// Per-user result of AlterUserScramCredentials.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserScramCredentialResult {
@@ -3443,7 +3480,9 @@ impl Admin {
     /// For a one-shot deadline, use
     /// [`Self::alter_user_scram_credentials_timeout`]. Optional at
     /// [`Self::new`] (Kafka 2.7+ / KIP-554); a broker that omits api 51
-    /// returns [`Error::Unsupported`].
+    /// returns [`Error::Unsupported`]. Java
+    /// `alterUserScramCredentials(List)` is
+    /// [`Self::alter_user_scram_credentials_with`].
     pub async fn alter_user_scram_credentials(
         &mut self,
         deletions: &[UserScramCredentialDeletion],
@@ -3451,6 +3490,49 @@ impl Admin {
     ) -> Result<Vec<UserScramCredentialResult>> {
         let timeout = self.cfg.request_timeout;
         self.alter_user_scram_credentials_timeout(deletions, upsertions, timeout)
+            .await
+    }
+
+    /// Java `alterUserScramCredentials(List)` of [`UserScramCredentialAlteration`].
+    ///
+    /// The wire request still splits Deletions then Upsertions. AlterUserScramCredentials
+    /// has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::alter_user_scram_credentials_with_timeout`].
+    pub async fn alter_user_scram_credentials_with<A>(
+        &mut self,
+        alterations: impl IntoIterator<Item = A>,
+    ) -> Result<Vec<UserScramCredentialResult>>
+    where
+        A: Into<UserScramCredentialAlteration>,
+    {
+        let timeout = self.cfg.request_timeout;
+        self.alter_user_scram_credentials_with_timeout(alterations, timeout)
+            .await
+    }
+
+    /// [`Self::alter_user_scram_credentials_with`] with a one-shot RPC
+    /// deadline (Java `AlterUserScramCredentialsOptions.timeoutMs`).
+    ///
+    /// AlterUserScramCredentials has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the `NOT_CONTROLLER` retry budget.
+    pub async fn alter_user_scram_credentials_with_timeout<A>(
+        &mut self,
+        alterations: impl IntoIterator<Item = A>,
+        timeout: Duration,
+    ) -> Result<Vec<UserScramCredentialResult>>
+    where
+        A: Into<UserScramCredentialAlteration>,
+    {
+        let mut deletions = Vec::new();
+        let mut upsertions = Vec::new();
+        for item in alterations {
+            match item.into() {
+                UserScramCredentialAlteration::Deletion(d) => deletions.push(d),
+                UserScramCredentialAlteration::Upsertion(u) => upsertions.push(u),
+            }
+        }
+        self.alter_user_scram_credentials_timeout(&deletions, &upsertions, timeout)
             .await
     }
 
@@ -9831,6 +9913,20 @@ mod tests {
     fn records_to_delete_before_offset_converts_to_i64() {
         assert_eq!(i64::from(RecordsToDelete::before_offset(42)), 42);
         assert_eq!(RecordsToDelete::before_offset(7).offset(), 7);
+    }
+
+    #[test]
+    fn user_scram_credential_alteration_user_matches_java() {
+        let d = UserScramCredentialDeletion::new("alice", SCRAM_SHA_256);
+        assert_eq!(UserScramCredentialAlteration::from(d).user(), "alice");
+        let u = UserScramCredentialUpsertion::new(
+            "bob",
+            SCRAM_SHA_256,
+            4096,
+            b"s".to_vec(),
+            b"p".to_vec(),
+        );
+        assert_eq!(UserScramCredentialAlteration::from(u).user(), "bob");
     }
 
     #[test]

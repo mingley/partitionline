@@ -40,10 +40,10 @@ use partitionline::{
     OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
     ProduceRecord, Producer, ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest,
     ReplicaLogDirInfo, ScramMechanism, ShareGroup, TopicPartition, TopicPartitionReplica,
-    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -6934,6 +6934,53 @@ async fn alter_user_scram_credentials_follows_controller() {
     assert_eq!(timed.len(), 1);
     assert_eq!(timed[0].error_code, 0);
     assert!(mock.has_scram_credential("dave", SCRAM_SHA_256));
+    let frank = UserScramCredentialUpsertion::new(
+        "frank",
+        ScramMechanism::Sha256,
+        4096,
+        b"dummy-salt-f".to_vec(),
+        b"dummy-salted-f".to_vec(),
+    );
+    let delete_gina = UserScramCredentialDeletion::new("gina", ScramMechanism::Sha256);
+    let mixed = admin
+        .alter_user_scram_credentials_with([
+            UserScramCredentialAlteration::Deletion(delete_gina),
+            UserScramCredentialAlteration::Upsertion(frank),
+        ])
+        .await
+        .unwrap();
+    assert_eq!(mixed.len(), 2);
+    assert_eq!(mixed[0].error_code, 0);
+    assert_eq!(mixed[1].error_code, 0);
+    assert_eq!(
+        mock.last_scram_upsert(),
+        Some(("frank".into(), SCRAM_SHA_256, 4096)),
+        "alterUserScramCredentials(List) must split Upsertions on the wire"
+    );
+    assert_eq!(
+        mock.last_scram_delete(),
+        Some(("gina".into(), SCRAM_SHA_256)),
+        "alterUserScramCredentials(List) must split Deletions on the wire"
+    );
+    assert!(mock.has_scram_credential("frank", SCRAM_SHA_256));
+    assert!(!mock.has_scram_credential("gina", SCRAM_SHA_256));
+    let hank = UserScramCredentialUpsertion::new(
+        "hank",
+        ScramMechanism::Sha256,
+        4096,
+        b"dummy-salt-h".to_vec(),
+        b"dummy-salted-h".to_vec(),
+    );
+    let timed_with = admin
+        .alter_user_scram_credentials_with_timeout(
+            [UserScramCredentialAlteration::from(hank)],
+            Duration::from_secs(5),
+        )
+        .await
+        .unwrap();
+    assert_eq!(timed_with.len(), 1);
+    assert_eq!(timed_with[0].error_code, 0);
+    assert!(mock.has_scram_credential("hank", SCRAM_SHA_256));
     admin.close().await.unwrap();
     mock.hide_api(ALTER_USER_SCRAM_CREDENTIALS);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();

@@ -162,6 +162,7 @@ are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`
 (RPC deadline; these RPCs have no TimeoutMs; alter also caps `NOT_CONTROLLER`).
 `Admin::describe_client_quotas_all` is Java `describeClientQuotas(ClientQuotaFilter.all())`.
 `Admin::describe_client_quotas_with` is Java `describeClientQuotas(ClientQuotaFilter)` (`contains` / `containsOnly`).
+`Admin::alter_user_scram_credentials_with` is Java `alterUserScramCredentials(List)` (`UserScramCredentialAlteration`).
 `Admin::alter_user_scram_credentials_timeout` /
 `Admin::describe_user_scram_credentials_timeout` are Java
 `AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`

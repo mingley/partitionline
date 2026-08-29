@@ -106,6 +106,7 @@ is next fetch offset). `Admin::delete_records` / `describe_producers` /
 `Admin::describe_client_quotas_timeout` / `alter_client_quotas_timeout` are Java `DescribeClientQuotasOptions` / `AlterClientQuotasOptions.timeoutMs`.
 `Admin::describe_client_quotas_all` is Java `describeClientQuotas(ClientQuotaFilter.all())`.
 `Admin::describe_client_quotas_with` is Java `describeClientQuotas(ClientQuotaFilter)` (`contains` / `containsOnly`).
+`Admin::alter_user_scram_credentials_with` is Java `alterUserScramCredentials(List)` (`UserScramCredentialAlteration`).
 `Admin::alter_user_scram_credentials_timeout` / `describe_user_scram_credentials_timeout` are Java `AlterUserScramCredentialsOptions` / `DescribeUserScramCredentialsOptions.timeoutMs`.
 `Admin::describe_user_scram_credentials_all` is Java `describeUserScramCredentials()`.
 `Admin::unregister_broker_timeout` is Java `UnregisterBrokerOptions.timeoutMs`.

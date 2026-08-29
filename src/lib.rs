@@ -355,6 +355,8 @@
 //! [`Admin::describe_client_quotas_with`] is Java
 //! `describeClientQuotas(ClientQuotaFilter)`
 //! ([`ClientQuotaFilter::contains`] / [`ClientQuotaFilter::contains_only`]).
+//! [`Admin::alter_user_scram_credentials_with`] is Java
+//! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`Admin::alter_user_scram_credentials_timeout`] /
 //! [`Admin::describe_user_scram_credentials_timeout`] are Java
 //! `AlterUserScramCredentialsOptions` /
@@ -602,16 +604,16 @@ pub use admin::{
     ReplicaLogDirInfo, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment, ShareGroupMember,
     ShareGroupTopicPartitions, SupportedVersionRange, TopicDescription, TopicListing,
     TopicPartitionCursor, TopicPartitionReplica, TransactionListing, TransactionState,
-    TransactionTopic, UpgradeType, UserScramCredentialDeletion, UserScramCredentialResult,
-    UserScramCredentialUpsertion, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
-    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_BROKER,
-    CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS, CONFIG_RESOURCE_GROUP,
-    CONFIG_RESOURCE_TOPIC, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
-    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
-    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON, ENDPOINT_TYPE_BROKERS,
-    ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
-    SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
-    UPGRADE_TYPE_UPGRADE,
+    TransactionTopic, UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
+    UserScramCredentialResult, UserScramCredentialUpsertion, ALTER_CONFIG_APPEND,
+    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_BROKER, CONFIG_RESOURCE_BROKER_LOGGER, CONFIG_RESOURCE_CLIENT_METRICS,
+    CONFIG_RESOURCE_GROUP, CONFIG_RESOURCE_TOPIC, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
+    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
+    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON,
+    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, UPGRADE_TYPE_SAFE_DOWNGRADE,
+    UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
