@@ -321,6 +321,9 @@
 //! [`Admin::unregister_broker_timeout`] is Java
 //! `UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has
 //! no TimeoutMs; caps `NOT_CONTROLLER`).
+//! [`Admin::allocate_producer_ids_timeout`] is the crate-first
+//! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
+//! `allocateProducerIds`.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
 //! `AssignReplicasToDirsOptions.timeoutMs` (RPC deadline;
 //! AssignReplicasToDirs has no TimeoutMs; caps `NOT_CONTROLLER`).
@@ -334,6 +337,9 @@
 //! `CreateDelegationTokenOptions` / `RenewDelegationTokenOptions` /
 //! `ExpireDelegationTokenOptions` / `DescribeDelegationTokenOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
+//! [`Admin::describe_topic_partitions_timeout`] is the crate-first
+//! DescribeTopicPartitions (api 75) RPC deadline; Java `describeTopics`
+//! is [`Admin::describe_topics_timeout`].
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /

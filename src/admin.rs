@@ -3309,13 +3309,31 @@ impl Admin {
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. `broker_id` /
     /// `broker_epoch` are the requesting broker's fixture identity.
+    /// AllocateProducerIds has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::allocate_producer_ids_timeout`].
     pub async fn allocate_producer_ids(
         &mut self,
         broker_id: i32,
         broker_epoch: i64,
     ) -> Result<ProducerIdBlock> {
-        let version = self.allocate_producer_ids_version;
         let timeout = self.cfg.request_timeout;
+        self.allocate_producer_ids_timeout(broker_id, broker_epoch, timeout)
+            .await
+    }
+
+    /// [`Self::allocate_producer_ids`] with a one-shot RPC deadline.
+    ///
+    /// AllocateProducerIds has no TimeoutMs; `timeout` is the RPC
+    /// deadline and the `NOT_CONTROLLER` retry budget. Java `Admin`
+    /// has no `allocateProducerIds`; this overload is crate-first.
+    pub async fn allocate_producer_ids_timeout(
+        &mut self,
+        broker_id: i32,
+        broker_epoch: i64,
+        timeout: Duration,
+    ) -> Result<ProducerIdBlock> {
+        let version = self.allocate_producer_ids_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -6936,14 +6954,35 @@ impl Admin {
     /// empty fixture topic `"t"`), not top-level after throttle.
     /// First-partition ErrorCode is at bytes 27–28 when leftover-empty
     /// partition `0` is present and is not the first ErrorCode.
+    /// DescribeTopicPartitions has no TimeoutMs; the RPC deadline is
+    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// [`Self::describe_topic_partitions_timeout`]. Java `describeTopics`
+    /// is [`Self::describe_topics_timeout`].
     pub async fn describe_topic_partitions(
         &mut self,
         topics: &[&str],
         response_partition_limit: i32,
         cursor: Option<&TopicPartitionCursor>,
     ) -> Result<DescribeTopicPartitionsResponse> {
-        let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
         let timeout = self.cfg.request_timeout;
+        self.describe_topic_partitions_timeout(topics, response_partition_limit, cursor, timeout)
+            .await
+    }
+
+    /// [`Self::describe_topic_partitions`] with a one-shot RPC deadline.
+    ///
+    /// DescribeTopicPartitions has no TimeoutMs; `timeout` is the RPC
+    /// deadline. Java `Admin.describeTopics` uses
+    /// [`Self::describe_topics_timeout`]. This overload is the crate-first
+    /// raw DescribeTopicPartitions (api 75) path.
+    pub async fn describe_topic_partitions_timeout(
+        &mut self,
+        topics: &[&str],
+        response_partition_limit: i32,
+        cursor: Option<&TopicPartitionCursor>,
+        timeout: Duration,
+    ) -> Result<DescribeTopicPartitionsResponse> {
+        let names: Vec<String> = topics.iter().map(|s| (*s).to_string()).collect();
         self.describe_topic_partitions_once(&names, response_partition_limit, cursor, timeout)
             .await
     }

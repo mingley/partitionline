@@ -6574,6 +6574,18 @@ async fn allocate_producer_ids_follows_controller() {
         Some((7, 42, 2000, 1000)),
         "retry on the new controller must hand the next PID block"
     );
+    let timed = admin
+        .allocate_producer_ids_timeout(7, 42, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.producer_id_start, 3000);
+    assert_eq!(timed.producer_id_len, 1000);
+    assert_eq!(
+        mock.last_allocate_producer_ids_node(),
+        Some(1),
+        "allocate_producer_ids_timeout must stay on the controller"
+    );
+    assert_eq!(mock.last_allocate_producer_ids(), Some((7, 42, 3000, 1000)));
 }
 
 #[tokio::test]
@@ -7379,6 +7391,21 @@ async fn describe_topic_partitions_follows_broker() {
         mock.last_delete_share_group_offsets_node(),
         None,
         "DescribeTopicPartitions must not hop via DeleteShareGroupOffsets"
+    );
+    let timed = admin
+        .describe_topic_partitions_timeout(&["t"], 2000, None, Duration::from_secs(5))
+        .await
+        .unwrap();
+    assert_eq!(timed.topics.len(), 1);
+    assert_eq!(timed.topics[0].name.as_deref(), Some("t"));
+    assert_eq!(
+        mock.last_describe_topic_partitions_node(),
+        Some(1),
+        "describe_topic_partitions_timeout must stay on the connected broker"
+    );
+    assert_eq!(
+        mock.last_describe_topic_partitions(),
+        Some((vec!["t".into()], 2000, None))
     );
 }
 
