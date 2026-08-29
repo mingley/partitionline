@@ -6603,6 +6603,23 @@ async fn update_features_follows_controller() {
         "first hop mutation must stay"
     );
     assert_eq!(mock.feature_level("group.version"), Some(1));
+    admin.close().await.unwrap();
+    mock.hide_api(UPDATE_FEATURES);
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let err = admin
+        .update_features(&[FeatureUpdate::new("metadata.version", 17)], 10_000)
+        .await
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("unsupported"),
+        "UpdateFeatures is optional at connect: {err}"
+    );
+    let classic = admin
+        .describe_classic_groups(&["g-classic"], false)
+        .await
+        .unwrap();
+    assert_eq!(classic[0].group_id, "g-classic");
+    admin.close().await.unwrap();
 }
 
 #[tokio::test]

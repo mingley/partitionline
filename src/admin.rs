@@ -1197,7 +1197,7 @@ pub struct Admin {
     offset_delete_version: i16,
     reassign_version: i16,
     list_reassign_version: i16,
-    update_features_version: i16,
+    update_features_version: Option<i16>,
     alter_user_scram_version: i16,
     describe_user_scram_version: i16,
     unregister_broker_version: Option<i16>,
@@ -1420,9 +1420,9 @@ impl Admin {
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
-    /// UnregisterBroker, DescribeProducers, and DescribeCluster are
-    /// optional at connect. Missing APIs fail on the method with
-    /// [`Error::Unsupported`].
+    /// UnregisterBroker, DescribeProducers, DescribeCluster, and
+    /// UpdateFeatures are optional at connect. Missing APIs fail on the
+    /// method with [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
         if cfg.bootstrap.is_empty() {
             return Err(Error::protocol("no bootstrap servers"));
@@ -1543,10 +1543,7 @@ impl Admin {
             })?;
         let update_features_version = versions
             .get(&UPDATE_FEATURES)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let alter_user_scram_version = versions
             .get(&ALTER_USER_SCRAM_CREDENTIALS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0))
@@ -3212,7 +3209,9 @@ impl Admin {
     /// timeout that drives both the RPC deadline and TimeoutMs, use
     /// [`Self::update_features_timeout`]. See
     /// [`Self::update_features_with`] for Java
-    /// `UpdateFeaturesOptions.validateOnly`.
+    /// `UpdateFeaturesOptions.validateOnly`. Optional at [`Self::new`]
+    /// (Kafka 2.7+ / KIP-584); a broker that omits api 57 returns
+    /// [`Error::Unsupported`].
     pub async fn update_features(
         &mut self,
         updates: &[FeatureUpdate],
@@ -3286,7 +3285,9 @@ impl Admin {
                 upgrade_type: u.upgrade_type,
             })
             .collect();
-        let version = self.update_features_version;
+        let version = self.update_features_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support UpdateFeatures v0-2".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {

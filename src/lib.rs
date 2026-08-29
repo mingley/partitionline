@@ -360,7 +360,7 @@
 //! [`Admin::allocate_producer_ids_timeout`] is the crate-first
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
 //! `allocateProducerIds`. [`Admin::new`] does not require that API,
-//! UnregisterBroker, DescribeProducers, DescribeCluster,
+//! UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
 //! ShareGroupDescribe, the share-offset RPCs, ListConfigResources,
 //! GetTelemetrySubscriptions, PushTelemetry, or AssignReplicasToDirs.
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
