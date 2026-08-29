@@ -13,53 +13,93 @@ pub const COORDINATOR_TRANSACTION: i8 = 1;
 /// FindCoordinator `key_type` for a share group (KIP-932).
 pub const COORDINATOR_SHARE: i8 = 2;
 
+/// `true` when FindCoordinator `version` is flexible (v3).
+///
+/// v1–v2 are classic (Key + KeyType). v3 is compact strings plus tagged
+/// fields (Apache JSON `flexibleVersions: "3+"`). v0 (no KeyType) and
+/// v4+ (KIP-699 CoordinatorKeys batch) are not spoken.
+fn find_coordinator_flexible(version: i16) -> Result<bool> {
+    match version {
+        1..=2 => Ok(false),
+        3 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "FindCoordinator version {other} is not implemented"
+        ))),
+    }
+}
+
 /// Encode FindCoordinator for a consumer group id.
-pub fn encode_find_coordinator_request(buf: &mut BytesMut, key: &str) -> crate::error::Result<()> {
-    encode_find_coordinator_request_typed(buf, key, COORDINATOR_GROUP)
+pub fn encode_find_coordinator_request(
+    buf: &mut BytesMut,
+    version: i16,
+    key: &str,
+) -> crate::error::Result<()> {
+    encode_find_coordinator_request_typed(buf, version, key, COORDINATOR_GROUP)
 }
 
 /// Encode FindCoordinator with an explicit `key_type`.
 pub fn encode_find_coordinator_request_typed(
     buf: &mut BytesMut,
+    version: i16,
     key: &str,
     key_type: i8,
 ) -> crate::error::Result<()> {
-    buf::put_classic_nullable_string(buf, Some(key))?;
+    let flexible = find_coordinator_flexible(version)?;
+    buf::put_string(buf, flexible, Some(key))?;
     buf.put_i8(key_type);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode FindCoordinator: `(key, key_type)`.
-pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B) -> Result<(String, i8)> {
-    let key = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+pub fn decode_find_coordinator_request<B: Buf>(buf: &mut B, version: i16) -> Result<(String, i8)> {
+    let flexible = find_coordinator_flexible(version)?;
+    let key = buf::get_string(buf, flexible)?.unwrap_or_default();
     let key_type = buf::get_i8(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((key, key_type))
 }
 
 /// Encode FindCoordinator: node, host, port (error `0`).
 pub fn encode_find_coordinator_response(
     buf: &mut BytesMut,
+    version: i16,
     node_id: i32,
     host: &str,
     port: i32,
 ) -> crate::error::Result<()> {
+    let flexible = find_coordinator_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(0);
-    buf::put_classic_nullable_string(buf, None)?;
+    buf::put_string(buf, flexible, None)?;
     buf.put_i32(node_id);
-    buf::put_classic_nullable_string(buf, Some(host))?;
+    buf::put_string(buf, flexible, Some(host))?;
     buf.put_i32(port);
+    if flexible {
+        buf::put_empty_tagged_fields(buf);
+    }
     Ok(())
 }
 
 /// Decode FindCoordinator: `(error_code, node_id, host, port)`.
-pub fn decode_find_coordinator_response<B: Buf>(buf: &mut B) -> Result<(i16, i32, String, i32)> {
+pub fn decode_find_coordinator_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i16, i32, String, i32)> {
+    let flexible = find_coordinator_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
-    let _msg = buf::get_classic_nullable_string(buf)?;
+    let _msg = buf::get_string(buf, flexible)?;
     let node_id = buf::get_i32(buf)?;
-    let host = buf::get_classic_nullable_string(buf)?.unwrap_or_default();
+    let host = buf::get_string(buf, flexible)?.unwrap_or_default();
     let port = buf::get_i32(buf)?;
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
     Ok((error, node_id, host, port))
 }
 
@@ -1020,9 +1060,10 @@ mod tests {
     #[test]
     fn find_coordinator_v2_sends_key_type_and_is_leftover_empty() {
         let mut buf = BytesMut::new();
-        encode_find_coordinator_request_typed(&mut buf, "tx-1", COORDINATOR_TRANSACTION).unwrap();
+        encode_find_coordinator_request_typed(&mut buf, 2, "tx-1", COORDINATOR_TRANSACTION)
+            .unwrap();
         let mut cur = &buf[..];
-        let (key, key_type) = decode_find_coordinator_request(&mut cur).unwrap();
+        let (key, key_type) = decode_find_coordinator_request(&mut cur, 2).unwrap();
         assert_eq!((key.as_str(), key_type), ("tx-1", COORDINATOR_TRANSACTION));
         assert!(
             cur.is_empty(),
@@ -1031,15 +1072,73 @@ mod tests {
         );
 
         buf.clear();
-        encode_find_coordinator_request_typed(&mut buf, "g", COORDINATOR_GROUP).unwrap();
+        encode_find_coordinator_request_typed(&mut buf, 2, "g", COORDINATOR_GROUP).unwrap();
         let mut cur = &buf[..];
-        let (key, key_type) = decode_find_coordinator_request(&mut cur).unwrap();
+        let (key, key_type) = decode_find_coordinator_request(&mut cur, 2).unwrap();
         assert_eq!((key.as_str(), key_type), ("g", COORDINATOR_GROUP));
         assert!(
             cur.is_empty(),
             "group key_type leftover {} bytes",
             cur.len()
         );
+        buf.clear();
+        assert!(
+            encode_find_coordinator_request_typed(&mut buf, 4, "g", COORDINATOR_GROUP).is_err(),
+            "FindCoordinator v4+ (KIP-699 CoordinatorKeys) is not spoken"
+        );
+        buf.clear();
+        assert!(
+            encode_find_coordinator_request_typed(&mut buf, 0, "g", COORDINATOR_GROUP).is_err(),
+            "FindCoordinator v0 (no KeyType) is not spoken"
+        );
+    }
+
+    #[test]
+    fn find_coordinator_v3_roundtrip_is_leftover_empty() {
+        let mut req = BytesMut::new();
+        encode_find_coordinator_request_typed(&mut req, 3, "tx-1", COORDINATOR_TRANSACTION)
+            .unwrap();
+        let mut cur = &req[..];
+        let (key, key_type) = decode_find_coordinator_request(&mut cur, 3).unwrap();
+        assert_eq!((key.as_str(), key_type), ("tx-1", COORDINATOR_TRANSACTION));
+        assert!(
+            cur.is_empty(),
+            "FindCoordinator v3 request must consume compact tagged fields"
+        );
+
+        let mut resp = BytesMut::new();
+        encode_find_coordinator_response(&mut resp, 3, 1, "h", 9092).unwrap();
+        let mut cur = &resp[..];
+        let (err, node, host, port) = decode_find_coordinator_response(&mut cur, 3).unwrap();
+        assert_eq!(err, 0);
+        assert_eq!(node, 1);
+        assert_eq!(host, "h");
+        assert_eq!(port, 9092);
+        assert!(
+            cur.is_empty(),
+            "FindCoordinator v3 response must consume compact tagged fields"
+        );
+    }
+
+    #[test]
+    fn find_coordinator_v3_request_matches_compact_layout() {
+        // Compact "g" (n+1 = 2), key_type 0, tagged.
+        const REQ: &[u8] = &[0x02, 0x67, 0x00, 0x00];
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_request_typed(&mut buf, 3, "g", COORDINATOR_GROUP).unwrap();
+        assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn find_coordinator_v3_response_matches_compact_layout() {
+        // Throttle 0, error 0, null ErrorMessage, node 1, compact "h", port 9092, tagged.
+        const RESP: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x68, 0x00,
+            0x00, 0x23, 0x84, 0x00,
+        ];
+        let mut buf = BytesMut::new();
+        encode_find_coordinator_response(&mut buf, 3, 1, "h", 9092).unwrap();
+        assert_eq!(&buf[..], RESP);
     }
 
     #[test]

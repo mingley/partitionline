@@ -2497,6 +2497,11 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     assert_eq!(mock.last_init_producer_id_node(), Some(1));
     assert_eq!(mock.last_init_producer_id_timeout(), Some(30_000));
     assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(3),
+        "Admin must prefer FindCoordinator v3 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_init_producer_id_version(),
         Some(5),
         "Admin must prefer InitProducerId v5 when the broker advertises it"

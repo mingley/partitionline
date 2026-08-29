@@ -1100,9 +1100,9 @@ impl Admin {
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let find_coord_version = versions
             .get(&FIND_COORDINATOR)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 2))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
             .ok_or_else(|| {
-                Error::Unsupported("broker does not support FindCoordinator v1-2".into())
+                Error::Unsupported("broker does not support FindCoordinator v1-3".into())
             })?;
         let offset_delete_version = versions
             .get(&OFFSET_DELETE)
@@ -5063,7 +5063,14 @@ impl Admin {
                 .roundtrip_bootstrap(
                     FIND_COORDINATOR,
                     version,
-                    |buf| encode_find_coordinator_request_typed(buf, group_id, COORDINATOR_GROUP),
+                    |buf| {
+                        encode_find_coordinator_request_typed(
+                            buf,
+                            version,
+                            group_id,
+                            COORDINATOR_GROUP,
+                        )
+                    },
                     timeout,
                 )
                 .await;
@@ -5075,7 +5082,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, node, _host, _port) = decode_find_coordinator_response(&mut body.clone())?;
+            let (err, node, _host, _port) =
+                decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
                 if !self.cluster.brokers.contains_key(&node) {
                     self.refresh_metadata(None).await?;
@@ -5106,6 +5114,7 @@ impl Admin {
                     |buf| {
                         encode_find_coordinator_request_typed(
                             buf,
+                            version,
                             transactional_id,
                             COORDINATOR_TRANSACTION,
                         )
@@ -5121,7 +5130,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, node, _host, _port) = decode_find_coordinator_response(&mut body.clone())?;
+            let (err, node, _host, _port) =
+                decode_find_coordinator_response(&mut body.clone(), version)?;
             if err == 0 {
                 if !self.cluster.brokers.contains_key(&node) {
                     self.refresh_metadata(None).await?;

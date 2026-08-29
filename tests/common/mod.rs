@@ -394,6 +394,7 @@ struct State {
     coord_node: i32,
     txn_coord_node: i32,
     find_coordinator_key_types: Vec<i8>,
+    last_find_coordinator_version: Option<i16>,
     last_init_producer_id_node: Option<i32>,
     last_init_producer_id_timeout: Option<i32>,
     last_init_producer_id_version: Option<i16>,
@@ -629,6 +630,7 @@ fn new_state(
         coord_node: 1,
         txn_coord_node: 1,
         find_coordinator_key_types: Vec::new(),
+        last_find_coordinator_version: None,
         last_init_producer_id_node: None,
         last_init_producer_id_timeout: None,
         last_init_producer_id_version: None,
@@ -1798,6 +1800,10 @@ impl Mock {
         self.state.lock().find_coordinator_key_types.clone()
     }
 
+    pub fn last_find_coordinator_version(&self) -> Option<i16> {
+        self.state.lock().last_find_coordinator_version
+    }
+
     pub fn last_init_producer_id_node(&self) -> Option<i32> {
         self.state.lock().last_init_producer_id_node
     }
@@ -2028,7 +2034,7 @@ fn versions() -> ApiVersionsResponse {
         (METADATA, 1, 12),
         (OFFSET_COMMIT, 2, 7),
         (OFFSET_FETCH, 1, 5),
-        (FIND_COORDINATOR, 0, 2),
+        (FIND_COORDINATOR, 0, 3),
         (JOIN_GROUP, 0, 5),
         (HEARTBEAT, 0, 3),
         (SYNC_GROUP, 0, 3),
@@ -3740,9 +3746,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 }
             }
             FIND_COORDINATOR => {
-                let (_key, key_type) = decode_find_coordinator_request(&mut frame).unwrap();
+                let (_key, key_type) =
+                    decode_find_coordinator_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.find_coordinator_key_types.push(key_type);
+                st.last_find_coordinator_version = Some(header.api_version);
                 let coord = if key_type == COORDINATOR_TRANSACTION {
                     if st.stale_txn_finds > 0 {
                         st.stale_txn_finds = st.stale_txn_finds.saturating_sub(1);
@@ -3758,7 +3766,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.coord_node
                 };
                 let (host, port) = broker_host_port(&st, coord);
-                encode_find_coordinator_response(&mut body, coord, &host, port).unwrap();
+                encode_find_coordinator_response(&mut body, header.api_version, coord, &host, port)
+                    .unwrap();
             }
             SHARE_GROUP_HEARTBEAT => {
                 let req = decode_share_group_heartbeat_request(&mut frame).unwrap();

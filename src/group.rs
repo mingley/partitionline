@@ -17,8 +17,8 @@ use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{decode_api_versions_response, encode_api_versions_request};
 use crate::protocol::api_keys::{
-    API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP, LEAVE_GROUP,
-    OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
+    pick_version, API_VERSIONS, CONSUMER_GROUP_HEARTBEAT, FIND_COORDINATOR, HEARTBEAT, JOIN_GROUP,
+    LEAVE_GROUP, OFFSET_COMMIT, OFFSET_FETCH, SYNC_GROUP,
 };
 use crate::protocol::cgheartbeat::{
     decode_consumer_group_heartbeat_response, encode_consumer_group_heartbeat_request,
@@ -2069,8 +2069,8 @@ pub(crate) async fn discover_coord(
     // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
     for _ in 0..3 {
         for addr in &cfg.bootstrap {
-            let mut hop = match open_coord(cfg, addr).await {
-                Ok(c) => c,
+            let (mut hop, version) = match open_coord_with_find_version(cfg, addr).await {
+                Ok(v) => v,
                 Err(e) => {
                     last = e;
                     continue;
@@ -2079,8 +2079,8 @@ pub(crate) async fn discover_coord(
             let body = match hop
                 .roundtrip(
                     FIND_COORDINATOR,
-                    2,
-                    |buf| encode_find_coordinator_request_typed(buf, group_id, key_type),
+                    version,
+                    |buf| encode_find_coordinator_request_typed(buf, version, group_id, key_type),
                     timeout,
                 )
                 .await
@@ -2091,7 +2091,8 @@ pub(crate) async fn discover_coord(
                     continue;
                 }
             };
-            let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+            let (err, _node, host, port) =
+                decode_find_coordinator_response(&mut body.clone(), version)?;
             if err != 0 {
                 last = Error::broker(err, "FindCoordinator");
                 continue;
@@ -2111,6 +2112,13 @@ pub(crate) async fn discover_coord(
 }
 
 pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<BrokerConn> {
+    Ok(open_coord_with_find_version(cfg, addr).await?.0)
+}
+
+async fn open_coord_with_find_version(
+    cfg: &ConsumerConfig,
+    addr: &str,
+) -> Result<(BrokerConn, i16)> {
     let mut conn =
         BrokerConn::connect_tls(addr, &cfg.client_id, cfg.connect_timeout, cfg.tls.as_ref())
             .await?;
@@ -2126,6 +2134,12 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
     if resp.error_code != 0 {
         return Err(Error::broker(resp.error_code, "ApiVersions"));
     }
+    let version = resp
+        .api_keys
+        .iter()
+        .find(|k| k.api_key == FIND_COORDINATOR)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 3))
+        .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-3".into()))?;
     sasl::authenticate(
         &mut conn,
         cfg.sasl_plain.as_ref(),
@@ -2136,7 +2150,7 @@ pub(crate) async fn open_coord(cfg: &ConsumerConfig, addr: &str) -> Result<Broke
         cfg.request_timeout,
     )
     .await?;
-    Ok(conn)
+    Ok((conn, version))
 }
 
 #[expect(

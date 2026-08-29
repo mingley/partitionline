@@ -920,6 +920,11 @@ async fn transactional_producer_finds_txn_coordinator() {
         "InitProducerId with transactional.id must FindCoordinator key_type=1"
     );
     assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(3),
+        "Producer must prefer FindCoordinator v3 when the broker advertises it"
+    );
+    assert_eq!(
         mock.last_init_producer_id_node(),
         Some(2),
         "InitProducerId must land on the transaction coordinator, not bootstrap"
@@ -1612,6 +1617,11 @@ async fn consumer_group_join_fetch_commit() {
     ccfg.max_wait_ms = 10;
     let mut group = ConsumerGroup::join(ccfg, "g1", "t").await.unwrap();
     assert_eq!(mock.last_group_instance_id(), None);
+    assert_eq!(
+        mock.last_find_coordinator_version(),
+        Some(3),
+        "ConsumerGroup must prefer FindCoordinator v3 when the broker advertises it"
+    );
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1);
     assert_eq!(recs[0].value.as_deref(), Some(&b"grouped"[..]));

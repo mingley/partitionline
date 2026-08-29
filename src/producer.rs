@@ -556,6 +556,7 @@ struct Shared {
     produce_version: i16,
     add_partitions_version: i16,
     txn_offset_version: i16,
+    find_coord_version: i16,
     telemetry_version: Option<i16>,
     client_instance_id: parking_lot::Mutex<Option<[u8; 16]>>,
     partitioner: Arc<dyn Partitioner>,
@@ -733,6 +734,9 @@ impl Producer {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
         }
+        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 3).ok_or_else(|| {
+            Error::Unsupported("broker does not support FindCoordinator v1-3".into())
+        })?;
         let produce_version = pick(&versions, PRODUCE, 3, 9)
             .ok_or_else(|| Error::Unsupported("broker does not support Produce v3-9".into()))?;
         let metadata_version = pick(&versions, METADATA, 1, 12)
@@ -752,7 +756,10 @@ impl Producer {
         let mut producer_id = -1i64;
         let mut producer_epoch = -1i16;
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
-            Some(discover_typed_coord(&cfg, tid, COORDINATOR_TRANSACTION).await?)
+            Some(
+                discover_typed_coord(&cfg, tid, COORDINATOR_TRANSACTION, find_coord_version)
+                    .await?,
+            )
         } else {
             None
         };
@@ -760,7 +767,14 @@ impl Producer {
             let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 5).ok_or_else(|| {
                 Error::Unsupported("broker does not support InitProducerId".into())
             })?;
-            let body = init_producer_id_roundtrip(&cfg, &mut txn, &mut meta, ipid_version).await?;
+            let body = init_producer_id_roundtrip(
+                &cfg,
+                &mut txn,
+                &mut meta,
+                ipid_version,
+                find_coord_version,
+            )
+            .await?;
             let (err, pid, epoch) =
                 decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
             if err != 0 {
@@ -787,6 +801,7 @@ impl Producer {
             produce_version,
             add_partitions_version,
             txn_offset_version,
+            find_coord_version,
             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
@@ -1294,6 +1309,7 @@ impl Producer {
             group_id,
             TXN_OFFSET_COMMIT,
             version,
+            self.inner.shared.find_coord_version,
             |buf| {
                 encode_txn_offset_commit_request(buf, version, &tid, group_id, pid, epoch, &grouped)
             },
@@ -1502,7 +1518,12 @@ async fn open_conn(addr: &str, cfg: &ProducerConfig) -> Result<BrokerConn> {
     Ok(conn)
 }
 
-async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> Result<BrokerConn> {
+async fn discover_typed_coord(
+    cfg: &ProducerConfig,
+    key: &str,
+    key_type: i8,
+    version: i16,
+) -> Result<BrokerConn> {
     let timeout = cfg.request_timeout;
     let mut last = Error::protocol("find coordinator failed");
     // FindCoordinator 14/15 is one pass of the bootstrap list; try again.
@@ -1518,8 +1539,8 @@ async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> 
             let body = match hop
                 .roundtrip(
                     FIND_COORDINATOR,
-                    2,
-                    |buf| encode_find_coordinator_request_typed(buf, key, key_type),
+                    version,
+                    |buf| encode_find_coordinator_request_typed(buf, version, key, key_type),
                     timeout,
                 )
                 .await
@@ -1530,7 +1551,8 @@ async fn discover_typed_coord(cfg: &ProducerConfig, key: &str, key_type: i8) -> 
                     continue;
                 }
             };
-            let (err, _node, host, port) = decode_find_coordinator_response(&mut body.clone())?;
+            let (err, _node, host, port) =
+                decode_find_coordinator_response(&mut body.clone(), version)?;
             if err != 0 {
                 last = Error::broker(err, "FindCoordinator");
                 continue;
@@ -1554,6 +1576,7 @@ async fn init_producer_id_roundtrip(
     txn: &mut Option<BrokerConn>,
     meta: &mut BrokerConn,
     version: i16,
+    find_coord_version: i16,
 ) -> Result<Bytes> {
     let txn_id = cfg.transactional_id.clone();
     let timeout = cfg.request_timeout;
@@ -1592,7 +1615,7 @@ async fn init_producer_id_roundtrip(
         Err(e) if e.is_retriable() => {}
         Err(e) => return Err(e),
     }
-    let new = discover_typed_coord(cfg, &tid, COORDINATOR_TRANSACTION).await?;
+    let new = discover_typed_coord(cfg, &tid, COORDINATOR_TRANSACTION, find_coord_version).await?;
     *txn = Some(new);
     let conn = txn
         .as_mut()
@@ -1647,7 +1670,13 @@ async fn txn_roundtrip(
         Err(e) if e.is_retriable() => {}
         Err(e) => return Err(e),
     }
-    let new = discover_typed_coord(&shared.cfg, &tid, COORDINATOR_TRANSACTION).await?;
+    let new = discover_typed_coord(
+        &shared.cfg,
+        &tid,
+        COORDINATOR_TRANSACTION,
+        shared.find_coord_version,
+    )
+    .await?;
     let mut guard = shared.txn.lock().await;
     *guard = Some(new);
     let conn = guard
@@ -1662,16 +1691,22 @@ async fn txn_roundtrip(
     .await
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "group coord roundtrip is one wire call plus rediscovery identity"
+)]
 async fn group_coord_roundtrip(
     cfg: &ProducerConfig,
     group_id: &str,
     api_key: i16,
     api_version: i16,
+    find_coord_version: i16,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
-    let mut coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP).await?;
+    let mut coord =
+        discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
     let body = coord
         .roundtrip(
             api_key,
@@ -1683,7 +1718,7 @@ async fn group_coord_roundtrip(
     if !error::coordinator_retriable(error_of(&body)?) {
         return Ok(body);
     }
-    coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP).await?;
+    coord = discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
     coord
         .roundtrip(
             api_key,

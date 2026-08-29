@@ -10,10 +10,11 @@ use super::api_keys::{
     DESCRIBE_CLUSTER, DESCRIBE_DELEGATION_TOKEN, DESCRIBE_GROUPS, DESCRIBE_LOG_DIRS,
     DESCRIBE_PRODUCERS, DESCRIBE_SHARE_GROUP_OFFSETS, DESCRIBE_TOPIC_PARTITIONS,
     DESCRIBE_TRANSACTIONS, DESCRIBE_USER_SCRAM_CREDENTIALS, EXPIRE_DELEGATION_TOKEN, FETCH,
-    GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP, LIST_CONFIG_RESOURCES, LIST_GROUPS,
-    LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS, LIST_TRANSACTIONS, METADATA, PRODUCE,
-    PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN, SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE,
-    SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
+    FIND_COORDINATOR, GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, LEAVE_GROUP,
+    LIST_CONFIG_RESOURCES, LIST_GROUPS, LIST_OFFSETS, LIST_PARTITION_REASSIGNMENTS,
+    LIST_TRANSACTIONS, METADATA, PRODUCE, PUSH_TELEMETRY, RENEW_DELEGATION_TOKEN,
+    SHARE_ACKNOWLEDGE, SHARE_FETCH, SHARE_GROUP_DESCRIBE, SHARE_GROUP_HEARTBEAT, UNREGISTER_BROKER,
+    UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
 use crate::error::Result;
@@ -47,6 +48,10 @@ pub fn request_header_version(api_key: i16, api_version: i16) -> i16 {
         // InitProducerId is classic through v1; flexible from v2
         // (Apache JSON flexibleVersions: "2+"). This crate speaks 0–5.
         INIT_PRODUCER_ID if api_version >= 2 => 2,
+        // FindCoordinator is classic through v2; flexible from v3
+        // (Apache JSON flexibleVersions: "3+"). This crate speaks 1–3.
+        // v4+ (KIP-699 CoordinatorKeys batch) is not spoken.
+        FIND_COORDINATOR if api_version >= 3 => 2,
         METADATA if api_version >= 9 => 2,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -134,6 +139,7 @@ pub fn response_header_version(api_key: i16, api_version: i16) -> i16 {
         PRODUCE if api_version >= 9 => 1,
         FETCH if api_version >= 12 => 1,
         INIT_PRODUCER_ID if api_version >= 2 => 1,
+        FIND_COORDINATOR if api_version >= 3 => 1,
         METADATA if api_version >= 9 => 1,
         DESCRIBE_CLUSTER
         | ALTER_PARTITION_REASSIGNMENTS
@@ -383,6 +389,19 @@ mod tests {
         assert_eq!(response_header_version(INIT_PRODUCER_ID, 2), 1);
         assert_eq!(request_header_version(INIT_PRODUCER_ID, 5), 2);
         assert_eq!(response_header_version(INIT_PRODUCER_ID, 5), 1);
+    }
+
+    #[test]
+    fn find_coordinator_v3_is_flexible_v2_is_not() {
+        // Official JSON: validVersions 0-6, flexibleVersions 3+.
+        // HeaderVersion is 1 / 0 at v1–2 and 2 / 1 at v3+. This crate
+        // speaks 1–3. v4+ (KIP-699 CoordinatorKeys) is not spoken.
+        assert_eq!(request_header_version(FIND_COORDINATOR, 1), 1);
+        assert_eq!(response_header_version(FIND_COORDINATOR, 1), 0);
+        assert_eq!(request_header_version(FIND_COORDINATOR, 2), 1);
+        assert_eq!(response_header_version(FIND_COORDINATOR, 2), 0);
+        assert_eq!(request_header_version(FIND_COORDINATOR, 3), 2);
+        assert_eq!(response_header_version(FIND_COORDINATOR, 3), 1);
     }
 
     #[test]
