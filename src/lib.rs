@@ -141,6 +141,8 @@
 //! `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464; `-1` / `-1`).
 //! [`NewTopic::configs`] is Java `NewTopic.configs(Map)`.
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
+//! [`Admin::create_topics_with_quota_retry`] is Java
+//! `CreateTopicsOptions.retryOnQuotaViolation` (default `true`; KIP-599).
 //! [`Admin::delete_topics_timeout`] is Java `DeleteTopicsOptions.timeoutMs`.
 //! [`Admin::delete_topics_by_id`] is Java `deleteTopics(TopicCollection.ofTopicIds)`
 //! (DeleteTopics v6 null Name + TopicId).

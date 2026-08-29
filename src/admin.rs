@@ -1296,6 +1296,33 @@ fn describe_producers_topics(
 
 type DescribeProducersNodeOutcome = (Vec<(usize, DescribeProducersPartition)>, Vec<usize>);
 
+fn creatable_from_new(topics: &[NewTopic]) -> Vec<CreatableTopic> {
+    topics
+        .iter()
+        .map(|t| CreatableTopic {
+            name: t.name.clone(),
+            num_partitions: t.num_partitions,
+            replication_factor: t.replication_factor,
+            assignments: t
+                .assignments
+                .iter()
+                .map(|(partition_index, broker_ids)| ReplicaAssignment {
+                    partition_index: *partition_index,
+                    broker_ids: broker_ids.clone(),
+                })
+                .collect(),
+            configs: t
+                .configs
+                .iter()
+                .map(|(n, v)| TopicConfig {
+                    name: n.clone(),
+                    value: v.clone(),
+                })
+                .collect(),
+        })
+        .collect()
+}
+
 impl Admin {
     /// Connect with default config to one bootstrap server.
     pub async fn connect(bootstrap: impl Into<String>) -> Result<Self> {
@@ -1715,6 +1742,9 @@ impl Admin {
     /// [`AdminConfig::request_timeout`]. For a one-shot timeout that
     /// drives both the RPC deadline and TimeoutMs, use
     /// [`Self::create_topics_timeout`].
+    /// Java `CreateTopicsOptions.retryOnQuotaViolation` defaults to
+    /// `true` (KIP-599); use [`Self::create_topics_with_quota_retry`]
+    /// to disable.
     pub async fn create_topics(
         &mut self,
         topics: &[NewTopic],
@@ -1722,7 +1752,7 @@ impl Admin {
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
         let timeout = self.cfg.request_timeout;
-        self.create_topics_with(topics, timeout_ms, validate_only, timeout)
+        self.create_topics_with(topics, timeout_ms, validate_only, timeout, true)
             .await
     }
 
@@ -1737,8 +1767,53 @@ impl Admin {
         validate_only: bool,
     ) -> Result<Vec<TopicResult>> {
         let timeout_ms = crate::consumer::duration_millis_i32(timeout);
-        self.create_topics_with(topics, timeout_ms, validate_only, timeout)
+        self.create_topics_with(topics, timeout_ms, validate_only, timeout, true)
             .await
+    }
+
+    /// [`Self::create_topics`] with Java `CreateTopicsOptions.retryOnQuotaViolation`.
+    ///
+    /// [`Self::create_topics`] defaults this to `true` (KIP-599). When
+    /// true, topics that return `THROTTLING_QUOTA_EXCEEDED` (89) are
+    /// retried alone until the RPC deadline.
+    pub async fn create_topics_with_quota_retry(
+        &mut self,
+        topics: &[NewTopic],
+        timeout_ms: i32,
+        validate_only: bool,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout = self.cfg.request_timeout;
+        self.create_topics_with(
+            topics,
+            timeout_ms,
+            validate_only,
+            timeout,
+            retry_on_quota_violation,
+        )
+        .await
+    }
+
+    /// [`Self::create_topics_with_quota_retry`] with a one-shot timeout
+    /// (Java `CreateTopicsOptions.timeoutMs` + `retryOnQuotaViolation`).
+    ///
+    /// `timeout` is the RPC deadline and CreateTopics TimeoutMs.
+    pub async fn create_topics_timeout_with_quota_retry(
+        &mut self,
+        topics: &[NewTopic],
+        timeout: Duration,
+        validate_only: bool,
+        retry_on_quota_violation: bool,
+    ) -> Result<Vec<TopicResult>> {
+        let timeout_ms = crate::consumer::duration_millis_i32(timeout);
+        self.create_topics_with(
+            topics,
+            timeout_ms,
+            validate_only,
+            timeout,
+            retry_on_quota_violation,
+        )
+        .await
     }
 
     async fn create_topics_with(
@@ -1747,39 +1822,19 @@ impl Admin {
         timeout_ms: i32,
         validate_only: bool,
         timeout: Duration,
+        retry_on_quota_violation: bool,
     ) -> Result<Vec<TopicResult>> {
-        let req = CreateTopicsRequest {
-            topics: topics
-                .iter()
-                .map(|t| CreatableTopic {
-                    name: t.name.clone(),
-                    num_partitions: t.num_partitions,
-                    replication_factor: t.replication_factor,
-                    assignments: t
-                        .assignments
-                        .iter()
-                        .map(|(partition_index, broker_ids)| ReplicaAssignment {
-                            partition_index: *partition_index,
-                            broker_ids: broker_ids.clone(),
-                        })
-                        .collect(),
-                    configs: t
-                        .configs
-                        .iter()
-                        .map(|(n, v)| TopicConfig {
-                            name: n.clone(),
-                            value: v.clone(),
-                        })
-                        .collect(),
-                })
-                .collect(),
-            timeout_ms,
-            validate_only,
-        };
+        let mut pending: Vec<NewTopic> = topics.to_vec();
+        let mut finished: HashMap<String, TopicResult> = HashMap::new();
         let version = self.create_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
+            let req = CreateTopicsRequest {
+                topics: creatable_from_new(&pending),
+                timeout_ms,
+                validate_only,
+            };
             if self.cluster.controller().is_err() {
                 self.refresh_metadata(None).await?;
             }
@@ -1820,7 +1875,29 @@ impl Admin {
                 self.refresh_metadata(None).await?;
                 continue;
             }
-            return Ok(results);
+            let mut next_pending = Vec::new();
+            for r in results {
+                if retry_on_quota_violation && r.error_code == error::THROTTLING_QUOTA_EXCEEDED {
+                    if let Some(t) = pending.iter().find(|t| t.name == r.name) {
+                        next_pending.push(t.clone());
+                    }
+                } else {
+                    let name = r.name.clone();
+                    let _prev = finished.insert(name, r);
+                }
+            }
+            if next_pending.is_empty() {
+                let mut out = Vec::with_capacity(topics.len());
+                for t in topics {
+                    let r = finished.remove(&t.name).ok_or_else(|| {
+                        Error::protocol(format!("missing create_topics result for {}", t.name))
+                    })?;
+                    out.push(r);
+                }
+                return Ok(out);
+            }
+            pending = next_pending;
+            self.wait_retry(&mut attempt, deadline).await?;
         }
     }
 

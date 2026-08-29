@@ -286,6 +286,9 @@ struct State {
     last_create_topics_replica_assignments: Option<Vec<(i32, Vec<i32>)>>,
     last_create_topics_num_partitions: Option<i32>,
     last_create_topics_replication_factor: Option<i16>,
+    last_create_topics_names: Option<Vec<String>>,
+    create_topics_quota_once: HashSet<String>,
+    create_topics_quota_hits: u32,
     create_topics_not_controller: u32,
     last_delete_topics_node: Option<i32>,
     last_delete_topics_version: Option<i16>,
@@ -634,6 +637,9 @@ fn new_state(
         last_create_topics_replica_assignments: None,
         last_create_topics_num_partitions: None,
         last_create_topics_replication_factor: None,
+        last_create_topics_names: None,
+        create_topics_quota_once: HashSet::new(),
+        create_topics_quota_hits: 0,
         create_topics_not_controller: 0,
         last_delete_topics_node: None,
         last_delete_topics_version: None,
@@ -1869,6 +1875,22 @@ impl Mock {
 
     pub fn last_create_topics_replication_factor(&self) -> Option<i16> {
         self.state.lock().last_create_topics_replication_factor
+    }
+
+    pub fn last_create_topics_names(&self) -> Option<Vec<String>> {
+        self.state.lock().last_create_topics_names.clone()
+    }
+
+    pub fn create_topics_quota_once(&self, name: &str) {
+        let _inserted = self
+            .state
+            .lock()
+            .create_topics_quota_once
+            .insert(name.to_string());
+    }
+
+    pub fn create_topics_quota_hits(&self) -> u32 {
+        self.state.lock().create_topics_quota_hits
     }
 
     pub fn create_topics_not_controller(&self) -> u32 {
@@ -3351,6 +3373,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_create_topics_version = Some(version);
                 st.last_create_topics_timeout = Some(req.timeout_ms);
+                st.last_create_topics_names =
+                    Some(req.topics.iter().map(|t| t.name.clone()).collect());
                 if let Some(t) = req.topics.first() {
                     st.last_create_topics_replica_assignments = Some(
                         t.assignments
@@ -3374,6 +3398,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     st.last_create_topics_node = Some(node_id);
                     for t in req.topics {
+                        if st.create_topics_quota_once.remove(&t.name) {
+                            st.create_topics_quota_hits =
+                                st.create_topics_quota_hits.saturating_add(1);
+                            results.push(TopicResult::new(
+                                t.name,
+                                error::THROTTLING_QUOTA_EXCEEDED,
+                                Some("Throttling quota exceeded".into()),
+                            ));
+                            continue;
+                        }
                         if st.created_topics.contains_key(&t.name) {
                             results.push(TopicResult::new(
                                 t.name,

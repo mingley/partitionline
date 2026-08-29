@@ -5646,6 +5646,54 @@ async fn admin_create_delete_topics_partitions_timeout() {
         .unwrap();
     assert_eq!(deleted[0].error_code, 0);
     assert_eq!(mock.last_delete_topics_timeout(), Some(1_500));
+
+    mock.create_topics_quota_once("cto-q");
+    let created = admin
+        .create_topics(&[NewTopic::new("cto-q", 1, 1)], 10_000, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(
+        mock.create_topics_quota_hits(),
+        1,
+        "create_topics retries THROTTLING_QUOTA_EXCEEDED by default"
+    );
+
+    mock.create_topics_quota_once("cto-qn");
+    let created = admin
+        .create_topics_with_quota_retry(&[NewTopic::new("cto-qn", 1, 1)], 10_000, false, false)
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, error::THROTTLING_QUOTA_EXCEEDED);
+    assert_eq!(mock.create_topics_quota_hits(), 2);
+    let listed = admin.list_topics().await.unwrap();
+    assert!(
+        !listed.iter().any(|t| t.name == "cto-qn"),
+        "quota retry disabled must not create the topic"
+    );
+
+    mock.create_topics_quota_once("cto-mix-q");
+    let mix_ok = NewTopic::new("cto-mix-ok", 1, 1);
+    let mix_q = NewTopic::new("cto-mix-q", 1, 1);
+    let created = admin
+        .create_topics_timeout_with_quota_retry(
+            &[mix_ok, mix_q],
+            Duration::from_secs(10),
+            false,
+            true,
+        )
+        .await
+        .unwrap();
+    assert_eq!(created[0].error_code, 0);
+    assert_eq!(created[1].error_code, 0);
+    assert_eq!(created[0].name, "cto-mix-ok");
+    assert_eq!(created[1].name, "cto-mix-q");
+    assert_eq!(
+        mock.last_create_topics_names(),
+        Some(vec!["cto-mix-q".to_string()]),
+        "quota retry resends only THROTTLING_QUOTA_EXCEEDED topics"
+    );
+    assert_eq!(mock.create_topics_quota_hits(), 3);
     admin.close().await.unwrap();
 }
 
