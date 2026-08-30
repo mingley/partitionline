@@ -537,6 +537,8 @@
 //! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1;
 //! [`TransactionResult::Abort`]). [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.
+//! [`protocol::txn::WritableTxnMarker`] `Display` is Java
+//! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
 //! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).

@@ -640,6 +640,8 @@ pub struct WritableTxnMarkerTopic {
 ///
 /// v0 is classic. v1 is flexible (Kafka 4.0 baseline). v2
 /// `TransactionVersion` (KIP-1228) is not spoken.
+///
+/// [`Display`] is Java `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarker {
     /// Producer id.
@@ -677,6 +679,31 @@ impl WritableTxnMarker {
                 })
                 .collect(),
         }
+    }
+}
+
+impl fmt::Display for WritableTxnMarker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TxnMarkerEntry{producerId=")?;
+        write!(f, "{}", self.producer_id)?;
+        f.write_str(", producerEpoch=")?;
+        write!(f, "{}", self.producer_epoch)?;
+        f.write_str(", coordinatorEpoch=")?;
+        write!(f, "{}", self.coordinator_epoch)?;
+        f.write_str(", result=")?;
+        f.write_str(TransactionResult::from_id(self.transaction_result).as_str())?;
+        f.write_str(", partitions=[")?;
+        let mut first = true;
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                if !first {
+                    f.write_str(", ")?;
+                }
+                first = false;
+                write!(f, "{}-{}", topic.name, partition)?;
+            }
+        }
+        f.write_str("]}")
     }
 }
 
@@ -910,6 +937,31 @@ mod tests {
         assert_eq!(
             TransactionResult::from_id(committed),
             TransactionResult::Commit
+        );
+        let marker = WritableTxnMarker {
+            producer_id: 1000,
+            producer_epoch: 0,
+            transaction_result: TransactionResult::Abort.id(),
+            topics: vec![WritableTxnMarkerTopic {
+                name: "t".into(),
+                partitions: vec![0, 1],
+            }],
+            coordinator_epoch: 1,
+        };
+        assert_eq!(
+            marker.to_string(),
+            "TxnMarkerEntry{producerId=1000, producerEpoch=0, coordinatorEpoch=1, result=ABORT, partitions=[t-0, t-1]}"
+        );
+        let commit = WritableTxnMarker {
+            producer_id: 1,
+            producer_epoch: 2,
+            transaction_result: TransactionResult::Commit.id(),
+            topics: vec![],
+            coordinator_epoch: 3,
+        };
+        assert_eq!(
+            commit.to_string(),
+            "TxnMarkerEntry{producerId=1, producerEpoch=2, coordinatorEpoch=3, result=COMMIT, partitions=[]}"
         );
     }
 
