@@ -31,6 +31,8 @@ fn init_producer_id_flexible(version: i16) -> Result<bool> {
 /// [`RecordBatch::NO_PRODUCER_EPOCH`]. Epoch-bump resume sends the last
 /// producer id and epoch. Ignored on v0–v2. Java
 /// `InitProducerIdRequest.getErrorResponse` writes those same sentinels.
+/// Java `InitProducerIdRequest.Builder.build` rejects a non-positive
+/// timeout and an empty (non-null) transactional id.
 pub fn encode_init_producer_id_request(
     buf: &mut BytesMut,
     version: i16,
@@ -40,6 +42,16 @@ pub fn encode_init_producer_id_request(
     producer_epoch: i16,
 ) -> crate::error::Result<()> {
     let flexible = init_producer_id_flexible(version)?;
+    if transaction_timeout_ms <= 0 {
+        return Err(Error::protocol(format!(
+            "transaction timeout value is not positive: {transaction_timeout_ms}"
+        )));
+    }
+    if transactional_id.is_some_and(str::is_empty) {
+        return Err(Error::protocol(
+            "Must set either a null or a non-empty transactional id.",
+        ));
+    }
     buf::put_string(buf, flexible, transactional_id)?;
     buf.put_i32(transaction_timeout_ms);
     if version >= 3 {
@@ -296,6 +308,53 @@ mod tests {
         buf.clear();
         encode_init_producer_id_response(&mut buf, 5, 0, 1234, 7).unwrap();
         assert_eq!(&buf[..], RESP, "v3–v5 response body matches v2");
+    }
+
+    #[test]
+    fn init_producer_id_builder_matches_java() {
+        encode_init_producer_id_request(
+            &mut BytesMut::new(),
+            1,
+            None,
+            45_000,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
+        let timeout = encode_init_producer_id_request(
+            &mut BytesMut::new(),
+            1,
+            Some("tid"),
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(timeout, Error::Protocol(_)),
+            "non-positive timeout is Java IllegalArgumentException, got {timeout}"
+        );
+        assert!(
+            timeout.to_string().contains("not positive"),
+            "got {timeout}"
+        );
+        let empty = encode_init_producer_id_request(
+            &mut BytesMut::new(),
+            1,
+            Some(""),
+            45_000,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(empty, Error::Protocol(_)),
+            "empty transactional id is Java IllegalArgumentException, got {empty}"
+        );
+        assert!(
+            empty.to_string().contains("non-empty transactional id"),
+            "got {empty}"
+        );
     }
 
     #[test]

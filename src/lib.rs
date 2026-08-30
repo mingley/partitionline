@@ -30,7 +30,9 @@
 //! first init [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
 //! id/epoch). Java `InitProducerIdRequest.getErrorResponse` writes those
-//! sentinels.
+//! sentinels. Java `InitProducerIdRequest.Builder.build` rejects a
+//! non-positive `transaction.timeout.ms` and an empty (non-null)
+//! transactional id.
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v10+ TopicId on [`Admin::describe_topics_by_id`]).
