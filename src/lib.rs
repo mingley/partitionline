@@ -121,7 +121,9 @@
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
-//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
+//! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
+//! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
+//! DurationFilter on v0),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
 //! [`protocol::admin::CreateTopicsResponse::should_client_throttle`] is Java
 //! `CreateTopicsResponse.shouldClientThrottle` (v3+)),
@@ -579,7 +581,9 @@
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
 //! are Java `ListOffsetsOptions.timeoutMs` (RPC deadline and ListOffsets v10 TimeoutMs).
 //! [`Admin::list_transactions_with_duration`] is Java `listTransactions`
-//! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1).
+//! plus `ListTransactionsOptions.filterOnDuration` (ListTransactions v1;
+//! v0 with a non-negative DurationFilter is Java
+//! `UnsupportedVersionException`).
 //! [`Admin::list_transactions_timeout`] /
 //! [`Admin::list_transactions_with_duration_timeout`] are Java
 //! `ListTransactionsOptions.timeoutMs` (RPC deadline; ListTransactions

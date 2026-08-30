@@ -8345,10 +8345,7 @@ async fn list_transactions_negotiates_v1_duration_filter() {
     let mock = common::Mock::start().await;
     mock.set_api_max(LIST_TRANSACTIONS, 0);
     let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
-    let capped = admin
-        .list_transactions_with_duration(&[], &[], 5000)
-        .await
-        .unwrap();
+    let capped = admin.list_transactions(&[], &[]).await.unwrap();
     assert!(capped.is_empty());
     assert_eq!(
         mock.last_list_transactions_version(),
@@ -8358,7 +8355,20 @@ async fn list_transactions_negotiates_v1_duration_filter() {
     assert_eq!(
         mock.last_list_transactions_duration(),
         Some(-1),
-        "v0 omits DurationFilter even when the caller passed a duration"
+        "list_transactions on v0 must send no DurationFilter"
+    );
+    let err = admin
+        .list_transactions_with_duration(&[], &[], 5000)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, Error::Unsupported(_)),
+        "DurationFilter on v0 is Java UnsupportedVersionException, got {err}"
+    );
+    assert!(
+        err.to_string()
+            .contains("Duration filter can be set only when using API version 1 or higher."),
+        "got {err}"
     );
 }
 

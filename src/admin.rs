@@ -6000,12 +6000,14 @@ impl Admin {
     /// ListTransactions with a duration filter (Java `listTransactions`
     /// plus `ListTransactionsOptions.filterOnDuration`).
     ///
-    /// `duration_ms < 0` means no duration filter (Java default `-1`).
-    /// v1 sends `DurationFilter` INT64 (KIP-994). v0 omits the field
-    /// even when `duration_ms` is set. Kafka 4.0 `validVersions` is
-    /// `0-1`. This crate speaks 0–1. v2 TransactionalIdPattern is not
-    /// spoken. ListTransactions has no TimeoutMs; the RPC deadline is
-    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
+    /// Negative `duration_ms` means no duration filter (Java default `-1`).
+    /// v1 sends `DurationFilter` INT64 (KIP-994). Java
+    /// `ListTransactionsRequest.Builder.build` rejects a non-negative
+    /// DurationFilter on v0 ([`Error::Unsupported`]). Kafka 4.0
+    /// `validVersions` is `0-1`. This crate speaks 0–1. v2
+    /// TransactionalIdPattern is not spoken. ListTransactions has no
+    /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+    /// For a one-shot deadline, use
     /// [`Self::list_transactions_with_duration_timeout`].
     pub async fn list_transactions_with_duration(
         &mut self,

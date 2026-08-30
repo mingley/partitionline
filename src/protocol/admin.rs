@@ -5654,7 +5654,7 @@ pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<
 /// `true` when ListTransactions `version` is flexible (all spoken versions).
 ///
 /// v0 is StateFilters / ProducerIdFilters plus tagged fields. v1 adds
-/// DurationFilter INT64 (KIP-994; `< 0` means no duration filter). Kafka
+/// DurationFilter INT64 (KIP-994; negative means no duration filter). Kafka
 /// 4.0 `validVersions` is `0-1`. This crate speaks 0–1. v2
 /// (TransactionalIdPattern) is not spoken.
 fn list_transactions_flexible(version: i16) -> Result<bool> {
@@ -5760,6 +5760,9 @@ impl ListTransactionsResponse {
 }
 
 /// Encode a ListTransactions v0–v1 request.
+///
+/// Java `ListTransactionsRequest.Builder.build` rejects a non-negative
+/// DurationFilter on v0.
 pub fn encode_list_transactions_request(
     buf: &mut BytesMut,
     version: i16,
@@ -5768,6 +5771,11 @@ pub fn encode_list_transactions_request(
     duration_ms: i64,
 ) -> crate::error::Result<()> {
     let _flexible = list_transactions_flexible(version)?;
+    if version < 1 && duration_ms >= 0 {
+        return Err(Error::Unsupported(
+            "Duration filter can be set only when using API version 1 or higher. If client is connected to an older broker, do not specify duration filter or set duration filter to -1.".into(),
+        ));
+    }
     buf::put_array_len(buf, true, Some(state_filters.len()))?;
     for state in state_filters {
         buf::put_compact_string(buf, Some(state))?;
@@ -16236,7 +16244,7 @@ mod tests {
         let states = vec!["Ongoing".to_string(), "PrepareCommit".to_string()];
         let pids = vec![1001_i64, 1002];
         let mut buf = BytesMut::new();
-        encode_list_transactions_request(&mut buf, 0, &states, &pids, 5000).unwrap();
+        encode_list_transactions_request(&mut buf, 0, &states, &pids, -1).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
             decode_list_transactions_request(&mut cur, 0).unwrap(),
@@ -16307,6 +16315,24 @@ mod tests {
             encode_list_transactions_request(&mut BytesMut::new(), 2, &states, &pids, -1).is_err(),
             "ListTransactions v2 TransactionalIdPattern is not spoken"
         );
+        let err = encode_list_transactions_request(&mut BytesMut::new(), 0, &states, &pids, 0)
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DurationFilter 0 on v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("Duration filter can be set only when using API version 1 or higher."),
+            "got {err}"
+        );
+        let err = encode_list_transactions_request(&mut BytesMut::new(), 0, &states, &pids, 5000)
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DurationFilter on v0 is Java UnsupportedVersionException, got {err}"
+        );
+        encode_list_transactions_request(&mut BytesMut::new(), 1, &states, &pids, 0).unwrap();
 
         let resp = ListTransactionsResponse {
             error_code: crate::error::NOT_COORDINATOR,
