@@ -10,6 +10,7 @@
 
 mod common;
 
+use partitionline::protocol::admin::DeleteRecordsRequest;
 use partitionline::protocol::api_keys::{
     ALTER_CLIENT_QUOTAS, ALTER_CONFIGS, ALTER_PARTITION_REASSIGNMENTS, ALTER_REPLICA_LOG_DIRS,
     ALTER_USER_SCRAM_CREDENTIALS, API_VERSIONS, CONSUMER_GROUP_DESCRIBE, CONSUMER_GROUP_HEARTBEAT,
@@ -4756,6 +4757,35 @@ async fn delete_records_negotiates_v1_when_broker_caps() {
         Some(1),
         "client must speak DeleteRecords v1 when the broker max is 1"
     );
+}
+
+#[tokio::test]
+async fn delete_records_high_watermark_truncates_to_log_end() {
+    let mock = common::Mock::start().await;
+    let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);
+    pcfg.linger = Duration::ZERO;
+    let producer = Producer::new(pcfg).await.unwrap();
+    let md0 = producer
+        .send(ProduceRecord::to("t").value(&b"a"[..]))
+        .await
+        .unwrap();
+    let md1 = producer
+        .send(ProduceRecord::to("t").value(&b"b"[..]))
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut admin = Admin::connect(mock.addr.clone()).await.unwrap();
+    let deleted = admin
+        .delete_records(
+            ("t", md0.partition),
+            RecordsToDelete::before_offset(DeleteRecordsRequest::HIGH_WATERMARK),
+            10_000,
+        )
+        .await
+        .unwrap();
+    assert_eq!(deleted.error_code(), 0);
+    assert_eq!(deleted.low_watermark(), md1.offset + 1);
+    assert_eq!(mock.log_len("t", md0.partition), 0);
 }
 
 #[tokio::test]

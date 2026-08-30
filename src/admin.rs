@@ -510,6 +510,8 @@ impl fmt::Display for NewTopic {
 ///
 /// Converts to the DeleteRecords Offset INT64: records strictly before
 /// this offset are deleted; records at or after it are kept.
+/// [`crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`] is Java
+/// `DeleteRecordsRequest.HIGH_WATERMARK` (truncate to the high watermark).
 /// [`Display`] is Java `RecordsToDelete.toString`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RecordsToDelete {
@@ -546,7 +548,8 @@ impl From<RecordsToDelete> for i64 {
 ///
 /// `low_watermark` is Java `lowWatermark()`. `error_code` is the
 /// per-partition DeleteRecords ErrorCode (Java surfaces non-zero via
-/// the future).
+/// the future). [`Self::INVALID_LOW_WATERMARK`] is Java
+/// `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DeletedRecords {
     /// New log start offset after the delete.
@@ -556,6 +559,9 @@ pub struct DeletedRecords {
 }
 
 impl DeletedRecords {
+    /// Java `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
+    pub const INVALID_LOW_WATERMARK: i64 = -1;
+
     /// Java `DeletedRecords(long)` (`error_code` 0).
     #[must_use]
     pub const fn new(low_watermark: i64) -> Self {
@@ -6509,7 +6515,9 @@ impl Admin {
     /// v3+ is not spoken.
     ///
     /// `offset` is [`RecordsToDelete`] or INT64 (Java
-    /// `RecordsToDelete.beforeOffset(long)`). Lands on the Metadata
+    /// `RecordsToDelete.beforeOffset(long)`).
+    /// [`crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`]
+    /// truncates to the high watermark. Lands on the Metadata
     /// partition leader. `NOT_LEADER_OR_FOLLOWER` (6) and other
     /// retriable codes refresh Metadata and retry on the new leader.
     /// Returns [`DeletedRecords`] (`lowWatermark` plus per-partition
@@ -11743,10 +11751,18 @@ mod tests {
             RecordsToDelete::before_offset(42).to_string(),
             "(beforeOffset = 42)"
         );
+        assert_eq!(
+            RecordsToDelete::before_offset(
+                crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK
+            )
+            .offset(),
+            crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK
+        );
     }
 
     #[test]
     fn deleted_records_matches_java() {
+        assert_eq!(DeletedRecords::INVALID_LOW_WATERMARK, -1);
         let ok = DeletedRecords::new(42);
         assert_eq!(ok.low_watermark(), 42);
         assert_eq!(ok.error_code(), 0);
@@ -11756,6 +11772,11 @@ mod tests {
         let pair: (i64, i16) = with_err.into();
         assert_eq!(pair, (7, 6));
         assert_eq!(DeletedRecords::from((9, 0)).low_watermark(), 9);
+        assert_eq!(
+            DeletedRecords::with_error_code(DeletedRecords::INVALID_LOW_WATERMARK, 6)
+                .low_watermark(),
+            DeletedRecords::INVALID_LOW_WATERMARK
+        );
     }
 
     #[test]

@@ -2414,6 +2414,14 @@ fn delete_records_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `DeleteRecordsRequest` offset sentinels.
+pub struct DeleteRecordsRequest;
+
+impl DeleteRecordsRequest {
+    /// Java `DeleteRecordsRequest.HIGH_WATERMARK`.
+    pub const HIGH_WATERMARK: i64 = -1;
+}
+
 /// One partition in a DeleteRecords request (v0–2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteRecordsPartition {
@@ -2433,6 +2441,9 @@ pub struct DeleteRecordsTopic {
 }
 
 /// One partition in a DeleteRecords response (v0–2).
+///
+/// [`Self::INVALID_LOW_WATERMARK`] is Java
+/// `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedRecordsPartition {
     /// Partition index.
@@ -2441,6 +2452,11 @@ pub struct DeletedRecordsPartition {
     pub low_watermark: i64,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
+}
+
+impl DeletedRecordsPartition {
+    /// Java `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
+    pub const INVALID_LOW_WATERMARK: i64 = -1;
 }
 
 /// Topic + partition results from DeleteRecords (v0–2).
@@ -12660,6 +12676,49 @@ mod tests {
         assert_eq!(
             omitted.replication_factor(),
             CreateTopicsRequest::NO_REPLICATION_FACTOR
+        );
+    }
+
+    #[test]
+    fn delete_records_sentinels_match_java() {
+        assert_eq!(DeleteRecordsRequest::HIGH_WATERMARK, -1);
+        assert_eq!(DeletedRecordsPartition::INVALID_LOW_WATERMARK, -1);
+        let mut buf = BytesMut::new();
+        encode_delete_records_request(
+            &mut buf,
+            2,
+            "t",
+            0,
+            DeleteRecordsRequest::HIGH_WATERMARK,
+            1000,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (topic, part, off, timeout) = decode_delete_records_request(&mut cur, 2).unwrap();
+        assert_eq!((topic.as_str(), part, off, timeout), ("t", 0, -1, 1000));
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords HIGH_WATERMARK request must be leftover-empty"
+        );
+        let mut resp = BytesMut::new();
+        encode_delete_records_response(
+            &mut resp,
+            2,
+            "t",
+            0,
+            DeletedRecordsPartition::INVALID_LOW_WATERMARK,
+            6,
+        )
+        .unwrap();
+        let mut cur = resp.as_ref();
+        let (p, low, err) = decode_delete_records_response(&mut cur, 2).unwrap();
+        assert_eq!(
+            (p, low, err),
+            (0, DeletedRecordsPartition::INVALID_LOW_WATERMARK, 6)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords INVALID_LOW_WATERMARK response must be leftover-empty"
         );
     }
 

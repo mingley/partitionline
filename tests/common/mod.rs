@@ -76,25 +76,26 @@ use partitionline::protocol::admin::{
     AssignReplicasToDirsResponseTopic, ClientQuotaAlterationResult, ClientQuotaEntity,
     ClientQuotaEntry, ClientQuotaFilterComponent, ClientQuotaValue, ClusterDescription,
     ConfigEntry, CreateDelegationTokenRequest, CreateDelegationTokenResponse, CreatedTopicConfig,
-    DeletableGroupResult, DeleteTopicState, DeletedRecordsPartition, DeletedRecordsTopic,
-    DeletedShareGroupOffsets, DescribeClientQuotasResponse, DescribeClusterBroker,
-    DescribeConfigsResult, DescribeDelegationTokenRequest, DescribeDelegationTokenResponse,
-    DescribeLogDirsPartition, DescribeLogDirsRequest, DescribeLogDirsResponse,
-    DescribeLogDirsResult, DescribeLogDirsTopic, DescribeProducersPartition,
-    DescribeProducersResponse, DescribeProducersTopic, DescribeTopicPartitionsResponse,
-    DescribeUserScramCredentialsResponse, DescribeUserScramCredentialsResult,
-    DescribedConsumerGroup, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
-    DescribedShareGroupOffsets, DescribedTopicPartition, DescribedTopicPartitions,
-    ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse,
-    ListConfigResourcesResponse, ListGroupsResponse, ListPartitionReassignmentsResponse,
-    ListTransactionsResponse, ListedConfigResource, ListedGroup, OngoingPartitionReassignment,
-    OngoingTopicReassignment, PushTelemetryResponse, ReassignmentPartitionResult,
-    ReassignmentTopicResult, RenewDelegationTokenRequest, RenewDelegationTokenResponse,
-    ScramCredentialInfo, TopicPartitionCursor, TopicResult, TransactionListing, TransactionState,
-    UnregisterBrokerResponse, UpdatableFeatureResult, UpdateFeaturesResponse, ALTER_CONFIG_APPEND,
-    ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN,
-    RESOURCE_BROKER, RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
+    DeletableGroupResult, DeleteRecordsRequest, DeleteTopicState, DeletedRecordsPartition,
+    DeletedRecordsTopic, DeletedShareGroupOffsets, DescribeClientQuotasResponse,
+    DescribeClusterBroker, DescribeConfigsResult, DescribeDelegationTokenRequest,
+    DescribeDelegationTokenResponse, DescribeLogDirsPartition, DescribeLogDirsRequest,
+    DescribeLogDirsResponse, DescribeLogDirsResult, DescribeLogDirsTopic,
+    DescribeProducersPartition, DescribeProducersResponse, DescribeProducersTopic,
+    DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResponse,
+    DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedGroup,
+    DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets, DescribedTopicPartition,
+    DescribedTopicPartitions, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+    GetTelemetrySubscriptionsResponse, ListConfigResourcesResponse, ListGroupsResponse,
+    ListPartitionReassignmentsResponse, ListTransactionsResponse, ListedConfigResource,
+    ListedGroup, OngoingPartitionReassignment, OngoingTopicReassignment, PushTelemetryResponse,
+    ReassignmentPartitionResult, ReassignmentTopicResult, RenewDelegationTokenRequest,
+    RenewDelegationTokenResponse, ScramCredentialInfo, TopicPartitionCursor, TopicResult,
+    TransactionListing, TransactionState, UnregisterBrokerResponse, UpdatableFeatureResult,
+    UpdateFeaturesResponse, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET,
+    ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
+    CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, RESOURCE_BROKER,
+    RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC,
 };
 use partitionline::protocol::api::{
     decode_metadata_request_topics, decode_produce_request, encode_api_versions_response,
@@ -3906,7 +3907,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 st.delete_records_not_leader.saturating_add(1);
                             parts.push(DeletedRecordsPartition {
                                 partition: p.partition,
-                                low_watermark: -1,
+                                low_watermark: DeletedRecordsPartition::INVALID_LOW_WATERMARK,
                                 error_code: error::NOT_LEADER_OR_FOLLOWER,
                             });
                             continue;
@@ -3914,7 +3915,12 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         let (low, err) = if st.created_topics.contains_key(&t.topic) {
                             let hw = *st.next_offset.get(&key).unwrap_or(&0);
                             let start = *st.log_start.get(&key).unwrap_or(&0);
-                            let low = p.offset.clamp(start, hw);
+                            let offset = if p.offset == DeleteRecordsRequest::HIGH_WATERMARK {
+                                hw
+                            } else {
+                                p.offset
+                            };
+                            let low = offset.clamp(start, hw);
                             st.log_start.insert(key.clone(), low);
                             if let Some(recs) = st.log.get_mut(&key) {
                                 recs.retain(|r| r.offset >= low);
@@ -3922,7 +3928,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             any_leader = true;
                             (low, 0i16)
                         } else {
-                            (0i64, 3i16)
+                            (DeletedRecordsPartition::INVALID_LOW_WATERMARK, 3i16)
                         };
                         parts.push(DeletedRecordsPartition {
                             partition: p.partition,

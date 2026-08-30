@@ -78,7 +78,9 @@
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N),
-//! DeleteRecords v0–v2 (v2 flexible),
+//! DeleteRecords v0–v2 (v2 flexible;
+//! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
+//! [`DeletedRecords::INVALID_LOW_WATERMARK`]),
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
@@ -376,7 +378,10 @@
 //! `ListConsumerGroupOffsetsSpec.toString` (`topicPartitions=null` when
 //! [`ListConsumerGroupOffsetsSpec::all`]).
 //! [`Admin::delete_records_for`] is Java `deleteRecords(Map)`
-//! ([`RecordsToDelete`] / [`DeletedRecords`]; one DeleteRecords RPC per leader).
+//! ([`RecordsToDelete`] / [`DeletedRecords`]; one DeleteRecords RPC per leader;
+//! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`] truncates to the
+//! high watermark; [`DeletedRecords::INVALID_LOW_WATERMARK`] is Java
+//! `DeleteRecordsResponse.INVALID_LOW_WATERMARK`).
 //! [`Admin::delete_records_timeout`] /
 //! [`Admin::delete_records_for_timeout`] are Java
 //! `DeleteRecordsOptions.timeoutMs` (RPC deadline and TimeoutMs).
