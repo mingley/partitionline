@@ -4249,6 +4249,9 @@ impl FeatureUpdateKey {
 }
 
 /// Per-feature result of UpdateFeatures v0.
+///
+/// [`Self::error`] is Java `UpdateFeaturesResponse.createWithErrors` one
+/// result (filled only when the top-level error is `ApiError.NONE`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdatableFeatureResult {
     /// Topic, resource, group, or feature name.
@@ -4259,9 +4262,47 @@ pub struct UpdatableFeatureResult {
     pub error_message: Option<String>,
 }
 
+impl UpdatableFeatureResult {
+    /// Java `UpdateFeaturesResponse.createWithErrors` one result.
+    ///
+    /// Sets `Feature` and `ErrorCode`. `ErrorMessage` is the JSON default
+    /// (null); official Java also sets the English `Errors.message`
+    /// string when the top-level error is not NONE. Java fills Results
+    /// only when that top-level error is NONE.
+    #[must_use]
+    pub fn error(name: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            name: name.into(),
+            error_code,
+            error_message: None,
+        }
+    }
+
+    /// Feature name (Java `UpdatableFeatureResult.feature`).
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+}
+
 /// UpdateFeatures response (top-level error after throttle).
 ///
 /// v2 omits per-feature Results.
+/// [`Self::create_with_errors`] / [`Self::error`] are Java
+/// `UpdateFeaturesResponse.createWithErrors` /
+/// `UpdateFeaturesRequest.getErrorResponse`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateFeaturesResponse {
     /// Kafka error code (`0` is success).
@@ -4270,6 +4311,65 @@ pub struct UpdateFeaturesResponse {
     pub error_message: Option<String>,
     /// Per-item results.
     pub results: Vec<UpdatableFeatureResult>,
+}
+
+impl UpdateFeaturesResponse {
+    /// Java `UpdateFeaturesResponse.createWithErrors`.
+    ///
+    /// Results are filled only when `error_code` is 0 (Java
+    /// `ApiError.NONE`): each name is copied onto an
+    /// [`UpdatableFeatureResult`] with that code. Otherwise Results stay
+    /// empty (Java `UpdateFeaturesRequest.getErrorResponse` passes
+    /// `Collections.emptySet`). Top-level `ErrorMessage` is the JSON
+    /// default (null); official Java also sets the English
+    /// `Errors.message` string. Throttle is the JSON default (`0`).
+    /// v2 omits Results on the wire.
+    #[must_use]
+    pub fn create_with_errors<I>(error_code: i16, updates: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        Self {
+            error_code,
+            error_message: None,
+            results: if error_code == crate::error::NONE {
+                updates
+                    .into_iter()
+                    .map(|name| UpdatableFeatureResult::error(name, error_code))
+                    .collect()
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    /// Java `UpdateFeaturesRequest.getErrorResponse`.
+    ///
+    /// [`Self::create_with_errors`] with an empty feature-name set, so
+    /// Results stay empty even when `error_code` is 0.
+    #[must_use]
+    pub fn error(error_code: i16) -> Self {
+        Self::create_with_errors(error_code, std::iter::empty::<String>())
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Per-feature Results (empty on v2 decode; v2 omits them on the wire).
+    #[must_use]
+    pub fn results(&self) -> &[UpdatableFeatureResult] {
+        &self.results
+    }
 }
 
 /// Check that UpdateFeatures `version` is spoken (0–2).
@@ -16389,6 +16489,100 @@ mod tests {
             encode_update_features_response(&mut BytesMut::new(), 3, &resp).is_err(),
             "UpdateFeatures v3+ is not spoken"
         );
+    }
+
+    #[test]
+    fn update_features_create_with_errors_is_leftover_empty() {
+        let names = ["metadata.version", "group.version"];
+        let top_level = UpdateFeaturesResponse::error(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            top_level,
+            UpdateFeaturesResponse::create_with_errors(crate::error::NOT_CONTROLLER, names,)
+        );
+        assert_eq!(top_level.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(top_level.error_message().is_none());
+        assert!(top_level.results().is_empty());
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_update_features_response(&mut buf, version, &top_level).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_update_features_response(&mut cur, version).unwrap(),
+                top_level
+            );
+            assert!(
+                !cur.has_remaining(),
+                "UpdateFeatures v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+
+        let none = UpdateFeaturesResponse::create_with_errors(crate::error::NONE, names);
+        assert_eq!(none.error_code(), crate::error::NONE);
+        assert!(none.error_message().is_none());
+        assert_eq!(
+            none.results(),
+            [
+                UpdatableFeatureResult::error("metadata.version", crate::error::NONE),
+                UpdatableFeatureResult::error("group.version", crate::error::NONE),
+            ]
+        );
+        let first = none.results().first().expect("first feature");
+        assert_eq!(first.name(), "metadata.version");
+        assert_eq!(first.error_code(), crate::error::NONE);
+        assert!(first.error_message().is_none());
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_update_features_response(&mut buf, version, &none).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_update_features_response(&mut cur, version).unwrap(),
+                none
+            );
+            assert!(
+                !cur.has_remaining(),
+                "UpdateFeatures v{version} createWithErrors NONE leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        let mut v2 = BytesMut::new();
+        encode_update_features_response(&mut v2, 2, &none).unwrap();
+        let mut cur = v2.as_ref();
+        let got = decode_update_features_response(&mut cur, 2).unwrap();
+        assert_eq!(got.error_code(), crate::error::NONE);
+        assert!(
+            got.results().is_empty(),
+            "UpdateFeatures v2 omits Results on the wire"
+        );
+        assert!(
+            !cur.has_remaining(),
+            "UpdateFeatures v2 createWithErrors NONE leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
+        let empty_none = UpdateFeaturesResponse::error(crate::error::NONE);
+        assert_eq!(
+            empty_none,
+            UpdateFeaturesResponse::create_with_errors(
+                crate::error::NONE,
+                std::iter::empty::<String>(),
+            )
+        );
+        assert!(empty_none.results().is_empty());
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_update_features_response(&mut buf, version, &empty_none).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_update_features_response(&mut cur, version).unwrap(),
+                empty_none
+            );
+            assert!(
+                !cur.has_remaining(),
+                "UpdateFeatures v{version} empty createWithErrors leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

@@ -757,6 +757,16 @@
 //! UpgradeType / ValidateOnly; v2 omits Results; Java `FeatureUpdate`
 //! constructor rejects maxVersionLevel 0 with `UpgradeType.UPGRADE` and a
 //! negative maxVersionLevel).
+//! [`protocol::admin::UpdateFeaturesResponse::create_with_errors`] /
+//! [`protocol::admin::UpdateFeaturesResponse::error`] /
+//! [`protocol::admin::UpdatableFeatureResult::error`] are Java
+//! `UpdateFeaturesResponse.createWithErrors` /
+//! `UpdateFeaturesRequest.getErrorResponse`. Results are filled only when
+//! the top-level error is NONE; otherwise Results stay empty (Java
+//! getErrorResponse passes `Collections.emptySet`). `ErrorMessage` stays
+//! the JSON default (null); official Java also sets the English
+//! `Errors.message` string. Throttle is the JSON default (`0`). v2 omits
+//! Results on the wire.
 //! [`Admin::update_features_timeout`] / [`Admin::update_features_with_timeout`]
 //! are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
