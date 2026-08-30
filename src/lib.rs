@@ -55,6 +55,12 @@
 //! [`protocol::api::TopicMetadata`] `Display` is Java
 //! `MetadataResponse.TopicMetadata.toString` (nested
 //! `PartitionMetadata.toString` uses the topic name).
+//! [`protocol::api::MetadataResponse::errors`] /
+//! [`protocol::api::MetadataResponse::errors_by_topic_id`] /
+//! [`protocol::api::MetadataResponse::topics_by_error`] are Java
+//! `MetadataResponse.errors` / `errorsByTopicId` / `topicsByError`
+//! (map values are Kafka error codes; `errors` throws when any topic name is
+//! `None`; `errors_by_topic_id` throws when any topic id is zeros).
 //! [`PartitionInfo::from_partition_metadata`] is Java
 //! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
 //! [`protocol::api::MetadataRequestTopic::convert_from_names`] /

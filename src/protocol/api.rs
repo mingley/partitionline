@@ -1,5 +1,6 @@
 //! ApiVersions, Metadata, and Produce codecs.
 
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::time::Duration;
 
@@ -1041,6 +1042,61 @@ impl MetadataResponse {
         version >= 6
     }
 
+    /// Java `MetadataResponse.errors`.
+    ///
+    /// Topics whose `errorCode` is not `NONE`. Values are Kafka error codes.
+    /// Any topic with `name` `None` is Java `IllegalStateException`
+    /// (`Use errorsByTopicId() when managing topic using topic id`); use
+    /// [`Self::errors_by_topic_id`].
+    pub fn errors(&self) -> Result<HashMap<String, i16>> {
+        let mut errors = HashMap::new();
+        for topic in &self.topics {
+            let Some(name) = topic.name.as_ref() else {
+                return Err(Error::protocol(
+                    "Use errorsByTopicId() when managing topic using topic id",
+                ));
+            };
+            if topic.error_code != 0 {
+                let _prev = errors.insert(name.clone(), topic.error_code);
+            }
+        }
+        Ok(errors)
+    }
+
+    /// Java `MetadataResponse.errorsByTopicId`.
+    ///
+    /// Topics whose `errorCode` is not `NONE`, keyed by topic id. Any zero
+    /// topic id is Java `IllegalStateException`
+    /// (`Use errors() when managing topic using topic name`); use
+    /// [`Self::errors`].
+    pub fn errors_by_topic_id(&self) -> Result<HashMap<[u8; 16], i16>> {
+        let mut errors = HashMap::new();
+        for topic in &self.topics {
+            if topic.topic_id == [0u8; 16] {
+                return Err(Error::protocol(
+                    "Use errors() when managing topic using topic name",
+                ));
+            }
+            if topic.error_code != 0 {
+                let _prev = errors.insert(topic.topic_id, topic.error_code);
+            }
+        }
+        Ok(errors)
+    }
+
+    /// Java `MetadataResponse.topicsByError`.
+    ///
+    /// Topic names whose `errorCode` matches. Skips `name` `None` (Java
+    /// `HashSet` can hold `null`).
+    #[must_use]
+    pub fn topics_by_error(&self, error_code: i16) -> HashSet<String> {
+        self.topics
+            .iter()
+            .filter(|topic| topic.error_code == error_code)
+            .filter_map(|topic| topic.name.clone())
+            .collect()
+    }
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -1937,6 +1993,7 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::Bytes;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn produce_transaction_v2_version_cap_matches_java() {
@@ -2786,6 +2843,131 @@ mod tests {
             unnamed.to_string(),
             "TopicMetadata{error=UNKNOWN_TOPIC_OR_PARTITION, topic='null', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=true, partitionMetadata=[PartitionMetadata(error=NONE, partition=null-0, leader=Optional.empty, leaderEpoch=Optional.empty, replicas=, isr=, offlineReplicas=)], authorizedOperations=0}"
         );
+    }
+
+    #[test]
+    fn metadata_response_errors_matches_java() {
+        fn topic(error_code: i16, name: Option<&str>, topic_id: [u8; 16]) -> TopicMetadata {
+            TopicMetadata {
+                error_code,
+                name: name.map(str::to_owned),
+                topic_id,
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }
+        }
+        fn resp(topics: Vec<TopicMetadata>) -> MetadataResponse {
+            MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: Vec::new(),
+                cluster_id: None,
+                controller_id: MetadataResponse::NO_CONTROLLER_ID,
+                topics,
+                error_code: 0,
+            }
+        }
+
+        let named = resp(vec![
+            topic(0, Some("ok"), [0; 16]),
+            topic(
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                Some("missing"),
+                [0; 16],
+            ),
+            topic(
+                crate::error::TOPIC_AUTHORIZATION_FAILED,
+                Some("denied"),
+                [0; 16],
+            ),
+            topic(crate::error::INVALID_TOPIC_EXCEPTION, Some("bad"), [0; 16]),
+        ]);
+        assert_eq!(
+            named.errors().unwrap(),
+            HashMap::from([
+                (
+                    "missing".to_owned(),
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                ),
+                (
+                    "denied".to_owned(),
+                    crate::error::TOPIC_AUTHORIZATION_FAILED
+                ),
+                ("bad".to_owned(), crate::error::INVALID_TOPIC_EXCEPTION),
+            ])
+        );
+        assert_eq!(
+            named.topics_by_error(crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashSet::from(["missing".to_owned()])
+        );
+        assert_eq!(named.topics_by_error(0), HashSet::from(["ok".to_owned()]));
+        assert!(named
+            .topics_by_error(crate::error::UNKNOWN_TOPIC_ID)
+            .is_empty());
+        let err = named.errors_by_topic_id().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errors() when managing topic using topic name"),
+            "got {err}"
+        );
+
+        let by_id = resp(vec![
+            topic(0, None, [1; 16]),
+            topic(crate::error::UNKNOWN_TOPIC_ID, None, [2; 16]),
+            topic(
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                Some("named"),
+                [3; 16],
+            ),
+        ]);
+        assert_eq!(
+            by_id.errors_by_topic_id().unwrap(),
+            HashMap::from([
+                ([2; 16], crate::error::UNKNOWN_TOPIC_ID),
+                ([3; 16], crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ])
+        );
+        assert_eq!(
+            by_id.topics_by_error(crate::error::UNKNOWN_TOPIC_ID),
+            HashSet::new()
+        );
+        assert_eq!(
+            by_id.topics_by_error(crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashSet::from(["named".to_owned()])
+        );
+        let err = by_id.errors().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errorsByTopicId() when managing topic using topic id"),
+            "got {err}"
+        );
+
+        let mixed_null_name = resp(vec![
+            topic(crate::error::UNKNOWN_TOPIC_OR_PARTITION, Some("t"), [1; 16]),
+            topic(0, None, [2; 16]),
+        ]);
+        let err = mixed_null_name.errors().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errorsByTopicId() when managing topic using topic id"),
+            "got {err}"
+        );
+
+        let mixed_zero_id = resp(vec![
+            topic(crate::error::UNKNOWN_TOPIC_ID, Some("t"), [1; 16]),
+            topic(0, Some("ok"), [0; 16]),
+        ]);
+        let err = mixed_zero_id.errors_by_topic_id().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errors() when managing topic using topic name"),
+            "got {err}"
+        );
+
+        let empty = resp(Vec::new());
+        assert!(empty.errors().unwrap().is_empty());
+        assert!(empty.errors_by_topic_id().unwrap().is_empty());
+        assert!(empty.topics_by_error(0).is_empty());
     }
 
     #[test]
