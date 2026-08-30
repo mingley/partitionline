@@ -1,5 +1,9 @@
 //! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
 //! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
+//!
+//! [`sasl_name`] / [`username`] / [`xor`] are Java `ScramFormatter.saslName` /
+//! `username` / `xor` (`=` then `,`; leftover `=` after decoding `=3D` is
+//! [`Error::protocol`]).
 
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
@@ -72,11 +76,31 @@ impl ScramAlg {
     }
 }
 
-fn xor(a: &[u8], b: &[u8]) -> Result<Vec<u8>> {
-    if a.len() != b.len() {
-        return Err(Error::protocol("scram xor length"));
+/// Java `ScramFormatter.saslName` (`=` then `,`).
+#[must_use]
+pub fn sasl_name(username: &str) -> String {
+    username.replace('=', "=3D").replace(',', "=2C")
+}
+
+/// Java `ScramFormatter.username`. Leftover `=` is [`Error::protocol`]
+/// (`Invalid username: …`).
+pub fn username(sasl_name: &str) -> Result<String> {
+    let with_commas = sasl_name.replace("=2C", ",");
+    if with_commas.replace("=3D", "").contains('=') {
+        return Err(Error::protocol(format!("Invalid username: {sasl_name}")));
     }
-    Ok(a.iter().zip(b).map(|(x, y)| x ^ y).collect())
+    Ok(with_commas.replace("=3D", "="))
+}
+
+/// Java `ScramFormatter.xor`. Length mismatch is [`Error::protocol`]
+/// (`Argument arrays must be of the same length`).
+pub fn xor(first: &[u8], second: &[u8]) -> Result<Vec<u8>> {
+    if first.len() != second.len() {
+        return Err(Error::protocol(
+            "Argument arrays must be of the same length",
+        ));
+    }
+    Ok(first.iter().zip(second).map(|(x, y)| x ^ y).collect())
 }
 
 fn b64(bytes: &[u8]) -> String {
@@ -86,10 +110,6 @@ fn b64(bytes: &[u8]) -> String {
 fn b64d(s: &str) -> Result<Vec<u8>> {
     base64::Engine::decode(&base64::engine::general_purpose::STANDARD, s)
         .map_err(|e| Error::protocol(format!("scram base64: {e}")))
-}
-
-fn escape_user(user: &str) -> String {
-    user.replace('=', "=3D").replace(',', "=2C")
 }
 
 fn attr_map(msg: &str) -> Result<std::collections::HashMap<char, String>> {
@@ -124,7 +144,7 @@ pub fn client_nonce() -> String {
 
 /// GS2 header plus `n=,r=` client-first; returns `(full, client_first_bare)`.
 pub fn client_first(user: &str, nonce: &str) -> (String, String) {
-    let bare = format!("n={},r={}", escape_user(user), nonce);
+    let bare = format!("n={},r={}", sasl_name(user), nonce);
     (format!("{GS2}{bare}"), bare)
 }
 
@@ -328,5 +348,28 @@ mod tests {
         let cf = client_final(ScramAlg::Sha512, "secret", &bare, &sf).unwrap();
         let fin = server_final(ScramAlg::Sha512, "secret", &bare, &sf, &cf).unwrap();
         verify_server_final(ScramAlg::Sha512, "secret", &bare, &sf, &cf, &fin).unwrap();
+    }
+
+    #[test]
+    fn scram_formatter_matches_java() {
+        assert_eq!(sasl_name("user"), "user");
+        assert_eq!(sasl_name("user=name"), "user=3Dname");
+        assert_eq!(sasl_name("user,name"), "user=2Cname");
+        assert_eq!(sasl_name("a=,b"), "a=3D=2Cb");
+        assert_eq!(username("user").unwrap(), "user");
+        assert_eq!(username("user=3Dname").unwrap(), "user=name");
+        assert_eq!(username("user=2Cname").unwrap(), "user,name");
+        assert_eq!(username("a=3D=2Cb").unwrap(), "a=,b");
+        let invalid = username("user=name").unwrap_err().to_string();
+        assert!(invalid.contains("Invalid username: user=name"), "{invalid}");
+        assert_eq!(xor(&[1, 2], &[1, 3]).unwrap(), vec![0, 1]);
+        assert_eq!(xor(&[], &[]).unwrap(), Vec::<u8>::new());
+        let mismatch = xor(&[1], &[1, 2]).unwrap_err().to_string();
+        assert!(
+            mismatch.contains("Argument arrays must be of the same length"),
+            "{mismatch}"
+        );
+        let (first, _) = client_first("user=name,x", "n1");
+        assert_eq!(first, "n,,n=user=3Dname=2Cx,r=n1");
     }
 }

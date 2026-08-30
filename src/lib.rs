@@ -179,6 +179,10 @@
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
+//! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
+//! [`protocol::scram::xor`] are Java `ScramFormatter.saslName` / `username` /
+//! `xor` (`=` then `,`; leftover `=` is [`Error::protocol`]; length mismatch
+//! is Java `Argument arrays must be of the same length`),
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry;
 //! [`protocol::api::ApiVersionsRequest::is_valid`] is Java `ApiVersionsRequest.isValid`;
 //! [`protocol::api::ApiVersionsResponse::api_version`] /
