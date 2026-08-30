@@ -344,6 +344,10 @@
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
+//! [`metrics::format_bytes`] is Java `Utils.formatBytes` (English `0.##`
+//! scale; `-1` is `-1`; `1024` is `1 KB`). [`partitioner::abs`] is Java
+//! `Utils.abs` ([`i32::MIN`] is `0`). [`partitioner::to_positive`] is Java
+//! `Utils.toPositive`.
 //! [`Admin::metrics`] is the same snapshot pattern for Admin RPCs
 //! ([`AdminMetrics`]; Java `Admin.metrics()`).
 //! [`Producer::client_instance_id`] is Java `clientInstanceId` (KIP-714;

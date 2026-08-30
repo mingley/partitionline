@@ -116,10 +116,20 @@ pub fn murmur2(data: &[u8]) -> i32 {
     i32::from_ne_bytes(h.to_ne_bytes())
 }
 
-/// Clear the sign bit so a murmur2 hash can be used as a partition index.
+/// Java `Utils.toPositive` (`number & 0x7fffffff`).
+///
+/// Used so a murmur2 hash can be a partition index. This is not
+/// [`abs`]: negative inputs keep the low 31 bits rather than the
+/// magnitude.
 #[must_use]
 pub fn to_positive(n: i32) -> i32 {
     n & 0x7fff_ffff
+}
+
+/// Java `Utils.abs`. [`i32::MIN`] is `0` (unlike [`i32::abs`]).
+#[must_use]
+pub fn abs(n: i32) -> i32 {
+    n.checked_abs().unwrap_or(0)
 }
 
 /// Java `DefaultPartitioner` for a keyed record: `murmur2(key) % num_partitions`.
@@ -144,6 +154,18 @@ mod tests {
         assert!(partition_for_key(b"key", 16) >= 0);
         assert!(partition_for_key(b"key", 16) < 16);
         assert_eq!(partition_for_key(b"key", 0), 0);
+        assert_eq!(to_positive(-1), i32::MAX);
+        assert_eq!(to_positive(1), 1);
+        assert_eq!(to_positive(i32::MIN), 0);
+    }
+
+    #[test]
+    fn abs_matches_java_utils() {
+        assert_eq!(abs(i32::MIN), 0);
+        assert_eq!(abs(-10), 10);
+        assert_eq!(abs(10), 10);
+        assert_eq!(abs(0), 0);
+        assert_eq!(abs(-1), 1);
     }
 
     #[test]

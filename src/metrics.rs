@@ -58,6 +58,61 @@ fn percentile(sorted: &[u64], p: u32) -> u64 {
         .unwrap_or(0)
 }
 
+const BYTE_SCALE_SUFFIXES: [&str; 9] = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+/// Java `Utils.formatBytes` (English `0.##` scale).
+///
+/// Negative values print with no unit suffix. Zero is `0.0`.
+#[must_use]
+pub fn format_bytes(bytes: i64) -> String {
+    if bytes < 0 {
+        return bytes.to_string();
+    }
+    if bytes == 0 {
+        return "0.0".to_string();
+    }
+    let n = u64::try_from(bytes).unwrap_or(0);
+    let mut ordinal = 0usize;
+    let mut scale = 1u64;
+    while let Some(next) = scale.checked_mul(1024) {
+        if n < next || ordinal + 1 >= BYTE_SCALE_SUFFIXES.len() {
+            break;
+        }
+        scale = next;
+        ordinal += 1;
+    }
+    let Some(suffix) = BYTE_SCALE_SUFFIXES.get(ordinal) else {
+        return n.to_string();
+    };
+    format!("{} {suffix}", format_scaled_two_digit(n, scale))
+}
+
+/// DecimalFormat `0.##` with `HALF_EVEN` (Java `Utils.formatBytes`).
+fn format_scaled_two_digit(n: u64, scale: u64) -> String {
+    let n100 = u128::from(n).saturating_mul(100);
+    let scale = u128::from(scale.max(1));
+    let q = n100 / scale;
+    let r = n100 % scale;
+    let twice_r = r.saturating_mul(2);
+    let cents = if twice_r > scale {
+        q.saturating_add(1)
+    } else if twice_r < scale || q % 2 == 0 {
+        q
+    } else {
+        q.saturating_add(1)
+    };
+    let cents = u64::try_from(cents).unwrap_or(u64::MAX);
+    let whole = cents / 100;
+    let frac = cents % 100;
+    if frac == 0 {
+        whole.to_string()
+    } else if frac % 10 == 0 {
+        format!("{whole}.{}", frac / 10)
+    } else {
+        format!("{whole}.{frac:02}")
+    }
+}
+
 pub(crate) struct LatencyTracker {
     count: AtomicU64,
     sum_nanos: AtomicU64,
@@ -508,5 +563,17 @@ mod tests {
         assert_eq!(snap[1].records_fetched, 2);
         assert_eq!(snap[1].bytes_fetched, 3);
         assert_eq!(snap[1].fetch_latency.count, 1);
+    }
+
+    #[test]
+    fn format_bytes_matches_java_utils() {
+        assert_eq!(format_bytes(-1), "-1");
+        assert_eq!(format_bytes(1023), "1023 B");
+        assert_eq!(format_bytes(1024), "1 KB");
+        assert_eq!(format_bytes(1024 * 1024 - 1), "1024 KB");
+        assert_eq!(format_bytes(1024 * 1024), "1 MB");
+        assert_eq!(format_bytes(1_153_433), "1.1 MB");
+        assert_eq!(format_bytes(10 * 1024 * 1024), "10 MB");
+        assert_eq!(format_bytes(0), "0.0");
     }
 }
