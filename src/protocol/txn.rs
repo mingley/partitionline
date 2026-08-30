@@ -227,6 +227,23 @@ impl AddPartitionsToTxnResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
     }
+
+    /// Java `AddPartitionsToTxnResponse.errorCounts` for v0–v3
+    /// (`resultsByTopicV3AndBelow`).
+    ///
+    /// Counts partition-level error codes (including `NONE`). v4+ also
+    /// counts the top-level `errorCode`; this crate does not speak v4+.
+    #[must_use]
+    pub fn error_counts(topics: &[AddPartitionsToTxnTopicResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// Encode AddPartitionsToTxn v0–v2 (classic) or v3 (flexible).
@@ -1397,6 +1414,42 @@ mod tests {
             TxnOffsetCommitResponseTopic {
                 topic: "ok2".into(),
                 partitions: vec![TxnOffsetCommitResponsePartition::error(0, 0)],
+            },
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_response_error_counts_matches_java() {
+        assert!(AddPartitionsToTxnResponse::error_counts(&[]).is_empty());
+        let counts = AddPartitionsToTxnResponse::error_counts(&[
+            AddPartitionsToTxnTopicResult {
+                topic: "ok".into(),
+                partitions: vec![
+                    AddPartitionsToTxnPartitionResult::error(0, 0),
+                    AddPartitionsToTxnPartitionResult::error(
+                        1,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    ),
+                ],
+            },
+            AddPartitionsToTxnTopicResult {
+                topic: "missing".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            AddPartitionsToTxnTopicResult {
+                topic: "ok2".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(0, 0)],
             },
         ]);
         assert_eq!(

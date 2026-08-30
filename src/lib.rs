@@ -331,6 +331,9 @@
 //! AddPartitionsToTxn v0–v3 (v3 flexible;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
 //! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::AddPartitionsToTxnResponse::error_counts`] is Java
+//! `AddPartitionsToTxnResponse.errorCounts` for v0–v3 (partition-level codes,
+//! including `NONE`);
 //! [`protocol::txn::TxnPartitionsTopic::error_result`] /
 //! [`protocol::txn::TxnPartitionsTopic::error_results`] /
 //! [`protocol::txn::AddPartitionsToTxnPartitionResult::error`] are Java
