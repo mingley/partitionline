@@ -168,6 +168,50 @@ pub struct ShareFetchedTopic {
     pub partitions: Vec<ShareFetchedPartition>,
 }
 
+/// One partition in a ShareAcknowledge response.
+///
+/// [`Self::partition_response`] is Java `ShareAcknowledgeResponse.partitionResponse`
+/// (`PartitionIndex` and `ErrorCode`). Official Java leaves ErrorMessage
+/// and CurrentLeader at JSON defaults (null / 0/0). Crate encode writes
+/// ErrorMessage null, CurrentLeader id 0 epoch 0, empty NodeEndpoints.
+/// Top-level ErrorCode stays 0 (crate encode of this factory). Throttle
+/// is the JSON default (`0`). Official Java
+/// `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
+/// ErrorCode (empty Responses).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShareAcknowledgeResponsePartition {
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+}
+
+impl ShareAcknowledgeResponsePartition {
+    /// Java `ShareAcknowledgeResponse.partitionResponse(int, Errors)`.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. Official Java leaves
+    /// ErrorMessage and CurrentLeader at JSON defaults (null / 0/0).
+    /// Crate encode writes ErrorMessage null, CurrentLeader id 0 epoch
+    /// 0, empty NodeEndpoints. Top-level ErrorCode stays 0 (crate encode
+    /// of this factory). Throttle is the JSON default (`0`).
+    #[must_use]
+    pub fn partition_response(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+        }
+    }
+}
+
+/// One topic in a ShareAcknowledge response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShareAcknowledgeResponseTopic {
+    /// Topic id (UUID).
+    pub topic_id: [u8; 16],
+    /// Partition bodies.
+    pub partitions: Vec<ShareAcknowledgeResponsePartition>,
+}
+
 /// `true` when ShareGroupHeartbeat `version` is flexible.
 ///
 /// v0 and v1 are both flexible (`flexibleVersions: "0+"`). Kafka 4.0
@@ -816,17 +860,56 @@ pub fn decode_share_acknowledge_request<B: Buf>(
     Ok((group_id, member_id, epoch, topics))
 }
 
-/// Encode a ShareAcknowledge response (`version` 0–1): throttle `0` plus error code.
+/// Encode a ShareAcknowledge response (`version` 0–1): throttle `0` plus
+/// top-level error code and empty Responses.
+///
+/// Official Java `ShareAcknowledgeRequest.getErrorResponse` writes only
+/// the top-level ErrorCode (empty Responses). For partition bodies, use
+/// [`encode_share_acknowledge_topics_response`] with
+/// [`ShareAcknowledgeResponsePartition::partition_response`].
 pub fn encode_share_acknowledge_response(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_response(buf, version, error_code, &[])
+}
+
+/// Encode a ShareAcknowledge response (`version` 0–1) with topic/partition
+/// bodies.
+///
+/// Throttle is the JSON default (`0`). Top-level ErrorMessage is null.
+/// Each partition is PartitionIndex and ErrorCode; ErrorMessage is null
+/// and CurrentLeader is JSON default id 0 epoch 0. NodeEndpoints stay
+/// empty. [`ShareAcknowledgeResponsePartition::partition_response`] is
+/// Java `ShareAcknowledgeResponse.partitionResponse`.
+pub fn encode_share_acknowledge_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, None)?;
-    buf::put_array_len(buf, flexible, Some(0))?;
+    buf::put_array_len(buf, flexible, Some(topics.len()))?;
+    for t in topics {
+        buf.extend_from_slice(&t.topic_id);
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(p.partition);
+            buf.put_i16(p.error_code);
+            buf::put_string(buf, flexible, None)?;
+            encode_leader(buf, 0, 0);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
     buf::put_array_len(buf, flexible, Some(0))?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -835,27 +918,55 @@ pub fn encode_share_acknowledge_response(
 }
 
 /// Decode a ShareAcknowledge response (`version` 0–1): error code.
+///
+/// Does not fail on a non-zero top-level ErrorCode. Topic/partition
+/// bodies are decoded and discarded. For those, use
+/// [`decode_share_acknowledge_topics_response`].
 pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let (error_code, _topics) = decode_share_acknowledge_topics_response(buf, version)?;
+    Ok(error_code)
+}
+
+/// Decode a ShareAcknowledge response (`version` 0–1): top-level ErrorCode
+/// and topic/partition bodies.
+///
+/// Does not fail on a non-zero top-level or partition ErrorCode; callers
+/// decide. Throttle is ignored (crate encode writes `0`). ErrorMessage
+/// and CurrentLeader are not stored.
+pub fn decode_share_acknowledge_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(i16, Vec<ShareAcknowledgeResponseTopic>)> {
     let flexible = share_acknowledge_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let _msg = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let _id = buf::get_uuid(buf)?;
+        let topic_id = buf::get_uuid(buf)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
-            let _e = buf::get_i16(buf)?;
+            let partition = buf::get_i32(buf)?;
+            let part_error = buf::get_i16(buf)?;
             let _m = buf::get_string(buf, flexible)?;
             let _l = decode_leader(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
+            partitions.push(ShareAcknowledgeResponsePartition {
+                partition,
+                error_code: part_error,
+            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        topics.push(ShareAcknowledgeResponseTopic {
+            topic_id,
+            partitions,
+        });
     }
     let nodes = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     for _ in 0..nodes {
@@ -870,7 +981,7 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(error_code)
+    Ok((error_code, topics))
 }
 
 #[cfg(test)]
@@ -1346,6 +1457,74 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} empty partitionResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn share_acknowledge_partition_response_leftover_empty() {
+        let err = ShareAcknowledgeResponsePartition::partition_response(
+            3,
+            crate::error::UNKNOWN_TOPIC_ID,
+        );
+        assert_eq!(
+            err,
+            ShareAcknowledgeResponsePartition {
+                partition: 3,
+                error_code: crate::error::UNKNOWN_TOPIC_ID,
+            }
+        );
+        let topics = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![
+                ShareAcknowledgeResponsePartition::partition_response(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_ID,
+                ),
+                ShareAcknowledgeResponsePartition::partition_response(
+                    3,
+                    crate::error::UNKNOWN_TOPIC_ID,
+                ),
+            ],
+        }];
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response(&mut buf, version, 0, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            let (top, decoded) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(decoded, topics);
+            assert!(
+                !cur.has_remaining(),
+                "ShareAcknowledge v{version} partitionResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_share_acknowledge_response(&mut buf.as_ref(), version).unwrap(),
+                0
+            );
+        }
+        let empty: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
+        for version in [0i16, 1] {
+            let mut via_topics = BytesMut::new();
+            encode_share_acknowledge_topics_response(&mut via_topics, version, 0, &empty).unwrap();
+            let mut via_empty = BytesMut::new();
+            encode_share_acknowledge_response(&mut via_empty, version, 0).unwrap();
+            assert_eq!(
+                via_topics.as_ref(),
+                via_empty.as_ref(),
+                "empty Responses matches getErrorResponse encode"
+            );
+            let mut cur = via_topics.as_ref();
+            let (top, decoded) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(decoded, empty);
+            assert!(
+                !cur.has_remaining(),
+                "ShareAcknowledge v{version} empty partitionResponse leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }

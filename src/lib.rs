@@ -158,7 +158,15 @@
 //! id 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
 //! v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
 //! (crate encode). Throttle is the JSON default (`0`)),
-//! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
+//! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
+//! [`protocol::share::ShareAcknowledgeResponsePartition::partition_response`] is Java
+//! `ShareAcknowledgeResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
+//! Official Java leaves ErrorMessage and CurrentLeader at JSON defaults
+//! (null / 0/0). Crate encode writes ErrorMessage null, CurrentLeader id 0
+//! epoch 0, empty NodeEndpoints. Top-level ErrorCode stays 0 (crate encode
+//! of this factory). Throttle is the JSON default (`0`). Official Java
+//! `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
+//! ErrorCode (empty Responses)),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
 //! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
