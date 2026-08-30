@@ -18,7 +18,11 @@
 //! first). [`deep_to_string`] is Java `MessageUtil.deepToString` (comma-space
 //! inside square brackets; empty is `[]`). [`compare_raw_tagged_fields`] is
 //! Java `MessageUtil.compareRawTaggedFields` (`None` is null; a null list
-//! equals null or empty).
+//! equals null or empty). [`read_unsigned_int`] / [`write_unsigned_int`] /
+//! [`read_int_be`] / [`read_unsigned_int_le`] / [`write_unsigned_int_le`] are
+//! Java `ByteUtils.readUnsignedInt` / `writeUnsignedInt` / `readIntBE` /
+//! `readUnsignedIntLE` / `writeUnsignedIntLE` (offset forms; short buffer is
+//! [`Error::protocol`] `need 4 bytes`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -777,6 +781,58 @@ pub fn get_u32<B: Buf>(buf: &mut B) -> Result<u32> {
     Ok(buf.get_u32())
 }
 
+fn four_bytes(buffer: &[u8], offset: usize) -> Result<[u8; 4]> {
+    let have = buffer.len().saturating_sub(offset);
+    let end = offset
+        .checked_add(4)
+        .ok_or_else(|| Error::protocol(format!("need 4 bytes, have {have}")))?;
+    let slice = buffer
+        .get(offset..end)
+        .ok_or_else(|| Error::protocol(format!("need 4 bytes, have {have}")))?;
+    <[u8; 4]>::try_from(slice).map_err(|_| Error::protocol(format!("need 4 bytes, have {have}")))
+}
+
+fn four_bytes_mut(buffer: &mut [u8], offset: usize) -> Result<&mut [u8; 4]> {
+    let have = buffer.len().saturating_sub(offset);
+    let end = offset
+        .checked_add(4)
+        .ok_or_else(|| Error::protocol(format!("need 4 bytes, have {have}")))?;
+    let slice = buffer
+        .get_mut(offset..end)
+        .ok_or_else(|| Error::protocol(format!("need 4 bytes, have {have}")))?;
+    <&mut [u8; 4]>::try_from(slice)
+        .map_err(|_| Error::protocol(format!("need 4 bytes, have {have}")))
+}
+
+/// Java `ByteUtils.readUnsignedInt`.
+///
+/// Same bits as [`get_u32`], returned as `i64` (`getInt() & 0xffffffffL`).
+pub fn read_unsigned_int<B: Buf>(buf: &mut B) -> Result<i64> {
+    Ok(i64::from(get_u32(buf)?))
+}
+
+/// Java `ByteUtils.writeUnsignedInt`. Overflow keeps the low 32 bits.
+pub fn write_unsigned_int(buf: &mut BytesMut, value: i64) {
+    let low = u32::try_from(value & 0xffff_ffff).unwrap_or(0);
+    buf.put_i32(i32::from_ne_bytes(low.to_ne_bytes()));
+}
+
+/// Java `ByteUtils.readIntBE`.
+pub fn read_int_be(buffer: &[u8], offset: usize) -> Result<i32> {
+    Ok(i32::from_be_bytes(four_bytes(buffer, offset)?))
+}
+
+/// Java `ByteUtils.readUnsignedIntLE`.
+pub fn read_unsigned_int_le(buffer: &[u8], offset: usize) -> Result<i32> {
+    Ok(i32::from_le_bytes(four_bytes(buffer, offset)?))
+}
+
+/// Java `ByteUtils.writeUnsignedIntLE`.
+pub fn write_unsigned_int_le(buffer: &mut [u8], offset: usize, value: i32) -> Result<()> {
+    *four_bytes_mut(buffer, offset)? = value.to_le_bytes();
+    Ok(())
+}
+
 /// Read `BOOLEAN` (`INT8 != 0`).
 pub fn get_bool<B: Buf>(buf: &mut B) -> Result<bool> {
     Ok(get_i8(buf)? != 0)
@@ -1273,6 +1329,34 @@ mod tests {
         assert!(compare_raw_tagged_fields(Some(one), Some(one)));
         assert!(!compare_raw_tagged_fields(Some(one), Some(other)));
         assert!(compare_raw_tagged_fields(Some(empty), Some(empty)));
+    }
+
+    #[test]
+    fn read_int_be_matches_java_byte_utils() {
+        assert_eq!(read_int_be(&[0, 0, 0, 1], 0).ok(), Some(1));
+        assert_eq!(read_int_be(&[0xFF, 0xFF, 0xFF, 0xFF], 0).ok(), Some(-1));
+        assert_eq!(read_int_be(&[0, 0, 0, 0, 2], 1).ok(), Some(2));
+        let short = read_int_be(&[1, 2, 3], 0).unwrap_err().to_string();
+        assert!(short.contains("need 4 bytes, have 3"), "{short}");
+
+        assert_eq!(read_unsigned_int_le(&[1, 0, 0, 0], 0).ok(), Some(1));
+        assert_eq!(
+            read_unsigned_int_le(&[0, 0, 0, 0x80], 0).ok(),
+            Some(i32::MIN)
+        );
+        let mut le = [0u8; 4];
+        assert!(write_unsigned_int_le(&mut le, 0, -1).is_ok());
+        assert_eq!(le, [0xFF, 0xFF, 0xFF, 0xFF]);
+        assert_eq!(read_unsigned_int_le(&le, 0).ok(), Some(-1));
+
+        let mut buf = BytesMut::new();
+        write_unsigned_int(&mut buf, 1);
+        write_unsigned_int(&mut buf, 0x1_0000_0001);
+        write_unsigned_int(&mut buf, -1);
+        let mut cur = buf.freeze();
+        assert_eq!(read_unsigned_int(&mut cur).ok(), Some(1));
+        assert_eq!(read_unsigned_int(&mut cur).ok(), Some(1));
+        assert_eq!(read_unsigned_int(&mut cur).ok(), Some(4_294_967_295));
     }
 
     #[test]
