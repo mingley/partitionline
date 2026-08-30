@@ -515,6 +515,9 @@ pub struct ConsumerGroup {
 
 impl ConsumerGroup {
     /// Join with the Java range assignor. One topic.
+    ///
+    /// An empty `group_id` is Java `InvalidGroupIdException`
+    /// (`The configured group.id should not be an empty string or whitespace.`).
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -578,6 +581,7 @@ impl ConsumerGroup {
         protocol: &str,
     ) -> Result<Self> {
         let group_id = group_id.into();
+        reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
         Self::join_with_protocol_list(cfg, group_id, topics, vec![protocol.to_string()], None).await
     }
@@ -586,7 +590,8 @@ impl ConsumerGroup {
     ///
     /// JoinGroup sends Protocols of N in this order. The broker picks the
     /// first protocol every member supports; this client then assigns with
-    /// that name. Empty `assignors` is a protocol error.
+    /// that name. Empty `assignors` is Java `IllegalStateException`
+    /// (`Must configure at least one partition assigner class name`).
     pub async fn join_with_assignors(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -603,12 +608,13 @@ impl ConsumerGroup {
         topics: impl IntoIterator<Item = impl Into<String>>,
         assignors: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<Self> {
+        let group_id = group_id.into();
+        reject_java_empty_group_id(&group_id)?;
         let names: Vec<String> = assignors.into_iter().map(Into::into).collect();
         if names.is_empty() {
-            return Err(Error::protocol("JoinGroup Protocols is empty"));
+            return Err(reject_java_no_assignors());
         }
-        Self::join_with_protocol_list(cfg, group_id.into(), collect_topics(topics)?, names, None)
-            .await
+        Self::join_with_protocol_list(cfg, group_id, collect_topics(topics)?, names, None).await
     }
 
     async fn join_with_protocol_list(
@@ -618,10 +624,11 @@ impl ConsumerGroup {
         assignors: Vec<String>,
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
+        reject_java_empty_group_id(&group_id)?;
         let protocol = assignors
             .first()
             .cloned()
-            .ok_or_else(|| Error::protocol("JoinGroup Protocols is empty"))?;
+            .ok_or_else(reject_java_no_assignors)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
 
@@ -720,6 +727,9 @@ impl ConsumerGroup {
     }
 
     /// KIP-848 `group.protocol=consumer`. One topic.
+    ///
+    /// An empty `group_id` uses the same Java `InvalidGroupIdException` as
+    /// [`Self::join`].
     pub async fn join_consumer(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -735,6 +745,7 @@ impl ConsumerGroup {
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<Self> {
         let group_id = group_id.into();
+        reject_java_empty_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
         Self::join_consumer_list(cfg, group_id, topics, None).await
     }
@@ -754,6 +765,7 @@ impl ConsumerGroup {
         topics: Vec<String>,
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
+        reject_java_empty_group_id(&group_id)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
@@ -2463,6 +2475,24 @@ fn wanted_from_kip848(
         }
     }
     out
+}
+
+/// Java `ClassicKafkaConsumer` / `AsyncKafkaConsumer` constructor when
+/// `group.id` is an empty string.
+fn reject_java_empty_group_id(group_id: &str) -> Result<()> {
+    if group_id.is_empty() {
+        return Err(Error::protocol(
+            "The configured group.id should not be an empty string or whitespace.",
+        ));
+    }
+    Ok(())
+}
+
+/// Java `ClassicKafkaConsumer.throwIfNoAssignorsConfigured`.
+fn reject_java_no_assignors() -> Error {
+    Error::protocol(
+        "Must configure at least one partition assigner class name to partition.assignment.strategy configuration property",
+    )
 }
 
 pub(crate) fn collect_topics(

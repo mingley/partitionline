@@ -1139,11 +1139,16 @@
 //! [`ConsumerGroup::join`] is classic range, [`ConsumerGroup::join_sticky`]
 //! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429,
 //! [`ConsumerGroup::join_with_assignors`] is Java `partition.assignment.strategy`
-//! (JoinGroup Protocols of N), and
+//! (JoinGroup Protocols of N; empty assignors is `Must configure at least one
+//! partition assigner class name`), and
 //! [`ConsumerGroup::join_consumer`] is KIP-848
 //! ([`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! on join; leave uses
-//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::leave_group_epoch`]). Each has a
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::leave_group_epoch`]).
+//! An empty `group.id` on [`ConsumerGroup::join`] is
+//! `The configured group.id should not be an empty string or whitespace.`;
+//! [`ShareGroup::join`] is
+//! `You must provide a valid group.id in the consumer configuration.`. Each has a
 //! `_topics` variant for several topics. [`ConsumerGroup::group_protocol`] is
 //! Java `GroupProtocol` (`CLASSIC` / `CONSUMER`; [`GroupProtocol::of`] is Java
 //! `GroupProtocol.of`). [`ConsumerGroup::join_matching`] /

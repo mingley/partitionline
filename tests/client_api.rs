@@ -1758,6 +1758,49 @@ async fn poll_without_subscription_or_assignment_match_java() {
     share_group.leave().await.unwrap();
 }
 
+#[tokio::test]
+async fn join_empty_group_id_and_assignors_match_java() {
+    let cfg = ConsumerConfig::bootstrap(["127.0.0.1:1"]).max_wait_ms(10);
+    let empty_group = "The configured group.id should not be an empty string or whitespace.";
+    let share_group_id = "You must provide a valid group.id in the consumer configuration.";
+    let no_assignors = "Must configure at least one partition assigner class name to partition.assignment.strategy configuration property";
+
+    let classic = ConsumerGroup::join(cfg.clone(), "", "t")
+        .await
+        .map(|_| ())
+        .unwrap_err()
+        .to_string();
+    assert!(classic.contains(empty_group), "{classic}");
+    let kip848 = ConsumerGroup::join_consumer(cfg.clone(), "", "t")
+        .await
+        .map(|_| ())
+        .unwrap_err()
+        .to_string();
+    assert!(kip848.contains(empty_group), "{kip848}");
+    let matching = ConsumerGroup::join_matching(cfg.clone(), "", |_| true)
+        .await
+        .map(|_| ())
+        .unwrap_err()
+        .to_string();
+    assert!(matching.contains(empty_group), "{matching}");
+    let share = ShareGroup::join(cfg.clone(), "", "t")
+        .await
+        .map(|_| ())
+        .unwrap_err()
+        .to_string();
+    assert!(share.contains(share_group_id), "{share}");
+    assert!(
+        !share.contains("empty string or whitespace"),
+        "ShareConsumer uses maybeThrowInvalidGroupIdException, got {share}"
+    );
+    let assignors = ConsumerGroup::join_with_assignors(cfg, "g", "t", std::iter::empty::<&str>())
+        .await
+        .map(|_| ())
+        .unwrap_err()
+        .to_string();
+    assert!(assignors.contains(no_assignors), "{assignors}");
+}
+
 #[test]
 fn topic_partition_from_tuple() {
     let tp: TopicPartition = ("orders", 3).into();

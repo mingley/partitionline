@@ -563,6 +563,9 @@ fn spoken_share_group_heartbeat(version: i16) -> Result<i16> {
 
 impl ShareGroup {
     /// Join a share group. One topic.
+    ///
+    /// An empty `group_id` is Java `InvalidGroupIdException`
+    /// (`You must provide a valid group.id in the consumer configuration.`).
     pub async fn join(
         cfg: ConsumerConfig,
         group_id: impl Into<String>,
@@ -578,6 +581,7 @@ impl ShareGroup {
         topics: impl IntoIterator<Item = impl Into<String>>,
     ) -> Result<Self> {
         let group_id = group_id.into();
+        reject_java_share_group_id(&group_id)?;
         let topics = collect_topics(topics)?;
         Self::join_list(cfg, group_id, topics, None).await
     }
@@ -602,6 +606,7 @@ impl ShareGroup {
         topics: Vec<String>,
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
+        reject_java_share_group_id(&group_id)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let share_fetch_version = consumer
             .versions()
@@ -1498,6 +1503,16 @@ fn share_session_reset(e: &Error) -> bool {
             ..
         }
     )
+}
+
+/// Java `ShareConsumerImpl.maybeThrowInvalidGroupIdException`.
+fn reject_java_share_group_id(group_id: &str) -> Result<()> {
+    if group_id.is_empty() {
+        return Err(Error::protocol(
+            "You must provide a valid group.id in the consumer configuration.",
+        ));
+    }
+    Ok(())
 }
 
 /// Java `ShareConsumerImpl.poll` when `hasNoSubscriptionOrUserAssignment`.
