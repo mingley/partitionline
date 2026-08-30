@@ -163,7 +163,9 @@
 //! (`UserScramCredentialsDescription.toString` on
 //! [`DescribeUserScramCredentialsResult`]). [`ScramMechanism::id`] is Java
 //! `ScramMechanism.type`. [`ActiveProducer`] `Display`
-//! is Java `ProducerState.toString`. [`OngoingReassignment`] `Display`
+//! is Java `ProducerState.toString`. [`DescribeProducersPartition`]
+//! `Display` is Java `PartitionProducerState.toString`.
+//! [`OngoingReassignment`] `Display`
 //! is Java `PartitionReassignment.toString`. [`TransactionListing`]
 //! `Display` is Java `TransactionListing.toString`. [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.

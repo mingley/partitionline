@@ -4904,6 +4904,9 @@ impl fmt::Display for ActiveProducer {
 
 /// Per-partition DescribeProducers result. ErrorCode sits here, not
 /// at the top of the response body.
+///
+/// [`Display`] is Java `DescribeProducersResult.PartitionProducerState.toString`
+/// (`activeProducers` only).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersPartition {
     /// Partition index.
@@ -4955,6 +4958,14 @@ impl DescribeProducersPartition {
     #[must_use]
     pub fn active_producers(&self) -> &[ActiveProducer] {
         &self.active_producers
+    }
+}
+
+impl fmt::Display for DescribeProducersPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PartitionProducerState(activeProducers=")?;
+        write_java_bracket_list(f, &self.active_producers)?;
+        f.write_str(")")
     }
 }
 
@@ -15057,6 +15068,14 @@ mod tests {
         assert_eq!(part.error_code(), 0);
         assert!(part.error_message().is_none());
         assert_eq!(part.active_producers(), std::slice::from_ref(&active));
+        assert_eq!(
+            part.to_string(),
+            "PartitionProducerState(activeProducers=[ProducerState(producerId=1000, producerEpoch=1, lastSequence=7, lastTimestamp=1700000000000, coordinatorEpoch=OptionalInt[0], currentTransactionStartOffset=OptionalLong.empty)])"
+        );
+        assert_eq!(
+            DescribeProducersPartition::new(1, 0, None, Vec::new()).to_string(),
+            "PartitionProducerState(activeProducers=[])"
+        );
         let topic = DescribeProducersTopic::new("t", vec![part.clone()]);
         assert_eq!(topic.name(), "t");
         assert_eq!(topic.partitions(), std::slice::from_ref(&part));
