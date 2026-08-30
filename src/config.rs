@@ -196,7 +196,7 @@ impl fmt::Display for IsolationLevel {
 /// [`Display`] is Java `SecurityProtocol.toString` / the `name` field
 /// (`PLAINTEXT`). This crate still configures TLS via [`TlsConfig`] and
 /// SASL via [`Sasl`]; the enum is the Java id/name mapping.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i16)]
 pub enum SecurityProtocol {
     /// Unauthenticated, unencrypted (`PLAINTEXT`).
@@ -337,6 +337,75 @@ impl ListenerName {
 impl fmt::Display for ListenerName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ListenerName({})", self.value)
+    }
+}
+
+/// Java `org.apache.kafka.common.Endpoint`.
+///
+/// Broker listener endpoint. Java `listenerName` may be null on clients
+/// (`None` here). [`Display`] is Java `Endpoint.toString`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Endpoint {
+    listener_name: Option<String>,
+    security_protocol: SecurityProtocol,
+    host: Option<String>,
+    port: i32,
+}
+
+impl Endpoint {
+    /// Java `new Endpoint(String, SecurityProtocol, String, int)`.
+    ///
+    /// `None` is Java null for listener name and host.
+    #[must_use]
+    pub fn new(
+        listener_name: Option<String>,
+        security_protocol: SecurityProtocol,
+        host: Option<String>,
+        port: i32,
+    ) -> Self {
+        Self {
+            listener_name,
+            security_protocol,
+            host,
+            port,
+        }
+    }
+
+    /// Java `Endpoint.listenerName` (`Optional.ofNullable`).
+    #[must_use]
+    pub fn listener_name(&self) -> Option<&str> {
+        self.listener_name.as_deref()
+    }
+
+    /// Java `Endpoint.securityProtocol`.
+    #[must_use]
+    pub fn security_protocol(&self) -> SecurityProtocol {
+        self.security_protocol
+    }
+
+    /// Java `Endpoint.host`.
+    #[must_use]
+    pub fn host(&self) -> Option<&str> {
+        self.host.as_deref()
+    }
+
+    /// Java `Endpoint.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+}
+
+impl fmt::Display for Endpoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Endpoint(listenerName='{}', securityProtocol={}, host='{}', port={})",
+            self.listener_name.as_deref().unwrap_or("null"),
+            self.security_protocol,
+            self.host.as_deref().unwrap_or("null"),
+            self.port
+        )
     }
 }
 
@@ -631,6 +700,41 @@ mod tests {
         );
         let nbsp = ListenerName::normalised("\u{00a0}").unwrap();
         assert_eq!(nbsp.value(), "\u{00a0}");
+    }
+
+    #[test]
+    fn endpoint_matches_java() {
+        let ep = Endpoint::new(
+            Some("CLIENT".into()),
+            SecurityProtocol::Plaintext,
+            Some("localhost".into()),
+            9092,
+        );
+        assert_eq!(ep.listener_name(), Some("CLIENT"));
+        assert_eq!(ep.security_protocol(), SecurityProtocol::Plaintext);
+        assert_eq!(ep.host(), Some("localhost"));
+        assert_eq!(ep.port(), 9092);
+        assert_eq!(
+            ep.to_string(),
+            "Endpoint(listenerName='CLIENT', securityProtocol=PLAINTEXT, host='localhost', port=9092)"
+        );
+        let none = Endpoint::new(None, SecurityProtocol::Ssl, None, 9093);
+        assert_eq!(none.listener_name(), None);
+        assert_eq!(none.host(), None);
+        assert_eq!(
+            none.to_string(),
+            "Endpoint(listenerName='null', securityProtocol=SSL, host='null', port=9093)"
+        );
+        let sasl = Endpoint::new(
+            Some("INTERNAL".into()),
+            SecurityProtocol::SaslSsl,
+            Some("broker.local".into()),
+            9094,
+        );
+        assert_eq!(
+            sasl.to_string(),
+            "Endpoint(listenerName='INTERNAL', securityProtocol=SASL_SSL, host='broker.local', port=9094)"
+        );
     }
 
     #[test]

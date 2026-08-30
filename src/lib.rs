@@ -837,6 +837,10 @@
 //! [`ListenerName::sasl_mechanism_prefix`] are Java `ListenerName`
 //! (`toUpperCase`; blank is [`Error::protocol`]). [`ListenerName`] `Display`
 //! is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
+//! [`Endpoint::new`] / [`Endpoint::listener_name`] /
+//! [`Endpoint::security_protocol`] / [`Endpoint::host`] / [`Endpoint::port`]
+//! are Java `Endpoint` (`None` is null; `listenerName` is
+//! `Optional.ofNullable`). [`Endpoint`] `Display` is Java `Endpoint.toString`.
 //! [`Compression::id`] /
 //! [`Compression::from_id`] / [`Compression::from_name`] are Java
 //! `CompressionType.id` / `forId` / `forName`
@@ -1676,7 +1680,7 @@
 /// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;
 pub(crate) mod cluster;
-/// Shared config: [`Acks`], [`IsolationLevel`], [`SecurityProtocol`], [`ListenerName`], [`Sasl`].
+/// Shared config: [`Acks`], [`IsolationLevel`], [`SecurityProtocol`], [`ListenerName`], [`Endpoint`], [`Sasl`].
 pub mod config;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
@@ -1754,7 +1758,9 @@ pub use admin::{
     UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
     UPGRADE_TYPE_UPGRADE,
 };
-pub use config::{Acks, AutoOffsetReset, IsolationLevel, ListenerName, Sasl, SecurityProtocol};
+pub use config::{
+    Acks, AutoOffsetReset, Endpoint, IsolationLevel, ListenerName, Sasl, SecurityProtocol,
+};
 pub use consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
