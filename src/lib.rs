@@ -54,11 +54,19 @@
 //! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
+//! [`protocol::group::FindCoordinatorResponse::should_client_throttle`] is Java
+//! `FindCoordinatorResponse.shouldClientThrottle` (v2+).
 //! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
-//! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
+//! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
+//! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
+//! `OffsetCommitResponse.shouldClientThrottle` (v4+)),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
-//! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
-//! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
+//! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
+//! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
+//! `HeartbeatResponse.shouldClientThrottle` (v2+)),
+//! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
+//! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
+//! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
 //! Protocols of N via [`ConsumerGroup::join_with_assignors`];
 //! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java

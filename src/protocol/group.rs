@@ -71,6 +71,17 @@ impl fmt::Display for CoordinatorType {
     }
 }
 
+/// Java `FindCoordinatorResponse` helpers.
+pub struct FindCoordinatorResponse;
+
+impl FindCoordinatorResponse {
+    /// Java `FindCoordinatorResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+}
+
 /// Java `ConsumerProtocol` (classic JoinGroup / SyncGroup protocol type).
 pub struct ConsumerProtocol;
 
@@ -1208,6 +1219,17 @@ pub struct SyncGroupRequest<'a> {
     pub assignments: &'a [(String, Vec<u8>)],
 }
 
+/// Java `SyncGroupResponse` helpers.
+pub struct SyncGroupResponse;
+
+impl SyncGroupResponse {
+    /// Java `SyncGroupResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+}
+
 /// Encode SyncGroup v0–v5.
 ///
 /// Kafka 4.0 JSON: `validVersions: "0-5"`, `flexibleVersions: "4+"`.
@@ -1335,6 +1357,17 @@ fn heartbeat_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "Heartbeat version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `HeartbeatResponse` helpers.
+pub struct HeartbeatResponse;
+
+impl HeartbeatResponse {
+    /// Java `HeartbeatResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
     }
 }
 
@@ -1841,6 +1874,17 @@ pub const DEFAULT_GENERATION_ID: i32 = -1;
 pub const DEFAULT_MEMBER_ID: &str = "";
 /// Java `OffsetCommitRequest.DEFAULT_RETENTION_TIME` (v2–v4 RetentionTimeMs).
 pub const DEFAULT_RETENTION_TIME: i64 = -1;
+
+/// Java `OffsetCommitResponse` helpers.
+pub struct OffsetCommitResponse;
+
+impl OffsetCommitResponse {
+    /// Java `OffsetCommitResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 4
+    }
+}
 
 /// Encode OffsetCommit v2–v9.
 ///
@@ -2675,6 +2719,8 @@ mod tests {
         assert_eq!(MIN_BATCHED_VERSION, 4);
         assert!(find_coordinator_batched(MIN_BATCHED_VERSION));
         assert!(!find_coordinator_batched(MIN_BATCHED_VERSION - 1));
+        assert!(!FindCoordinatorResponse::should_client_throttle(1));
+        assert!(FindCoordinatorResponse::should_client_throttle(2));
     }
 
     #[test]
@@ -2694,6 +2740,12 @@ mod tests {
         assert_eq!(DEFAULT_GENERATION_ID, -1);
         assert_eq!(DEFAULT_MEMBER_ID, "");
         assert_eq!(DEFAULT_RETENTION_TIME, -1);
+        assert!(!OffsetCommitResponse::should_client_throttle(3));
+        assert!(OffsetCommitResponse::should_client_throttle(4));
+        assert!(!SyncGroupResponse::should_client_throttle(1));
+        assert!(SyncGroupResponse::should_client_throttle(2));
+        assert!(!HeartbeatResponse::should_client_throttle(1));
+        assert!(HeartbeatResponse::should_client_throttle(2));
     }
 
     #[test]
