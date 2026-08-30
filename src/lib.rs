@@ -513,6 +513,9 @@
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`protocol::txn::EndTxnRequest::error_response`] is Java
+//! `EndTxnRequest.getErrorResponse` ([`RecordBatch::NO_PRODUCER_ID`] /
+//! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+; throttle JSON default 0);
 //! [`protocol::txn::EndTxnResponse::should_client_throttle`] is Java
 //! `EndTxnResponse.shouldClientThrottle` (v1+);
 //! EndTxn decode below v5 fills [`RecordBatch::NO_PRODUCER_ID`] /

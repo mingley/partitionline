@@ -24,6 +24,21 @@ pub struct EndTxnRequest;
 impl EndTxnRequest {
     /// Java `EndTxnRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
     pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
+
+    /// Java `EndTxnRequest.getErrorResponse`.
+    ///
+    /// Producer id / epoch stay the JSON defaults
+    /// ([`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`])
+    /// on v5+. Throttle is the JSON default (`0`).
+    pub fn error_response(buf: &mut BytesMut, version: i16, error_code: i16) -> Result<()> {
+        encode_end_txn_response(
+            buf,
+            version,
+            error_code,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+    }
 }
 
 /// Java `EndTxnResponse` helpers.
@@ -1710,6 +1725,49 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_end_txn_response(&mut buf, 5, 0, 9, 2).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn end_txn_error_response_matches_java() {
+        // Java EndTxnRequest.getErrorResponse: error + throttle JSON default 0.
+        // ProducerId / ProducerEpoch stay JSON defaults (-1) on v5+.
+        for version in [0_i16, 3, 5] {
+            let mut expected = BytesMut::new();
+            encode_end_txn_response(
+                &mut expected,
+                version,
+                16,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            EndTxnRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "EndTxn v{version} getErrorResponse must match sentinel encode"
+            );
+            let mut cur = &got[..];
+            let (err, pid, epoch) = decode_end_txn_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
+            assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            assert!(
+                cur.is_empty(),
+                "EndTxn v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v3 = BytesMut::new();
+        EndTxnRequest::error_response(&mut v3, 3, 16).unwrap();
+        let mut v5 = BytesMut::new();
+        EndTxnRequest::error_response(&mut v5, 5, 16).unwrap();
+        assert_ne!(
+            &v3[..],
+            &v5[..],
+            "v5 getErrorResponse includes ProducerId / ProducerEpoch JSON defaults"
+        );
     }
 
     #[test]
