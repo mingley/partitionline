@@ -174,7 +174,12 @@
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+)),
-//! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible),
+//! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible;
+//! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
+//! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
+//! empty). `ErrorMessage` stays the JSON default (null); official Java
+//! also sets the English `Errors.message` string. Throttle is the JSON
+//! default (`0`)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
@@ -893,7 +898,9 @@
 //! `ClientQuotaFilterComponent` factories.
 //! [`ClientQuotaEntity::USER`] / [`ClientQuotaEntity::CLIENT_ID`] /
 //! [`ClientQuotaEntity::IP`] match Java `ClientQuotaEntity` constants.
-//! [`ClientQuotaAlteration::error_result`] /
+//! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
+//! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
+//! empty). [`ClientQuotaAlteration::error_result`] /
 //! [`ClientQuotaAlterationResult::error`] /
 //! [`ClientQuotaAlterationResult::error_results`] are Java
 //! `AlterClientQuotasRequest.getErrorResponse` (one entry / Entries).

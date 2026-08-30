@@ -5240,6 +5240,9 @@ impl ClientQuotaEntry {
 }
 
 /// DescribeClientQuotas v1 response body (top-level ErrorCode).
+///
+/// [`Self::error`] is Java `DescribeClientQuotasRequest.getErrorResponse`
+/// (`Entries` null, not empty).
 #[derive(Debug, Clone, PartialEq)]
 pub struct DescribeClientQuotasResponse {
     /// Kafka error code (`0` is success).
@@ -5248,6 +5251,41 @@ pub struct DescribeClientQuotasResponse {
     pub error_message: Option<String>,
     /// Matching quota entries.
     pub entries: Option<Vec<ClientQuotaEntry>>,
+}
+
+impl DescribeClientQuotasResponse {
+    /// Java `DescribeClientQuotasRequest.getErrorResponse`.
+    ///
+    /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
+    /// official Java also sets the English `Errors.message` string.
+    /// `Entries` is null (not an empty array). Throttle is the JSON
+    /// default (`0`).
+    #[must_use]
+    pub fn error(error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            entries: None,
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Matching quota entries (`None` is Java null `Entries`).
+    #[must_use]
+    pub fn entries(&self) -> Option<&[ClientQuotaEntry]> {
+        self.entries.as_deref()
+    }
 }
 
 /// One quota key to set or remove (AlterClientQuotas).
@@ -17956,6 +17994,44 @@ mod tests {
         assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
         assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+    }
+
+    #[test]
+    fn describe_client_quotas_get_error_response_null_entries_is_leftover_empty() {
+        let err = DescribeClientQuotasResponse::error(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.error_code(), crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(err.error_message().is_none());
+        assert!(err.entries().is_none());
+        let empty_entries = DescribeClientQuotasResponse {
+            error_code: crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            error_message: None,
+            entries: Some(Vec::new()),
+        };
+        assert_ne!(
+            err, empty_entries,
+            "getErrorResponse Entries must be null, not empty"
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_client_quotas_response(&mut buf, version, &err).unwrap();
+            let mut empty = BytesMut::new();
+            encode_describe_client_quotas_response(&mut empty, version, &empty_entries).unwrap();
+            assert_ne!(
+                &buf[..],
+                &empty[..],
+                "DescribeClientQuotas v{version} null Entries must not match empty"
+            );
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_describe_client_quotas_response(&mut cur, version).unwrap(),
+                err
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeClientQuotas v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
