@@ -332,8 +332,10 @@ pub fn encode_find_coordinator_request_typed(
 
 /// Encode FindCoordinator v4+ CoordinatorKeys of N (KIP-699).
 ///
-/// v1–v3 support one key only (`does not support CoordinatorKeys` when
-/// `keys.len() != 1`).
+/// v1–v3 support one key only. More than one key below
+/// [`MIN_BATCHED_VERSION`] is Java `NoBatchedFindCoordinatorsException`.
+/// Empty `keys` below v4 is a protocol error (`does not support
+/// CoordinatorKeys`; use [`encode_find_coordinator_request_typed`]).
 pub fn encode_find_coordinator_request_keys(
     buf: &mut BytesMut,
     version: i16,
@@ -350,12 +352,16 @@ pub fn encode_find_coordinator_request_keys(
         buf::put_empty_tagged_fields(buf);
         return Ok(());
     }
-    if keys.len() != 1 {
+    if keys.len() > 1 {
+        return Err(Error::Unsupported(format!(
+            "Cannot create a v{version} FindCoordinator request because we require features supported only in {MIN_BATCHED_VERSION} or later."
+        )));
+    }
+    let Some(key) = keys.first().copied() else {
         return Err(Error::protocol(format!(
             "FindCoordinator version {version} does not support CoordinatorKeys"
         )));
-    }
-    let key = keys.first().copied().unwrap_or("");
+    };
     buf::put_string(buf, flexible, Some(key))?;
     buf.put_i8(key_type);
     if flexible {
@@ -2704,17 +2710,20 @@ mod tests {
             via_one.as_ref(),
             "CoordinatorKeys of 1 must match encode_find_coordinator_request_typed"
         );
+        let batched = encode_find_coordinator_request_keys(
+            &mut BytesMut::new(),
+            3,
+            &["g", "h"],
+            COORDINATOR_GROUP,
+        )
+        .unwrap_err();
         assert!(
-            encode_find_coordinator_request_keys(
-                &mut BytesMut::new(),
-                3,
-                &["g", "h"],
-                COORDINATOR_GROUP
-            )
-            .unwrap_err()
-            .to_string()
-            .contains("does not support CoordinatorKeys"),
-            "FindCoordinator v3 does not support CoordinatorKeys"
+            matches!(batched, Error::Unsupported(_)),
+            "two keys on v3 is Java NoBatchedFindCoordinatorsException, got {batched}"
+        );
+        assert!(
+            batched.to_string().contains("only in 4 or later"),
+            "got {batched}"
         );
 
         let coords = vec![
@@ -2753,6 +2762,49 @@ mod tests {
             via_one.as_ref(),
             via_coords.as_ref(),
             "Coordinators of 1 must match encode_find_coordinator_response"
+        );
+    }
+
+    #[test]
+    fn find_coordinator_builder_matches_java() {
+        let batched = encode_find_coordinator_request_keys(
+            &mut BytesMut::new(),
+            1,
+            &["g", "h"],
+            COORDINATOR_GROUP,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(batched, Error::Unsupported(_)),
+            "two keys on v1 is Java NoBatchedFindCoordinatorsException, got {batched}"
+        );
+        assert!(
+            batched
+                .to_string()
+                .contains("Cannot create a v1 FindCoordinator request"),
+            "got {batched}"
+        );
+        let empty =
+            encode_find_coordinator_request_keys(&mut BytesMut::new(), 3, &[], COORDINATOR_GROUP)
+                .unwrap_err();
+        assert!(
+            empty
+                .to_string()
+                .contains("does not support CoordinatorKeys"),
+            "empty keys below v4 stays crate API, got {empty}"
+        );
+        encode_find_coordinator_request_keys(&mut BytesMut::new(), 4, &[], COORDINATOR_GROUP)
+            .unwrap();
+        let v0 = encode_find_coordinator_request_keys(
+            &mut BytesMut::new(),
+            0,
+            &["g", "h"],
+            COORDINATOR_GROUP,
+        )
+        .unwrap_err();
+        assert!(
+            v0.to_string().contains("not implemented"),
+            "v0 stays unspoken first, got {v0}"
         );
     }
 
