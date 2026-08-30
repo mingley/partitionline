@@ -1365,6 +1365,42 @@ fn reject_v0_non_literal_acl_patterns<'a>(
     Ok(())
 }
 
+/// Java `CreateAclsRequest.validate` unknown-element check.
+///
+/// Official Java appends generated `AclCreation.toString` after the
+/// colon. This crate omits that generated list (crate [`AclBinding`]
+/// `Display` is `AclBinding.toString`, not `AclCreation`).
+fn reject_create_acls_unknown_elements(acls: &[AclBinding]) -> Result<()> {
+    if acls.iter().any(AclBinding::is_unknown) {
+        return Err(Error::protocol("CreatableAcls contain unknown elements"));
+    }
+    Ok(())
+}
+
+/// Java `DescribeAclsRequest.normalizeAndValidate` unknown-element check.
+///
+/// Official Java appends generated `DescribeAclsRequestData.toString`
+/// after the colon. This crate omits that generated body.
+fn reject_describe_acls_unknown_elements(filter: &AclBindingFilter) -> Result<()> {
+    if filter.is_unknown() {
+        return Err(Error::protocol(
+            "DescribeAclsRequest contains UNKNOWN elements",
+        ));
+    }
+    Ok(())
+}
+
+/// Java `DeleteAclsRequest.normalizeAndValidate` unknown-element check.
+///
+/// Official Java appends generated `DeleteAclsFilter.toString` after
+/// `filters: `. This crate omits that generated list.
+fn reject_delete_acls_unknown_elements(filters: &[AclBindingFilter]) -> Result<()> {
+    if filters.iter().any(AclBindingFilter::is_unknown) {
+        return Err(Error::protocol("Filters contain UNKNOWN elements"));
+    }
+    Ok(())
+}
+
 /// Java `ResourcePattern` / `AccessControlEntry` constructors: CreateAcls
 /// bindings must not use ANY resource type, ANY/MATCH pattern type, or
 /// ANY operation / permission (filters still use those on Describe/Delete).
@@ -1394,7 +1430,8 @@ fn reject_create_acls_java_constructors(acls: &[AclBinding]) -> Result<()> {
 /// Java `ResourcePattern` / `AccessControlEntry` constructors reject ANY
 /// resource type, ANY/MATCH pattern type, and ANY operation / permission.
 /// Java `CreateAclsRequest.validate` rejects non-LITERAL pattern types
-/// on v0 (`UnsupportedVersionException`).
+/// on v0 (`UnsupportedVersionException`) and UNKNOWN resource / pattern /
+/// operation / permission (`IllegalArgumentException`).
 pub fn encode_create_acls_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1403,6 +1440,7 @@ pub fn encode_create_acls_request(
     let flexible = acl_api_flexible(version)?;
     reject_create_acls_java_constructors(acls)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
+    reject_create_acls_unknown_elements(acls)?;
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
         buf.put_i8(a.resource_type);
@@ -1517,6 +1555,9 @@ pub fn decode_create_acls_response<B: Buf>(
 /// `DescribeAclsRequest.normalizeAndValidate` rejects MATCH / PREFIXED /
 /// UNKNOWN on v0 (`UnsupportedVersionException`); ANY is allowed (Java
 /// rewrites it to LITERAL in memory; the v0 field is omitted either way).
+/// UNKNOWN resource / pattern / operation / permission is Java
+/// `IllegalArgumentException` on every version (after the v0 pattern
+/// check).
 pub fn encode_describe_acls_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1531,6 +1572,7 @@ pub fn encode_describe_acls_request(
             "Version 0 only supports literal resource pattern types".into(),
         ));
     }
+    reject_describe_acls_unknown_elements(filter)?;
     put_acl_filter_fields(buf, version, flexible, filter)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -1684,6 +1726,9 @@ fn get_acl_filter_fields<B: Buf>(
 /// Java `DeleteAclsRequest.normalizeAndValidate` rejects MATCH / PREFIXED /
 /// UNKNOWN on v0 (`UnsupportedVersionException`); ANY is allowed (Java
 /// rewrites it to LITERAL in memory; the v0 field is omitted either way).
+/// UNKNOWN resource / pattern / operation / permission is Java
+/// `IllegalArgumentException` on every version (after the v0 pattern
+/// check).
 pub fn encode_delete_acls_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1701,6 +1746,7 @@ pub fn encode_delete_acls_request(
             }
         }
     }
+    reject_delete_acls_unknown_elements(filters)?;
     buf::put_array_len(buf, flexible, Some(filters.len()))?;
     for filter in filters {
         put_acl_filter_fields(buf, version, flexible, filter)?;
@@ -2541,6 +2587,138 @@ mod tests {
             &mut BytesMut::new(),
             1,
             std::slice::from_ref(&AclBinding::allow_topic("t", "User:alice")),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn acl_unknown_elements_match_java() {
+        let unknown_type = AclBinding::allow(AclResourceType::Unknown, "t", "User:alice");
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "CreateAcls UNKNOWN resource is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("CreatableAcls contain unknown elements"),
+            "got {err}"
+        );
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            0,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "CreateAcls v0 UNKNOWN resource is still IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("CreatableAcls contain unknown elements"),
+            "got {err}"
+        );
+
+        let unknown_pattern =
+            AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Unknown);
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "CreateAcls UNKNOWN pattern is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("CreatableAcls contain unknown elements"),
+            "got {err}"
+        );
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            0,
+            std::slice::from_ref(&unknown_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "CreateAcls v0 UNKNOWN pattern is Java UnsupportedVersionException first, got {err}"
+        );
+
+        let unknown_op =
+            AclBinding::allow_topic("t", "User:alice").operation(AclOperation::Unknown);
+        let err =
+            encode_create_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&unknown_op))
+                .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("CreatableAcls contain unknown elements"),
+            "got {err}"
+        );
+
+        let unknown_perm =
+            AclBinding::allow_topic("t", "User:alice").permission(AclPermission::Unknown);
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_perm),
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("CreatableAcls contain unknown elements"),
+            "got {err}"
+        );
+
+        let describe = AclBindingFilter::resource_type(AclResourceType::Unknown);
+        let err = encode_describe_acls_request(&mut BytesMut::new(), 1, &describe).unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DescribeAcls UNKNOWN resource is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("DescribeAclsRequest contains UNKNOWN elements"),
+            "got {err}"
+        );
+        let err = encode_describe_acls_request(&mut BytesMut::new(), 0, &describe).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("DescribeAclsRequest contains UNKNOWN elements"),
+            "got {err}"
+        );
+
+        let delete =
+            AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC).operation(AclOperation::Unknown);
+        let err =
+            encode_delete_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&delete))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DeleteAcls UNKNOWN operation is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("Filters contain UNKNOWN elements"),
+            "got {err}"
+        );
+        encode_delete_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC)),
+        )
+        .unwrap();
+        encode_describe_acls_request(
+            &mut BytesMut::new(),
+            1,
+            &AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
         )
         .unwrap();
     }

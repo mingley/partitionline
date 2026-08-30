@@ -281,7 +281,12 @@
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
 //! official Java also sets the English `Errors.message` string. Throttle
-//! is the JSON default (`0`);
+//! is the JSON default (`0`). Java `CreateAclsRequest.validate` rejects
+//! UNKNOWN resource / pattern / operation / permission;
+//! `DescribeAclsRequest.normalizeAndValidate` /
+//! `DeleteAclsRequest.normalizeAndValidate` do the same on filters
+//! (`DescribeAclsRequest contains UNKNOWN elements` /
+//! `Filters contain UNKNOWN elements`);
 //! [`DeletedAclsFilterResult::error`] / [`DeletedAclsFilterResult::error_results`]
 //! are Java `DeleteAclsRequest.getErrorResponse` (one FilterResult /
 //! `nCopies`). MatchingAcls stay the JSON default (empty); `ErrorMessage`
@@ -501,7 +506,12 @@
 //! `Display` match Java `toString`. Java `ResourcePattern` constructor
 //! rejects resource type ANY and pattern type ANY/MATCH; Java
 //! `AccessControlEntry` constructor rejects operation/permission ANY
-//! (checked at CreateAcls encode). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! (checked at CreateAcls encode). Java `CreateAclsRequest.validate` /
+//! `DescribeAclsRequest.normalizeAndValidate` /
+//! `DeleteAclsRequest.normalizeAndValidate` reject UNKNOWN resource /
+//! pattern / operation / permission (`CreatableAcls contain unknown
+//! elements` / `DescribeAclsRequest contains UNKNOWN elements` /
+//! `Filters contain UNKNOWN elements`). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`
