@@ -481,6 +481,9 @@
 //! [`ShareRecord::NO_TIMESTAMP`] / [`ShareRecord::NULL_SIZE`] are Java
 //! `ConsumerRecord.NO_TIMESTAMP` / `NULL_SIZE`.
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
+//! [`Producer::send`] / [`Producer::try_send`] reject a negative partition
+//! or timestamp with Java `ProducerRecord` constructor messages
+//! (`Invalid partition` / `Invalid timestamp`).
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /

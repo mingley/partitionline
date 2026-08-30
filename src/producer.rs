@@ -492,6 +492,10 @@ impl ProduceRecord {
     }
 
     /// Pin the partition. Skips the [`Partitioner`].
+    ///
+    /// Java `ProducerRecord` constructor rejects a negative partition
+    /// (`Invalid partition`). [`Producer::send`] / [`Producer::try_send`]
+    /// enforce that.
     #[must_use]
     pub fn partition(mut self, partition: i32) -> Self {
         self.partition = Some(partition);
@@ -501,6 +505,9 @@ impl ProduceRecord {
     /// Record timestamp in milliseconds since the Unix epoch.
     ///
     /// `None` (the default) uses the producer clock when the batch is written.
+    /// Java `ProducerRecord` constructor rejects a negative timestamp
+    /// (`Invalid timestamp`). [`Producer::send`] / [`Producer::try_send`]
+    /// enforce that.
     #[must_use]
     pub fn timestamp(mut self, timestamp: i64) -> Self {
         self.timestamp = Some(timestamp);
@@ -819,7 +826,26 @@ fn rec_bytes(rec: &ProduceRecord) -> u64 {
     u64::try_from(k.saturating_add(v)).unwrap_or(u64::MAX)
 }
 
+fn reject_java_producer_record(rec: &ProduceRecord) -> Result<()> {
+    if let Some(timestamp) = rec.timestamp {
+        if timestamp < 0 {
+            return Err(Error::protocol(format!(
+                "Invalid timestamp: {timestamp}. Timestamp should always be non-negative or null."
+            )));
+        }
+    }
+    if let Some(partition) = rec.partition {
+        if partition < 0 {
+            return Err(Error::protocol(format!(
+                "Invalid partition: {partition}. Partition number should always be non-negative or null."
+            )));
+        }
+    }
+    Ok(())
+}
+
 fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
+    reject_java_producer_record(rec)?;
     let bytes = rec_bytes(rec);
     let cap = cfg.max_request_size;
     if cap == 0 {
@@ -3241,5 +3267,27 @@ mod tests {
             ProduceRecord::to("t").to_string(),
             "ProducerRecord(topic=t, partition=null, headers=RecordHeaders(headers = [], isReadOnly = false), key=null, value=null, timestamp=null)"
         );
+    }
+
+    #[test]
+    fn produce_record_constructor_checks_match_java() {
+        let part = reject_java_producer_record(&ProduceRecord::to("t").partition(-1))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            part.contains(
+                "Invalid partition: -1. Partition number should always be non-negative or null."
+            ),
+            "{part}"
+        );
+        let ts = reject_java_producer_record(&ProduceRecord::to("t").timestamp(-1))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            ts.contains("Invalid timestamp: -1. Timestamp should always be non-negative or null."),
+            "{ts}"
+        );
+        reject_java_producer_record(&ProduceRecord::to("t").partition(0).timestamp(0)).unwrap();
+        reject_java_producer_record(&ProduceRecord::to("t")).unwrap();
     }
 }
