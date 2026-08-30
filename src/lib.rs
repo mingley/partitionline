@@ -261,9 +261,13 @@
 //! means the broker assigns replicas).
 //! [`NewTopic::with_assignments`] is Java
 //! `NewTopic(String, Map<Integer, List<Integer>>)` (NumPartitions /
-//! ReplicationFactor `-1`; empty Assignments is `NewTopic(String, int, short)`).
+//! ReplicationFactor [`protocol::admin::CreateTopicsRequest::NO_NUM_PARTITIONS`] /
+//! [`protocol::admin::CreateTopicsRequest::NO_REPLICATION_FACTOR`]; empty
+//! Assignments is `NewTopic(String, int, short)`).
 //! [`NewTopic::broker_defaults`] is Java
-//! `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464; `-1` / `-1`).
+//! `NewTopic(String, Optional.empty(), Optional.empty())` (KIP-464;
+//! [`protocol::admin::CreateTopicsRequest::NO_NUM_PARTITIONS`] /
+//! [`protocol::admin::CreateTopicsRequest::NO_REPLICATION_FACTOR`]).
 //! [`NewTopic::configs`] is Java `NewTopic.configs(Map)`.
 //! [`Admin::create_topics_timeout`] is Java `CreateTopicsOptions.timeoutMs`.
 //! [`Admin::create_topics_with_quota_retry`] is Java

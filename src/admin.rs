@@ -374,7 +374,11 @@ impl NewTopic {
     /// `default.replication.factor`.
     #[must_use]
     pub fn broker_defaults(name: impl Into<String>) -> Self {
-        Self::new(name, -1, -1)
+        Self::new(
+            name,
+            CreateTopicsRequest::NO_NUM_PARTITIONS,
+            CreateTopicsRequest::NO_REPLICATION_FACTOR,
+        )
     }
 
     /// Java `NewTopic(String, Map<Integer, List<Integer>>)`.
@@ -389,8 +393,8 @@ impl NewTopic {
     {
         Self {
             name: name.into(),
-            num_partitions: -1,
-            replication_factor: -1,
+            num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
+            replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
             assignments: assignments
                 .into_iter()
                 .map(|(partition, brokers)| (partition, brokers.into_iter().collect()))
@@ -11880,7 +11884,14 @@ mod tests {
             "(name=t, numPartitions=default, replicationFactor=default, replicasAssignments=null, configs=null)"
         );
         let assigned = NewTopic::with_assignments("t", [(0, vec![1, 2])]);
-        assert_eq!(assigned.num_partitions(), -1);
+        assert_eq!(
+            assigned.num_partitions(),
+            CreateTopicsRequest::NO_NUM_PARTITIONS
+        );
+        assert_eq!(
+            assigned.replication_factor(),
+            CreateTopicsRequest::NO_REPLICATION_FACTOR
+        );
         assert_eq!(
             assigned.replicas_assignments(),
             Some(&[(0, vec![1, 2])][..])

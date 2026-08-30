@@ -325,6 +325,13 @@ pub struct CreateTopicsRequest {
     pub validate_only: bool,
 }
 
+impl CreateTopicsRequest {
+    /// Java `CreateTopicsRequest.NO_NUM_PARTITIONS`.
+    pub const NO_NUM_PARTITIONS: i32 = -1;
+    /// Java `CreateTopicsRequest.NO_REPLICATION_FACTOR`.
+    pub const NO_REPLICATION_FACTOR: i16 = -1;
+}
+
 /// Per-topic result of CreateTopics / DeleteTopics.
 ///
 /// Java `CreateTopicsResult.TopicMetadataAndConfig` plus the per-topic
@@ -358,8 +365,8 @@ impl TopicResult {
             error_code,
             error_message,
             topic_id: [0; 16],
-            num_partitions: -1,
-            replication_factor: -1,
+            num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
+            replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
             configs: Vec::new(),
         }
     }
@@ -12640,6 +12647,21 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn create_topics_request_no_partition_sentinels_match_java() {
+        assert_eq!(CreateTopicsRequest::NO_NUM_PARTITIONS, -1);
+        assert_eq!(CreateTopicsRequest::NO_REPLICATION_FACTOR, -1);
+        let omitted = TopicResult::new("t", 0, None);
+        assert_eq!(
+            omitted.num_partitions(),
+            CreateTopicsRequest::NO_NUM_PARTITIONS
+        );
+        assert_eq!(
+            omitted.replication_factor(),
+            CreateTopicsRequest::NO_REPLICATION_FACTOR
+        );
+    }
 
     #[test]
     fn create_topics_v3_roundtrip() {
