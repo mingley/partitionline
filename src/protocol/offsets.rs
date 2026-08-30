@@ -214,9 +214,27 @@ impl ListOffsetsTopicRequest {
             partitions,
         }
     }
+
+    /// Java `ListOffsetsRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`ListOffsetsResponsePartition::error`]. Throttle on
+    /// the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> ListOffsetsTopicResponse {
+        ListOffsetsTopicResponse::new(
+            self.name.as_str(),
+            self.partitions
+                .iter()
+                .map(|p| ListOffsetsResponsePartition::error(p.partition, error_code))
+                .collect(),
+        )
+    }
 }
 
 /// One partition in a ListOffsets response, including index.
+///
+/// [`Self::error`] is Java `ListOffsetsRequest.getErrorResponse` partition
+/// body (`UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP` / `UNKNOWN_EPOCH`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListOffsetsResponsePartition {
     /// Partition index.
@@ -243,6 +261,25 @@ impl ListOffsetsResponsePartition {
             offset: result.offset,
             leader_epoch: result.leader_epoch,
         }
+    }
+
+    /// Java `ListOffsetsRequest.getErrorResponse` partition body.
+    ///
+    /// Fills [`ListOffsetsPartition::UNKNOWN_TIMESTAMP`] /
+    /// [`ListOffsetsPartition::UNKNOWN_OFFSET`] /
+    /// [`ListOffsetsPartition::UNKNOWN_EPOCH`] (JSON default for omitted
+    /// `LeaderEpoch`).
+    #[must_use]
+    pub fn error(partition_index: i32, error_code: i16) -> Self {
+        Self::new(
+            partition_index,
+            ListOffsetsPartition {
+                error_code,
+                timestamp: ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                offset: ListOffsetsPartition::UNKNOWN_OFFSET,
+                leader_epoch: ListOffsetsPartition::UNKNOWN_EPOCH,
+            },
+        )
     }
 }
 
@@ -646,6 +683,44 @@ mod tests {
         assert_eq!(part.timestamp, ListOffsetsPartition::UNKNOWN_TIMESTAMP);
         assert_eq!(part.offset, ListOffsetsPartition::UNKNOWN_OFFSET);
         assert_eq!(part.leader_epoch, ListOffsetsPartition::UNKNOWN_EPOCH);
+        assert_eq!(
+            part,
+            &ListOffsetsResponsePartition::error(3, crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+        let topic = ListOffsetsTopicRequest::new(
+            "t",
+            vec![
+                ListOffsetsPartitionRequest::new(0, 1, -1),
+                ListOffsetsPartitionRequest::new(3, 4, -2),
+            ],
+        );
+        let result = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            result,
+            ListOffsetsTopicResponse::new(
+                "t",
+                vec![
+                    ListOffsetsResponsePartition::error(
+                        0,
+                        crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                    ),
+                    ListOffsetsResponsePartition::error(
+                        3,
+                        crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                    ),
+                ]
+            )
+        );
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_response(&mut buf, 6, std::slice::from_ref(&result)).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_list_offsets_topics_response(&mut cur, 6).unwrap();
+        assert_eq!(decoded, vec![result]);
+        assert!(
+            cur.is_empty(),
+            "error-response leftover-empty; leftover {} bytes",
+            cur.len()
+        );
         let ok = ListOffsetsResponse::singleton_list_offsets_topic_response(
             "events",
             1,

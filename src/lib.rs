@@ -612,6 +612,9 @@
 //! `ListOffsetsResponse.shouldClientThrottle` (v3+).
 //! [`protocol::offsets::ListOffsetsResponse::singleton_list_offsets_topic_response`]
 //! is Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
+//! [`protocol::offsets::ListOffsetsResponsePartition::error`] /
+//! [`protocol::offsets::ListOffsetsTopicRequest::error_result`] are Java
+//! `ListOffsetsRequest.getErrorResponse` (partition body / one topic).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
