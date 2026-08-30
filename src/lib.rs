@@ -459,7 +459,13 @@
 //! `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
 //! `isDivergingEpoch`.
 //! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java
-//! `FetchResponse.shouldClientThrottle` (v8+). Omitted Fetch
+//! `FetchResponse.shouldClientThrottle` (v8+).
+//! [`protocol::fetch::FetchResponse::topic_ids`] is Java
+//! `FetchResponse.topicIds` (skips zeros).
+//! [`protocol::fetch::DEFAULT_RESPONSE_MAX_BYTES`] /
+//! [`protocol::fetch::is_from_follower`] are Java
+//! `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES` / `isFromFollower`.
+//! Omitted Fetch
 //! v12+ CurrentLeader fills [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /

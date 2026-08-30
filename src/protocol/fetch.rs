@@ -1,5 +1,6 @@
 //! Fetch (api key 1). v4–v11 classic; v12–v17 flexible.
 
+use std::collections::HashSet;
 use std::fmt;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -23,11 +24,22 @@ pub const FUTURE_LOCAL_REPLICA_ID: i32 = -3;
 /// `log_start_offset`; the response copy is
 /// [`FetchedPartition::INVALID_LOG_START_OFFSET`].
 pub const INVALID_LOG_START_OFFSET: i64 = -1;
+/// Java `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES`.
+///
+/// Java `FetchRequest.Builder.build` uses this when the Fetch version is
+/// below 3 (this crate speaks v4+).
+pub const DEFAULT_RESPONSE_MAX_BYTES: i32 = i32::MAX;
 
 /// Java `FetchRequest.isValidBrokerId`.
 #[must_use]
 pub const fn is_valid_broker_id(broker_id: i32) -> bool {
     broker_id >= 0
+}
+
+/// Java `FetchRequest.isFromFollower`.
+#[must_use]
+pub const fn is_from_follower(replica_id: i32) -> bool {
+    is_valid_broker_id(replica_id)
 }
 
 /// Java `FetchRequest.isConsumer`.
@@ -316,6 +328,19 @@ impl FetchResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 8
+    }
+
+    /// Java `FetchResponse.topicIds`.
+    ///
+    /// Topic ids that are not zeros. Fetch versions below 13 return an empty
+    /// set (those responses use names; `topic_id` is zeros).
+    #[must_use]
+    pub fn topic_ids(topics: &[FetchedTopic]) -> HashSet<[u8; 16]> {
+        topics
+            .iter()
+            .map(|topic| topic.topic_id)
+            .filter(|id| *id != [0u8; 16])
+            .collect()
     }
 }
 
@@ -772,6 +797,7 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::{Buf, BufMut, Bytes};
+    use std::collections::HashSet;
 
     #[test]
     fn fetched_partition_invalid_sentinels_match_java() {
@@ -922,6 +948,30 @@ mod tests {
         );
         assert_eq!(describe_replica_id(3), "replica [3]");
         assert_eq!(describe_replica_id(-4), "invalid replica [-4]");
+        assert_eq!(DEFAULT_RESPONSE_MAX_BYTES, i32::MAX);
+        assert!(is_from_follower(0));
+        assert!(is_from_follower(1));
+        assert!(!is_from_follower(CONSUMER_REPLICA_ID));
+        assert!(!is_from_follower(DEBUGGING_CONSUMER_ID));
+        assert!(!is_from_follower(FUTURE_LOCAL_REPLICA_ID));
+        assert_eq!(is_from_follower(1), is_valid_broker_id(1));
+    }
+
+    #[test]
+    fn fetch_response_topic_ids_matches_java() {
+        fn topic(topic_id: [u8; 16]) -> FetchedTopic {
+            FetchedTopic {
+                topic: String::new(),
+                topic_id,
+                partitions: Vec::new(),
+            }
+        }
+        assert!(FetchResponse::topic_ids(&[]).is_empty());
+        assert!(FetchResponse::topic_ids(std::slice::from_ref(&topic([0; 16]))).is_empty());
+        assert_eq!(
+            FetchResponse::topic_ids(&[topic([0; 16]), topic([1; 16]), topic([2; 16])]),
+            HashSet::from([[1; 16], [2; 16]])
+        );
     }
 
     #[test]
