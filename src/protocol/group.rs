@@ -2102,7 +2102,8 @@ pub fn encode_offset_fetch_response(
 
 /// Encode OffsetFetch v1–v9 for every group (KIP-709 on v8+).
 ///
-/// v1–v7 write the first group's Topics and ErrorCode. Empty `groups`
+/// v1–v7 write the first group's Topics and ErrorCode. More than one
+/// group below v8 is Java `UnsupportedVersionException`. Empty `groups`
 /// writes an empty Topics array (v1–v7) or Groups length 0 (v8+).
 pub fn encode_offset_fetch_groups_response(
     buf: &mut BytesMut,
@@ -2110,6 +2111,11 @@ pub fn encode_offset_fetch_groups_response(
     groups: &[OffsetFetchGroupResult],
 ) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
+    if version < 8 && groups.len() > 1 {
+        return Err(Error::Unsupported(format!(
+            "Version {version} of OffsetFetchResponse only supports one group."
+        )));
+    }
     if version >= 3 {
         buf.put_i32(0);
     }
@@ -4005,6 +4011,16 @@ mod tests {
             "two groups on v7 is Java NoBatchedOffsetFetchRequestException, got {err}"
         );
         assert!(err.to_string().contains("batching groups"), "got {err}");
+
+        let err = encode_offset_fetch_groups_response(&mut BytesMut::new(), 7, &resp).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "two groups on v7 response is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("only supports one group"),
+            "got {err}"
+        );
     }
 
     #[test]
@@ -4020,6 +4036,7 @@ mod tests {
             "single group below v8 stays on encode_offset_fetch_request, got {err}"
         );
         encode_offset_fetch_groups_request(&mut BytesMut::new(), 8, &one, false).unwrap();
+        encode_offset_fetch_groups_response(&mut BytesMut::new(), 7, &[]).unwrap();
     }
 
     #[test]
