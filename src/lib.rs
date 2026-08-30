@@ -63,7 +63,9 @@
 //! `ConsumerProtocol.PROTOCOL_TYPE`;
 //! [`protocol::group::ConsumerProtocol::serialize_subscription`] is Java
 //! `ConsumerProtocol.serializeSubscription` (v3 `GenerationId` / `RackId`;
-//! [`protocol::group::ConsumerProtocolSubscription::DEFAULT_GENERATION`]);
+//! [`protocol::group::ConsumerProtocolSubscription::DEFAULT_GENERATION`];
+//! [`protocol::group::ConsumerProtocolSubscription`] `Display` is Java
+//! `ConsumerPartitionAssignor.Subscription.toString`);
 //! [`protocol::group::ConsumerProtocol::serialize_assignment`] is Java
 //! `ConsumerProtocol.serializeAssignment` (does not sort partitions;
 //! [`protocol::group::ConsumerProtocolAssignment`] `Display` is Java

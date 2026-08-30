@@ -255,7 +255,9 @@ impl ConsumerProtocol {
 /// `ConsumerProtocolSubscription` (classic JoinGroup member metadata).
 ///
 /// [`ConsumerProtocol::serialize_subscription`] is Java
-/// `ConsumerProtocol.serializeSubscription`.
+/// `ConsumerProtocol.serializeSubscription`. [`Display`] is Java
+/// `Subscription.toString` (`groupInstanceId` is always `null`; this type
+/// does not store it. User data is omitted when null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerProtocolSubscription {
     /// Subscribed topic names (Java `Subscription.topics`).
@@ -286,11 +288,63 @@ impl ConsumerProtocolSubscription {
             rack_id: None,
         }
     }
+
+    /// Java `Subscription.topics`.
+    #[must_use]
+    pub fn topics(&self) -> &[String] {
+        &self.topics
+    }
+
+    /// Java `Subscription.ownedPartitions`.
+    #[must_use]
+    pub fn owned_partitions(&self) -> &[(String, i32)] {
+        &self.owned_partitions
+    }
+
+    /// Java `Subscription.generationId` (`None` when the stored value is
+    /// negative).
+    #[must_use]
+    pub fn generation_id(&self) -> Option<i32> {
+        (self.generation_id >= 0).then_some(self.generation_id)
+    }
+
+    /// Java `Subscription.rackId`.
+    #[must_use]
+    pub fn rack_id(&self) -> Option<&str> {
+        self.rack_id.as_deref()
+    }
 }
 
 impl Default for ConsumerProtocolSubscription {
     fn default() -> Self {
         Self::new(Vec::new())
+    }
+}
+
+impl fmt::Display for ConsumerProtocolSubscription {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Subscription(topics=[")?;
+        for (i, topic) in self.topics.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            f.write_str(topic)?;
+        }
+        f.write_str("], ownedPartitions=[")?;
+        for (i, (topic, partition)) in self.owned_partitions.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            write!(f, "{topic}-{partition}")?;
+        }
+        f.write_str("], groupInstanceId=null, generationId=")?;
+        write!(f, "{}", self.generation_id)?;
+        f.write_str(", rackId=")?;
+        match self.rack_id.as_deref() {
+            Some(rack) => f.write_str(rack)?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(")")
     }
 }
 
@@ -2970,6 +3024,26 @@ mod tests {
             generation_id: 7,
             rack_id: Some("az1".into()),
         };
+        assert_eq!(
+            sub.to_string(),
+            "Subscription(topics=[u, t], ownedPartitions=[u-1, t-2, t-0], groupInstanceId=null, generationId=7, rackId=az1)",
+            "Java Subscription.toString"
+        );
+        assert_eq!(
+            ConsumerProtocolSubscription::new(Vec::new()).to_string(),
+            "Subscription(topics=[], ownedPartitions=[], groupInstanceId=null, generationId=-1, rackId=null)"
+        );
+        assert_eq!(sub.topics(), &["u".to_string(), "t".to_string()]);
+        assert_eq!(
+            sub.owned_partitions(),
+            &[("u".into(), 1), ("t".into(), 2), ("t".into(), 0)]
+        );
+        assert_eq!(sub.generation_id(), Some(7));
+        assert_eq!(sub.rack_id(), Some("az1"));
+        assert_eq!(
+            ConsumerProtocolSubscription::new(Vec::new()).generation_id(),
+            None
+        );
         let bytes = ConsumerProtocol::serialize_subscription(&sub).unwrap();
         assert_eq!(ConsumerProtocol::deserialize_version(&bytes).unwrap(), 3);
         let got = ConsumerProtocol::deserialize_subscription(&bytes).unwrap();
