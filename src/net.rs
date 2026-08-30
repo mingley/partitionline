@@ -25,6 +25,33 @@ use crate::protocol::header::{
 /// Max Kafka response frame (100 MiB). Larger is treated as a protocol error.
 pub const MAX_FRAME: i32 = 100 * 1024 * 1024;
 
+/// Java `SaslClientAuthenticator.MAX_RESERVED_CORRELATION_ID`.
+pub const MAX_RESERVED_CORRELATION_ID: i32 = i32::MAX;
+
+/// Java `SaslClientAuthenticator.MIN_RESERVED_CORRELATION_ID`.
+pub const MIN_RESERVED_CORRELATION_ID: i32 = i32::MAX - 7;
+
+/// Java `SaslClientAuthenticator.isReserved`.
+#[must_use]
+pub const fn is_reserved_correlation_id(correlation_id: i32) -> bool {
+    correlation_id >= MIN_RESERVED_CORRELATION_ID
+}
+
+/// Java `NetworkClient.nextCorrelationId`.
+///
+/// Skips [`MIN_RESERVED_CORRELATION_ID`] through
+/// [`MAX_RESERVED_CORRELATION_ID`] (SASL reauth). Hitting that range jumps
+/// to `MAX_RESERVED_CORRELATION_ID + 1`, which wraps to `i32::MIN`.
+#[must_use]
+pub fn next_correlation_id(correlation: &mut i32) -> i32 {
+    if is_reserved_correlation_id(*correlation) {
+        *correlation = MAX_RESERVED_CORRELATION_ID.wrapping_add(1);
+    }
+    let issued = *correlation;
+    *correlation = correlation.wrapping_add(1);
+    issued
+}
+
 /// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
 /// memcpy through the 8KiB → 16KiB → … doubling path.
 pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
@@ -495,10 +522,10 @@ impl BrokerConn {
     }
 
     /// Next request correlation id.
+    ///
+    /// Java `NetworkClient.nextCorrelationId` ([`next_correlation_id`]).
     pub fn next_correlation(&mut self) -> i32 {
-        let c = self.next_correlation;
-        self.next_correlation = self.next_correlation.wrapping_add(1);
-        c
+        next_correlation_id(&mut self.next_correlation)
     }
 
     /// Write `bytes` or fail with [`Error::Timeout`].
@@ -677,6 +704,45 @@ mod tests {
         reserve_frame(&mut buf, 8);
         assert_eq!(buf.capacity(), cap);
         assert_eq!(buf.len(), 16);
+    }
+
+    #[test]
+    fn reserved_correlation_ids_match_java() {
+        assert_eq!(MAX_RESERVED_CORRELATION_ID, i32::MAX);
+        assert_eq!(MIN_RESERVED_CORRELATION_ID, i32::MAX - 7);
+        assert!(!is_reserved_correlation_id(i32::MAX - 8));
+        assert!(is_reserved_correlation_id(MIN_RESERVED_CORRELATION_ID));
+        assert!(is_reserved_correlation_id(MAX_RESERVED_CORRELATION_ID));
+        assert!(!is_reserved_correlation_id(i32::MIN));
+        assert!(!is_reserved_correlation_id(0));
+        assert!(!is_reserved_correlation_id(1));
+    }
+
+    #[test]
+    fn next_correlation_id_skips_sasl_reserved_range() {
+        // NetworkClientTest.testCorrelationId: 100 ids, none reserved.
+        let mut correlation = 0i32;
+        let mut ids = Vec::new();
+        for _ in 0..100 {
+            ids.push(next_correlation_id(&mut correlation));
+        }
+        assert_eq!(ids.len(), 100);
+        let mut unique = ids.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), 100);
+        for id in ids {
+            assert!(
+                !is_reserved_correlation_id(id),
+                "reserved correlation id {id}"
+            );
+            assert!(id < MIN_RESERVED_CORRELATION_ID);
+        }
+
+        let mut wrap = MIN_RESERVED_CORRELATION_ID - 1;
+        assert_eq!(next_correlation_id(&mut wrap), i32::MAX - 8);
+        assert_eq!(next_correlation_id(&mut wrap), i32::MIN);
+        assert_eq!(next_correlation_id(&mut wrap), i32::MIN + 1);
     }
 
     #[test]
