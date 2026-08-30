@@ -3792,6 +3792,12 @@ impl AlterPartitionReassignmentsResponse {
         &self.results
     }
 
+    /// Java `AlterPartitionReassignmentsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
+    }
+
     /// Java `AlterPartitionReassignmentsResponse.errorCounts`.
     ///
     /// Counts the top-level `errorCode` (including `NONE`) plus each
@@ -4138,6 +4144,12 @@ impl ListPartitionReassignmentsResponse {
     #[must_use]
     pub fn topics(&self) -> &[OngoingTopicReassignment] {
         &self.topics
+    }
+
+    /// Java `ListPartitionReassignmentsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
     }
 }
 
@@ -10466,6 +10478,12 @@ impl DescribeTopicPartitionsResponse {
         }
     }
 
+    /// Java `DescribeTopicPartitionsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
+    }
+
     /// Java `DescribeTopicPartitionsResponse.errorCounts`.
     ///
     /// Counts each topic-level code and each partition-level code
@@ -14505,6 +14523,12 @@ mod tests {
             results: vec![],
         };
         assert_eq!(empty.error_counts(), HashMap::from([(0, 1)]));
+        assert!(AlterPartitionReassignmentsResponse::should_client_throttle(
+            0
+        ));
+        assert!(AlterPartitionReassignmentsResponse::should_client_throttle(
+            1
+        ));
         let counts = AlterPartitionReassignmentsResponse {
             error_code: 0,
             error_message: None,
@@ -14710,6 +14734,7 @@ mod tests {
         assert!(DescribeTopicPartitionsResponse::new(vec![])
             .error_counts()
             .is_empty());
+        assert!(DescribeTopicPartitionsResponse::should_client_throttle(0));
         let mut topic = DescribedTopicPartitions::new("ok", 0);
         topic.partitions = vec![
             DescribedTopicPartition::new(0),
@@ -17123,6 +17148,9 @@ mod tests {
 
     #[test]
     fn list_partition_reassignments_v0_roundtrip_is_leftover_empty() {
+        assert!(ListPartitionReassignmentsResponse::should_client_throttle(
+            0
+        ));
         let topics = vec![ListReassignmentTopic::new("t", vec![0, 1])];
         let mut buf = BytesMut::new();
         encode_list_partition_reassignments_request(&mut buf, 10_000, Some(&topics)).unwrap();

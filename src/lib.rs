@@ -874,6 +874,9 @@
 //! [`protocol::admin::AlterPartitionReassignmentsResponse::error_counts`] is Java
 //! `AlterPartitionReassignmentsResponse.errorCounts` (top-level `errorCode`
 //! plus each partition-level code, including `NONE`).
+//! [`protocol::admin::AlterPartitionReassignmentsResponse::should_client_throttle`]
+//! is Java `AlterPartitionReassignmentsResponse.shouldClientThrottle`
+//! (always).
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
@@ -887,6 +890,9 @@
 //! `PartitionIndex`; replica lists stay JSON default empty. Top-level
 //! `ErrorMessage` stays the JSON default (null); official Java also
 //! sets the English `Errors.message` string.
+//! [`protocol::admin::ListPartitionReassignmentsResponse::should_client_throttle`]
+//! is Java `ListPartitionReassignmentsResponse.shouldClientThrottle`
+//! (always).
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java
@@ -1301,6 +1307,8 @@
 //! [`protocol::admin::DescribeTopicPartitionsResponse::error_counts`] is Java
 //! `DescribeTopicPartitionsResponse.errorCounts` (topic-level and
 //! partition-level codes, including `NONE`);
+//! [`protocol::admin::DescribeTopicPartitionsResponse::should_client_throttle`]
+//! is Java `DescribeTopicPartitionsResponse.shouldClientThrottle` (always);
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /
