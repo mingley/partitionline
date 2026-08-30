@@ -2063,6 +2063,8 @@ pub struct FetchedOffsetTopic {
 /// MemberEpoch are null / `-1` for classic admin fetches.
 /// [`Self::is_all_partitions`] is Java `OffsetFetchRequest.isAllPartitions`
 /// / `isAllPartitionsForGroup` (`topics == null`, not empty).
+/// [`Self::error_result`] is Java `OffsetFetchRequest.getErrorResponse` one
+/// group on v8+ (empty Topics; request partitions are not copied).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchGroup {
     /// Consumer group id.
@@ -2098,9 +2100,35 @@ impl OffsetFetchGroup {
     pub fn is_all_partitions(&self) -> bool {
         self.topics.is_none()
     }
+
+    /// Java `OffsetFetchRequest.getErrorResponse` one group on v8+.
+    ///
+    /// Copies `GroupId` and sets ErrorCode. Topics stay empty (Java empty
+    /// `HashMap`; request partitions are not copied). Throttle on the
+    /// response is the JSON default (`0`). OffsetFetch v1 fills partitions
+    /// via [`OffsetFetchTopic::error_result`]; v2–v7 omit partitions at
+    /// the top-level Topics field.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> OffsetFetchGroupResult {
+        OffsetFetchGroupResult::error(self.group_id.as_str(), error_code)
+    }
+
+    /// Java `OffsetFetchRequest.getErrorResponse` Groups on v8+.
+    ///
+    /// Maps each request group through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(groups: &[Self], error_code: i16) -> Vec<OffsetFetchGroupResult> {
+        groups
+            .iter()
+            .map(|group| group.error_result(error_code))
+            .collect()
+    }
 }
 
 /// One group's OffsetFetch v8+ result (KIP-709).
+///
+/// [`Self::error`] is Java `OffsetFetchRequest.getErrorResponse` one group
+/// on v8+ (empty Topics).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchGroupResult {
     /// Consumer group id. Empty on v1–v7 (those versions have no Groups).
@@ -2109,6 +2137,21 @@ pub struct OffsetFetchGroupResult {
     pub topics: Vec<FetchedOffsetTopic>,
     /// Group-level error code (`0` is success).
     pub error_code: i16,
+}
+
+impl OffsetFetchGroupResult {
+    /// Java `OffsetFetchRequest.getErrorResponse` one group on v8+.
+    ///
+    /// Copies `GroupId` and sets ErrorCode. Topics stay empty (Java empty
+    /// `HashMap`). Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error(group_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            group_id: group_id.into(),
+            topics: Vec::new(),
+            error_code,
+        }
+    }
 }
 
 /// `true` when OffsetCommit `version` is flexible (v8+).
@@ -5096,6 +5139,76 @@ mod tests {
             v9_empty.as_ref(),
             "v9 null Topics differs from empty"
         );
+    }
+
+    #[test]
+    fn offset_fetch_group_error_result_leftover_empty() {
+        let topic = OffsetFetchTopic {
+            topic: "t".into(),
+            partitions: vec![0, 3],
+        };
+        let groups = [
+            OffsetFetchGroup::new("a", Some(vec![topic.clone()])),
+            OffsetFetchGroup::new("b", Some(vec![topic])),
+        ];
+        let err = OffsetFetchGroup::error_results(&groups, crate::error::NOT_COORDINATOR);
+        assert_eq!(
+            err,
+            vec![
+                OffsetFetchGroupResult::error("a", crate::error::NOT_COORDINATOR),
+                OffsetFetchGroupResult::error("b", crate::error::NOT_COORDINATOR),
+            ]
+        );
+        assert!(
+            err.iter().all(|g| g.topics.is_empty()),
+            "v8+ getErrorResponse does not copy request partitions"
+        );
+        assert_eq!(
+            groups
+                .first()
+                .map(|g| g.error_result(crate::error::NOT_COORDINATOR)),
+            err.first().cloned()
+        );
+
+        for version in [8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &err).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "OffsetFetch getErrorResponse v{version} leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+
+        let mut v8 = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut v8, 8, &err).unwrap();
+        let mut v9 = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut v9, 9, &err).unwrap();
+        assert_eq!(&v8[..], &v9[..], "OffsetFetch v9 response matches v8");
+        // Throttle 0, compact Groups of 2 ("a", "b"), empty Topics, NOT_COORDINATOR.
+        const TWO: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x03, 0x02, 0x61, 0x01, 0x00, 0x10, 0x00, 0x02, 0x62, 0x01,
+            0x00, 0x10, 0x00, 0x00,
+        ];
+        assert_eq!(&v8[..], TWO);
+
+        let empty = OffsetFetchGroup::error_results(&[], crate::error::NOT_COORDINATOR);
+        assert!(empty.is_empty());
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 8, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        assert!(decoded.is_empty());
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch getErrorResponse n=0 leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        const ZERO: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
+        assert_eq!(&buf[..], ZERO);
     }
 
     #[test]

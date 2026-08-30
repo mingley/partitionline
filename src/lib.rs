@@ -92,7 +92,13 @@
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
 //! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
-//! (`None` Topics is every committed partition; `Some` empty is not)),
+//! (`None` Topics is every committed partition; `Some` empty is not);
+//! [`protocol::group::OffsetFetchGroup::error_result`] /
+//! [`protocol::group::OffsetFetchGroup::error_results`] /
+//! [`protocol::group::OffsetFetchGroupResult::error`] are Java
+//! `OffsetFetchRequest.getErrorResponse` one group / Groups on v8+
+//! (empty Topics; request partitions are not copied). Throttle is the
+//! JSON default (`0`)),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
@@ -464,11 +470,15 @@
 //! [`protocol::group::FetchedOffset::unknown_partition`] /
 //! [`protocol::group::FetchedOffset::unauthorized_partition`] /
 //! [`protocol::group::FetchedOffset::error`] /
-//! [`protocol::group::OffsetFetchTopic::error_result`] are Java
+//! [`protocol::group::OffsetFetchTopic::error_result`] /
+//! [`protocol::group::OffsetFetchGroup::error_result`] /
+//! [`protocol::group::OffsetFetchGroup::error_results`] /
+//! [`protocol::group::OffsetFetchGroupResult::error`] are Java
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
 //! `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION` /
-//! `OffsetFetchRequest.getErrorResponse` (partition body / one topic; v2 and
-//! later omit partitions).
+//! `OffsetFetchRequest.getErrorResponse` (partition body / one topic on
+//! v1–v7; one group / Groups on v8+). v1 fills request partitions; v2–v7
+//! omit partitions; v8+ copies GroupId with empty Topics.
 //! (`FetchedOffset` `Display` is `PartitionData.toString`).
 //! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
 //! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /
