@@ -366,9 +366,11 @@
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]. [`RecordMetadata::INVALID_OFFSET`] is
 //! the client-type copy (`hasOffset` is false when the offset is that
 //! value). [`RecordBatch::NO_TIMESTAMP`] is Java
-//! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
-//! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
-//! `CURRENT_MAGIC_VALUE`. [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java
+//! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V0`] /
+//! [`RecordBatch::MAGIC_VALUE_V1`] / [`RecordBatch::MAGIC_VALUE_V2`] /
+//! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V0` /
+//! `MAGIC_VALUE_V1` / `MAGIC_VALUE_V2` / `CURRENT_MAGIC_VALUE` (this crate
+//! encodes magic-v2 only). [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java
 //! `DefaultRecordBatch.RECORD_BATCH_OVERHEAD` (`61`).
 //! [`RecordBatch::CRC_OFFSET`] / [`RecordBatch::LAST_OFFSET_DELTA_OFFSET`] /
 //! [`RecordBatch::RECORDS_COUNT_OFFSET`] are Java `DefaultRecordBatch`
@@ -456,8 +458,11 @@
 //! that enum name for an id. [`protocol::api_keys::has_id`] /
 //! [`protocol::api_keys::for_id`] are Java `ApiKeys.hasId` / `forId`
 //! (`Unexpected api key: {id}`). [`protocol::api_keys::cluster_action`] /
-//! [`protocol::api_keys::forwardable`] are Java `ApiKeys.clusterAction` /
-//! `forwardable`.
+//! [`protocol::api_keys::forwardable`] /
+//! [`protocol::api_keys::min_required_inter_broker_magic`] are Java
+//! `ApiKeys.clusterAction` / `forwardable` / `minRequiredInterBrokerMagic`
+//! (txn APIs are [`RecordBatch::MAGIC_VALUE_V2`]; others are
+//! [`RecordBatch::MAGIC_VALUE_V0`]).
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! on ShareFetch / ShareAcknowledge).

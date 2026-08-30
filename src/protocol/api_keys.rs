@@ -320,6 +320,25 @@ pub const fn forwardable(id: i16) -> bool {
     )
 }
 
+/// Java `ApiKeys.minRequiredInterBrokerMagic`.
+///
+/// Kafka 4.0.0 constructors. AddPartitionsToTxn, AddOffsetsToTxn, EndTxn,
+/// WriteTxnMarkers, and TxnOffsetCommit are
+/// [`crate::RecordBatch::MAGIC_VALUE_V2`]; every other id (including unknown
+/// and this crate's 4.1-oriented share-offset keys 90–92) is
+/// [`crate::RecordBatch::MAGIC_VALUE_V0`].
+#[must_use]
+pub const fn min_required_inter_broker_magic(id: i16) -> i8 {
+    match id {
+        ADD_PARTITIONS_TO_TXN
+        | ADD_OFFSETS_TO_TXN
+        | END_TXN
+        | WRITE_TXN_MARKERS
+        | TXN_OFFSET_COMMIT => 2,
+        _ => 0,
+    }
+}
+
 /// Highest version in both the broker range and the client range, if they overlap.
 pub fn pick_version(
     broker_min: i16,
@@ -378,5 +397,58 @@ mod tests {
         assert!(!forwardable(DESCRIBE_SHARE_GROUP_OFFSETS));
         assert!(!cluster_action(999));
         assert!(!forwardable(999));
+    }
+
+    #[test]
+    fn min_required_inter_broker_magic_match_java_4_0() {
+        use crate::RecordBatch;
+        assert_eq!(
+            min_required_inter_broker_magic(ADD_PARTITIONS_TO_TXN),
+            RecordBatch::MAGIC_VALUE_V2
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(ADD_OFFSETS_TO_TXN),
+            RecordBatch::MAGIC_VALUE_V2
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(END_TXN),
+            RecordBatch::MAGIC_VALUE_V2
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(WRITE_TXN_MARKERS),
+            RecordBatch::MAGIC_VALUE_V2
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(TXN_OFFSET_COMMIT),
+            RecordBatch::MAGIC_VALUE_V2
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(PRODUCE),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(CREATE_TOPICS),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(UNREGISTER_BROKER),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(ALLOCATE_PRODUCER_IDS),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(55),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(DESCRIBE_SHARE_GROUP_OFFSETS),
+            RecordBatch::MAGIC_VALUE_V0
+        );
+        assert_eq!(
+            min_required_inter_broker_magic(999),
+            RecordBatch::MAGIC_VALUE_V0
+        );
     }
 }

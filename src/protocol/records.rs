@@ -813,6 +813,10 @@ impl RecordBatch {
     pub const NO_SEQUENCE: i32 = -1;
     /// Java `RecordBatch.NO_PARTITION_LEADER_EPOCH`.
     pub const NO_PARTITION_LEADER_EPOCH: i32 = -1;
+    /// Java `RecordBatch.MAGIC_VALUE_V0`. This crate does not encode magic-v0.
+    pub const MAGIC_VALUE_V0: i8 = 0;
+    /// Java `RecordBatch.MAGIC_VALUE_V1`. This crate does not encode magic-v1.
+    pub const MAGIC_VALUE_V1: i8 = 1;
     /// Java `RecordBatch.MAGIC_VALUE_V2`. This crate speaks magic-v2 only.
     pub const MAGIC_VALUE_V2: i8 = MAGIC_V2;
     /// Java `RecordBatch.CURRENT_MAGIC_VALUE` ([`Self::MAGIC_VALUE_V2`]).
@@ -1849,6 +1853,8 @@ mod tests {
         assert_eq!(batch.magic(), MAGIC_V2);
         assert_eq!(batch.magic(), RecordBatch::MAGIC_VALUE_V2);
         assert_eq!(batch.magic(), RecordBatch::CURRENT_MAGIC_VALUE);
+        assert_eq!(RecordBatch::MAGIC_VALUE_V0, 0);
+        assert_eq!(RecordBatch::MAGIC_VALUE_V1, 1);
         assert_eq!(RecordBatch::MAGIC_VALUE_V2, 2);
         assert_eq!(RecordBatch::CURRENT_MAGIC_VALUE, 2);
         assert_eq!(RecordBatch::RECORD_BATCH_OVERHEAD, 61);
