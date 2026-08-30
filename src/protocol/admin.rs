@@ -2093,6 +2093,10 @@ impl fmt::Display for AlterConfig {
 pub type AlterConfigOp = AlterConfig;
 
 /// One IncrementalAlterConfigs resource (Resources array element).
+///
+/// [`Self::error_result`] is Java `IncrementalAlterConfigsRequest.getErrorResponse`
+/// one resource (copy `ResourceName` / `ResourceType`; `ErrorMessage`
+/// stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterableResource {
     /// Resource type (`RESOURCE_TOPIC`, …).
@@ -2103,7 +2107,24 @@ pub struct AlterableResource {
     pub configs: Vec<AlterConfig>,
 }
 
+impl AlterableResource {
+    /// Java `IncrementalAlterConfigsRequest.getErrorResponse` one resource.
+    ///
+    /// Copies `ResourceName` / `ResourceType` and sets `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Request configs are
+    /// not copied. Throttle on the response is the JSON default (`0`);
+    /// official Java does not set `ThrottleTimeMs`.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> AlterConfigsResourceResult {
+        AlterConfigsResourceResult::error(self.resource_type, self.name.clone(), error_code)
+    }
+}
+
 /// Per-resource IncrementalAlterConfigs result.
+///
+/// [`Self::error`] is Java `IncrementalAlterConfigsRequest.getErrorResponse`
+/// one resource (`ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfigsResourceResult {
     /// Resource error, or `0`.
@@ -2117,6 +2138,34 @@ pub struct AlterConfigsResourceResult {
 }
 
 impl AlterConfigsResourceResult {
+    /// Java `IncrementalAlterConfigsRequest.getErrorResponse` one resource.
+    ///
+    /// Sets `ResourceType`, `ResourceName`, and `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Throttle on the
+    /// response is the JSON default (`0`); official Java does not set
+    /// `ThrottleTimeMs`.
+    #[must_use]
+    pub fn error(resource_type: i8, name: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            resource_type,
+            name: name.into(),
+        }
+    }
+
+    /// Java `IncrementalAlterConfigsRequest.getErrorResponse` Responses.
+    ///
+    /// Maps each request resource through [`AlterableResource::error_result`].
+    #[must_use]
+    pub fn error_results(resources: &[AlterableResource], error_code: i16) -> Vec<Self> {
+        resources
+            .iter()
+            .map(|resource| resource.error_result(error_code))
+            .collect()
+    }
+
     /// Resource error, or `0`.
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -14562,6 +14611,91 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "IncrementalAlterConfigs v0 Resources of 2 must be leftover-empty"
+        );
+
+        let err_results =
+            AlterConfigsResourceResult::error_results(&resources, crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err_results,
+            vec![
+                AlterConfigsResourceResult::error(
+                    RESOURCE_TOPIC,
+                    "a",
+                    crate::error::NOT_CONTROLLER,
+                ),
+                resources
+                    .get(1)
+                    .expect("b resource")
+                    .error_result(crate::error::NOT_CONTROLLER),
+            ]
+        );
+        let first = err_results.first().expect("error resource");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        assert_eq!(first.resource_type, RESOURCE_TOPIC);
+        assert_eq!(first.name(), "a");
+        let broker = AlterableResource {
+            resource_type: RESOURCE_BROKER,
+            name: "1".into(),
+            configs: vec![AlterConfig::set("k", "v")],
+        };
+        let broker_err = broker.error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(broker_err.resource_type, RESOURCE_BROKER);
+        assert!(broker_err.error_message().is_none());
+        let empty = AlterConfigsResourceResult::error_results(&[], crate::error::NOT_CONTROLLER);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_incremental_alter_configs_resource_results(&mut buf, 1, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_incremental_alter_configs_resource_results(&mut buf, 0, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_incremental_alter_configs_resource_results(&mut cur, 0).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_incremental_alter_configs_resource_results(
+            &mut buf,
+            1,
+            std::slice::from_ref(&broker_err),
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
+            vec![broker_err]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs broker getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_incremental_alter_configs_resource_results(&mut buf, 1, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_incremental_alter_configs_resource_results(&mut cur, 1).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "IncrementalAlterConfigs empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

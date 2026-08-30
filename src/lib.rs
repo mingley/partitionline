@@ -545,6 +545,13 @@
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java
 //! `incrementalAlterConfigs(Map)` ([`ConfigResourceUpdate`]; Resources of N).
+//! [`protocol::admin::AlterableResource::error_result`] /
+//! [`AlterConfigsResourceResult::error`] /
+//! [`AlterConfigsResourceResult::error_results`] are Java
+//! `IncrementalAlterConfigsRequest.getErrorResponse` (one resource /
+//! Responses). `ErrorMessage` stays the JSON default (null); official
+//! Java also sets the English `Errors.message` string. Official Java
+//! does not set `ThrottleTimeMs` (JSON default `0`).
 //! [`AlterConfig::append`] / [`AlterConfig::subtract`] are Java
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
 //! [`AlterConfig::from_entry`] is Java `AlterConfigOp(ConfigEntry, OpType)`
