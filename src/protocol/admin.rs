@@ -8874,6 +8874,33 @@ impl DeleteGroupsResponse {
         }
         counts
     }
+
+    /// Java `DeleteGroupsResponse.errors`.
+    ///
+    /// Map of group id to per-group `errorCode` (including `NONE`).
+    #[must_use]
+    pub fn errors(results: &[DeletableGroupResult]) -> HashMap<String, i16> {
+        results
+            .iter()
+            .map(|result| (result.group_id.clone(), result.error_code))
+            .collect()
+    }
+
+    /// Java `DeleteGroupsResponse.get`.
+    ///
+    /// Per-group `errorCode` for `group`. Missing id is
+    /// [`Error::protocol`] (`could not find group` plus the id).
+    pub fn get(results: &[DeletableGroupResult], group: &str) -> Result<i16> {
+        results
+            .iter()
+            .find(|result| result.group_id == group)
+            .map(|result| result.error_code)
+            .ok_or_else(|| {
+                Error::protocol(format!(
+                    "could not find group {group} in the delete group response"
+                ))
+            })
+    }
 }
 
 /// DeleteGroups v0–2 (classic through v1; flexible from v2).
@@ -14584,12 +14611,13 @@ mod tests {
     #[test]
     fn delete_groups_response_error_counts_matches_java() {
         assert!(DeleteGroupsResponse::error_counts(&[]).is_empty());
-        let counts = DeleteGroupsResponse::error_counts(&[
+        let results = [
             DeletableGroupResult::new("ok", 0),
             DeletableGroupResult::new("busy", crate::error::NON_EMPTY_GROUP),
             DeletableGroupResult::new("ok2", 0),
             DeletableGroupResult::new("gone", crate::error::GROUP_ID_NOT_FOUND),
-        ]);
+        ];
+        let counts = DeleteGroupsResponse::error_counts(&results);
         assert_eq!(
             counts,
             HashMap::from([
@@ -14597,6 +14625,35 @@ mod tests {
                 (crate::error::NON_EMPTY_GROUP, 1),
                 (crate::error::GROUP_ID_NOT_FOUND, 1),
             ])
+        );
+        assert_eq!(
+            DeleteGroupsResponse::errors(&results),
+            HashMap::from([
+                ("ok".into(), 0),
+                ("busy".into(), crate::error::NON_EMPTY_GROUP),
+                ("ok2".into(), 0),
+                ("gone".into(), crate::error::GROUP_ID_NOT_FOUND),
+            ])
+        );
+        assert!(DeleteGroupsResponse::errors(&[]).is_empty());
+        assert_eq!(DeleteGroupsResponse::get(&results, "ok").unwrap(), 0);
+        assert_eq!(
+            DeleteGroupsResponse::get(&results, "busy").unwrap(),
+            crate::error::NON_EMPTY_GROUP
+        );
+        let missing = DeleteGroupsResponse::get(&results, "missing").unwrap_err();
+        assert!(
+            missing
+                .to_string()
+                .contains("could not find group missing in the delete group response"),
+            "{missing}"
+        );
+        let empty_missing = DeleteGroupsResponse::get(&[], "g").unwrap_err();
+        assert!(
+            empty_missing
+                .to_string()
+                .contains("could not find group g in the delete group response"),
+            "{empty_missing}"
         );
     }
 

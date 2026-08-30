@@ -300,6 +300,10 @@
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::DeleteGroupsResponse::error_counts`] is Java
 //! `DeleteGroupsResponse.errorCounts` (per-group codes, including `NONE`);
+//! [`protocol::admin::DeleteGroupsResponse::errors`] /
+//! [`protocol::admin::DeleteGroupsResponse::get`] are Java
+//! `DeleteGroupsResponse.errors` / `get` (group id to `errorCode`; missing
+//! id is [`Error::protocol`]);
 //! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
 //! [`DeletableGroupResult::new`])),
