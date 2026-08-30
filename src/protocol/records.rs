@@ -980,6 +980,8 @@ impl RecordBatch {
     pub const ATTRIBUTES_OFFSET: i32 = Self::CRC_OFFSET + 4;
     /// Java `DefaultRecordBatch.LAST_OFFSET_DELTA_OFFSET`.
     pub const LAST_OFFSET_DELTA_OFFSET: i32 = 23;
+    /// Java `DefaultRecordBatch.BASE_SEQUENCE_OFFSET`.
+    pub const BASE_SEQUENCE_OFFSET: i32 = 53;
     /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
     pub const RECORDS_COUNT_OFFSET: i32 = 57;
 
@@ -1328,6 +1330,24 @@ impl RecordBatch {
     /// ([`Self::encoded_last_offset`] plus one).
     pub fn encoded_next_offset(buffer: &[u8]) -> Result<i64> {
         Ok(Self::encoded_last_offset(buffer)?.wrapping_add(1))
+    }
+
+    /// Java `DefaultRecordBatch.lastSequence` on a buffer.
+    ///
+    /// [`Self::NO_SEQUENCE`] when the stored base sequence is unset (delta is
+    /// not read). Otherwise [`Self::increment_sequence`] of the base sequence
+    /// and header `lastOffsetDelta`. Distinct from [`Self::last_sequence`],
+    /// which uses `count - 1`. Short sequence or delta fields are
+    /// [`Error::protocol`] `need 4 bytes`.
+    pub fn encoded_last_sequence(buffer: &[u8]) -> Result<i32> {
+        let seq_off = buf::usize_from_i32(Self::BASE_SEQUENCE_OFFSET)?;
+        let base_sequence = buf::read_int_be(buffer, seq_off)?;
+        if base_sequence == Self::NO_SEQUENCE {
+            return Ok(Self::NO_SEQUENCE);
+        }
+        let delta_off = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
+        let delta = buf::read_int_be(buffer, delta_off)?;
+        Ok(Self::increment_sequence(base_sequence, delta))
     }
 
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
@@ -2110,6 +2130,7 @@ mod tests {
         assert_eq!(RecordBatch::CRC_OFFSET, 17);
         assert_eq!(RecordBatch::ATTRIBUTES_OFFSET, 21);
         assert_eq!(RecordBatch::LAST_OFFSET_DELTA_OFFSET, 23);
+        assert_eq!(RecordBatch::BASE_SEQUENCE_OFFSET, 53);
         assert_eq!(RecordBatch::RECORDS_COUNT_OFFSET, 57);
         assert_eq!(batch.base_offset(), 0);
         assert_eq!(batch.last_offset(), 0);
@@ -3042,6 +3063,51 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short_delta.contains("need 4 bytes"), "{short_delta}");
+    }
+
+    #[test]
+    fn encoded_last_sequence_matches_java_default_record_batch() {
+        let empty = RecordBatch::from_records(vec![]);
+        let mut empty_buf = BytesMut::new();
+        encode_record_batch(&mut empty_buf, &empty).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_last_sequence(&empty_buf).unwrap(),
+            RecordBatch::NO_SEQUENCE
+        );
+        assert_eq!(empty.last_sequence(), RecordBatch::NO_SEQUENCE);
+
+        let mut batch = RecordBatch::from_records(vec![sample_record(), sample_record()]);
+        batch.base_sequence = 5;
+        let mut encoded = BytesMut::new();
+        encode_record_batch(&mut encoded, &batch).unwrap();
+        assert_eq!(RecordBatch::encoded_last_sequence(&encoded).unwrap(), 6);
+        assert_eq!(batch.last_sequence(), 6);
+
+        let mut mutated = encoded.clone();
+        mutated[23..27].copy_from_slice(&5i32.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_last_sequence(&mutated).unwrap(), 10);
+        assert_eq!(batch.last_sequence(), 6);
+
+        let mut no_seq = [0u8; 57];
+        no_seq[23..27].copy_from_slice(&5i32.to_be_bytes());
+        no_seq[53..57].copy_from_slice(&RecordBatch::NO_SEQUENCE.to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_last_sequence(&no_seq).unwrap(),
+            RecordBatch::NO_SEQUENCE
+        );
+
+        let mut wrap = [0u8; 57];
+        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        wrap[53..57].copy_from_slice(&i32::MAX.to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_last_sequence(&wrap).unwrap(),
+            RecordBatch::increment_sequence(i32::MAX, 1)
+        );
+
+        let short = RecordBatch::encoded_last_sequence(&[0; 52])
+            .unwrap_err()
+            .to_string();
+        assert!(short.contains("need 4 bytes"), "{short}");
     }
 
     #[test]
