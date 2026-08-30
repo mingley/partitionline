@@ -23,6 +23,17 @@ fn init_producer_id_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `InitProducerIdResponse` helpers.
+pub struct InitProducerIdResponse;
+
+impl InitProducerIdResponse {
+    /// Java `InitProducerIdResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+}
+
 /// InitProducerId v0–v1 (classic) or v2–v5 (flexible).
 ///
 /// `transaction_timeout_ms` is Kafka `transaction.timeout.ms` (INT32 after
@@ -312,6 +323,8 @@ mod tests {
 
     #[test]
     fn init_producer_id_builder_matches_java() {
+        assert!(!InitProducerIdResponse::should_client_throttle(0));
+        assert!(InitProducerIdResponse::should_client_throttle(1));
         encode_init_producer_id_request(
             &mut BytesMut::new(),
             1,

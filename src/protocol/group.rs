@@ -1684,6 +1684,17 @@ pub fn decode_leave_group_response_version<B: Buf>(
     Ok((error_code, members))
 }
 
+/// Java `LeaveGroupResponse` helpers.
+pub struct LeaveGroupResponse;
+
+impl LeaveGroupResponse {
+    /// Java `LeaveGroupResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+}
+
 /// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetPartition {
@@ -5102,6 +5113,8 @@ mod tests {
 
     #[test]
     fn leave_group_builder_matches_java() {
+        assert!(!LeaveGroupResponse::should_client_throttle(1));
+        assert!(LeaveGroupResponse::should_client_throttle(2));
         let empty =
             encode_leave_group_request_members(&mut BytesMut::new(), 5, "g", &[]).unwrap_err();
         assert!(

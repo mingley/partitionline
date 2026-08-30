@@ -266,6 +266,17 @@ impl ListOffsetsTopicResponse {
     }
 }
 
+/// Java `ListOffsetsResponse` helpers.
+pub struct ListOffsetsResponse;
+
+impl ListOffsetsResponse {
+    /// Java `ListOffsetsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 3
+    }
+}
+
 /// ListOffsets v1–v5 (classic) or v6–v10 (flexible). Isolation is v2+.
 /// `current_leader_epoch` is v4+. v10 `TimeoutMs` (KIP-1075) follows Topics.
 #[expect(
@@ -589,6 +600,8 @@ mod tests {
     fn list_offsets_replica_id_sentinels_match_java() {
         assert_eq!(CONSUMER_REPLICA_ID, -1);
         assert_eq!(DEBUGGING_REPLICA_ID, -2);
+        assert!(!ListOffsetsResponse::should_client_throttle(2));
+        assert!(ListOffsetsResponse::should_client_throttle(3));
     }
 
     #[test]

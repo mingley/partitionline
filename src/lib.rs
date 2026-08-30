@@ -33,6 +33,8 @@
 //! sentinels. Java `InitProducerIdRequest.Builder.build` rejects a
 //! non-positive `transaction.timeout.ms` and an empty (non-null)
 //! transactional id.
+//! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
+//! `InitProducerIdResponse.shouldClientThrottle` (v1+).
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v12+ TopicId on [`Admin::describe_topics_by_id`]).
@@ -88,6 +90,8 @@
 //! [`protocol::group::JoinGroupResponse::should_client_throttle`] are Java
 //! `JoinGroupResponse.isLeader` / `shouldClientThrottle`).
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
+//! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
+//! `LeaveGroupResponse.shouldClientThrottle` (v2+);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
@@ -517,6 +521,8 @@
 //! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_TIMESTAMP`] /
 //! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_EPOCH`] are Java
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP` / `UNKNOWN_EPOCH`.
+//! [`protocol::offsets::ListOffsetsResponse::should_client_throttle`] is Java
+//! `ListOffsetsResponse.shouldClientThrottle` (v3+).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
