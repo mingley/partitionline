@@ -1480,7 +1480,8 @@ fn size_of_key_value_headers(
         + nullable_bytes_len(value)
         + buf::varint_size(buf::i32_from_usize(headers.len())?);
     for h in headers {
-        size += buf::varint_size(buf::i32_from_usize(h.key.len())?) + h.key.len();
+        let header_key_size = buf::utf8_length(&h.key);
+        size += buf::varint_size(header_key_size) + h.key.len();
         size += nullable_bytes_len(h.value.as_deref());
     }
     Ok(size)
@@ -1566,7 +1567,7 @@ fn encode_record(
     }
     buf::put_varint(buf, buf::i32_from_usize(rec.headers.len())?);
     for h in rec.headers {
-        buf::put_varint(buf, buf::i32_from_usize(h.key.len())?);
+        buf::put_varint(buf, buf::utf8_length(&h.key));
         buf.extend_from_slice(h.key.as_bytes());
         match h.value.as_deref() {
             None => buf::put_varint(buf, -1),

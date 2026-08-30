@@ -4,7 +4,7 @@
 //! and [`size_of_varlong`] are Java `ByteUtils.sizeOfUnsignedVarint` /
 //! `sizeOfVarint` / `sizeOfUnsignedVarlong` / `sizeOfVarlong`. The unsigned
 //! helpers take a signed value and reinterpret the bits, so `-1` is five
-//! bytes (varint) or ten (varlong).
+//! bytes (varint) or ten (varlong). [`utf8_length`] is Java `Utils.utf8Length`.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -151,6 +151,15 @@ pub fn size_of_unsigned_varlong(value: i64) -> i32 {
 /// Java `ByteUtils.sizeOfVarlong` (zigzag).
 pub fn size_of_varlong(value: i64) -> i32 {
     encoded_len_i32(varlong_size(value))
+}
+
+/// Java `Utils.utf8Length`.
+///
+/// For a valid Unicode string this is the UTF-8 byte length. Java walks
+/// UTF-16 code units; unpaired surrogates cannot appear in Rust `&str`.
+#[must_use]
+pub fn utf8_length(s: &str) -> i32 {
+    encoded_len_i32(s.len())
 }
 
 /// Write an unsigned varint (compact protocol lengths).
@@ -832,5 +841,17 @@ mod tests {
         let mut buf = BytesMut::new();
         put_classic_bytes(&mut buf, None).unwrap();
         assert_eq!(take_classic_bytes(&mut buf.freeze()).unwrap(), None);
+    }
+
+    #[test]
+    fn utf8_length_matches_java_utils() {
+        assert_eq!(utf8_length(""), 0);
+        assert_eq!(utf8_length("a"), 1);
+        assert_eq!(utf8_length("hello"), 5);
+        assert_eq!(utf8_length("é"), 2);
+        assert_eq!(utf8_length("€"), 3);
+        assert_eq!(utf8_length("你"), 3);
+        assert_eq!(utf8_length("😀"), 4);
+        assert_eq!(utf8_length("a😀é"), 7);
     }
 }
