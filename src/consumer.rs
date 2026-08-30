@@ -2799,9 +2799,7 @@ impl Consumer {
             self.drop_pending_for(topic, partition);
             return Ok(());
         }
-        Err(Error::protocol(format!(
-            "No current assignment for partition {topic}-{partition}"
-        )))
+        Err(reject_java_no_current_assignment(topic, partition))
     }
 
     /// Seek every assigned partition to the log start (`ListOffsets` earliest).
@@ -2961,7 +2959,9 @@ impl Consumer {
 
     /// High watermark minus position (Java `currentLag`).
     ///
-    /// `None` when the high watermark is unknown (`-1`).
+    /// `None` when the high watermark is unknown (`-1`). An unassigned
+    /// partition is Java `IllegalStateException` (`No current assignment
+    /// for partition`).
     pub async fn current_lag(
         &mut self,
         partition: impl Into<TopicPartition>,
@@ -2971,13 +2971,21 @@ impl Consumer {
     }
 
     /// [`Self::current_lag`] with a one-shot timeout for the ListOffsets RPC.
+    ///
+    /// An unassigned partition is the same Java `IllegalStateException` as
+    /// [`Self::current_lag`].
     pub async fn current_lag_timeout(
         &mut self,
         partition: impl Into<TopicPartition>,
         timeout: Duration,
     ) -> Result<Option<i64>> {
         let tp = partition.into();
-        let pos = self.position_of(tp.clone())?;
+        let pos = self
+            .assigned
+            .iter()
+            .find(|(t, p, _)| t == &tp.topic && *p == tp.partition)
+            .map(|(_, _, o)| *o)
+            .ok_or_else(|| reject_java_no_current_assignment(&tp.topic, tp.partition))?;
         let hw = self
             .list_offsets_timeout(
                 tp.topic.clone(),
@@ -3208,6 +3216,13 @@ pub(crate) fn reject_java_no_subscription_or_assignment() -> Error {
 /// Java `KafkaConsumer.position` when the partition is not assigned.
 fn reject_java_position_unassigned() -> Error {
     Error::protocol("You can only check the position for partitions assigned to this consumer.")
+}
+
+/// Java `SubscriptionState.assignedState` (seek / `currentLag`).
+fn reject_java_no_current_assignment(topic: &str, partition: i32) -> Error {
+    Error::protocol(format!(
+        "No current assignment for partition {topic}-{partition}"
+    ))
 }
 
 pub(crate) fn partition_infos_from(

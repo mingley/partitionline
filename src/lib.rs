@@ -401,7 +401,8 @@
 //! `seek(TopicPartition, OffsetAndMetadata)` and sends the leader epoch as
 //! Fetch `LastFetchedEpoch`; a negative offset is Java
 //! `seek offset must not be a negative number`, and an unassigned partition
-//! is Java `No current assignment for partition`). [`Consumer::position`] /
+//! is Java `No current assignment for partition`; [`Consumer::current_lag`]
+//! uses that same message). [`Consumer::position`] /
 //! [`Consumer::position_of`] for an unassigned partition is Java
 //! `You can only check the position for partitions assigned to this consumer.`.
 //! [`Consumer::pause`] / [`Consumer::resume`] skip
@@ -746,7 +747,8 @@
 //! [`Admin::incremental_alter_configs_timeout`] /
 //! [`Admin::alter_configs_timeout`] are Java `AlterConfigsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
-//! [`Consumer::current_lag`] is Java `currentLag`.
+//! [`Consumer::current_lag`] is Java `currentLag` (an unassigned partition is
+//! `No current assignment for partition`).
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::assign_partitions`] / [`Consumer::unassign`] replace or
 //! drop a manual assignment ([`Consumer::assign_partitions`] is Java

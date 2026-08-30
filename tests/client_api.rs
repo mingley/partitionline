@@ -2840,6 +2840,63 @@ async fn position_unassigned_match_java() {
 }
 
 #[tokio::test]
+async fn current_lag_unassigned_match_java() {
+    let mock = common::Mock::start().await;
+    let java = "No current assignment for partition missing-1";
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let none = consumer
+        .current_lag(("missing", 1))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(none.contains(java), "{none}");
+    let timeout = consumer
+        .current_lag_timeout(TopicPartition::new("missing", 1), Duration::from_secs(5))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(timeout.contains(java), "{timeout}");
+    consumer.assign("t", 0, 0).await.unwrap();
+    let other = consumer
+        .current_lag(("t", 1))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        other.contains("No current assignment for partition t-1"),
+        "{other}"
+    );
+    consumer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "clag",
+        "t",
+    )
+    .await
+    .unwrap();
+    let group_err = group
+        .current_lag(("missing", 1))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(group_err.contains(java), "{group_err}");
+    let group_timeout = group
+        .current_lag_timeout(("t", 1), Duration::from_secs(5))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        group_timeout.contains("No current assignment for partition t-1"),
+        "{group_timeout}"
+    );
+    group.leave().await.unwrap();
+}
+
+#[tokio::test]
 async fn group_seek_to_beginning_rereads() {
     let mock = common::Mock::start().await;
     let producer =

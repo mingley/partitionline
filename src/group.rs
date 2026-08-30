@@ -965,6 +965,9 @@ impl ConsumerGroup {
     }
 
     /// High watermark minus position (Java `currentLag`).
+    ///
+    /// An unassigned partition is Java `IllegalStateException`
+    /// (`No current assignment for partition`).
     pub async fn current_lag(
         &mut self,
         partition: impl Into<TopicPartition>,
@@ -973,6 +976,9 @@ impl ConsumerGroup {
     }
 
     /// [`Self::current_lag`] with a one-shot timeout for the ListOffsets RPC.
+    ///
+    /// An unassigned partition is the same Java `IllegalStateException` as
+    /// [`Self::current_lag`].
     pub async fn current_lag_timeout(
         &mut self,
         partition: impl Into<TopicPartition>,
