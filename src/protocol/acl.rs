@@ -1241,12 +1241,20 @@ fn acl_api_flexible(version: i16) -> Result<bool> {
 }
 
 /// Encode CreateAcls v0–3 (classic through v1; flexible from v2).
+///
+/// Java `CreateAclsRequest.validate` rejects non-LITERAL pattern types
+/// on v0 (`UnsupportedVersionException`).
 pub fn encode_create_acls_request(
     buf: &mut BytesMut,
     version: i16,
     acls: &[AclBinding],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    if version == 0 && acls.iter().any(|a| a.pattern_type != ACL_PATTERN_LITERAL) {
+        return Err(Error::Unsupported(
+            "Version 0 only supports literal resource pattern types".into(),
+        ));
+    }
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
         buf.put_i8(a.resource_type);
@@ -1344,13 +1352,24 @@ pub fn decode_create_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<
 
 /// Encode DescribeAcls with a Java `AclBindingFilter`.
 ///
-/// v1+ sends [`AclBindingFilter::pattern_type`]. v0 omits it.
+/// v1+ sends [`AclBindingFilter::pattern_type`]. v0 omits it. Java
+/// `DescribeAclsRequest.normalizeAndValidate` rejects MATCH / PREFIXED /
+/// UNKNOWN on v0 (`UnsupportedVersionException`); ANY is allowed (Java
+/// rewrites it to LITERAL in memory; the v0 field is omitted either way).
 pub fn encode_describe_acls_request(
     buf: &mut BytesMut,
     version: i16,
     filter: &AclBindingFilter,
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    if version == 0
+        && filter.pattern_type != ACL_PATTERN_LITERAL
+        && filter.pattern_type != ACL_PATTERN_ANY
+    {
+        return Err(Error::Unsupported(
+            "Version 0 only supports literal resource pattern types".into(),
+        ));
+    }
     put_acl_filter_fields(buf, version, flexible, filter)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -1497,12 +1516,26 @@ fn get_acl_filter_fields<B: Buf>(
 /// Encode DeleteAcls Filters of N (Java `deleteAcls(Collection)`).
 ///
 /// v1+ sends [`AclBindingFilter::pattern_type`] on each filter. v0 omits it.
+/// Java `DeleteAclsRequest.normalizeAndValidate` rejects MATCH / PREFIXED /
+/// UNKNOWN on v0 (`UnsupportedVersionException`); ANY is allowed (Java
+/// rewrites it to LITERAL in memory; the v0 field is omitted either way).
 pub fn encode_delete_acls_request(
     buf: &mut BytesMut,
     version: i16,
     filters: &[AclBindingFilter],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    if version == 0 {
+        for filter in filters {
+            if filter.pattern_type != ACL_PATTERN_LITERAL && filter.pattern_type != ACL_PATTERN_ANY
+            {
+                return Err(Error::Unsupported(format!(
+                    "Version 0 does not support pattern type {} (only LITERAL and ANY are supported)",
+                    AclPatternType::from_id(filter.pattern_type)
+                )));
+            }
+        }
+    }
     buf::put_array_len(buf, flexible, Some(filters.len()))?;
     for filter in filters {
         put_acl_filter_fields(buf, version, flexible, filter)?;
@@ -2057,5 +2090,57 @@ mod tests {
         assert!(!AclBindingFilter::resource_type(AclResourceType::Topic)
             .permission(AclPermission::Allow)
             .matches(&deny));
+    }
+
+    #[test]
+    fn acl_v0_pattern_type_matches_java() {
+        let prefixed =
+            AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Prefixed);
+        let err =
+            encode_create_acls_request(&mut BytesMut::new(), 0, std::slice::from_ref(&prefixed))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "CreateAcls v0 PREFIXED is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("literal resource pattern types"),
+            "got {err}"
+        );
+        encode_create_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&prefixed))
+            .unwrap();
+
+        let match_filter =
+            AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC).pattern_type(AclPatternType::Match);
+        let err = encode_describe_acls_request(&mut BytesMut::new(), 0, &match_filter).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DescribeAcls v0 MATCH is Java UnsupportedVersionException, got {err}"
+        );
+        encode_describe_acls_request(
+            &mut BytesMut::new(),
+            0,
+            &AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
+        )
+        .unwrap();
+        encode_describe_acls_request(&mut BytesMut::new(), 1, &match_filter).unwrap();
+
+        let err = encode_delete_acls_request(
+            &mut BytesMut::new(),
+            0,
+            std::slice::from_ref(&match_filter),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DeleteAcls v0 MATCH is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("pattern type MATCH (only LITERAL and ANY are supported)"),
+            "got {err}"
+        );
+        encode_delete_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&match_filter))
+            .unwrap();
     }
 }
