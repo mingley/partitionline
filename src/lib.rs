@@ -1287,6 +1287,11 @@
 //! ```
 //!
 //! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
+//! [`net::get_host`] / [`net::get_port`] / [`net::format_address`] /
+//! [`net::valid_host_pattern`] are Java `Utils.getHost` / `getPort` /
+//! `formatAddress` / `validHostPattern` (IPv6 brackets, optional
+//! `PLAINTEXT://` scheme). TLS SNI uses `getHost` when the bootstrap
+//! address parses.
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
 //! Kafka `max.block.ms` (how long `send` waits for metadata and

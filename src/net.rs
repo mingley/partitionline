@@ -81,7 +81,92 @@ fn ensure_crypto() {
     });
 }
 
+fn is_bootstrap_scheme_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'-' | b'%' | b'.' | b'_')
+}
+
+fn is_bootstrap_host_char(b: u8) -> bool {
+    is_bootstrap_scheme_char(b) || b == b':'
+}
+
+fn rest_after_optional_scheme(address: &str) -> &str {
+    match address.find("://") {
+        Some(i) => {
+            let scheme = address.get(..i).unwrap_or("");
+            if scheme.bytes().all(is_bootstrap_scheme_char) {
+                match i.checked_add(3).and_then(|end| address.get(end..)) {
+                    Some(rest) => rest,
+                    None => address,
+                }
+            } else {
+                address
+            }
+        }
+        None => address,
+    }
+}
+
+fn host_from_prefix(prefix: &str) -> Option<&str> {
+    let mut host = prefix;
+    if let Some(inner) = host.strip_prefix('[') {
+        host = inner;
+    }
+    if let Some(inner) = host.strip_suffix(']') {
+        host = inner;
+    }
+    host.bytes().all(is_bootstrap_host_char).then_some(host)
+}
+
+fn parse_host_port(address: &str) -> Option<(&str, i32)> {
+    let rest = rest_after_optional_scheme(address);
+    let (prefix, port_str) = rest.rsplit_once(':')?;
+    if port_str.is_empty() || !port_str.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let port = port_str.parse().ok()?;
+    let host = host_from_prefix(prefix)?;
+    Some((host, port))
+}
+
+/// Java `Utils.getHost` (`None` is Java `null`).
+///
+/// Parses `host:port`, bracketed IPv6 plus port, and an optional scheme
+/// (`PLAINTEXT://`). Invalid characters are `None`.
+#[must_use]
+pub fn get_host(address: &str) -> Option<&str> {
+    parse_host_port(address).map(|(h, _)| h)
+}
+
+/// Java `Utils.getPort` (`None` is Java `null`).
+///
+/// A non-digit port (including a leading minus) is `None`. A digit string
+/// that does not fit in `i32` is also `None` (Java `Integer.parseInt`
+/// throws).
+#[must_use]
+pub fn get_port(address: &str) -> Option<i32> {
+    parse_host_port(address).map(|(_, p)| p)
+}
+
+/// Java `Utils.validHostPattern`.
+#[must_use]
+pub fn valid_host_pattern(address: &str) -> bool {
+    address.bytes().all(is_bootstrap_host_char)
+}
+
+/// Java `Utils.formatAddress` (IPv6 host is wrapped in brackets).
+#[must_use]
+pub fn format_address(host: &str, port: i32) -> String {
+    if host.contains(':') {
+        format!("[{host}]:{port}")
+    } else {
+        format!("{host}:{port}")
+    }
+}
+
 fn host_of(addr: &str) -> &str {
+    if let Some(host) = get_host(addr) {
+        return host;
+    }
     if let Some(rest) = addr.strip_prefix('[') {
         return rest.split(']').next().unwrap_or(addr);
     }
@@ -544,5 +629,71 @@ mod tests {
         reserve_frame(&mut buf, 8);
         assert_eq!(buf.capacity(), cap);
         assert_eq!(buf.len(), 16);
+    }
+
+    #[test]
+    fn utils_host_port_match_java() {
+        for protocol in ["PLAINTEXT", "SASL_PLAINTEXT", "SSL", "SASL_SSL"] {
+            assert_eq!(
+                get_host(&format!("{protocol}://mydomain.com:8080")),
+                Some("mydomain.com")
+            );
+            assert_eq!(
+                get_host(&format!("{protocol}://MyDomain.com:8080")),
+                Some("MyDomain.com")
+            );
+            assert_eq!(
+                get_host(&format!("{protocol}://My_Domain.com:8080")),
+                Some("My_Domain.com")
+            );
+            assert_eq!(get_host(&format!("{protocol}://[::1]:1234")), Some("::1"));
+            assert_eq!(
+                get_host(&format!(
+                    "{protocol}://[2001:db8:85a3:8d3:1319:8a2e:370:7348]:5678"
+                )),
+                Some("2001:db8:85a3:8d3:1319:8a2e:370:7348")
+            );
+            assert_eq!(
+                get_host(&format!(
+                    "{protocol}://[2001:DB8:85A3:8D3:1319:8A2E:370:7348]:5678"
+                )),
+                Some("2001:DB8:85A3:8D3:1319:8A2E:370:7348")
+            );
+            assert_eq!(
+                get_host(&format!("{protocol}://[fe80::b1da:69ca:57f7:63d8%3]:5678")),
+                Some("fe80::b1da:69ca:57f7:63d8%3")
+            );
+            assert_eq!(get_host(&format!("{protocol}://mydo)main.com:8080")), None);
+            assert_eq!(get_host(&format!("{protocol}://mydo(main.com:8080")), None);
+        }
+        assert_eq!(get_host("127.0.0.1:8000"), Some("127.0.0.1"));
+        assert_eq!(get_host("[::1]:1234"), Some("::1"));
+        assert_eq!(get_host("ho)st:9092"), None);
+        assert_eq!(get_port("127.0.0.1:8000"), Some(8000));
+        assert_eq!(get_port("mydomain.com:8080"), Some(8080));
+        assert_eq!(get_port("[::1]:1234"), Some(1234));
+        assert_eq!(
+            get_port("[2001:db8:85a3:8d3:1319:8a2e:370:7348]:5678"),
+            Some(5678)
+        );
+        assert_eq!(get_port("[fe80::b1da:69ca:57f7:63d8%3]:5678"), Some(5678));
+        assert_eq!(get_port("host:-92"), None);
+        assert_eq!(get_port("host:-9-2"), None);
+        assert_eq!(get_port("host:92-"), None);
+        assert_eq!(get_port("host:9-2"), None);
+        assert!(valid_host_pattern("127.0.0.1"));
+        assert!(valid_host_pattern("mydomain.com"));
+        assert!(valid_host_pattern("My_Domain.com"));
+        assert!(valid_host_pattern("::1"));
+        assert_eq!(format_address("127.0.0.1", 8000), "127.0.0.1:8000");
+        assert_eq!(format_address("mydomain.com", 8080), "mydomain.com:8080");
+        assert_eq!(format_address("::1", 1234), "[::1]:1234");
+        assert_eq!(
+            format_address("2001:db8:85a3:8d3:1319:8a2e:370:7348", 5678),
+            "[2001:db8:85a3:8d3:1319:8a2e:370:7348]:5678"
+        );
+        assert_eq!(host_of("127.0.0.1:9092"), "127.0.0.1");
+        assert_eq!(host_of("[::1]:9092"), "::1");
+        assert_eq!(host_of("PLAINTEXT://broker.local:9093"), "broker.local");
     }
 }
