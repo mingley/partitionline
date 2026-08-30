@@ -29,6 +29,7 @@ use crate::protocol::epoch::{
 use crate::protocol::fetch::{
     decode_fetch_response, encode_fetch_request, FetchPartition, FetchTopic,
 };
+use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_response, encode_list_offsets_request};
 use crate::protocol::records::{
     write_java_optional, write_java_optional_bytes, write_java_record_headers, Header,
@@ -1296,6 +1297,8 @@ impl Consumer {
     }
 
     /// Assign one partition at `offset`. Replaces a previous offset for the same pair.
+    ///
+    /// Java `assign` calls [`protocol::group::Topic::validate`] on the topic name.
     pub async fn assign(
         &mut self,
         topic: impl Into<String>,
@@ -1303,6 +1306,7 @@ impl Consumer {
         offset: i64,
     ) -> Result<()> {
         let topic = topic.into();
+        Topic::validate(&topic)?;
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
         self.drop_pending_for(&topic, partition);
@@ -1337,7 +1341,8 @@ impl Consumer {
     /// Offsets come from [`ConsumerConfig::auto_offset_reset`] via ListOffsets
     /// (`earliest` or `latest`). [`crate::AutoOffsetReset::None`] is an error
     /// (a manual consumer has no committed offsets). An empty list drops the
-    /// assignment ([`Self::unassign`]).
+    /// assignment ([`Self::unassign`]). Each topic name is checked with
+    /// [`protocol::group::Topic::validate`].
     ///
     /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::assign_partitions_timeout`].
@@ -1359,6 +1364,9 @@ impl Consumer {
         if tps.is_empty() {
             self.unassign();
             return Ok(());
+        }
+        for tp in &tps {
+            Topic::validate(&tp.topic)?;
         }
         let timestamp = match self.cfg.auto_offset_reset {
             crate::AutoOffsetReset::Earliest => crate::EARLIEST_TIMESTAMP,
@@ -1383,8 +1391,11 @@ impl Consumer {
     }
 
     /// Assign every partition of `topic` at `offset` (from metadata).
+    ///
+    /// Java `assign` calls [`protocol::group::Topic::validate`] on the topic name.
     pub async fn assign_topic(&mut self, topic: impl Into<String>, offset: i64) -> Result<()> {
         let topic = topic.into();
+        Topic::validate(&topic)?;
         self.refresh_metadata(Some(std::slice::from_ref(&topic)))
             .await?;
         let (error_code, parts): (i16, Vec<i32>) = {
@@ -1526,6 +1537,7 @@ impl Consumer {
         }
         let mut topics: Vec<String> = Vec::new();
         for (topic, _, _) in starts {
+            Topic::validate(topic)?;
             if !topics.iter().any(|t| t == topic) {
                 topics.push(topic.clone());
             }

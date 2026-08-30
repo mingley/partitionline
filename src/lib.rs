@@ -485,8 +485,9 @@
 //! or timestamp with Java `ProducerRecord` constructor messages
 //! (`Invalid partition` / `Invalid timestamp`), and reject an invalid topic
 //! name with Java `Topic.validate` (`Topic name is invalid`).
-//! [`ConsumerGroup::subscribe`] / [`ShareGroup::subscribe`] use the same
-//! `Topic.validate` check.
+//! [`ConsumerGroup::subscribe`] / [`ShareGroup::subscribe`] /
+//! [`Consumer::assign`] / [`Consumer::assign_partitions`] /
+//! [`Consumer::assign_topic`] use the same `Topic.validate` check.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /
@@ -740,7 +741,8 @@
 //! [`Consumer::list_topics`] is cluster Metadata. [`Consumer::assign_many`]
 //! / [`Consumer::assign_partitions`] / [`Consumer::unassign`] replace or
 //! drop a manual assignment ([`Consumer::assign_partitions`] is Java
-//! `assign(Collection)` and uses [`ConsumerConfig::auto_offset_reset`]).
+//! `assign(Collection)` and uses [`ConsumerConfig::auto_offset_reset`];
+//! topic names use [`protocol::group::Topic::validate`]).
 //! [`Consumer::beginning_offsets`] / [`Consumer::end_offsets`] take
 //! [`TopicPartition`]. [`Consumer::list_offset`] is ListOffsets for one
 //! partition. [`Consumer::assignment`] is Java `assignment`
