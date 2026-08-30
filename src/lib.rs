@@ -626,6 +626,11 @@
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`Record::size_of_body_in_bytes`] / [`Record::size_in_bytes`] are Java
 //! `DefaultRecord.sizeOfBodyInBytes` / `sizeInBytes`.
+//! [`protocol::buf::size_of_unsigned_varint`] / [`protocol::buf::size_of_varint`] /
+//! [`protocol::buf::size_of_unsigned_varlong`] / [`protocol::buf::size_of_varlong`]
+//! are Java `ByteUtils.sizeOfUnsignedVarint` / `sizeOfVarint` /
+//! `sizeOfUnsignedVarlong` / `sizeOfVarlong` (unsigned helpers reinterpret
+//! signed bits; `-1` is five bytes / ten bytes).
 //! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is

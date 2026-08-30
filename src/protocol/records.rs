@@ -551,7 +551,8 @@ impl Record {
     /// Body size plus the zigzag varint that prefixes the body on the wire.
     pub fn size_in_bytes(&self, offset_delta: i32, timestamp_delta: i64) -> Result<i32> {
         let body = self.size_of_body_in_bytes(offset_delta, timestamp_delta)?;
-        buf::i32_from_usize(buf::usize_from_i32(body)? + buf::varint_size(body))
+        body.checked_add(buf::size_of_varint(body))
+            .ok_or_else(|| Error::protocol("length exceeds i32"))
     }
 
     /// Java `DefaultRecord.recordSizeUpperBound` (`MAX_RECORD_OVERHEAD` plus
@@ -2601,11 +2602,7 @@ mod tests {
             .size_of_body_in_bytes(offset_delta, timestamp_delta)
             .unwrap();
         let size = rec.size_in_bytes(offset_delta, timestamp_delta).unwrap();
-        assert_eq!(
-            size,
-            buf::i32_from_usize(buf::usize_from_i32(body).unwrap() + buf::varint_size(body))
-                .unwrap()
-        );
+        assert_eq!(size, body + buf::size_of_varint(body));
         let mut encoded = BytesMut::new();
         encode_record(
             &mut encoded,

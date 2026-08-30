@@ -1,4 +1,10 @@
 //! Classic and compact Kafka primitive codecs.
+//!
+//! [`size_of_unsigned_varint`], [`size_of_varint`], [`size_of_unsigned_varlong`],
+//! and [`size_of_varlong`] are Java `ByteUtils.sizeOfUnsignedVarint` /
+//! `sizeOfVarint` / `sizeOfUnsignedVarlong` / `sizeOfVarlong`. The unsigned
+//! helpers take a signed value and reinterpret the bits, so `-1` is five
+//! bytes (varint) or ten (varlong).
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -89,7 +95,7 @@ pub fn need<B: Buf>(buf: &B, n: usize) -> Result<()> {
     }
 }
 
-/// Encoded size of an unsigned varint.
+/// Encoded size of an unsigned varint (`u32` bits).
 pub fn unsigned_varint_size(mut v: u32) -> usize {
     let mut n = 1;
     while v >= 0x80 {
@@ -99,7 +105,7 @@ pub fn unsigned_varint_size(mut v: u32) -> usize {
     n
 }
 
-/// Encoded size of an unsigned varlong.
+/// Encoded size of an unsigned varlong (`u64` bits).
 pub fn unsigned_varlong_size(mut v: u64) -> usize {
     let mut n = 1;
     while v >= 0x80 {
@@ -117,6 +123,34 @@ pub fn varint_size(v: i32) -> usize {
 /// Encoded size of a zigzag varlong.
 pub fn varlong_size(v: i64) -> usize {
     unsigned_varlong_size(zigzag_i64(v))
+}
+
+fn encoded_len_i32(n: usize) -> i32 {
+    i32::try_from(n).unwrap_or(i32::MAX)
+}
+
+/// Java `ByteUtils.sizeOfUnsignedVarint` (signed bits as unsigned varint).
+pub fn size_of_unsigned_varint(value: i32) -> i32 {
+    encoded_len_i32(unsigned_varint_size(u32::from_ne_bytes(
+        value.to_ne_bytes(),
+    )))
+}
+
+/// Java `ByteUtils.sizeOfVarint` (zigzag).
+pub fn size_of_varint(value: i32) -> i32 {
+    encoded_len_i32(varint_size(value))
+}
+
+/// Java `ByteUtils.sizeOfUnsignedVarlong` (signed bits as unsigned varlong).
+pub fn size_of_unsigned_varlong(value: i64) -> i32 {
+    encoded_len_i32(unsigned_varlong_size(u64::from_ne_bytes(
+        value.to_ne_bytes(),
+    )))
+}
+
+/// Java `ByteUtils.sizeOfVarlong` (zigzag).
+pub fn size_of_varlong(value: i64) -> i32 {
+    encoded_len_i32(varlong_size(value))
 }
 
 /// Write an unsigned varint (compact protocol lengths).
@@ -540,6 +574,68 @@ mod tests {
         assert_eq!(cur.remaining(), 0);
     }
 
+    fn naive_size_of_unsigned_varint(value: i32) -> i32 {
+        // Java ByteUtilsTest.testSizeOfUnsignedVarint loop (`>>>` 7).
+        let mut v = u32::from_ne_bytes(value.to_ne_bytes());
+        let mut bytes = 1i32;
+        while (v & 0xffff_ff80) != 0 {
+            bytes += 1;
+            v >>= 7;
+        }
+        bytes
+    }
+
+    fn naive_size_of_varlong(value: i64) -> i32 {
+        // Java ByteUtilsTest.testSizeOfVarlong zigzag then `>>>` 7.
+        let mut v = zigzag_i64(value);
+        let mut bytes = 1i32;
+        while (v & 0xffff_ffff_ffff_ff80) != 0 {
+            bytes += 1;
+            v >>= 7;
+        }
+        bytes
+    }
+
+    fn assert_unsigned_varint_size_matches_encode(value: i32) {
+        let mut buf = BytesMut::new();
+        put_unsigned_varint(&mut buf, u32::from_ne_bytes(value.to_ne_bytes()));
+        assert_eq!(
+            size_of_unsigned_varint(value),
+            i32::try_from(buf.len()).unwrap_or(i32::MAX),
+            "unsigned varint {value}"
+        );
+    }
+
+    fn assert_varint_size_matches_encode(value: i32) {
+        let mut buf = BytesMut::new();
+        put_varint(&mut buf, value);
+        assert_eq!(
+            size_of_varint(value),
+            i32::try_from(buf.len()).unwrap_or(i32::MAX),
+            "varint {value}"
+        );
+    }
+
+    fn assert_varlong_size_matches_encode(value: i64) {
+        let mut buf = BytesMut::new();
+        put_varlong(&mut buf, value);
+        assert_eq!(
+            size_of_varlong(value),
+            i32::try_from(buf.len()).unwrap_or(i32::MAX),
+            "varlong {value}"
+        );
+    }
+
+    fn assert_unsigned_varlong_size_matches_encode(value: i64) {
+        let mut buf = BytesMut::new();
+        put_unsigned_varlong(&mut buf, u64::from_ne_bytes(value.to_ne_bytes()));
+        assert_eq!(
+            size_of_unsigned_varlong(value),
+            i32::try_from(buf.len()).unwrap_or(i32::MAX),
+            "unsigned varlong {value}"
+        );
+    }
+
     #[test]
     fn varint_size_matches_encoded_len() {
         for v in [0i32, 1, -1, 2, -2, 127, -128, 16_383, i32::MAX, i32::MIN] {
@@ -552,6 +648,138 @@ mod tests {
             put_varlong(&mut buf, v);
             assert_eq!(buf.len(), varlong_size(v), "varlong {v}");
         }
+    }
+
+    #[test]
+    fn size_of_unsigned_varint_matches_java() {
+        // ByteUtilsTest.assertUnsignedVarintSerde encodings.
+        for v in [
+            0,
+            -1,
+            1,
+            63,
+            -64,
+            64,
+            8191,
+            -8192,
+            8192,
+            -8193,
+            1_048_575,
+            1_048_576,
+            i32::MAX,
+            i32::MIN,
+        ] {
+            assert_unsigned_varint_size_matches_encode(v);
+            assert_eq!(size_of_unsigned_varint(v), naive_size_of_unsigned_varint(v));
+        }
+        assert_eq!(size_of_unsigned_varint(-1), 5);
+        assert_eq!(size_of_unsigned_varint(i32::MIN), 5);
+        assert_eq!(size_of_unsigned_varint(0), 1);
+        for i in 0i32..10_000 {
+            assert_eq!(
+                size_of_unsigned_varint(i),
+                naive_size_of_unsigned_varint(i),
+                "{i}"
+            );
+        }
+        let mut i = 0i32;
+        while i < 100_000 {
+            assert_eq!(
+                size_of_unsigned_varint(i),
+                naive_size_of_unsigned_varint(i),
+                "{i}"
+            );
+            i += 13;
+        }
+        let mut pow = 1i32;
+        while pow > 0 {
+            assert_eq!(
+                size_of_unsigned_varint(pow),
+                naive_size_of_unsigned_varint(pow),
+                "{pow}"
+            );
+            pow = pow.wrapping_shl(1);
+        }
+        assert_eq!(
+            size_of_unsigned_varint(i32::MAX),
+            naive_size_of_unsigned_varint(i32::MAX)
+        );
+    }
+
+    #[test]
+    fn size_of_varint_matches_java() {
+        for v in [
+            0,
+            -1,
+            1,
+            63,
+            -64,
+            64,
+            -65,
+            8191,
+            -8192,
+            8192,
+            -8193,
+            1_048_575,
+            -1_048_576,
+            1_048_576,
+            -1_048_577,
+            134_217_727,
+            -134_217_728,
+            134_217_728,
+            -134_217_729,
+            i32::MAX,
+            i32::MIN,
+        ] {
+            assert_varint_size_matches_encode(v);
+        }
+        assert_eq!(size_of_varint(-1), 1);
+        assert_eq!(size_of_varint(i32::MIN), 5);
+        assert_eq!(size_of_varint(i32::MAX), 5);
+    }
+
+    #[test]
+    fn size_of_varlong_matches_java() {
+        for v in [
+            0,
+            -1,
+            1,
+            63,
+            -64,
+            64,
+            -65,
+            i64::from(i32::MAX),
+            i64::from(i32::MIN),
+            17_179_869_183,
+            -17_179_869_184,
+            17_179_869_184,
+            -17_179_869_185,
+            i64::MAX,
+            i64::MIN,
+        ] {
+            assert_varlong_size_matches_encode(v);
+            assert_eq!(size_of_varlong(v), naive_size_of_varlong(v), "{v}");
+        }
+        let mut l = 1i64;
+        while l > 0 {
+            assert_eq!(size_of_varlong(l), naive_size_of_varlong(l), "{l}");
+            l = l.wrapping_shl(1);
+        }
+        assert_eq!(size_of_varlong(0), naive_size_of_varlong(0));
+        assert_eq!(size_of_varlong(-1), 1);
+        assert_eq!(size_of_varlong(i64::MAX), 10);
+        assert_eq!(size_of_varlong(i64::MIN), 10);
+    }
+
+    #[test]
+    fn size_of_unsigned_varlong_matches_java() {
+        for v in [0i64, -1, 1, 63, -64, 64, i64::MAX, i64::MIN] {
+            assert_unsigned_varlong_size_matches_encode(v);
+        }
+        assert_eq!(size_of_unsigned_varlong(-1), 10);
+        assert_eq!(size_of_unsigned_varlong(0), 1);
+        assert_eq!(size_of_unsigned_varlong(i64::MIN), 10);
+        assert_eq!(size_of_unsigned_varlong(i64::MAX), 9);
     }
 
     #[test]
