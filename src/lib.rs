@@ -423,6 +423,9 @@
 //! `ScramMechanism.type`. [`ActiveProducer`] `Display`
 //! is Java `ProducerState.toString`. [`DescribeProducersPartition`]
 //! `Display` is Java `PartitionProducerState.toString`.
+//! [`DescribeProducersPartition::error`] /
+//! [`protocol::admin::DescribeProducersTopicRequest::error_result`] are Java
+//! `DescribeProducersRequest.getErrorResponse` (partition body / one topic).
 //! [`OngoingReassignment`] `Display`
 //! is Java `PartitionReassignment.toString`. [`TransactionListing`]
 //! `Display` is Java `TransactionListing.toString`. [`AbortTransactionSpec`]

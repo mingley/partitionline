@@ -5157,7 +5157,9 @@ impl fmt::Display for ActiveProducer {
 /// Per-partition DescribeProducers result. ErrorCode sits here, not
 /// at the top of the response body.
 ///
-/// [`Display`] is Java `DescribeProducersResult.PartitionProducerState.toString`
+/// [`Self::error`] is Java `DescribeProducersRequest.getErrorResponse`
+/// partition body. [`Display`] is Java
+/// `DescribeProducersResult.PartitionProducerState.toString`
 /// (`activeProducers` only).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersPartition {
@@ -5186,6 +5188,14 @@ impl DescribeProducersPartition {
             error_message,
             active_producers,
         }
+    }
+
+    /// Java `DescribeProducersRequest.getErrorResponse` partition body.
+    ///
+    /// Empty `activeProducers`. `errorMessage` is the JSON default (`null`).
+    #[must_use]
+    pub fn error(partition_index: i32, error_code: i16) -> Self {
+        Self::new(partition_index, error_code, None, Vec::new())
     }
 
     /// Partition index.
@@ -5276,12 +5286,32 @@ impl DescribeProducersResponse {
 }
 
 /// One topic in a DescribeProducers request (Topics array element).
+///
+/// [`Self::error_result`] is Java `DescribeProducersRequest.getErrorResponse`
+/// one topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeProducersTopicRequest {
     /// Topic name.
     pub name: String,
     /// Partition indexes to describe.
     pub partition_indexes: Vec<i32>,
+}
+
+impl DescribeProducersTopicRequest {
+    /// Java `DescribeProducersRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`DescribeProducersPartition::error`]. Throttle on
+    /// the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> DescribeProducersTopic {
+        DescribeProducersTopic::new(
+            self.name.clone(),
+            self.partition_indexes
+                .iter()
+                .map(|&p| DescribeProducersPartition::error(p, error_code))
+                .collect(),
+        )
+    }
 }
 
 /// DescribeProducers v0 (flexible from v0; KIP-360).
@@ -15686,6 +15716,41 @@ mod tests {
         let topic = DescribeProducersTopic::new("t", vec![part.clone()]);
         assert_eq!(topic.name(), "t");
         assert_eq!(topic.partitions(), std::slice::from_ref(&part));
+        let req = DescribeProducersTopicRequest {
+            name: "t".into(),
+            partition_indexes: vec![0, 3],
+        };
+        let err_topic = req.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            err_topic,
+            DescribeProducersTopic::new(
+                "t",
+                vec![
+                    DescribeProducersPartition::error(0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                    DescribeProducersPartition::error(3, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                ],
+            )
+        );
+        let first = err_topic.partitions.first().expect("error partition");
+        assert!(first.active_producers.is_empty());
+        assert!(first.error_message.is_none());
+        assert_eq!(
+            first.to_string(),
+            "PartitionProducerState(activeProducers=[])"
+        );
+        let err_resp = DescribeProducersResponse::new(vec![err_topic.clone()]);
+        let mut buf = BytesMut::new();
+        encode_describe_producers_response(&mut buf, &err_resp).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_producers_response(&mut cur).unwrap(),
+            err_resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeProducers getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
         let resp = DescribeProducersResponse::new(vec![topic.clone()]);
         assert_eq!(resp.topics(), std::slice::from_ref(&topic));
         let txn_topic = TransactionTopic {
