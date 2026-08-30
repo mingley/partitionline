@@ -23,6 +23,31 @@ fn init_producer_id_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `InitProducerIdRequest` helpers.
+pub struct InitProducerIdRequest;
+
+impl InitProducerIdRequest {
+    /// Java `InitProducerIdRequest.getErrorResponse`.
+    ///
+    /// Producer id / epoch are [`RecordBatch::NO_PRODUCER_ID`] /
+    /// [`RecordBatch::NO_PRODUCER_EPOCH`]. Java sets throttle to `0` even
+    /// when the `throttleTimeMs` argument is non-zero. Encode writes throttle
+    /// `0` on v1+ (v0 has no throttle field).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_init_producer_id_response(
+            buf,
+            version,
+            error_code,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+    }
+}
+
 /// Java `InitProducerIdResponse` helpers.
 pub struct InitProducerIdResponse;
 
@@ -388,5 +413,47 @@ mod tests {
         assert!(Error::broker(err, "InitProducerId")
             .to_string()
             .contains("58"));
+    }
+
+    #[test]
+    fn init_producer_id_error_response_matches_java() {
+        // Java InitProducerIdRequest.getErrorResponse: NO_PRODUCER_ID /
+        // NO_PRODUCER_EPOCH, throttle always 0 (ignores throttleTimeMs).
+        for version in [0_i16, 1, 2, 5] {
+            let mut expected = BytesMut::new();
+            encode_init_producer_id_response(
+                &mut expected,
+                version,
+                16,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            InitProducerIdRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "InitProducerId v{version} getErrorResponse must match sentinel encode"
+            );
+            let mut cur = &got[..];
+            let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
+            assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            assert!(
+                cur.is_empty(),
+                "InitProducerId v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v0 = BytesMut::new();
+        InitProducerIdRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        InitProducerIdRequest::error_response(&mut v1, 1, 16).unwrap();
+        assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
+        let mut v2 = BytesMut::new();
+        InitProducerIdRequest::error_response(&mut v2, 2, 16).unwrap();
+        assert_ne!(&v1[..], &v2[..], "v2+ getErrorResponse is flexible");
     }
 }

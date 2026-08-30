@@ -33,7 +33,9 @@
 //! first init [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
 //! id/epoch). Java `InitProducerIdRequest.getErrorResponse` writes those
-//! sentinels. Java `InitProducerIdRequest.Builder.build` rejects a
+//! sentinels ([`protocol::idem::InitProducerIdRequest::error_response`];
+//! throttle `0` even when the Java `throttleTimeMs` argument is non-zero).
+//! Java `InitProducerIdRequest.Builder.build` rejects a
 //! non-positive `transaction.timeout.ms` and an empty (non-null)
 //! transactional id.
 //! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
