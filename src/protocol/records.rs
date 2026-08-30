@@ -11,6 +11,28 @@ use crate::error::{Error, Result};
 /// Record batch magic for Kafka 0.11+ (v2).
 pub const MAGIC_V2: i8 = 2;
 
+/// Java `Records` log-entry layout (offset + size prefix before the batch body).
+pub struct Records;
+
+impl Records {
+    /// Java `Records.OFFSET_OFFSET`.
+    pub const OFFSET_OFFSET: i32 = 0;
+    /// Java `Records.OFFSET_LENGTH`.
+    pub const OFFSET_LENGTH: i32 = 8;
+    /// Java `Records.SIZE_OFFSET`.
+    pub const SIZE_OFFSET: i32 = Self::OFFSET_OFFSET + Self::OFFSET_LENGTH;
+    /// Java `Records.SIZE_LENGTH`.
+    pub const SIZE_LENGTH: i32 = 4;
+    /// Java `Records.LOG_OVERHEAD`.
+    pub const LOG_OVERHEAD: i32 = Self::SIZE_OFFSET + Self::SIZE_LENGTH;
+    /// Java `Records.MAGIC_OFFSET`.
+    pub const MAGIC_OFFSET: i32 = Self::LOG_OVERHEAD + 4;
+    /// Java `Records.MAGIC_LENGTH`.
+    pub const MAGIC_LENGTH: i32 = 1;
+    /// Java `Records.HEADER_SIZE_UP_TO_MAGIC`.
+    pub const HEADER_SIZE_UP_TO_MAGIC: i32 = Self::MAGIC_OFFSET + Self::MAGIC_LENGTH;
+}
+
 /// Kafka record-batch compression codec.
 ///
 /// zstd is not implemented (the usual ecosystem codec is C).
@@ -1284,7 +1306,7 @@ where
     buf::patch_i32(buf, crc_pos, i32::from_be_bytes(crc.to_be_bytes()))?;
     debug_assert_eq!(
         end.saturating_sub(batch_start),
-        12 + buf::usize_from_i32(batch_len).unwrap_or(0)
+        Records::LOG_OVERHEAD as usize + buf::usize_from_i32(batch_len).unwrap_or(0)
     );
     Ok(())
 }
@@ -1379,7 +1401,7 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
-    if batch_len < 49 {
+    if batch_len < RecordBatch::RECORD_BATCH_OVERHEAD - Records::LOG_OVERHEAD {
         return Err(Error::protocol(format!(
             "record batch too small: {batch_len}"
         )));
@@ -1757,6 +1779,19 @@ mod tests {
             headers: vec![],
         })
         .is_err());
+        assert_eq!(Records::OFFSET_OFFSET, 0);
+        assert_eq!(Records::OFFSET_LENGTH, 8);
+        assert_eq!(Records::SIZE_OFFSET, 8);
+        assert_eq!(Records::SIZE_LENGTH, 4);
+        assert_eq!(Records::LOG_OVERHEAD, 12);
+        assert_eq!(Records::MAGIC_OFFSET, 16);
+        assert_eq!(Records::MAGIC_LENGTH, 1);
+        assert_eq!(Records::HEADER_SIZE_UP_TO_MAGIC, 17);
+        assert_eq!(RecordBatch::CRC_OFFSET, Records::HEADER_SIZE_UP_TO_MAGIC);
+        assert_eq!(
+            RecordBatch::RECORD_BATCH_OVERHEAD - Records::LOG_OVERHEAD,
+            49
+        );
     }
 
     #[test]

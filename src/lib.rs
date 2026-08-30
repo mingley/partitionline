@@ -257,6 +257,8 @@
 //! `parse`; COMMIT/ABORT marker key and value).
 //! [`RecordBatch::with_end_transaction_marker`] is Java
 //! `MemoryRecords.withEndTransactionMarker`.
+//! [`protocol::records::Records::LOG_OVERHEAD`] is Java `Records.LOG_OVERHEAD`
+//! (offset + size prefix).
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
 //! [`RecordBatch::last_sequence`] are Java `lastOffset` / `nextOffset` /
 //! `lastSequence`. [`RecordBatch::is_compressed`] is Java `isCompressed`.

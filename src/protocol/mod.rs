@@ -69,6 +69,6 @@ pub use header::{
     request_header_version, response_header_version, RequestHeader,
 };
 pub use records::{
-    Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
+    Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch, Records,
     TimestampType,
 };
