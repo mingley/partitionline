@@ -45,7 +45,9 @@
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
-//! Protocols of N via [`ConsumerGroup::join_with_assignors`]),
+//! Protocols of N via [`ConsumerGroup::join_with_assignors`];
+//! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java
+//! `ConsumerProtocol.PROTOCOL_TYPE`).
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),

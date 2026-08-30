@@ -70,6 +70,14 @@ impl fmt::Display for CoordinatorType {
     }
 }
 
+/// Java `ConsumerProtocol` (classic JoinGroup / SyncGroup protocol type).
+pub struct ConsumerProtocol;
+
+impl ConsumerProtocol {
+    /// Java `ConsumerProtocol.PROTOCOL_TYPE`.
+    pub const PROTOCOL_TYPE: &'static str = "consumer";
+}
+
 /// `true` when FindCoordinator `version` is flexible (v3+).
 ///
 /// v1–v2 are classic (Key + KeyType). v3 is compact strings plus tagged
@@ -2167,6 +2175,11 @@ mod tests {
         assert_eq!(MIN_BATCHED_VERSION, 4);
         assert!(find_coordinator_batched(MIN_BATCHED_VERSION));
         assert!(!find_coordinator_batched(MIN_BATCHED_VERSION - 1));
+    }
+
+    #[test]
+    fn consumer_protocol_type_matches_java() {
+        assert_eq!(ConsumerProtocol::PROTOCOL_TYPE, "consumer");
     }
 
     #[test]
