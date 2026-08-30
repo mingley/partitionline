@@ -43,6 +43,29 @@ impl Records {
     ) -> Result<i32> {
         RecordBatch::estimate_batch_size_upper_bound(key, value, headers)
     }
+
+    /// Java `AbstractRecords.estimateSizeInBytes` (magic-v2, offset deltas
+    /// `0..n`).
+    pub fn estimate_size_in_bytes(compression: Compression, records: &[Record]) -> Result<i32> {
+        let size = RecordBatch::size_in_bytes_of(records)?;
+        Ok(estimate_compressed_size_in_bytes(size, compression))
+    }
+
+    /// Java `AbstractRecords.estimateSizeInBytes` with a base offset (magic-v2).
+    pub fn estimate_size_in_bytes_from(
+        base_offset: i64,
+        compression: Compression,
+        records: &[Record],
+    ) -> Result<i32> {
+        let size = RecordBatch::size_in_bytes_from(base_offset, records)?;
+        Ok(estimate_compressed_size_in_bytes(size, compression))
+    }
+
+    /// Java `AbstractRecords.recordBatchHeaderSizeInBytes` (magic-v2).
+    #[must_use]
+    pub const fn record_batch_header_size_in_bytes() -> i32 {
+        RecordBatch::RECORD_BATCH_OVERHEAD
+    }
 }
 
 /// Kafka record-batch compression codec.
@@ -1435,7 +1458,14 @@ fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
     }
 }
 
-/// Java `DefaultRecord.sizeOf` (key, value, headers; no attributes or deltas).
+/// Java `AbstractRecords.estimateCompressedSizeInBytes`.
+fn estimate_compressed_size_in_bytes(size: i32, compression: Compression) -> i32 {
+    if compression == Compression::None {
+        size
+    } else {
+        (size / 2).clamp(1024, 65_536)
+    }
+}
 fn size_of_key_value_headers(
     key: Option<&[u8]>,
     value: Option<&[u8]>,
@@ -2702,5 +2732,52 @@ mod tests {
             batch_upper
         );
         assert_eq!(batch_upper, 89);
+    }
+
+    #[test]
+    fn estimate_size_in_bytes_matches_java() {
+        assert_eq!(
+            Records::record_batch_header_size_in_bytes(),
+            RecordBatch::RECORD_BATCH_OVERHEAD
+        );
+        assert_eq!(
+            Records::estimate_size_in_bytes(Compression::None, &[]).unwrap(),
+            0
+        );
+        assert_eq!(
+            Records::estimate_size_in_bytes(Compression::Gzip, &[]).unwrap(),
+            1024
+        );
+        let rec = Record {
+            offset: 10,
+            timestamp: 5,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        let uncompressed = RecordBatch::size_in_bytes_of(std::slice::from_ref(&rec)).unwrap();
+        assert_eq!(
+            Records::estimate_size_in_bytes(Compression::None, std::slice::from_ref(&rec)).unwrap(),
+            uncompressed
+        );
+        assert_eq!(
+            Records::estimate_size_in_bytes_from(10, Compression::None, std::slice::from_ref(&rec))
+                .unwrap(),
+            uncompressed
+        );
+        let gzip =
+            Records::estimate_size_in_bytes(Compression::Gzip, std::slice::from_ref(&rec)).unwrap();
+        assert_eq!(gzip, (uncompressed / 2).clamp(1024, 65_536));
+        let huge = vec![Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from(vec![0u8; 200_000])),
+            headers: vec![],
+        }];
+        assert_eq!(
+            Records::estimate_size_in_bytes(Compression::Snappy, &huge).unwrap(),
+            65_536
+        );
     }
 }

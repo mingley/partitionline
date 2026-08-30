@@ -624,6 +624,11 @@
 //! `DefaultRecordBatch.estimateBatchSizeUpperBound` /
 //! `AbstractRecords.estimateSizeInBytesUpperBound` (magic-v2). `send` /
 //! `try_send` use that upper bound for [`Error::RecordTooLarge`].
+//! [`protocol::records::Records::estimate_size_in_bytes`] /
+//! [`protocol::records::Records::estimate_size_in_bytes_from`] /
+//! [`protocol::records::Records::record_batch_header_size_in_bytes`] are Java
+//! `AbstractRecords.estimateSizeInBytes` / `recordBatchHeaderSizeInBytes`
+//! (magic-v2; compressed estimate is `max(size / 2, 1024)` capped at 65536).
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body
