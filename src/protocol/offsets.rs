@@ -18,6 +18,10 @@ pub const MAX_TIMESTAMP: i64 = -3;
 pub const EARLIEST_LOCAL_TIMESTAMP: i64 = -4;
 /// Last offset in tiered/remote storage (KIP-1005). ListOffsets v9+.
 pub const LATEST_TIERED_TIMESTAMP: i64 = -5;
+/// Java `ListOffsetsRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level.
+pub const CONSUMER_REPLICA_ID: i32 = -1;
+/// Java `ListOffsetsRequest.DEBUGGING_REPLICA_ID`.
+pub const DEBUGGING_REPLICA_ID: i32 = -2;
 
 /// Java `OffsetSpec` for [`crate::Admin::list_offsets`].
 ///
@@ -317,7 +321,7 @@ pub fn encode_list_offsets_topics_request(
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
-    buf.put_i32(-1); // replica_id
+    buf.put_i32(CONSUMER_REPLICA_ID);
     if version >= 2 {
         buf.put_i8(isolation_level);
     }
@@ -565,6 +569,12 @@ mod tests {
             OffsetSpec::for_timestamp(1_700_000_000_000).timestamp(),
             1_700_000_000_000
         );
+    }
+
+    #[test]
+    fn list_offsets_replica_id_sentinels_match_java() {
+        assert_eq!(CONSUMER_REPLICA_ID, -1);
+        assert_eq!(DEBUGGING_REPLICA_ID, -2);
     }
 
     #[test]

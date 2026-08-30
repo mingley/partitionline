@@ -134,7 +134,12 @@
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_PREFERRED_REPLICA_ID`] are Java
-//! `FetchResponse` sentinels (`-1`). OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
+//! `FetchResponse` sentinels (`-1`). [`protocol::fetch::CONSUMER_REPLICA_ID`] is Java
+//! `FetchRequest.CONSUMER_REPLICA_ID` (written through v14).
+//! [`protocol::offsets::CONSUMER_REPLICA_ID`] /
+//! [`protocol::epoch::CONSUMER_REPLICA_ID`] are Java `ListOffsetsRequest` /
+//! `OffsetsForLeaderEpochRequest` consumer replica ids.
+//! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java

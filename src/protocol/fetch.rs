@@ -6,6 +6,20 @@ use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
 
+/// Java `FetchRequest.CONSUMER_REPLICA_ID`. ReplicaId is request-level
+/// (untagged through v14; ReplicaState tagged field 1 at v15+).
+pub const CONSUMER_REPLICA_ID: i32 = -1;
+/// Java `FetchRequest.ORDINARY_CONSUMER_ID`.
+pub const ORDINARY_CONSUMER_ID: i32 = -1;
+/// Java `FetchRequest.DEBUGGING_CONSUMER_ID`.
+pub const DEBUGGING_CONSUMER_ID: i32 = -2;
+/// Java `FetchRequest.FUTURE_LOCAL_REPLICA_ID`.
+pub const FUTURE_LOCAL_REPLICA_ID: i32 = -3;
+/// Java `FetchRequest.INVALID_LOG_START_OFFSET`. Request partition
+/// `log_start_offset`; the response copy is
+/// [`FetchedPartition::INVALID_LOG_START_OFFSET`].
+pub const INVALID_LOG_START_OFFSET: i64 = -1;
+
 /// One partition in a Fetch request.
 #[derive(Debug, Clone)]
 pub struct FetchPartition {
@@ -107,7 +121,7 @@ pub fn encode_fetch_request(
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
     // -1 / -1).
     if version <= 14 {
-        buf.put_i32(-1); // replica_id
+        buf.put_i32(CONSUMER_REPLICA_ID);
     }
     buf.put_i32(max_wait_ms);
     buf.put_i32(min_bytes);
@@ -126,7 +140,7 @@ pub fn encode_fetch_request(
             if version >= 12 {
                 buf.put_i32(p.last_fetched_epoch);
             }
-            buf.put_i64(-1); // log_start_offset
+            buf.put_i64(INVALID_LOG_START_OFFSET);
             buf.put_i32(p.partition_max_bytes);
             if flexible {
                 // v17+ ReplicaDirectoryId is partition tagged field 0.
@@ -530,6 +544,19 @@ mod tests {
         assert_eq!(FetchedPartition::INVALID_LAST_STABLE_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_LOG_START_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_PREFERRED_REPLICA_ID, -1);
+    }
+
+    #[test]
+    fn fetch_request_replica_id_sentinels_match_java() {
+        assert_eq!(CONSUMER_REPLICA_ID, -1);
+        assert_eq!(ORDINARY_CONSUMER_ID, -1);
+        assert_eq!(DEBUGGING_CONSUMER_ID, -2);
+        assert_eq!(FUTURE_LOCAL_REPLICA_ID, -3);
+        assert_eq!(INVALID_LOG_START_OFFSET, -1);
+        assert_eq!(
+            INVALID_LOG_START_OFFSET,
+            FetchedPartition::INVALID_LOG_START_OFFSET
+        );
     }
 
     #[test]

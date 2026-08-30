@@ -6,11 +6,17 @@ use super::buf;
 use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
+/// Java `OffsetsForLeaderEpochRequest.CONSUMER_REPLICA_ID`. ReplicaId is
+/// request-level (v3+).
+pub const CONSUMER_REPLICA_ID: i32 = -1;
+/// Java `OffsetsForLeaderEpochRequest.DEBUGGING_REPLICA_ID`.
+pub const DEBUGGING_REPLICA_ID: i32 = -2;
+
 /// Check that OffsetForLeaderEpoch `version` is spoken (0–4).
 ///
 /// v0–v1 have no ReplicaId and no CurrentLeaderEpoch. v1 response adds
 /// LeaderEpoch. v2 adds CurrentLeaderEpoch and response ThrottleTimeMs.
-/// v3 adds ReplicaId (`-1` for a consumer). v4 is flexible (compact
+/// v3 adds ReplicaId ([`CONSUMER_REPLICA_ID`] for a consumer). v4 is flexible (compact
 /// strings/arrays plus tagged fields; request header 2, response header
 /// 1). Kafka 4.0 `validVersions` is `2-4` (v0–v1 removed). This crate
 /// speaks 0–4. v5+ is not spoken.
@@ -127,7 +133,7 @@ impl OffsetForLeaderTopicResult {
 
 /// Encode a single-topic, single-partition OffsetForLeaderEpoch request.
 ///
-/// `replica_id` `-1` (consumer) is written on v3+. `current_leader_epoch`
+/// [`CONSUMER_REPLICA_ID`] is written on v3+. `current_leader_epoch`
 /// is written on v2+.
 pub fn encode_offset_for_leader_epoch_request(
     buf: &mut BytesMut,
@@ -152,7 +158,7 @@ pub fn encode_offset_for_leader_epoch_request(
 }
 
 /// Encode OffsetForLeaderEpoch with one or more topics (v0–v3 classic, v4
-/// flexible). ReplicaId `-1` is written on v3+.
+/// flexible). [`CONSUMER_REPLICA_ID`] is written on v3+.
 pub fn encode_offset_for_leader_epoch_topics_request(
     buf: &mut BytesMut,
     version: i16,
@@ -160,7 +166,7 @@ pub fn encode_offset_for_leader_epoch_topics_request(
 ) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 3 {
-        buf.put_i32(-1); // replica_id (consumer)
+        buf.put_i32(CONSUMER_REPLICA_ID);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -396,6 +402,12 @@ mod tests {
         );
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH, -1);
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_replica_id_sentinels_match_java() {
+        assert_eq!(CONSUMER_REPLICA_ID, -1);
+        assert_eq!(DEBUGGING_REPLICA_ID, -2);
     }
 
     #[test]
