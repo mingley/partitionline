@@ -1183,7 +1183,9 @@ pub struct ProducePartitionData {
 /// `ProduceResponse.PartitionResponse(Errors)` writes that sentinel for
 /// `baseOffset` / `logStartOffset` and [`RecordBatch::NO_TIMESTAMP`] for
 /// `logAppendTime`. Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`];
-/// decode below v5 fills [`Self::INVALID_OFFSET`].
+/// decode below v5 fills [`Self::INVALID_OFFSET`]. Omitted v10+ CurrentLeader
+/// fills [`MetadataResponse::NO_LEADER_ID`] /
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] (JSON defaults).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProducePartitionResponse {
     /// Topic name.
@@ -1198,9 +1200,11 @@ pub struct ProducePartitionResponse {
     pub log_append_time_ms: i64,
     /// Log start offset, or [`Self::INVALID_OFFSET`] when omitted below v5.
     pub log_start_offset: i64,
-    /// Produce v10+ CurrentLeader `LeaderId`, or `-1` when omitted.
+    /// Produce v10+ CurrentLeader `LeaderId`, or
+    /// [`MetadataResponse::NO_LEADER_ID`] when omitted (JSON default).
     pub current_leader_id: i32,
-    /// Produce v10+ CurrentLeader `LeaderEpoch`, or `-1` when omitted.
+    /// Produce v10+ CurrentLeader `LeaderEpoch`, or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] when omitted (JSON default).
     pub current_leader_epoch: i32,
 }
 
@@ -1281,8 +1285,8 @@ fn encode_produce_partition_tags(
 
 fn decode_produce_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, i32)> {
     let tags = buf::get_tagged_fields(buf)?;
-    let mut current_leader_id = -1;
-    let mut current_leader_epoch = -1;
+    let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
+    let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
     if version >= 10 {
         for (tag, value) in tags {
             if tag == 0 {
@@ -1507,7 +1511,10 @@ pub fn decode_produce_response<B: Buf>(
             let (current_leader_id, current_leader_epoch) = if flexible {
                 decode_produce_partition_tags(buf, version)?
             } else {
-                (-1, -1)
+                (
+                    MetadataResponse::NO_LEADER_ID,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                )
             };
             out.push(ProducePartitionResponse {
                 topic: topic.clone(),
@@ -1579,6 +1586,11 @@ mod tests {
             "Produce v3 omits LogStartOffset; decode fills INVALID_OFFSET"
         );
         assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
+        assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            part.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
     }
 
     #[test]

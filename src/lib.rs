@@ -125,7 +125,9 @@
 //! match Java `RecordMetadata`. [`protocol::api::ProducePartitionResponse::INVALID_OFFSET`]
 //! is Java `ProduceResponse.INVALID_OFFSET`. Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
-//! `baseOffset` / `logStartOffset`. [`RecordMetadata::INVALID_OFFSET`] is
+//! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills
+//! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]. [`RecordMetadata::INVALID_OFFSET`] is
 //! the client-type copy (`hasOffset` is false when the offset is that
 //! value). [`RecordBatch::NO_TIMESTAMP`] is Java
 //! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
@@ -175,7 +177,11 @@
 //! `FetchResponse` sentinels (`-1`).
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java
-//! `FetchResponse.isPreferredReplica` / `isDivergingEpoch`.
+//! `FetchResponse.isPreferredReplica` / `isDivergingEpoch`. Omitted Fetch
+//! v12+ CurrentLeader fills [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`].
 //! [`protocol::fetch::CONSUMER_REPLICA_ID`] is Java
 //! `FetchRequest.CONSUMER_REPLICA_ID` (written through v14).
 //! [`protocol::offsets::CONSUMER_REPLICA_ID`] /

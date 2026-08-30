@@ -4,7 +4,9 @@ use std::fmt;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
+use super::api::MetadataResponse;
 use super::buf;
+use super::epoch::EpochEndOffset;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
 
@@ -187,7 +189,11 @@ pub struct FetchTopic {
 /// [`Self::INVALID_LOG_START_OFFSET`] / [`Self::INVALID_PREFERRED_REPLICA_ID`]
 /// are Java `FetchResponse` sentinels (`-1`).
 /// [`Self::is_preferred_replica`] / [`Self::is_diverging_epoch`] are Java
-/// `FetchResponse.isPreferredReplica` / `isDivergingEpoch`.
+/// `FetchResponse.isPreferredReplica` / `isDivergingEpoch`. Omitted v12+
+/// CurrentLeader fills [`MetadataResponse::NO_LEADER_ID`] /
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
+/// [`EpochEndOffset::UNDEFINED_EPOCH`] /
+/// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] (JSON defaults).
 #[derive(Debug, Clone)]
 pub struct FetchedPartition {
     /// Partition index.
@@ -202,15 +208,19 @@ pub struct FetchedPartition {
     pub log_start_offset: i64,
     /// `(producer_id, first_offset)` for aborted transactions (Fetch isolation=1).
     pub aborted_transactions: Vec<(i64, i64)>,
-    /// Broker id to fetch from next, or `-1`.
+    /// Broker id to fetch from next, or [`Self::INVALID_PREFERRED_REPLICA_ID`].
     pub preferred_read_replica: i32,
-    /// Fetch v12+ CurrentLeader `LeaderId` (tagged field 1), or `-1`.
+    /// Fetch v12+ CurrentLeader `LeaderId` (tagged field 1), or
+    /// [`MetadataResponse::NO_LEADER_ID`] when omitted (JSON default).
     pub current_leader_id: i32,
-    /// Fetch v12+ CurrentLeader `LeaderEpoch` (tagged field 1), or `-1`.
+    /// Fetch v12+ CurrentLeader `LeaderEpoch` (tagged field 1), or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] when omitted (JSON default).
     pub current_leader_epoch: i32,
-    /// Fetch v12+ DivergingEpoch `Epoch` (tagged field 0), or `-1`.
+    /// Fetch v12+ DivergingEpoch `Epoch` (tagged field 0), or
+    /// [`EpochEndOffset::UNDEFINED_EPOCH`] when omitted (JSON default).
     pub diverging_epoch: i32,
-    /// Fetch v12+ DivergingEpoch `EndOffset` (tagged field 0), or `-1`.
+    /// Fetch v12+ DivergingEpoch `EndOffset` (tagged field 0), or
+    /// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] when omitted (JSON default).
     pub diverging_end_offset: i64,
     /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
@@ -437,10 +447,10 @@ fn encode_fetch_partition_tags(
 
 fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i32)> {
     let tags = buf::get_tagged_fields(buf)?;
-    let mut diverging_epoch = -1;
-    let mut diverging_end_offset = -1;
-    let mut current_leader_id = -1;
-    let mut current_leader_epoch = -1;
+    let mut diverging_epoch = EpochEndOffset::UNDEFINED_EPOCH;
+    let mut diverging_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
+    let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
+    let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
     for (tag, value) in tags {
         match tag {
             0 => (diverging_epoch, diverging_end_offset) = decode_diverging_epoch(&value)?,
@@ -648,7 +658,12 @@ pub fn decode_fetch_response<B: Buf>(
                 if flexible {
                     decode_fetch_partition_tags(buf)?
                 } else {
-                    (-1, -1, -1, -1)
+                    (
+                        EpochEndOffset::UNDEFINED_EPOCH,
+                        EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+                        MetadataResponse::NO_LEADER_ID,
+                        RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    )
                 };
             partitions.push(FetchedPartition {
                 partition,
@@ -694,6 +709,10 @@ mod tests {
         assert_eq!(FetchedPartition::INVALID_LAST_STABLE_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_LOG_START_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_PREFERRED_REPLICA_ID, -1);
+        assert_eq!(MetadataResponse::NO_LEADER_ID, -1);
+        assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
+        assert_eq!(EpochEndOffset::UNDEFINED_EPOCH, -1);
+        assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
         let none = FetchedPartition {
             partition: 0,
             error_code: 0,
@@ -702,10 +721,10 @@ mod tests {
             log_start_offset: FetchedPartition::INVALID_LOG_START_OFFSET,
             aborted_transactions: Vec::new(),
             preferred_read_replica: FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
-            current_leader_id: -1,
-            current_leader_epoch: -1,
-            diverging_epoch: -1,
-            diverging_end_offset: -1,
+            current_leader_id: MetadataResponse::NO_LEADER_ID,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            diverging_epoch: EpochEndOffset::UNDEFINED_EPOCH,
+            diverging_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
             records: Vec::new(),
         };
         assert!(!none.is_preferred_replica());
@@ -1498,8 +1517,14 @@ mod tests {
         let mut cur = &resp16[..];
         let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].topic_id, SAMPLE_TOPIC_ID);
-        assert_eq!(got[0].partitions[0].current_leader_id, -1);
-        assert_eq!(got[0].partitions[0].current_leader_epoch, -1);
+        assert_eq!(
+            got[0].partitions[0].current_leader_id,
+            MetadataResponse::NO_LEADER_ID
+        );
+        assert_eq!(
+            got[0].partitions[0].current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert!(endpoints.is_empty());
         assert_eq!(
             got[0].partitions[0].records[0].records[0].value.as_deref(),
@@ -1550,8 +1575,14 @@ mod tests {
         let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].current_leader_id, 2);
         assert_eq!(got[0].partitions[0].current_leader_epoch, 7);
-        assert_eq!(got[0].partitions[0].diverging_epoch, -1);
-        assert_eq!(got[0].partitions[0].diverging_end_offset, -1);
+        assert_eq!(
+            got[0].partitions[0].diverging_epoch,
+            EpochEndOffset::UNDEFINED_EPOCH
+        );
+        assert_eq!(
+            got[0].partitions[0].diverging_end_offset,
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        );
         assert!(endpoints.is_empty());
         assert!(
             cur.is_empty(),
@@ -1564,8 +1595,8 @@ mod tests {
             &buf[..],
             "Fetch v12+ CurrentLeader layout is unchanged at v16"
         );
-        with_leader.partitions[0].current_leader_id = -1;
-        with_leader.partitions[0].current_leader_epoch = -1;
+        with_leader.partitions[0].current_leader_id = MetadataResponse::NO_LEADER_ID;
+        with_leader.partitions[0].current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
         let mut omitted = BytesMut::new();
         encode_fetch_response(&mut omitted, 16, &[with_leader]).unwrap();
         assert_ne!(
@@ -1609,7 +1640,10 @@ mod tests {
         let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].diverging_epoch, 3);
         assert_eq!(got[0].partitions[0].diverging_end_offset, 12);
-        assert_eq!(got[0].partitions[0].current_leader_id, -1);
+        assert_eq!(
+            got[0].partitions[0].current_leader_id,
+            MetadataResponse::NO_LEADER_ID
+        );
         assert!(endpoints.is_empty());
         assert!(
             cur.is_empty(),
@@ -1622,8 +1656,8 @@ mod tests {
             &buf[..],
             "Fetch v12+ DivergingEpoch layout is unchanged at v16"
         );
-        with_div.partitions[0].diverging_epoch = -1;
-        with_div.partitions[0].diverging_end_offset = -1;
+        with_div.partitions[0].diverging_epoch = EpochEndOffset::UNDEFINED_EPOCH;
+        with_div.partitions[0].diverging_end_offset = EpochEndOffset::UNDEFINED_EPOCH_OFFSET;
         let mut omitted = BytesMut::new();
         encode_fetch_response(&mut omitted, 16, &[with_div]).unwrap();
         assert_ne!(
