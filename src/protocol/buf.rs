@@ -7,7 +7,10 @@
 //! bytes (varint) or ten (varlong). A fifth unsigned-varint continuation byte
 //! is Java `ByteUtils.illegalVarintException`; a tenth unsigned-varlong
 //! continuation byte is `illegalVarlongException`. [`utf8_length`] is Java
-//! `Utils.utf8Length`.
+//! `Utils.utf8Length`. [`to_32_bit_field`] / [`from_32_bit_field`] are Java
+//! `Utils.to32BitField` / `from32BitField`.
+
+use std::collections::HashSet;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -163,6 +166,45 @@ pub fn size_of_varlong(value: i64) -> i32 {
 #[must_use]
 pub fn utf8_length(s: &str) -> i32 {
     encoded_len_i32(s.len())
+}
+
+fn check_range(i: i8) -> Result<u8> {
+    if i > 31 {
+        return Err(Error::protocol(format!("out of range: i>31, i = {i}")));
+    }
+    if i < 0 {
+        return Err(Error::protocol(format!("out of range: i<0, i = {i}")));
+    }
+    Ok(u8::try_from(i).unwrap_or(0))
+}
+
+/// Java `Utils.to32BitField`.
+///
+/// Each value must be `0..=31`. Out of range is [`Error::protocol`]
+/// (`out of range: i>31` / `i<0`).
+pub fn to_32_bit_field(bytes: impl IntoIterator<Item = i8>) -> Result<i32> {
+    let mut value = 0i32;
+    for b in bytes {
+        let shift = u32::from(check_range(b)?);
+        value |= i32::from_ne_bytes((1u32 << shift).to_ne_bytes());
+    }
+    Ok(value)
+}
+
+/// Java `Utils.from32BitField`.
+#[must_use]
+pub fn from_32_bit_field(int_value: i32) -> HashSet<i8> {
+    let mut result = HashSet::new();
+    let mut itr = u32::from_ne_bytes(int_value.to_ne_bytes());
+    let mut count: u8 = 0;
+    while itr != 0 {
+        if itr & 1 != 0 {
+            result.extend([i8::try_from(count).unwrap_or(0)]);
+        }
+        itr >>= 1;
+        count = count.saturating_add(1);
+    }
+    result
 }
 
 /// Java `ByteUtils.illegalVarintException`.
@@ -586,6 +628,8 @@ pub fn get_uuid<B: Buf>(buf: &mut B) -> Result<[u8; 16]> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -889,6 +933,28 @@ mod tests {
         assert_eq!(utf8_length("你"), 3);
         assert_eq!(utf8_length("😀"), 4);
         assert_eq!(utf8_length("a😀é"), 7);
+    }
+
+    #[test]
+    fn to_32_bit_field_matches_java_utils() {
+        assert_eq!(to_32_bit_field(std::iter::empty::<i8>()).unwrap(), 0);
+        assert_eq!(to_32_bit_field([0i8]).unwrap(), 1);
+        assert_eq!(to_32_bit_field([1i8]).unwrap(), 2);
+        assert_eq!(to_32_bit_field([0i8, 1]).unwrap(), 3);
+        assert_eq!(to_32_bit_field([31i8]).unwrap(), i32::MIN);
+        assert_eq!(to_32_bit_field([0i8, 31]).unwrap(), i32::MIN | 1);
+        let high = to_32_bit_field([32i8]).unwrap_err().to_string();
+        assert!(high.contains("out of range: i>31, i = 32"), "{high}");
+        let low = to_32_bit_field([-1i8]).unwrap_err().to_string();
+        assert!(low.contains("out of range: i<0, i = -1"), "{low}");
+        assert!(from_32_bit_field(0).is_empty());
+        assert_eq!(from_32_bit_field(1), HashSet::from([0i8]));
+        assert_eq!(from_32_bit_field(2), HashSet::from([1i8]));
+        assert_eq!(from_32_bit_field(3), HashSet::from([0i8, 1]));
+        assert_eq!(from_32_bit_field(i32::MIN), HashSet::from([31i8]));
+        let bits = [0i8, 3, 7, 31];
+        let packed = to_32_bit_field(bits).unwrap();
+        assert_eq!(from_32_bit_field(packed), HashSet::from(bits));
     }
 
     #[test]
