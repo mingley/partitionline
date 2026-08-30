@@ -1271,12 +1271,13 @@ pub struct ProducePartitionData {
 
 /// One partition in a Produce response.
 ///
-/// [`Self::INVALID_OFFSET`] is Java `ProduceResponse.INVALID_OFFSET`. Java
-/// `ProduceResponse.PartitionResponse(Errors)` writes that sentinel for
-/// `baseOffset` / `logStartOffset` and [`RecordBatch::NO_TIMESTAMP`] for
-/// `logAppendTime`. Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`];
-/// decode below v5 fills [`Self::INVALID_OFFSET`]. Omitted v10+ CurrentLeader
-/// fills [`MetadataResponse::NO_LEADER_ID`] /
+/// [`Self::INVALID_OFFSET`] is Java `ProduceResponse.INVALID_OFFSET`.
+/// [`Self::partition_response`] is Java `ProduceResponse.PartitionResponse(Errors)`
+/// (`baseOffset` / `logStartOffset` [`Self::INVALID_OFFSET`], `logAppendTime`
+/// [`RecordBatch::NO_TIMESTAMP`]). Decode below v2 fills
+/// [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
+/// [`Self::INVALID_OFFSET`]. Omitted v10+ CurrentLeader fills
+/// [`MetadataResponse::NO_LEADER_ID`] /
 /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] (JSON defaults).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProducePartitionResponse {
@@ -1303,6 +1304,27 @@ pub struct ProducePartitionResponse {
 impl ProducePartitionResponse {
     /// Java `ProduceResponse.INVALID_OFFSET`.
     pub const INVALID_OFFSET: i64 = -1;
+
+    /// Java `ProduceResponse.PartitionResponse(Errors)`.
+    ///
+    /// Sets [`Self::INVALID_OFFSET`] for `baseOffset` / `logStartOffset` and
+    /// [`RecordBatch::NO_TIMESTAMP`] for `logAppendTime`. CurrentLeader is
+    /// the Apache JSON default ([`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). Java `PartitionResponse`
+    /// has no topic name; this type does, so callers pass it.
+    #[must_use]
+    pub fn partition_response(topic: impl Into<String>, partition: i32, error_code: i16) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+            error_code,
+            base_offset: Self::INVALID_OFFSET,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: Self::INVALID_OFFSET,
+            current_leader_id: MetadataResponse::NO_LEADER_ID,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        }
+    }
 }
 
 /// Java `ProduceRequest` version helpers (KIP-890 transaction V2).
@@ -1662,6 +1684,46 @@ mod tests {
         assert!(!ProduceRequest::is_transaction_v2_requested(10));
         assert!(!ProduceResponse::should_client_throttle(5));
         assert!(ProduceResponse::should_client_throttle(6));
+    }
+
+    #[test]
+    fn produce_partition_response_matches_java() {
+        assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
+        assert_eq!(RecordBatch::NO_TIMESTAMP, -1);
+        assert_eq!(MetadataResponse::NO_LEADER_ID, -1);
+        assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
+        let none = ProducePartitionResponse::partition_response("t", 0, 0);
+        assert_eq!(none.topic, "t");
+        assert_eq!(none.partition, 0);
+        assert_eq!(none.error_code, 0);
+        assert_eq!(none.base_offset, ProducePartitionResponse::INVALID_OFFSET);
+        assert_eq!(none.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            none.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        assert_eq!(none.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            none.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        let unknown = ProducePartitionResponse::partition_response(
+            "missing",
+            3,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        );
+        assert_eq!(unknown.topic, "missing");
+        assert_eq!(unknown.partition, 3);
+        assert_eq!(unknown.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            unknown.base_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        assert_eq!(unknown.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            unknown.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
     }
 
     #[test]
