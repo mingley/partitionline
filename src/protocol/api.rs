@@ -1178,6 +1178,12 @@ pub struct ProducePartitionData {
 }
 
 /// One partition in a Produce response.
+///
+/// [`Self::INVALID_OFFSET`] is Java `ProduceResponse.INVALID_OFFSET`. Java
+/// `ProduceResponse.PartitionResponse(Errors)` writes that sentinel for
+/// `baseOffset` / `logStartOffset` and [`RecordBatch::NO_TIMESTAMP`] for
+/// `logAppendTime`. Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`];
+/// decode below v5 fills [`Self::INVALID_OFFSET`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProducePartitionResponse {
     /// Topic name.
@@ -1186,16 +1192,21 @@ pub struct ProducePartitionResponse {
     pub partition: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
-    /// First offset assigned to the batch.
+    /// First offset assigned to the batch, or [`Self::INVALID_OFFSET`].
     pub base_offset: i64,
-    /// Log append time, or `-1`.
+    /// Log append time, or [`RecordBatch::NO_TIMESTAMP`].
     pub log_append_time_ms: i64,
-    /// Log start offset.
+    /// Log start offset, or [`Self::INVALID_OFFSET`] when omitted below v5.
     pub log_start_offset: i64,
     /// Produce v10+ CurrentLeader `LeaderId`, or `-1` when omitted.
     pub current_leader_id: i32,
     /// Produce v10+ CurrentLeader `LeaderEpoch`, or `-1` when omitted.
     pub current_leader_epoch: i32,
+}
+
+impl ProducePartitionResponse {
+    /// Java `ProduceResponse.INVALID_OFFSET`.
+    pub const INVALID_OFFSET: i64 = -1;
 }
 
 /// Java `ProduceRequest` version helpers (KIP-890 transaction V2).
@@ -1450,6 +1461,9 @@ pub fn encode_produce_response_with_endpoints(
 }
 
 /// Decode Produce into per-partition results and v10+ NodeEndpoints.
+///
+/// Versions below 2 fill [`RecordBatch::NO_TIMESTAMP`]. Versions below 5
+/// fill [`ProducePartitionResponse::INVALID_OFFSET`] for log start.
 pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1469,8 +1483,16 @@ pub fn decode_produce_response<B: Buf>(
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let base_offset = buf::get_i64(buf)?;
-            let log_append_time_ms = if version >= 2 { buf::get_i64(buf)? } else { -1 };
-            let log_start_offset = if version >= 5 { buf::get_i64(buf)? } else { -1 };
+            let log_append_time_ms = if version >= 2 {
+                buf::get_i64(buf)?
+            } else {
+                RecordBatch::NO_TIMESTAMP
+            };
+            let log_start_offset = if version >= 5 {
+                buf::get_i64(buf)?
+            } else {
+                ProducePartitionResponse::INVALID_OFFSET
+            };
             if version >= 8 {
                 let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
                 for _ in 0..n {
@@ -1528,6 +1550,35 @@ mod tests {
         assert!(!ProduceRequest::is_transaction_v2_requested(11));
         assert!(ProduceRequest::is_transaction_v2_requested(12));
         assert!(!ProduceRequest::is_transaction_v2_requested(10));
+    }
+
+    #[test]
+    fn produce_v3_omitted_log_start_is_invalid_offset() {
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 7,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: 99,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 3, &parts).unwrap();
+        let mut cur = &buf[..];
+        let (got, endpoints) = decode_produce_response(&mut cur, 3).unwrap();
+        assert!(endpoints.is_empty());
+        assert!(cur.is_empty());
+        let part = got.first().expect("one partition");
+        assert_eq!(part.base_offset, 7);
+        assert_eq!(part.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            part.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET,
+            "Produce v3 omits LogStartOffset; decode fills INVALID_OFFSET"
+        );
+        assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
     }
 
     #[test]
@@ -1854,7 +1905,7 @@ mod tests {
             partition: 0,
             error_code: 0,
             base_offset: 0,
-            log_append_time_ms: -1,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
             log_start_offset: 0,
             current_leader_id: -1,
             current_leader_epoch: -1,
@@ -1903,7 +1954,7 @@ mod tests {
             partition: 0,
             error_code: 0,
             base_offset: 0,
-            log_append_time_ms: -1,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
             log_start_offset: 0,
             current_leader_id: 2,
             current_leader_epoch: 7,
@@ -1938,8 +1989,8 @@ mod tests {
             topic: "t".into(),
             partition: 0,
             error_code: 6,
-            base_offset: -1,
-            log_append_time_ms: -1,
+            base_offset: ProducePartitionResponse::INVALID_OFFSET,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
             log_start_offset: 0,
             current_leader_id: 3,
             current_leader_epoch: 1,

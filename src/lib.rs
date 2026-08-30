@@ -109,9 +109,12 @@
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
 //! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
-//! match Java `RecordMetadata`. [`RecordMetadata::INVALID_OFFSET`] is Java
-//! `ProduceResponse.INVALID_OFFSET` (`hasOffset` is false when the offset is
-//! that value). [`RecordBatch::NO_TIMESTAMP`] is Java
+//! match Java `RecordMetadata`. [`protocol::api::ProducePartitionResponse::INVALID_OFFSET`]
+//! is Java `ProduceResponse.INVALID_OFFSET`. Produce decode below v5 fills
+//! that sentinel; Java `PartitionResponse(Errors)` writes it for
+//! `baseOffset` / `logStartOffset`. [`RecordMetadata::INVALID_OFFSET`] is
+//! the client-type copy (`hasOffset` is false when the offset is that
+//! value). [`RecordBatch::NO_TIMESTAMP`] is Java
 //! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
 //! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
 //! `CURRENT_MAGIC_VALUE`. [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java

@@ -573,8 +573,9 @@ pub struct RecordMetadata {
 impl RecordMetadata {
     /// Java `RecordMetadata.UNKNOWN_PARTITION`.
     pub const UNKNOWN_PARTITION: i32 = -1;
-    /// Java `ProduceResponse.INVALID_OFFSET`.
-    pub const INVALID_OFFSET: i64 = -1;
+    /// Java `ProduceResponse.INVALID_OFFSET`. Same sentinel as
+    /// [`crate::protocol::api::ProducePartitionResponse::INVALID_OFFSET`].
+    pub const INVALID_OFFSET: i64 = crate::protocol::api::ProducePartitionResponse::INVALID_OFFSET;
 
     /// Java `RecordMetadata.topic`.
     #[must_use]
@@ -3201,6 +3202,10 @@ mod tests {
         assert_eq!(md.to_string(), "events-2@9");
         assert_eq!(RecordMetadata::UNKNOWN_PARTITION, -1);
         assert_eq!(RecordMetadata::INVALID_OFFSET, -1);
+        assert_eq!(
+            RecordMetadata::INVALID_OFFSET,
+            crate::protocol::api::ProducePartitionResponse::INVALID_OFFSET
+        );
         let acks0 = RecordMetadata {
             topic: "events".into(),
             partition: 0,
