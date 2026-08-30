@@ -1,6 +1,8 @@
 //! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
 //! TxnOffsetCommit (api keys 24–28).
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -19,6 +21,53 @@ pub struct EndTxnRequest;
 impl EndTxnRequest {
     /// Java `EndTxnRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
     pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
+}
+
+/// Java `TransactionResult` (EndTxn committed flag / WriteTxnMarkers
+/// `transactionResult`).
+///
+/// [`Display`] is Java `TransactionResult.toString` (`ABORT` / `COMMIT`).
+/// [`Self::id`] is the public Java `id` field. [`Self::from_id`] is Java
+/// `TransactionResult.forId`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TransactionResult {
+    /// Java `ABORT` (`id` false).
+    Abort,
+    /// Java `COMMIT` (`id` true).
+    Commit,
+}
+
+impl TransactionResult {
+    /// Java `TransactionResult.id`.
+    #[must_use]
+    pub const fn id(self) -> bool {
+        matches!(self, Self::Commit)
+    }
+
+    /// Java `TransactionResult.forId`.
+    #[must_use]
+    pub const fn from_id(id: bool) -> Self {
+        if id {
+            Self::Commit
+        } else {
+            Self::Abort
+        }
+    }
+
+    /// Java `TransactionResult.toString` (`ABORT` / `COMMIT`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Abort => "ABORT",
+            Self::Commit => "COMMIT",
+        }
+    }
+}
+
+impl fmt::Display for TransactionResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// WriteTxnMarkers (27).
@@ -597,7 +646,8 @@ pub struct WritableTxnMarker {
     pub producer_id: i64,
     /// Producer epoch.
     pub producer_epoch: i16,
-    /// `true` is COMMIT, `false` is ABORT.
+    /// `true` is [`TransactionResult::Commit`], `false` is
+    /// [`TransactionResult::Abort`] (Java `TransactionResult.id`).
     pub transaction_result: bool,
     /// Topics and partitions that receive the marker.
     pub topics: Vec<WritableTxnMarkerTopic>,
@@ -841,6 +891,25 @@ mod tests {
         assert_eq!(
             TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
             4
+        );
+    }
+
+    #[test]
+    fn transaction_result_matches_java() {
+        assert!(!TransactionResult::Abort.id());
+        assert!(TransactionResult::Commit.id());
+        assert_eq!(TransactionResult::from_id(false), TransactionResult::Abort);
+        assert_eq!(TransactionResult::from_id(true), TransactionResult::Commit);
+        assert_eq!(TransactionResult::Abort.to_string(), "ABORT");
+        assert_eq!(TransactionResult::Commit.to_string(), "COMMIT");
+        let mut buf = BytesMut::new();
+        encode_end_txn_request(&mut buf, 0, "tx", 9, 1, TransactionResult::Commit.id()).unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, committed) = decode_end_txn_request(&mut cur, 0).unwrap();
+        assert!(committed);
+        assert_eq!(
+            TransactionResult::from_id(committed),
+            TransactionResult::Commit
         );
     }
 
@@ -1302,7 +1371,7 @@ mod tests {
         let markers = vec![WritableTxnMarker {
             producer_id: 1000,
             producer_epoch: 0,
-            transaction_result: false,
+            transaction_result: TransactionResult::Abort.id(),
             topics: vec![WritableTxnMarkerTopic {
                 name: "t".into(),
                 partitions: vec![0],
@@ -1340,7 +1409,7 @@ mod tests {
         let markers = vec![WritableTxnMarker {
             producer_id: 1000,
             producer_epoch: 0,
-            transaction_result: false,
+            transaction_result: TransactionResult::Abort.id(),
             topics: vec![WritableTxnMarkerTopic {
                 name: "t".into(),
                 partitions: vec![0],
@@ -1393,7 +1462,7 @@ mod tests {
         let markers = vec![WritableTxnMarker {
             producer_id: 1000,
             producer_epoch: 0,
-            transaction_result: false,
+            transaction_result: TransactionResult::Abort.id(),
             topics: vec![WritableTxnMarkerTopic {
                 name: "t".into(),
                 partitions: vec![0],
@@ -1435,7 +1504,7 @@ mod tests {
         let markers = vec![WritableTxnMarker {
             producer_id: 1000,
             producer_epoch: 0,
-            transaction_result: false,
+            transaction_result: TransactionResult::Abort.id(),
             topics: vec![WritableTxnMarkerTopic {
                 name: "t".into(),
                 partitions: vec![0],

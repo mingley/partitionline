@@ -33,8 +33,8 @@ use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
     decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
-    EndTxnRequest, TxnOffsetCommitMember, TxnOffsetCommitRequest, TxnOffsetPartition,
-    TxnOffsetTopic, TxnPartitionsTopic,
+    EndTxnRequest, TransactionResult, TxnOffsetCommitMember, TxnOffsetCommitRequest,
+    TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
 };
 
 /// Produce settings. Prefer the chainable builders; raw fields remain writable.
@@ -1395,13 +1395,15 @@ impl Producer {
         Ok(())
     }
 
-    /// Flush, then commit the current transaction (`EndTxn` commit).
+    /// Flush, then commit the current transaction (`EndTxn`
+    /// [`TransactionResult::Commit`]).
     pub async fn commit_transaction(&self) -> Result<()> {
         self.flush().await?;
-        self.end_txn(true).await
+        self.end_txn(TransactionResult::Commit.id()).await
     }
 
-    /// Drain in-flight Produce, then abort (`EndTxn` abort).
+    /// Drain in-flight Produce, then abort (`EndTxn`
+    /// [`TransactionResult::Abort`]).
     ///
     /// After UNKNOWN_PRODUCER_ID / INVALID_PRODUCER_EPOCH /
     /// INVALID_PRODUCER_ID_MAPPING, EndTxn below v5 follows with
@@ -1413,7 +1415,7 @@ impl Producer {
     /// [`Self::commit_transaction`] still fails `flush` on that error.
     pub async fn abort_transaction(&self) -> Result<()> {
         self.drain_before_abort().await?;
-        self.end_txn(false).await?;
+        self.end_txn(TransactionResult::Abort.id()).await?;
         self.maybe_bump_epoch_after_abort().await
     }
 

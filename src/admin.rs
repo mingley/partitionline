@@ -102,8 +102,8 @@ use crate::protocol::offsets::{
 };
 use crate::protocol::sasl;
 use crate::protocol::txn::{
-    decode_write_txn_markers_response, encode_write_txn_markers_request, WritableTxnMarker,
-    WritableTxnMarkerTopic,
+    decode_write_txn_markers_response, encode_write_txn_markers_request, TransactionResult,
+    WritableTxnMarker, WritableTxnMarkerTopic,
 };
 
 pub use crate::protocol::acl::{
@@ -2350,7 +2350,8 @@ impl FencedProducer {
 
 /// Spec for [`Admin::abort_transaction`] (Java `AbortTransactionSpec`).
 ///
-/// Sends WriteTxnMarkers (api 27) with `transactionResult=false` (ABORT)
+/// Sends WriteTxnMarkers (api 27) with
+/// [`crate::TransactionResult::Abort`] (`transactionResult` false)
 /// to the Metadata partition leader.
 ///
 /// [`Display`] is Java `AbortTransactionSpec.toString`.
@@ -5774,7 +5775,7 @@ impl Admin {
         let marker = WritableTxnMarker {
             producer_id: spec.producer_id,
             producer_epoch: spec.producer_epoch,
-            transaction_result: false,
+            transaction_result: TransactionResult::Abort.id(),
             topics: vec![WritableTxnMarkerTopic {
                 name: spec.topic.clone(),
                 partitions: vec![spec.partition],

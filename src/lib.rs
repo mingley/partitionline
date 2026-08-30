@@ -85,7 +85,8 @@
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
-//! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]),
+//! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),
 //! and TxnOffsetCommit v0–v5
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
 //! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
@@ -526,7 +527,8 @@
 //! OffsetCommit has no TimeoutMs).
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
-//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1). [`AbortTransactionSpec`]
+//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1;
+//! [`TransactionResult::Abort`]). [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
@@ -899,6 +901,7 @@ pub use protocol::offsets::{
 };
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch, TimestampType};
+pub use protocol::txn::TransactionResult;
 pub use share::{
     AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT,
     SHARE_ACK_RELEASE,
