@@ -84,6 +84,21 @@ impl OffsetForLeaderTopic {
             partitions,
         }
     }
+
+    /// Java `OffsetsForLeaderEpochRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`EpochEndOffset::error`]. Throttle on the response
+    /// is the JSON default (`0`; Java does not set `ThrottleTimeMs`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> OffsetForLeaderTopicResult {
+        OffsetForLeaderTopicResult::new(
+            self.topic.as_str(),
+            self.partitions
+                .iter()
+                .map(|p| EpochEndOffset::error(error_code, p.partition))
+                .collect(),
+        )
+    }
 }
 
 /// One partition in an OffsetForLeaderEpoch response (`EpochEndOffset`).
@@ -91,6 +106,8 @@ impl OffsetForLeaderTopic {
 /// [`Self::UNDEFINED_EPOCH`] / [`Self::UNDEFINED_EPOCH_OFFSET`] are Java
 /// `OffsetsForLeaderEpochResponse` sentinels
 /// (`RecordBatch.NO_PARTITION_LEADER_EPOCH`).
+/// [`Self::error`] is Java `OffsetsForLeaderEpochRequest.getErrorResponse`
+/// partition body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EpochEndOffset {
     /// Kafka error code (`0` is success).
@@ -118,6 +135,19 @@ impl EpochEndOffset {
             leader_epoch,
             end_offset,
         }
+    }
+
+    /// Java `OffsetsForLeaderEpochRequest.getErrorResponse` partition body.
+    ///
+    /// Fills [`Self::UNDEFINED_EPOCH`] / [`Self::UNDEFINED_EPOCH_OFFSET`].
+    #[must_use]
+    pub fn error(error_code: i16, partition: i32) -> Self {
+        Self::new(
+            error_code,
+            partition,
+            Self::UNDEFINED_EPOCH,
+            Self::UNDEFINED_EPOCH_OFFSET,
+        )
     }
 }
 
@@ -417,6 +447,40 @@ mod tests {
         );
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH, -1);
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
+        let err = EpochEndOffset::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, 3);
+        assert_eq!(err.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(err.partition, 3);
+        assert_eq!(err.leader_epoch, EpochEndOffset::UNDEFINED_EPOCH);
+        assert_eq!(err.end_offset, EpochEndOffset::UNDEFINED_EPOCH_OFFSET);
+        let topic = OffsetForLeaderTopic::new(
+            "t",
+            vec![
+                OffsetForLeaderPartition::new(0, 1, 2),
+                OffsetForLeaderPartition::new(3, 4, 5),
+            ],
+        );
+        let result = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            result,
+            OffsetForLeaderTopicResult::new(
+                "t",
+                vec![
+                    EpochEndOffset::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, 0),
+                    EpochEndOffset::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, 3),
+                ]
+            )
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response(&mut buf, 4, std::slice::from_ref(&result))
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_for_leader_epoch_topics_response(&mut cur, 4).unwrap();
+        assert_eq!(decoded, vec![result]);
+        assert!(
+            cur.is_empty(),
+            "error-response leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]

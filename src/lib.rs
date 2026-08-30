@@ -314,6 +314,10 @@
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
 //! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.
+//! [`protocol::epoch::EpochEndOffset::error`] /
+//! [`protocol::epoch::OffsetForLeaderTopic::error_result`] are Java
+//! `OffsetsForLeaderEpochRequest.getErrorResponse` (partition body /
+//! one topic; throttle stays JSON default `0`).
 //! [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
