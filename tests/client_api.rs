@@ -2266,6 +2266,41 @@ async fn poll_timeout_returns_records() {
 }
 
 #[tokio::test]
+async fn transactional_methods_without_transactional_id_match_java() {
+    let mock = common::Mock::start().await;
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let init = producer.init_transactions().await.unwrap_err().to_string();
+    assert!(
+        init.contains(
+            "Cannot use transactional methods without enabling transactions by setting the transactional.id configuration property"
+        ),
+        "{init}"
+    );
+    let begin = producer.begin_transaction().await.unwrap_err().to_string();
+    assert!(
+        begin.contains(
+            "Cannot use transactional methods without enabling transactions by setting the transactional.id configuration property"
+        ),
+        "{begin}"
+    );
+    let offsets = producer
+        .send_offsets_to_transaction("g", [(("t", 0), 0)])
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        offsets.contains(
+            "Cannot use transactional methods without enabling transactions by setting the transactional.id configuration property"
+        ),
+        "{offsets}"
+    );
+    producer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn send_offsets_with_metadata_then_committed() {
     let mock = common::Mock::start().await;
     let mut pcfg = ProducerConfig::bootstrap([mock.addr.clone()]);

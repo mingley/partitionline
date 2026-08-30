@@ -856,6 +856,13 @@ fn reject_java_group_metadata(group: &crate::ConsumerGroupMetadata) -> Result<()
     Ok(())
 }
 
+/// Java `KafkaProducer.throwIfNoTransactionManager`.
+fn reject_java_no_transaction_manager() -> Error {
+    Error::protocol(
+        "Cannot use transactional methods without enabling transactions by setting the transactional.id configuration property",
+    )
+}
+
 fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
     reject_java_producer_record(rec)?;
     let bytes = rec_bytes(rec);
@@ -1416,9 +1423,12 @@ impl Producer {
 
     /// Java `initTransactions`. [`Self::new`] already runs `InitProducerId`
     /// when [`ProducerConfig::transactional_id`] is set. Safe to call again.
+    ///
+    /// Missing `transactional.id` is Java `IllegalStateException`
+    /// (`Cannot use transactional methods without enabling transactions`).
     pub async fn init_transactions(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
-            return Err(Error::protocol("transactional.id is not set"));
+            return Err(reject_java_no_transaction_manager());
         }
         if self.inner.shared.producer_id.load(Ordering::SeqCst) < 0 {
             return Err(Error::protocol("InitProducerId did not run"));
@@ -1427,9 +1437,12 @@ impl Producer {
     }
 
     /// Start a transaction. Requires [`ProducerConfig::transactional_id`].
+    ///
+    /// Missing `transactional.id` is the same Java message as
+    /// [`Self::init_transactions`].
     pub async fn begin_transaction(&self) -> Result<()> {
         if self.inner.shared.cfg.transactional_id.is_none() {
-            return Err(Error::protocol("transactional.id is not set"));
+            return Err(reject_java_no_transaction_manager());
         }
         self.inner.shared.in_txn.store(true, Ordering::SeqCst);
         self.inner.shared.txn_partitions.lock().clear();
@@ -1560,7 +1573,7 @@ impl Producer {
         offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)>,
     ) -> Result<()> {
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
-            return Err(Error::protocol("transactional.id is not set"));
+            return Err(reject_java_no_transaction_manager());
         };
         if !self.inner.shared.in_txn.load(Ordering::SeqCst) {
             return Err(Error::protocol("no transaction in progress"));
@@ -1637,7 +1650,7 @@ impl Producer {
 
     async fn end_txn(&self, committed: bool) -> Result<()> {
         let Some(tid) = self.inner.shared.cfg.transactional_id.clone() else {
-            return Err(Error::protocol("transactional.id is not set"));
+            return Err(reject_java_no_transaction_manager());
         };
         let timeout = self.inner.shared.cfg.request_timeout;
         let pid = self.inner.shared.producer_id.load(Ordering::SeqCst);
@@ -1955,7 +1968,7 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
         .cfg
         .transactional_id
         .clone()
-        .ok_or_else(|| Error::protocol("transactional.id is not set"))?;
+        .ok_or_else(reject_java_no_transaction_manager)?;
     let timeout = shared.cfg.request_timeout;
     let txn_timeout_ms = i32::try_from(shared.cfg.transaction_timeout.as_millis())
         .unwrap_or(i32::MAX)
@@ -2005,7 +2018,7 @@ async fn txn_roundtrip(
         .cfg
         .transactional_id
         .clone()
-        .ok_or_else(|| Error::protocol("transactional.id is not set"))?;
+        .ok_or_else(reject_java_no_transaction_manager)?;
     let first = {
         let mut guard = shared.txn.lock().await;
         let conn = guard
@@ -3343,5 +3356,16 @@ mod tests {
             group_instance_id: None,
         })
         .unwrap();
+    }
+
+    #[test]
+    fn transactional_methods_without_transactional_id_match_java() {
+        let err = reject_java_no_transaction_manager().to_string();
+        assert!(
+            err.contains(
+                "Cannot use transactional methods without enabling transactions by setting the transactional.id configuration property"
+            ),
+            "{err}"
+        );
     }
 }

@@ -1123,7 +1123,8 @@
 //! [`Admin::delete_acls_timeout`] are Java `CreateAclsOptions` /
 //! `DescribeAclsOptions` / `DeleteAclsOptions.timeoutMs` (RPC deadline).
 //! [`Producer::init_transactions`] / [`Producer::flush_timeout`] /
-//! [`Producer::close_timeout`] match Java. [`Consumer::close_timeout`]
+//! [`Producer::close_timeout`] match Java (`initTransactions` without
+//! `transactional.id` is `Cannot use transactional methods without enabling transactions`). [`Consumer::close_timeout`]
 //! drops fetch connections (Java `close(Duration)`; no LeaveGroup).
 //! [`ConsumerGroup::close_timeout`] / [`ShareGroup::close_timeout`] cap
 //! `leave`.
