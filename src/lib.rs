@@ -1330,10 +1330,13 @@
 //! [`net::MIN_RESERVED_CORRELATION_ID`] /
 //! [`net::MAX_RESERVED_CORRELATION_ID`] /
 //! [`net::is_reserved_correlation_id`] / [`net::next_correlation_id`] /
-//! [`net::next_sasl_correlation_id`] are Java
+//! [`net::next_sasl_correlation_id`] /
+//! [`net::check_parse_response_correlation`] are Java
 //! `SaslClientAuthenticator` reserved correlation ids,
-//! `NetworkClient.nextCorrelationId`, and
-//! `SaslClientAuthenticator.nextCorrelationId`.
+//! `NetworkClient.nextCorrelationId`,
+//! `SaslClientAuthenticator.nextCorrelationId`, and
+//! `NetworkClient.parseResponse` (`SchemaException` when a SASL reserved
+//! request id is paired with a non-reserved response id).
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
 //! Kafka `max.block.ms` (how long `send` waits for metadata and

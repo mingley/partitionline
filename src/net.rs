@@ -19,7 +19,7 @@ use tokio_rustls::TlsConnector;
 
 use crate::error::{Error, Result};
 use crate::protocol::header::{
-    decode_response_header, encode_request_header_fields, RequestHeader,
+    decode_response_header, encode_request_header_fields, RequestHeader, ResponseHeader,
 };
 
 /// Max Kafka response frame (100 MiB). Larger is treated as a protocol error.
@@ -66,6 +66,33 @@ pub fn next_sasl_correlation_id(correlation: &mut i32) -> i32 {
     let issued = *correlation;
     *correlation = correlation.wrapping_add(1);
     issued
+}
+
+/// Java `NetworkClient.parseResponse` correlation-id check.
+///
+/// [`RequestHeader::check_correlation`] is Java
+/// `AbstractResponse.parseResponse` (`CorrelationIdMismatchException`).
+/// When the request id is reserved for SASL and the response id is not,
+/// Java wraps that as `SchemaException`: the body belongs to some other
+/// in-flight Kafka request.
+pub fn check_parse_response_correlation(
+    request: &RequestHeader,
+    response: &ResponseHeader,
+) -> Result<()> {
+    if request.correlation_id() == response.correlation_id() {
+        return Ok(());
+    }
+    if is_reserved_correlation_id(request.correlation_id())
+        && !is_reserved_correlation_id(response.correlation_id())
+    {
+        return Err(Error::protocol(format!(
+            "The response is unrelated to Sasl request since its correlation id is {} and the reserved range for Sasl request is [ {},{}]",
+            response.correlation_id(),
+            MIN_RESERVED_CORRELATION_ID,
+            MAX_RESERVED_CORRELATION_ID
+        )));
+    }
+    request.check_correlation(response)
 }
 
 /// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
@@ -586,13 +613,15 @@ impl BrokerConn {
         let mut cur = frame;
         let header = decode_response_header(&mut cur, api_key, api_version)?;
         if header.correlation_id != correlation {
-            RequestHeader {
-                api_key,
-                api_version,
-                correlation_id: correlation,
-                client_id: Some(self.client_id.clone()),
-            }
-            .check_correlation(&header)?;
+            check_parse_response_correlation(
+                &RequestHeader {
+                    api_key,
+                    api_version,
+                    correlation_id: correlation,
+                    client_id: Some(self.client_id.clone()),
+                },
+                &header,
+            )?;
         }
         self.touch();
         Ok(cur)
@@ -855,6 +884,48 @@ mod tests {
             MIN_RESERVED_CORRELATION_ID
         );
         assert!(!is_reserved_correlation_id(i32::MIN));
+    }
+
+    #[test]
+    fn parse_response_wraps_unrelated_sasl_correlation() {
+        let sasl = RequestHeader {
+            api_key: crate::protocol::api_keys::SASL_HANDSHAKE,
+            api_version: 1,
+            correlation_id: MIN_RESERVED_CORRELATION_ID,
+            client_id: Some("client".into()),
+        };
+        let kafka = ResponseHeader { correlation_id: 1 };
+        let err = check_parse_response_correlation(&sasl, &kafka).unwrap_err();
+        let want = format!(
+            "The response is unrelated to Sasl request since its correlation id is 1 and the reserved range for Sasl request is [ {MIN_RESERVED_CORRELATION_ID},{MAX_RESERVED_CORRELATION_ID}]"
+        );
+        assert!(err.to_string().contains(&want), "{err}");
+
+        let other_sasl = ResponseHeader {
+            correlation_id: MAX_RESERVED_CORRELATION_ID,
+        };
+        let mismatch = check_parse_response_correlation(&sasl, &other_sasl).unwrap_err();
+        assert!(
+            mismatch.to_string().contains("Correlation id for response"),
+            "{mismatch}"
+        );
+
+        let kafka_req = RequestHeader {
+            api_key: crate::protocol::api_keys::PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: Some("client".into()),
+        };
+        let kafka_resp = ResponseHeader { correlation_id: 2 };
+        let kafka_err = check_parse_response_correlation(&kafka_req, &kafka_resp).unwrap_err();
+        assert!(
+            kafka_err
+                .to_string()
+                .contains("Correlation id for response"),
+            "{kafka_err}"
+        );
+        check_parse_response_correlation(&kafka_req, &ResponseHeader { correlation_id: 1 })
+            .unwrap();
     }
 
     #[test]
