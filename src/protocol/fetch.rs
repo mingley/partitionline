@@ -1,6 +1,6 @@
 //! Fetch (api key 1). v4–v11 classic; v12–v17 flexible.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -341,6 +341,25 @@ impl FetchResponse {
             .map(|topic| topic.topic_id)
             .filter(|id| *id != [0u8; 16])
             .collect()
+    }
+
+    /// Java `FetchResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`). Crate decode currently
+    /// discards the top-level code; crate encode writes `0`.
+    #[must_use]
+    pub fn error_counts(error_code: i16, topics: &[FetchedTopic]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(error_code).or_insert(0);
+        *count += 1;
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
     }
 }
 
@@ -797,7 +816,7 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::{Buf, BufMut, Bytes};
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn fetched_partition_invalid_sentinels_match_java() {
@@ -971,6 +990,42 @@ mod tests {
         assert_eq!(
             FetchResponse::topic_ids(&[topic([0; 16]), topic([1; 16]), topic([2; 16])]),
             HashSet::from([[1; 16], [2; 16]])
+        );
+    }
+
+    #[test]
+    fn fetch_response_error_counts_matches_java() {
+        assert_eq!(FetchResponse::error_counts(0, &[]), HashMap::from([(0, 1)]));
+        let topics = vec![FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0u8; 16],
+            partitions: vec![
+                FetchedPartition::partition_response(0, 0),
+                FetchedPartition::partition_response(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ],
+        }];
+        assert_eq!(
+            FetchResponse::error_counts(0, &topics),
+            HashMap::from([(0, 2), (crate::error::NOT_LEADER_OR_FOLLOWER, 1)])
+        );
+        assert_eq!(
+            FetchResponse::error_counts(crate::error::FETCH_SESSION_TOPIC_ID_ERROR, &[]),
+            HashMap::from([(crate::error::FETCH_SESSION_TOPIC_ID_ERROR, 1)])
+        );
+        let same = FetchResponse::error_counts(
+            crate::error::NOT_LEADER_OR_FOLLOWER,
+            std::slice::from_ref(&FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0u8; 16],
+                partitions: vec![FetchedPartition::partition_response(
+                    0,
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                )],
+            }),
+        );
+        assert_eq!(
+            same,
+            HashMap::from([(crate::error::NOT_LEADER_OR_FOLLOWER, 2)])
         );
     }
 
