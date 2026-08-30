@@ -13,6 +13,7 @@ use crate::net::{BrokerConn, TlsConfig};
 use crate::partitioner::{to_positive, Partitioner, PartitionerBox};
 use crate::protocol::api::{
     decode_metadata_response, decode_produce_response, encode_metadata_request, ApiVersion,
+    ProduceRequest,
 };
 use crate::protocol::api_keys::{
     pick_version, ADD_OFFSETS_TO_TXN, ADD_PARTITIONS_TO_TXN, END_TXN, FIND_COORDINATOR,
@@ -32,7 +33,8 @@ use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
     decode_end_txn_response, decode_txn_offset_commit_response, encode_add_offsets_to_txn_request,
     encode_add_partitions_to_txn_request, encode_end_txn_request, encode_txn_offset_commit_request,
-    TxnOffsetCommitMember, TxnOffsetPartition, TxnOffsetTopic, TxnPartitionsTopic,
+    EndTxnRequest, TxnOffsetCommitMember, TxnOffsetCommitRequest, TxnOffsetPartition,
+    TxnOffsetTopic, TxnPartitionsTopic,
 };
 
 /// Produce settings. Prefer the chainable builders; raw fields remain writable.
@@ -738,7 +740,7 @@ impl Shared {
     /// default / NOT_COORDINATOR). Clears per-partition sequences when
     /// the identity changes (Java resets sequences on epoch bump).
     fn apply_end_txn_identity(&self, version: i16, producer_id: i64, producer_epoch: i16) {
-        if version < 5 || producer_id < 0 {
+        if version <= EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 || producer_id < 0 {
             return;
         }
         let old_pid = self.producer_id.load(Ordering::SeqCst);
@@ -1521,7 +1523,7 @@ impl Producer {
         // TxnOffsetCommit v5 is transaction V2 (KIP-890 Part 2): the
         // group coordinator also performs AddOffsetsToTxn. Skip that
         // RPC when the broker advertised v5 (Java `isTransactionV2Enabled`).
-        if version < 5 {
+        if version <= TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
             let add_offsets_version = self.inner.shared.add_offsets_version;
             let body = txn_roundtrip(
                 &self.inner.shared,
@@ -1890,7 +1892,9 @@ async fn init_producer_id_roundtrip(
 /// Skipped when InitProducerId is below v3 or EndTxn v5 already bumped.
 async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
     let version = shared.init_producer_id_version;
-    if version < 3 || shared.end_txn_version >= 5 {
+    if version < 3
+        || shared.end_txn_version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+    {
         return Ok(());
     }
     let pid = shared.producer_id.load(Ordering::SeqCst);
@@ -2700,7 +2704,7 @@ impl Worker {
         // Produce v12 is transaction V2 (KIP-890 Part 2): Produce also
         // performs AddPartitionsToTxn. Skip that RPC when the broker
         // advertised v12 (Java `isTransactionV2Enabled`).
-        if self.shared.produce_version >= 12 {
+        if ProduceRequest::is_transaction_v2_requested(self.shared.produce_version) {
             let mut sent = self.shared.txn_added.lock();
             for (topic, part, _) in groups {
                 let _ = sent.insert((topic.clone(), *part));

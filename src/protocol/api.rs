@@ -1181,6 +1181,20 @@ pub struct ProducePartitionResponse {
     pub current_leader_epoch: i32,
 }
 
+/// Java `ProduceRequest` version helpers (KIP-890 transaction V2).
+pub struct ProduceRequest;
+
+impl ProduceRequest {
+    /// Java `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
+    pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 11;
+
+    /// Java `ProduceRequest.isTransactionV2Requested`.
+    #[must_use]
+    pub const fn is_transaction_v2_requested(version: i16) -> bool {
+        version > Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+    }
+}
+
 /// `true` when Produce `version` is flexible (v9+).
 ///
 /// v3–v8 are classic. v9–v12 are compact arrays/strings/bytes plus tagged
@@ -1487,6 +1501,17 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::Bytes;
+
+    #[test]
+    fn produce_transaction_v2_version_cap_matches_java() {
+        assert_eq!(
+            ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
+            11
+        );
+        assert!(!ProduceRequest::is_transaction_v2_requested(11));
+        assert!(ProduceRequest::is_transaction_v2_requested(12));
+        assert!(!ProduceRequest::is_transaction_v2_requested(10));
+    }
 
     #[test]
     fn api_versions_v3_roundtrip() {

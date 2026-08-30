@@ -22,7 +22,10 @@
 //! The producer negotiates Produce v3–v12 (v3–v8 classic; v9+ flexible;
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
 //! Part 2 transaction V2, skipping AddPartitionsToTxn). v13+ (topic IDs)
-//! is not spoken.
+//! is not spoken. [`protocol::api::ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]
+//! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] are Java
+//! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
+//! `isTransactionV2Requested`.
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init `-1`/`-1`, epoch-bump resume sends the last id/epoch).
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
@@ -77,10 +80,12 @@
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch),
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
+//! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]),
 //! and TxnOffsetCommit v0–v5
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
-//! v5 skips AddOffsetsToTxn, KIP-890 Part 2).
+//! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
+//! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].

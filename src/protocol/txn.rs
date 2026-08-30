@@ -12,6 +12,15 @@ pub const ADD_PARTITIONS_TO_TXN: i16 = 24;
 pub const ADD_OFFSETS_TO_TXN: i16 = 25;
 /// EndTxn (26).
 pub const END_TXN: i16 = 26;
+
+/// Java `EndTxnRequest` version helpers (KIP-890 transaction V2).
+pub struct EndTxnRequest;
+
+impl EndTxnRequest {
+    /// Java `EndTxnRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
+    pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
+}
+
 /// WriteTxnMarkers (27).
 pub const WRITE_TXN_MARKERS: i16 = 27;
 /// TxnOffsetCommit (28).
@@ -300,7 +309,7 @@ pub fn encode_end_txn_response(
     let flexible = end_txn_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error);
-    if version >= 5 {
+    if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
         buf.put_i64(producer_id);
         buf.put_i16(producer_epoch);
     }
@@ -317,15 +326,24 @@ pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16
     let flexible = end_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
-    let (producer_id, producer_epoch) = if version >= 5 {
-        (buf::get_i64(buf)?, buf::get_i16(buf)?)
-    } else {
-        (-1, -1)
-    };
+    let (producer_id, producer_epoch) =
+        if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
+            (buf::get_i64(buf)?, buf::get_i16(buf)?)
+        } else {
+            (-1, -1)
+        };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
     Ok((err, producer_id, producer_epoch))
+}
+
+/// Java `TxnOffsetCommitRequest` version helpers (KIP-890 transaction V2).
+pub struct TxnOffsetCommitRequest;
+
+impl TxnOffsetCommitRequest {
+    /// Java `TxnOffsetCommitRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
+    pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
 }
 
 /// One partition in TxnOffsetCommit v0–5.
@@ -816,6 +834,15 @@ pub fn decode_write_txn_markers_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn transaction_v2_version_caps_match_java() {
+        assert_eq!(EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2, 4);
+        assert_eq!(
+            TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
+            4
+        );
+    }
 
     #[test]
     fn end_txn_roundtrip() {
