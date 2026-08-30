@@ -19,9 +19,11 @@
 //! inside square brackets; empty is `[]`). [`compare_raw_tagged_fields`] is
 //! Java `MessageUtil.compareRawTaggedFields` (`None` is null; a null list
 //! equals null or empty). [`read_unsigned_int`] / [`write_unsigned_int`] /
+//! [`read_unsigned_int_at`] / [`write_unsigned_int_at`] /
 //! [`read_int_be`] / [`read_unsigned_int_le`] / [`write_unsigned_int_le`] are
-//! Java `ByteUtils.readUnsignedInt` / `writeUnsignedInt` / `readIntBE` /
-//! `readUnsignedIntLE` / `writeUnsignedIntLE` (offset forms; short buffer is
+//! Java `ByteUtils.readUnsignedInt` / `writeUnsignedInt` (sequential and
+//! indexed Buffer forms) / `readIntBE` / `readUnsignedIntLE` /
+//! `writeUnsignedIntLE` (offset forms; short buffer is
 //! [`Error::protocol`] `need 4 bytes`).
 
 use std::collections::{HashMap, HashSet};
@@ -804,6 +806,11 @@ fn four_bytes_mut(buffer: &mut [u8], offset: usize) -> Result<&mut [u8; 4]> {
         .map_err(|_| Error::protocol(format!("need 4 bytes, have {have}")))
 }
 
+fn unsigned_int_low_i32(value: i64) -> i32 {
+    let low = u32::try_from(value & 0xffff_ffff).unwrap_or(0);
+    i32::from_ne_bytes(low.to_ne_bytes())
+}
+
 /// Java `ByteUtils.readUnsignedInt`.
 ///
 /// Same bits as [`get_u32`], returned as `i64` (`getInt() & 0xffffffffL`).
@@ -813,8 +820,19 @@ pub fn read_unsigned_int<B: Buf>(buf: &mut B) -> Result<i64> {
 
 /// Java `ByteUtils.writeUnsignedInt`. Overflow keeps the low 32 bits.
 pub fn write_unsigned_int(buf: &mut BytesMut, value: i64) {
-    let low = u32::try_from(value & 0xffff_ffff).unwrap_or(0);
-    buf.put_i32(i32::from_ne_bytes(low.to_ne_bytes()));
+    buf.put_i32(unsigned_int_low_i32(value));
+}
+
+/// Java `ByteUtils.readUnsignedInt(ByteBuffer, int index)`.
+pub fn read_unsigned_int_at(buffer: &[u8], index: usize) -> Result<i64> {
+    Ok(i64::from(u32::from_be_bytes(four_bytes(buffer, index)?)))
+}
+
+/// Java `ByteUtils.writeUnsignedInt(ByteBuffer, int index, long)`.
+/// Overflow keeps the low 32 bits.
+pub fn write_unsigned_int_at(buffer: &mut [u8], index: usize, value: i64) -> Result<()> {
+    *four_bytes_mut(buffer, index)? = unsigned_int_low_i32(value).to_be_bytes();
+    Ok(())
 }
 
 /// Java `ByteUtils.readIntBE`.
@@ -1357,6 +1375,27 @@ mod tests {
         assert_eq!(read_unsigned_int(&mut cur).ok(), Some(1));
         assert_eq!(read_unsigned_int(&mut cur).ok(), Some(1));
         assert_eq!(read_unsigned_int(&mut cur).ok(), Some(4_294_967_295));
+
+        assert_eq!(read_unsigned_int_at(&[0, 0, 0, 1], 0).ok(), Some(1));
+        assert_eq!(
+            read_unsigned_int_at(&[0xFF, 0xFF, 0xFF, 0xFF], 0).ok(),
+            Some(4_294_967_295)
+        );
+        assert_eq!(read_unsigned_int_at(&[0, 0, 0, 0, 2], 1).ok(), Some(2));
+        let mut at = [0u8; 5];
+        assert!(write_unsigned_int_at(&mut at, 1, 1).is_ok());
+        assert_eq!(at[1], 0);
+        assert_eq!(at[2], 0);
+        assert_eq!(at[3], 0);
+        assert_eq!(at[4], 1);
+        assert!(write_unsigned_int_at(&mut at, 1, 0x1_0000_0001).is_ok());
+        assert_eq!(read_unsigned_int_at(&at, 1).ok(), Some(1));
+        assert!(write_unsigned_int_at(&mut at, 1, -1).is_ok());
+        assert_eq!(read_unsigned_int_at(&at, 1).ok(), Some(4_294_967_295));
+        let short_at = write_unsigned_int_at(&mut [0u8; 3], 0, 1)
+            .unwrap_err()
+            .to_string();
+        assert!(short_at.contains("need 4 bytes, have 3"), "{short_at}");
     }
 
     #[test]
