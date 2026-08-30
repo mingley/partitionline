@@ -41,7 +41,9 @@
 //! `MetadataResponse.NO_CONTROLLER_ID` / `NO_LEADER_ID` /
 //! `AUTHORIZED_OPERATIONS_OMITTED` / `hasReliableLeaderEpochs`
 //! (Metadata versions before 9 do not retain leader epochs for Fetch,
-//! ListOffsets, or OffsetsForLeaderEpoch).
+//! ListOffsets, or OffsetsForLeaderEpoch; the client cache fills missing
+//! partition leaders with `NO_LEADER_ID` and missing epochs with
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).

@@ -55,7 +55,7 @@ impl Cluster {
                 Ok(n) => n,
                 Err(_) => continue,
             };
-            let mut leaders = vec![-1; len];
+            let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
             let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
             for p in &t.partitions {
                 if p.error_code != 0 {
@@ -117,16 +117,17 @@ impl Cluster {
         Ok(node)
     }
 
-    /// Last Metadata `leader_epoch` for `topic`/`partition`, or `-1`.
+    /// Last Metadata `leader_epoch` for `topic`/`partition`, or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
         let Ok(idx) = usize::try_from(partition) else {
-            return -1;
+            return RecordBatch::NO_PARTITION_LEADER_EPOCH;
         };
         self.leader_epochs
             .get(topic)
             .and_then(|v| v.get(idx))
             .copied()
-            .unwrap_or(-1)
+            .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
     pub(crate) fn set_leader_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
@@ -135,14 +136,17 @@ impl Cluster {
         };
         if let Some(v) = self.leader_epochs.get_mut(topic) {
             if v.len() <= idx {
-                v.resize(idx.saturating_add(1), -1);
+                v.resize(
+                    idx.saturating_add(1),
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                );
             }
             if let Some(slot) = v.get_mut(idx) {
                 *slot = epoch;
             }
             return;
         }
-        let mut v = vec![-1; idx.saturating_add(1)];
+        let mut v = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; idx.saturating_add(1)];
         if let Some(slot) = v.get_mut(idx) {
             *slot = epoch;
         }
@@ -185,7 +189,7 @@ impl Cluster {
         {
             let leaders = self.leaders.entry(topic.to_string()).or_default();
             if leaders.len() <= idx {
-                leaders.resize(idx.saturating_add(1), -1);
+                leaders.resize(idx.saturating_add(1), MetadataResponse::NO_LEADER_ID);
             }
             if let Some(slot) = leaders.get_mut(idx) {
                 *slot = leader_id;
@@ -389,7 +393,7 @@ mod tests {
             (99, "127.0.0.1:9094".into())
         );
         assert_eq!(cluster.leader_epoch("t", 0), 8);
-        assert!(!cluster.apply_current_leader("t", 0, -1, 8));
+        assert!(!cluster.apply_current_leader("t", 0, MetadataResponse::NO_LEADER_ID, 8));
         assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
     }
 
@@ -440,5 +444,96 @@ mod tests {
             RecordBatch::NO_PARTITION_LEADER_EPOCH,
             "a later Metadata version before 9 must drop previously cached epochs"
         );
+    }
+
+    #[test]
+    fn apply_fills_sparse_partition_holes_with_sentinels() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 2,
+                        leader_id: 1,
+                        leader_epoch: 4,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                error_code: 0,
+            },
+            13,
+        );
+        let leaders = cluster.leaders.get("t").expect("topic leaders");
+        assert_eq!(
+            leaders.first().copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(
+            leaders.get(1).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(leaders.get(2).copied(), Some(1));
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            cluster.leader_epoch("t", 1),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("t", 2), 4);
+        assert_eq!(
+            cluster.leader_epoch("missing", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(cluster.leader("t", 0).is_err());
+        assert_eq!(cluster.leader("t", 2).unwrap().0, 1);
+
+        assert!(cluster.apply_current_leader("t", 5, 1, 9));
+        let leaders = cluster.leaders.get("t").expect("resized leaders");
+        assert_eq!(
+            leaders.get(3).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(
+            leaders.get(4).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(leaders.get(5).copied(), Some(1));
+        assert_eq!(
+            cluster.leader_epoch("t", 3),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            cluster.leader_epoch("t", 4),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("t", 5), 9);
+
+        cluster.set_leader_epoch("u", 1, 2);
+        assert_eq!(
+            cluster.leader_epoch("u", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("u", 1), 2);
     }
 }

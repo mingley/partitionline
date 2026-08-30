@@ -701,7 +701,7 @@ pub struct PartitionMetadata {
     pub partition_index: i32,
     /// Leader broker id, or [`MetadataResponse::NO_LEADER_ID`].
     pub leader_id: i32,
-    /// Leader epoch (v7+), or `-1`.
+    /// Leader epoch (v7+), or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
     /// Replica broker ids.
     pub replica_nodes: Vec<i32>,
