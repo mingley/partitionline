@@ -33,6 +33,10 @@ pub struct FetchTopic {
 }
 
 /// One partition in a Fetch response.
+///
+/// [`Self::INVALID_HIGH_WATERMARK`] / [`Self::INVALID_LAST_STABLE_OFFSET`] /
+/// [`Self::INVALID_LOG_START_OFFSET`] / [`Self::INVALID_PREFERRED_REPLICA_ID`]
+/// are Java `FetchResponse` sentinels (`-1`).
 #[derive(Debug, Clone)]
 pub struct FetchedPartition {
     /// Partition index.
@@ -59,6 +63,17 @@ pub struct FetchedPartition {
     pub diverging_end_offset: i64,
     /// Record batches for this partition.
     pub records: Vec<RecordBatch>,
+}
+
+impl FetchedPartition {
+    /// Java `FetchResponse.INVALID_HIGH_WATERMARK`.
+    pub const INVALID_HIGH_WATERMARK: i64 = -1;
+    /// Java `FetchResponse.INVALID_LAST_STABLE_OFFSET`.
+    pub const INVALID_LAST_STABLE_OFFSET: i64 = -1;
+    /// Java `FetchResponse.INVALID_LOG_START_OFFSET`.
+    pub const INVALID_LOG_START_OFFSET: i64 = -1;
+    /// Java `FetchResponse.INVALID_PREFERRED_REPLICA_ID`.
+    pub const INVALID_PREFERRED_REPLICA_ID: i32 = -1;
 }
 
 /// One topic in a Fetch response.
@@ -508,6 +523,14 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::{BufMut, Bytes};
+
+    #[test]
+    fn fetched_partition_invalid_sentinels_match_java() {
+        assert_eq!(FetchedPartition::INVALID_HIGH_WATERMARK, -1);
+        assert_eq!(FetchedPartition::INVALID_LAST_STABLE_OFFSET, -1);
+        assert_eq!(FetchedPartition::INVALID_LOG_START_OFFSET, -1);
+        assert_eq!(FetchedPartition::INVALID_PREFERRED_REPLICA_ID, -1);
+    }
 
     #[test]
     fn fetch_request_sends_current_leader_epoch() {

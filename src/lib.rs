@@ -127,7 +127,11 @@
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320). v18+
-//! is not spoken. OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
+//! is not spoken. [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
+//! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
+//! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
+//! [`protocol::fetch::FetchedPartition::INVALID_PREFERRED_REPLICA_ID`] are Java
+//! `FetchResponse` sentinels (`-1`). OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken. [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
