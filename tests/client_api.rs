@@ -1649,6 +1649,50 @@ async fn offsets_for_times_finds_record_and_misses() {
     consumer.close().await.unwrap();
 }
 
+#[tokio::test]
+async fn offsets_for_times_rejects_negative_timestamp_match_java() {
+    let mock = common::Mock::start().await;
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let tp = TopicPartition::new("t", 0);
+    let latest = consumer
+        .offsets_for_times([(tp.clone(), LATEST_TIMESTAMP)])
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        latest.contains(
+            "The target time for partition t-0 is -1. The target time cannot be negative."
+        ),
+        "{latest}"
+    );
+    let earliest = consumer
+        .offsets_for_times([(tp.clone(), EARLIEST_TIMESTAMP)])
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        earliest.contains(
+            "The target time for partition t-0 is -2. The target time cannot be negative."
+        ),
+        "{earliest}"
+    );
+    let mixed = consumer
+        .offsets_for_times([(tp.clone(), 0), (tp, -1)])
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(
+        mixed.contains(
+            "The target time for partition t-0 is -1. The target time cannot be negative."
+        ),
+        "negative timestamps must be rejected before any ListOffsets RPC, got {mixed}"
+    );
+    consumer.close().await.unwrap();
+}
+
 #[test]
 fn topic_partition_from_tuple() {
     let tp: TopicPartition = ("orders", 3).into();

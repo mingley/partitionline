@@ -472,7 +472,8 @@
 //! [`ShareGroup::client_instance_id_timeout`] /
 //! [`Admin::client_instance_id_timeout`] are Java `clientInstanceId(Duration)`.
 //! [`Consumer::offsets_for_times`] is Java `offsetsForTimes`
-//! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`).
+//! ([`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`;
+//! a negative timestamp is `The target time cannot be negative`).
 //! [`FetchedRecord::leader_epoch`] is the record-batch partition leader epoch.
 //! [`FetchedRecord::timestamp_type`] is Java `timestampType` ([`TimestampType`]).
 //! [`FetchedRecord::last_header`] / [`FetchedRecord::headers_for_key`] are Java

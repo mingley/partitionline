@@ -2961,7 +2961,11 @@ impl Consumer {
 
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     ///
-    /// Partitions with no matching record return `None`.
+    /// A negative timestamp is Java `IllegalArgumentException`
+    /// (`The target time cannot be negative`). Use [`Self::beginning_offsets`]
+    /// / [`Self::end_offsets`] (or [`Self::list_offsets`] with
+    /// [`crate::EARLIEST_TIMESTAMP`] / [`crate::LATEST_TIMESTAMP`]) for
+    /// those sentinels. Partitions with no matching record return `None`.
     /// [`OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
     /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::offsets_for_times_timeout`].
@@ -2980,9 +2984,19 @@ impl Consumer {
         queries: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
         timeout: Duration,
     ) -> Result<Vec<(TopicPartition, Option<OffsetAndTimestamp>)>> {
+        let queries: Vec<(TopicPartition, i64)> = queries
+            .into_iter()
+            .map(|(tp, timestamp)| (tp.into(), timestamp))
+            .collect();
+        for (tp, timestamp) in &queries {
+            if *timestamp < 0 {
+                return Err(Error::protocol(format!(
+                    "The target time for partition {tp} is {timestamp}. The target time cannot be negative."
+                )));
+            }
+        }
         let mut out = Vec::new();
         for (tp, timestamp) in queries {
-            let tp = tp.into();
             let (offset, ts, epoch) = self
                 .list_offset_at(&tp.topic, tp.partition, timestamp, timeout)
                 .await?;

@@ -1271,6 +1271,8 @@ impl ConsumerGroup {
 
     /// First offset at or after each timestamp (Java `offsetsForTimes`).
     ///
+    /// A negative timestamp is Java `IllegalArgumentException`
+    /// (`The target time cannot be negative`).
     /// [`crate::OffsetAndTimestamp::leader_epoch`] is Java `getLeaderEpoch`.
     /// Waits up to [`ConsumerConfig::request_timeout`]. For a one-shot
     /// timeout, use [`Self::offsets_for_times_timeout`].
