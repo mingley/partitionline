@@ -179,7 +179,9 @@
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
-//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N),
+//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N;
+//! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
+//! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs;
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
@@ -203,7 +205,9 @@
 //! of this factory). Throttle is the JSON default (`0`). Official Java
 //! `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
 //! ErrorCode (empty Responses)),
-//! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
+//! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
+//! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
+//! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
 //! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
 //! DurationFilter on v0),
@@ -249,11 +253,15 @@
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
 //! also sets the English `Errors.message` string. Throttle is the JSON
-//! default (`0`)),
+//! default (`0`);
+//! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
+//! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
 //! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::AlterReplicaLogDirsResponse::error_counts`] is Java
+//! `AlterReplicaLogDirsResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`AlterReplicaLogDirsTopic::error_result`] /
 //! [`AlterReplicaLogDirsRequest::error_result`] are Java
 //! `AlterReplicaLogDirsRequest.getErrorResponse` (one topic / flatten dirs)),
@@ -262,6 +270,9 @@
 //! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /
 //! [`protocol::admin::DescribeLogDirsResponse::should_client_throttle`] are Java
 //! `DescribeLogDirsResponse` sentinels / `shouldClientThrottle` (v1+);
+//! [`protocol::admin::DescribeLogDirsResponse::error_counts`] is Java
+//! `DescribeLogDirsResponse.errorCounts` (top-level `errorCode` plus each
+//! directory-level code, including `NONE`);
 //! [`DescribeLogDirsRequest::is_all_topic_partitions`] is Java
 //! `DescribeLogDirsRequest.isAllTopicPartitions`),
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester;
@@ -325,6 +336,11 @@
 //! [`protocol::acl::DescribeAclsResponse::should_client_throttle`] /
 //! [`protocol::acl::DeleteAclsResponse::should_client_throttle`] are Java
 //! `shouldClientThrottle` (v1+);
+//! [`protocol::acl::CreateAclsResponse::error_counts`] is Java
+//! `CreateAclsResponse.errorCounts` (per-creation codes, including `NONE`);
+//! [`protocol::acl::DeleteAclsResponse::error_counts`] is Java
+//! `DeleteAclsResponse.errorCounts` (filter-level codes, including `NONE`;
+//! matching-ACL codes are not counted);
 //! [`AclCreationResult::error`] / [`AclCreationResult::error_results`] are Java
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
@@ -660,6 +676,9 @@
 //! copied (`User` stays the JSON default, empty). `ErrorMessage` stays
 //! the JSON default (null); official Java also sets the English
 //! `Errors.message` string. Throttle is the JSON default (`0`).
+//! [`protocol::admin::DescribeUserScramCredentialsResponse::error_counts`] is Java
+//! `DescribeUserScramCredentialsResponse.errorCounts` (per-user codes,
+//! including `NONE`; the top-level `errorCode` is not counted).
 //! [`ScramMechanism::id`] is Java
 //! `ScramMechanism.type`. [`ActiveProducer`] `Display`
 //! is Java `ProducerState.toString`. [`DescribeProducersPartition`]
@@ -667,6 +686,8 @@
 //! [`DescribeProducersPartition::error`] /
 //! [`protocol::admin::DescribeProducersTopicRequest::error_result`] are Java
 //! `DescribeProducersRequest.getErrorResponse` (partition body / one topic).
+//! [`protocol::admin::DescribeProducersResponse::error_counts`] is Java
+//! `DescribeProducersResponse.errorCounts` (partition-level codes, including `NONE`).
 //! [`OngoingReassignment`] `Display`
 //! is Java `PartitionReassignment.toString`. [`TransactionListing`]
 //! `Display` is Java `TransactionListing.toString`. [`AbortTransactionSpec`]
@@ -804,6 +825,9 @@
 //! and `ErrorCode`; top-level and per-partition `ErrorMessage` stay the
 //! JSON default (null); official Java also sets the English
 //! `Errors.message` string.
+//! [`protocol::admin::AlterPartitionReassignmentsResponse::error_counts`] is Java
+//! `AlterPartitionReassignmentsResponse.errorCounts` (top-level `errorCode`
+//! plus each partition-level code, including `NONE`).
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
@@ -975,6 +999,8 @@
 //! [`TransactionState::error`] / [`TransactionState::error_results`] are Java
 //! `DescribeTransactionsRequest.getErrorResponse` (one transactional.id /
 //! the `TransactionStates` list).
+//! [`protocol::admin::DescribeTransactionsResponse::error_counts`] is Java
+//! `DescribeTransactionsResponse.errorCounts` (per-transactional-id codes, including `NONE`).
 //! [`Admin::describe_transactions_timeout`] is Java
 //! `DescribeTransactionsOptions.timeoutMs` (RPC deadline;
 //! DescribeTransactions has no TimeoutMs).
@@ -1016,6 +1042,9 @@
 //! the JSON default (null); official Java also sets the English
 //! `Errors.message` string. Throttle is the JSON default (`0`). v2 omits
 //! Results on the wire.
+//! [`protocol::admin::UpdateFeaturesResponse::error_counts`] is Java
+//! `UpdateFeaturesResponse.errorCounts` (top-level `errorCode` plus each
+//! per-feature code, including `NONE`).
 //! [`Admin::update_features_timeout`] / [`Admin::update_features_with_timeout`]
 //! are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
@@ -1093,6 +1122,9 @@
 //! partition / one topic). Official Java
 //! `OffsetDeleteRequest.getErrorResponse` writes only the top-level
 //! ErrorCode.
+//! [`protocol::group::OffsetDeleteResponse::error_counts`] is Java
+//! `OffsetDeleteResponse.errorCounts` (top-level `errorCode` plus each
+//! partition-level code, including `NONE`).
 //! [`Admin::delete_offsets_timeout`] / [`Admin::delete_consumer_group_offsets_timeout`]
 //! are Java `DeleteConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
 //! OffsetDelete has no TimeoutMs).
@@ -1106,6 +1138,8 @@
 //! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`protocol::txn::WritableTxnMarker`] `Display` is Java
 //! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
+//! [`protocol::txn::WriteTxnMarkersResponse::error_counts`] is Java
+//! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`).
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
 //! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).
@@ -1150,6 +1184,8 @@
 //! `AlterClientQuotasRequest.getErrorResponse` (one entry / Entries).
 //! `ErrorMessage` stays the JSON default (null); official Java also
 //! sets the English `Errors.message` string.
+//! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
+//! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`).
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`AlterUserScramCredentialsResult::error`] /
@@ -1158,6 +1194,8 @@
 //! unique sorted names from Deletions and Upsertions). `ErrorMessage`
 //! stays the JSON default (null); official Java also sets the English
 //! `Errors.message` string.
+//! [`protocol::admin::AlterUserScramCredentialsResponse::error_counts`] is Java
+//! `AlterUserScramCredentialsResponse.errorCounts` (per-user codes, including `NONE`).
 //! [`Admin::alter_user_scram_credentials_timeout`] /
 //! [`Admin::describe_user_scram_credentials_timeout`] are Java
 //! `AlterUserScramCredentialsOptions` /
@@ -1209,6 +1247,9 @@
 //! [`Admin::describe_topic_partitions_timeout`] is the crate-first
 //! DescribeTopicPartitions (api 75) RPC deadline; Java `describeTopics`
 //! is [`Admin::describe_topics_timeout`].
+//! [`protocol::admin::DescribeTopicPartitionsResponse::error_counts`] is Java
+//! `DescribeTopicPartitionsResponse.errorCounts` (topic-level and
+//! partition-level codes, including `NONE`);
 //! [`Admin::list_topics`] / [`Admin::list_topics_with`] /
 //! [`Admin::list_topics_timeout`] / [`Admin::describe_topics`] /
 //! [`Admin::describe_topics_with`] / [`Admin::describe_topics_timeout`] /

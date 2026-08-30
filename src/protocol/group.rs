@@ -3033,6 +3033,33 @@ impl OffsetDeleteResult {
     }
 }
 
+/// Java `OffsetDeleteResponse` helpers.
+pub struct OffsetDeleteResponse;
+
+impl OffsetDeleteResponse {
+    /// Java `OffsetDeleteResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 0
+    }
+
+    /// Java `OffsetDeleteResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`).
+    #[must_use]
+    pub fn error_counts(error_code: i16, results: &[OffsetDeleteResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(error_code).or_insert(0);
+        *count += 1;
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+}
+
 /// OffsetDelete v0 (classic; error_code is *before* throttle).
 pub fn encode_offset_delete_request(
     buf: &mut BytesMut,
@@ -3284,6 +3311,34 @@ mod tests {
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
         );
+    }
+
+    #[test]
+    fn offset_delete_response_error_counts_matches_java() {
+        assert_eq!(
+            OffsetDeleteResponse::error_counts(0, &[]),
+            HashMap::from([(0, 1)])
+        );
+        assert!(OffsetDeleteResponse::should_client_throttle(0));
+        let counts = OffsetDeleteResponse::error_counts(
+            0,
+            &[
+                OffsetDeleteResult::new("ok", 0, 0),
+                OffsetDeleteResult::new("ok", 1, crate::error::GROUP_SUBSCRIBED_TO_TOPIC),
+                OffsetDeleteResult::new("missing", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                OffsetDeleteResult::new("ok2", 0, 0),
+            ],
+        );
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 3),
+                (crate::error::GROUP_SUBSCRIBED_TO_TOPIC, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+        let top = OffsetDeleteResponse::error_counts(crate::error::NOT_COORDINATOR, &[]);
+        assert_eq!(top, HashMap::from([(crate::error::NOT_COORDINATOR, 1)]));
     }
 
     #[test]

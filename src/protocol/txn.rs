@@ -1194,6 +1194,28 @@ pub struct WritableTxnMarkerResult {
     pub topics: Vec<WritableTxnMarkerTopicResult>,
 }
 
+/// Java `WriteTxnMarkersResponse` helpers.
+pub struct WriteTxnMarkersResponse;
+
+impl WriteTxnMarkersResponse {
+    /// Java `WriteTxnMarkersResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(markers: &[WritableTxnMarkerResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for marker in markers {
+            for topic in &marker.topics {
+                for partition in &topic.partitions {
+                    let count = counts.entry(partition.error_code).or_insert(0);
+                    *count += 1;
+                }
+            }
+        }
+        counts
+    }
+}
+
 /// `true` when WriteTxnMarkers `version` is flexible (v1).
 ///
 /// v0 is classic. v1 is compact arrays/strings plus tagged fields
@@ -1414,6 +1436,57 @@ mod tests {
             TxnOffsetCommitResponseTopic {
                 topic: "ok2".into(),
                 partitions: vec![TxnOffsetCommitResponsePartition::error(0, 0)],
+            },
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_response_error_counts_matches_java() {
+        assert!(WriteTxnMarkersResponse::error_counts(&[]).is_empty());
+        let counts = WriteTxnMarkersResponse::error_counts(&[
+            WritableTxnMarkerResult {
+                producer_id: 1,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "ok".into(),
+                    partitions: vec![
+                        WritableTxnMarkerPartitionResult {
+                            partition_index: 0,
+                            error_code: 0,
+                        },
+                        WritableTxnMarkerPartitionResult {
+                            partition_index: 1,
+                            error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+                        },
+                    ],
+                }],
+            },
+            WritableTxnMarkerResult {
+                producer_id: 2,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "missing".into(),
+                    partitions: vec![WritableTxnMarkerPartitionResult {
+                        partition_index: 0,
+                        error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    }],
+                }],
+            },
+            WritableTxnMarkerResult {
+                producer_id: 3,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "ok2".into(),
+                    partitions: vec![WritableTxnMarkerPartitionResult {
+                        partition_index: 0,
+                        error_code: 0,
+                    }],
+                }],
             },
         ]);
         assert_eq!(

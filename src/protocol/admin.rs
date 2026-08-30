@@ -3791,6 +3791,24 @@ impl AlterPartitionReassignmentsResponse {
     pub fn results(&self) -> &[ReassignmentTopicResult] {
         &self.results
     }
+
+    /// Java `AlterPartitionReassignmentsResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`).
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for topic in &self.results {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 fn put_compact_nullable_i32_array(
@@ -4464,6 +4482,23 @@ impl UpdateFeaturesResponse {
     pub fn results(&self) -> &[UpdatableFeatureResult] {
         &self.results
     }
+
+    /// Java `UpdateFeaturesResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// per-feature code (including `NONE`). v2 decode leaves Results
+    /// empty.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for result in &self.results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// Check that UpdateFeatures `version` is spoken (0–2).
@@ -4731,6 +4766,25 @@ impl AlterUserScramCredentialsResult {
     #[must_use]
     pub fn error_message(&self) -> Option<&str> {
         self.error_message.as_deref()
+    }
+}
+
+/// Java `AlterUserScramCredentialsResponse` helpers.
+pub struct AlterUserScramCredentialsResponse;
+
+impl AlterUserScramCredentialsResponse {
+    /// Java `AlterUserScramCredentialsResponse.errorCounts`.
+    ///
+    /// Counts per-user result error codes (including `NONE`). There is
+    /// no top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(results: &[AlterUserScramCredentialsResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -5024,6 +5078,20 @@ impl DescribeUserScramCredentialsResponse {
     #[must_use]
     pub fn results(&self) -> &[DescribeUserScramCredentialsResult] {
         &self.results
+    }
+
+    /// Java `DescribeUserScramCredentialsResponse.errorCounts`.
+    ///
+    /// Counts per-user result error codes (including `NONE`). The
+    /// top-level `errorCode` is not counted (Java `data.results()` only).
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in &self.results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -5643,6 +5711,25 @@ fn alter_client_quotas_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `AlterClientQuotasResponse` helpers.
+pub struct AlterClientQuotasResponse;
+
+impl AlterClientQuotasResponse {
+    /// Java `AlterClientQuotasResponse.errorCounts`.
+    ///
+    /// Counts per-entry error codes (including `NONE`). There is no
+    /// top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(entries: &[ClientQuotaAlterationResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for entry in entries {
+            let count = counts.entry(entry.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+}
+
 /// AlterClientQuotas v0–1 (classic at v0; flexible from v1; KIP-546 / KIP-599).
 ///
 /// Official Apache JSON (`apiKey: 49`, `validVersions: "0-1"`,
@@ -6207,6 +6294,22 @@ impl DescribeProducersResponse {
     pub fn topics(&self) -> &[DescribeProducersTopic] {
         &self.topics
     }
+
+    /// Java `DescribeProducersResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`). There is
+    /// no top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// One topic in a DescribeProducers request (Topics array element).
@@ -6614,6 +6717,25 @@ impl TransactionState {
     #[must_use]
     pub fn topics(&self) -> &[TransactionTopic] {
         &self.topics
+    }
+}
+
+/// Java `DescribeTransactionsResponse` helpers.
+pub struct DescribeTransactionsResponse;
+
+impl DescribeTransactionsResponse {
+    /// Java `DescribeTransactionsResponse.errorCounts`.
+    ///
+    /// Counts per-transactional-id error codes (including `NONE`). There
+    /// is no top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(states: &[TransactionState]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for state in states {
+            let count = counts.entry(state.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -7414,6 +7536,25 @@ fn consumer_group_describe_spoken(version: i16) -> Result<()> {
         other => Err(Error::protocol(format!(
             "ConsumerGroupDescribe version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `ConsumerGroupDescribeResponse` helpers.
+pub struct ConsumerGroupDescribeResponse;
+
+impl ConsumerGroupDescribeResponse {
+    /// Java `ConsumerGroupDescribeResponse.errorCounts`.
+    ///
+    /// Counts per-group error codes (including `NONE`). There is no
+    /// top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(groups: &[DescribedConsumerGroup]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for group in groups {
+            let count = counts.entry(group.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -8969,6 +9110,25 @@ fn share_group_describe_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `ShareGroupDescribeResponse` helpers.
+pub struct ShareGroupDescribeResponse;
+
+impl ShareGroupDescribeResponse {
+    /// Java `ShareGroupDescribeResponse.errorCounts`.
+    ///
+    /// Counts per-group error codes (including `NONE`). There is no
+    /// top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(groups: &[DescribedShareGroup]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for group in groups {
+            let count = counts.entry(group.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+}
+
 /// Encode a ShareGroupDescribe request (`version` 0–1).
 ///
 /// Official Apache JSON (`apiKey: 77`, request `listeners: ["broker"]`,
@@ -10285,6 +10445,24 @@ impl DescribeTopicPartitionsResponse {
             topics,
             next_cursor: None,
         }
+    }
+
+    /// Java `DescribeTopicPartitionsResponse.errorCounts`.
+    ///
+    /// Counts each topic-level code and each partition-level code
+    /// (including `NONE`). There is no top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -11725,6 +11903,22 @@ impl AlterReplicaLogDirsResponse {
     pub fn results(&self) -> &[AlterReplicaLogDirsResponseTopic] {
         &self.results
     }
+
+    /// Java `AlterReplicaLogDirsResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`). Official
+    /// JSON has no top-level `errorCode`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in &self.results {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// `true` when AlterReplicaLogDirs `version` is flexible.
@@ -12200,6 +12394,23 @@ impl DescribeLogDirsResponse {
     #[must_use]
     pub fn results(&self) -> &[DescribeLogDirsResult] {
         &self.results
+    }
+
+    /// Java `DescribeLogDirsResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// directory-level code (including `NONE`). Partition rows are not
+    /// counted (Java `results` only).
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for result in &self.results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -14264,6 +14475,303 @@ mod tests {
         assert_eq!(
             counts,
             HashMap::from([(0, 2), (crate::error::TOPIC_AUTHORIZATION_FAILED, 1),])
+        );
+    }
+
+    #[test]
+    fn alter_partition_reassignments_response_error_counts_matches_java() {
+        let empty = AlterPartitionReassignmentsResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![],
+        };
+        assert_eq!(empty.error_counts(), HashMap::from([(0, 1)]));
+        let counts = AlterPartitionReassignmentsResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![
+                ReassignmentTopicResult::new(
+                    "ok",
+                    vec![
+                        ReassignmentPartitionResult::error(0, 0),
+                        ReassignmentPartitionResult::error(1, crate::error::NOT_CONTROLLER),
+                    ],
+                ),
+                ReassignmentTopicResult::new("ok2", vec![ReassignmentPartitionResult::error(0, 0)]),
+            ],
+        }
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 3), (crate::error::NOT_CONTROLLER, 1),])
+        );
+        let top = AlterPartitionReassignmentsResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: None,
+            results: vec![],
+        };
+        assert_eq!(
+            top.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+    }
+
+    #[test]
+    fn describe_log_dirs_response_error_counts_matches_java() {
+        let empty = DescribeLogDirsResponse::new(0, vec![]);
+        assert_eq!(empty.error_counts(), HashMap::from([(0, 1)]));
+        let counts = DescribeLogDirsResponse::new(
+            0,
+            vec![
+                DescribeLogDirsResult::new(
+                    0,
+                    "/ok",
+                    vec![],
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                ),
+                DescribeLogDirsResult::new(
+                    crate::error::KAFKA_STORAGE_ERROR,
+                    "/bad",
+                    vec![],
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                ),
+                DescribeLogDirsResult::new(
+                    0,
+                    "/ok2",
+                    vec![],
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                    DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES,
+                ),
+            ],
+        )
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 3), (crate::error::KAFKA_STORAGE_ERROR, 1),])
+        );
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_response_error_counts_matches_java() {
+        assert!(AlterReplicaLogDirsResponse::new(vec![])
+            .error_counts()
+            .is_empty());
+        let counts = AlterReplicaLogDirsResponse::new(vec![
+            AlterReplicaLogDirsResponseTopic::new(
+                "ok",
+                vec![
+                    AlterReplicaLogDirsResponsePartition::new(0, 0),
+                    AlterReplicaLogDirsResponsePartition::new(1, crate::error::LOG_DIR_NOT_FOUND),
+                ],
+            ),
+            AlterReplicaLogDirsResponseTopic::new(
+                "bad",
+                vec![AlterReplicaLogDirsResponsePartition::new(
+                    0,
+                    crate::error::KAFKA_STORAGE_ERROR,
+                )],
+            ),
+            AlterReplicaLogDirsResponseTopic::new(
+                "ok2",
+                vec![AlterReplicaLogDirsResponsePartition::new(0, 0)],
+            ),
+        ])
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::LOG_DIR_NOT_FOUND, 1),
+                (crate::error::KAFKA_STORAGE_ERROR, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn describe_producers_response_error_counts_matches_java() {
+        assert!(DescribeProducersResponse::new(vec![])
+            .error_counts()
+            .is_empty());
+        let counts = DescribeProducersResponse::new(vec![
+            DescribeProducersTopic::new(
+                "ok",
+                vec![
+                    DescribeProducersPartition::error(0, 0),
+                    DescribeProducersPartition::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ],
+            ),
+            DescribeProducersTopic::new(
+                "missing",
+                vec![DescribeProducersPartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            ),
+            DescribeProducersTopic::new("ok2", vec![DescribeProducersPartition::error(0, 0)]),
+        ])
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn update_features_response_error_counts_matches_java() {
+        let empty = UpdateFeaturesResponse::error(0);
+        assert_eq!(empty.error_counts(), HashMap::from([(0, 1)]));
+        let counts = UpdateFeaturesResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![
+                UpdatableFeatureResult::error("ok", 0),
+                UpdatableFeatureResult::error("bad", crate::error::FEATURE_UPDATE_FAILED),
+                UpdatableFeatureResult::error("ok2", 0),
+            ],
+        }
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 3), (crate::error::FEATURE_UPDATE_FAILED, 1),])
+        );
+        let top = UpdateFeaturesResponse::error(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            top.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+    }
+
+    #[test]
+    fn describe_user_scram_credentials_response_error_counts_matches_java() {
+        let empty = DescribeUserScramCredentialsResponse::error(0, 0);
+        assert!(empty.error_counts().is_empty());
+        let top_only = DescribeUserScramCredentialsResponse::error(crate::error::NOT_CONTROLLER, 0);
+        assert!(
+            top_only.error_counts().is_empty(),
+            "Java counts results only, not the top-level errorCode"
+        );
+        let counts = DescribeUserScramCredentialsResponse {
+            error_code: 0,
+            error_message: None,
+            results: vec![
+                DescribeUserScramCredentialsResult::error(0),
+                DescribeUserScramCredentialsResult::error(crate::error::RESOURCE_NOT_FOUND),
+                DescribeUserScramCredentialsResult::error(0),
+            ],
+        }
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::RESOURCE_NOT_FOUND, 1),])
+        );
+    }
+
+    #[test]
+    fn describe_transactions_response_error_counts_matches_java() {
+        assert!(DescribeTransactionsResponse::error_counts(&[]).is_empty());
+        let counts = DescribeTransactionsResponse::error_counts(&[
+            TransactionState::error("ok", 0),
+            TransactionState::error("gone", crate::error::TRANSACTIONAL_ID_NOT_FOUND),
+            TransactionState::error("ok2", 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::TRANSACTIONAL_ID_NOT_FOUND, 1),])
+        );
+    }
+
+    #[test]
+    fn describe_topic_partitions_response_error_counts_matches_java() {
+        assert!(DescribeTopicPartitionsResponse::new(vec![])
+            .error_counts()
+            .is_empty());
+        let mut topic = DescribedTopicPartitions::new("ok", 0);
+        topic.partitions = vec![
+            DescribedTopicPartition::new(0),
+            DescribedTopicPartition::new(crate::error::NOT_LEADER_OR_FOLLOWER),
+        ];
+        let missing =
+            DescribedTopicPartitions::new("missing", crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let counts = DescribeTopicPartitionsResponse::new(vec![
+            topic,
+            missing,
+            DescribedTopicPartitions::new("ok2", 0),
+        ])
+        .error_counts();
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 3),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn alter_user_scram_credentials_response_error_counts_matches_java() {
+        assert!(AlterUserScramCredentialsResponse::error_counts(&[]).is_empty());
+        let counts = AlterUserScramCredentialsResponse::error_counts(&[
+            AlterUserScramCredentialsResult::error("ok", 0),
+            AlterUserScramCredentialsResult::error("dup", crate::error::DUPLICATE_RESOURCE),
+            AlterUserScramCredentialsResult::error("ok2", 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::DUPLICATE_RESOURCE, 1),])
+        );
+    }
+
+    #[test]
+    fn alter_client_quotas_response_error_counts_matches_java() {
+        assert!(AlterClientQuotasResponse::error_counts(&[]).is_empty());
+        let counts = AlterClientQuotasResponse::error_counts(&[
+            ClientQuotaAlterationResult::error([], 0),
+            ClientQuotaAlterationResult::error([], crate::error::INVALID_REQUEST),
+            ClientQuotaAlterationResult::error([], 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::INVALID_REQUEST, 1),])
+        );
+    }
+
+    #[test]
+    fn consumer_group_describe_response_error_counts_matches_java() {
+        assert!(ConsumerGroupDescribeResponse::error_counts(&[]).is_empty());
+        let counts = ConsumerGroupDescribeResponse::error_counts(&[
+            DescribedConsumerGroup::new("ok", 0),
+            DescribedConsumerGroup::new("gone", crate::error::GROUP_ID_NOT_FOUND),
+            DescribedConsumerGroup::new("ok2", 0),
+            DescribedConsumerGroup::new("auth", crate::error::GROUP_AUTHORIZATION_FAILED),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::GROUP_ID_NOT_FOUND, 1),
+                (crate::error::GROUP_AUTHORIZATION_FAILED, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn share_group_describe_response_error_counts_matches_java() {
+        assert!(ShareGroupDescribeResponse::error_counts(&[]).is_empty());
+        let counts = ShareGroupDescribeResponse::error_counts(&[
+            DescribedShareGroup::new("ok", 0),
+            DescribedShareGroup::new("gone", crate::error::GROUP_ID_NOT_FOUND),
+            DescribedShareGroup::new("ok2", 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::GROUP_ID_NOT_FOUND, 1),])
         );
     }
 

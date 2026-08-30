@@ -6,6 +6,7 @@
 //! (user resource type). Kafka 4.0 `validVersions` is `1-3` (v0 removed).
 //! This crate speaks 0–3. v4+ is not spoken.
 
+use std::collections::HashMap;
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -1275,6 +1276,19 @@ impl CreateAclsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
     }
+
+    /// Java `CreateAclsResponse.errorCounts`.
+    ///
+    /// Counts per-creation error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(results: &[AclCreationResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// Per-creation CreateAcls result (Java `AclCreationResult`).
@@ -1443,6 +1457,20 @@ impl DeleteAclsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `DeleteAclsResponse.errorCounts`.
+    ///
+    /// Counts filter-level error codes (including `NONE`). Matching-ACL
+    /// codes are not included (Java `filterResults` only).
+    #[must_use]
+    pub fn error_counts(results: &[DeletedAclsFilterResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -2065,6 +2093,7 @@ pub fn decode_delete_acls_filter_results<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn create_acls_not_controller_is_not_at_byte_four() {
@@ -2093,6 +2122,39 @@ mod tests {
                 "CreateAcls v{version} NOT_CONTROLLER must be leftover-empty"
             );
         }
+    }
+
+    #[test]
+    fn create_acls_response_error_counts_matches_java() {
+        assert!(CreateAclsResponse::error_counts(&[]).is_empty());
+        let counts = CreateAclsResponse::error_counts(&[
+            AclCreationResult::error(0),
+            AclCreationResult::error(crate::error::SECURITY_DISABLED),
+            AclCreationResult::error(0),
+            AclCreationResult::error(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::SECURITY_DISABLED, 1),
+                (crate::error::CLUSTER_AUTHORIZATION_FAILED, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn delete_acls_response_error_counts_matches_java() {
+        assert!(DeleteAclsResponse::error_counts(&[]).is_empty());
+        let counts = DeleteAclsResponse::error_counts(&[
+            DeletedAclsFilterResult::error(0),
+            DeletedAclsFilterResult::error(crate::error::SECURITY_DISABLED),
+            DeletedAclsFilterResult::error(0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::SECURITY_DISABLED, 1),])
+        );
     }
 
     #[test]
