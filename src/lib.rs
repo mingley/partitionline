@@ -430,6 +430,12 @@
 //! [`protocol::acl::DescribeAclsResponse::acls_resources`] /
 //! [`protocol::acl::DescribeAclsResponse::acl_bindings`] are Java
 //! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]);
+//! [`protocol::acl::DeleteAclsResponse::matching_acl`] /
+//! [`protocol::acl::DeleteAclsResponse::acl_binding`] are Java
+//! `matchingAcl` / `aclBinding` ([`protocol::acl::DeleteAclsMatchingAcl`];
+//! unknown resource / pattern / operation / permission codes become
+//! UNKNOWN; encode of [`DeletedAclsFilterResult`] matching ACEs is
+//! [`ApiError::NONE`]);
 //! [`DeletedAclsFilterResult::error`] / [`DeletedAclsFilterResult::error_results`]
 //! are Java `DeleteAclsRequest.getErrorResponse` (one FilterResult /
 //! `nCopies`). MatchingAcls stay the JSON default (empty); `ErrorMessage`
@@ -746,7 +752,12 @@
 //! `DeleteAclsMatchingAcls contain UNKNOWN elements`).
 //! [`protocol::acl::DescribeAclsResponse::acls_resources`] /
 //! [`protocol::acl::DescribeAclsResponse::acl_bindings`] are Java
-//! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]).
+//! [`protocol::acl::DeleteAclsResponse::matching_acl`] /
+//! [`protocol::acl::DeleteAclsResponse::acl_binding`] are Java
+//! `matchingAcl` / `aclBinding` ([`protocol::acl::DeleteAclsMatchingAcl`];
+//! unknown resource / pattern / operation / permission codes become
+//! UNKNOWN). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`

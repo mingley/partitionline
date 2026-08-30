@@ -12,7 +12,7 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::{Error, Result};
+use crate::error::{ApiError, Error, Result};
 
 /// ACL resource type: any (DescribeAcls / DeleteAcls filters).
 pub const ACL_RESOURCE_ANY: i8 = 1;
@@ -1252,6 +1252,93 @@ impl DeletedAclsFilterResult {
     }
 }
 
+/// One matching ACE in a DeleteAcls response (Java
+/// `DeleteAclsResponseData.DeleteAclsMatchingAcl`).
+///
+/// [`DeleteAclsResponse::matching_acl`] fills these fields from an
+/// [`AclBinding`] and [`ApiError`]. [`DeleteAclsResponse::acl_binding`]
+/// rebuilds the binding and drops the error. Encode of
+/// [`DeletedAclsFilterResult`] still writes [`ApiError::NONE`] on each
+/// matching ACE (crate [`DeletedAclsFilterResult::matching`] is
+/// [`AclBinding`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteAclsMatchingAcl {
+    /// Matching-ACL error, or `0`.
+    pub error_code: i16,
+    /// Matching-ACL error message.
+    pub error_message: Option<String>,
+    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, [`AclResourceType::Topic`], …).
+    pub resource_type: i8,
+    /// Resource name (topic name, …).
+    pub resource_name: String,
+    /// Pattern type (`ACL_PATTERN_LITERAL`, [`AclPatternType::Literal`], …).
+    pub pattern_type: i8,
+    /// Principal, for example `User:alice`.
+    pub principal: String,
+    /// Host filter (`*` is any).
+    pub host: String,
+    /// Operation (`ACL_OPERATION_ALL`, [`AclOperation::All`], …).
+    pub operation: i8,
+    /// Permission (`ACL_PERMISSION_ALLOW`, [`AclPermission::Allow`], …).
+    pub permission: i8,
+}
+
+impl DeleteAclsMatchingAcl {
+    /// Java `DeleteAclsMatchingAcl.errorCode`.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Java `DeleteAclsMatchingAcl.errorMessage`.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `DeleteAclsMatchingAcl.resourceType`.
+    #[must_use]
+    pub fn resource_type(&self) -> i8 {
+        self.resource_type
+    }
+
+    /// Java `DeleteAclsMatchingAcl.resourceName`.
+    #[must_use]
+    pub fn resource_name(&self) -> &str {
+        self.resource_name.as_str()
+    }
+
+    /// Java `DeleteAclsMatchingAcl.patternType`.
+    #[must_use]
+    pub fn pattern_type(&self) -> i8 {
+        self.pattern_type
+    }
+
+    /// Java `DeleteAclsMatchingAcl.principal`.
+    #[must_use]
+    pub fn principal(&self) -> &str {
+        self.principal.as_str()
+    }
+
+    /// Java `DeleteAclsMatchingAcl.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `DeleteAclsMatchingAcl.operation`.
+    #[must_use]
+    pub fn operation(&self) -> i8 {
+        self.operation
+    }
+
+    /// Java `DeleteAclsMatchingAcl.permissionType`.
+    #[must_use]
+    pub fn permission_type(&self) -> i8 {
+        self.permission
+    }
+}
+
 /// `true` when CreateAcls / DescribeAcls / DeleteAcls `version` is flexible.
 ///
 /// v0–v1 are classic. v2 is the first flexible version. v3 is the same
@@ -1471,6 +1558,49 @@ impl DeleteAclsResponse {
             *count += 1;
         }
         counts
+    }
+
+    /// Java `DeleteAclsResponse.matchingAcl`.
+    ///
+    /// Copies [`AclBinding`] pattern/entry fields and [`ApiError`]
+    /// code/message onto a [`DeleteAclsMatchingAcl`].
+    #[must_use]
+    pub fn matching_acl(acl: &AclBinding, error: &ApiError) -> DeleteAclsMatchingAcl {
+        DeleteAclsMatchingAcl {
+            error_code: error.error(),
+            error_message: error.message().map(str::to_owned),
+            resource_type: acl.resource_type,
+            resource_name: acl.resource_name.clone(),
+            pattern_type: acl.pattern_type,
+            principal: acl.principal.clone(),
+            host: acl.host.clone(),
+            operation: acl.operation,
+            permission: acl.permission,
+        }
+    }
+
+    /// Java `DeleteAclsResponse.aclBinding`.
+    ///
+    /// Rebuilds [`AclBinding`] from matching-ACL fields. Unknown resource,
+    /// pattern, operation, and permission codes become UNKNOWN (Java
+    /// `fromCode`). Java `ResourcePattern` / `AccessControlEntry`
+    /// constructors reject ANY (and MATCH pattern type); this crate
+    /// stores the wire value like [`ResourcePattern::new`].
+    #[must_use]
+    pub fn acl_binding(matching: &DeleteAclsMatchingAcl) -> AclBinding {
+        AclBinding::new(
+            ResourcePattern::new(
+                AclResourceType::from_id(matching.resource_type),
+                matching.resource_name.clone(),
+                AclPatternType::from_id(matching.pattern_type),
+            ),
+            AccessControlEntry::new(
+                matching.principal.clone(),
+                matching.host.clone(),
+                AclOperation::from_id(matching.operation),
+                AclPermission::from_id(matching.permission),
+            ),
+        )
     }
 }
 
@@ -1952,17 +2082,18 @@ fn put_delete_matching_acl(
     flexible: bool,
     acl: &AclBinding,
 ) -> Result<()> {
-    buf.put_i16(0);
-    buf::put_string(buf, flexible, None)?;
-    buf.put_i8(acl.resource_type);
-    buf::put_string(buf, flexible, Some(&acl.resource_name))?;
+    let matching = DeleteAclsResponse::matching_acl(acl, &ApiError::NONE);
+    buf.put_i16(matching.error_code);
+    buf::put_string(buf, flexible, matching.error_message.as_deref())?;
+    buf.put_i8(matching.resource_type);
+    buf::put_string(buf, flexible, Some(&matching.resource_name))?;
     if version >= 1 {
-        buf.put_i8(acl.pattern_type);
+        buf.put_i8(matching.pattern_type);
     }
-    buf::put_string(buf, flexible, Some(&acl.principal))?;
-    buf::put_string(buf, flexible, Some(&acl.host))?;
-    buf.put_i8(acl.operation);
-    buf.put_i8(acl.permission);
+    buf::put_string(buf, flexible, Some(&matching.principal))?;
+    buf::put_string(buf, flexible, Some(&matching.host))?;
+    buf.put_i8(matching.operation);
+    buf.put_i8(matching.permission);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -2155,6 +2286,49 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::SECURITY_DISABLED, 1),])
         );
+    }
+
+    #[test]
+    fn delete_acls_matching_acl_matches_java() {
+        let acl = AclBinding::allow_topic("t", "User:alice");
+        let none = DeleteAclsResponse::matching_acl(&acl, &ApiError::NONE);
+        assert_eq!(none.error_code(), 0);
+        assert!(none.error_message().is_none());
+        assert_eq!(none.resource_name(), "t");
+        assert_eq!(none.resource_type(), ACL_RESOURCE_TOPIC);
+        assert_eq!(none.pattern_type(), ACL_PATTERN_LITERAL);
+        assert_eq!(none.principal(), "User:alice");
+        assert_eq!(none.host(), "*");
+        assert_eq!(none.operation(), ACL_OPERATION_ALL);
+        assert_eq!(none.permission_type(), ACL_PERMISSION_ALLOW);
+        assert_eq!(DeleteAclsResponse::acl_binding(&none), acl);
+
+        let err = ApiError::from_code(crate::error::SECURITY_DISABLED, Some("no".into()));
+        let matching = DeleteAclsResponse::matching_acl(&acl, &err);
+        assert_eq!(matching.error_code(), crate::error::SECURITY_DISABLED);
+        assert_eq!(matching.error_message(), Some("no"));
+        assert_eq!(DeleteAclsResponse::acl_binding(&matching), acl);
+
+        let unknown = DeleteAclsMatchingAcl {
+            error_code: 0,
+            error_message: None,
+            resource_type: 99,
+            resource_name: "t".into(),
+            pattern_type: 99,
+            principal: "User:a".into(),
+            host: "*".into(),
+            operation: 99,
+            permission: 99,
+        };
+        let bound = DeleteAclsResponse::acl_binding(&unknown);
+        assert_eq!(bound.resource_type, 0);
+        assert_eq!(bound.pattern_type, 0);
+        assert_eq!(bound.operation, 0);
+        assert_eq!(bound.permission, 0);
+        assert!(bound.is_unknown());
+        assert_eq!(bound.resource_name, "t");
+        assert_eq!(bound.principal, "User:a");
+        assert_eq!(bound.host, "*");
     }
 
     #[test]
