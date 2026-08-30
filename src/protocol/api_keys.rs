@@ -118,7 +118,8 @@ pub const GET_TELEMETRY_SUBSCRIPTIONS: i16 = 71;
 pub const PUSH_TELEMETRY: i16 = 72;
 /// AssignReplicasToDirs (73).
 pub const ASSIGN_REPLICAS_TO_DIRS: i16 = 73;
-/// ListConfigResources (74).
+/// ListConfigResources (74). Java 4.0 `ApiKeys` enum name is
+/// `LIST_CLIENT_METRICS_RESOURCES`.
 pub const LIST_CONFIG_RESOURCES: i16 = 74;
 /// DescribeTopicPartitions (75).
 pub const DESCRIBE_TOPIC_PARTITIONS: i16 = 75;
@@ -136,6 +137,112 @@ pub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;
 pub const ALTER_SHARE_GROUP_OFFSETS: i16 = 91;
 /// DeleteShareGroupOffsets (92).
 pub const DELETE_SHARE_GROUP_OFFSETS: i16 = 92;
+
+/// Java `ApiKeys` enum constant name for `id`.
+///
+/// Kafka 4.0 `ApiKeys.toString` is the enum name (`PRODUCE`), not
+/// `ApiMessageType.name` (`Produce`). Api 74 is Java 4.0
+/// `LIST_CLIENT_METRICS_RESOURCES` (this crate's [`LIST_CONFIG_RESOURCES`]).
+/// Broker-only and named STATUS-hole keys are included so
+/// [`crate::protocol::header::RequestHeader`] Display matches Java. Apis
+/// 90–92 are this crate's 4.1-oriented share-offset keys.
+#[must_use]
+pub const fn name(id: i16) -> Option<&'static str> {
+    match id {
+        PRODUCE => Some("PRODUCE"),
+        FETCH => Some("FETCH"),
+        LIST_OFFSETS => Some("LIST_OFFSETS"),
+        METADATA => Some("METADATA"),
+        4 => Some("LEADER_AND_ISR"),
+        5 => Some("STOP_REPLICA"),
+        6 => Some("UPDATE_METADATA"),
+        7 => Some("CONTROLLED_SHUTDOWN"),
+        OFFSET_COMMIT => Some("OFFSET_COMMIT"),
+        OFFSET_FETCH => Some("OFFSET_FETCH"),
+        FIND_COORDINATOR => Some("FIND_COORDINATOR"),
+        JOIN_GROUP => Some("JOIN_GROUP"),
+        HEARTBEAT => Some("HEARTBEAT"),
+        LEAVE_GROUP => Some("LEAVE_GROUP"),
+        SYNC_GROUP => Some("SYNC_GROUP"),
+        DESCRIBE_GROUPS => Some("DESCRIBE_GROUPS"),
+        LIST_GROUPS => Some("LIST_GROUPS"),
+        SASL_HANDSHAKE => Some("SASL_HANDSHAKE"),
+        API_VERSIONS => Some("API_VERSIONS"),
+        CREATE_TOPICS => Some("CREATE_TOPICS"),
+        DELETE_TOPICS => Some("DELETE_TOPICS"),
+        DELETE_RECORDS => Some("DELETE_RECORDS"),
+        INIT_PRODUCER_ID => Some("INIT_PRODUCER_ID"),
+        OFFSET_FOR_LEADER_EPOCH => Some("OFFSET_FOR_LEADER_EPOCH"),
+        ADD_PARTITIONS_TO_TXN => Some("ADD_PARTITIONS_TO_TXN"),
+        ADD_OFFSETS_TO_TXN => Some("ADD_OFFSETS_TO_TXN"),
+        END_TXN => Some("END_TXN"),
+        WRITE_TXN_MARKERS => Some("WRITE_TXN_MARKERS"),
+        TXN_OFFSET_COMMIT => Some("TXN_OFFSET_COMMIT"),
+        DESCRIBE_ACLS => Some("DESCRIBE_ACLS"),
+        CREATE_ACLS => Some("CREATE_ACLS"),
+        DELETE_ACLS => Some("DELETE_ACLS"),
+        DESCRIBE_CONFIGS => Some("DESCRIBE_CONFIGS"),
+        ALTER_CONFIGS => Some("ALTER_CONFIGS"),
+        ALTER_REPLICA_LOG_DIRS => Some("ALTER_REPLICA_LOG_DIRS"),
+        DESCRIBE_LOG_DIRS => Some("DESCRIBE_LOG_DIRS"),
+        SASL_AUTHENTICATE => Some("SASL_AUTHENTICATE"),
+        CREATE_PARTITIONS => Some("CREATE_PARTITIONS"),
+        CREATE_DELEGATION_TOKEN => Some("CREATE_DELEGATION_TOKEN"),
+        RENEW_DELEGATION_TOKEN => Some("RENEW_DELEGATION_TOKEN"),
+        EXPIRE_DELEGATION_TOKEN => Some("EXPIRE_DELEGATION_TOKEN"),
+        DESCRIBE_DELEGATION_TOKEN => Some("DESCRIBE_DELEGATION_TOKEN"),
+        DELETE_GROUPS => Some("DELETE_GROUPS"),
+        43 => Some("ELECT_LEADERS"),
+        INCREMENTAL_ALTER_CONFIGS => Some("INCREMENTAL_ALTER_CONFIGS"),
+        ALTER_PARTITION_REASSIGNMENTS => Some("ALTER_PARTITION_REASSIGNMENTS"),
+        LIST_PARTITION_REASSIGNMENTS => Some("LIST_PARTITION_REASSIGNMENTS"),
+        OFFSET_DELETE => Some("OFFSET_DELETE"),
+        DESCRIBE_CLIENT_QUOTAS => Some("DESCRIBE_CLIENT_QUOTAS"),
+        ALTER_CLIENT_QUOTAS => Some("ALTER_CLIENT_QUOTAS"),
+        DESCRIBE_USER_SCRAM_CREDENTIALS => Some("DESCRIBE_USER_SCRAM_CREDENTIALS"),
+        ALTER_USER_SCRAM_CREDENTIALS => Some("ALTER_USER_SCRAM_CREDENTIALS"),
+        52 => Some("VOTE"),
+        53 => Some("BEGIN_QUORUM_EPOCH"),
+        54 => Some("END_QUORUM_EPOCH"),
+        55 => Some("DESCRIBE_QUORUM"),
+        56 => Some("ALTER_PARTITION"),
+        UPDATE_FEATURES => Some("UPDATE_FEATURES"),
+        58 => Some("ENVELOPE"),
+        59 => Some("FETCH_SNAPSHOT"),
+        DESCRIBE_CLUSTER => Some("DESCRIBE_CLUSTER"),
+        DESCRIBE_PRODUCERS => Some("DESCRIBE_PRODUCERS"),
+        62 => Some("BROKER_REGISTRATION"),
+        63 => Some("BROKER_HEARTBEAT"),
+        UNREGISTER_BROKER => Some("UNREGISTER_BROKER"),
+        DESCRIBE_TRANSACTIONS => Some("DESCRIBE_TRANSACTIONS"),
+        LIST_TRANSACTIONS => Some("LIST_TRANSACTIONS"),
+        ALLOCATE_PRODUCER_IDS => Some("ALLOCATE_PRODUCER_IDS"),
+        CONSUMER_GROUP_HEARTBEAT => Some("CONSUMER_GROUP_HEARTBEAT"),
+        CONSUMER_GROUP_DESCRIBE => Some("CONSUMER_GROUP_DESCRIBE"),
+        70 => Some("CONTROLLER_REGISTRATION"),
+        GET_TELEMETRY_SUBSCRIPTIONS => Some("GET_TELEMETRY_SUBSCRIPTIONS"),
+        PUSH_TELEMETRY => Some("PUSH_TELEMETRY"),
+        ASSIGN_REPLICAS_TO_DIRS => Some("ASSIGN_REPLICAS_TO_DIRS"),
+        LIST_CONFIG_RESOURCES => Some("LIST_CLIENT_METRICS_RESOURCES"),
+        DESCRIBE_TOPIC_PARTITIONS => Some("DESCRIBE_TOPIC_PARTITIONS"),
+        SHARE_GROUP_HEARTBEAT => Some("SHARE_GROUP_HEARTBEAT"),
+        SHARE_GROUP_DESCRIBE => Some("SHARE_GROUP_DESCRIBE"),
+        SHARE_FETCH => Some("SHARE_FETCH"),
+        SHARE_ACKNOWLEDGE => Some("SHARE_ACKNOWLEDGE"),
+        80 => Some("ADD_RAFT_VOTER"),
+        81 => Some("REMOVE_RAFT_VOTER"),
+        82 => Some("UPDATE_RAFT_VOTER"),
+        83 => Some("INITIALIZE_SHARE_GROUP_STATE"),
+        84 => Some("READ_SHARE_GROUP_STATE"),
+        85 => Some("WRITE_SHARE_GROUP_STATE"),
+        86 => Some("DELETE_SHARE_GROUP_STATE"),
+        87 => Some("READ_SHARE_GROUP_STATE_SUMMARY"),
+        DESCRIBE_SHARE_GROUP_OFFSETS => Some("DESCRIBE_SHARE_GROUP_OFFSETS"),
+        ALTER_SHARE_GROUP_OFFSETS => Some("ALTER_SHARE_GROUP_OFFSETS"),
+        DELETE_SHARE_GROUP_OFFSETS => Some("DELETE_SHARE_GROUP_OFFSETS"),
+        _ => None,
+    }
+}
 
 /// Highest version in both the broker range and the client range, if they overlap.
 pub fn pick_version(

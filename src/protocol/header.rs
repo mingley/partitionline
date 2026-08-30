@@ -1,5 +1,7 @@
 //! Request and response headers (classic header v0/v1 and flexible v1/v2).
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::api_keys::{
@@ -23,6 +25,11 @@ use super::buf;
 use crate::error::Result;
 
 /// Kafka request header (`api_key` through `client_id`, plus tagged fields when flexible).
+///
+/// [`Display`] is Java `RequestHeader.toString`:
+/// `RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client, correlationId=1, headerVersion=2)`.
+/// `apiKey` is the Kafka 4.0 `ApiKeys` enum name (not `ApiMessageType.name`).
+/// Null `clientId` prints `null`; an empty id prints empty.
 #[derive(Debug, Clone)]
 pub struct RequestHeader {
     /// Api key.
@@ -33,6 +40,59 @@ pub struct RequestHeader {
     pub correlation_id: i32,
     /// Kafka `client.id`, or `None` for a null string.
     pub client_id: Option<String>,
+}
+
+impl RequestHeader {
+    /// Java `RequestHeader.apiKey` id.
+    #[must_use]
+    pub const fn api_key(&self) -> i16 {
+        self.api_key
+    }
+
+    /// Java `RequestHeader.apiVersion`.
+    #[must_use]
+    pub const fn api_version(&self) -> i16 {
+        self.api_version
+    }
+
+    /// Java `RequestHeader.correlationId`.
+    #[must_use]
+    pub const fn correlation_id(&self) -> i32 {
+        self.correlation_id
+    }
+
+    /// Java `RequestHeader.clientId` (`None` is Java `null`).
+    #[must_use]
+    pub fn client_id(&self) -> Option<&str> {
+        self.client_id.as_deref()
+    }
+
+    /// Java `RequestHeader.headerVersion`.
+    #[must_use]
+    pub fn header_version(&self) -> i16 {
+        request_header_version(self.api_key, self.api_version)
+    }
+}
+
+impl fmt::Display for RequestHeader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RequestHeader(apiKey=")?;
+        match super::api_keys::name(self.api_key) {
+            Some(n) => f.write_str(n)?,
+            None => write!(f, "{}", self.api_key)?,
+        }
+        write!(f, ", apiVersion={}, clientId=", self.api_version)?;
+        match self.client_id.as_deref() {
+            Some(id) => f.write_str(id)?,
+            None => f.write_str("null")?,
+        }
+        write!(
+            f,
+            ", correlationId={}, headerVersion={})",
+            self.correlation_id,
+            self.header_version()
+        )
+    }
 }
 
 /// Kafka response header (correlation id, plus tagged fields when flexible).
@@ -1234,5 +1294,103 @@ mod tests {
         assert_eq!(decoded.correlation_id, 7);
         assert_eq!(decoded.client_id.as_deref(), Some("pl"));
         assert_eq!(cur.remaining(), 0);
+    }
+
+    #[test]
+    fn request_header_display_matches_java() {
+        // Java RequestHeader.toString:
+        // RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client,
+        // correlationId=1, headerVersion=2)
+        let header = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: Some("client".into()),
+        };
+        assert_eq!(header.api_key(), PRODUCE);
+        assert_eq!(header.api_version(), 9);
+        assert_eq!(header.correlation_id(), 1);
+        assert_eq!(header.client_id(), Some("client"));
+        assert_eq!(header.header_version(), 2);
+        assert_eq!(
+            header.to_string(),
+            "RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client, correlationId=1, headerVersion=2)"
+        );
+
+        let classic = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 8,
+            correlation_id: 1,
+            client_id: Some("client".into()),
+        };
+        assert_eq!(classic.header_version(), 1);
+        assert_eq!(
+            classic.to_string(),
+            "RequestHeader(apiKey=PRODUCE, apiVersion=8, clientId=client, correlationId=1, headerVersion=1)"
+        );
+
+        let null_client = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: None,
+        };
+        assert_eq!(null_client.client_id(), None);
+        assert_eq!(
+            null_client.to_string(),
+            "RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=null, correlationId=1, headerVersion=2)"
+        );
+
+        let empty_client = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: Some(String::new()),
+        };
+        assert_eq!(empty_client.client_id(), Some(""));
+        assert_eq!(
+            empty_client.to_string(),
+            "RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=, correlationId=1, headerVersion=2)"
+        );
+
+        // Java RequestHeaderTest.testRequestHeaderV1.
+        let find = RequestHeader {
+            api_key: FIND_COORDINATOR,
+            api_version: 1,
+            correlation_id: 10,
+            client_id: Some(String::new()),
+        };
+        assert_eq!(find.header_version(), 1);
+        assert_eq!(
+            find.to_string(),
+            "RequestHeader(apiKey=FIND_COORDINATOR, apiVersion=1, clientId=, correlationId=10, headerVersion=1)"
+        );
+
+        // Java 4.0 ApiKeys name for api 74 is LIST_CLIENT_METRICS_RESOURCES.
+        let list_cfg = RequestHeader {
+            api_key: LIST_CONFIG_RESOURCES,
+            api_version: 0,
+            correlation_id: 0,
+            client_id: Some("c".into()),
+        };
+        assert_eq!(list_cfg.header_version(), 2);
+        assert_eq!(
+            list_cfg.to_string(),
+            "RequestHeader(apiKey=LIST_CLIENT_METRICS_RESOURCES, apiVersion=0, clientId=c, correlationId=0, headerVersion=2)"
+        );
+
+        assert_eq!(crate::protocol::api_keys::name(43), Some("ELECT_LEADERS"));
+        assert_eq!(crate::protocol::api_keys::name(999), None);
+        let unknown = RequestHeader {
+            api_key: 999,
+            api_version: 0,
+            correlation_id: 0,
+            client_id: None,
+        };
+        assert_eq!(unknown.header_version(), 1);
+        assert_eq!(
+            unknown.to_string(),
+            "RequestHeader(apiKey=999, apiVersion=0, clientId=null, correlationId=0, headerVersion=1)"
+        );
     }
 }
