@@ -7,9 +7,12 @@
 //! decoding `=3D` is [`Error::protocol`]). [`ScramAlg::hmac`] /
 //! [`ScramAlg::hash`] / [`ScramAlg::hi`] / [`ScramAlg::salted_password`] /
 //! [`ScramAlg::client_key`] / [`ScramAlg::stored_key`] /
-//! [`ScramAlg::stored_key_from_proof`] / [`ScramAlg::server_key`] are Java
+//! [`ScramAlg::stored_key_from_proof`] / [`ScramAlg::server_key`] /
+//! [`ScramAlg::client_signature`] / [`ScramAlg::client_proof`] /
+//! [`ScramAlg::server_signature`] are Java
 //! `ScramFormatter.hmac` / `hash` / `hi` / `saltedPassword` / `clientKey` /
-//! `storedKey` / `serverKey`. [`ScramAlg::hash_algorithm`] /
+//! `storedKey` / `serverKey` / `clientSignature` / `clientProof` /
+//! `serverSignature`. [`ScramAlg::hash_algorithm`] /
 //! [`ScramAlg::mac_algorithm`] / [`ScramAlg::min_iterations`] /
 //! [`ScramAlg::max_iterations`] / [`ScramAlg::from_mechanism_name`] /
 //! [`ScramAlg::mechanism_names`] / [`ScramAlg::is_scram`] are Java internals
@@ -181,6 +184,70 @@ impl ScramAlg {
     pub fn server_key(self, salted_password: &[u8]) -> Vec<u8> {
         self.hmac(salted_password, &to_bytes("Server Key"))
     }
+
+    /// Java `ScramFormatter.clientSignature`.
+    ///
+    /// HMAC of the UTF-8 [`auth_message`] with `storedKey`.
+    #[must_use]
+    pub fn client_signature(
+        self,
+        stored_key: &[u8],
+        client_first_message_bare: &str,
+        server_first_message: &str,
+        client_final_message_without_proof: &str,
+    ) -> Vec<u8> {
+        self.hmac(
+            stored_key,
+            &auth_message_bytes(
+                client_first_message_bare,
+                server_first_message,
+                client_final_message_without_proof,
+            ),
+        )
+    }
+
+    /// Java `ScramFormatter.clientProof`.
+    ///
+    /// `xor` of `clientKey` and [`Self::client_signature`]. Length mismatch is
+    /// [`Error::protocol`].
+    pub fn client_proof(
+        self,
+        salted_password: &[u8],
+        client_first_message_bare: &str,
+        server_first_message: &str,
+        client_final_message_without_proof: &str,
+    ) -> Result<Vec<u8>> {
+        let client_key = self.client_key(salted_password);
+        let stored_key = self.stored_key(&client_key);
+        let client_signature = self.client_signature(
+            &stored_key,
+            client_first_message_bare,
+            server_first_message,
+            client_final_message_without_proof,
+        );
+        xor(&client_key, &client_signature)
+    }
+
+    /// Java `ScramFormatter.serverSignature`.
+    ///
+    /// HMAC of the UTF-8 [`auth_message`] with `serverKey`.
+    #[must_use]
+    pub fn server_signature(
+        self,
+        server_key: &[u8],
+        client_first_message_bare: &str,
+        server_first_message: &str,
+        client_final_message_without_proof: &str,
+    ) -> Vec<u8> {
+        self.hmac(
+            server_key,
+            &auth_message_bytes(
+                client_first_message_bare,
+                server_first_message,
+                client_final_message_without_proof,
+            ),
+        )
+    }
 }
 
 /// Java `ScramFormatter.saslName` (`=` then `,`).
@@ -220,6 +287,18 @@ pub fn auth_message(
     format!(
         "{client_first_message_bare},{server_first_message},{client_final_message_without_proof}"
     )
+}
+
+fn auth_message_bytes(
+    client_first_message_bare: &str,
+    server_first_message: &str,
+    client_final_message_without_proof: &str,
+) -> Vec<u8> {
+    to_bytes(&auth_message(
+        client_first_message_bare,
+        server_first_message,
+        client_final_message_without_proof,
+    ))
 }
 
 /// Java `ScramFormatter.toBytes` (UTF-8).
@@ -304,12 +383,8 @@ pub fn client_final(
         return Err(Error::protocol("scram iteration 0"));
     }
     let without = format!("c={},r={}", b64(GS2.as_bytes()), nonce);
-    let auth = auth_message(client_first_bare, server_first, &without);
     let salted = alg.salted_password(password, &salt, iter);
-    let client_key = alg.client_key(&salted);
-    let stored = alg.stored_key(&client_key);
-    let sig = alg.hmac(&stored, auth.as_bytes());
-    let proof = xor(&client_key, &sig)?;
+    let proof = alg.client_proof(&salted, client_first_bare, server_first, &without)?;
     Ok(format!("{without},p={}", b64(&proof)))
 }
 
@@ -344,10 +419,9 @@ pub fn verify_server_final(
         .rsplit_once(",p=")
         .map(|(w, _)| w)
         .ok_or_else(|| Error::protocol("scram client-final missing p"))?;
-    let auth = auth_message(client_first_bare, server_first, without);
     let salted = alg.salted_password(password, &salt, iter);
     let server_key = alg.server_key(&salted);
-    let sig = alg.hmac(&server_key, auth.as_bytes());
+    let sig = alg.server_signature(&server_key, client_first_bare, server_first, without);
     let got = b64d(v)?;
     if got.as_slice() != sig {
         return Err(Error::protocol("scram server signature mismatch"));
@@ -400,10 +474,9 @@ pub fn server_final(
         .ok_or_else(|| Error::protocol("scram"))?
         .parse()
         .map_err(|_| Error::protocol("scram bad iteration"))?;
-    let auth = auth_message(client_first_bare, server_first, without);
     let salted = alg.salted_password(password, &salt, iter);
     let server_key = alg.server_key(&salted);
-    let sig = alg.hmac(&server_key, auth.as_bytes());
+    let sig = alg.server_signature(&server_key, client_first_bare, server_first, without);
     Ok(format!("v={}", b64(&sig)))
 }
 
@@ -532,6 +605,22 @@ mod tests {
             salted
         );
         assert_eq!(ScramAlg::Sha256.hash(&client_key), stored);
+        let client_sig = ScramAlg::Sha256.client_signature(&stored, "a", "b", "c");
+        assert_eq!(
+            client_sig,
+            ScramAlg::Sha256.hmac(&stored, &to_bytes(&auth_message("a", "b", "c")))
+        );
+        assert_eq!(
+            ScramAlg::Sha256
+                .client_proof(&salted, "a", "b", "c")
+                .unwrap(),
+            xor(&client_key, &client_sig).unwrap()
+        );
+        let server_key = ScramAlg::Sha256.server_key(&salted);
+        assert_eq!(
+            ScramAlg::Sha256.server_signature(&server_key, "a", "b", "c"),
+            ScramAlg::Sha256.hmac(&server_key, &to_bytes(&auth_message("a", "b", "c")))
+        );
         let mismatch = ScramAlg::Sha256
             .stored_key_from_proof(&[1], &[1, 2])
             .unwrap_err()

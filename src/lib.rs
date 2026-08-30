@@ -192,8 +192,13 @@
 //! [`protocol::scram::ScramAlg::client_key`] /
 //! [`protocol::scram::ScramAlg::stored_key`] /
 //! [`protocol::scram::ScramAlg::stored_key_from_proof`] /
-//! [`protocol::scram::ScramAlg::server_key`] are Java `ScramFormatter.hmac` /
-//! `hash` / `hi` / `saltedPassword` / `clientKey` / `storedKey` / `serverKey`,
+//! [`protocol::scram::ScramAlg::server_key`] /
+//! [`protocol::scram::ScramAlg::client_signature`] /
+//! [`protocol::scram::ScramAlg::client_proof`] /
+//! [`protocol::scram::ScramAlg::server_signature`] are Java
+//! `ScramFormatter.hmac` / `hash` / `hi` / `saltedPassword` / `clientKey` /
+//! `storedKey` / `serverKey` / `clientSignature` / `clientProof` /
+//! `serverSignature`,
 //! [`protocol::scram::ScramAlg::hash_algorithm`] /
 //! [`protocol::scram::ScramAlg::mac_algorithm`] /
 //! [`protocol::scram::ScramAlg::min_iterations`] /
