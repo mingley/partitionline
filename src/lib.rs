@@ -137,7 +137,13 @@
 //! DurationFilter on v0),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
 //! [`protocol::admin::CreateTopicsResponse::should_client_throttle`] is Java
-//! `CreateTopicsResponse.shouldClientThrottle` (v3+)),
+//! `CreateTopicsResponse.shouldClientThrottle` (v3+);
+//! [`protocol::admin::CreatableTopic::error_result`] /
+//! [`protocol::admin::CreateTopicsRequest::error_results`] are Java
+//! `CreateTopicsRequest.getErrorResponse` (one topic / Topics). v5+
+//! NumPartitions / ReplicationFactor stay `-1`, Configs empty, TopicId
+//! zero. `ErrorMessage` stays the JSON default (null); official Java
+//! also sets the English `Errors.message` string),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
 //! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
 //! `DeleteTopicsResponse.shouldClientThrottle` (v2+);

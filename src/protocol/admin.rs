@@ -301,6 +301,11 @@ pub struct TopicConfig {
 }
 
 /// One topic in a CreateTopics request.
+///
+/// [`Self::error_result`] is Java `CreateTopicsRequest.getErrorResponse`
+/// one topic (copy `Name`; TopicId stays zero; v5+ NumPartitions /
+/// ReplicationFactor stay `-1`; Configs stay empty; `ErrorMessage` stays
+/// the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreatableTopic {
     /// Topic, resource, group, or feature name.
@@ -313,6 +318,21 @@ pub struct CreatableTopic {
     pub assignments: Vec<ReplicaAssignment>,
     /// Topic configs to set at create time.
     pub configs: Vec<TopicConfig>,
+}
+
+impl CreatableTopic {
+    /// Java `CreateTopicsRequest.getErrorResponse` one topic.
+    ///
+    /// Sets `Name` and `ErrorCode`. TopicId stays zero. v5+
+    /// `NumPartitions` / `ReplicationFactor` stay `-1`; Configs stay
+    /// empty. `ErrorMessage` is the JSON default (null); official Java
+    /// also sets the English `Errors.message` string. Throttle on the
+    /// response is the JSON default (`0`) from v2 (v0–v1 have no
+    /// throttle field).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TopicResult {
+        TopicResult::error(error_code, Some(self.name.as_str()), [0; 16])
+    }
 }
 
 /// CreateTopics request body (classic v0–4; flexible v5–v7).
@@ -331,6 +351,17 @@ impl CreateTopicsRequest {
     pub const NO_NUM_PARTITIONS: i32 = -1;
     /// Java `CreateTopicsRequest.NO_REPLICATION_FACTOR`.
     pub const NO_REPLICATION_FACTOR: i16 = -1;
+
+    /// Java `CreateTopicsRequest.getErrorResponse` Topics.
+    ///
+    /// Maps each request topic through [`CreatableTopic::error_result`].
+    #[must_use]
+    pub fn error_results(&self, error_code: i16) -> Vec<TopicResult> {
+        self.topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect()
+    }
 }
 
 /// Per-topic result of CreateTopics / DeleteTopics.
@@ -341,6 +372,8 @@ impl CreateTopicsRequest {
 /// empty).
 /// [`Self::error`] is Java `DeleteTopicsRequest.getErrorResponse` one topic
 /// (empty Name when the request Name is null; `errorMessage` omitted).
+/// [`CreatableTopic::error_result`] is Java `CreateTopicsRequest.getErrorResponse`
+/// one topic (Name set, TopicId zero, v5+ fields omitted).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicResult {
     /// Topic name.
@@ -13842,6 +13875,124 @@ mod tests {
         assert!(
             encode_create_topics_request(&mut BytesMut::new(), 8, &req).is_err(),
             "CreateTopics v8+ is not spoken"
+        );
+
+        let err_results = req.error_results(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err_results,
+            vec![TopicResult::error(
+                crate::error::NOT_CONTROLLER,
+                Some("orders"),
+                [0; 16],
+            )]
+        );
+        let first = err_results.first().expect("error topic");
+        assert_eq!(first.name(), "orders");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        assert_eq!(first.topic_id, [0; 16]);
+        assert_eq!(
+            first.num_partitions(),
+            CreateTopicsRequest::NO_NUM_PARTITIONS
+        );
+        assert_eq!(
+            first.replication_factor(),
+            CreateTopicsRequest::NO_REPLICATION_FACTOR
+        );
+        assert!(first.configs().is_empty());
+        let two = CreateTopicsRequest {
+            topics: vec![
+                CreatableTopic {
+                    name: "a".into(),
+                    num_partitions: 1,
+                    replication_factor: 1,
+                    assignments: Vec::new(),
+                    configs: Vec::new(),
+                },
+                CreatableTopic {
+                    name: "b".into(),
+                    num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
+                    replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
+                    assignments: Vec::new(),
+                    configs: Vec::new(),
+                },
+            ],
+            timeout_ms: 5_000,
+            validate_only: false,
+        };
+        let two_err = two.error_results(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(two_err.len(), 2);
+        assert_eq!(
+            two.topics
+                .get(1)
+                .expect("b topic")
+                .error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED)
+                .name(),
+            "b"
+        );
+        let empty = CreateTopicsRequest {
+            topics: Vec::new(),
+            timeout_ms: 0,
+            validate_only: false,
+        };
+        assert!(empty.error_results(crate::error::NOT_CONTROLLER).is_empty());
+        buf.clear();
+        encode_create_topics_response(&mut buf, 5, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 5).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v5 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_topics_response(&mut buf, 4, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 4).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v4 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_topics_response(&mut buf, 7, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 7).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics v7 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_topics_response(&mut buf, 5, &two_err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(decode_create_topics_response(&mut cur, 5).unwrap(), two_err);
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics two-topic getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let empty_err = empty.error_results(crate::error::NOT_CONTROLLER);
+        buf.clear();
+        encode_create_topics_response(&mut buf, 5, &empty_err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 5).unwrap(),
+            empty_err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateTopics empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
