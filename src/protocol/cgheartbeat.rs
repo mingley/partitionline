@@ -52,6 +52,10 @@ impl ConsumerGroupHeartbeatRequest {
     ///
     /// ConsumerGroupHeartbeat v1+ (KIP-1082): the client generates MemberId.
     pub const CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION: i16 = 1;
+    /// Java `ConsumerGroupHeartbeatRequest.REGEX_RESOLUTION_NOT_SUPPORTED_MSG`.
+    ///
+    /// `Builder.build` rejects SubscribedTopicRegex on v0.
+    pub const REGEX_RESOLUTION_NOT_SUPPORTED_MSG: &'static str = "The cluster does not support regular expressions resolution on ConsumerGroupHeartbeat API version 0. It must be upgraded to use ConsumerGroupHeartbeat API version >= 1 to allow to subscribe to a SubscriptionPattern.";
 
     /// Java `ConsumerMembershipManager.leaveGroupEpoch`.
     ///
@@ -98,12 +102,21 @@ fn consumer_group_heartbeat_spoken(version: i16) -> Result<i16> {
 }
 
 /// Encode a flexible v0–v1 ConsumerGroupHeartbeat request.
+///
+/// Java `ConsumerGroupHeartbeatRequest.Builder.build` rejects
+/// SubscribedTopicRegex on v0
+/// ([`ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`]).
 pub fn encode_consumer_group_heartbeat_request(
     buf: &mut BytesMut,
     version: i16,
     req: &ConsumerGroupHeartbeatRequest,
 ) -> crate::error::Result<()> {
     let _ = consumer_group_heartbeat_spoken(version)?;
+    if version == 0 && req.subscribed_topic_regex.is_some() {
+        return Err(Error::Unsupported(
+            ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG.into(),
+        ));
+    }
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
@@ -121,10 +134,6 @@ pub fn encode_consumer_group_heartbeat_request(
     }
     if version >= 1 {
         buf::put_compact_string(buf, req.subscribed_topic_regex.as_deref())?;
-    } else if req.subscribed_topic_regex.is_some() {
-        return Err(Error::protocol(
-            "SubscribedTopicRegex requires ConsumerGroupHeartbeat v1",
-        ));
     }
     buf::put_compact_string(buf, None)?; // server_assignor
     encode_topic_partitions(buf, req.topic_partitions.as_deref())?;
@@ -437,9 +446,16 @@ mod tests {
             decode_consumer_group_heartbeat_request(&mut &buf[..], 1).unwrap(),
             with_regex
         );
+        let err = encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 0, &with_regex)
+            .unwrap_err();
         assert!(
-            encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 0, &with_regex).is_err(),
-            "SubscribedTopicRegex must not encode on v0"
+            matches!(err, Error::Unsupported(_)),
+            "regex on v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains(ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG),
+            "got {err}"
         );
         assert!(
             encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 2, &req).is_err(),

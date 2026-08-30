@@ -81,9 +81,10 @@
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::leave_group_epoch`] /
-//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`]
-//! are Java `ConsumerGroupHeartbeatRequest` join/leave epochs and KIP-1082
-//! (`leave_group_epoch` is Java `ConsumerMembershipManager.leaveGroupEpoch`;
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`] /
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`]
+//! are Java `ConsumerGroupHeartbeatRequest` join/leave epochs, KIP-1082,
+//! and regex-on-v0 (`leave_group_epoch` is Java `ConsumerMembershipManager.leaveGroupEpoch`;
 //! static members send `-2`)),
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
