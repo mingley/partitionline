@@ -66,7 +66,7 @@ pub use api_keys::{
 };
 pub use header::{
     decode_request_header, decode_response_header, encode_request_header, encode_response_header,
-    request_header_version, response_header_version, RequestHeader,
+    request_header_version, response_header_size, response_header_version, RequestHeader,
 };
 pub use records::{
     Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch, Records,

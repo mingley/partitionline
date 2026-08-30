@@ -93,6 +93,18 @@ impl RequestHeader {
         }
         n
     }
+
+    /// Java `RequestHeader.toResponseHeader`.
+    ///
+    /// Copies [`Self::correlation_id`]. Java also stores
+    /// `apiKey.responseHeaderVersion(apiVersion)` on the result; this crate's
+    /// [`ResponseHeader`] only has `correlationId`.
+    #[must_use]
+    pub const fn to_response_header(&self) -> ResponseHeader {
+        ResponseHeader {
+            correlation_id: self.correlation_id,
+        }
+    }
 }
 
 impl fmt::Display for RequestHeader {
@@ -117,10 +129,36 @@ impl fmt::Display for RequestHeader {
 }
 
 /// Kafka response header (correlation id, plus tagged fields when flexible).
+///
+/// Java `ResponseHeader.toString` includes `headerVersion`; this type only
+/// stores `correlationId`. [`response_header_size`] is Java
+/// `ResponseHeader.size` for a known header version.
 #[derive(Debug, Clone)]
 pub struct ResponseHeader {
     /// Correlation id from the request.
     pub correlation_id: i32,
+}
+
+impl ResponseHeader {
+    /// Java `ResponseHeader.correlationId`.
+    #[must_use]
+    pub const fn correlation_id(&self) -> i32 {
+        self.correlation_id
+    }
+}
+
+/// Java `ResponseHeader.size` for `headerVersion`.
+///
+/// Classic (v0) is 4 bytes (INT32 correlation id). Flexible (v1+) is 5
+/// (plus one empty tagged-fields unsigned varint). Matches
+/// [`encode_response_header`].
+#[must_use]
+pub const fn response_header_size(header_version: i16) -> i32 {
+    if header_version >= 1 {
+        5
+    } else {
+        4
+    }
 }
 
 /// Request header version: `1` classic, `2` flexible (KIP-482 tagged fields).
@@ -1470,5 +1508,20 @@ mod tests {
         buf.clear();
         encode_request_header(&mut buf, &null_client).unwrap();
         assert_eq!(buf.len(), 11);
+
+        let resp = v1.to_response_header();
+        assert_eq!(resp.correlation_id(), 10);
+        // ApiVersions response header is never flexible (size 4).
+        assert_eq!(response_header_version(API_VERSIONS, 3), 0);
+        assert_eq!(response_header_size(0), 4);
+        buf.clear();
+        encode_response_header(&mut buf, API_VERSIONS, 3, 10).unwrap();
+        assert_eq!(buf.len(), 4);
+        // Produce v9 response header is flexible (size 5).
+        assert_eq!(response_header_version(PRODUCE, 9), 1);
+        assert_eq!(response_header_size(1), 5);
+        buf.clear();
+        encode_response_header(&mut buf, PRODUCE, 9, 10).unwrap();
+        assert_eq!(buf.len(), 5);
     }
 }
