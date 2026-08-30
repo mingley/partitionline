@@ -1570,6 +1570,32 @@ impl crate::protocol::admin::AlterConfigsResponse {
     }
 }
 
+impl crate::protocol::admin::AlterConfigsRequest {
+    /// Java `AlterConfigsRequest.configs`.
+    ///
+    /// Each key is a [`ConfigResource`] (Java `Type.forId`; unknown ids are
+    /// `UNKNOWN`). Each value is [`Config`] of [`ConfigEntry::new`] for that
+    /// resource's name/value pairs. Official Java wraps an inner
+    /// `AlterConfigsRequest.Config` whose `ConfigEntry` constructor rejects a
+    /// null Value; crate `None` is Java `null`.
+    #[must_use]
+    pub fn configs(resources: &[AlterConfigsResource]) -> HashMap<ConfigResource, Config> {
+        let mut map = HashMap::new();
+        for resource in resources {
+            map.extend([(
+                config_resource_from_response(resource.resource_type, resource.name.clone()),
+                Config::new(
+                    resource
+                        .configs
+                        .iter()
+                        .map(|c| ConfigEntry::new(c.name.clone(), c.value.clone())),
+                ),
+            )]);
+        }
+        map
+    }
+}
+
 impl crate::protocol::admin::IncrementalAlterConfigsResponse {
     /// Java `IncrementalAlterConfigsResponse.fromResponseData`.
     ///
@@ -12388,6 +12414,53 @@ mod tests {
         assert_eq!(
             crate::protocol::admin::IncrementalAlterConfigsResponse::from_response_data(&results),
             errors
+        );
+    }
+
+    #[test]
+    fn alter_configs_request_configs_match_java() {
+        let resources = [
+            AlterConfigsResource {
+                resource_type: CONFIG_RESOURCE_TOPIC,
+                name: "t".into(),
+                configs: vec![TopicConfig {
+                    name: "retention.ms".into(),
+                    value: Some("1000".into()),
+                }],
+            },
+            AlterConfigsResource {
+                resource_type: 99,
+                name: "x".into(),
+                configs: vec![TopicConfig {
+                    name: "unset".into(),
+                    value: None,
+                }],
+            },
+        ];
+        let configs = crate::protocol::admin::AlterConfigsRequest::configs(&resources);
+        assert_eq!(configs.len(), 2);
+        assert_eq!(
+            configs
+                .get(&ConfigResource::topic("t"))
+                .and_then(|c| c.get("retention.ms"))
+                .and_then(ConfigEntry::value),
+            Some("1000")
+        );
+        let unknown_key = ConfigResource {
+            resource_type: 0,
+            name: "x".into(),
+            keys: None,
+        };
+        assert_eq!(
+            configs
+                .get(&unknown_key)
+                .and_then(|c| c.get("unset"))
+                .and_then(ConfigEntry::value),
+            None
+        );
+        assert_eq!(
+            configs.get(&unknown_key).map(|c| c.entries().len()),
+            Some(1)
         );
     }
 

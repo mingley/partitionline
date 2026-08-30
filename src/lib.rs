@@ -401,7 +401,10 @@
 //! `AlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
 //! [`protocol::admin::AlterConfigsResponse::errors`] is Java
 //! `AlterConfigsResponse.errors` (ConfigResource to [`ApiError`]; unknown
-//! resource types are UNKNOWN)),
+//! resource types are UNKNOWN);
+//! [`protocol::admin::AlterConfigsRequest::configs`] is Java
+//! `AlterConfigsRequest.configs` (ConfigResource to [`Config`]; unknown
+//! resource types are UNKNOWN; each value is [`ConfigEntry::new`])),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
@@ -1012,6 +1015,9 @@
 //! `AlterConfigsRequest.getErrorResponse` (one resource / Responses).
 //! `ErrorMessage` stays the JSON default (null); official Java also
 //! sets the English `Errors.message` string.
+//! [`protocol::admin::AlterConfigsRequest::configs`] is Java
+//! `AlterConfigsRequest.configs` (ConfigResource to [`Config`]; unknown
+//! resource types are UNKNOWN; each value is [`ConfigEntry::new`]).
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).

@@ -2600,6 +2600,9 @@ impl AlterConfigsResponse {
     }
 }
 
+/// Java `AlterConfigsRequest` helpers.
+pub struct AlterConfigsRequest;
+
 /// One AlterConfigs resource (Resources array element).
 ///
 /// [`Self::error_result`] is Java `AlterConfigsRequest.getErrorResponse`
