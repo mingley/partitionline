@@ -89,7 +89,10 @@
 //! `OffsetCommitRequest.getErrorResponse` (one topic / Topics / partition
 //! body). Nested body is PartitionIndex + ErrorCode. Throttle is the JSON
 //! default (`0`)),
-//! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
+//! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
+//! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
+//! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
+//! (`None` Topics is every committed partition; `Some` empty is not)),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),

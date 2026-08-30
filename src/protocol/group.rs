@@ -2061,6 +2061,8 @@ pub struct FetchedOffsetTopic {
 ///
 /// v1–v7 encode a single group as GroupId + Topics. v9 MemberId /
 /// MemberEpoch are null / `-1` for classic admin fetches.
+/// [`Self::is_all_partitions`] is Java `OffsetFetchRequest.isAllPartitions`
+/// / `isAllPartitionsForGroup` (`topics == null`, not empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchGroup {
     /// Consumer group id.
@@ -2084,6 +2086,17 @@ impl OffsetFetchGroup {
             member_epoch: -1,
             topics,
         }
+    }
+
+    /// Java `OffsetFetchRequest.isAllPartitions` /
+    /// `isAllPartitionsForGroup`.
+    ///
+    /// `None` Topics is every committed partition (v2+). `Some` empty is
+    /// not all partitions (empty classic INT32 `0` / compact `0x01`, not
+    /// null).
+    #[must_use]
+    pub fn is_all_partitions(&self) -> bool {
+        self.topics.is_none()
     }
 }
 
@@ -4991,6 +5004,13 @@ mod tests {
 
     #[test]
     fn offset_fetch_null_topics_is_all_partitions() {
+        let all = OffsetFetchGroup::new("g", None);
+        let empty = OffsetFetchGroup::new("g", Some(Vec::new()));
+        let one = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        assert!(all.is_all_partitions());
+        assert!(!empty.is_all_partitions());
+        assert!(!one.is_all_partitions());
+
         let mut v1 = BytesMut::new();
         let err = encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, None).unwrap_err();
         assert!(
@@ -5002,6 +5022,14 @@ mod tests {
             "v1 Topics is not nullable, got {err}"
         );
 
+        let mut v1_empty = BytesMut::new();
+        encode_offset_fetch_request(&mut v1_empty, 1, "g", None, -1, false, Some(&[])).unwrap();
+        let mut cur = v1_empty.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 1).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, Some(Vec::new()));
+        assert!(cur.is_empty(), "v1 empty Topics leftover-empty");
+
         let mut v2 = BytesMut::new();
         encode_offset_fetch_request(&mut v2, 2, "g", None, -1, false, None).unwrap();
         let mut cur = v2.as_ref();
@@ -5011,6 +5039,19 @@ mod tests {
         assert!(cur.is_empty(), "v2 null Topics leftover-empty");
         const V2: &[u8] = &[0x00, 0x01, 0x67, 0xFF, 0xFF, 0xFF, 0xFF];
         assert_eq!(&v2[..], V2);
+
+        let mut v2_empty = BytesMut::new();
+        encode_offset_fetch_request(&mut v2_empty, 2, "g", None, -1, false, Some(&[])).unwrap();
+        let mut cur = v2_empty.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 2).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, Some(Vec::new()));
+        assert!(cur.is_empty(), "v2 empty Topics leftover-empty");
+        assert_ne!(
+            v2.as_ref(),
+            v2_empty.as_ref(),
+            "v2 null Topics (INT32 -1) differs from empty (INT32 0)"
+        );
 
         let mut v8 = BytesMut::new();
         encode_offset_fetch_request(&mut v8, 8, "g", None, -1, false, None).unwrap();
@@ -5022,6 +5063,19 @@ mod tests {
         const V8: &[u8] = &[0x02, 0x02, 0x67, 0x00, 0x00, 0x00, 0x00];
         assert_eq!(&v8[..], V8);
 
+        let mut v8_empty = BytesMut::new();
+        encode_offset_fetch_request(&mut v8_empty, 8, "g", None, -1, false, Some(&[])).unwrap();
+        let mut cur = v8_empty.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 8).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, Some(Vec::new()));
+        assert!(cur.is_empty(), "v8 empty Topics leftover-empty");
+        assert_ne!(
+            v8.as_ref(),
+            v8_empty.as_ref(),
+            "v8 null Topics (compact 0x00) differs from empty (compact 0x01)"
+        );
+
         let mut v9 = BytesMut::new();
         encode_offset_fetch_request(&mut v9, 9, "g", None, -1, false, None).unwrap();
         let mut cur = v9.as_ref();
@@ -5029,6 +5083,19 @@ mod tests {
         assert_eq!((gid.as_str(), stable), ("g", false));
         assert_eq!(got, None);
         assert!(cur.is_empty(), "v9 null Topics leftover-empty");
+
+        let mut v9_empty = BytesMut::new();
+        encode_offset_fetch_request(&mut v9_empty, 9, "g", None, -1, false, Some(&[])).unwrap();
+        let mut cur = v9_empty.as_ref();
+        let (gid, got, stable) = decode_offset_fetch_request(&mut cur, 9).unwrap();
+        assert_eq!((gid.as_str(), stable), ("g", false));
+        assert_eq!(got, Some(Vec::new()));
+        assert!(cur.is_empty(), "v9 empty Topics leftover-empty");
+        assert_ne!(
+            v9.as_ref(),
+            v9_empty.as_ref(),
+            "v9 null Topics differs from empty"
+        );
     }
 
     #[test]
