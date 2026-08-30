@@ -845,6 +845,17 @@ fn reject_java_producer_record(rec: &ProduceRecord) -> Result<()> {
     Ok(())
 }
 
+/// Java `KafkaProducer.throwIfInvalidGroupMetadata`.
+fn reject_java_group_metadata(group: &crate::ConsumerGroupMetadata) -> Result<()> {
+    if group.generation_id > 0 && group.member_id == crate::ConsumerGroupMetadata::UNKNOWN_MEMBER_ID
+    {
+        return Err(Error::protocol(format!(
+            "Passed in group metadata {group} has generationId > 0 but the member.id is unknown"
+        )));
+    }
+    Ok(())
+}
+
 fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
     reject_java_producer_record(rec)?;
     let bytes = rec_bytes(rec);
@@ -1512,6 +1523,8 @@ impl Producer {
 
     /// [`Self::send_offsets_with_metadata`] using a group's identity.
     ///
+    /// Java `sendOffsetsToTransaction` calls `throwIfInvalidGroupMetadata`
+    /// (`generationId` greater than 0 with unknown `member.id`).
     /// TxnOffsetCommit v3+ sends `generation.id`, `member.id`, and
     /// `group.instance.id` from [`crate::ConsumerGroupMetadata`].
     /// Brokers below request v3 return [`crate::Error::Unsupported`] when that
@@ -1526,6 +1539,7 @@ impl Producer {
             ),
         >,
     ) -> Result<()> {
+        reject_java_group_metadata(group)?;
         let offsets: Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> = offsets
             .into_iter()
             .map(|(tp, md)| (tp.into(), md.into()))
@@ -3297,5 +3311,37 @@ mod tests {
             empty.contains("Topic name is invalid: the empty string is not allowed"),
             "{empty}"
         );
+    }
+
+    #[test]
+    fn send_offsets_group_metadata_checks_match_java() {
+        let bad = crate::ConsumerGroupMetadata {
+            group_id: "g".into(),
+            generation_id: 1,
+            member_id: crate::ConsumerGroupMetadata::UNKNOWN_MEMBER_ID.into(),
+            group_instance_id: None,
+        };
+        let err = reject_java_group_metadata(&bad).unwrap_err().to_string();
+        assert!(
+            err.contains(
+                "Passed in group metadata GroupMetadata(groupId = g, generationId = 1, memberId = , groupInstanceId = ) has generationId > 0 but the member.id is unknown"
+            ),
+            "{err}"
+        );
+        reject_java_group_metadata(&crate::ConsumerGroupMetadata::new("g")).unwrap();
+        reject_java_group_metadata(&crate::ConsumerGroupMetadata {
+            group_id: "g".into(),
+            generation_id: 1,
+            member_id: "m".into(),
+            group_instance_id: None,
+        })
+        .unwrap();
+        reject_java_group_metadata(&crate::ConsumerGroupMetadata {
+            group_id: "g".into(),
+            generation_id: 0,
+            member_id: crate::ConsumerGroupMetadata::UNKNOWN_MEMBER_ID.into(),
+            group_instance_id: None,
+        })
+        .unwrap();
     }
 }

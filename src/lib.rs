@@ -1206,7 +1206,9 @@
 //! TxnOffsetCommit v3+ ([`protocol::txn::TxnOffsetCommitMember::unknown`] is
 //! Java `TxnOffsetCommitRequest.Builder` without group metadata;
 //! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] is Java
-//! `groupMetadataSet`, rejected below v3).
+//! `groupMetadataSet`, rejected below v3; Java
+//! `throwIfInvalidGroupMetadata` rejects `generationId` greater than 0
+//! with unknown `member.id`).
 //! [`Producer::send_offsets_to_transaction`] takes [`TopicPartition`].
 //! [`Admin::close`] / [`Admin::close_timeout`] drop the admin connection
 //! (Java `close(Duration)`; the duration is unused).
