@@ -1,9 +1,15 @@
 //! SASL SCRAM-SHA-256 and SCRAM-SHA-512 (RFC 5802 / RFC 7677) as used by Kafka.
 //! Password hashing is PBKDF2-HMAC of the selected hash. No C SASL library.
 //!
-//! [`sasl_name`] / [`username`] / [`xor`] are Java `ScramFormatter.saslName` /
-//! `username` / `xor` (`=` then `,`; leftover `=` after decoding `=3D` is
-//! [`Error::protocol`]). [`ScramAlg::hash_algorithm`] /
+//! [`sasl_name`] / [`username`] / [`xor`] / [`auth_message`] / [`to_bytes`] /
+//! [`normalize`] are Java `ScramFormatter.saslName` / `username` / `xor` /
+//! `authMessage` / `toBytes` / `normalize` (`=` then `,`; leftover `=` after
+//! decoding `=3D` is [`Error::protocol`]). [`ScramAlg::hmac`] /
+//! [`ScramAlg::hash`] / [`ScramAlg::hi`] / [`ScramAlg::salted_password`] /
+//! [`ScramAlg::client_key`] / [`ScramAlg::stored_key`] /
+//! [`ScramAlg::stored_key_from_proof`] / [`ScramAlg::server_key`] are Java
+//! `ScramFormatter.hmac` / `hash` / `hi` / `saltedPassword` / `clientKey` /
+//! `storedKey` / `serverKey`. [`ScramAlg::hash_algorithm`] /
 //! [`ScramAlg::mac_algorithm`] / [`ScramAlg::min_iterations`] /
 //! [`ScramAlg::max_iterations`] / [`ScramAlg::from_mechanism_name`] /
 //! [`ScramAlg::mechanism_names`] / [`ScramAlg::is_scram`] are Java internals
@@ -16,8 +22,6 @@ use sha2::{Digest, Sha256, Sha512};
 
 use crate::error::{Error, Result};
 
-const CLIENT_KEY: &[u8] = b"Client Key";
-const SERVER_KEY: &[u8] = b"Server Key";
 const GS2: &str = "n,,";
 
 /// SCRAM hash algorithm used by Kafka SASL.
@@ -104,7 +108,9 @@ impl ScramAlg {
         }
     }
 
-    fn hmac(self, key: &[u8], data: &[u8]) -> Vec<u8> {
+    /// Java `ScramFormatter.hmac`.
+    #[must_use]
+    pub fn hmac(self, key: &[u8], data: &[u8]) -> Vec<u8> {
         match self {
             Self::Sha256 => {
                 let Ok(mut m) = Hmac::<Sha256>::new_from_slice(key) else {
@@ -123,20 +129,57 @@ impl ScramAlg {
         }
     }
 
-    fn hash(self, data: &[u8]) -> Vec<u8> {
+    /// Java `ScramFormatter.hash`.
+    #[must_use]
+    pub fn hash(self, data: &[u8]) -> Vec<u8> {
         match self {
             Self::Sha256 => Sha256::digest(data).to_vec(),
             Self::Sha512 => Sha512::digest(data).to_vec(),
         }
     }
 
-    fn hi(self, password: &[u8], salt: &[u8], iterations: u32) -> Vec<u8> {
+    /// Java `ScramFormatter.hi` (PBKDF2-HMAC of [`Self::hash_algorithm`]).
+    #[must_use]
+    pub fn hi(self, password: &[u8], salt: &[u8], iterations: u32) -> Vec<u8> {
         let mut out = vec![0u8; self.output_len()];
         match self {
             Self::Sha256 => pbkdf2_hmac::<Sha256>(password, salt, iterations, &mut out),
             Self::Sha512 => pbkdf2_hmac::<Sha512>(password, salt, iterations, &mut out),
         }
         out
+    }
+
+    /// Java `ScramFormatter.saltedPassword` (`hi` of `normalize(password)`).
+    #[must_use]
+    pub fn salted_password(self, password: &str, salt: &[u8], iterations: u32) -> Vec<u8> {
+        self.hi(&normalize(password), salt, iterations)
+    }
+
+    /// Java `ScramFormatter.clientKey`.
+    #[must_use]
+    pub fn client_key(self, salted_password: &[u8]) -> Vec<u8> {
+        self.hmac(salted_password, &to_bytes("Client Key"))
+    }
+
+    /// Java `ScramFormatter.storedKey` of the client key (`hash`).
+    #[must_use]
+    pub fn stored_key(self, client_key: &[u8]) -> Vec<u8> {
+        self.hash(client_key)
+    }
+
+    /// Java `ScramFormatter.storedKey` of signature and proof (`hash(xor)`).
+    pub fn stored_key_from_proof(
+        self,
+        client_signature: &[u8],
+        client_proof: &[u8],
+    ) -> Result<Vec<u8>> {
+        Ok(self.hash(&xor(client_signature, client_proof)?))
+    }
+
+    /// Java `ScramFormatter.serverKey`.
+    #[must_use]
+    pub fn server_key(self, salted_password: &[u8]) -> Vec<u8> {
+        self.hmac(salted_password, &to_bytes("Server Key"))
     }
 }
 
@@ -165,6 +208,30 @@ pub fn xor(first: &[u8], second: &[u8]) -> Result<Vec<u8>> {
         ));
     }
     Ok(first.iter().zip(second).map(|(x, y)| x ^ y).collect())
+}
+
+/// Java `ScramFormatter.authMessage` (`a,b,c`).
+#[must_use]
+pub fn auth_message(
+    client_first_message_bare: &str,
+    server_first_message: &str,
+    client_final_message_without_proof: &str,
+) -> String {
+    format!(
+        "{client_first_message_bare},{server_first_message},{client_final_message_without_proof}"
+    )
+}
+
+/// Java `ScramFormatter.toBytes` (UTF-8).
+#[must_use]
+pub fn to_bytes(s: &str) -> Vec<u8> {
+    s.as_bytes().to_vec()
+}
+
+/// Java `ScramFormatter.normalize` (`toBytes`).
+#[must_use]
+pub fn normalize(s: &str) -> Vec<u8> {
+    to_bytes(s)
 }
 
 fn b64(bytes: &[u8]) -> String {
@@ -237,10 +304,10 @@ pub fn client_final(
         return Err(Error::protocol("scram iteration 0"));
     }
     let without = format!("c={},r={}", b64(GS2.as_bytes()), nonce);
-    let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = alg.hi(password.as_bytes(), &salt, iter);
-    let client_key = alg.hmac(&salted, CLIENT_KEY);
-    let stored = alg.hash(&client_key);
+    let auth = auth_message(client_first_bare, server_first, &without);
+    let salted = alg.salted_password(password, &salt, iter);
+    let client_key = alg.client_key(&salted);
+    let stored = alg.stored_key(&client_key);
     let sig = alg.hmac(&stored, auth.as_bytes());
     let proof = xor(&client_key, &sig)?;
     Ok(format!("{without},p={}", b64(&proof)))
@@ -277,9 +344,9 @@ pub fn verify_server_final(
         .rsplit_once(",p=")
         .map(|(w, _)| w)
         .ok_or_else(|| Error::protocol("scram client-final missing p"))?;
-    let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = alg.hi(password.as_bytes(), &salt, iter);
-    let server_key = alg.hmac(&salted, SERVER_KEY);
+    let auth = auth_message(client_first_bare, server_first, without);
+    let salted = alg.salted_password(password, &salt, iter);
+    let server_key = alg.server_key(&salted);
     let sig = alg.hmac(&server_key, auth.as_bytes());
     let got = b64d(v)?;
     if got.as_slice() != sig {
@@ -333,9 +400,9 @@ pub fn server_final(
         .ok_or_else(|| Error::protocol("scram"))?
         .parse()
         .map_err(|_| Error::protocol("scram bad iteration"))?;
-    let auth = format!("{client_first_bare},{server_first},{without}");
-    let salted = alg.hi(password.as_bytes(), &salt, iter);
-    let server_key = alg.hmac(&salted, SERVER_KEY);
+    let auth = auth_message(client_first_bare, server_first, without);
+    let salted = alg.salted_password(password, &salt, iter);
+    let server_key = alg.server_key(&salted);
     let sig = alg.hmac(&server_key, auth.as_bytes());
     Ok(format!("v={}", b64(&sig)))
 }
@@ -435,6 +502,44 @@ mod tests {
         );
         let (first, _) = client_first("user=name,x", "n1");
         assert_eq!(first, "n,,n=user=3Dname=2Cx,r=n1");
+        assert_eq!(auth_message("a", "b", "c"), "a,b,c");
+        assert_eq!(auth_message("", "", ""), ",,");
+        assert_eq!(to_bytes("Client Key"), b"Client Key");
+        assert_eq!(normalize("pencil"), b"pencil");
+        assert_eq!(normalize(""), to_bytes(""));
+        let salt = base64::Engine::decode(
+            &base64::engine::general_purpose::STANDARD,
+            "W22ZaJ0SNY7soEsUEjb6gQ==",
+        )
+        .unwrap();
+        let salted = ScramAlg::Sha256.salted_password("pencil", &salt, 4096);
+        let client_key = ScramAlg::Sha256.client_key(&salted);
+        let stored = ScramAlg::Sha256.stored_key(&client_key);
+        let sig = ScramAlg::Sha256.hmac(&stored, b"auth");
+        let proof = xor(&client_key, &sig).unwrap();
+        assert_eq!(
+            ScramAlg::Sha256
+                .stored_key_from_proof(&sig, &proof)
+                .unwrap(),
+            stored
+        );
+        assert_eq!(
+            ScramAlg::Sha256.server_key(&salted),
+            ScramAlg::Sha256.hmac(&salted, &to_bytes("Server Key"))
+        );
+        assert_eq!(
+            ScramAlg::Sha256.hi(&normalize("pencil"), &salt, 4096),
+            salted
+        );
+        assert_eq!(ScramAlg::Sha256.hash(&client_key), stored);
+        let mismatch = ScramAlg::Sha256
+            .stored_key_from_proof(&[1], &[1, 2])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            mismatch.contains("Argument arrays must be of the same length"),
+            "{mismatch}"
+        );
     }
 
     #[test]

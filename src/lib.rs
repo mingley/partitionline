@@ -180,9 +180,20 @@
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
 //! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
-//! [`protocol::scram::xor`] are Java `ScramFormatter.saslName` / `username` /
-//! `xor` (`=` then `,`; leftover `=` is [`Error::protocol`]; length mismatch
-//! is Java `Argument arrays must be of the same length`),
+//! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
+//! [`protocol::scram::to_bytes`] / [`protocol::scram::normalize`] are Java
+//! `ScramFormatter.saslName` / `username` / `xor` / `authMessage` /
+//! `toBytes` / `normalize` (`=` then `,`; leftover `=` is [`Error::protocol`];
+//! length mismatch is Java `Argument arrays must be of the same length`;
+//! `authMessage` is `a,b,c`),
+//! [`protocol::scram::ScramAlg::hmac`] / [`protocol::scram::ScramAlg::hash`] /
+//! [`protocol::scram::ScramAlg::hi`] /
+//! [`protocol::scram::ScramAlg::salted_password`] /
+//! [`protocol::scram::ScramAlg::client_key`] /
+//! [`protocol::scram::ScramAlg::stored_key`] /
+//! [`protocol::scram::ScramAlg::stored_key_from_proof`] /
+//! [`protocol::scram::ScramAlg::server_key`] are Java `ScramFormatter.hmac` /
+//! `hash` / `hi` / `saltedPassword` / `clientKey` / `storedKey` / `serverKey`,
 //! [`protocol::scram::ScramAlg::hash_algorithm`] /
 //! [`protocol::scram::ScramAlg::mac_algorithm`] /
 //! [`protocol::scram::ScramAlg::min_iterations`] /
