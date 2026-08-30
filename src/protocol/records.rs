@@ -300,6 +300,24 @@ impl Record {
     pub fn headers_for_key<'a>(&'a self, key: &'a str) -> impl Iterator<Item = &'a Header> + 'a {
         Header::for_key(&self.headers, key)
     }
+
+    /// Java `Record.hasMagic`. Magic-v2 is `true` when `magic` is 2 or greater.
+    #[must_use]
+    pub fn has_magic(&self, magic: i8) -> bool {
+        magic >= MAGIC_V2
+    }
+
+    /// Java `DefaultRecord.isCompressed` (always `false`; compression is on the batch).
+    #[must_use]
+    pub fn is_compressed(&self) -> bool {
+        false
+    }
+
+    /// Java `DefaultRecord.hasTimestampType` (always `false`; timestamp type is on the batch).
+    #[must_use]
+    pub fn has_timestamp_type(&self, _timestamp_type: TimestampType) -> bool {
+        false
+    }
 }
 
 impl fmt::Display for Record {
@@ -565,6 +583,12 @@ impl RecordBatch {
     #[must_use]
     pub fn count(&self) -> usize {
         self.records.len()
+    }
+
+    /// Java `RecordBatch.countOrNull`. Magic-v2 always has a count.
+    #[must_use]
+    pub fn count_or_null(&self) -> Option<i32> {
+        Some(i32::try_from(self.records.len()).unwrap_or(i32::MAX))
     }
 
     /// Records in this batch.
@@ -1219,6 +1243,12 @@ mod tests {
         assert_eq!(rec.headers().len(), 1);
         assert_eq!(rec.last_header("h").map(Header::key), Some("h"));
         assert_eq!(rec.headers_for_key("h").count(), 1);
+        assert!(rec.has_magic(MAGIC_V2));
+        assert!(rec.has_magic(3));
+        assert!(!rec.has_magic(1));
+        assert!(!rec.is_compressed());
+        assert!(!rec.has_timestamp_type(TimestampType::CreateTime));
+        assert!(!rec.has_timestamp_type(TimestampType::LogAppendTime));
         assert_eq!(
             rec.to_string(),
             "DefaultRecord(offset=7, timestamp=9, key=1 bytes, value=3 bytes)"
@@ -1260,6 +1290,7 @@ mod tests {
         assert_eq!(batch.last_sequence(), RecordBatch::NO_SEQUENCE);
         assert!(!batch.is_compressed());
         assert_eq!(batch.count(), 1);
+        assert_eq!(batch.count_or_null(), Some(1));
         assert_eq!(batch.records().len(), 1);
         assert_eq!(
             batch.partition_leader_epoch(),
@@ -1282,6 +1313,7 @@ mod tests {
         assert_eq!(batch.compression_type().unwrap(), Compression::None);
         let empty_batch = RecordBatch::from_records(vec![]);
         assert_eq!(empty_batch.count(), 0);
+        assert_eq!(empty_batch.count_or_null(), Some(0));
         assert_eq!(empty_batch.last_offset(), -1);
         assert_eq!(empty_batch.next_offset(), 0);
         assert_eq!(empty_batch.last_sequence(), RecordBatch::NO_SEQUENCE);

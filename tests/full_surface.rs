@@ -37,11 +37,11 @@ use partitionline::{
     DeleteShareGroupOffsetsTopic, DeletedRecords, DescribableLogDirTopic, DescribeClusterBroker,
     DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
     DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, GroupState, GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec,
-    NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetAndMetadata, OffsetSpec,
-    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
-    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
-    ScramMechanism, ShareGroup, TimestampType, TopicCollection, TopicPartition,
+    FeatureUpdate, GroupProtocol, GroupState, GroupType, IsolationLevel,
+    ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions, NewTopic, Node,
+    OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
+    ProduceRecord, Producer, ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest,
+    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType, TopicCollection, TopicPartition,
     TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
     UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid,
     AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
@@ -1000,6 +1000,7 @@ async fn group_coord_reconnects_when_connection_idle() {
     )
     .await
     .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Classic);
     let _ = group.committed().await.unwrap();
     let after_first = mock.accept_count();
     tokio::time::sleep(Duration::from_millis(50)).await;
@@ -3163,6 +3164,7 @@ async fn kip848_join_fetch_leave_without_classic_join() {
     let mut group = ConsumerGroup::join_consumer(ccfg, "g848", "t")
         .await
         .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Consumer);
     let recs = group.poll().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"kip848"[..]));
     assert!(

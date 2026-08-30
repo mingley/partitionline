@@ -205,6 +205,11 @@
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
+//! [`Record::has_magic`] / [`Record::is_compressed`] /
+//! [`Record::has_timestamp_type`] match Java `Record.hasMagic` /
+//! `isCompressed` / `hasTimestampType` (magic-v2: `hasMagic` is true when
+//! magic is 2 or greater; the other two are always false).
+//! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /

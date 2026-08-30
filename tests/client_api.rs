@@ -19,11 +19,11 @@ use partitionline::protocol::api_keys::{
 use partitionline::{
     partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
     Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
-    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, IsolationLevel,
-    ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata, OffsetAndTimestamp,
-    Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor, RecordMetadata,
-    ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType, TopicPartition, TopicPartitionReplica,
-    Uuid, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON,
+    DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, GroupProtocol,
+    IsolationLevel, ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata,
+    OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
+    RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType, TopicPartition,
+    TopicPartitionReplica, Uuid, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON,
     DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP,
     LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
     LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
@@ -532,6 +532,7 @@ async fn classic_join_sends_group_instance_id() {
     )
     .await
     .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Classic);
     assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-1"));
     group.leave().await.unwrap();
     assert_eq!(
@@ -560,6 +561,7 @@ async fn kip848_join_sends_instance_id_and_rack() {
     )
     .await
     .unwrap();
+    assert_eq!(group.group_protocol(), GroupProtocol::Consumer);
     assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-2"));
     assert_eq!(mock.last_group_rack().as_deref(), Some("az1"));
     group.leave().await.unwrap();
