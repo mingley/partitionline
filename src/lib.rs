@@ -374,6 +374,9 @@
 //! [`ClusterDescription::nodes`] / [`ClusterDescription::controller`] are Java
 //! `DescribeClusterResult.nodes` / `controller` ([`Node`] is Java
 //! `org.apache.kafka.common.Node`, an alias of [`DescribeClusterBroker`]).
+//! [`ClusterDescription::cluster_resource`] is Java `ClusterResource` from the
+//! DescribeCluster cluster id ([`ClusterResource`] `Display` is
+//! `ClusterResource.toString`; missing id prints `null`).
 //! [`Node::id_string`] / [`Node::is_empty`] / [`Node::no_node`] are Java
 //! `Node.idString` / `isEmpty` / `noNode`. Metadata `Broker` and
 //! Produce/Fetch `NodeEndpoint` have the same getters and convert with `From`.
@@ -747,9 +750,9 @@ pub use admin::{
     AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
     AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
     ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config, ConfigEntry, ConfigReplacement,
-    ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType,
-    ConsumerGroupAssignment, ConsumerGroupDescription, ConsumerGroupMember,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ClusterResource, Config, ConfigEntry,
+    ConfigReplacement, ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConfigSource,
+    ConfigType, ConsumerGroupAssignment, ConsumerGroupDescription, ConsumerGroupMember,
     ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
     CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
     DeletedAclsFilterResult, DeletedRecords, DeletedShareGroupOffsets,

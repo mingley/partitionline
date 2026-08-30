@@ -122,8 +122,8 @@ pub use crate::protocol::admin::{
     AssignReplicasToDirsResponsePartition, AssignReplicasToDirsResponseTopic,
     AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaAlterationResult,
     ClientQuotaEntity, ClientQuotaEntry, ClientQuotaFilter, ClientQuotaFilterComponent,
-    ClientQuotaOp, ClientQuotaValue, ClusterDescription, Config, ConfigEntry, ConfigSource,
-    ConfigSynonym, ConfigType, ConsumerGroupAssignment, ConsumerGroupMember,
+    ClientQuotaOp, ClientQuotaValue, ClusterDescription, ClusterResource, Config, ConfigEntry,
+    ConfigSource, ConfigSynonym, ConfigType, ConsumerGroupAssignment, ConsumerGroupMember,
     ConsumerGroupTopicPartitions, CreatableRenewer, CreateDelegationTokenRequest,
     CreateDelegationTokenResponse, DeletableGroupResult, DeleteShareGroupOffsetsTopic,
     DeletedShareGroupOffsets, DeletedShareGroupOffsetsTopic, DescribableLogDirTopic,
@@ -12047,6 +12047,15 @@ mod tests {
         };
         assert_eq!(cluster.error_code(), 0);
         assert_eq!(cluster.cluster_id(), Some("mock"));
+        assert_eq!(
+            cluster.cluster_resource().to_string(),
+            "ClusterResource(clusterId=mock)"
+        );
+        assert_eq!(cluster.cluster_resource().cluster_id(), Some("mock"));
+        assert_eq!(
+            ClusterResource::new(None::<String>).to_string(),
+            "ClusterResource(clusterId=null)"
+        );
         assert_eq!(cluster.controller_id(), 1);
         assert_eq!(cluster.brokers()[0].id(), 1);
         assert_eq!(cluster.brokers()[0].host(), "127.0.0.1");

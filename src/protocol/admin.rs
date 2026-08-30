@@ -2865,6 +2865,44 @@ impl From<DescribeClusterBroker> for super::api::Broker {
 /// convert with `From` (`is_fenced` is `false` on those RPCs).
 pub type Node = DescribeClusterBroker;
 
+/// Kafka cluster id wrapper (Java `ClusterResource`).
+///
+/// [`Display`] is Java `ClusterResource.toString`
+/// (`ClusterResource(clusterId=...)`). Missing id prints `null`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ClusterResource {
+    /// Cluster id, or `None` when the broker omitted it (Java `null`;
+    /// pre-0.10.1 brokers).
+    pub cluster_id: Option<String>,
+}
+
+impl ClusterResource {
+    /// Java `ClusterResource(String)` (`None` is Java `null`).
+    #[must_use]
+    pub fn new(cluster_id: Option<impl Into<String>>) -> Self {
+        Self {
+            cluster_id: cluster_id.map(Into::into),
+        }
+    }
+
+    /// Java `ClusterResource.clusterId` (`None` is Java `null`).
+    #[must_use]
+    pub fn cluster_id(&self) -> Option<&str> {
+        self.cluster_id.as_deref()
+    }
+}
+
+impl fmt::Display for ClusterResource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ClusterResource(clusterId=")?;
+        match self.cluster_id.as_deref() {
+            Some(id) => f.write_str(id)?,
+            None => f.write_str("null")?,
+        }
+        f.write_str(")")
+    }
+}
+
 /// DescribeCluster response: cluster id, controller, and brokers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterDescription {
@@ -2897,6 +2935,14 @@ impl ClusterDescription {
     #[must_use]
     pub fn cluster_id(&self) -> Option<&str> {
         self.cluster_id.as_deref()
+    }
+
+    /// Java `ClusterResource` wrapping this DescribeCluster id.
+    ///
+    /// Not Java `Cluster.clusterResource` (this type is DescribeClusterResult-shaped).
+    #[must_use]
+    pub fn cluster_resource(&self) -> ClusterResource {
+        ClusterResource::new(self.cluster_id.clone())
     }
 
     /// Java `DescribeClusterResult.controller` as broker id (`-1` if none).
