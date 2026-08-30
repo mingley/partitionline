@@ -559,6 +559,11 @@
 //! `AlterConfigOp.opType()`.
 //! [`Admin::alter_configs_for`] is Java `alterConfigs(Map)`
 //! ([`ConfigReplacement`]; Resources of N).
+//! [`protocol::admin::AlterConfigsResource::error_result`] /
+//! [`protocol::admin::AlterConfigsResource::error_results`] are Java
+//! `AlterConfigsRequest.getErrorResponse` (one resource / Responses).
+//! `ErrorMessage` stays the JSON default (null); official Java also
+//! sets the English `Errors.message` string.
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).

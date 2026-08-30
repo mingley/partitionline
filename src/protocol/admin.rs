@@ -2121,10 +2121,11 @@ impl AlterableResource {
     }
 }
 
-/// Per-resource IncrementalAlterConfigs result.
+/// Per-resource IncrementalAlterConfigs / AlterConfigs result.
 ///
 /// [`Self::error`] is Java `IncrementalAlterConfigsRequest.getErrorResponse`
-/// one resource (`ErrorMessage` stays the JSON default, null).
+/// / `AlterConfigsRequest.getErrorResponse` one resource (`ErrorMessage`
+/// stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfigsResourceResult {
     /// Resource error, or `0`.
@@ -2138,13 +2139,16 @@ pub struct AlterConfigsResourceResult {
 }
 
 impl AlterConfigsResourceResult {
-    /// Java `IncrementalAlterConfigsRequest.getErrorResponse` one resource.
+    /// Java `IncrementalAlterConfigsRequest.getErrorResponse` /
+    /// `AlterConfigsRequest.getErrorResponse` one resource.
     ///
     /// Sets `ResourceType`, `ResourceName`, and `ErrorCode`.
     /// `ErrorMessage` is the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Throttle on the
-    /// response is the JSON default (`0`); official Java does not set
-    /// `ThrottleTimeMs`.
+    /// response is the JSON default (`0`). IncrementalAlterConfigs Java
+    /// does not set `ThrottleTimeMs`. AlterConfigs Java sets it from
+    /// the `getErrorResponse` argument (crate encode writes `0` from
+    /// v1; v0 has no throttle field).
     #[must_use]
     pub fn error(resource_type: i8, name: impl Into<String>, error_code: i16) -> Self {
         Self {
@@ -2425,6 +2429,10 @@ impl AlterConfigsResponse {
 }
 
 /// One AlterConfigs resource (Resources array element).
+///
+/// [`Self::error_result`] is Java `AlterConfigsRequest.getErrorResponse`
+/// one resource (copy `ResourceName` / `ResourceType`; `ErrorMessage`
+/// stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterConfigsResource {
     /// Resource type (`RESOURCE_TOPIC`, …).
@@ -2433,6 +2441,31 @@ pub struct AlterConfigsResource {
     pub name: String,
     /// Replacement configs for this resource.
     pub configs: Vec<TopicConfig>,
+}
+
+impl AlterConfigsResource {
+    /// Java `AlterConfigsRequest.getErrorResponse` one resource.
+    ///
+    /// Copies `ResourceName` / `ResourceType` and sets `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Request configs are
+    /// not copied. Throttle on the response is the JSON default (`0`)
+    /// from v1 (v0 has no throttle field).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> AlterConfigsResourceResult {
+        AlterConfigsResourceResult::error(self.resource_type, self.name.clone(), error_code)
+    }
+
+    /// Java `AlterConfigsRequest.getErrorResponse` Responses.
+    ///
+    /// Maps each request resource through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(resources: &[Self], error_code: i16) -> Vec<AlterConfigsResourceResult> {
+        resources
+            .iter()
+            .map(|resource| resource.error_result(error_code))
+            .collect()
+    }
 }
 
 /// Encode an AlterConfigs request (v0–2; classic through v1; flexible from v2).
@@ -15178,6 +15211,102 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterConfigs v1 Resources of 2 must be leftover-empty"
+        );
+
+        let err_results =
+            AlterConfigsResource::error_results(&resources, crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err_results,
+            vec![
+                AlterConfigsResourceResult::error(
+                    RESOURCE_TOPIC,
+                    "a",
+                    crate::error::NOT_CONTROLLER,
+                ),
+                resources
+                    .get(1)
+                    .expect("b resource")
+                    .error_result(crate::error::NOT_CONTROLLER),
+            ]
+        );
+        let first = err_results.first().expect("error resource");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        assert_eq!(first.resource_type, RESOURCE_TOPIC);
+        assert_eq!(first.name(), "a");
+        let broker = AlterConfigsResource {
+            resource_type: RESOURCE_BROKER,
+            name: "1".into(),
+            configs: vec![TopicConfig {
+                name: "k".into(),
+                value: Some("v".into()),
+            }],
+        };
+        let broker_err = broker.error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(broker_err.resource_type, RESOURCE_BROKER);
+        assert!(broker_err.error_message().is_none());
+        let empty = AlterConfigsResource::error_results(&[], crate::error::NOT_CONTROLLER);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_alter_configs_resource_results(&mut buf, 2, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v2 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_configs_resource_results(&mut buf, 1, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_configs_resource_results(&mut cur, 1).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_configs_resource_results(&mut buf, 0, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_configs_resource_results(&mut cur, 0).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_configs_resource_results(&mut buf, 2, std::slice::from_ref(&broker_err))
+            .unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
+            vec![broker_err]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs broker getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_configs_resource_results(&mut buf, 2, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_configs_resource_results(&mut cur, 2).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterConfigs empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
