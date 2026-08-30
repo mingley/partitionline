@@ -359,7 +359,10 @@
 //! `toString` (`ConfigEntry.toString` on [`CreatedTopicConfig`];
 //! `ConfigResource.toString` on [`ListedConfigResource`]). [`AclBinding`] /
 //! [`ResourcePattern`] / [`AccessControlEntry`] / [`AclBindingFilter`]
-//! `Display` match Java `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! `Display` match Java `toString`. Java `ResourcePattern` constructor
+//! rejects resource type ANY and pattern type ANY/MATCH; Java
+//! `AccessControlEntry` constructor rejects operation/permission ANY
+//! (checked at CreateAcls encode). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`

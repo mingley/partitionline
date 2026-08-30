@@ -4411,7 +4411,9 @@ impl Admin {
     /// Negotiates v0–v3 (v0–v1 classic; v2+ flexible). v1 adds
     /// ResourcePatternType (LITERAL unless [`AclBinding::pattern_type`]
     /// is set). v3 is the same layout (user resource type). Kafka 4.0
-    /// `validVersions` is `1-3`. v4+ is not spoken.
+    /// `validVersions` is `1-3`. v4+ is not spoken. Java `ResourcePattern`
+    /// / `AccessControlEntry` constructors reject ANY resource type,
+    /// ANY/MATCH pattern type, and ANY operation / permission.
     /// Lands on the Metadata controller. `NOT_CONTROLLER` (41) refreshes
     /// Metadata and retries on the new controller. CreateAcls has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].

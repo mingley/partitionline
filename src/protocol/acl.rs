@@ -436,8 +436,8 @@ impl fmt::Display for AclPermission {
 ///
 /// Java's constructor rejects [`AclResourceType::Any`] and
 /// [`AclPatternType::Any`] / [`AclPatternType::Match`]. This crate stores
-/// the wire `i8` and does not panic; [`Self::is_unknown`] still reports
-/// UNKNOWN components.
+/// the wire `i8` and does not panic; [`encode_create_acls_request`] checks
+/// those rules. [`Self::is_unknown`] still reports UNKNOWN components.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ResourcePattern {
     /// Kafka resource type (`ACL_RESOURCE_TOPIC`, [`AclResourceType::Topic`], …).
@@ -514,7 +514,7 @@ impl fmt::Display for ResourcePattern {
 ///
 /// Java's constructor rejects [`AclOperation::Any`] and
 /// [`AclPermission::Any`]. This crate stores the wire `i8` and does not
-/// panic.
+/// panic; [`encode_create_acls_request`] checks those rules.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AccessControlEntry {
     /// Principal, for example `User:alice`.
@@ -1291,8 +1291,34 @@ fn reject_v0_non_literal_acl_patterns<'a>(
     Ok(())
 }
 
+/// Java `ResourcePattern` / `AccessControlEntry` constructors: CreateAcls
+/// bindings must not use ANY resource type, ANY/MATCH pattern type, or
+/// ANY operation / permission (filters still use those on Describe/Delete).
+fn reject_create_acls_java_constructors(acls: &[AclBinding]) -> Result<()> {
+    for a in acls {
+        if a.resource_type == ACL_RESOURCE_ANY {
+            return Err(Error::protocol("resourceType must not be ANY"));
+        }
+        if a.pattern_type == ACL_PATTERN_ANY || a.pattern_type == ACL_PATTERN_MATCH {
+            return Err(Error::protocol(format!(
+                "patternType must not be {}",
+                AclPatternType::from_id(a.pattern_type)
+            )));
+        }
+        if a.operation == ACL_OPERATION_ANY {
+            return Err(Error::protocol("operation must not be ANY"));
+        }
+        if a.permission == ACL_PERMISSION_ANY {
+            return Err(Error::protocol("permissionType must not be ANY"));
+        }
+    }
+    Ok(())
+}
+
 /// Encode CreateAcls v0–3 (classic through v1; flexible from v2).
 ///
+/// Java `ResourcePattern` / `AccessControlEntry` constructors reject ANY
+/// resource type, ANY/MATCH pattern type, and ANY operation / permission.
 /// Java `CreateAclsRequest.validate` rejects non-LITERAL pattern types
 /// on v0 (`UnsupportedVersionException`).
 pub fn encode_create_acls_request(
@@ -1301,6 +1327,7 @@ pub fn encode_create_acls_request(
     acls: &[AclBinding],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    reject_create_acls_java_constructors(acls)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
@@ -2227,5 +2254,88 @@ mod tests {
         );
         encode_delete_acls_response(&mut BytesMut::new(), 1, 0, std::slice::from_ref(&prefixed))
             .unwrap();
+    }
+
+    #[test]
+    fn create_acls_constructor_matches_java() {
+        let any_resource = AclBinding::allow(AclResourceType::Any, "t", "User:alice");
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&any_resource),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "ANY resource type is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("resourceType must not be ANY"),
+            "got {err}"
+        );
+
+        let any_pattern =
+            AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Any);
+        let err =
+            encode_create_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&any_pattern))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "ANY pattern type is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("patternType must not be ANY"),
+            "got {err}"
+        );
+
+        let match_pattern =
+            AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Match);
+        let err = encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&match_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "MATCH pattern type is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("patternType must not be MATCH"),
+            "got {err}"
+        );
+
+        let any_op = AclBinding::allow_topic("t", "User:alice").operation(AclOperation::Any);
+        let err =
+            encode_create_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&any_op))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "ANY operation is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("operation must not be ANY"),
+            "got {err}"
+        );
+
+        let any_perm = AclBinding::allow_topic("t", "User:alice").permission(AclPermission::Any);
+        let err =
+            encode_create_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&any_perm))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "ANY permission is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("permissionType must not be ANY"),
+            "got {err}"
+        );
+
+        encode_create_acls_request(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&AclBinding::allow_topic("t", "User:alice")),
+        )
+        .unwrap();
     }
 }
