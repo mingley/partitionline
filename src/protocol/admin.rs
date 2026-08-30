@@ -932,12 +932,39 @@ fn create_topics_flexible(version: i16) -> Result<bool> {
 }
 
 /// CreateTopics v0–7 (classic through v4; flexible from v5).
+///
+/// Java `CreateTopicsRequest.Builder.build` rejects `validateOnly` on v0
+/// and rejects default partitions / replication factor below v4 when
+/// Assignments is empty.
 pub fn encode_create_topics_request(
     buf: &mut BytesMut,
     version: i16,
     req: &CreateTopicsRequest,
 ) -> crate::error::Result<()> {
     let flexible = create_topics_flexible(version)?;
+    if req.validate_only && version == 0 {
+        return Err(Error::Unsupported(
+            "validateOnly is not supported in version 0 of CreateTopicsRequest".into(),
+        ));
+    }
+    if version < 4 {
+        let topics_with_defaults: Vec<&str> = req
+            .topics
+            .iter()
+            .filter(|t| t.assignments.is_empty())
+            .filter(|t| {
+                t.num_partitions == CreateTopicsRequest::NO_NUM_PARTITIONS
+                    || t.replication_factor == CreateTopicsRequest::NO_REPLICATION_FACTOR
+            })
+            .map(|t| t.name.as_str())
+            .collect();
+        if !topics_with_defaults.is_empty() {
+            return Err(Error::Unsupported(format!(
+                "Creating topics with default partitions/replication factor are only supported in CreateTopicRequest version 4+. The following topics need values for partitions and replicas: [{}]",
+                topics_with_defaults.join(", ")
+            )));
+        }
+    }
     buf::put_array_len(buf, flexible, Some(req.topics.len()))?;
     for t in &req.topics {
         buf::put_string(buf, flexible, Some(&t.name))?;
@@ -12950,6 +12977,47 @@ mod tests {
             !cur.has_remaining(),
             "CreateTopics v4 broker-defaults request must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn create_topics_builder_matches_java() {
+        let defaults = CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "t".into(),
+                num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
+                replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
+                assignments: Vec::new(),
+                configs: Vec::new(),
+            }],
+            timeout_ms: 5_000,
+            validate_only: false,
+        };
+        let err = encode_create_topics_request(&mut BytesMut::new(), 3, &defaults).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "defaults below v4 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("version 4+"), "got {err}");
+        encode_create_topics_request(&mut BytesMut::new(), 4, &defaults).unwrap();
+
+        let validate = CreateTopicsRequest {
+            topics: vec![CreatableTopic {
+                name: "t".into(),
+                num_partitions: 1,
+                replication_factor: 1,
+                assignments: Vec::new(),
+                configs: Vec::new(),
+            }],
+            timeout_ms: 5_000,
+            validate_only: true,
+        };
+        let err = encode_create_topics_request(&mut BytesMut::new(), 0, &validate).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "validateOnly on v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("validateOnly"), "got {err}");
+        encode_create_topics_request(&mut BytesMut::new(), 1, &validate).unwrap();
     }
 
     #[test]
