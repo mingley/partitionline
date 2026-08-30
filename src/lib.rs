@@ -942,7 +942,11 @@
 //! [`RecordBatch::encoded_size_in_bytes`] is Java
 //! `DefaultRecordBatch.sizeInBytes()` on a buffer (`LOG_OVERHEAD` plus the
 //! length field; wrapping add; short size field is [`Error::protocol`]
-//! `need 4 bytes`). [`RecordBatch::size_in_bytes_of`] and
+//! `need 4 bytes`). [`RecordBatch::encoded_last_offset`] /
+//! [`RecordBatch::encoded_next_offset`] are Java
+//! `DefaultRecordBatch.lastOffset` / `nextOffset` on a buffer (`baseOffset`
+//! plus `lastOffsetDelta`; wrapping add; short fields are
+//! [`Error::protocol`] `need N bytes`). [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
 //! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
@@ -1010,8 +1014,10 @@
 //! [`protocol::records::Records::LOG_OVERHEAD`] is Java `Records.LOG_OVERHEAD`
 //! (offset + size prefix).
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
-//! [`RecordBatch::last_sequence`] are Java `lastOffset` / `nextOffset` /
-//! `lastSequence`. [`RecordBatch::is_compressed`] is Java `isCompressed`.
+//! [`RecordBatch::last_sequence`] use record count (`count - 1`).
+//! [`RecordBatch::encoded_last_offset`] / [`RecordBatch::encoded_next_offset`]
+//! are Java `DefaultRecordBatch.lastOffset` / `nextOffset` on a buffer.
+//! [`RecordBatch::is_compressed`] is Java `isCompressed`.
 //! [`RecordBatch::offset_of_max_timestamp`] /
 //! [`RecordBatch::delete_horizon_ms`] are Java `offsetOfMaxTimestamp` /
 //! `deleteHorizonMs`.

@@ -1297,6 +1297,39 @@ impl RecordBatch {
         Ok(Records::LOG_OVERHEAD.wrapping_add(record_size))
     }
 
+    fn read_i64_be(buffer: &[u8], offset: usize) -> Result<i64> {
+        let have = buffer.len().saturating_sub(offset);
+        let end = offset
+            .checked_add(8)
+            .ok_or_else(|| Error::protocol(format!("need 8 bytes, have {have}")))?;
+        let slice = buffer
+            .get(offset..end)
+            .ok_or_else(|| Error::protocol(format!("need 8 bytes, have {have}")))?;
+        let arr = <[u8; 8]>::try_from(slice)
+            .map_err(|_| Error::protocol(format!("need 8 bytes, have {have}")))?;
+        Ok(i64::from_be_bytes(arr))
+    }
+
+    /// Java `DefaultRecordBatch.lastOffset` on a buffer (`baseOffset` plus
+    /// `lastOffsetDelta` at [`Self::LAST_OFFSET_DELTA_OFFSET`]).
+    ///
+    /// Uses wrapping add (Java `long` overflow). Distinct from
+    /// [`Self::last_offset`], which uses `count - 1`. Short base-offset or
+    /// last-offset-delta fields are [`Error::protocol`] `need N bytes`.
+    pub fn encoded_last_offset(buffer: &[u8]) -> Result<i64> {
+        let base_off = buf::usize_from_i32(Records::OFFSET_OFFSET)?;
+        let base = Self::read_i64_be(buffer, base_off)?;
+        let delta_off = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
+        let delta = buf::read_int_be(buffer, delta_off)?;
+        Ok(base.wrapping_add(i64::from(delta)))
+    }
+
+    /// Java `DefaultRecordBatch.nextOffset` on a buffer
+    /// ([`Self::encoded_last_offset`] plus one).
+    pub fn encoded_next_offset(buffer: &[u8]) -> Result<i64> {
+        Ok(Self::encoded_last_offset(buffer)?.wrapping_add(1))
+    }
+
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
     pub fn checksum(&self) -> Result<u32> {
         let buf = self.encoded()?;
@@ -2965,6 +2998,50 @@ mod tests {
         let mut trail_slice = trailing.as_ref();
         drop(decode_record_batch(&mut trail_slice).unwrap());
         assert_eq!(trail_slice, &[0xff]);
+    }
+
+    #[test]
+    fn encoded_last_offset_matches_java_default_record_batch() {
+        let empty = RecordBatch::from_records(vec![]);
+        let mut empty_buf = BytesMut::new();
+        encode_record_batch(&mut empty_buf, &empty).unwrap();
+        assert_eq!(RecordBatch::encoded_last_offset(&empty_buf).unwrap(), 0);
+        assert_eq!(empty.last_offset(), -1);
+        assert_eq!(RecordBatch::encoded_next_offset(&empty_buf).unwrap(), 1);
+        assert_eq!(empty.next_offset(), 0);
+
+        let mut two = BytesMut::new();
+        encode_record_batch(
+            &mut two,
+            &RecordBatch::from_records(vec![sample_record(), sample_record()]),
+        )
+        .unwrap();
+        assert_eq!(RecordBatch::encoded_last_offset(&two).unwrap(), 1);
+        assert_eq!(RecordBatch::encoded_next_offset(&two).unwrap(), 2);
+
+        let mut mutated = two.clone();
+        mutated[23..27].copy_from_slice(&5i32.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_last_offset(&mutated).unwrap(), 5);
+        assert_eq!(RecordBatch::encoded_next_offset(&mutated).unwrap(), 6);
+
+        let mut wrap = [0u8; 27];
+        wrap[0..8].copy_from_slice(&i64::MAX.to_be_bytes());
+        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_last_offset(&wrap).unwrap(), i64::MIN);
+        assert_eq!(
+            RecordBatch::encoded_next_offset(&wrap).unwrap(),
+            i64::MIN.wrapping_add(1)
+        );
+
+        let short_base = RecordBatch::encoded_last_offset(&[0; 7])
+            .unwrap_err()
+            .to_string();
+        assert!(short_base.contains("need 8 bytes"), "{short_base}");
+
+        let short_delta = RecordBatch::encoded_last_offset(&[0; 26])
+            .unwrap_err()
+            .to_string();
+        assert!(short_delta.contains("need 4 bytes"), "{short_delta}");
     }
 
     #[test]
