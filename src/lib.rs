@@ -686,6 +686,12 @@
 //! ([`ConsumerGroupMetadata::UNKNOWN_GENERATION_ID`] /
 //! [`ConsumerGroupMetadata::UNKNOWN_MEMBER_ID`]; Java
 //! `JoinGroupRequest.UNKNOWN_GENERATION_ID` / `UNKNOWN_MEMBER_ID`).
+//! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] /
+//! [`protocol::group::JoinGroupRequest::maybe_truncate_reason`] /
+//! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
+//! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
+//! `JoinGroupRequest.UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` /
+//! `requiresKnownMemberId` / `supportsSkippingAssignment`.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on

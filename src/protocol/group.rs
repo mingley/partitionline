@@ -373,6 +373,30 @@ pub struct JoinGroupRequest<'a> {
     pub reason: Option<&'a str>,
 }
 
+impl JoinGroupRequest<'_> {
+    /// Java `JoinGroupRequest.UNKNOWN_PROTOCOL_NAME`.
+    pub const UNKNOWN_PROTOCOL_NAME: &'static str = "";
+
+    /// Java `JoinGroupRequest.maybeTruncateReason` (KIP-800; 255 chars).
+    #[must_use]
+    pub fn maybe_truncate_reason(reason: &str) -> String {
+        const MAX: usize = 255;
+        reason.chars().take(MAX).collect()
+    }
+
+    /// Java `JoinGroupRequest.requiresKnownMemberId`.
+    #[must_use]
+    pub const fn requires_known_member_id(api_version: i16) -> bool {
+        api_version >= 4
+    }
+
+    /// Java `JoinGroupRequest.supportsSkippingAssignment`.
+    #[must_use]
+    pub const fn supports_skipping_assignment(api_version: i16) -> bool {
+        api_version >= 9
+    }
+}
+
 /// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JoinGroupProtocol<'a> {
@@ -578,7 +602,7 @@ pub fn encode_join_group_response(
     }
     buf::put_string(buf, flexible, Some(protocol_name))?;
     buf::put_string(buf, flexible, Some(leader))?;
-    if version >= 9 {
+    if JoinGroupRequest::supports_skipping_assignment(version) {
         buf.put_u8(0);
     }
     buf::put_string(buf, flexible, Some(member_id))?;
@@ -617,7 +641,7 @@ pub fn decode_join_group_response<B: Buf>(
     }
     let protocol = buf::get_string(buf, flexible)?.unwrap_or_default();
     let leader = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let skip_assignment = if version >= 9 {
+    let skip_assignment = if JoinGroupRequest::supports_skipping_assignment(version) {
         buf::get_bool(buf)?
     } else {
         false
@@ -2150,6 +2174,19 @@ mod tests {
         assert_eq!(DEFAULT_GENERATION_ID, -1);
         assert_eq!(DEFAULT_MEMBER_ID, "");
         assert_eq!(DEFAULT_RETENTION_TIME, -1);
+    }
+
+    #[test]
+    fn join_group_request_matches_java() {
+        assert_eq!(JoinGroupRequest::UNKNOWN_PROTOCOL_NAME, "");
+        assert!(!JoinGroupRequest::requires_known_member_id(3));
+        assert!(JoinGroupRequest::requires_known_member_id(4));
+        assert!(!JoinGroupRequest::supports_skipping_assignment(8));
+        assert!(JoinGroupRequest::supports_skipping_assignment(9));
+        let keep = "a".repeat(255);
+        assert_eq!(JoinGroupRequest::maybe_truncate_reason(&keep), keep);
+        let long = "a".repeat(256);
+        assert_eq!(JoinGroupRequest::maybe_truncate_reason(&long).len(), 255);
     }
 
     #[test]

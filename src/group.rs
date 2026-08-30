@@ -61,8 +61,7 @@ pub const LEAVE_GROUP_REASON_POLL_TIMEOUT: &str = "consumer poll timeout has exp
 
 /// JoinGroup / LeaveGroup Reason is a STRING truncated to 255 characters (KIP-800).
 pub(crate) fn truncate_group_reason(reason: &str) -> String {
-    const MAX: usize = 255;
-    reason.chars().take(MAX).collect()
+    crate::protocol::group::JoinGroupRequest::maybe_truncate_reason(reason)
 }
 
 /// Split `partitions` across sorted `members` (Java range assignor).
