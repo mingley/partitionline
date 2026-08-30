@@ -939,6 +939,10 @@
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
+//! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
+//! size below overhead is `false`; otherwise stored CRC32-C must match bytes
+//! from [`RecordBatch::ATTRIBUTES_OFFSET`]; short size/CRC fields are
+//! [`Error::protocol`] `need 4 bytes`).
 //! [`RecordBatch`] `Display` is Java `DefaultRecordBatch.toString`.
 //! [`Record::record_size_upper_bound`] /
 //! [`RecordBatch::estimate_batch_size_upper_bound`] /

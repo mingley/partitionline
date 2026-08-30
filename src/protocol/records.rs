@@ -976,6 +976,8 @@ impl RecordBatch {
     pub const RECORD_BATCH_OVERHEAD: i32 = 61;
     /// Java `DefaultRecordBatch.CRC_OFFSET`.
     pub const CRC_OFFSET: i32 = 17;
+    /// Java `DefaultRecordBatch.ATTRIBUTES_OFFSET`.
+    pub const ATTRIBUTES_OFFSET: i32 = Self::CRC_OFFSET + 4;
     /// Java `DefaultRecordBatch.LAST_OFFSET_DELTA_OFFSET`.
     pub const LAST_OFFSET_DELTA_OFFSET: i32 = 23;
     /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
@@ -1290,6 +1292,28 @@ impl RecordBatch {
             .ok_or_else(|| Error::protocol("short crc field"))?;
         let arr = <[u8; 4]>::try_from(bytes).map_err(|_| Error::protocol("short crc field"))?;
         Ok(u32::from_be_bytes(arr))
+    }
+
+    /// Java `DefaultRecordBatch.isValid`.
+    ///
+    /// Declared size ([`Records::LOG_OVERHEAD`] plus the length field) below
+    /// [`Self::RECORD_BATCH_OVERHEAD`] is `false`. Otherwise the stored CRC must
+    /// match CRC32-C of the bytes from [`Self::ATTRIBUTES_OFFSET`] to the end of
+    /// `buffer`. Short size or CRC fields are [`Error::protocol`] `need 4 bytes`.
+    pub fn is_valid(buffer: &[u8]) -> Result<bool> {
+        let size_off = buf::usize_from_i32(Records::SIZE_OFFSET)?;
+        let record_size = buf::read_int_be(buffer, size_off)?;
+        let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(record_size);
+        if size_in_bytes < Self::RECORD_BATCH_OVERHEAD {
+            return Ok(false);
+        }
+        let crc_off = buf::usize_from_i32(Self::CRC_OFFSET)?;
+        let stored = buf::read_unsigned_int_at(buffer, crc_off)?;
+        let attr_off = buf::usize_from_i32(Self::ATTRIBUTES_OFFSET)?;
+        let rest = buffer
+            .get(attr_off..)
+            .ok_or_else(|| Error::protocol("short attributes field"))?;
+        Ok(stored == i64::from(crc32c::crc32c(rest)))
     }
 
     /// Java `DefaultRecordBatch.sizeInBytes(Iterable)` (uncompressed).
@@ -2006,6 +2030,7 @@ mod tests {
         assert_eq!(RecordBatch::CURRENT_MAGIC_VALUE, 2);
         assert_eq!(RecordBatch::RECORD_BATCH_OVERHEAD, 61);
         assert_eq!(RecordBatch::CRC_OFFSET, 17);
+        assert_eq!(RecordBatch::ATTRIBUTES_OFFSET, 21);
         assert_eq!(RecordBatch::LAST_OFFSET_DELTA_OFFSET, 23);
         assert_eq!(RecordBatch::RECORDS_COUNT_OFFSET, 57);
         assert_eq!(batch.base_offset(), 0);
@@ -2749,6 +2774,39 @@ mod tests {
             )),
             "{crc_err}"
         );
+    }
+
+    #[test]
+    fn is_valid_matches_java_default_record_batch() {
+        let mut encoded = BytesMut::new();
+        encode_record_batch(
+            &mut encoded,
+            &RecordBatch::from_records(vec![sample_record()]),
+        )
+        .unwrap();
+        assert!(RecordBatch::is_valid(&encoded).unwrap());
+
+        let mut flipped = encoded.clone();
+        let attr = RecordBatch::ATTRIBUTES_OFFSET as usize;
+        flipped[attr] ^= 0xff;
+        assert!(!RecordBatch::is_valid(&flipped).unwrap());
+
+        assert!(!RecordBatch::is_valid(&[0; 12]).unwrap());
+        let err = RecordBatch::is_valid(&[0; 11]).unwrap_err().to_string();
+        assert!(err.contains("need 4 bytes"), "{err}");
+
+        let mut undersized = encoded.clone();
+        undersized[8..12].copy_from_slice(&0i32.to_be_bytes());
+        assert!(!RecordBatch::is_valid(&undersized).unwrap());
+
+        let mut short_crc = [0u8; 12];
+        short_crc[8..12].copy_from_slice(&49i32.to_be_bytes());
+        let err = RecordBatch::is_valid(&short_crc).unwrap_err().to_string();
+        assert!(err.contains("need 4 bytes"), "{err}");
+
+        let mut header_only = [0u8; 21];
+        header_only[8..12].copy_from_slice(&49i32.to_be_bytes());
+        assert!(RecordBatch::is_valid(&header_only).unwrap());
     }
 
     #[test]
