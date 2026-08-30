@@ -1441,6 +1441,17 @@ fn describe_configs_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `DescribeConfigsResponse` helpers.
+pub struct DescribeConfigsResponse;
+
+impl DescribeConfigsResponse {
+    /// Java `DescribeConfigsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+}
+
 /// DescribeConfigs v0–4 (classic through v3; flexible from v4).
 pub fn encode_describe_configs_request(
     buf: &mut BytesMut,
@@ -2058,6 +2069,17 @@ fn incremental_alter_configs_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `IncrementalAlterConfigsResponse` helpers.
+pub struct IncrementalAlterConfigsResponse;
+
+impl IncrementalAlterConfigsResponse {
+    /// Java `IncrementalAlterConfigsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 0
+    }
+}
+
 /// IncrementalAlterConfigs v0–1 (classic at v0; flexible from v1).
 pub fn encode_incremental_alter_configs_request(
     buf: &mut BytesMut,
@@ -2258,6 +2280,17 @@ fn alter_configs_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "AlterConfigs version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `AlterConfigsResponse` helpers.
+pub struct AlterConfigsResponse;
+
+impl AlterConfigsResponse {
+    /// Java `AlterConfigsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 }
 
@@ -13568,6 +13601,8 @@ mod tests {
 
     #[test]
     fn incremental_alter_configs_v1_compact_layout_matches_independent_encode() {
+        assert!(IncrementalAlterConfigsResponse::should_client_throttle(0));
+        assert!(IncrementalAlterConfigsResponse::should_client_throttle(1));
         // Compact 1 resource type=2 name "t", 1 config "k"=SET "v",
         // validateOnly false, empty tagged fields.
         const REQ: &[u8] = &[
@@ -13756,6 +13791,8 @@ mod tests {
 
     #[test]
     fn describe_configs_v1_roundtrip() {
+        assert!(!DescribeConfigsResponse::should_client_throttle(1));
+        assert!(DescribeConfigsResponse::should_client_throttle(2));
         let resources = vec![DescribeConfigsResource {
             resource_type: RESOURCE_TOPIC,
             name: "orders".into(),
@@ -13987,6 +14024,8 @@ mod tests {
 
     #[test]
     fn alter_configs_v1_roundtrip() {
+        assert!(!AlterConfigsResponse::should_client_throttle(0));
+        assert!(AlterConfigsResponse::should_client_throttle(1));
         let configs = [TopicConfig {
             name: "retention.ms".into(),
             value: Some("1".into()),

@@ -150,12 +150,18 @@
 //! RenewDelegationToken v1–v2 (v1 classic; v2 flexible),
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester),
-//! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
+//! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
+//! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
+//! `DescribeConfigsResponse.shouldClientThrottle` (v2+)),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+)),
-//! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N),
-//! AlterConfigs v0–v2 (v2 flexible; Resources of N),
+//! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N;
+//! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
+//! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+)),
+//! AlterConfigs v0–v2 (v2 flexible; Resources of N;
+//! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
+//! `AlterConfigsResponse.shouldClientThrottle` (v1+)),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
