@@ -8,7 +8,8 @@
 //! is Java `ByteUtils.illegalVarintException`; a tenth unsigned-varlong
 //! continuation byte is `illegalVarlongException`. [`utf8_length`] is Java
 //! `Utils.utf8Length`. [`to_32_bit_field`] / [`from_32_bit_field`] are Java
-//! `Utils.to32BitField` / `from32BitField`.
+//! `Utils.to32BitField` / `from32BitField`. [`is_blank`] / [`replace_suffix`]
+//! are Java `Utils.isBlank` / `replaceSuffix`.
 
 use std::collections::HashSet;
 
@@ -166,6 +167,33 @@ pub fn size_of_varlong(value: i64) -> i32 {
 #[must_use]
 pub fn utf8_length(s: &str) -> i32 {
     encoded_len_i32(s.len())
+}
+
+/// Java `String.trim` emptiness: strip UTF-16 code units at or below U+0020.
+fn java_trim_is_empty(s: &str) -> bool {
+    s.trim_matches(|c: char| c <= '\u{20}').is_empty()
+}
+
+/// Java `Utils.isBlank`.
+///
+/// `None` is Java `null`. Java `String.trim` strips code units at or below
+/// U+0020 (not Unicode White_Space), so NBSP is not blank.
+#[must_use]
+pub fn is_blank(s: Option<&str>) -> bool {
+    s.is_none_or(java_trim_is_empty)
+}
+
+/// Java `Utils.replaceSuffix`.
+///
+/// When `s` does not end with `old_suffix`, this is [`Error::protocol`]
+/// (`Expected string to end with … but string is …`).
+pub fn replace_suffix(s: &str, old_suffix: &str, new_suffix: &str) -> Result<String> {
+    match s.strip_suffix(old_suffix) {
+        Some(stem) => Ok(format!("{stem}{new_suffix}")),
+        None => Err(Error::protocol(format!(
+            "Expected string to end with {old_suffix} but string is {s}"
+        ))),
+    }
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -955,6 +983,40 @@ mod tests {
         let bits = [0i8, 3, 7, 31];
         let packed = to_32_bit_field(bits).unwrap();
         assert_eq!(from_32_bit_field(packed), HashSet::from(bits));
+    }
+
+    #[test]
+    fn is_blank_matches_java_utils() {
+        assert!(is_blank(None));
+        assert!(is_blank(Some("")));
+        assert!(is_blank(Some(" ")));
+        assert!(is_blank(Some("\t\n\r")));
+        assert!(is_blank(Some("\0")));
+        assert!(is_blank(Some(" \t \0 ")));
+        assert!(!is_blank(Some("a")));
+        assert!(!is_blank(Some(" a ")));
+        assert!(
+            !is_blank(Some("\u{00A0}")),
+            "Java String.trim does not strip NBSP"
+        );
+        assert!(
+            !is_blank(Some("\u{2000}")),
+            "Java String.trim does not strip Unicode White_Space above U+0020"
+        );
+
+        assert_eq!(
+            replace_suffix("foo.log", ".log", ".tmp").unwrap(),
+            "foo.tmp"
+        );
+        assert_eq!(replace_suffix(".log", ".log", ".tmp").unwrap(), ".tmp");
+        assert_eq!(replace_suffix("foo", "", ".tmp").unwrap(), "foo.tmp");
+        let missing = replace_suffix("foo.log", ".tmp", ".bak")
+            .unwrap_err()
+            .to_string();
+        assert!(
+            missing.contains("Expected string to end with .tmp but string is foo.log"),
+            "{missing}"
+        );
     }
 
     #[test]
