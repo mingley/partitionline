@@ -90,6 +90,8 @@
 //! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
 //! `CURRENT_MAGIC_VALUE`. [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java
 //! `DefaultRecordBatch.RECORD_BATCH_OVERHEAD` (`61`).
+//! [`Record::MAX_RECORD_OVERHEAD`] is Java `DefaultRecord.MAX_RECORD_OVERHEAD`
+//! (`21`).
 //! [`Admin::get_telemetry_subscriptions`] / [`Admin::push_telemetry`] take
 //! [`Uuid`] or `[u8; 16]`.
 //!

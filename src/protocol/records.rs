@@ -227,6 +227,8 @@ pub struct Record {
 impl Record {
     /// Java `Record.EMPTY_HEADERS`.
     pub const EMPTY_HEADERS: &'static [Header] = &[];
+    /// Java `DefaultRecord.MAX_RECORD_OVERHEAD` (max bytes excluding key, value, and headers).
+    pub const MAX_RECORD_OVERHEAD: i32 = 21;
 
     /// Java `Record.offset`.
     #[must_use]
@@ -1227,6 +1229,7 @@ mod tests {
         assert_eq!(empty.key_size(), -1);
         assert_eq!(empty.value_size(), -1);
         assert_eq!(empty.headers(), Record::EMPTY_HEADERS);
+        assert_eq!(Record::MAX_RECORD_OVERHEAD, 21);
         assert_eq!(
             empty.to_string(),
             "DefaultRecord(offset=0, timestamp=0, key=0 bytes, value=0 bytes)"
