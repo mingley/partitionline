@@ -11005,6 +11005,8 @@ impl DescribableLogDirTopic {
 /// lists no `errorCodes`. Request has no ErrorCode field. `Topics` is
 /// nullable: null means all topics. v5 is a named STATUS hole and is
 /// not spoken.
+/// [`Self::is_all_topic_partitions`] is Java
+/// `DescribeLogDirsRequest.isAllTopicPartitions`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeLogDirsRequest {
     /// Topics in this request or response.
@@ -11015,6 +11017,15 @@ impl DescribeLogDirsRequest {
     /// Construct [`Self`].
     pub fn new(topics: Option<Vec<DescribableLogDirTopic>>) -> Self {
         Self { topics }
+    }
+
+    /// Java `DescribeLogDirsRequest.isAllTopicPartitions`.
+    ///
+    /// Null `Topics` means every topic-partition. An empty list is not
+    /// all topics.
+    #[must_use]
+    pub fn is_all_topic_partitions(&self) -> bool {
+        self.topics.is_none()
     }
 }
 
@@ -19822,15 +19833,19 @@ mod tests {
         const RESP_EMPTY: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
         let req =
             DescribeLogDirsRequest::new(Some(vec![DescribableLogDirTopic::new("t", vec![0])]));
+        assert!(!req.is_all_topic_partitions());
         let mut buf = BytesMut::new();
         encode_describe_log_dirs_request(&mut buf, 4, &req).unwrap();
         assert_eq!(&buf[..], REQ);
         buf.clear();
-        encode_describe_log_dirs_request(&mut buf, 4, &DescribeLogDirsRequest::new(Some(vec![])))
-            .unwrap();
+        let empty = DescribeLogDirsRequest::new(Some(vec![]));
+        assert!(!empty.is_all_topic_partitions());
+        encode_describe_log_dirs_request(&mut buf, 4, &empty).unwrap();
         assert_eq!(&buf[..], REQ_EMPTY);
         buf.clear();
-        encode_describe_log_dirs_request(&mut buf, 4, &DescribeLogDirsRequest::new(None)).unwrap();
+        let all = DescribeLogDirsRequest::new(None);
+        assert!(all.is_all_topic_partitions());
+        encode_describe_log_dirs_request(&mut buf, 4, &all).unwrap();
         assert_eq!(&buf[..], REQ_NULL);
         let resp = DescribeLogDirsResponse::new(crate::error::CLUSTER_AUTHORIZATION_FAILED, vec![]);
         buf.clear();

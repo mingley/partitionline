@@ -170,7 +170,9 @@
 //! [`protocol::admin::DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES`] /
 //! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /
 //! [`protocol::admin::DescribeLogDirsResponse::should_client_throttle`] are Java
-//! `DescribeLogDirsResponse` sentinels / `shouldClientThrottle` (v1+)),
+//! `DescribeLogDirsResponse` sentinels / `shouldClientThrottle` (v1+);
+//! [`DescribeLogDirsRequest::is_all_topic_partitions`] is Java
+//! `DescribeLogDirsRequest.isAllTopicPartitions`),
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester;
 //! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
 //! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+)),
@@ -416,7 +418,8 @@
 //! `FeatureUpdate.UpgradeType.code` / `fromCode` (Java `UNKNOWN` is `None`).
 //! Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
 //! `UpgradeType.UPGRADE` and a negative maxVersionLevel (checked at
-//! UpdateFeatures encode). Java `SupportedVersionRange` /
+//! UpdateFeatures encode). [`FeatureUpdate::is_delete_request`] is Java
+//! `UpdateFeaturesRequest.FeatureUpdateItem.isDeleteRequest`. Java `SupportedVersionRange` /
 //! `FinalizedVersionRange` constructors reject a negative min or max, or
 //! max below min.
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /

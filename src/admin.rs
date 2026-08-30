@@ -1846,6 +1846,8 @@ impl fmt::Display for OngoingReassignment {
 /// `UNKNOWN`. Java `FeatureUpdate` constructor rejects maxVersionLevel 0
 /// with [`UPGRADE_TYPE_UPGRADE`] and a negative maxVersionLevel; this crate
 /// checks those rules when encoding UpdateFeatures.
+/// [`Self::is_delete_request`] is Java
+/// `UpdateFeaturesRequest.FeatureUpdateItem.isDeleteRequest`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdate {
     /// Feature name (for example `metadata.version`).
@@ -1905,6 +1907,16 @@ impl FeatureUpdate {
     #[must_use]
     pub fn max_version_level(&self) -> i16 {
         self.max_version_level
+    }
+
+    /// Java `UpdateFeaturesRequest.FeatureUpdateItem.isDeleteRequest`.
+    ///
+    /// True when `maxVersionLevel` is below 1 and the upgrade type is not
+    /// [`UPGRADE_TYPE_UPGRADE`]. Encode still rejects level 0 with
+    /// `UpgradeType.UPGRADE` and a negative level.
+    #[must_use]
+    pub fn is_delete_request(&self) -> bool {
+        self.max_version_level < 1 && self.upgrade_type != UPGRADE_TYPE_UPGRADE
     }
 }
 
@@ -11993,6 +12005,7 @@ mod tests {
         let update = FeatureUpdate::new("metadata.version", 20);
         assert_eq!(update.name(), "metadata.version");
         assert_eq!(update.max_version_level(), 20);
+        assert!(!update.is_delete_request());
         assert_eq!(
             update.to_string(),
             "FeatureUpdate{maxVersionLevel:20, upgradeType:UPGRADE}"
@@ -12003,12 +12016,22 @@ mod tests {
                 .to_string(),
             "FeatureUpdate{maxVersionLevel:20, upgradeType:SAFE_DOWNGRADE}"
         );
+        assert!(!FeatureUpdate::new("metadata.version", 20)
+            .upgrade_type(UpgradeType::SafeDowngrade)
+            .is_delete_request());
         assert_eq!(
             FeatureUpdate::new("metadata.version", 0)
                 .upgrade_type(UpgradeType::UnsafeDowngrade)
                 .to_string(),
             "FeatureUpdate{maxVersionLevel:0, upgradeType:UNSAFE_DOWNGRADE}"
         );
+        assert!(FeatureUpdate::new("metadata.version", 0)
+            .upgrade_type(UpgradeType::UnsafeDowngrade)
+            .is_delete_request());
+        assert!(FeatureUpdate::new("metadata.version", 0)
+            .upgrade_type(UpgradeType::SafeDowngrade)
+            .is_delete_request());
+        assert!(!FeatureUpdate::new("metadata.version", 0).is_delete_request());
         assert_eq!(UpgradeType::Upgrade.to_string(), "UPGRADE");
         assert_eq!(UpgradeType::SafeDowngrade.to_string(), "SAFE_DOWNGRADE");
         assert_eq!(UpgradeType::UnsafeDowngrade.to_string(), "UNSAFE_DOWNGRADE");
