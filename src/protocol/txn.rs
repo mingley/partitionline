@@ -1,6 +1,7 @@
 //! AddPartitionsToTxn, AddOffsetsToTxn, EndTxn, WriteTxnMarkers, and
 //! TxnOffsetCommit (api keys 24–28).
 
+use std::collections::HashMap;
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -587,6 +588,21 @@ impl TxnOffsetCommitResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `TxnOffsetCommitResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[TxnOffsetCommitResponseTopic]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
     }
 }
 
@@ -1338,6 +1354,7 @@ pub fn decode_write_txn_markers_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn transaction_v2_version_caps_match_java() {
@@ -1354,6 +1371,42 @@ mod tests {
         assert!(EndTxnResponse::should_client_throttle(1));
         assert!(!TxnOffsetCommitResponse::should_client_throttle(0));
         assert!(TxnOffsetCommitResponse::should_client_throttle(1));
+    }
+
+    #[test]
+    fn txn_offset_commit_response_error_counts_matches_java() {
+        assert!(TxnOffsetCommitResponse::error_counts(&[]).is_empty());
+        let counts = TxnOffsetCommitResponse::error_counts(&[
+            TxnOffsetCommitResponseTopic {
+                topic: "ok".into(),
+                partitions: vec![
+                    TxnOffsetCommitResponsePartition::error(0, 0),
+                    TxnOffsetCommitResponsePartition::error(
+                        1,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    ),
+                ],
+            },
+            TxnOffsetCommitResponseTopic {
+                topic: "missing".into(),
+                partitions: vec![TxnOffsetCommitResponsePartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            TxnOffsetCommitResponseTopic {
+                topic: "ok2".into(),
+                partitions: vec![TxnOffsetCommitResponsePartition::error(0, 0)],
+            },
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
     }
 
     #[test]

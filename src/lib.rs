@@ -355,6 +355,8 @@
 //! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
 //! [`protocol::txn::TxnOffsetCommitResponse::should_client_throttle`] is Java
 //! `TxnOffsetCommitResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::TxnOffsetCommitResponse::error_counts`] is Java
+//! `TxnOffsetCommitResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::txn::TxnOffsetTopic::error_result`] /
 //! [`protocol::txn::TxnOffsetTopic::error_results`] /
 //! [`protocol::txn::TxnOffsetCommitResponsePartition::error`] are Java
