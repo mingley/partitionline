@@ -601,6 +601,9 @@
 //! (`Found invalid record count` / leftover records after the declared
 //! count / premature EOF). A declared count of zero does not scan leftover
 //! record bytes (Java `iterator()` returns empty).
+//! [`protocol::records::decode_record_batch`] matches Java
+//! `DefaultRecordBatch.ensureValid` (`Record batch is corrupt` size
+//! overhead / `Record is corrupt` stored vs computed CRC).
 //! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
 //! [`Record::has_magic`] / [`Record::is_compressed`] /
 //! [`Record::has_timestamp_type`] match Java `Record.hasMagic` /

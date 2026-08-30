@@ -1408,12 +1408,15 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
 /// Batch record-count checks match Java `DefaultRecordBatch.RecordIterator`
 /// (`Found invalid record count`, leftover records after the declared
 /// count, premature EOF when the count is larger than the payload).
+/// Size and CRC checks match Java `DefaultRecordBatch.ensureValid`.
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
-    if batch_len < RecordBatch::RECORD_BATCH_OVERHEAD - Records::LOG_OVERHEAD {
+    let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(batch_len);
+    if size_in_bytes < RecordBatch::RECORD_BATCH_OVERHEAD {
         return Err(Error::protocol(format!(
-            "record batch too small: {batch_len}"
+            "Record batch is corrupt (the size {size_in_bytes} is smaller than the minimum allowed overhead {})",
+            RecordBatch::RECORD_BATCH_OVERHEAD
         )));
     }
     let batch_len_usize = buf::usize_from_i32(batch_len)?;
@@ -1428,7 +1431,7 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let computed = crc32c::crc32c(&body);
     if computed != crc {
         return Err(Error::protocol(format!(
-            "record batch crc mismatch: wire={crc:#010x} computed={computed:#010x}"
+            "Record is corrupt (stored crc = {crc}, computed crc = {computed})"
         )));
     }
     let attributes = buf::get_i16(&mut body)?;
@@ -2306,6 +2309,39 @@ mod tests {
         patch_batch_count(&mut zero, 0);
         let skipped = decode_record_batch(&mut zero.as_ref()).unwrap();
         assert!(skipped.records.is_empty());
+    }
+
+    #[test]
+    fn decode_record_batch_ensure_valid_match_java() {
+        let mut too_small = BytesMut::new();
+        too_small.put_i64(0);
+        too_small.put_i32(0);
+        let small_err = decode_record_batch(&mut too_small.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            small_err.contains(
+                "Record batch is corrupt (the size 12 is smaller than the minimum allowed overhead 61)"
+            ),
+            "{small_err}"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &RecordBatch::from_records(vec![sample_record()])).unwrap();
+        let crc_off = RecordBatch::CRC_OFFSET as usize;
+        let attr = crc_off + 4;
+        buf[attr] ^= 0xff;
+        let stored = u32::from_be_bytes(buf[crc_off..crc_off + 4].try_into().unwrap());
+        let computed = crc32c::crc32c(&buf[attr..]);
+        let crc_err = decode_record_batch(&mut buf.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            crc_err.contains(&format!(
+                "Record is corrupt (stored crc = {stored}, computed crc = {computed})"
+            )),
+            "{crc_err}"
+        );
     }
 
     #[test]
