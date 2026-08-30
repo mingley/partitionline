@@ -1195,6 +1195,9 @@ impl fmt::Display for AclBindingFilter {
 }
 
 /// Per-filter DeleteAcls result (Java `DeleteAclsResult.FilterResults`).
+///
+/// [`Self::error`] is Java `DeleteAclsRequest.getErrorResponse` one
+/// FilterResult (`ErrorCode`; MatchingAcls stay the JSON default, empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedAclsFilterResult {
     /// Filter-level error, or `0`.
@@ -1222,6 +1225,29 @@ impl DeletedAclsFilterResult {
     #[must_use]
     pub fn matching(&self) -> &[AclBinding] {
         &self.matching
+    }
+
+    /// Java `DeleteAclsRequest.getErrorResponse` one FilterResult.
+    ///
+    /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
+    /// official Java also sets the English `Errors.message` string.
+    /// MatchingAcls stay the JSON default (empty); request filter
+    /// fields are not copied. Throttle on the response is the JSON
+    /// default (`0`).
+    #[must_use]
+    pub fn error(error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            matching: Vec::new(),
+        }
+    }
+
+    /// Java `DeleteAclsRequest.getErrorResponse` FilterResults
+    /// (`Collections.nCopies`).
+    #[must_use]
+    pub fn error_results(n: usize, error_code: i16) -> Vec<Self> {
+        vec![Self::error(error_code); n]
     }
 }
 
@@ -2154,6 +2180,75 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteAcls v2 Filters of 2 must be leftover-empty"
+        );
+
+        let err =
+            DeletedAclsFilterResult::error_results(2, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        let first = err.first().expect("first filter");
+        assert_eq!(
+            first.error_code(),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED
+        );
+        assert!(first.error_message().is_none());
+        assert!(first.matching().is_empty());
+        assert_eq!(
+            err,
+            vec![
+                DeletedAclsFilterResult::error(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                DeletedAclsFilterResult::error(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        buf.clear();
+        encode_delete_acls_filter_results(&mut buf, 2, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(decode_delete_acls_filter_results(&mut cur, 2).unwrap(), err);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls v2 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_delete_acls_filter_results(&mut buf, 3, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(decode_delete_acls_filter_results(&mut cur, 3).unwrap(), err);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls v3 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_delete_acls_filter_results(&mut buf, 1, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(decode_delete_acls_filter_results(&mut cur, 1).unwrap(), err);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_delete_acls_filter_results(&mut buf, 0, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(decode_delete_acls_filter_results(&mut cur, 0).unwrap(), err);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let empty =
+            DeletedAclsFilterResult::error_results(0, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_delete_acls_filter_results(&mut buf, 2, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_delete_acls_filter_results(&mut cur, 2).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteAcls empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

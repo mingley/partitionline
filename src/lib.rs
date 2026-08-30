@@ -236,7 +236,12 @@
 //! [`protocol::acl::CreateAclsResponse::should_client_throttle`] /
 //! [`protocol::acl::DescribeAclsResponse::should_client_throttle`] /
 //! [`protocol::acl::DeleteAclsResponse::should_client_throttle`] are Java
-//! `shouldClientThrottle` (v1+)),
+//! `shouldClientThrottle` (v1+);
+//! [`DeletedAclsFilterResult::error`] / [`DeletedAclsFilterResult::error_results`]
+//! are Java `DeleteAclsRequest.getErrorResponse` (one FilterResult /
+//! `nCopies`). MatchingAcls stay the JSON default (empty); `ErrorMessage`
+//! stays the JSON default (null); official Java also sets the English
+//! `Errors.message` string. Throttle is the JSON default (`0`)),
 //! AddPartitionsToTxn v0–v3 (v3 flexible;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
 //! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+)), AddOffsetsToTxn v0–v4
