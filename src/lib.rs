@@ -68,7 +68,17 @@
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
 //! [`protocol::group::FindCoordinatorResponse::should_client_throttle`] is Java
-//! `FindCoordinatorResponse.shouldClientThrottle` (v2+).
+//! `FindCoordinatorResponse.shouldClientThrottle` (v2+);
+//! [`protocol::group::CoordinatorResult::error`] /
+//! [`protocol::group::CoordinatorResult::error_for_key`] /
+//! [`protocol::group::FindCoordinatorResponse::prepare_error_response`] /
+//! [`protocol::group::FindCoordinatorResponse::error_results`] are Java
+//! `FindCoordinatorResponse.prepareOldResponse` /
+//! `prepareCoordinatorResponse` / `prepareErrorResponse` /
+//! `FindCoordinatorRequest.getErrorResponse` (`Node.noNode`; empty Key
+//! below v4). `ErrorMessage` stays the JSON default (null); official Java
+//! also sets the English `Errors.message` string. Throttle is the JSON
+//! default (`0`).
 //! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
