@@ -1349,6 +1349,34 @@ impl RecordBatch {
         Ok(Self::encoded_last_offset(buffer)?.wrapping_add(1))
     }
 
+    fn write_i64_be(buffer: &mut [u8], offset: usize, value: i64) -> Result<()> {
+        let have = buffer.len().saturating_sub(offset);
+        let end = offset
+            .checked_add(8)
+            .ok_or_else(|| Error::protocol(format!("need 8 bytes, have {have}")))?;
+        let slice = buffer
+            .get_mut(offset..end)
+            .ok_or_else(|| Error::protocol(format!("need 8 bytes, have {have}")))?;
+        slice.copy_from_slice(&value.to_be_bytes());
+        Ok(())
+    }
+
+    /// Java `DefaultRecordBatch.setLastOffset` on a buffer.
+    ///
+    /// Writes `baseOffset` so [`Self::encoded_last_offset`] equals
+    /// `last_offset` (`lastOffset` minus header `lastOffsetDelta`, wrapping
+    /// subtract). Does not recompute CRC (base offset is before
+    /// [`Self::ATTRIBUTES_OFFSET`]). Distinct from mutating this batch's
+    /// [`Self::base_offset`]. Short last-offset-delta is
+    /// [`Error::protocol`] `need 4 bytes`.
+    pub fn set_last_offset(buffer: &mut [u8], last_offset: i64) -> Result<()> {
+        let delta_off = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
+        let delta = buf::read_int_be(buffer, delta_off)?;
+        let base = last_offset.wrapping_sub(i64::from(delta));
+        let base_off = buf::usize_from_i32(Records::OFFSET_OFFSET)?;
+        Self::write_i64_be(buffer, base_off, base)
+    }
+
     /// Java `DefaultRecordBatch.lastSequence` on a buffer.
     ///
     /// [`Self::NO_SEQUENCE`] when the stored base sequence is unset (delta is
@@ -3373,6 +3401,55 @@ mod tests {
             Some(0)
         );
         let short = RecordBatch::encoded_count_or_null(&[0; 56])
+            .unwrap_err()
+            .to_string();
+        assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn set_last_offset_matches_java_default_record_batch() {
+        let one = RecordBatch::from_records(vec![sample_record()]);
+        let mut one_buf = BytesMut::new();
+        encode_record_batch(&mut one_buf, &one).unwrap();
+        assert_eq!(RecordBatch::encoded_last_offset(&one_buf).unwrap(), 0);
+        RecordBatch::set_last_offset(&mut one_buf, 10).unwrap();
+        assert_eq!(RecordBatch::encoded_last_offset(&one_buf).unwrap(), 10);
+        assert_eq!(RecordBatch::encoded_next_offset(&one_buf).unwrap(), 11);
+        assert_eq!(one.last_offset(), 0);
+        assert!(RecordBatch::is_valid(&one_buf).unwrap());
+        let decoded = decode_record_batch(&mut &one_buf[..]).unwrap();
+        assert_eq!(decoded.base_offset, 10);
+        assert_eq!(decoded.records[0].offset, 10);
+
+        let mut two = BytesMut::new();
+        encode_record_batch(
+            &mut two,
+            &RecordBatch::from_records(vec![sample_record(), sample_record()]),
+        )
+        .unwrap();
+        two[23..27].copy_from_slice(&5i32.to_be_bytes());
+        RecordBatch::set_last_offset(&mut two, 10).unwrap();
+        assert_eq!(&two[0..8], &5i64.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_last_offset(&two).unwrap(), 10);
+
+        let empty = RecordBatch::from_records(vec![]);
+        let mut empty_buf = BytesMut::new();
+        encode_record_batch(&mut empty_buf, &empty).unwrap();
+        RecordBatch::set_last_offset(&mut empty_buf, 7).unwrap();
+        assert_eq!(RecordBatch::encoded_last_offset(&empty_buf).unwrap(), 7);
+        assert_eq!(empty.last_offset(), -1);
+
+        let mut wrap = [0u8; 27];
+        wrap[23..27].copy_from_slice(&1i32.to_be_bytes());
+        RecordBatch::set_last_offset(&mut wrap, i64::MIN).unwrap();
+        assert_eq!(&wrap[0..8], &i64::MAX.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_last_offset(&wrap).unwrap(), i64::MIN);
+
+        let mut zeros = [0u8; 27];
+        RecordBatch::set_last_offset(&mut zeros, 42).unwrap();
+        assert_eq!(&zeros[0..8], &42i64.to_be_bytes());
+
+        let short = RecordBatch::set_last_offset(&mut [0u8; 26], 1)
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");

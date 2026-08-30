@@ -963,6 +963,9 @@
 //! [`RecordBatch::encoded_count_or_null`] is Java
 //! `DefaultRecordBatch.countOrNull` on a buffer (header records count;
 //! magic-v2 is always `Some`).
+//! [`RecordBatch::set_last_offset`] is Java `DefaultRecordBatch.setLastOffset`
+//! on a buffer (`baseOffset` is `lastOffset` minus `lastOffsetDelta`;
+//! wrapping subtract; CRC is unchanged).
 //! [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
@@ -1041,6 +1044,8 @@
 //! [`RecordBatch::encoded_last_offset`] / [`RecordBatch::encoded_next_offset`]
 //! / [`RecordBatch::encoded_last_sequence`] are Java
 //! `DefaultRecordBatch.lastOffset` / `nextOffset` / `lastSequence` on a buffer.
+//! [`RecordBatch::set_last_offset`] is Java `DefaultRecordBatch.setLastOffset`
+//! on a buffer.
 //! [`RecordBatch::is_compressed`] is Java `isCompressed`.
 //! [`RecordBatch::offset_of_max_timestamp`] /
 //! [`RecordBatch::delete_horizon_ms`] are Java `offsetOfMaxTimestamp` /
