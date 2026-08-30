@@ -1396,6 +1396,24 @@ impl DeleteTopicsRequest {
             Vec::new()
         }
     }
+
+    /// Java `DeleteTopicsRequest.topicNames`.
+    ///
+    /// v6+ each Topic's Name (`None` when deleting by TopicId). Below v6 Java
+    /// returns the TopicNames list, so id-only (null Name) entries are
+    /// omitted.
+    #[must_use]
+    pub fn topic_names(version: i16, topics: &[DeleteTopicState]) -> Vec<Option<&str>> {
+        if version >= 6 {
+            topics.iter().map(|topic| topic.name.as_deref()).collect()
+        } else {
+            topics
+                .iter()
+                .filter_map(|topic| topic.name.as_deref())
+                .map(Some)
+                .collect()
+        }
+    }
 }
 
 /// DeleteTopics v0–6 (classic through v3; flexible from v4).
@@ -8061,6 +8079,28 @@ impl DescribeGroupsResponse {
             *count += 1;
         }
         counts
+    }
+}
+
+/// Java `DescribeGroupsRequest` helpers.
+pub struct DescribeGroupsRequest;
+
+impl DescribeGroupsRequest {
+    /// Java `DescribeGroupsRequest.getErrorDescribedGroupList`.
+    ///
+    /// Each group is [`DescribedGroup::new`] (`DescribeGroupsResponse.groupError`).
+    /// JSON defaults match: empty state / protocol strings and
+    /// [`DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn error_described_group_list<I>(group_ids: I, error_code: i16) -> Vec<DescribedGroup>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        group_ids
+            .into_iter()
+            .map(|id| DescribedGroup::new(id, error_code))
+            .collect()
     }
 }
 
@@ -15542,6 +15582,17 @@ mod tests {
         let by_name = [DeleteTopicState::by_name("t")];
         assert_eq!(DeleteTopicsRequest::topic_ids(6, &by_name), vec![[0u8; 16]]);
         assert!(DeleteTopicsRequest::topic_ids(6, &[]).is_empty());
+        assert_eq!(DeleteTopicsRequest::topic_names(6, &by_id), vec![None]);
+        assert!(DeleteTopicsRequest::topic_names(5, &by_id).is_empty());
+        assert_eq!(
+            DeleteTopicsRequest::topic_names(5, &by_name),
+            vec![Some("t")]
+        );
+        assert_eq!(
+            DeleteTopicsRequest::topic_names(6, &by_name),
+            vec![Some("t")]
+        );
+        assert!(DeleteTopicsRequest::topic_names(6, &[]).is_empty());
     }
 
     #[test]
@@ -20086,6 +20137,15 @@ mod tests {
             resp[0].authorized_operations,
             DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED
         );
+        assert_eq!(
+            DescribeGroupsRequest::error_described_group_list(["g"], crate::error::NOT_COORDINATOR),
+            resp
+        );
+        assert!(DescribeGroupsRequest::error_described_group_list(
+            Vec::<String>::new(),
+            crate::error::NOT_COORDINATOR
+        )
+        .is_empty());
         assert_eq!(
             DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED,
             AUTHORIZED_OPERATIONS_OMITTED

@@ -268,8 +268,11 @@
 //! [`protocol::admin::TopicResult::error`] /
 //! [`protocol::admin::DeleteTopicState::error_result`] are Java
 //! `DeleteTopicsRequest.getErrorResponse` (one topic);
-//! [`protocol::admin::DeleteTopicsRequest::topic_ids`] is Java
-//! `DeleteTopicsRequest.topicIds` (empty below v6; otherwise each TopicId)),
+//! [`protocol::admin::DeleteTopicsRequest::topic_ids`] /
+//! [`protocol::admin::DeleteTopicsRequest::topic_names`] are Java
+//! `DeleteTopicsRequest.topicIds` / `topicNames` (topic IDs empty below v6;
+//! v6+ names include null when deleting by TopicId; below v6 id-only
+//! entries are omitted)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
@@ -278,6 +281,9 @@
 //! [`protocol::admin::DescribeGroupsResponse::should_client_throttle`] are Java
 //! `DescribeGroupsResponse` error sentinels / `shouldClientThrottle` (v2+);
 //! [`DescribedGroup::new`] is Java `groupError`;
+//! [`protocol::admin::DescribeGroupsRequest::error_described_group_list`] is Java
+//! `DescribeGroupsRequest.getErrorDescribedGroupList` (each id through
+//! [`DescribedGroup::new`]);
 //! [`protocol::admin::DescribeGroupsResponse::error_counts`] is Java
 //! `DescribeGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
