@@ -27,21 +27,21 @@ use partitionline::protocol::api_keys::{
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AbortTransactionSpec, AcknowledgeType, AclBinding, AclBindingFilter, AclResourceType,
-    Admin, AdminConfig, AlterConfig, AlterConfigOpType, AlterReplicaLogDirsDirectory,
-    AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic,
-    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
-    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter,
-    ClientQuotaFilterComponent, ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement,
-    ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer,
-    ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
-    DeleteShareGroupOffsetsTopic, DeletedRecords, DescribableLogDirTopic, DescribeClusterBroker,
-    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
-    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
-    FeatureUpdate, GroupProtocol, GroupState, GroupType, IsolationLevel,
-    ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions, NewTopic, Node,
-    OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
-    ProduceRecord, Producer, ProducerConfig, RecordBatch, RecordsToDelete,
+    error, AbortTransactionSpec, AcknowledgeType, AclBinding, AclBindingFilter, AclCreationResult,
+    AclResourceType, Admin, AdminConfig, AlterConfig, AlterConfigOpType,
+    AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic,
+    AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition,
+    AssignReplicasToDirsRequest, AssignReplicasToDirsTopic, ClientQuotaAlteration,
+    ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent, ClientQuotaOp, Compression,
+    Config, ConfigEntry, ConfigReplacement, ConfigResource, ConfigResourceType,
+    ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig, ConsumerGroup,
+    CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic, DeletedRecords,
+    DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
+    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
+    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupProtocol, GroupState,
+    GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment,
+    NewPartitions, NewTopic, Node, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
+    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordBatch, RecordsToDelete,
     RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
     TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
     UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
@@ -4309,7 +4309,7 @@ async fn admin_partitions_alter_configs_and_acls() {
         .create_acls(&[AclBinding::allow_topic("acl-t", "User:alice")])
         .await
         .unwrap();
-    assert_eq!(created, vec![0]);
+    assert_eq!(created, vec![AclCreationResult::error(0)]);
     assert_eq!(
         mock.last_create_acls_version(),
         Some(3),
@@ -4355,7 +4355,7 @@ async fn admin_partitions_alter_configs_and_acls() {
         )
         .await
         .unwrap();
-    assert_eq!(created, vec![0]);
+    assert_eq!(created, vec![AclCreationResult::error(0)]);
     let listed = admin
         .describe_acls_timeout(AclResourceType::Topic, Duration::from_secs(5))
         .await
@@ -4381,7 +4381,10 @@ async fn admin_describe_delete_acls_with_filter() {
         ])
         .await
         .unwrap();
-    assert_eq!(created, vec![0, 0]);
+    assert_eq!(
+        created,
+        vec![AclCreationResult::error(0), AclCreationResult::error(0)]
+    );
 
     let all = admin.describe_acls_any().await.unwrap();
     assert_eq!(all.len(), 2);
@@ -6775,7 +6778,7 @@ async fn create_acls_follows_controller() {
         .create_acls(&[AclBinding::allow_topic("acl2", "User:alice")])
         .await
         .unwrap();
-    assert_eq!(created, vec![0]);
+    assert_eq!(created, vec![AclCreationResult::error(0)]);
     assert_eq!(
         mock.last_create_acls_version(),
         Some(3),
@@ -6792,7 +6795,7 @@ async fn create_acls_follows_controller() {
         .create_acls(&[AclBinding::allow_topic("acl1", "User:bob")])
         .await
         .unwrap();
-    assert_eq!(again, vec![0]);
+    assert_eq!(again, vec![AclCreationResult::error(0)]);
     assert_eq!(
         mock.create_acls_not_controller(),
         1,
@@ -6816,7 +6819,7 @@ async fn acl_apis_negotiate_v0_when_broker_caps() {
         .create_acls(&[AclBinding::allow_topic("acl0", "User:alice")])
         .await
         .unwrap();
-    assert_eq!(created, vec![0]);
+    assert_eq!(created, vec![AclCreationResult::error(0)]);
     assert_eq!(
         mock.last_create_acls_version(),
         Some(0),

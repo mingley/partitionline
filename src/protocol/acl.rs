@@ -1277,6 +1277,54 @@ impl CreateAclsResponse {
     }
 }
 
+/// Per-creation CreateAcls result (Java `AclCreationResult`).
+///
+/// [`Self::error`] / [`Self::error_results`] are Java
+/// `CreateAclsRequest.getErrorResponse` one result / `nCopies`. Request
+/// bindings are not copied.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AclCreationResult {
+    /// Per-creation error, or `0`.
+    pub error_code: i16,
+    /// Per-creation error message.
+    pub error_message: Option<String>,
+}
+
+impl AclCreationResult {
+    /// Per-creation error, or `0`.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Per-creation error message.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Java `CreateAclsRequest.getErrorResponse` one result.
+    ///
+    /// Sets `ErrorCode`. `ErrorMessage` is the JSON default (null);
+    /// official Java also sets the English `Errors.message` string.
+    /// Request ACL bindings are not copied. Throttle on the response is
+    /// the JSON default (`0`).
+    #[must_use]
+    pub fn error(error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+        }
+    }
+
+    /// Java `CreateAclsRequest.getErrorResponse` Results
+    /// (`Collections.nCopies`).
+    #[must_use]
+    pub fn error_results(n: usize, error_code: i16) -> Vec<Self> {
+        vec![Self::error(error_code); n]
+    }
+}
+
 /// Java `DescribeAclsResponse` helpers.
 pub struct DescribeAclsResponse;
 
@@ -1412,14 +1460,21 @@ pub fn decode_create_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result<V
     Ok(out)
 }
 
-/// Encode CreateAcls: throttle `0` plus per-binding error codes.
-pub fn encode_create_acls_response(buf: &mut BytesMut, version: i16, errors: &[i16]) -> Result<()> {
+/// Encode CreateAcls: throttle `0` plus per-binding results.
+///
+/// Each result is [`AclCreationResult`] (ErrorCode; ErrorMessage is the
+/// JSON default, null).
+pub fn encode_create_acls_response(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[AclCreationResult],
+) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     buf.put_i32(0);
-    buf::put_array_len(buf, flexible, Some(errors.len()))?;
-    for e in errors {
-        buf.put_i16(*e);
-        buf::put_string(buf, flexible, None)?;
+    buf::put_array_len(buf, flexible, Some(results.len()))?;
+    for r in results {
+        buf.put_i16(r.error_code);
+        buf::put_string(buf, flexible, r.error_message.as_deref())?;
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
@@ -1430,19 +1485,25 @@ pub fn encode_create_acls_response(buf: &mut BytesMut, version: i16, errors: &[i
     Ok(())
 }
 
-/// Decode CreateAcls: per-binding error codes.
-pub fn decode_create_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<i16>> {
+/// Decode CreateAcls: per-binding [`AclCreationResult`]s.
+pub fn decode_create_acls_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<AclCreationResult>> {
     let flexible = acl_api_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
-        let e = buf::get_i16(buf)?;
-        let _msg = buf::get_string(buf, flexible)?;
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_string(buf, flexible)?;
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        out.push(e);
+        out.push(AclCreationResult {
+            error_code,
+            error_message,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -1823,8 +1884,12 @@ mod tests {
     fn create_acls_not_controller_is_not_at_byte_four() {
         for version in [0i16, 1, 2, 3] {
             let mut buf = BytesMut::new();
-            encode_create_acls_response(&mut buf, version, &[crate::error::NOT_CONTROLLER])
-                .unwrap();
+            encode_create_acls_response(
+                &mut buf,
+                version,
+                &[AclCreationResult::error(crate::error::NOT_CONTROLLER)],
+            )
+            .unwrap();
             let b4 = buf.get(4).copied().unwrap();
             let b5 = buf.get(5).copied().unwrap();
             assert_ne!(
@@ -1835,11 +1900,57 @@ mod tests {
             let mut cur = &buf[..];
             assert_eq!(
                 decode_create_acls_response(&mut cur, version).unwrap(),
-                vec![crate::error::NOT_CONTROLLER]
+                vec![AclCreationResult::error(crate::error::NOT_CONTROLLER)]
             );
             assert!(
                 !cur.has_remaining(),
                 "CreateAcls v{version} NOT_CONTROLLER must be leftover-empty"
+            );
+        }
+    }
+
+    #[test]
+    fn create_acls_get_error_response_does_not_copy_bindings() {
+        let err = AclCreationResult::error_results(2, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        let first = err.first().expect("first creation");
+        assert_eq!(
+            first.error_code(),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED
+        );
+        assert!(first.error_message().is_none());
+        assert_eq!(
+            err,
+            vec![
+                AclCreationResult::error(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                AclCreationResult::error(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        for version in [0i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_acls_response(&mut buf, version, &err).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(decode_create_acls_response(&mut cur, version).unwrap(), err);
+            assert!(
+                !cur.has_remaining(),
+                "CreateAcls v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        let empty = AclCreationResult::error_results(0, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        for version in [0i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_acls_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_create_acls_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "CreateAcls v{version} empty getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
             );
         }
     }

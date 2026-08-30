@@ -26,7 +26,7 @@ use partitionline::group::assign_range_subscribed;
 use partitionline::protocol::acl::{
     decode_create_acls_request, decode_delete_acls_request, decode_describe_acls_request,
     encode_create_acls_response, encode_delete_acls_filter_results, encode_describe_acls_response,
-    AclBinding, AclBindingFilter, DeletedAclsFilterResult,
+    AclBinding, AclBindingFilter, AclCreationResult, DeletedAclsFilterResult,
 };
 use partitionline::protocol::admin::{
     decode_allocate_producer_ids_request, decode_alter_client_quotas_request,
@@ -4051,13 +4051,18 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     encode_create_acls_response(
                         &mut body,
                         version,
-                        &vec![error::NOT_CONTROLLER; n],
+                        &AclCreationResult::error_results(n, error::NOT_CONTROLLER),
                     )
                     .unwrap();
                 } else {
                     st.last_create_acls_node = Some(node_id);
                     st.acls.extend(acls);
-                    encode_create_acls_response(&mut body, version, &vec![0; n]).unwrap();
+                    encode_create_acls_response(
+                        &mut body,
+                        version,
+                        &AclCreationResult::error_results(n, 0),
+                    )
+                    .unwrap();
                 }
             }
             ALTER_PARTITION_REASSIGNMENTS => {

@@ -107,9 +107,9 @@ use crate::protocol::txn::{
 };
 
 pub use crate::protocol::acl::{
-    AccessControlEntry, AccessControlEntryFilter, AclBinding, AclBindingFilter, AclOperation,
-    AclPatternType, AclPermission, AclResourceType, DeletedAclsFilterResult, ResourcePattern,
-    ResourcePatternFilter,
+    AccessControlEntry, AccessControlEntryFilter, AclBinding, AclBindingFilter, AclCreationResult,
+    AclOperation, AclPatternType, AclPermission, AclResourceType, DeletedAclsFilterResult,
+    ResourcePattern, ResourcePatternFilter,
 };
 pub use crate::protocol::admin::{
     ActiveProducer, AlterConfig, AlterConfigOp, AlterConfigOpType, AlterConfigsResourceResult,
@@ -4446,7 +4446,10 @@ impl Admin {
     /// Metadata and retries on the new controller. CreateAcls has no
     /// TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
     /// For a one-shot deadline, use [`Self::create_acls_timeout`].
-    pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<i16>> {
+    /// Returns one [`AclCreationResult`] per request binding (Java
+    /// `CreateAclsResult`; request bindings are not copied into the
+    /// result).
+    pub async fn create_acls(&mut self, acls: &[AclBinding]) -> Result<Vec<AclCreationResult>> {
         let timeout = self.cfg.request_timeout;
         self.create_acls_timeout(acls, timeout).await
     }
@@ -4460,7 +4463,7 @@ impl Admin {
         &mut self,
         acls: &[AclBinding],
         timeout: Duration,
-    ) -> Result<Vec<i16>> {
+    ) -> Result<Vec<AclCreationResult>> {
         let version = self.create_acls_version;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -4495,7 +4498,10 @@ impl Admin {
                 Err(e) => return Err(e),
             };
             let results = decode_create_acls_response(&mut body.clone(), version)?;
-            if results.contains(&error::NOT_CONTROLLER) {
+            if results
+                .iter()
+                .any(|r| r.error_code == error::NOT_CONTROLLER)
+            {
                 // NOT_CONTROLLER (41): Metadata, then the new controller.
                 self.cluster.invalidate_controller();
                 let _ = self.conns.remove(&node);
