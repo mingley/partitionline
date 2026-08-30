@@ -17,12 +17,12 @@ use partitionline::protocol::api_keys::{
     GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, PUSH_TELEMETRY, SHARE_GROUP_DESCRIBE,
 };
 use partitionline::{
-    partition_for_key, AbortTransactionSpec, Acks, Admin, AdminConfig, AutoOffsetReset,
-    Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
+    partition_for_key, AbortTransactionSpec, AcknowledgeType, Acks, Admin, AdminConfig,
+    AutoOffsetReset, Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, GroupProtocol,
     IsolationLevel, ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata,
     OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
-    RecordBatch, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType,
+    RecordBatch, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, ShareRecord, TimestampType,
     TopicPartition, TopicPartitionReplica, Uuid, CONFIG_RESOURCE_CLIENT_METRICS,
     DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP,
     EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
@@ -1756,6 +1756,45 @@ async fn poll_without_subscription_or_assignment_match_java() {
         .to_string();
     assert!(share_timeout.contains(share_msg), "{share_timeout}");
     share_group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn share_acknowledge_before_poll_match_java() {
+    let mock = common::Mock::start().await;
+    let java = "Acknowledge called before poll.";
+    let mut group = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "ackbp",
+        "t",
+    )
+    .await
+    .unwrap();
+    let rec = ShareRecord {
+        topic: "t".into(),
+        partition: 0,
+        offset: 0,
+        timestamp: 0,
+        timestamp_type: TimestampType::CreateTime,
+        key: None,
+        value: None,
+        headers: Vec::new(),
+        delivery_count: 1,
+        leader_epoch: None,
+    };
+    let recs = std::slice::from_ref(&rec);
+    let ack = group
+        .acknowledge(recs, AcknowledgeType::Accept)
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(ack.contains(java), "{ack}");
+    let accept = group.accept(recs).await.unwrap_err().to_string();
+    assert!(accept.contains(java), "{accept}");
+    let release = group.release(recs).await.unwrap_err().to_string();
+    assert!(release.contains(java), "{release}");
+    let reject = group.reject(recs).await.unwrap_err().to_string();
+    assert!(reject.contains(java), "{reject}");
+    group.leave().await.unwrap();
 }
 
 #[tokio::test]

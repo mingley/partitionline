@@ -887,6 +887,8 @@ impl ShareGroup {
     /// Acknowledge records as successfully processed (`ACCEPT`).
     ///
     /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.ACCEPT)`.
+    /// Called before [`Self::poll`] is Java `IllegalStateException`
+    /// (`Acknowledge called before poll.`).
     pub async fn accept(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, AcknowledgeType::Accept).await
     }
@@ -894,6 +896,8 @@ impl ShareGroup {
     /// Return records to the share (`RELEASE`).
     ///
     /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.RELEASE)`.
+    /// Called before [`Self::poll`] is the same Java `IllegalStateException`
+    /// as [`Self::acknowledge`].
     pub async fn release(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, AcknowledgeType::Release).await
     }
@@ -901,11 +905,16 @@ impl ShareGroup {
     /// Reject records (`REJECT`, KIP-932).
     ///
     /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.REJECT)`.
+    /// Called before [`Self::poll`] is the same Java `IllegalStateException`
+    /// as [`Self::acknowledge`].
     pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
         self.acknowledge(recs, AcknowledgeType::Reject).await
     }
 
     /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType)`.
+    ///
+    /// Called before [`Self::poll`] is Java `IllegalStateException`
+    /// (`Acknowledge called before poll.`).
     pub async fn acknowledge(&mut self, recs: &[ShareRecord], ack: AcknowledgeType) -> Result<()> {
         self.send_acknowledgements(recs, ack.id()).await
     }
@@ -1229,9 +1238,10 @@ impl ShareGroup {
         let timeout = self.cfg.request_timeout;
         for (node, node_tps) in by_leader {
             let epoch = self.session_epoch(node);
-            if epoch == ShareRequestMetadata::INITIAL_EPOCH
-                || epoch == ShareRequestMetadata::FINAL_EPOCH
-            {
+            if epoch == ShareRequestMetadata::INITIAL_EPOCH {
+                return Err(reject_java_acknowledge_before_poll());
+            }
+            if epoch == ShareRequestMetadata::FINAL_EPOCH {
                 return Err(Error::protocol(
                     "ShareAcknowledge requires an open share session (poll first)",
                 ));
@@ -1518,6 +1528,12 @@ fn reject_java_share_group_id(group_id: &str) -> Result<()> {
 /// Java `ShareConsumerImpl.poll` when `hasNoSubscriptionOrUserAssignment`.
 fn reject_java_share_not_subscribed() -> Error {
     Error::protocol("Consumer is not subscribed to any topics.")
+}
+
+/// Java `ShareConsumerImpl.ensureExplicitAcknowledgement` when the mode is
+/// `UNKNOWN` (acknowledge before the first poll).
+fn reject_java_acknowledge_before_poll() -> Error {
+    Error::protocol("Acknowledge called before poll.")
 }
 
 /// Collapse records into KIP-932 acknowledgement batches.

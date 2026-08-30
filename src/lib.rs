@@ -1167,7 +1167,8 @@
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
-//! [`ShareGroup::acknowledge`];
+//! [`ShareGroup::acknowledge`] (acknowledge before [`ShareGroup::poll`] is
+//! `Acknowledge called before poll.`);
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs;
