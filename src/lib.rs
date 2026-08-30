@@ -140,7 +140,15 @@
 //! [`protocol::api::ApiVersionsResponse::intersect`] are Java
 //! `ApiVersionsResponse.apiVersion` / `UNKNOWN_FINALIZED_FEATURES_EPOCH` /
 //! `shouldClientThrottle` / `intersect` (`null` is `None`; mismatched api
-//! keys are `IllegalArgumentException`)),
+//! keys are `IllegalArgumentException`);
+//! [`protocol::api::SupportedFeatureKey::name`] /
+//! [`protocol::api::SupportedFeatureKey::min_version`] /
+//! [`protocol::api::SupportedFeatureKey::max_version`] /
+//! [`protocol::api::FinalizedFeatureKey::name`] /
+//! [`protocol::api::FinalizedFeatureKey::max_version_level`] /
+//! [`protocol::api::FinalizedFeatureKey::min_version_level`] are Java
+//! `ApiVersionsResponseData.SupportedFeatureKey` / `FinalizedFeatureKey`
+//! getters),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id;
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /

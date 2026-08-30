@@ -53,6 +53,26 @@ pub struct SupportedFeatureKey {
     pub max_version: i16,
 }
 
+impl SupportedFeatureKey {
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.minVersion`.
+    #[must_use]
+    pub fn min_version(&self) -> i16 {
+        self.min_version
+    }
+
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.maxVersion`.
+    #[must_use]
+    pub fn max_version(&self) -> i16 {
+        self.max_version
+    }
+}
+
 /// One finalized feature in ApiVersions v3+ tagged field 2 (KIP-482).
 ///
 /// Wire order is `max_version_level` then `min_version_level`.
@@ -64,6 +84,26 @@ pub struct FinalizedFeatureKey {
     pub max_version_level: i16,
     /// Lowest finalized version.
     pub min_version_level: i16,
+}
+
+impl FinalizedFeatureKey {
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.maxVersionLevel`.
+    #[must_use]
+    pub fn max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
+
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.minVersionLevel`.
+    #[must_use]
+    pub fn min_version_level(&self) -> i16 {
+        self.min_version_level
+    }
 }
 
 /// ApiVersions response body.
@@ -2101,6 +2141,22 @@ mod tests {
         assert!(err
             .to_string()
             .contains("thisVersion.apiKey: 0 must be equal to other.apiKey: 1"));
+        let supported = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        assert_eq!(supported.name(), "metadata.version");
+        assert_eq!(supported.min_version(), 1);
+        assert_eq!(supported.max_version(), 20);
+        let finalized = FinalizedFeatureKey {
+            name: "metadata.version".into(),
+            max_version_level: 20,
+            min_version_level: 1,
+        };
+        assert_eq!(finalized.name(), "metadata.version");
+        assert_eq!(finalized.max_version_level(), 20);
+        assert_eq!(finalized.min_version_level(), 1);
     }
 
     #[test]
