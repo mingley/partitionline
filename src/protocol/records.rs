@@ -1815,12 +1815,7 @@ fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> 
 
 fn read_bytes_varint<B: Buf>(buf: &mut B) -> Result<Option<Bytes>> {
     let len = buf::get_varint(buf)?;
-    if len < 0 {
-        return Ok(None);
-    }
-    let len_usize = buf::usize_from_i32(len)?;
-    buf::need(buf, len_usize)?;
-    Ok(Some(buf.copy_to_bytes(len_usize)))
+    buf::read_bytes(buf, len)
 }
 
 #[cfg(test)]

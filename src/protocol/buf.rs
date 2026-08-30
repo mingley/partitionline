@@ -24,7 +24,10 @@
 //! Java `ByteUtils.readUnsignedInt` / `writeUnsignedInt` (sequential and
 //! indexed Buffer forms) / `readIntBE` / `readUnsignedIntLE` /
 //! `writeUnsignedIntLE` (offset forms; short buffer is
-//! [`Error::protocol`] `need 4 bytes`).
+//! [`Error::protocol`] `need 4 bytes`). [`read_bytes`] / [`read_bytes_at`]
+//! are Java `Utils.readBytes` (sequential `ByteBuffer` form: negative length
+//! is `None`; offset form is absolute; short buffer is [`Error::protocol`]
+//! `need N bytes`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -851,6 +854,33 @@ pub fn write_unsigned_int_le(buffer: &mut [u8], offset: usize, value: i32) -> Re
     Ok(())
 }
 
+/// Java `Utils.readBytes(ByteBuffer, int bytesToRead)`.
+///
+/// Negative length is `None` (Java null). Zero is empty. Short buffer is
+/// [`Error::protocol`] `need N bytes`.
+pub fn read_bytes<B: Buf>(buf: &mut B, bytes_to_read: i32) -> Result<Option<Bytes>> {
+    if bytes_to_read < 0 {
+        return Ok(None);
+    }
+    let n = usize_from_i32(bytes_to_read)?;
+    need(buf, n)?;
+    Ok(Some(buf.copy_to_bytes(n)))
+}
+
+/// Java `Utils.readBytes(ByteBuffer, int offset, int length)` (absolute).
+///
+/// Short buffer is [`Error::protocol`] `need N bytes`.
+pub fn read_bytes_at(buffer: &[u8], offset: usize, length: usize) -> Result<Vec<u8>> {
+    let have = buffer.len();
+    let end = offset
+        .checked_add(length)
+        .ok_or_else(|| Error::protocol(format!("need {length} bytes, have {have}")))?;
+    buffer
+        .get(offset..end)
+        .map(<[u8]>::to_vec)
+        .ok_or_else(|| Error::protocol(format!("need {length} bytes, have {have}")))
+}
+
 /// Read `BOOLEAN` (`INT8 != 0`).
 pub fn get_bool<B: Buf>(buf: &mut B) -> Result<bool> {
     Ok(get_i8(buf)? != 0)
@@ -1396,6 +1426,31 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short_at.contains("need 4 bytes, have 3"), "{short_at}");
+    }
+
+    #[test]
+    fn read_bytes_matches_java_utils() {
+        let mut cur: &[u8] = &[1, 2, 3];
+        assert_eq!(read_bytes(&mut cur, -1).ok(), Some(None));
+        assert_eq!(cur, &[1, 2, 3]);
+        assert_eq!(read_bytes(&mut cur, 0).ok(), Some(Some(Bytes::new())));
+        assert_eq!(cur, &[1, 2, 3]);
+        assert_eq!(
+            read_bytes(&mut cur, 2).ok(),
+            Some(Some(Bytes::from_static(&[1, 2])))
+        );
+        assert_eq!(cur, &[3]);
+        let short = read_bytes(&mut cur, 2).unwrap_err().to_string();
+        assert!(short.contains("need 2 bytes, have 1"), "{short}");
+        let overflow = read_bytes(&mut cur, i32::MIN).ok();
+        assert_eq!(overflow, Some(None));
+
+        assert_eq!(read_bytes_at(&[1, 2, 3, 4], 1, 2).ok(), Some(vec![2, 3]));
+        assert_eq!(read_bytes_at(&[1, 2], 2, 0).ok(), Some(Vec::<u8>::new()));
+        let short_at = read_bytes_at(&[1, 2, 3], 1, 3).unwrap_err().to_string();
+        assert!(short_at.contains("need 3 bytes, have 3"), "{short_at}");
+        let past = read_bytes_at(&[1, 2], 5, 1).unwrap_err().to_string();
+        assert!(past.contains("need 1 bytes, have 2"), "{past}");
     }
 
     #[test]

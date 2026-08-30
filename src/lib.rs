@@ -925,6 +925,9 @@
 //! / `writeUnsignedInt` (sequential and indexed Buffer forms) / `readIntBE` /
 //! `readUnsignedIntLE` / `writeUnsignedIntLE` (offset forms; short buffer is
 //! [`Error::protocol`] `need 4 bytes`).
+//! [`protocol::buf::read_bytes`] / [`protocol::buf::read_bytes_at`] are Java
+//! `Utils.readBytes` (sequential `ByteBuffer` form: negative length is `None`;
+//! offset form is absolute; short buffer is [`Error::protocol`] `need N bytes`).
 //! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
