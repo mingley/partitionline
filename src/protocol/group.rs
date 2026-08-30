@@ -1,6 +1,7 @@
 //! Consumer group codecs: FindCoordinator, Join/Sync/Heartbeat/Leave,
 //! OffsetCommit/OffsetFetch, OffsetDelete, and ConsumerProtocol assignment.
 
+use std::collections::HashMap;
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -2263,6 +2264,21 @@ impl OffsetCommitResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 4
     }
+
+    /// Java `OffsetCommitResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[OffsetCommitResponseTopic]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// Encode OffsetCommit v2–v9.
@@ -3182,6 +3198,7 @@ pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn coordinator_type_matches_java() {
@@ -3234,6 +3251,39 @@ mod tests {
         assert!(SyncGroupResponse::should_client_throttle(2));
         assert!(!HeartbeatResponse::should_client_throttle(1));
         assert!(HeartbeatResponse::should_client_throttle(2));
+    }
+
+    #[test]
+    fn offset_commit_response_error_counts_matches_java() {
+        assert!(OffsetCommitResponse::error_counts(&[]).is_empty());
+        let counts = OffsetCommitResponse::error_counts(&[
+            OffsetCommitResponseTopic {
+                topic: "ok".into(),
+                partitions: vec![
+                    OffsetCommitResponsePartition::error(0, 0),
+                    OffsetCommitResponsePartition::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ],
+            },
+            OffsetCommitResponseTopic {
+                topic: "missing".into(),
+                partitions: vec![OffsetCommitResponsePartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            OffsetCommitResponseTopic {
+                topic: "ok2".into(),
+                partitions: vec![OffsetCommitResponsePartition::error(0, 0)],
+            },
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
     }
 
     #[test]

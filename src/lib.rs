@@ -97,6 +97,8 @@
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
+//! [`protocol::group::OffsetCommitResponse::error_counts`] is Java
+//! `OffsetCommitResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::group::OffsetTopic::error_result`] /
 //! [`protocol::group::OffsetTopic::error_results`] /
 //! [`protocol::group::OffsetCommitResponsePartition::error`] are Java
