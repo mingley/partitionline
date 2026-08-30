@@ -724,8 +724,8 @@ pub struct TopicMetadata {
     pub is_internal: bool,
     /// Partitions.
     pub partitions: Vec<PartitionMetadata>,
-    /// Topic authorized operations (v8+). `i32::MIN` when omitted
-    /// ([`crate::AUTHORIZED_OPERATIONS_OMITTED`]).
+    /// Topic authorized operations (v8+).
+    /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] when omitted.
     pub topic_authorized_operations: i32,
 }
 
@@ -751,6 +751,19 @@ impl MetadataResponse {
     pub const NO_CONTROLLER_ID: i32 = -1;
     /// Java `MetadataResponse.NO_LEADER_ID`.
     pub const NO_LEADER_ID: i32 = -1;
+    /// Java `MetadataResponse.AUTHORIZED_OPERATIONS_OMITTED`.
+    pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
+
+    /// Java `MetadataResponse.hasReliableLeaderEpochs(short)` (private static).
+    /// Public instance `hasReliableLeaderEpochs()` is this check at parse time.
+    ///
+    /// Prior to Metadata v9 (Kafka 2.4), brokers do not propagate leader epoch
+    /// accurately while a reassignment is in progress. Clients must not retain
+    /// those epochs for Fetch, ListOffsets, or OffsetsForLeaderEpoch.
+    #[must_use]
+    pub const fn has_reliable_leader_epochs(version: i16) -> bool {
+        version >= 9
+    }
 
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
@@ -1013,7 +1026,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             let error_code = buf::get_i16(buf)?;
             let partition_index = buf::get_i32(buf)?;
             let leader_id = buf::get_i32(buf)?;
-            let leader_epoch = if version >= 7 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 7 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let replica_nodes = get_int32_array(buf, flexible)?;
             let isr_nodes = get_int32_array(buf, flexible)?;
             let offline_replicas = if version >= 5 {
@@ -1037,7 +1054,7 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
         let topic_authorized_operations = if version >= 8 {
             buf::get_i32(buf)?
         } else {
-            i32::MIN
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
         };
         if flexible {
             buf::skip_tagged_fields(buf)?;
@@ -1131,7 +1148,7 @@ pub fn encode_metadata_response(
         }
     }
     if (8..=10).contains(&version) {
-        buf.put_i32(-2147483648);
+        buf.put_i32(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED);
     }
     if version >= 13 {
         buf.put_i16(resp.error_code);
@@ -2017,7 +2034,7 @@ mod tests {
                     isr_nodes: vec![1],
                     offline_replicas: vec![2],
                 }],
-                topic_authorized_operations: i32::MIN,
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             }],
             error_code: 0,
         };
@@ -2061,6 +2078,65 @@ mod tests {
         assert_eq!(
             decoded.check().unwrap_err().broker_code(),
             Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+    }
+
+    #[test]
+    fn metadata_has_reliable_leader_epochs_matches_java() {
+        assert!(!MetadataResponse::has_reliable_leader_epochs(8));
+        assert!(MetadataResponse::has_reliable_leader_epochs(9));
+        assert!(MetadataResponse::has_reliable_leader_epochs(13));
+        assert_eq!(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED, i32::MIN);
+        assert_eq!(
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            crate::AUTHORIZED_OPERATIONS_OMITTED
+        );
+    }
+
+    #[test]
+    fn metadata_v7_decodes_leader_epoch_and_omitted_authorized_ops() {
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("cid".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 3,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 7, &resp).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_metadata_response(&mut cur, 7).unwrap();
+        leftover_empty(&cur, "Metadata v7").unwrap();
+        assert_eq!(decoded, resp);
+        assert_eq!(decoded.topics[0].partitions[0].leader_epoch, 3);
+        assert_eq!(
+            decoded.topics[0].topic_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert!(
+            !MetadataResponse::has_reliable_leader_epochs(7),
+            "v7 leader epochs are on the wire but must not be retained by the client"
         );
     }
 

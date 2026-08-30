@@ -1727,7 +1727,7 @@ impl Producer {
         resp.check()?;
         {
             let mut cluster = self.inner.shared.cluster.lock();
-            cluster.apply(&resp);
+            cluster.apply(&resp, version);
         }
         let infos = crate::consumer::partition_infos_from(&resp, Some(topic.as_str()))?;
         if infos.is_empty() {
@@ -2082,7 +2082,7 @@ async fn partitions_for(shared: &Shared, topic: &Arc<str>) -> Result<i32> {
     }
     {
         let mut cluster = shared.cluster.lock();
-        cluster.apply(&resp);
+        cluster.apply(&resp, version);
     }
     drop_fast_topic(shared, topic);
     nudge_leaders(shared, topic);

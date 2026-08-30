@@ -1646,6 +1646,41 @@ async fn list_offsets_sends_current_leader_epoch() {
 }
 
 #[tokio::test]
+async fn list_offsets_omits_unreliable_leader_epoch_below_metadata_v9() {
+    let mock = common::Mock::start().await;
+    mock.set_api_max(METADATA, 8);
+    let bumped = mock.bump_leader_epoch("t", 0);
+    assert!(
+        bumped >= 0,
+        "mock Metadata v8 still writes leader_epoch on the wire"
+    );
+    let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
+    ccfg.max_wait_ms = 10;
+    let mut consumer = Consumer::new(ccfg).await.unwrap();
+    let latest = consumer
+        .list_offsets("t", 0, LATEST_TIMESTAMP)
+        .await
+        .unwrap();
+    assert_eq!(latest, 0);
+    assert_eq!(
+        mock.last_metadata_version(),
+        Some(8),
+        "broker max 8 must negotiate Metadata v8"
+    );
+    let got = mock
+        .last_list_offsets()
+        .expect("ListOffsets must send current_leader_epoch");
+    assert_eq!(got.0, "t");
+    assert_eq!(got.1, 0);
+    assert_eq!(
+        got.2,
+        partitionline::protocol::records::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        "Metadata versions before 9 must not retain leader epochs for ListOffsets"
+    );
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn list_offsets_recovers_from_fenced_leader_epoch() {
     let mock = common::Mock::start().await;
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);

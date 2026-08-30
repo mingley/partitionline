@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
 use crate::protocol::api::{MetadataResponse, NodeEndpoint};
+use crate::protocol::records::RecordBatch;
 
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
@@ -23,13 +24,17 @@ pub(crate) struct Cluster {
 
 impl Cluster {
     /// Merge a Metadata response into this snapshot.
-    pub(crate) fn apply(&mut self, md: &MetadataResponse) {
+    ///
+    /// `version` is the negotiated Metadata api version. Leader epochs are
+    /// retained only when [`MetadataResponse::has_reliable_leader_epochs`].
+    pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
             let _prev = self
                 .brokers
                 .insert(b.node_id, format!("{}:{}", b.host, b.port));
         }
+        let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
                 continue;
@@ -51,7 +56,7 @@ impl Cluster {
                 Err(_) => continue,
             };
             let mut leaders = vec![-1; len];
-            let mut epochs = vec![-1; len];
+            let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
             for p in &t.partitions {
                 if p.error_code != 0 {
                     continue;
@@ -63,7 +68,11 @@ impl Cluster {
                     *slot = p.leader_id;
                 }
                 if let Some(slot) = epochs.get_mut(idx) {
-                    *slot = p.leader_epoch;
+                    *slot = if retain_epochs {
+                        p.leader_epoch
+                    } else {
+                        RecordBatch::NO_PARTITION_LEADER_EPOCH
+                    };
                 }
             }
             let _prev = self.leaders.insert(name.clone(), leaders);
@@ -236,19 +245,22 @@ mod tests {
     fn apply_stores_controller_id() {
         let mut cluster = Cluster::default();
         assert!(cluster.controller().is_err());
-        cluster.apply(&MetadataResponse {
-            throttle_time_ms: 0,
-            brokers: vec![Broker {
-                node_id: 2,
-                host: "127.0.0.1".into(),
-                port: 9092,
-                rack: None,
-            }],
-            cluster_id: Some("mock".into()),
-            controller_id: 2,
-            topics: Vec::new(),
-            error_code: 0,
-        });
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 2,
+                topics: Vec::new(),
+                error_code: 0,
+            },
+            13,
+        );
         assert_eq!(cluster.controller().unwrap(), 2);
         cluster.invalidate_controller();
         assert!(cluster.controller().is_err());
@@ -271,34 +283,37 @@ mod tests {
 
         let mut cluster = Cluster::default();
         assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
-        cluster.apply(&MetadataResponse {
-            throttle_time_ms: 0,
-            brokers: vec![Broker {
-                node_id: 1,
-                host: "127.0.0.1".into(),
-                port: 9092,
-                rack: None,
-            }],
-            cluster_id: Some("mock".into()),
-            controller_id: 1,
-            topics: vec![TopicMetadata {
-                error_code: 0,
-                name: Some("t".into()),
-                topic_id: [0u8; 16],
-                is_internal: false,
-                partitions: vec![PartitionMetadata {
-                    error_code: 0,
-                    partition_index: 0,
-                    leader_id: 1,
-                    leader_epoch: 0,
-                    replica_nodes: vec![1],
-                    isr_nodes: vec![1],
-                    offline_replicas: Vec::new(),
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
                 }],
-                topic_authorized_operations: i32::MIN,
-            }],
-            error_code: 0,
-        });
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 0,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                error_code: 0,
+            },
+            13,
+        );
         assert!(cluster.topic_fresh("t", Duration::from_secs(5)));
         assert!(
             !cluster.topic_fresh("t", Duration::ZERO),
@@ -313,42 +328,45 @@ mod tests {
         use crate::protocol::api::{NodeEndpoint, PartitionMetadata, TopicMetadata};
 
         let mut cluster = Cluster::default();
-        cluster.apply(&MetadataResponse {
-            throttle_time_ms: 0,
-            brokers: vec![
-                Broker {
-                    node_id: 1,
-                    host: "127.0.0.1".into(),
-                    port: 9092,
-                    rack: None,
-                },
-                Broker {
-                    node_id: 2,
-                    host: "127.0.0.1".into(),
-                    port: 9093,
-                    rack: None,
-                },
-            ],
-            cluster_id: Some("mock".into()),
-            controller_id: 1,
-            topics: vec![TopicMetadata {
-                error_code: 0,
-                name: Some("t".into()),
-                topic_id: [0u8; 16],
-                is_internal: false,
-                partitions: vec![PartitionMetadata {
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![
+                    Broker {
+                        node_id: 1,
+                        host: "127.0.0.1".into(),
+                        port: 9092,
+                        rack: None,
+                    },
+                    Broker {
+                        node_id: 2,
+                        host: "127.0.0.1".into(),
+                        port: 9093,
+                        rack: None,
+                    },
+                ],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
                     error_code: 0,
-                    partition_index: 0,
-                    leader_id: 1,
-                    leader_epoch: 0,
-                    replica_nodes: vec![1, 2],
-                    isr_nodes: vec![1, 2],
-                    offline_replicas: Vec::new(),
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 0,
+                        replica_nodes: vec![1, 2],
+                        isr_nodes: vec![1, 2],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
                 }],
-                topic_authorized_operations: i32::MIN,
-            }],
-            error_code: 0,
-        });
+                error_code: 0,
+            },
+            13,
+        );
         assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
         assert_eq!(cluster.leader_epoch("t", 0), 0);
         assert!(cluster.apply_current_leader("t", 0, 2, 7));
@@ -373,5 +391,54 @@ mod tests {
         assert_eq!(cluster.leader_epoch("t", 0), 8);
         assert!(!cluster.apply_current_leader("t", 0, -1, 8));
         assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
+    }
+
+    #[test]
+    fn apply_drops_unreliable_leader_epochs() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 7,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(&md, 8);
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            "Metadata versions before 9 must not retain leader epochs"
+        );
+        cluster.apply(&md, 9);
+        assert_eq!(cluster.leader_epoch("t", 0), 7);
+        cluster.apply(&md, 8);
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            "a later Metadata version before 9 must drop previously cached epochs"
+        );
     }
 }

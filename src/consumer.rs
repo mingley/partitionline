@@ -1596,7 +1596,7 @@ impl Consumer {
         };
         let md = decode_metadata_response(&mut body.clone(), version)?;
         md.check()?;
-        self.cluster.apply(&md);
+        self.cluster.apply(&md, version);
         self.metadata = Some(md);
         Ok(())
     }
