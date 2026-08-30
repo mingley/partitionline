@@ -146,8 +146,9 @@
 //! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
 //! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
-//! [`CreatedTopicConfig`] `Display` match Java `toString`
-//! (`ConfigEntry.toString` on [`CreatedTopicConfig`]). [`AclBinding`] /
+//! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
+//! `toString` (`ConfigEntry.toString` on [`CreatedTopicConfig`];
+//! `ConfigResource.toString` on [`ListedConfigResource`]). [`AclBinding`] /
 //! [`ResourcePattern`] / [`AccessControlEntry`] / [`AclBindingFilter`]
 //! `Display` match Java `toString`. [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
@@ -250,9 +251,10 @@
 //! [`ConfigEntry::is_default`] / [`CreatedTopicConfig::is_default`] are Java
 //! `ConfigEntry.source` / `type` / `isDefault` ([`ConfigSource`] /
 //! [`ConfigType`]). [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
-//! [`CreatedTopicConfig`] `Display` match Java `toString`
-//! ([`ConfigEntry`] redacts sensitive values). [`ConfigResource::is_default`]
-//! is Java `ConfigResource.isDefault`.
+//! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
+//! `toString` ([`ConfigEntry`] redacts sensitive values).
+//! [`ConfigResource::is_default`] / [`ListedConfigResource::is_default`]
+//! are Java `ConfigResource.isDefault`.
 //! [`Admin::incremental_alter_configs_timeout`] /
 //! [`Admin::alter_configs_timeout`] are Java `AlterConfigsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).

@@ -9198,7 +9198,9 @@ pub fn decode_describe_topic_partitions_response<B: Buf>(
 ///
 /// There is no per-resource ErrorCode. The response error sits at the
 /// top of the body, after throttle. `resource_type` is v1+; v0 decode
-/// fills `RESOURCE_CLIENT_METRICS` (16).
+/// fills `RESOURCE_CLIENT_METRICS` (16). [`Display`] is Java
+/// `ConfigResource.toString` (`listConfigResources` returns
+/// `ConfigResource`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedConfigResource {
     /// Config resource name.

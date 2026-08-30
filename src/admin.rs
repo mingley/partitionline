@@ -1538,6 +1538,18 @@ impl ListedConfigResource {
             keys: None,
         }
     }
+
+    /// Java `ConfigResource.isDefault` (empty name).
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        self.resource_name.is_empty()
+    }
+}
+
+impl fmt::Display for ListedConfigResource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.to_config_resource(), f)
+    }
 }
 
 impl From<ListedConfigResource> for ConfigResource {
@@ -12446,6 +12458,16 @@ mod tests {
         assert_eq!(
             listed.resource_type(),
             Some(ConfigResourceType::ClientMetrics)
+        );
+        assert!(!listed.is_default());
+        assert_eq!(
+            listed.to_string(),
+            "ConfigResource(type=CLIENT_METRICS, name='r')"
+        );
+        assert!(ListedConfigResource::new("", CONFIG_RESOURCE_BROKER).is_default());
+        assert_eq!(
+            ListedConfigResource::new("t", CONFIG_RESOURCE_TOPIC).to_string(),
+            "ConfigResource(type=TOPIC, name='t')"
         );
         let resource = listed.to_config_resource();
         assert_eq!(resource.name(), "r");
