@@ -255,7 +255,14 @@
 //! `Errors.message` string. Throttle is the JSON default (`0`)),
 //! AddPartitionsToTxn v0–v3 (v3 flexible;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
-//! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+)), AddOffsetsToTxn v0–v4
+//! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::TxnPartitionsTopic::error_result`] /
+//! [`protocol::txn::TxnPartitionsTopic::error_results`] /
+//! [`protocol::txn::AddPartitionsToTxnPartitionResult::error`] are Java
+//! `AddPartitionsToTxnRequest.getErrorResponse` / `errorResponseForTopics`
+//! (one topic / Topics / partition body). Nested body is PartitionIndex
+//! and PartitionErrorCode (`ResultsByTopicV3AndBelow`). Throttle is the
+//! JSON default (`0`)), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE;
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5

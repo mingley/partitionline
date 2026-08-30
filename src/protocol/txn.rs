@@ -89,12 +89,117 @@ pub const WRITE_TXN_MARKERS: i16 = 27;
 pub const TXN_OFFSET_COMMIT: i16 = 28;
 
 /// One topic in AddPartitionsToTxn v0–v3.
+///
+/// [`Self::error_result`] is Java `AddPartitionsToTxnRequest.getErrorResponse`
+/// / `errorResponseForTopics` one topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnPartitionsTopic {
     /// Topic name.
     pub topic: String,
     /// Partition indexes to add to the transaction.
     pub partitions: Vec<i32>,
+}
+
+impl TxnPartitionsTopic {
+    /// Java `AddPartitionsToTxnRequest.getErrorResponse` /
+    /// `errorResponseForTopics` one topic.
+    ///
+    /// Copies `Name` and each `PartitionIndex`. Nested body is
+    /// PartitionIndex and PartitionErrorCode (no English message). This
+    /// crate speaks v0–v3 (`ResultsByTopicV3AndBelow`); v4+ top-level
+    /// ErrorCode is not spoken. Throttle on the response is the JSON
+    /// default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> AddPartitionsToTxnTopicResult {
+        AddPartitionsToTxnTopicResult {
+            topic: self.topic.clone(),
+            partitions: self
+                .partitions
+                .iter()
+                .copied()
+                .map(|p| AddPartitionsToTxnPartitionResult::error(p, error_code))
+                .collect(),
+        }
+    }
+
+    /// Java `AddPartitionsToTxnRequest.getErrorResponse` /
+    /// `errorResponseForTopics` Topics.
+    ///
+    /// Maps each request topic through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(topics: &[Self], error_code: i16) -> Vec<AddPartitionsToTxnTopicResult> {
+        topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect()
+    }
+}
+
+/// One partition in an AddPartitionsToTxn v0–v3 response.
+///
+/// [`Self::error`] is Java `AddPartitionsToTxnRequest.getErrorResponse`
+/// / `errorResponseForTopics` partition body (PartitionIndex +
+/// PartitionErrorCode).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddPartitionsToTxnPartitionResult {
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success). Java `PartitionErrorCode`.
+    pub error_code: i16,
+}
+
+impl AddPartitionsToTxnPartitionResult {
+    /// Java `AddPartitionsToTxnRequest.getErrorResponse` /
+    /// `errorResponseForTopics` partition body.
+    ///
+    /// Sets `PartitionIndex` and `PartitionErrorCode`. The nested body
+    /// has no error message field.
+    #[must_use]
+    pub fn error(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+        }
+    }
+
+    /// Java `AddPartitionsToTxnPartitionResult.partitionIndex`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `AddPartitionsToTxnPartitionResult.partitionErrorCode`.
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+}
+
+/// One topic in an AddPartitionsToTxn v0–v3 response.
+///
+/// [`TxnPartitionsTopic::error_result`] is Java
+/// `AddPartitionsToTxnRequest.getErrorResponse` /
+/// `errorResponseForTopics` one topic.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddPartitionsToTxnTopicResult {
+    /// Topic name (Java `Name`).
+    pub topic: String,
+    /// Per-partition results.
+    pub partitions: Vec<AddPartitionsToTxnPartitionResult>,
+}
+
+impl AddPartitionsToTxnTopicResult {
+    /// Java `AddPartitionsToTxnTopicResult.name`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `AddPartitionsToTxnTopicResult.resultsByPartition`.
+    #[must_use]
+    pub fn partitions(&self) -> &[AddPartitionsToTxnPartitionResult] {
+        &self.partitions
+    }
 }
 
 /// `true` when AddPartitionsToTxn `version` is flexible (v3).
@@ -183,11 +288,31 @@ pub fn decode_add_partitions_to_txn_request<B: Buf>(
 }
 
 /// Encode AddPartitionsToTxn: one error code applied to every partition.
+///
+/// Applies `error` on every request partition via
+/// [`TxnPartitionsTopic::error_results`]. Throttle is the JSON default
+/// (`0`).
 pub fn encode_add_partitions_to_txn_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[TxnPartitionsTopic],
     error: i16,
+) -> Result<()> {
+    encode_add_partitions_to_txn_topics_response(
+        buf,
+        version,
+        &TxnPartitionsTopic::error_results(topics, error),
+    )
+}
+
+/// Encode AddPartitionsToTxn v0–3 from response Topics.
+///
+/// Throttle is the JSON default (`0`) on every spoken version. Nested
+/// body is PartitionIndex and PartitionErrorCode (`ResultsByTopicV3AndBelow`).
+pub fn encode_add_partitions_to_txn_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[AddPartitionsToTxnTopicResult],
 ) -> Result<()> {
     let flexible = add_partitions_to_txn_flexible(version)?;
     buf.put_i32(0);
@@ -196,8 +321,8 @@ pub fn encode_add_partitions_to_txn_response(
         buf::put_string(buf, flexible, Some(&t.topic))?;
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
-            buf.put_i32(*p);
-            buf.put_i16(error);
+            buf.put_i32(p.partition);
+            buf.put_i16(p.error_code);
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -214,31 +339,51 @@ pub fn encode_add_partitions_to_txn_response(
 
 /// Decode AddPartitionsToTxn: first non-zero partition error, or `0`.
 pub fn decode_add_partitions_to_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let topics = decode_add_partitions_to_txn_topics_response(buf, version)?;
+    let mut first_err = 0i16;
+    for t in &topics {
+        for p in &t.partitions {
+            if first_err == 0 && p.error_code != 0 {
+                first_err = p.error_code;
+            }
+        }
+    }
+    Ok(first_err)
+}
+
+/// Decode AddPartitionsToTxn: every v0–3 topic result.
+pub fn decode_add_partitions_to_txn_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<AddPartitionsToTxnTopicResult>> {
     let flexible = add_partitions_to_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut first_err = 0i16;
+    let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let _topic = buf::get_string(buf, flexible)?;
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
-            let err = buf::get_i16(buf)?;
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            if first_err == 0 && err != 0 {
-                first_err = err;
-            }
+            partitions.push(AddPartitionsToTxnPartitionResult {
+                partition,
+                error_code,
+            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        topics.push(AddPartitionsToTxnTopicResult { topic, partitions });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(first_err)
+    Ok(topics)
 }
 
 /// `true` when AddOffsetsToTxn `version` is flexible (v3+).
@@ -1880,6 +2025,93 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_add_partitions_to_txn_response(&mut buf, 3, &topics, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn add_partitions_to_txn_get_error_response_copies_names_and_partitions() {
+        let topics = [
+            TxnPartitionsTopic {
+                topic: "orders".into(),
+                partitions: vec![0, 1],
+            },
+            TxnPartitionsTopic {
+                topic: "payments".into(),
+                partitions: vec![2],
+            },
+        ];
+        let err =
+            TxnPartitionsTopic::error_results(&topics, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        let orders = err.first().expect("orders");
+        assert_eq!(orders.topic(), "orders");
+        assert_eq!(
+            orders.partitions(),
+            [
+                AddPartitionsToTxnPartitionResult::error(
+                    0,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED
+                ),
+                AddPartitionsToTxnPartitionResult::error(
+                    1,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED
+                ),
+            ]
+        );
+        let payments = err.get(1).expect("payments");
+        assert_eq!(payments.topic(), "payments");
+        assert_eq!(
+            payments.partitions(),
+            [AddPartitionsToTxnPartitionResult::error(
+                2,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            )]
+        );
+        assert_eq!(
+            err,
+            vec![
+                topics[0].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                topics[1].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        for version in [0i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_add_partitions_to_txn_topics_response(&mut buf, version, &err).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_add_partitions_to_txn_topics_response(&mut cur, version).unwrap(),
+                err
+            );
+            assert!(
+                !cur.has_remaining(),
+                "AddPartitionsToTxn v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_add_partitions_to_txn_response(&mut buf.as_ref(), version).unwrap(),
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            );
+        }
+        let empty =
+            TxnPartitionsTopic::error_results(&[], crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        for version in [0i16, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_add_partitions_to_txn_topics_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_add_partitions_to_txn_topics_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "AddPartitionsToTxn v{version} empty getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_add_partitions_to_txn_response(&mut buf.as_ref(), version).unwrap(),
+                0
+            );
+        }
     }
 
     #[test]
