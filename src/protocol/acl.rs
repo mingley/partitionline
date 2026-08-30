@@ -1401,6 +1401,28 @@ fn reject_delete_acls_unknown_elements(filters: &[AclBindingFilter]) -> Result<(
     Ok(())
 }
 
+/// Java `DescribeAclsResponse.validate` unknown-element check.
+fn reject_describe_acls_response_unknown_elements(acls: &[AclBinding]) -> Result<()> {
+    if acls.iter().any(AclBinding::is_unknown) {
+        return Err(Error::protocol("Contain UNKNOWN elements"));
+    }
+    Ok(())
+}
+
+/// Java `DeleteAclsResponse.validate` unknown-element check on MatchingAcls.
+fn reject_delete_acls_matching_unknown_elements(results: &[DeletedAclsFilterResult]) -> Result<()> {
+    if results
+        .iter()
+        .flat_map(|r| r.matching.iter())
+        .any(AclBinding::is_unknown)
+    {
+        return Err(Error::protocol(
+            "DeleteAclsMatchingAcls contain UNKNOWN elements",
+        ));
+    }
+    Ok(())
+}
+
 /// Java `ResourcePattern` / `AccessControlEntry` constructors: CreateAcls
 /// bindings must not use ANY resource type, ANY/MATCH pattern type, or
 /// ANY operation / permission (filters still use those on Describe/Delete).
@@ -1593,7 +1615,8 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result
 /// Encode DescribeAcls with matching bindings.
 ///
 /// Java `DescribeAclsResponse.validate` rejects non-LITERAL pattern types
-/// on v0 (`UnsupportedVersionException`).
+/// on v0 (`UnsupportedVersionException`) and UNKNOWN resource / pattern /
+/// operation / permission (`Contain UNKNOWN elements`).
 pub fn encode_describe_acls_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1601,6 +1624,7 @@ pub fn encode_describe_acls_response(
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
+    reject_describe_acls_response_unknown_elements(acls)?;
     buf.put_i32(0);
     buf.put_i16(0);
     buf::put_string(buf, flexible, None)?;
@@ -1857,7 +1881,9 @@ pub fn encode_delete_acls_response(
 /// Encode DeleteAcls FilterResults of N.
 ///
 /// Java `DeleteAclsResponse.validate` rejects non-LITERAL matching ACL
-/// pattern types on v0 (`UnsupportedVersionException`).
+/// pattern types on v0 (`UnsupportedVersionException`) and UNKNOWN
+/// resource / pattern / operation / permission on MatchingAcls
+/// (`DeleteAclsMatchingAcls contain UNKNOWN elements`).
 pub fn encode_delete_acls_filter_results(
     buf: &mut BytesMut,
     version: i16,
@@ -1865,6 +1891,7 @@ pub fn encode_delete_acls_filter_results(
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, results.iter().flat_map(|r| r.matching.iter()))?;
+    reject_delete_acls_matching_unknown_elements(results)?;
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -2719,6 +2746,161 @@ mod tests {
             &mut BytesMut::new(),
             1,
             &AclBindingFilter::resource_type(ACL_RESOURCE_TOPIC),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn acl_response_unknown_elements_match_java() {
+        let unknown_type = AclBinding::allow(AclResourceType::Unknown, "t", "User:alice");
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DescribeAcls response UNKNOWN resource is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("Contain UNKNOWN elements"),
+            "got {err}"
+        );
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            0,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DescribeAcls response v0 UNKNOWN resource is still IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("Contain UNKNOWN elements"),
+            "got {err}"
+        );
+
+        let unknown_pattern =
+            AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Unknown);
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DescribeAcls response UNKNOWN pattern is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("Contain UNKNOWN elements"),
+            "got {err}"
+        );
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            0,
+            std::slice::from_ref(&unknown_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DescribeAcls response v0 UNKNOWN pattern is Java UnsupportedVersionException first, got {err}"
+        );
+
+        let unknown_op =
+            AclBinding::allow_topic("t", "User:alice").operation(AclOperation::Unknown);
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_op),
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string().contains("Contain UNKNOWN elements"),
+            "got {err}"
+        );
+        let unknown_perm =
+            AclBinding::allow_topic("t", "User:alice").permission(AclPermission::Unknown);
+        let err = encode_describe_acls_response(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&unknown_perm),
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string().contains("Contain UNKNOWN elements"),
+            "got {err}"
+        );
+
+        encode_describe_acls_response(
+            &mut BytesMut::new(),
+            1,
+            std::slice::from_ref(&AclBinding::allow_topic("t", "User:alice")),
+        )
+        .unwrap();
+
+        let err = encode_delete_acls_response(
+            &mut BytesMut::new(),
+            1,
+            0,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DeleteAcls response UNKNOWN resource is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("DeleteAclsMatchingAcls contain UNKNOWN elements"),
+            "got {err}"
+        );
+        let err = encode_delete_acls_response(
+            &mut BytesMut::new(),
+            0,
+            0,
+            std::slice::from_ref(&unknown_type),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "DeleteAcls response v0 UNKNOWN resource is still IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("DeleteAclsMatchingAcls contain UNKNOWN elements"),
+            "got {err}"
+        );
+        let err = encode_delete_acls_response(
+            &mut BytesMut::new(),
+            0,
+            0,
+            std::slice::from_ref(&unknown_pattern),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DeleteAcls response v0 UNKNOWN pattern is Java UnsupportedVersionException first, got {err}"
+        );
+        let err = encode_delete_acls_response(
+            &mut BytesMut::new(),
+            1,
+            0,
+            std::slice::from_ref(&unknown_op),
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("DeleteAclsMatchingAcls contain UNKNOWN elements"),
+            "got {err}"
+        );
+        encode_delete_acls_response(
+            &mut BytesMut::new(),
+            1,
+            0,
+            std::slice::from_ref(&AclBinding::allow_topic("t", "User:alice")),
         )
         .unwrap();
     }
