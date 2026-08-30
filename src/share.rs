@@ -309,8 +309,9 @@ impl ShareRecords {
     /// Next offset to consume per partition (Java `nextOffsets`).
     ///
     /// For each partition that has at least one record, this is the last
-    /// record's offset plus one, with that record's leader epoch and empty
-    /// metadata. Partitions appear in first-seen order.
+    /// record's offset plus one, with that record's leader epoch and
+    /// [`crate::OffsetAndMetadata::NO_METADATA`]. Partitions appear in
+    /// first-seen order.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(crate::TopicPartition, crate::OffsetAndMetadata)> {
         let mut last = HashMap::new();
@@ -325,14 +326,11 @@ impl ShareRecords {
             .into_iter()
             .filter_map(|tp| {
                 last.remove(&tp).map(|rec| {
-                    (
-                        tp,
-                        crate::OffsetAndMetadata {
-                            offset: rec.offset.saturating_add(1),
-                            leader_epoch: rec.leader_epoch,
-                            metadata: String::new(),
-                        },
-                    )
+                    let mut md = crate::OffsetAndMetadata::new(rec.offset.saturating_add(1));
+                    if let Some(epoch) = rec.leader_epoch {
+                        md = md.with_leader_epoch(epoch);
+                    }
+                    (tp, md)
                 })
             })
             .collect()
@@ -1549,11 +1547,7 @@ mod tests {
             vec![
                 (
                     crate::TopicPartition::new("t", 0),
-                    crate::OffsetAndMetadata {
-                        offset: 4,
-                        leader_epoch: Some(7),
-                        metadata: String::new(),
-                    }
+                    crate::OffsetAndMetadata::new(4).with_leader_epoch(7)
                 ),
                 (
                     crate::TopicPartition::new("t", 1),

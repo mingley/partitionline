@@ -395,9 +395,10 @@
 //! pairs each partition with its next fetch offset).
 //! [`Consumer::fetch`] / [`ConsumerGroup::poll`] return [`ConsumerRecords`]
 //! (Java `empty` / `isEmpty` / `count` / `partitions` / `records` /
-//! `nextOffsets`).
+//! `nextOffsets`; metadata is [`OffsetAndMetadata::NO_METADATA`]).
 //! [`ShareGroup::poll`] returns [`ShareRecords`] (Java `empty` / `isEmpty` /
-//! `count` / `partitions` / `records` / `nextOffsets`).
+//! `count` / `partitions` / `records` / `nextOffsets`; metadata is
+//! [`OffsetAndMetadata::NO_METADATA`]).
 //! [`Consumer::fetch_timeout`] /
 //! [`ConsumerGroup::poll_timeout`] / [`ShareGroup::poll_timeout`] are Java
 //! `poll(Duration)`. [`ConsumerGroup::committed_timeout`] is Java

@@ -671,8 +671,9 @@ impl ConsumerRecords {
     /// Next offset to consume per partition (Java `nextOffsets`).
     ///
     /// For each partition that has at least one record, this is the last
-    /// record's offset plus one, with that record's leader epoch and empty
-    /// metadata. Partitions appear in first-seen order.
+    /// record's offset plus one, with that record's leader epoch and
+    /// [`OffsetAndMetadata::NO_METADATA`]. Partitions appear in first-seen
+    /// order.
     #[must_use]
     pub fn next_offsets(&self) -> Vec<(TopicPartition, OffsetAndMetadata)> {
         let mut last = HashMap::new();
@@ -687,14 +688,11 @@ impl ConsumerRecords {
             .into_iter()
             .filter_map(|tp| {
                 last.remove(&tp).map(|rec| {
-                    (
-                        tp,
-                        OffsetAndMetadata {
-                            offset: rec.offset.saturating_add(1),
-                            leader_epoch: rec.leader_epoch,
-                            metadata: String::new(),
-                        },
-                    )
+                    let mut md = OffsetAndMetadata::new(rec.offset.saturating_add(1));
+                    if let Some(epoch) = rec.leader_epoch {
+                        md = md.with_leader_epoch(epoch);
+                    }
+                    (tp, md)
                 })
             })
             .collect()
@@ -3197,11 +3195,7 @@ mod tests {
             vec![
                 (
                     TopicPartition::new("a", 0),
-                    OffsetAndMetadata {
-                        offset: 4,
-                        leader_epoch: Some(7),
-                        metadata: String::new(),
-                    }
+                    OffsetAndMetadata::new(4).with_leader_epoch(7)
                 ),
                 (TopicPartition::new("a", 1), OffsetAndMetadata::new(3),),
                 (TopicPartition::new("b", 0), OffsetAndMetadata::new(5),),

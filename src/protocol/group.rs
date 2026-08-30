@@ -1391,19 +1391,20 @@ pub struct OffsetPartition {
     pub offset: i64,
     /// Leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
-    /// Commit metadata string.
+    /// Commit metadata string ([`FetchedOffset::NO_METADATA`] when empty).
     pub metadata: String,
 }
 
 impl OffsetPartition {
-    /// Offset and partition with unknown epoch and empty metadata.
+    /// Offset and partition with unknown epoch and
+    /// [`FetchedOffset::NO_METADATA`].
     #[must_use]
     pub fn new(partition: i32, offset: i64) -> Self {
         Self {
             partition,
             offset,
             leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
-            metadata: String::new(),
+            metadata: FetchedOffset::NO_METADATA.into(),
         }
     }
 }
