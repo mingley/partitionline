@@ -217,7 +217,10 @@
 //! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+)),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester;
 //! [`protocol::admin::DescribeDelegationTokenResponse::should_client_throttle`] is Java
-//! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+);
+//! [`DescribeDelegationTokenRequest::owners_list_empty`] is Java
+//! `DescribeDelegationTokenRequest.ownersListEmpty` (`Some` empty is true;
+//! `None` is every visible token)),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+)),

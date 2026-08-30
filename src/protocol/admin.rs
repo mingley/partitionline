@@ -13395,6 +13395,9 @@ impl fmt::Display for DescribeDelegationTokenOwner {
 /// field. `Owners` is a nullable array: null describes all tokens the
 /// caller may see; empty describes none. Request layout is the same
 /// on v1–v3 (classic at v1; compact plus tagged from v2).
+/// [`Self::owners_list_empty`] is Java
+/// `DescribeDelegationTokenRequest.ownersListEmpty` (`Some` empty is
+/// true; `None` is every token).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenRequest {
     /// Owner filter, or `None` for every token.
@@ -13412,6 +13415,15 @@ impl DescribeDelegationTokenRequest {
     #[must_use]
     pub fn owners(&self) -> Option<&[DescribeDelegationTokenOwner]> {
         self.owners.as_deref()
+    }
+
+    /// Java `DescribeDelegationTokenRequest.ownersListEmpty`.
+    ///
+    /// True when `Owners` is present and empty (`Some` empty). `None`
+    /// (every visible token) is not empty.
+    #[must_use]
+    pub fn owners_list_empty(&self) -> bool {
+        self.owners.as_ref().is_some_and(Vec::is_empty)
     }
 }
 
@@ -23676,6 +23688,45 @@ mod tests {
     }
 
     #[test]
+    fn describe_delegation_token_owners_list_empty_leftover_empty() {
+        let empty = DescribeDelegationTokenRequest::new(Some(vec![]));
+        let null = DescribeDelegationTokenRequest::new(None);
+        assert!(empty.owners_list_empty());
+        assert!(!null.owners_list_empty());
+        for version in [1i16, 2, 3] {
+            let mut empty_buf = BytesMut::new();
+            encode_describe_delegation_token_request(&mut empty_buf, version, &empty).unwrap();
+            let mut cur = empty_buf.as_ref();
+            assert_eq!(
+                decode_describe_delegation_token_request(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeDelegationToken v{version} empty-owners leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            let mut null_buf = BytesMut::new();
+            encode_describe_delegation_token_request(&mut null_buf, version, &null).unwrap();
+            let mut cur = null_buf.as_ref();
+            assert_eq!(
+                decode_describe_delegation_token_request(&mut cur, version).unwrap(),
+                null
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeDelegationToken v{version} null-owners leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_ne!(
+                empty_buf.as_ref(),
+                null_buf.as_ref(),
+                "v{version} empty Owners must not encode as null Owners"
+            );
+        }
+    }
+
+    #[test]
     fn describe_delegation_token_top_level_error_code_is_at_bytes_0_1() {
         // Official v3 body: top-level ErrorCode INT16 first, then
         // compact Tokens, ThrottleTimeMs INT32 last. Measured
@@ -23857,6 +23908,22 @@ mod tests {
             DescribeDelegationTokenRequest::new(Some(vec![DescribeDelegationTokenOwner::new(
                 "User", "r",
             )]));
+        assert!(
+            empty.owners_list_empty(),
+            "Java ownersListEmpty is true for present empty Owners"
+        );
+        assert!(
+            !null.owners_list_empty(),
+            "Java ownersListEmpty is false when Owners is null"
+        );
+        assert!(
+            !one.owners_list_empty(),
+            "Java ownersListEmpty is false when Owners is non-empty"
+        );
+        assert!(
+            !DescribeDelegationTokenRequest::default().owners_list_empty(),
+            "Java Options default owners null is not ownersListEmpty"
+        );
         let mut buf = BytesMut::new();
         encode_describe_delegation_token_request(&mut buf, 1, &empty).unwrap();
         assert_eq!(buf.as_ref(), REQ_V1_EMPTY);
