@@ -10,7 +10,6 @@ use crate::error::{Error, Result};
 
 /// Record batch magic for Kafka 0.11+ (v2).
 pub const MAGIC_V2: i8 = 2;
-const _BATCH_OVERHEAD: usize = 61;
 
 /// Kafka record-batch compression codec.
 ///
@@ -440,6 +439,8 @@ impl RecordBatch {
     pub const MAGIC_VALUE_V2: i8 = MAGIC_V2;
     /// Java `RecordBatch.CURRENT_MAGIC_VALUE` ([`Self::MAGIC_VALUE_V2`]).
     pub const CURRENT_MAGIC_VALUE: i8 = Self::MAGIC_VALUE_V2;
+    /// Java `DefaultRecordBatch.RECORD_BATCH_OVERHEAD` (bytes before the records).
+    pub const RECORD_BATCH_OVERHEAD: i32 = 61;
 
     /// Build a batch from records. Offsets become `0..n`; timestamps set
     /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
@@ -1240,6 +1241,7 @@ mod tests {
         assert_eq!(batch.magic(), RecordBatch::CURRENT_MAGIC_VALUE);
         assert_eq!(RecordBatch::MAGIC_VALUE_V2, 2);
         assert_eq!(RecordBatch::CURRENT_MAGIC_VALUE, 2);
+        assert_eq!(RecordBatch::RECORD_BATCH_OVERHEAD, 61);
         assert_eq!(batch.base_offset(), 0);
         assert_eq!(batch.last_offset(), 0);
         assert_eq!(batch.next_offset(), 1);

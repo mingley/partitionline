@@ -88,7 +88,8 @@
 //! match Java `RecordMetadata`. [`RecordBatch::NO_TIMESTAMP`] is Java
 //! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
 //! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
-//! `CURRENT_MAGIC_VALUE`.
+//! `CURRENT_MAGIC_VALUE`. [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java
+//! `DefaultRecordBatch.RECORD_BATCH_OVERHEAD` (`61`).
 //! [`Admin::get_telemetry_subscriptions`] / [`Admin::push_telemetry`] take
 //! [`Uuid`] or `[u8; 16]`.
 //!
