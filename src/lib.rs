@@ -342,7 +342,10 @@
 //! `DescribeGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
 //! [`protocol::admin::ListGroupsResponse::should_client_throttle`] is Java
-//! `ListGroupsResponse.shouldClientThrottle` (v2+)),
+//! `ListGroupsResponse.shouldClientThrottle` (v2+);
+//! [`protocol::admin::ListGroupsRequest::error_response`] is Java
+//! `ListGroupsRequest.getErrorResponse` (empty Groups; request filters are
+//! not copied)),
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+);

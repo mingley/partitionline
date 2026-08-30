@@ -8777,6 +8777,30 @@ impl ListGroupsResponse {
     }
 }
 
+/// Java `ListGroupsRequest` helpers.
+pub struct ListGroupsRequest;
+
+impl ListGroupsRequest {
+    /// Java `ListGroupsRequest.getErrorResponse`.
+    ///
+    /// Groups is empty (request StatesFilter / TypesFilter are not copied).
+    /// Throttle is the JSON default (`0`) on v1+.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_list_groups_response(
+            buf,
+            version,
+            &ListGroupsResponse {
+                error_code,
+                groups: Vec::new(),
+            },
+        )
+    }
+}
+
 /// Encode a ListGroups request (v0–5).
 ///
 /// v0–v2 write an empty body. v3 writes tagged fields only. v4+ sends
@@ -20824,6 +20848,62 @@ mod tests {
         buf.clear();
         encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         assert_eq!(&buf[..], RESP_15);
+    }
+
+    #[test]
+    fn list_groups_error_response_matches_java() {
+        // Java ListGroupsRequest.getErrorResponse: empty Groups, throttle
+        // JSON default 0 on v1+. StatesFilter / TypesFilter are not copied.
+        for version in [0_i16, 1, 3, 5] {
+            let mut expected = BytesMut::new();
+            encode_list_groups_response(
+                &mut expected,
+                version,
+                &ListGroupsResponse {
+                    error_code: 16,
+                    groups: Vec::new(),
+                },
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            ListGroupsRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "ListGroups v{version} getErrorResponse must match empty-Groups encode"
+            );
+            let mut cur = &got[..];
+            let decoded = decode_list_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, 16);
+            assert!(decoded.groups.is_empty(), "v{version} Groups must be empty");
+            assert!(
+                cur.is_empty(),
+                "ListGroups v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v0 = BytesMut::new();
+        ListGroupsRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        ListGroupsRequest::error_response(&mut v1, 1, 16).unwrap();
+        assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
+        let mut with_group = BytesMut::new();
+        encode_list_groups_response(
+            &mut with_group,
+            5,
+            &ListGroupsResponse {
+                error_code: 16,
+                groups: vec![ListedGroup::new("g")],
+            },
+        )
+        .unwrap();
+        let mut empty = BytesMut::new();
+        ListGroupsRequest::error_response(&mut empty, 5, 16).unwrap();
+        assert_ne!(
+            &empty[..],
+            &with_group[..],
+            "getErrorResponse must not copy a request group listing"
+        );
     }
 
     #[test]
