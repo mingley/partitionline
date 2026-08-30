@@ -483,7 +483,10 @@
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`Producer::send`] / [`Producer::try_send`] reject a negative partition
 //! or timestamp with Java `ProducerRecord` constructor messages
-//! (`Invalid partition` / `Invalid timestamp`).
+//! (`Invalid partition` / `Invalid timestamp`), and reject an invalid topic
+//! name with Java `Topic.validate` (`Topic name is invalid`).
+//! [`ConsumerGroup::subscribe`] / [`ShareGroup::subscribe`] use the same
+//! `Topic.validate` check.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /
@@ -1178,12 +1181,13 @@
 //! [`protocol::group::JoinGroupRequest::maybe_truncate_reason`] /
 //! [`protocol::group::JoinGroupRequest::join_reason`] /
 //! [`protocol::group::JoinGroupRequest::validate_group_instance_id`] /
+//! [`protocol::group::Topic::validate`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
 //! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
 //! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
 //! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` / `joinReason` /
-//! `validateGroupInstanceId` /
+//! `validateGroupInstanceId` / `Topic.validate` /
 //! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
 //! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;

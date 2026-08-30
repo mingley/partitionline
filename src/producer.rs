@@ -20,8 +20,8 @@ use crate::protocol::api_keys::{
     GET_TELEMETRY_SUBSCRIPTIONS, INIT_PRODUCER_ID, METADATA, PRODUCE, TXN_OFFSET_COMMIT,
 };
 use crate::protocol::group::{
-    decode_find_coordinator_response, encode_find_coordinator_request_typed, COORDINATOR_GROUP,
-    COORDINATOR_TRANSACTION,
+    decode_find_coordinator_response, encode_find_coordinator_request_typed, Topic,
+    COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
 };
 use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
@@ -841,6 +841,7 @@ fn reject_java_producer_record(rec: &ProduceRecord) -> Result<()> {
             )));
         }
     }
+    Topic::validate(&rec.topic)?;
     Ok(())
 }
 
@@ -3289,5 +3290,12 @@ mod tests {
         );
         reject_java_producer_record(&ProduceRecord::to("t").partition(0).timestamp(0)).unwrap();
         reject_java_producer_record(&ProduceRecord::to("t")).unwrap();
+        let empty = reject_java_producer_record(&ProduceRecord::to(""))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            empty.contains("Topic name is invalid: the empty string is not allowed"),
+            "{empty}"
+        );
     }
 }

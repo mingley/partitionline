@@ -32,7 +32,7 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
     encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
-    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
+    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, Topic,
     COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
@@ -2456,9 +2456,7 @@ pub(crate) fn collect_topics(
     let mut out = Vec::new();
     for topic in topics {
         let topic = topic.into();
-        if topic.is_empty() {
-            return Err(Error::protocol("empty topic name"));
-        }
+        Topic::validate(&topic)?;
         if !out.iter().any(|t| t == &topic) {
             out.push(topic);
         }

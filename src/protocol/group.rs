@@ -879,7 +879,8 @@ impl JoinGroupRequest<'_> {
     /// Java `Topic.validate` with prefix `"Group instance id"` (empty, `.`,
     /// `..`, UTF-16 length above 249, or characters other than ASCII
     /// alphanumerics / `.` / `_` / `-`). Encode does not call this; Java
-    /// Builder does not either.
+    /// Builder does not either. See [`Topic::validate`] for the topic-name
+    /// prefix.
     pub fn validate_group_instance_id(id: &str) -> Result<()> {
         match detect_invalid_topic_name(id) {
             Some(reason) => Err(Error::protocol(format!(
@@ -918,9 +919,27 @@ impl JoinGroupRequest<'_> {
     }
 }
 
+/// Java `org.apache.kafka.common.internals.Topic`.
+pub struct Topic;
+
+impl Topic {
+    /// Java `Topic.MAX_NAME_LENGTH` (UTF-16 units).
+    pub const MAX_NAME_LENGTH: usize = 249;
+
+    /// Java `Topic.validate` (`Topic name is invalid: ...`).
+    ///
+    /// Empty, `.`, `..`, UTF-16 length above [`Self::MAX_NAME_LENGTH`], or
+    /// characters other than ASCII alphanumerics / `.` / `_` / `-`.
+    pub fn validate(name: &str) -> Result<()> {
+        match detect_invalid_topic_name(name) {
+            Some(reason) => Err(Error::protocol(format!("Topic name is invalid: {reason}"))),
+            None => Ok(()),
+        }
+    }
+}
+
 /// Java `Topic.detectInvalidTopic` (UTF-16 length, same charset).
 fn detect_invalid_topic_name(name: &str) -> Option<String> {
-    const MAX_NAME_LENGTH: usize = 249;
     if name.is_empty() {
         return Some("the empty string is not allowed".into());
     }
@@ -930,9 +949,10 @@ fn detect_invalid_topic_name(name: &str) -> Option<String> {
     if name == ".." {
         return Some("'..' is not allowed".into());
     }
-    if name.encode_utf16().count() > MAX_NAME_LENGTH {
+    if name.encode_utf16().count() > Topic::MAX_NAME_LENGTH {
         return Some(format!(
-            "the length of '{name}' is longer than the max allowed length {MAX_NAME_LENGTH}"
+            "the length of '{name}' is longer than the max allowed length {}",
+            Topic::MAX_NAME_LENGTH
         ));
     }
     if !topic_name_contains_valid_pattern(name) {
@@ -3234,6 +3254,39 @@ mod tests {
         assert!(bad.to_string().contains(
             "Group instance id is invalid: 'bad id' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
         ));
+        Topic::validate("orders").unwrap();
+        Topic::validate(&"a".repeat(249)).unwrap();
+        let topic_empty = Topic::validate("").unwrap_err().to_string();
+        assert!(
+            topic_empty.contains("Topic name is invalid: the empty string is not allowed"),
+            "{topic_empty}"
+        );
+        let topic_dot = Topic::validate(".").unwrap_err().to_string();
+        assert!(
+            topic_dot.contains("Topic name is invalid: '.' is not allowed"),
+            "{topic_dot}"
+        );
+        let topic_dots = Topic::validate("..").unwrap_err().to_string();
+        assert!(
+            topic_dots.contains("Topic name is invalid: '..' is not allowed"),
+            "{topic_dots}"
+        );
+        let long_topic = "a".repeat(250);
+        let topic_long = Topic::validate(&long_topic).unwrap_err().to_string();
+        assert!(
+            topic_long.contains(&format!(
+                "Topic name is invalid: the length of '{long_topic}' is longer than the max allowed length 249"
+            )),
+            "{topic_long}"
+        );
+        let topic_bad = Topic::validate("bad id").unwrap_err().to_string();
+        assert!(
+            topic_bad.contains(
+                "Topic name is invalid: 'bad id' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+            ),
+            "{topic_bad}"
+        );
+        assert_eq!(Topic::MAX_NAME_LENGTH, 249);
     }
 
     #[test]
