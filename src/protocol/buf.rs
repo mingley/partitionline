@@ -15,7 +15,8 @@
 //! [`require`] / [`require_message`] are Java `Utils.require`.
 //! [`min`] / [`max`] / [`min_i16`] are Java `Utils.min(long, long...)` /
 //! `Utils.max(long, long...)` / `Utils.min(short, short)` (empty rest returns
-//! first).
+//! first). [`deep_to_string`] is Java `MessageUtil.deepToString` (comma-space
+//! inside square brackets; empty is `[]`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -305,6 +306,15 @@ pub fn max(first: i64, rest: &[i64]) -> i64 {
 #[must_use]
 pub fn min_i16(first: i16, second: i16) -> i16 {
     first.min(second)
+}
+
+/// Java `MessageUtil.deepToString`.
+///
+/// Comma-space between items, wrapped in square brackets. Empty is `[]`.
+#[must_use]
+pub fn deep_to_string<T: std::fmt::Display>(items: impl IntoIterator<Item = T>) -> String {
+    let parts: Vec<String> = items.into_iter().map(|item| item.to_string()).collect();
+    format!("[{}]", parts.join(", "))
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -1225,6 +1235,14 @@ mod tests {
         assert_eq!(min_i16(-1, -2), -2);
         assert_eq!(min_i16(i16::MIN, i16::MAX), i16::MIN);
         assert_eq!(min_i16(i16::MAX, i16::MAX), i16::MAX);
+    }
+
+    #[test]
+    fn deep_to_string_matches_java_message_util() {
+        assert_eq!(deep_to_string(std::iter::empty::<i32>()), "[]");
+        assert_eq!(deep_to_string([1]), "[1]");
+        assert_eq!(deep_to_string([1, 2]), "[1, 2]");
+        assert_eq!(deep_to_string(["a", "b", "c"]), "[a, b, c]");
     }
 
     #[test]
