@@ -83,6 +83,9 @@
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
 //! [`protocol::group::FindCoordinatorResponse::should_client_throttle`] is Java
 //! `FindCoordinatorResponse.shouldClientThrottle` (v2+);
+//! [`protocol::group::FindCoordinatorResponse::error_counts`] is Java
+//! `FindCoordinatorResponse.errorCounts` (each `Coordinators[]` code,
+//! including `NONE`; empty Coordinators falls back to top-level `NONE`);
 //! [`protocol::group::CoordinatorResult::error`] /
 //! [`protocol::group::CoordinatorResult::error_for_key`] /
 //! [`protocol::group::FindCoordinatorResponse::prepare_error_response`] /

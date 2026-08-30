@@ -82,6 +82,29 @@ impl FindCoordinatorResponse {
         version >= 2
     }
 
+    /// Java `FindCoordinatorResponse.errorCounts`.
+    ///
+    /// When `coordinators` is non-empty, counts each coordinator
+    /// `errorCode` (including `NONE`) and does not add a separate
+    /// top-level code. That matches v4+ `Coordinators[]` and this
+    /// crate's v0–v3 one-entry vec (top-level fields folded into that
+    /// entry). When empty, Java falls back to the top-level
+    /// `errorCode` (v4+ JSON default is `NONE`).
+    #[must_use]
+    pub fn error_counts(coordinators: &[CoordinatorResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        if coordinators.is_empty() {
+            let count = counts.entry(0).or_insert(0);
+            *count += 1;
+            return counts;
+        }
+        for coordinator in coordinators {
+            let count = counts.entry(coordinator.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+
     /// Java `FindCoordinatorResponse.prepareErrorResponse`.
     ///
     /// One [`CoordinatorResult`] per key: copies `Key`, sets ErrorCode,
@@ -3270,6 +3293,38 @@ mod tests {
         assert!(!find_coordinator_batched(MIN_BATCHED_VERSION - 1));
         assert!(!FindCoordinatorResponse::should_client_throttle(1));
         assert!(FindCoordinatorResponse::should_client_throttle(2));
+    }
+
+    #[test]
+    fn find_coordinator_response_error_counts_matches_java() {
+        assert_eq!(
+            FindCoordinatorResponse::error_counts(&[]),
+            HashMap::from([(0, 1)])
+        );
+        assert_eq!(
+            FindCoordinatorResponse::error_counts(&[CoordinatorResult::error(0)]),
+            HashMap::from([(0, 1)])
+        );
+        let batched = FindCoordinatorResponse::error_counts(&[
+            CoordinatorResult::error_for_key(0, "g1"),
+            CoordinatorResult::error_for_key(crate::error::NOT_COORDINATOR, "g2"),
+            CoordinatorResult::error_for_key(0, "g3"),
+        ]);
+        assert_eq!(
+            batched,
+            HashMap::from([(0, 2), (crate::error::NOT_COORDINATOR, 1)])
+        );
+        let same = FindCoordinatorResponse::error_counts(&[
+            CoordinatorResult::error_for_key(crate::error::NOT_COORDINATOR, "a"),
+            CoordinatorResult::error_for_key(crate::error::NOT_COORDINATOR, "b"),
+        ]);
+        assert_eq!(same, HashMap::from([(crate::error::NOT_COORDINATOR, 2)]));
+        assert_eq!(
+            FindCoordinatorResponse::error_counts(&[CoordinatorResult::error(
+                crate::error::NOT_COORDINATOR
+            )]),
+            HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
+        );
     }
 
     #[test]
