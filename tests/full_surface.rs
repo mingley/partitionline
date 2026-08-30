@@ -26,26 +26,26 @@ use partitionline::protocol::api_keys::{
 };
 use partitionline::protocol::group::{COORDINATOR_GROUP, COORDINATOR_TRANSACTION};
 use partitionline::{
-    error, AbortTransactionSpec, AclBinding, AclBindingFilter, AclResourceType, Admin, AdminConfig,
-    AlterConfig, AlterConfigOpType, AlterReplicaLogDirsDirectory, AlterReplicaLogDirsRequest,
-    AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic, AssignReplicasToDirsDirectory,
-    AssignReplicasToDirsPartition, AssignReplicasToDirsRequest, AssignReplicasToDirsTopic,
-    ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter, ClientQuotaFilterComponent,
-    ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement, ConfigResource,
-    ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer, ConsumerConfig,
-    ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest, DeleteShareGroupOffsetsTopic,
-    DeletedRecords, DescribableLogDirTopic, DescribeClusterBroker, DescribeDelegationTokenOwner,
-    DescribeDelegationTokenRequest, DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup,
-    EndpointType, Error, ExpireDelegationTokenRequest, FeatureUpdate, GroupState, GroupType,
-    IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions,
-    NewTopic, Node, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
-    PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordsToDelete,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
-    TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
-    UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
-    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
-    LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
+    error, AbortTransactionSpec, AcknowledgeType, AclBinding, AclBindingFilter, AclResourceType,
+    Admin, AdminConfig, AlterConfig, AlterConfigOpType, AlterReplicaLogDirsDirectory,
+    AlterReplicaLogDirsRequest, AlterReplicaLogDirsTopic, AlterShareGroupOffsetsTopic,
+    AssignReplicasToDirsDirectory, AssignReplicasToDirsPartition, AssignReplicasToDirsRequest,
+    AssignReplicasToDirsTopic, ClientQuotaAlteration, ClientQuotaEntity, ClientQuotaFilter,
+    ClientQuotaFilterComponent, ClientQuotaOp, Compression, Config, ConfigEntry, ConfigReplacement,
+    ConfigResource, ConfigResourceType, ConfigResourceUpdate, ConfigSource, ConfigType, Consumer,
+    ConsumerConfig, ConsumerGroup, CreatableRenewer, CreateDelegationTokenRequest,
+    DeleteShareGroupOffsetsTopic, DeletedRecords, DescribableLogDirTopic, DescribeClusterBroker,
+    DescribeDelegationTokenOwner, DescribeDelegationTokenRequest, DescribeLogDirsRequest,
+    DescribeShareGroupOffsetsGroup, EndpointType, Error, ExpireDelegationTokenRequest,
+    FeatureUpdate, GroupState, GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec,
+    NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetAndMetadata, OffsetSpec,
+    OidcConfig, OngoingReassignment, PartitionReassignment, ProduceRecord, Producer,
+    ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest, ReplicaLogDirInfo,
+    ScramMechanism, ShareGroup, TimestampType, TopicCollection, TopicPartition,
+    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
+    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid,
+    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
+    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -3308,7 +3308,7 @@ async fn share_acknowledge_negotiates_v0_when_broker_caps() {
     let mut g = ShareGroup::join(ccfg, "sg-ack0", "t").await.unwrap();
     let recs = g.poll().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-ack0"[..]));
-    g.accept(&recs).await.unwrap();
+    g.acknowledge(&recs, AcknowledgeType::Accept).await.unwrap();
     assert_eq!(
         mock.last_share_ack_version(),
         Some(0),

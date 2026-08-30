@@ -38,6 +38,57 @@ pub use crate::protocol::share::{
     ACK_RELEASE as SHARE_ACK_RELEASE,
 };
 
+/// Share-group acknowledgement (Java `AcknowledgeType`, KIP-932).
+///
+/// [`Display`] is Java `AcknowledgeType.toString` (`accept`). Wire gap `0`
+/// is not a Java `AcknowledgeType` ([`crate::protocol::share::ACK_GAP`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum AcknowledgeType {
+    /// Java `AcknowledgeType.ACCEPT` (wire [`SHARE_ACK_ACCEPT`]).
+    Accept = ACK_ACCEPT,
+    /// Java `AcknowledgeType.RELEASE` (wire [`SHARE_ACK_RELEASE`]).
+    Release = ACK_RELEASE,
+    /// Java `AcknowledgeType.REJECT` (wire [`SHARE_ACK_REJECT`]).
+    Reject = ACK_REJECT,
+}
+
+impl AcknowledgeType {
+    /// Java `AcknowledgeType.id`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        self as i8
+    }
+
+    /// Java `AcknowledgeType.toString` (`accept`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Accept => "accept",
+            Self::Release => "release",
+            Self::Reject => "reject",
+        }
+    }
+
+    /// Java `AcknowledgeType.forId`. Unknown ids (including gap `0`) return
+    /// `None`.
+    #[must_use]
+    pub const fn from_id(id: i8) -> Option<Self> {
+        match id {
+            ACK_ACCEPT => Some(Self::Accept),
+            ACK_RELEASE => Some(Self::Release),
+            ACK_REJECT => Some(Self::Reject),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for AcknowledgeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// One record from ShareFetch.
 #[derive(Debug, Clone)]
 pub struct ShareRecord {
@@ -712,18 +763,29 @@ impl ShareGroup {
     }
 
     /// Acknowledge records as successfully processed (`ACCEPT`).
+    ///
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.ACCEPT)`.
     pub async fn accept(&mut self, recs: &[ShareRecord]) -> Result<()> {
-        self.acknowledge(recs, ACK_ACCEPT).await
+        self.acknowledge(recs, AcknowledgeType::Accept).await
     }
 
     /// Return records to the share (`RELEASE`).
+    ///
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.RELEASE)`.
     pub async fn release(&mut self, recs: &[ShareRecord]) -> Result<()> {
-        self.acknowledge(recs, ACK_RELEASE).await
+        self.acknowledge(recs, AcknowledgeType::Release).await
     }
 
     /// Reject records (`REJECT`, KIP-932).
+    ///
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType.REJECT)`.
     pub async fn reject(&mut self, recs: &[ShareRecord]) -> Result<()> {
-        self.acknowledge(recs, ACK_REJECT).await
+        self.acknowledge(recs, AcknowledgeType::Reject).await
+    }
+
+    /// Java `ShareConsumer.acknowledge(ConsumerRecord, AcknowledgeType)`.
+    pub async fn acknowledge(&mut self, recs: &[ShareRecord], ack: AcknowledgeType) -> Result<()> {
+        self.send_acknowledgements(recs, ack.id()).await
     }
 
     fn session_epoch(&self, node: i32) -> i32 {
@@ -1002,7 +1064,7 @@ impl ShareGroup {
             .unwrap_or_default()
     }
 
-    async fn acknowledge(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
+    async fn send_acknowledgements(&mut self, recs: &[ShareRecord], ack: i8) -> Result<()> {
         if recs.is_empty() {
             return Ok(());
         }
@@ -1412,6 +1474,34 @@ mod tests {
             error::INVALID_SHARE_SESSION_EPOCH,
             "x"
         )));
+    }
+
+    #[test]
+    fn acknowledge_type_matches_java() {
+        assert_eq!(AcknowledgeType::Accept.id(), SHARE_ACK_ACCEPT);
+        assert_eq!(AcknowledgeType::Release.id(), SHARE_ACK_RELEASE);
+        assert_eq!(AcknowledgeType::Reject.id(), SHARE_ACK_REJECT);
+        assert_eq!(AcknowledgeType::Accept.id(), 1);
+        assert_eq!(AcknowledgeType::Release.id(), 2);
+        assert_eq!(AcknowledgeType::Reject.id(), 3);
+        assert_eq!(
+            AcknowledgeType::from_id(SHARE_ACK_ACCEPT),
+            Some(AcknowledgeType::Accept)
+        );
+        assert_eq!(
+            AcknowledgeType::from_id(SHARE_ACK_RELEASE),
+            Some(AcknowledgeType::Release)
+        );
+        assert_eq!(
+            AcknowledgeType::from_id(SHARE_ACK_REJECT),
+            Some(AcknowledgeType::Reject)
+        );
+        assert_eq!(AcknowledgeType::from_id(0), None);
+        assert_eq!(AcknowledgeType::from_id(4), None);
+        assert_eq!(AcknowledgeType::Accept.to_string(), "accept");
+        assert_eq!(AcknowledgeType::Release.to_string(), "release");
+        assert_eq!(AcknowledgeType::Reject.to_string(), "reject");
+        assert_eq!(AcknowledgeType::Accept.as_str(), "accept");
     }
 
     #[test]

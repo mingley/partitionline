@@ -185,6 +185,9 @@
 //! `IsolationLevel.id` / `forId`. [`Compression::id`] /
 //! [`Compression::from_id`] are Java `CompressionType.id` / `forId`
 //! (zstd `4` is `None`; this crate does not speak zstd).
+//! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
+//! (`accept`). [`AcknowledgeType::id`] / [`AcknowledgeType::from_id`] are
+//! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
@@ -603,7 +606,8 @@
 //! committed offset. [`ShareGroup`] is KIP-932 (`join` / [`ShareGroup::join_topics`] /
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
-//! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`]).
+//! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
+//! [`ShareGroup::acknowledge`]).
 //! [`Consumer::seek_with_metadata`] / [`ConsumerGroup::seek_with_metadata`]
 //! are Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch
 //! `LastFetchedEpoch` from the leader epoch; metadata string ignored).
@@ -811,7 +815,8 @@ pub use protocol::offsets::{
 pub use protocol::oidc::OidcConfig;
 pub use protocol::records::{Compression, Header, Record, RecordBatch, TimestampType};
 pub use share::{
-    ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
+    AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT,
+    SHARE_ACK_RELEASE,
 };
 
 /// Software name sent in ApiVersions v3–v4.
