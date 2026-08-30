@@ -32,8 +32,8 @@ use crate::protocol::group::{
     encode_offset_commit_request, encode_offset_fetch_request, encode_subscription,
     encode_subscription_owned, encode_sync_group_request, encode_tp_assignment, ConsumerProtocol,
     FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest,
-    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
-    COORDINATOR_GROUP,
+    JoinGroupResponse, LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic,
+    SyncGroupRequest, COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -1815,21 +1815,22 @@ impl ConsumerGroup {
         for topic in &topic_set {
             by_topic.push((topic.clone(), self.consumer.partition_ids(topic).await?));
         }
-        let assignments = if leader == self.member_id && !skip_assignment {
-            let map = match self.protocol.as_str() {
-                "cooperative-sticky" => {
-                    assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
-                }
-                "sticky" => assign_sticky_subscribed(&member_subs, &by_topic, &owned_prev),
-                _ => assign_range_subscribed(&member_subs, &by_topic),
+        let assignments =
+            if JoinGroupResponse::is_leader(&self.member_id, &leader) && !skip_assignment {
+                let map = match self.protocol.as_str() {
+                    "cooperative-sticky" => {
+                        assign_cooperative_sticky_subscribed(&member_subs, &by_topic, &owned_prev)
+                    }
+                    "sticky" => assign_sticky_subscribed(&member_subs, &by_topic, &owned_prev),
+                    _ => assign_range_subscribed(&member_subs, &by_topic),
+                };
+                self.prev_assignment = map.clone();
+                map.into_iter()
+                    .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
+                    .collect::<Result<Vec<_>>>()?
+            } else {
+                Vec::new()
             };
-            self.prev_assignment = map.clone();
-            map.into_iter()
-                .map(|(id, tps)| Ok((id, encode_tp_assignment(&tps)?)))
-                .collect::<Result<Vec<_>>>()?
-        } else {
-            Vec::new()
-        };
         let version = spoken_sync_group(self.coord.sync_group_version)?;
         let body = coord_roundtrip(
             &mut self.coord,

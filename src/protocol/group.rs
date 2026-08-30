@@ -426,6 +426,17 @@ impl JoinGroupRequest<'_> {
     }
 }
 
+/// Java `JoinGroupResponse` helpers.
+pub struct JoinGroupResponse;
+
+impl JoinGroupResponse {
+    /// Java `JoinGroupResponse.isLeader` (`memberId.equals(leader)`).
+    #[must_use]
+    pub fn is_leader(member_id: &str, leader: &str) -> bool {
+        member_id == leader
+    }
+}
+
 /// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JoinGroupProtocol<'a> {
@@ -2282,6 +2293,8 @@ mod tests {
         ));
         assert!(!JoinGroupRequest::supports_skipping_assignment(8));
         assert!(JoinGroupRequest::supports_skipping_assignment(9));
+        assert!(JoinGroupResponse::is_leader("m-1", "m-1"));
+        assert!(!JoinGroupResponse::is_leader("m-1", "m-2"));
         let keep = "a".repeat(255);
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&keep), keep);
         let long = "a".repeat(256);
