@@ -271,6 +271,75 @@ impl fmt::Display for SecurityProtocol {
     }
 }
 
+/// Java `org.apache.kafka.common.network.ListenerName`.
+///
+/// [`Display`] is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ListenerName {
+    value: String,
+}
+
+impl ListenerName {
+    /// Java `new ListenerName(String)` (`requireNonNull` on the value).
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
+        }
+    }
+
+    /// Java `ListenerName.forSecurityProtocol` (the protocol `name` field).
+    #[must_use]
+    pub fn for_security_protocol(security_protocol: SecurityProtocol) -> Self {
+        Self::new(security_protocol.name())
+    }
+
+    /// Java `ListenerName.normalised` (`toUpperCase`; blank is
+    /// [`Error::protocol`], Java `ConfigException`).
+    pub fn normalised(value: &str) -> Result<Self> {
+        if crate::protocol::buf::is_blank(Some(value)) {
+            return Err(Error::protocol(
+                "The provided listener name is null or empty string",
+            ));
+        }
+        Ok(Self::new(value.to_uppercase()))
+    }
+
+    /// Java `ListenerName.value`.
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    /// Java `ListenerName.configPrefix` (`listener.name.{value}.` in lower case).
+    #[must_use]
+    pub fn config_prefix(&self) -> String {
+        format!("listener.name.{}.", self.value.to_lowercase())
+    }
+
+    /// Java `ListenerName.saslMechanismConfigPrefix`.
+    #[must_use]
+    pub fn sasl_mechanism_config_prefix(&self, sasl_mechanism: &str) -> String {
+        format!(
+            "{}{}",
+            self.config_prefix(),
+            Self::sasl_mechanism_prefix(sasl_mechanism)
+        )
+    }
+
+    /// Java `ListenerName.saslMechanismPrefix`.
+    #[must_use]
+    pub fn sasl_mechanism_prefix(sasl_mechanism: &str) -> String {
+        format!("{}.", sasl_mechanism.to_lowercase())
+    }
+}
+
+impl fmt::Display for ListenerName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ListenerName({})", self.value)
+    }
+}
+
 /// Where a group member starts when OffsetFetch returns no committed offset.
 ///
 /// Kafka `auto.offset.reset`. Java defaults to [`Self::Latest`]. This crate
@@ -521,6 +590,47 @@ mod tests {
             SecurityProtocol::names(),
             ["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"]
         );
+    }
+
+    #[test]
+    fn listener_name_matches_java() {
+        let plaintext = ListenerName::for_security_protocol(SecurityProtocol::Plaintext);
+        assert_eq!(plaintext.value(), "PLAINTEXT");
+        assert_eq!(plaintext.to_string(), "ListenerName(PLAINTEXT)");
+        assert_eq!(plaintext.config_prefix(), "listener.name.plaintext.");
+        assert_eq!(
+            plaintext.sasl_mechanism_config_prefix("PLAIN"),
+            "listener.name.plaintext.plain."
+        );
+        assert_eq!(ListenerName::sasl_mechanism_prefix("PLAIN"), "plain.");
+        assert_eq!(
+            ListenerName::sasl_mechanism_prefix("SCRAM-SHA-256"),
+            "scram-sha-256."
+        );
+        let client = ListenerName::normalised("client").unwrap();
+        assert_eq!(client.value(), "CLIENT");
+        assert_eq!(client.config_prefix(), "listener.name.client.");
+        let mixed = ListenerName::normalised("Internal").unwrap();
+        assert_eq!(mixed.value(), "INTERNAL");
+        let kept = ListenerName::new("plain");
+        assert_eq!(kept.value(), "plain");
+        assert_eq!(kept.to_string(), "ListenerName(plain)");
+        let empty = ListenerName::normalised("").unwrap_err();
+        assert!(
+            empty
+                .to_string()
+                .contains("The provided listener name is null or empty string"),
+            "got {empty}"
+        );
+        let spaces = ListenerName::normalised("  \t").unwrap_err();
+        assert!(
+            spaces
+                .to_string()
+                .contains("The provided listener name is null or empty string"),
+            "got {spaces}"
+        );
+        let nbsp = ListenerName::normalised("\u{00a0}").unwrap();
+        assert_eq!(nbsp.value(), "\u{00a0}");
     }
 
     #[test]

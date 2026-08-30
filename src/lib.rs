@@ -830,7 +830,14 @@
 //! [`SecurityProtocol::names`] are Java `SecurityProtocol.id` / `forId` /
 //! `forName` / `names` (unknown id is `None`; unknown name is
 //! [`Error::protocol`]). [`SecurityProtocol`] `Display` is Java
-//! `SecurityProtocol.toString` (`PLAINTEXT`). [`Compression::id`] /
+//! `SecurityProtocol.toString` (`PLAINTEXT`). [`ListenerName::new`] /
+//! [`ListenerName::for_security_protocol`] / [`ListenerName::normalised`] /
+//! [`ListenerName::value`] / [`ListenerName::config_prefix`] /
+//! [`ListenerName::sasl_mechanism_config_prefix`] /
+//! [`ListenerName::sasl_mechanism_prefix`] are Java `ListenerName`
+//! (`toUpperCase`; blank is [`Error::protocol`]). [`ListenerName`] `Display`
+//! is Java `ListenerName.toString` (`ListenerName(PLAINTEXT)`).
+//! [`Compression::id`] /
 //! [`Compression::from_id`] / [`Compression::from_name`] are Java
 //! `CompressionType.id` / `forId` / `forName`
 //! (zstd `4` is `None`; this crate does not speak zstd).
@@ -1669,7 +1676,7 @@
 /// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;
 pub(crate) mod cluster;
-/// Shared config: [`Acks`], [`IsolationLevel`], [`SecurityProtocol`], [`Sasl`].
+/// Shared config: [`Acks`], [`IsolationLevel`], [`SecurityProtocol`], [`ListenerName`], [`Sasl`].
 pub mod config;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
@@ -1747,7 +1754,7 @@ pub use admin::{
     UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
     UPGRADE_TYPE_UPGRADE,
 };
-pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl, SecurityProtocol};
+pub use config::{Acks, AutoOffsetReset, IsolationLevel, ListenerName, Sasl, SecurityProtocol};
 pub use consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
