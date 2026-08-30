@@ -555,6 +555,13 @@
 //! [`Admin::alter_configs_with`] is Java `alterConfigs(Map)` with a
 //! [`Config`] value. [`DescribeConfigsResult::config`] is the Java
 //! `describeConfigs` result `Config` (`entries` / `get`).
+//! [`protocol::admin::DescribeConfigsResource::error_result`] /
+//! [`DescribeConfigsResult::error`] /
+//! [`DescribeConfigsResult::error_results`] are Java
+//! `DescribeConfigsRequest.getErrorResponse` (one resource / Results).
+//! Configs stay JSON default empty. `ErrorMessage` stays the JSON
+//! default (null); official Java also sets the English `Errors.message`
+//! string.
 //! [`ConfigEntry::source`] / [`ConfigEntry::config_type`] /
 //! [`ConfigEntry::is_default`] / [`CreatedTopicConfig::is_default`] are Java
 //! `ConfigEntry.source` / `type` / `isDefault` ([`ConfigSource`] /

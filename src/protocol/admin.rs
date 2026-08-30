@@ -535,6 +535,10 @@ impl fmt::Display for CreatedTopicConfig {
 }
 
 /// One resource in a DescribeConfigs request.
+///
+/// [`Self::error_result`] is Java `DescribeConfigsRequest.getErrorResponse`
+/// one resource (copy `ResourceName` / `ResourceType`; Configs stay JSON
+/// default empty; `ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResource {
     /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, …).
@@ -543,6 +547,20 @@ pub struct DescribeConfigsResource {
     pub name: String,
     /// Keys to return, or `None` for every key on the resource.
     pub keys: Option<Vec<String>>,
+}
+
+impl DescribeConfigsResource {
+    /// Java `DescribeConfigsRequest.getErrorResponse` one resource.
+    ///
+    /// Copies `ResourceName` / `ResourceType` and sets `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Configs stay JSON
+    /// default empty. Request `configurationKeys` are not copied.
+    /// Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> DescribeConfigsResult {
+        DescribeConfigsResult::error(self.resource_type, self.name.clone(), error_code)
+    }
 }
 
 /// A config key that is an alias or parent of a [`ConfigEntry`].
@@ -840,6 +858,10 @@ impl fmt::Display for Config {
 }
 
 /// Per-resource result of DescribeConfigs.
+///
+/// [`Self::error`] is Java `DescribeConfigsRequest.getErrorResponse` one
+/// resource (`ErrorMessage` stays the JSON default, null; Configs stay
+/// JSON default empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResult {
     /// Per-resource error code (`0` is success).
@@ -855,6 +877,34 @@ pub struct DescribeConfigsResult {
 }
 
 impl DescribeConfigsResult {
+    /// Java `DescribeConfigsRequest.getErrorResponse` one resource.
+    ///
+    /// Sets `ResourceType`, `ResourceName`, and `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Configs stay JSON
+    /// default empty. Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error(resource_type: i8, name: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            resource_type,
+            name: name.into(),
+            entries: Vec::new(),
+        }
+    }
+
+    /// Java `DescribeConfigsRequest.getErrorResponse` Results.
+    ///
+    /// Maps each request resource through [`DescribeConfigsResource::error_result`].
+    #[must_use]
+    pub fn error_results(resources: &[DescribeConfigsResource], error_code: i16) -> Vec<Self> {
+        resources
+            .iter()
+            .map(|resource| resource.error_result(error_code))
+            .collect()
+    }
+
     /// Java `Config` for this resource (`describeConfigs` result value).
     #[must_use]
     pub fn config(&self) -> Config {
@@ -14586,6 +14636,81 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeConfigs v1 response must be leftover-empty"
+        );
+
+        let err_resources = vec![
+            DescribeConfigsResource {
+                resource_type: RESOURCE_TOPIC,
+                name: "orders".into(),
+                keys: Some(vec!["cleanup.policy".into()]),
+            },
+            DescribeConfigsResource {
+                resource_type: RESOURCE_BROKER,
+                name: "1".into(),
+                keys: None,
+            },
+        ];
+        let err_results =
+            DescribeConfigsResult::error_results(&err_resources, crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err_results,
+            vec![
+                DescribeConfigsResult::error(
+                    RESOURCE_TOPIC,
+                    "orders",
+                    crate::error::NOT_CONTROLLER,
+                ),
+                err_resources
+                    .get(1)
+                    .expect("broker resource")
+                    .error_result(crate::error::NOT_CONTROLLER),
+            ]
+        );
+        let first = err_results.first().expect("error resource");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        assert_eq!(first.resource_type, RESOURCE_TOPIC);
+        assert_eq!(first.name(), "orders");
+        assert!(first.entries().is_empty());
+        assert!(first.config().entries().is_empty());
+        let empty =
+            DescribeConfigsResult::error_results(&[], crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_describe_configs_response(&mut buf, 1, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_configs_response(&mut cur, 1).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_describe_configs_response(&mut buf, 4, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs v4 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_describe_configs_response(&mut buf, 4, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeConfigs empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
