@@ -614,7 +614,9 @@
 //! [`ConsumerGroup::join_with_assignors`] is Java `partition.assignment.strategy`
 //! (JoinGroup Protocols of N), and
 //! [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
-//! `_topics` variant for several topics. [`ConsumerGroup::join_matching`] /
+//! `_topics` variant for several topics. [`ConsumerGroup::group_protocol`] is
+//! Java `GroupProtocol` (`CLASSIC` / `CONSUMER`; [`GroupProtocol::of`] is Java
+//! `GroupProtocol.of`). [`ConsumerGroup::join_matching`] /
 //! [`ConsumerGroup::join_sticky_matching`] /
 //! [`ConsumerGroup::join_cooperative_sticky_matching`] /
 //! [`ConsumerGroup::join_consumer_matching`] are Java `subscribe(Pattern)`
@@ -809,7 +811,7 @@ pub use consumer::{
 };
 pub use error::{Error, Result};
 pub use group::{
-    ConsumerGroup, ConsumerGroupMetadata, DEFAULT_ENFORCE_REBALANCE_REASON,
+    ConsumerGroup, ConsumerGroupMetadata, GroupProtocol, DEFAULT_ENFORCE_REBALANCE_REASON,
     LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
 };
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};

@@ -379,6 +379,47 @@ impl fmt::Display for ConsumerGroupMetadata {
     }
 }
 
+/// Java `org.apache.kafka.clients.consumer.GroupProtocol` (`group.protocol`).
+///
+/// [`Display`] is Java `GroupProtocol.toString` (`CLASSIC`). [`Self::of`] is
+/// Java `GroupProtocol.of` (unknown is `None`; Java throws).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GroupProtocol {
+    /// Java `CLASSIC` (JoinGroup / SyncGroup).
+    Classic,
+    /// Java `CONSUMER` (KIP-848 ConsumerGroupHeartbeat).
+    Consumer,
+}
+
+impl GroupProtocol {
+    /// Java `GroupProtocol.name` (`CLASSIC` / `CONSUMER`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Classic => "CLASSIC",
+            Self::Consumer => "CONSUMER",
+        }
+    }
+
+    /// Java `GroupProtocol.of` (case-insensitive; unknown is `None`).
+    #[must_use]
+    pub fn of(name: &str) -> Option<Self> {
+        if name.eq_ignore_ascii_case("classic") {
+            Some(Self::Classic)
+        } else if name.eq_ignore_ascii_case("consumer") {
+            Some(Self::Consumer)
+        } else {
+            None
+        }
+    }
+}
+
+impl fmt::Display for GroupProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Classic or KIP-848 consumer group member.
 pub struct ConsumerGroup {
     consumer: Consumer,
@@ -707,6 +748,19 @@ impl ConsumerGroup {
     #[must_use]
     pub fn subscription(&self) -> &[String] {
         self.topics()
+    }
+
+    /// Java `group.protocol` in effect ([`GroupProtocol`]).
+    ///
+    /// Classic JoinGroup members are [`GroupProtocol::Classic`].
+    /// [`Self::join_consumer`] members are [`GroupProtocol::Consumer`].
+    #[must_use]
+    pub fn group_protocol(&self) -> GroupProtocol {
+        if self.kip848 {
+            GroupProtocol::Consumer
+        } else {
+            GroupProtocol::Classic
+        }
     }
 
     /// Assigned partitions (Java `assignment`). Offsets are [`Self::positions`].
@@ -2750,6 +2804,18 @@ mod tests {
             unknown.to_string(),
             "GroupMetadata(groupId = g, generationId = -1, memberId = , groupInstanceId = )"
         );
+    }
+
+    #[test]
+    fn group_protocol_matches_java() {
+        assert_eq!(GroupProtocol::Classic.as_str(), "CLASSIC");
+        assert_eq!(GroupProtocol::Consumer.as_str(), "CONSUMER");
+        assert_eq!(GroupProtocol::Classic.to_string(), "CLASSIC");
+        assert_eq!(GroupProtocol::Consumer.to_string(), "CONSUMER");
+        assert_eq!(GroupProtocol::of("classic"), Some(GroupProtocol::Classic));
+        assert_eq!(GroupProtocol::of("CONSUMER"), Some(GroupProtocol::Consumer));
+        assert!(GroupProtocol::of("share").is_none());
+        assert!(GroupProtocol::of("nope").is_none());
     }
 
     #[test]
