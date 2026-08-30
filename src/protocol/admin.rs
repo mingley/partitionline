@@ -1590,6 +1590,19 @@ impl DescribeConfigsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `DescribeConfigsResponse.errorCounts`.
+    ///
+    /// Counts per-resource error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(results: &[DescribeConfigsResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// DescribeConfigs v0–4 (classic through v3; flexible from v4).
@@ -2308,6 +2321,19 @@ impl IncrementalAlterConfigsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 0
     }
+
+    /// Java `IncrementalAlterConfigsResponse.errorCounts`.
+    ///
+    /// Counts per-resource error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(results: &[AlterConfigsResourceResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// IncrementalAlterConfigs v0–1 (classic at v0; flexible from v1).
@@ -2521,6 +2547,20 @@ impl AlterConfigsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `AlterConfigsResponse.errorCounts`.
+    ///
+    /// Counts per-resource error codes (including `NONE`). Java
+    /// `apiErrorCounts` over `errors()` is the same tally.
+    #[must_use]
+    pub fn error_counts(results: &[AlterConfigsResourceResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -14169,6 +14209,61 @@ mod tests {
                 (crate::error::NON_EMPTY_GROUP, 1),
                 (crate::error::GROUP_ID_NOT_FOUND, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn describe_configs_response_error_counts_matches_java() {
+        assert!(DescribeConfigsResponse::error_counts(&[]).is_empty());
+        let counts = DescribeConfigsResponse::error_counts(&[
+            DescribeConfigsResult::error(RESOURCE_TOPIC, "ok", 0),
+            DescribeConfigsResult::error(
+                RESOURCE_TOPIC,
+                "missing",
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            ),
+            DescribeConfigsResult::error(RESOURCE_BROKER, "1", 0),
+            DescribeConfigsResult::error(RESOURCE_TOPIC, "bad", crate::error::INVALID_CONFIG),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+                (crate::error::INVALID_CONFIG, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn alter_configs_response_error_counts_matches_java() {
+        assert!(AlterConfigsResponse::error_counts(&[]).is_empty());
+        let counts = AlterConfigsResponse::error_counts(&[
+            AlterConfigsResourceResult::error(RESOURCE_TOPIC, "ok", 0),
+            AlterConfigsResourceResult::error(RESOURCE_TOPIC, "bad", crate::error::INVALID_CONFIG),
+            AlterConfigsResourceResult::error(RESOURCE_BROKER, "1", 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::INVALID_CONFIG, 1),])
+        );
+    }
+
+    #[test]
+    fn incremental_alter_configs_response_error_counts_matches_java() {
+        assert!(IncrementalAlterConfigsResponse::error_counts(&[]).is_empty());
+        let counts = IncrementalAlterConfigsResponse::error_counts(&[
+            AlterConfigsResourceResult::error(RESOURCE_TOPIC, "ok", 0),
+            AlterConfigsResourceResult::error(
+                RESOURCE_TOPIC,
+                "denied",
+                crate::error::TOPIC_AUTHORIZATION_FAILED,
+            ),
+            AlterConfigsResourceResult::error(RESOURCE_BROKER, "1", 0),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::TOPIC_AUTHORIZATION_FAILED, 1),])
         );
     }
 

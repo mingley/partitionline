@@ -287,7 +287,9 @@
 //! `None` is every visible token)),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
-//! `DescribeConfigsResponse.shouldClientThrottle` (v2+)),
+//! `DescribeConfigsResponse.shouldClientThrottle` (v2+);
+//! [`protocol::admin::DescribeConfigsResponse::error_counts`] is Java
+//! `DescribeConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
@@ -300,10 +302,14 @@
 //! sets the English `Errors.message` string),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N;
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
-//! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+)),
+//! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+);
+//! [`protocol::admin::IncrementalAlterConfigsResponse::error_counts`] is Java
+//! `IncrementalAlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N;
 //! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
-//! `AlterConfigsResponse.shouldClientThrottle` (v1+)),
+//! `AlterConfigsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::AlterConfigsResponse::error_counts`] is Java
+//! `AlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
