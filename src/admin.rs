@@ -1843,7 +1843,9 @@ impl fmt::Display for OngoingReassignment {
 ///
 /// [`Display`] is Java `FeatureUpdate.toString` (no feature name; that is
 /// the `updateFeatures` map key). Unknown upgrade-type codes print
-/// `UNKNOWN`.
+/// `UNKNOWN`. Java `FeatureUpdate` constructor rejects maxVersionLevel 0
+/// with [`UPGRADE_TYPE_UPGRADE`] and a negative maxVersionLevel; this crate
+/// checks those rules when encoding UpdateFeatures.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureUpdate {
     /// Feature name (for example `metadata.version`).

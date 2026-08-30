@@ -368,6 +368,9 @@
 //! [`FinalizedVersionRange`] / [`FeatureMetadata`] `Display` match Java
 //! `toString`. [`UpgradeType::code`] / [`UpgradeType::from_code`] are Java
 //! `FeatureUpdate.UpgradeType.code` / `fromCode` (Java `UNKNOWN` is `None`).
+//! Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
+//! `UpgradeType.UPGRADE` and a negative maxVersionLevel (checked at
+//! UpdateFeatures encode).
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on
@@ -620,7 +623,9 @@
 //! Produce/Fetch `NodeEndpoint` have the same getters and convert with `From`.
 //! [`Admin::update_features_with`] is Java `updateFeatures` plus
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
-//! UpgradeType / ValidateOnly; v2 omits Results).
+//! UpgradeType / ValidateOnly; v2 omits Results; Java `FeatureUpdate`
+//! constructor rejects maxVersionLevel 0 with `UpgradeType.UPGRADE` and a
+//! negative maxVersionLevel).
 //! [`Admin::update_features_timeout`] / [`Admin::update_features_with_timeout`]
 //! are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).

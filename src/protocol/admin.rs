@@ -3702,6 +3702,9 @@ fn update_features_spoken(version: i16) -> Result<i16> {
 }
 
 /// Encode an UpdateFeatures request (v0–2; flexible from v0).
+///
+/// Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
+/// `UpgradeType.UPGRADE` and a negative maxVersionLevel.
 pub fn encode_update_features_request(
     buf: &mut BytesMut,
     version: i16,
@@ -3710,6 +3713,17 @@ pub fn encode_update_features_request(
     validate_only: bool,
 ) -> crate::error::Result<()> {
     let _ = update_features_spoken(version)?;
+    for u in updates {
+        if u.max_version_level == 0 && u.upgrade_type == UPGRADE_TYPE_UPGRADE {
+            return Err(Error::protocol(format!(
+                "The upgradeType flag should be set to SAFE_DOWNGRADE or UNSAFE_DOWNGRADE when the provided maxVersionLevel:{} is < 1.",
+                u.max_version_level
+            )));
+        }
+        if u.max_version_level < 0 {
+            return Err(Error::protocol("Cannot specify a negative version level."));
+        }
+    }
     buf.put_i32(timeout_ms);
     buf::put_array_len(buf, true, Some(updates.len()))?;
     for u in updates {
@@ -14891,6 +14905,53 @@ mod tests {
         assert!(
             encode_update_features_response(&mut BytesMut::new(), 3, &resp).is_err(),
             "UpdateFeatures v3+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn update_features_constructor_matches_java() {
+        let err = encode_update_features_request(
+            &mut BytesMut::new(),
+            1,
+            1000,
+            &[FeatureUpdateKey::new("f", 0, false)],
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "maxVersionLevel 0 with UPGRADE is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains(
+                "The upgradeType flag should be set to SAFE_DOWNGRADE or UNSAFE_DOWNGRADE when the provided maxVersionLevel:0 is < 1."
+            ),
+            "got {err}"
+        );
+        encode_update_features_request(
+            &mut BytesMut::new(),
+            1,
+            1000,
+            &[FeatureUpdateKey::new("f", 0, true)],
+            false,
+        )
+        .unwrap();
+        let err = encode_update_features_request(
+            &mut BytesMut::new(),
+            1,
+            1000,
+            &[FeatureUpdateKey::new("f", -1, false)],
+            false,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "negative maxVersionLevel is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains("Cannot specify a negative version level."),
+            "got {err}"
         );
     }
 
