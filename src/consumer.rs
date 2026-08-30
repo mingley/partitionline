@@ -897,11 +897,12 @@ pub struct OffsetAndMetadata {
 impl OffsetAndMetadata {
     /// Java `OffsetFetchResponse.NO_METADATA` (empty string; Java
     /// `OffsetAndMetadata` stores this when the constructor metadata is
-    /// null).
-    pub const NO_METADATA: &'static str = "";
+    /// null). Same sentinel as [`crate::protocol::group::FetchedOffset::NO_METADATA`].
+    pub const NO_METADATA: &'static str = crate::protocol::group::FetchedOffset::NO_METADATA;
 
-    /// Java `OffsetFetchResponse.INVALID_OFFSET`.
-    pub const INVALID_OFFSET: i64 = -1;
+    /// Java `OffsetFetchResponse.INVALID_OFFSET`. Same sentinel as
+    /// [`crate::protocol::group::FetchedOffset::INVALID_OFFSET`].
+    pub const INVALID_OFFSET: i64 = crate::protocol::group::FetchedOffset::INVALID_OFFSET;
 
     /// Offset only: unknown epoch, [`Self::NO_METADATA`].
     #[must_use]

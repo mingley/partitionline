@@ -6,7 +6,8 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::{Error, Result};
+use super::records::RecordBatch;
+use crate::error::{error_name, Error, Result};
 
 /// FindCoordinator `key_type` for a consumer group.
 pub const COORDINATOR_GROUP: i8 = 0;
@@ -1198,31 +1199,61 @@ pub struct OffsetFetchTopic {
 }
 
 /// One partition in an OffsetFetch v1–v9 response.
+///
+/// Java `OffsetFetchResponse.PartitionData` plus the partition index.
+/// [`Self::INVALID_OFFSET`] / [`Self::NO_METADATA`] / [`Self::has_error`]
+/// are Java `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
+/// `PartitionData.hasError`. [`Display`] is Java `PartitionData.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
     /// Partition index.
     pub partition: i32,
-    /// Committed offset, or `-1` when none.
+    /// Committed offset, or [`Self::INVALID_OFFSET`] when none.
     pub offset: i64,
-    /// Leader epoch, or `-1`.
+    /// Leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
-    /// Commit metadata string.
+    /// Commit metadata string ([`Self::NO_METADATA`] when empty).
     pub metadata: String,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
 }
 
 impl FetchedOffset {
-    /// Offset with unknown epoch and empty metadata.
+    /// Java `OffsetFetchResponse.INVALID_OFFSET`.
+    pub const INVALID_OFFSET: i64 = -1;
+    /// Java `OffsetFetchResponse.NO_METADATA`.
+    pub const NO_METADATA: &'static str = "";
+
+    /// Offset with unknown epoch and [`Self::NO_METADATA`].
     #[must_use]
     pub fn new(partition: i32, offset: i64, error_code: i16) -> Self {
         Self {
             partition,
             offset,
-            leader_epoch: -1,
-            metadata: String::new(),
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            metadata: Self::NO_METADATA.into(),
             error_code,
         }
+    }
+
+    /// Java `OffsetFetchResponse.PartitionData.hasError`.
+    #[must_use]
+    pub fn has_error(&self) -> bool {
+        self.error_code != 0
+    }
+}
+
+impl fmt::Display for FetchedOffset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("PartitionData(offset=")?;
+        write!(f, "{}", self.offset)?;
+        f.write_str(", leaderEpoch=")?;
+        write!(f, "{}", self.leader_epoch)?;
+        f.write_str(", metadata=")?;
+        f.write_str(&self.metadata)?;
+        f.write_str(", error='")?;
+        f.write_str(error_name(self.error_code).unwrap_or("UNKNOWN_SERVER_ERROR"))?;
+        f.write_str("')")
     }
 }
 
@@ -1583,7 +1614,11 @@ fn decode_fetched_offset_topics<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 5 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 5 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             let error_code = buf::get_i16(buf)?;
             if flexible {
@@ -2200,6 +2235,48 @@ mod tests {
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&keep), keep);
         let long = "a".repeat(256);
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&long).len(), 255);
+    }
+
+    #[test]
+    fn fetched_offset_partition_data_matches_java() {
+        assert_eq!(FetchedOffset::INVALID_OFFSET, -1);
+        assert_eq!(FetchedOffset::NO_METADATA, "");
+        assert_eq!(
+            FetchedOffset::INVALID_OFFSET,
+            crate::OffsetAndMetadata::INVALID_OFFSET
+        );
+        assert_eq!(
+            FetchedOffset::NO_METADATA,
+            crate::OffsetAndMetadata::NO_METADATA
+        );
+        let none = FetchedOffset::new(0, FetchedOffset::INVALID_OFFSET, 0);
+        assert!(!none.has_error());
+        assert_eq!(none.leader_epoch, RecordBatch::NO_PARTITION_LEADER_EPOCH);
+        assert_eq!(
+            none.to_string(),
+            "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='NONE')"
+        );
+        let unknown = FetchedOffset::new(
+            1,
+            FetchedOffset::INVALID_OFFSET,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        );
+        assert!(unknown.has_error());
+        assert_eq!(
+            unknown.to_string(),
+            "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='UNKNOWN_TOPIC_OR_PARTITION')"
+        );
+        let ok = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: 2,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        assert_eq!(
+            ok.to_string(),
+            "PartitionData(offset=5, leaderEpoch=2, metadata=m, error='NONE')"
+        );
     }
 
     #[test]

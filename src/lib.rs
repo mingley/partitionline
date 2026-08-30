@@ -199,9 +199,13 @@
 //! `ConsumerRecord.NO_TIMESTAMP` / `NULL_SIZE`.
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
-//! match Java `toString`. [`OffsetAndMetadata::NO_METADATA`] is Java
-//! `OffsetFetchResponse.NO_METADATA`. [`OffsetAndMetadata::INVALID_OFFSET`] is
-//! Java `OffsetFetchResponse.INVALID_OFFSET`. [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /
+//! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
+//! [`protocol::group::FetchedOffset::NO_METADATA`] /
+//! [`protocol::group::FetchedOffset::has_error`] are Java
+//! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
+//! `PartitionData.hasError` (`FetchedOffset` `Display` is
+//! `PartitionData.toString`). [`OffsetAndMetadata::NO_METADATA`] /
+//! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies. [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /
 //! [`OffsetAndTimestamp::UNKNOWN_TIMESTAMP`] are Java
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
 //! [`TopicIdPartition`] `Display` is Java

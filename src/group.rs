@@ -2481,7 +2481,7 @@ pub(crate) fn committed_offset_map(
     let mut map = HashMap::new();
     for t in fetched {
         for p in &t.partitions {
-            if p.error_code != 0 {
+            if p.has_error() {
                 return Err(Error::broker(
                     p.error_code,
                     format!("OffsetFetch {}-{}", t.topic, p.partition),

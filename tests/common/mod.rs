@@ -3271,7 +3271,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
             "g",
             &[FetchedOffsetTopic {
                 topic: "t".into(),
-                partitions: vec![FetchedOffset::new(0, -1, NC)],
+                partitions: vec![FetchedOffset::new(0, FetchedOffset::INVALID_OFFSET, NC)],
             }],
             NC,
         )
@@ -5885,7 +5885,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         .committed
                                         .get(&(g.group_id.clone(), t.topic.clone(), p))
                                         .map(|c| (c.offset, c.leader_epoch, c.metadata.clone()))
-                                        .unwrap_or((-1, -1, String::new()));
+                                        .unwrap_or((
+                                            FetchedOffset::INVALID_OFFSET,
+                                            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                                            FetchedOffset::NO_METADATA.to_string(),
+                                        ));
                                     parts.push(FetchedOffset {
                                         partition: p,
                                         offset: off,
