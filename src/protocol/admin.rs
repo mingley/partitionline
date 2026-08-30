@@ -7637,6 +7637,32 @@ impl ConsumerGroupDescribeResponse {
     }
 }
 
+/// Java `ConsumerGroupDescribeRequest` helpers.
+pub struct ConsumerGroupDescribeRequest;
+
+impl ConsumerGroupDescribeRequest {
+    /// Java `ConsumerGroupDescribeRequest.getErrorDescribedGroupList`.
+    ///
+    /// Each group is [`DescribedConsumerGroup::new`] (GroupId + ErrorCode).
+    /// JSON defaults match: `ErrorMessage` null, empty state / assignor
+    /// strings, epoch `0`, empty Members, and
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn error_described_group_list<I>(
+        group_ids: I,
+        error_code: i16,
+    ) -> Vec<DescribedConsumerGroup>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        group_ids
+            .into_iter()
+            .map(|id| DescribedConsumerGroup::new(id, error_code))
+            .collect()
+    }
+}
+
 /// ConsumerGroupDescribe v0–1 (flexible from v0; KIP-848 / KIP-1099).
 ///
 /// Official Apache JSON (`apiKey: 69`, `validVersions: "0-1"`,
@@ -19953,6 +19979,18 @@ mod tests {
             "g",
             crate::error::NOT_COORDINATOR,
         )];
+        assert_eq!(
+            ConsumerGroupDescribeRequest::error_described_group_list(
+                ["g"],
+                crate::error::NOT_COORDINATOR
+            ),
+            resp
+        );
+        assert!(ConsumerGroupDescribeRequest::error_described_group_list(
+            Vec::<String>::new(),
+            crate::error::NOT_COORDINATOR
+        )
+        .is_empty());
         buf.clear();
         encode_consumer_group_describe_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);

@@ -244,6 +244,9 @@
 //! `ShareAcknowledgeResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`)),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
+//! [`protocol::admin::ConsumerGroupDescribeRequest::error_described_group_list`] is Java
+//! `ConsumerGroupDescribeRequest.getErrorDescribedGroupList` (each id through
+//! [`DescribedConsumerGroup::new`]);
 //! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
 //! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
