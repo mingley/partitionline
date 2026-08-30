@@ -11400,9 +11400,9 @@ fn group_list_reassignments(partitions: &[crate::TopicPartition]) -> Vec<ListRea
     }
     order
         .into_iter()
-        .map(|name| ListReassignmentTopic {
-            partition_indexes: by_topic.remove(&name).unwrap_or_default(),
-            name,
+        .map(|name| {
+            let partitions = by_topic.remove(&name).unwrap_or_default();
+            ListReassignmentTopic::new(name, partitions)
         })
         .collect()
 }

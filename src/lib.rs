@@ -526,6 +526,13 @@
 //! `listPartitionReassignments()`.
 //! [`Admin::list_partition_reassignments_for`] is Java
 //! `listPartitionReassignments(Set)`.
+//! [`protocol::admin::ListReassignmentTopic::error_result`] /
+//! [`protocol::admin::ListPartitionReassignmentsResponse::error`] are Java
+//! `ListPartitionReassignmentsRequest.getErrorResponse` (one topic /
+//! the Topics list; null request Topics is empty). Nested partitions copy
+//! `PartitionIndex`; replica lists stay JSON default empty. Top-level
+//! `ErrorMessage` stays the JSON default (null); official Java also
+//! sets the English `Errors.message` string.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java

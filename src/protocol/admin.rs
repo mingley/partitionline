@@ -3467,6 +3467,10 @@ pub fn decode_alter_partition_reassignments_response<B: Buf>(
 }
 
 /// One topic in ListPartitionReassignments v0 (flexible; topics nullable).
+///
+/// [`Self::error_result`] is Java `ListPartitionReassignmentsRequest.getErrorResponse`
+/// one topic (copy `Name` and each `PartitionIndex`; replica lists stay
+/// JSON default empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListReassignmentTopic {
     /// Topic, resource, group, or feature name.
@@ -3475,7 +3479,51 @@ pub struct ListReassignmentTopic {
     pub partition_indexes: Vec<i32>,
 }
 
+impl ListReassignmentTopic {
+    /// Topic `name` plus partition indexes.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partition_indexes: Vec<i32>) -> Self {
+        Self {
+            name: name.into(),
+            partition_indexes,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partition indexes.
+    #[must_use]
+    pub fn partition_indexes(&self) -> &[i32] {
+        &self.partition_indexes
+    }
+
+    /// Java `ListPartitionReassignmentsRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`OngoingPartitionReassignment::new`]. Replica
+    /// lists stay JSON default empty. Official Java also sets a
+    /// top-level English `ErrorMessage`; this helper fills only the
+    /// nested Topics body.
+    #[must_use]
+    pub fn error_result(&self) -> OngoingTopicReassignment {
+        OngoingTopicReassignment::new(
+            self.name.clone(),
+            self.partition_indexes
+                .iter()
+                .copied()
+                .map(OngoingPartitionReassignment::new)
+                .collect(),
+        )
+    }
+}
+
 /// One ongoing partition reassignment in the List response.
+///
+/// [`Self::new`] is Java `new OngoingPartitionReassignment().setPartitionIndex`
+/// (replica lists stay JSON default empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingPartitionReassignment {
     /// Partition index.
@@ -3488,6 +3536,45 @@ pub struct OngoingPartitionReassignment {
     pub removing_replicas: Vec<i32>,
 }
 
+impl OngoingPartitionReassignment {
+    /// Java `new OngoingPartitionReassignment().setPartitionIndex`.
+    ///
+    /// Replica lists are the JSON defaults (empty).
+    #[must_use]
+    pub fn new(partition_index: i32) -> Self {
+        Self {
+            partition_index,
+            replicas: Vec::new(),
+            adding_replicas: Vec::new(),
+            removing_replicas: Vec::new(),
+        }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Current replica set (JSON default empty).
+    #[must_use]
+    pub fn replicas(&self) -> &[i32] {
+        &self.replicas
+    }
+
+    /// Replicas being added (JSON default empty).
+    #[must_use]
+    pub fn adding_replicas(&self) -> &[i32] {
+        &self.adding_replicas
+    }
+
+    /// Replicas being removed (JSON default empty).
+    #[must_use]
+    pub fn removing_replicas(&self) -> &[i32] {
+        &self.removing_replicas
+    }
+}
+
 /// One topic in ListPartitionReassignments response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OngoingTopicReassignment {
@@ -3497,7 +3584,33 @@ pub struct OngoingTopicReassignment {
     pub partitions: Vec<OngoingPartitionReassignment>,
 }
 
+impl OngoingTopicReassignment {
+    /// Topic `name` plus partition bodies.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partitions: Vec<OngoingPartitionReassignment>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[OngoingPartitionReassignment] {
+        &self.partitions
+    }
+}
+
 /// ListPartitionReassignments v0 response (top-level error after throttle).
+///
+/// [`Self::error`] is Java `ListPartitionReassignmentsRequest.getErrorResponse`
+/// (`ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListPartitionReassignmentsResponse {
     /// Kafka error code (`0` is success).
@@ -3506,6 +3619,46 @@ pub struct ListPartitionReassignmentsResponse {
     pub error_message: Option<String>,
     /// Topics in this request or response.
     pub topics: Vec<OngoingTopicReassignment>,
+}
+
+impl ListPartitionReassignmentsResponse {
+    /// Java `ListPartitionReassignmentsRequest.getErrorResponse`.
+    ///
+    /// Copies each request topic through [`ListReassignmentTopic::error_result`].
+    /// Null request Topics becomes an empty Topics list. `ErrorMessage` is
+    /// the JSON default (null); official Java also sets the English
+    /// `Errors.message` string. Throttle on the response is the JSON
+    /// default (`0`).
+    #[must_use]
+    pub fn error(error_code: i16, topics: Option<&[ListReassignmentTopic]>) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            topics: topics
+                .unwrap_or(&[])
+                .iter()
+                .map(ListReassignmentTopic::error_result)
+                .collect(),
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Topics in this response.
+    #[must_use]
+    pub fn topics(&self) -> &[OngoingTopicReassignment] {
+        &self.topics
+    }
 }
 
 fn put_compact_i32_array(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
@@ -14884,10 +15037,7 @@ mod tests {
 
     #[test]
     fn list_partition_reassignments_v0_roundtrip_is_leftover_empty() {
-        let topics = vec![ListReassignmentTopic {
-            name: "t".into(),
-            partition_indexes: vec![0, 1],
-        }];
+        let topics = vec![ListReassignmentTopic::new("t", vec![0, 1])];
         let mut buf = BytesMut::new();
         encode_list_partition_reassignments_request(&mut buf, 10_000, Some(&topics)).unwrap();
         let mut cur = &buf[..];
@@ -14933,6 +15083,59 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ListPartitionReassignments v0 response must be leftover-empty"
+        );
+
+        let topic = ListReassignmentTopic::new("t", vec![0, 3]);
+        assert_eq!(topic.name(), "t");
+        assert_eq!(topic.partition_indexes(), &[0, 3]);
+        let topic_err = topic.error_result();
+        assert_eq!(
+            topic_err,
+            OngoingTopicReassignment::new(
+                "t",
+                vec![
+                    OngoingPartitionReassignment::new(0),
+                    OngoingPartitionReassignment::new(3),
+                ],
+            )
+        );
+        let first = topic_err.partitions().first().expect("error partition");
+        assert_eq!(first.partition_index(), 0);
+        assert!(first.replicas().is_empty());
+        assert!(first.adding_replicas().is_empty());
+        assert!(first.removing_replicas().is_empty());
+        let err = ListPartitionReassignmentsResponse::error(
+            crate::error::NOT_CONTROLLER,
+            Some(std::slice::from_ref(&topic)),
+        );
+        assert_eq!(err.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(err.error_message().is_none());
+        assert_eq!(err.topics(), std::slice::from_ref(&topic_err));
+        buf.clear();
+        encode_list_partition_reassignments_response(&mut buf, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_list_partition_reassignments_response(&mut cur).unwrap(),
+            err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let none = ListPartitionReassignmentsResponse::error(crate::error::NOT_CONTROLLER, None);
+        assert!(none.topics().is_empty());
+        buf.clear();
+        encode_list_partition_reassignments_response(&mut buf, &none).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_list_partition_reassignments_response(&mut cur).unwrap(),
+            none
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ListPartitionReassignments getErrorResponse null Topics leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
