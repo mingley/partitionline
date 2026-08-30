@@ -1480,12 +1480,15 @@ impl Consumer {
     }
 
     /// Next fetch offset for an assigned partition.
+    ///
+    /// An unassigned partition is Java `IllegalStateException`
+    /// (`You can only check the position for partitions assigned to this consumer.`).
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
         self.assigned
             .iter()
             .find(|(t, p, _)| t == topic && *p == partition)
             .map(|(_, _, o)| *o)
-            .ok_or_else(|| Error::protocol(format!("no position for {topic}-{partition}")))
+            .ok_or_else(reject_java_position_unassigned)
     }
 
     /// [`Self::position`] for a [`TopicPartition`].
@@ -3200,6 +3203,11 @@ pub(crate) fn duration_millis_i32(d: Duration) -> i32 {
 /// Java `KafkaConsumer.poll` when `SubscriptionState.hasNoSubscriptionOrUserAssignment`.
 pub(crate) fn reject_java_no_subscription_or_assignment() -> Error {
     Error::protocol("Consumer is not subscribed to any topics or assigned any partitions")
+}
+
+/// Java `KafkaConsumer.position` when the partition is not assigned.
+fn reject_java_position_unassigned() -> Error {
+    Error::protocol("You can only check the position for partitions assigned to this consumer.")
 }
 
 pub(crate) fn partition_infos_from(

@@ -2818,6 +2818,28 @@ async fn seek_checks_match_java() {
 }
 
 #[tokio::test]
+async fn position_unassigned_match_java() {
+    let mock = common::Mock::start().await;
+    let java = "You can only check the position for partitions assigned to this consumer.";
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let none = consumer.position("t", 0).unwrap_err().to_string();
+    assert!(none.contains(java), "{none}");
+    let of = consumer
+        .position_of(TopicPartition::new("missing", 1))
+        .unwrap_err()
+        .to_string();
+    assert!(of.contains(java), "{of}");
+    consumer.assign("t", 0, 0).await.unwrap();
+    assert_eq!(consumer.position("t", 0).unwrap(), 0);
+    let other = consumer.position("t", 1).unwrap_err().to_string();
+    assert!(other.contains(java), "{other}");
+    consumer.close().await.unwrap();
+}
+
+#[tokio::test]
 async fn group_seek_to_beginning_rereads() {
     let mock = common::Mock::start().await;
     let producer =

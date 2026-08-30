@@ -401,7 +401,10 @@
 //! `seek(TopicPartition, OffsetAndMetadata)` and sends the leader epoch as
 //! Fetch `LastFetchedEpoch`; a negative offset is Java
 //! `seek offset must not be a negative number`, and an unassigned partition
-//! is Java `No current assignment for partition`). [`Consumer::pause`] / [`Consumer::resume`] skip
+//! is Java `No current assignment for partition`). [`Consumer::position`] /
+//! [`Consumer::position_of`] for an unassigned partition is Java
+//! `You can only check the position for partitions assigned to this consumer.`.
+//! [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
 //! every partition leader in parallel. Nothing assigned is Java
 //! `Consumer is not subscribed to any topics or assigned any partitions`

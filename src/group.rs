@@ -898,6 +898,9 @@ impl ConsumerGroup {
     }
 
     /// Next fetch offset for an assigned partition.
+    ///
+    /// An unassigned partition is Java `IllegalStateException`
+    /// (`You can only check the position for partitions assigned to this consumer.`).
     pub fn position(&self, topic: &str, partition: i32) -> Result<i64> {
         self.consumer.position(topic, partition)
     }
