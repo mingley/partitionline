@@ -170,6 +170,31 @@ pub struct ShareFetchedTopic {
     pub partitions: Vec<ShareFetchedPartition>,
 }
 
+/// Java `ShareFetchResponse` helpers.
+pub struct ShareFetchResponse;
+
+impl ShareFetchResponse {
+    /// Java `ShareFetchResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`). Crate decode currently
+    /// fails on a non-zero top-level code and does not return it; crate
+    /// encode writes `0`.
+    #[must_use]
+    pub fn error_counts(error_code: i16, topics: &[ShareFetchedTopic]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(error_code).or_insert(0);
+        *count += 1;
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
+}
+
 /// One partition in a ShareAcknowledge response.
 ///
 /// [`Self::partition_response`] is Java `ShareAcknowledgeResponse.partitionResponse`
@@ -1596,6 +1621,40 @@ mod tests {
             &[ShareAcknowledgeResponseTopic {
                 topic_id: [3u8; 16],
                 partitions: vec![ShareAcknowledgeResponsePartition::partition_response(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_ID,
+                )],
+            }],
+        );
+        assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_TOPIC_ID, 2)]));
+    }
+
+    #[test]
+    fn share_fetch_response_error_counts_matches_java() {
+        assert_eq!(
+            ShareFetchResponse::error_counts(0, &[]),
+            HashMap::from([(0, 1)])
+        );
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [1u8; 16],
+            partitions: vec![
+                ShareFetchedPartition::partition_response(0, 0),
+                ShareFetchedPartition::partition_response(1, crate::error::UNKNOWN_TOPIC_ID),
+            ],
+        }];
+        assert_eq!(
+            ShareFetchResponse::error_counts(0, &topics),
+            HashMap::from([(0, 2), (crate::error::UNKNOWN_TOPIC_ID, 1)])
+        );
+        assert_eq!(
+            ShareFetchResponse::error_counts(crate::error::GROUP_AUTHORIZATION_FAILED, &[]),
+            HashMap::from([(crate::error::GROUP_AUTHORIZATION_FAILED, 1)])
+        );
+        let same = ShareFetchResponse::error_counts(
+            crate::error::UNKNOWN_TOPIC_ID,
+            &[ShareFetchedTopic {
+                topic_id: [2u8; 16],
+                partitions: vec![ShareFetchedPartition::partition_response(
                     0,
                     crate::error::UNKNOWN_TOPIC_ID,
                 )],

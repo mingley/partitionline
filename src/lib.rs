@@ -208,7 +208,11 @@
 //! null, AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
 //! id 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
 //! v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
-//! (crate encode). Throttle is the JSON default (`0`)),
+//! (crate encode). Throttle is the JSON default (`0`);
+//! [`protocol::share::ShareFetchResponse::error_counts`] is Java
+//! `ShareFetchResponse.errorCounts` (top-level `errorCode` plus each
+//! partition-level code, including `NONE`). Crate decode currently fails
+//! on a non-zero top-level code and does not return it),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
 //! [`protocol::share::ShareAcknowledgeResponsePartition::partition_response`] is Java
 //! `ShareAcknowledgeResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
