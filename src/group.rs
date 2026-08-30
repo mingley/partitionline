@@ -307,6 +307,8 @@ fn members_for_topic(member_subs: &[(String, Vec<String>)], topic: &str) -> Vec<
 ///
 /// [`Display`] is Java `ConsumerGroupMetadata.toString` (`GroupMetadata(...)`).
 /// Missing [`Self::group_instance_id`] prints as Java `Optional.orElse("")`.
+/// [`Self::new`] uses [`Self::UNKNOWN_GENERATION_ID`] /
+/// [`Self::UNKNOWN_MEMBER_ID`] (Java `JoinGroupRequest`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupMetadata {
     /// Kafka `group.id`.
@@ -321,14 +323,20 @@ pub struct ConsumerGroupMetadata {
 }
 
 impl ConsumerGroupMetadata {
-    /// Java `ConsumerGroupMetadata(String)` (`generationId` `-1`, empty
-    /// `memberId`, empty `groupInstanceId`).
+    /// Java `JoinGroupRequest.UNKNOWN_GENERATION_ID`.
+    pub const UNKNOWN_GENERATION_ID: i32 = -1;
+    /// Java `JoinGroupRequest.UNKNOWN_MEMBER_ID`.
+    pub const UNKNOWN_MEMBER_ID: &'static str = "";
+
+    /// Java `ConsumerGroupMetadata(String)` (`generationId`
+    /// [`Self::UNKNOWN_GENERATION_ID`], `memberId`
+    /// [`Self::UNKNOWN_MEMBER_ID`], empty `groupInstanceId`).
     #[must_use]
     pub fn new(group_id: impl Into<String>) -> Self {
         Self {
             group_id: group_id.into(),
-            generation_id: -1,
-            member_id: String::new(),
+            generation_id: Self::UNKNOWN_GENERATION_ID,
+            member_id: Self::UNKNOWN_MEMBER_ID.into(),
             group_instance_id: None,
         }
     }
@@ -2726,9 +2734,17 @@ mod tests {
             "GroupMetadata(groupId = g, generationId = 1, memberId = m, groupInstanceId = )"
         );
         let unknown = ConsumerGroupMetadata::new("g");
+        assert_eq!(ConsumerGroupMetadata::UNKNOWN_GENERATION_ID, -1);
+        assert_eq!(ConsumerGroupMetadata::UNKNOWN_MEMBER_ID, "");
         assert_eq!(unknown.group_id(), "g");
-        assert_eq!(unknown.generation_id(), -1);
-        assert_eq!(unknown.member_id(), "");
+        assert_eq!(
+            unknown.generation_id(),
+            ConsumerGroupMetadata::UNKNOWN_GENERATION_ID
+        );
+        assert_eq!(
+            unknown.member_id(),
+            ConsumerGroupMetadata::UNKNOWN_MEMBER_ID
+        );
         assert!(unknown.group_instance_id().is_none());
         assert_eq!(
             unknown.to_string(),

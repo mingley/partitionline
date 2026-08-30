@@ -627,7 +627,9 @@
 //! [`ConsumerGroupMetadata`] `Display` is Java `toString`
 //! (`GroupMetadata(...)`; empty `groupInstanceId` is `orElse("")`).
 //! [`ConsumerGroupMetadata::new`] is Java `ConsumerGroupMetadata(String)`
-//! (`generationId` `-1`, empty `memberId`).
+//! ([`ConsumerGroupMetadata::UNKNOWN_GENERATION_ID`] /
+//! [`ConsumerGroupMetadata::UNKNOWN_MEMBER_ID`]; Java
+//! `JoinGroupRequest.UNKNOWN_GENERATION_ID` / `UNKNOWN_MEMBER_ID`).
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on
