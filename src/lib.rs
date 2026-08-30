@@ -1254,7 +1254,8 @@
 //! client-side cap). [`ProducerConfig::max_request_size`] is Kafka
 //! `max.request.size` (key-plus-value bytes of one record; default 1 MiB,
 //! Java; zero is no extra cap; oversized records return
-//! [`Error::RecordTooLarge`]). [`ProducerConfig::retry_backoff`] /
+//! [`Error::RecordTooLarge`], Java `RecordTooLargeException`
+//! `The message is {size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration.`). [`ProducerConfig::retry_backoff`] /
 //! [`ProducerConfig::retry_backoff_max`] are Kafka `retry.backoff.ms` /
 //! `retry.backoff.max.ms` (exponential wait after a retriable Produce;
 //! default 100ms / 1s). [`ConsumerConfig::retry_backoff`] is the same pair

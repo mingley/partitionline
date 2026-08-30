@@ -1301,7 +1301,9 @@ impl Producer {
     /// is full. Call again; [`Self::send`] waits up to
     /// [`ProducerConfig::max_block`].
     /// A record larger than [`ProducerConfig::max_request_size`] returns
-    /// [`Error::RecordTooLarge`] without waiting.
+    /// [`Error::RecordTooLarge`] without waiting (Java `RecordTooLargeException`
+    /// `The message is {size} bytes when serialized which is larger than {max},
+    /// which is the value of the max.request.size configuration.`).
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {

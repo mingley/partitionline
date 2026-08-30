@@ -35,6 +35,10 @@ pub enum Error {
     /// `try_send` could not queue (metadata, connection, or `buffer.memory`).
     QueueFull,
     /// Record key plus value exceeds [`crate::ProducerConfig::max_request_size`].
+    ///
+    /// [`Display`] is Java `RecordTooLargeException` (`The message is {size}
+    /// bytes when serialized which is larger than {max}, which is the value of
+    /// the max.request.size configuration.`).
     RecordTooLarge {
         /// Key plus value bytes of the record.
         size: u64,
@@ -117,7 +121,10 @@ impl fmt::Display for Error {
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
             Self::RecordTooLarge { size, max } => {
-                write!(f, "record too large: {size} bytes (max.request.size {max})")
+                write!(
+                    f,
+                    "The message is {size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration."
+                )
             }
             Self::MaxPollInterval => write!(f, "max.poll.interval.ms exceeded"),
             Self::Wakeup => write!(f, "wakeup"),

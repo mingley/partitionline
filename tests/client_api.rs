@@ -1395,6 +1395,10 @@ async fn try_send_rejects_when_record_exceeds_max_request_size() {
         matches!(err, Error::RecordTooLarge { size: 4, max: 3 }),
         "got {err}"
     );
+    assert_eq!(
+        err.to_string(),
+        "The message is 4 bytes when serialized which is larger than 3, which is the value of the max.request.size configuration."
+    );
     assert_eq!(producer.metrics().bytes_buffered, 0);
     producer.close().await.unwrap();
 }
@@ -1421,7 +1425,7 @@ async fn send_rejects_when_record_exceeds_max_request_size() {
     assert!(!err.is_retriable());
     assert_eq!(
         err.to_string(),
-        "record too large: 4 bytes (max.request.size 3)"
+        "The message is 4 bytes when serialized which is larger than 3, which is the value of the max.request.size configuration."
     );
     producer.close().await.unwrap();
 }
