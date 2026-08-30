@@ -1,6 +1,8 @@
 //! Consumer group codecs: FindCoordinator, Join/Sync/Heartbeat/Leave,
 //! OffsetCommit/OffsetFetch, OffsetDelete, and ConsumerProtocol assignment.
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -12,6 +14,61 @@ pub const COORDINATOR_GROUP: i8 = 0;
 pub const COORDINATOR_TRANSACTION: i8 = 1;
 /// FindCoordinator `key_type` for a share group (KIP-932).
 pub const COORDINATOR_SHARE: i8 = 2;
+/// Java `FindCoordinatorRequest.MIN_BATCHED_VERSION` (KIP-699 CoordinatorKeys).
+pub const MIN_BATCHED_VERSION: i16 = 4;
+
+/// Java `FindCoordinatorRequest.CoordinatorType`.
+///
+/// [`Display`] is Java `CoordinatorType.toString` (`GROUP`). [`Self::from_id`]
+/// is Java `CoordinatorType.forId` (unknown is `None`; Java throws).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoordinatorType {
+    /// Java `GROUP` (`key_type` 0).
+    Group,
+    /// Java `TRANSACTION` (`key_type` 1).
+    Transaction,
+    /// Java `SHARE` (`key_type` 2).
+    Share,
+}
+
+impl CoordinatorType {
+    /// Java `CoordinatorType.id`.
+    #[must_use]
+    pub const fn id(self) -> i8 {
+        match self {
+            Self::Group => COORDINATOR_GROUP,
+            Self::Transaction => COORDINATOR_TRANSACTION,
+            Self::Share => COORDINATOR_SHARE,
+        }
+    }
+
+    /// Java `CoordinatorType.forId`. Unknown values return `None`.
+    #[must_use]
+    pub const fn from_id(id: i8) -> Option<Self> {
+        match id {
+            COORDINATOR_GROUP => Some(Self::Group),
+            COORDINATOR_TRANSACTION => Some(Self::Transaction),
+            COORDINATOR_SHARE => Some(Self::Share),
+            _ => None,
+        }
+    }
+
+    /// Java `CoordinatorType.toString` (`GROUP` / `TRANSACTION` / `SHARE`).
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Group => "GROUP",
+            Self::Transaction => "TRANSACTION",
+            Self::Share => "SHARE",
+        }
+    }
+}
+
+impl fmt::Display for CoordinatorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 /// `true` when FindCoordinator `version` is flexible (v3+).
 ///
@@ -32,7 +89,7 @@ fn find_coordinator_flexible(version: i16) -> Result<bool> {
 }
 
 fn find_coordinator_batched(version: i16) -> bool {
-    version >= 4
+    version >= MIN_BATCHED_VERSION
 }
 
 /// One coordinator in a FindCoordinator response (v1–v6).
@@ -62,7 +119,7 @@ pub fn encode_find_coordinator_request(
     version: i16,
     key: &str,
 ) -> crate::error::Result<()> {
-    encode_find_coordinator_request_typed(buf, version, key, COORDINATOR_GROUP)
+    encode_find_coordinator_request_typed(buf, version, key, CoordinatorType::Group.id())
 }
 
 /// Encode FindCoordinator with an explicit `key_type` (one key).
@@ -2054,6 +2111,32 @@ pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coordinator_type_matches_java() {
+        assert_eq!(CoordinatorType::Group.id(), COORDINATOR_GROUP);
+        assert_eq!(CoordinatorType::Transaction.id(), COORDINATOR_TRANSACTION);
+        assert_eq!(CoordinatorType::Share.id(), COORDINATOR_SHARE);
+        assert_eq!(
+            CoordinatorType::from_id(COORDINATOR_GROUP),
+            Some(CoordinatorType::Group)
+        );
+        assert_eq!(
+            CoordinatorType::from_id(COORDINATOR_TRANSACTION),
+            Some(CoordinatorType::Transaction)
+        );
+        assert_eq!(
+            CoordinatorType::from_id(COORDINATOR_SHARE),
+            Some(CoordinatorType::Share)
+        );
+        assert_eq!(CoordinatorType::from_id(3), None);
+        assert_eq!(CoordinatorType::Group.to_string(), "GROUP");
+        assert_eq!(CoordinatorType::Transaction.to_string(), "TRANSACTION");
+        assert_eq!(CoordinatorType::Share.to_string(), "SHARE");
+        assert_eq!(MIN_BATCHED_VERSION, 4);
+        assert!(find_coordinator_batched(MIN_BATCHED_VERSION));
+        assert!(!find_coordinator_batched(MIN_BATCHED_VERSION - 1));
+    }
 
     #[test]
     fn find_coordinator_v2_sends_key_type_and_is_leftover_empty() {

@@ -33,7 +33,10 @@
 //! `MetadataResponse.NO_CONTROLLER_ID` / `NO_LEADER_ID`.
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
-//! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),
+//! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).
+//! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
+//! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
+//! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
 //! OffsetCommit v2–v9 (v2–v4 retention `-1`; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
@@ -841,8 +844,9 @@ pub use consumer::{
 };
 pub use error::{Error, Result};
 pub use group::{
-    ConsumerGroup, ConsumerGroupMetadata, GroupProtocol, DEFAULT_ENFORCE_REBALANCE_REASON,
-    LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED,
+    ConsumerGroup, ConsumerGroupMetadata, CoordinatorType, GroupProtocol,
+    DEFAULT_ENFORCE_REBALANCE_REASON, LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT,
+    LEAVE_GROUP_REASON_UNSUBSCRIBED,
 };
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{

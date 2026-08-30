@@ -36,6 +36,8 @@ use crate::protocol::group::{
 };
 use crate::protocol::sasl;
 
+pub use crate::protocol::group::CoordinatorType;
+
 pub(crate) type TopicMatch = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
 type AsyncOffsetCommitCallback =
