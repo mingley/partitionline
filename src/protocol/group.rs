@@ -141,6 +141,44 @@ impl FindCoordinatorResponse {
             Self::prepare_error_response(keys, error_code)
         }
     }
+
+    /// Java `FindCoordinatorResponse.coordinatorByKey`.
+    ///
+    /// v4+: the first coordinator whose `Key` equals `key`, or `None`
+    /// when none match. An empty `Coordinators[]` follows Java's v0–v3
+    /// path: a synthesized coordinator from JSON defaults (`errorCode`
+    /// `NONE`, `nodeId` / `port` `0`, empty host, null `errorMessage`)
+    /// with `Key` set to `key`. v0–v3 crate decode folds the top-level
+    /// coordinator into a one-entry vec with empty `Key`; this helper
+    /// copies that entry and sets `Key` to `key` (Java stuffs the lookup
+    /// key because the wire has none).
+    #[must_use]
+    pub fn coordinator_by_key(
+        version: i16,
+        coordinators: &[CoordinatorResult],
+        key: &str,
+    ) -> Option<CoordinatorResult> {
+        if version < MIN_BATCHED_VERSION {
+            return Some(match coordinators.first() {
+                Some(first) => CoordinatorResult {
+                    key: key.into(),
+                    node_id: first.node_id,
+                    host: first.host.clone(),
+                    port: first.port,
+                    error_code: first.error_code,
+                    error_message: first.error_message.clone(),
+                },
+                None => find_coordinator_top_level_for_key(key),
+            });
+        }
+        if let Some(found) = coordinators.iter().find(|c| c.key == key) {
+            return Some(found.clone());
+        }
+        if coordinators.is_empty() {
+            return Some(find_coordinator_top_level_for_key(key));
+        }
+        None
+    }
 }
 
 /// Java `ConsumerProtocol` (classic JoinGroup / SyncGroup protocol type).
@@ -546,6 +584,19 @@ fn find_coordinator_flexible(version: i16) -> Result<bool> {
 
 fn find_coordinator_batched(version: i16) -> bool {
     version >= MIN_BATCHED_VERSION
+}
+
+/// Java `FindCoordinatorResponse.coordinatorByKey` when `Coordinators[]`
+/// is empty: top-level fields at JSON defaults, lookup `Key` stuffed in.
+fn find_coordinator_top_level_for_key(key: impl Into<String>) -> CoordinatorResult {
+    CoordinatorResult {
+        key: key.into(),
+        node_id: 0,
+        host: String::new(),
+        port: 0,
+        error_code: 0,
+        error_message: None,
+    }
 }
 
 /// One coordinator in a FindCoordinator response (v1–v6).
@@ -3446,6 +3497,58 @@ mod tests {
             )]),
             HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
         );
+    }
+
+    #[test]
+    fn find_coordinator_response_coordinator_by_key_matches_java() {
+        let v3 = CoordinatorResult {
+            key: String::new(),
+            node_id: 1,
+            host: "localhost".into(),
+            port: 9092,
+            error_code: 0,
+            error_message: None,
+        };
+        let stuffed =
+            FindCoordinatorResponse::coordinator_by_key(3, std::slice::from_ref(&v3), "g").unwrap();
+        assert_eq!(stuffed.key, "g");
+        assert_eq!(stuffed.node_id, 1);
+        assert_eq!(stuffed.host, "localhost");
+        assert_eq!(stuffed.port, 9092);
+        assert_eq!(stuffed.error_code, 0);
+        assert_eq!(
+            FindCoordinatorResponse::coordinator_by_key(3, &[], "g").unwrap(),
+            CoordinatorResult {
+                key: "g".into(),
+                node_id: 0,
+                host: String::new(),
+                port: 0,
+                error_code: 0,
+                error_message: None,
+            }
+        );
+
+        let batched = [
+            CoordinatorResult::error_for_key(0, "g1"),
+            CoordinatorResult {
+                key: "g2".into(),
+                node_id: 2,
+                host: "broker".into(),
+                port: 9093,
+                error_code: crate::error::NOT_COORDINATOR,
+                error_message: Some("no".into()),
+            },
+        ];
+        assert_eq!(
+            FindCoordinatorResponse::coordinator_by_key(4, &batched, "g2").unwrap(),
+            batched[1]
+        );
+        assert!(FindCoordinatorResponse::coordinator_by_key(4, &batched, "g3").is_none());
+        let empty_v4 = FindCoordinatorResponse::coordinator_by_key(4, &[], "g").unwrap();
+        assert_eq!(empty_v4.key, "g");
+        assert_eq!(empty_v4.node_id, 0);
+        assert_eq!(empty_v4.port, 0);
+        assert_eq!(empty_v4.error_code, 0);
     }
 
     #[test]

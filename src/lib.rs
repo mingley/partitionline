@@ -86,6 +86,10 @@
 //! [`protocol::group::FindCoordinatorResponse::error_counts`] is Java
 //! `FindCoordinatorResponse.errorCounts` (each `Coordinators[]` code,
 //! including `NONE`; empty Coordinators falls back to top-level `NONE`);
+//! [`protocol::group::FindCoordinatorResponse::coordinator_by_key`] is Java
+//! `FindCoordinatorResponse.coordinatorByKey` (v4+ first matching `Key`;
+//! v0–v3 stuffs `key` into the folded top-level coordinator; empty
+//! Coordinators synthesizes JSON defaults with that `Key`);
 //! [`protocol::group::CoordinatorResult::error`] /
 //! [`protocol::group::CoordinatorResult::error_for_key`] /
 //! [`protocol::group::FindCoordinatorResponse::prepare_error_response`] /
