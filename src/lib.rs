@@ -26,6 +26,9 @@
 //! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] are Java
 //! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
 //! `isTransactionV2Requested`.
+//! [`protocol::api::ProduceRequest::has_transactional_records`] is Java
+//! `RequestUtils.hasTransactionalRecords` (first batch of each partition
+//! only).
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last

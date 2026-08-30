@@ -1755,6 +1755,23 @@ impl ProduceRequest {
     pub const fn is_transaction_v2_requested(version: i16) -> bool {
         version > Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
     }
+
+    /// Java `RequestUtils.hasTransactionalRecords`.
+    ///
+    /// True when the first batch of any partition is transactional. Later
+    /// batches in the same partition are not inspected (Java `RequestUtils.flag`).
+    #[must_use]
+    pub fn has_transactional_records<I, B>(partitions: I) -> bool
+    where
+        I: IntoIterator<Item = B>,
+        B: AsRef<[RecordBatch]>,
+    {
+        partitions.into_iter().any(|part| {
+            part.as_ref()
+                .first()
+                .is_some_and(RecordBatch::is_transactional)
+        })
+    }
 }
 
 /// Java `ProduceResponse` helpers.
@@ -2137,6 +2154,40 @@ mod tests {
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
         );
+    }
+
+    #[test]
+    fn has_transactional_records_matches_java_request_utils() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let plain = RecordBatch::from_records(vec![rec.clone()]);
+        let tx = RecordBatch::from_records(vec![rec]).with_transactional(true);
+        assert!(!ProduceRequest::has_transactional_records(
+            std::iter::empty::<&[RecordBatch]>()
+        ));
+        assert!(!ProduceRequest::has_transactional_records([&[][..]]));
+        assert!(!ProduceRequest::has_transactional_records([
+            std::slice::from_ref(&plain)
+        ]));
+        assert!(ProduceRequest::has_transactional_records([
+            std::slice::from_ref(&tx)
+        ]));
+        let later_tx = [plain.clone(), tx.clone()];
+        assert!(
+            !ProduceRequest::has_transactional_records([&later_tx[..]]),
+            "Java inspects only the first batch of each partition"
+        );
+        let first_tx = [tx.clone(), plain.clone()];
+        assert!(ProduceRequest::has_transactional_records([&first_tx[..]]));
+        assert!(ProduceRequest::has_transactional_records([
+            &[][..],
+            std::slice::from_ref(&tx)
+        ]));
     }
 
     #[test]
