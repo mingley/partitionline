@@ -298,6 +298,8 @@
 //! `FetchResponse` sentinels (`-1`).
 //! [`protocol::fetch::FetchedPartition::partition_response`] is Java
 //! `FetchResponse.partitionResponse`.
+//! [`protocol::fetch::FetchTopic::error_result`] is Java
+//! `FetchRequest.getErrorResponse` (one topic; v13 and later omit partitions).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java

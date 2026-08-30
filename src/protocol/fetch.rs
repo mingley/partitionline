@@ -173,6 +173,8 @@ pub struct FetchPartition {
 }
 
 /// One topic in a Fetch request.
+///
+/// [`Self::error_result`] is Java `FetchRequest.getErrorResponse` one topic.
 #[derive(Debug, Clone)]
 pub struct FetchTopic {
     /// Topic name (v4–v12). Empty at v13+ (topic id on the wire).
@@ -181,6 +183,29 @@ pub struct FetchTopic {
     pub topic_id: [u8; 16],
     /// Partitions to fetch.
     pub partitions: Vec<FetchPartition>,
+}
+
+impl FetchTopic {
+    /// Java `FetchRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`FetchedPartition::partition_response`]. Fetch v13
+    /// and later omit partitions (top-level error only). Throttle on the
+    /// response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, version: i16, error_code: i16) -> FetchedTopic {
+        FetchedTopic {
+            topic: self.topic.clone(),
+            topic_id: self.topic_id,
+            partitions: if version < 13 {
+                self.partitions
+                    .iter()
+                    .map(|p| FetchedPartition::partition_response(p.partition, error_code))
+                    .collect()
+            } else {
+                Vec::new()
+            },
+        }
+    }
 }
 
 /// One partition in a Fetch response.
@@ -800,6 +825,68 @@ mod tests {
             FetchedPartition::INVALID_HIGH_WATERMARK
         );
         assert!(unknown.records.is_empty());
+        let topic = FetchTopic {
+            topic: "t".into(),
+            topic_id: [1u8; 16],
+            partitions: vec![
+                FetchPartition {
+                    partition: 0,
+                    current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    fetch_offset: 0,
+                    last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    partition_max_bytes: 1,
+                },
+                FetchPartition {
+                    partition: 3,
+                    current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    fetch_offset: 1,
+                    last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    partition_max_bytes: 1,
+                },
+            ],
+        };
+        let v12 = topic.error_result(12, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(v12.topic, "t");
+        assert_eq!(v12.topic_id, [1u8; 16]);
+        assert_eq!(v12.partitions.len(), 2);
+        let first = v12.partitions.first().expect("v12 partition");
+        assert_eq!(first.partition, 0);
+        assert_eq!(first.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            first.high_watermark,
+            FetchedPartition::INVALID_HIGH_WATERMARK
+        );
+        assert!(first.records.is_empty());
+        let third = v12.partitions.get(1).expect("v12 second partition");
+        assert_eq!(third.partition, 3);
+        let v13 = topic.error_result(13, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(v13.topic, "t");
+        assert_eq!(v13.topic_id, [1u8; 16]);
+        assert!(v13.partitions.is_empty());
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 12, std::slice::from_ref(&v12)).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 12).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "Fetch getErrorResponse v12 leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        assert_eq!(decoded.len(), 1);
+        let decoded_topic = decoded.first().expect("one topic");
+        assert_eq!(decoded_topic.topic, "t");
+        assert_eq!(decoded_topic.partitions.len(), 2);
+        let mut v13_buf = BytesMut::new();
+        encode_fetch_response(&mut v13_buf, 13, std::slice::from_ref(&v13)).unwrap();
+        let mut cur = v13_buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        assert!(
+            !cur.has_remaining(),
+            "Fetch getErrorResponse v13 leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        assert_eq!(decoded.len(), 1);
+        assert!(decoded.first().expect("one topic").partitions.is_empty());
         let mut pref = none;
         pref.preferred_read_replica = 2;
         assert_eq!(pref.preferred_read_replica(), Some(2));
