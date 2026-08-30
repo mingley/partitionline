@@ -593,6 +593,8 @@
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP` / `UNKNOWN_EPOCH`.
 //! [`protocol::offsets::ListOffsetsResponse::should_client_throttle`] is Java
 //! `ListOffsetsResponse.shouldClientThrottle` (v3+).
+//! [`protocol::offsets::ListOffsetsResponse::singleton_list_offsets_topic_response`]
+//! is Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]

@@ -275,6 +275,31 @@ impl ListOffsetsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 3
     }
+
+    /// Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
+    ///
+    /// Java takes `TopicPartition` plus `Errors`; this type stores the topic
+    /// name and partition index as fields, so callers pass them.
+    #[must_use]
+    pub fn singleton_list_offsets_topic_response(
+        topic: impl Into<String>,
+        partition: i32,
+        error_code: i16,
+        timestamp: i64,
+        offset: i64,
+        epoch: i32,
+    ) -> ListOffsetsTopicResponse {
+        ListOffsetsTopicResponse::new(
+            topic,
+            vec![ListOffsetsResponsePartition {
+                partition_index: partition,
+                error_code,
+                timestamp,
+                offset,
+                leader_epoch: epoch,
+            }],
+        )
+    }
 }
 
 /// ListOffsets v1–v5 (classic) or v6–v10 (flexible). Isolation is v2+.
@@ -455,9 +480,13 @@ pub fn encode_list_offsets_response(
     encode_list_offsets_topics_response(
         buf,
         version,
-        &[ListOffsetsTopicResponse::new(
+        &[ListOffsetsResponse::singleton_list_offsets_topic_response(
             topic,
-            vec![ListOffsetsResponsePartition::new(partition, result)],
+            partition,
+            result.error_code,
+            result.timestamp,
+            result.offset,
+            result.leader_epoch,
         )],
     )
 }
@@ -602,6 +631,39 @@ mod tests {
         assert_eq!(DEBUGGING_REPLICA_ID, -2);
         assert!(!ListOffsetsResponse::should_client_throttle(2));
         assert!(ListOffsetsResponse::should_client_throttle(3));
+        let singleton = ListOffsetsResponse::singleton_list_offsets_topic_response(
+            "t",
+            3,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+            ListOffsetsPartition::UNKNOWN_EPOCH,
+        );
+        assert_eq!(singleton.name, "t");
+        let part = singleton.partitions.first().expect("one partition");
+        assert_eq!(part.partition_index, 3);
+        assert_eq!(part.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(part.timestamp, ListOffsetsPartition::UNKNOWN_TIMESTAMP);
+        assert_eq!(part.offset, ListOffsetsPartition::UNKNOWN_OFFSET);
+        assert_eq!(part.leader_epoch, ListOffsetsPartition::UNKNOWN_EPOCH);
+        let ok = ListOffsetsResponse::singleton_list_offsets_topic_response(
+            "events",
+            1,
+            0,
+            1_700_000_000_000,
+            44,
+            7,
+        );
+        assert_eq!(
+            ok,
+            ListOffsetsTopicResponse::new(
+                "events",
+                vec![ListOffsetsResponsePartition::new(
+                    1,
+                    ListOffsetsPartition::ok(1_700_000_000_000, 44, 7)
+                )]
+            )
+        );
     }
 
     #[test]
