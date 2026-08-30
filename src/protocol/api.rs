@@ -65,6 +65,29 @@ pub struct ApiVersionsResponse {
     pub zk_migration_ready: bool,
 }
 
+impl ApiVersionsResponse {
+    /// Java `ApiVersionsResponse.UNKNOWN_FINALIZED_FEATURES_EPOCH`.
+    pub const UNKNOWN_FINALIZED_FEATURES_EPOCH: i64 = -1;
+
+    /// Java `ApiVersionsResponse.apiVersion` (`None` when the key is absent).
+    #[must_use]
+    pub fn api_version(&self, api_key: i16) -> Option<&ApiVersion> {
+        self.api_keys.iter().find(|k| k.api_key == api_key)
+    }
+
+    /// Java `ApiVersionsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+
+    /// Java `ApiVersionsResponse.zkMigrationReady`.
+    #[must_use]
+    pub fn zk_migration_ready(&self) -> bool {
+        self.zk_migration_ready
+    }
+}
+
 /// Java `ApiVersionsRequest` helpers.
 pub struct ApiVersionsRequest;
 
@@ -241,9 +264,7 @@ pub async fn negotiate_api_versions(
         return Err(Error::broker(resp.error_code, "ApiVersions"));
     }
     let retry = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == API_VERSIONS)
+        .api_version(API_VERSIONS)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, SENT))
         .unwrap_or(0);
     if retry == SENT {
@@ -413,7 +434,8 @@ fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsT
                 let mut cur = value.as_ref();
                 let v = buf::get_i64(&mut cur)?;
                 leftover_empty(&cur, "finalized_features_epoch")?;
-                epoch = (v >= 0).then_some(v);
+                epoch = (v != ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH && v >= 0)
+                    .then_some(v);
             }
             2 => {
                 let mut cur = value.as_ref();
@@ -1751,6 +1773,25 @@ mod tests {
             !cur.has_remaining(),
             "ApiVersions v3 features must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn api_versions_response_helpers_match_java() {
+        assert_eq!(ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH, -1);
+        assert!(!ApiVersionsResponse::should_client_throttle(1));
+        assert!(ApiVersionsResponse::should_client_throttle(2));
+        let resp = ApiVersionsResponse {
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            zk_migration_ready: true,
+            ..Default::default()
+        };
+        assert_eq!(resp.api_version(18).map(|v| v.max_version), Some(4));
+        assert!(resp.api_version(1).is_none());
+        assert!(resp.zk_migration_ready());
     }
 
     #[test]

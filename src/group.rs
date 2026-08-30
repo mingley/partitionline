@@ -2663,57 +2663,39 @@ async fn open_coord_with_find_version(
             .await?;
     let resp = crate::protocol::api::negotiate_api_versions(&mut conn, cfg.request_timeout).await?;
     let version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == FIND_COORDINATOR)
+        .api_version(FIND_COORDINATOR)
         .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
         .ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))?;
     conn.offset_commit_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == OFFSET_COMMIT)
+        .api_version(OFFSET_COMMIT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
         .unwrap_or(0);
     conn.offset_fetch_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == OFFSET_FETCH)
+        .api_version(OFFSET_FETCH)
         .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))
         .unwrap_or(0);
     conn.heartbeat_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == HEARTBEAT)
+        .api_version(HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
         .unwrap_or(-1);
     conn.sync_group_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == SYNC_GROUP)
+        .api_version(SYNC_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
         .unwrap_or(-1);
     conn.join_group_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == JOIN_GROUP)
+        .api_version(JOIN_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))
         .unwrap_or(0);
     conn.leave_group_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == LEAVE_GROUP)
+        .api_version(LEAVE_GROUP)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
         .unwrap_or(-1);
     conn.consumer_group_heartbeat_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == CONSUMER_GROUP_HEARTBEAT)
+        .api_version(CONSUMER_GROUP_HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
     conn.share_group_heartbeat_version = resp
-        .api_keys
-        .iter()
-        .find(|k| k.api_key == SHARE_GROUP_HEARTBEAT)
+        .api_version(SHARE_GROUP_HEARTBEAT)
         .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
         .unwrap_or(-1);
     sasl::apply_api_keys(&mut conn, &resp.api_keys);

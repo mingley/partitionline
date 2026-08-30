@@ -3400,9 +3400,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.api_versions_versions.push(header.api_version);
                 let advertised = versions(&st);
                 let (av_min, av_max) = advertised
-                    .api_keys
-                    .iter()
-                    .find(|k| k.api_key == API_VERSIONS)
+                    .api_version(API_VERSIONS)
                     .map(|k| (k.min_version, k.max_version))
                     .unwrap_or((0, 4));
                 if header.api_version > av_max {
