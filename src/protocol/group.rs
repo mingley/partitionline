@@ -778,6 +778,18 @@ impl JoinGroupRequest<'_> {
         reason.chars().take(MAX).collect()
     }
 
+    /// Java `JoinGroupRequest.joinReason`.
+    ///
+    /// Null or empty JoinGroup Reason is `"not provided"`. Encode still writes
+    /// the stored field; this is the logged / reported reason (KIP-800).
+    #[must_use]
+    pub fn join_reason(reason: Option<&str>) -> &str {
+        match reason {
+            Some(r) if !r.is_empty() => r,
+            _ => "not provided",
+        }
+    }
+
     /// Java `JoinGroupRequest.requiresKnownMemberId(short)` (KIP-394; v4+).
     #[must_use]
     pub const fn requires_known_member_id(api_version: i16) -> bool {
@@ -2657,6 +2669,17 @@ mod tests {
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&keep), keep);
         let long = "a".repeat(256);
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&long).len(), 255);
+        assert_eq!(JoinGroupRequest::join_reason(None), "not provided");
+        assert_eq!(JoinGroupRequest::join_reason(Some("")), "not provided");
+        assert_eq!(
+            JoinGroupRequest::join_reason(Some("rebalance enforced by user")),
+            "rebalance enforced by user"
+        );
+        assert_eq!(
+            JoinGroupRequest::join_reason(Some(" ")),
+            " ",
+            "Java isEmpty, not isBlank"
+        );
     }
 
     #[test]

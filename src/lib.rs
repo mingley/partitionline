@@ -805,11 +805,12 @@
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] /
 //! [`protocol::group::JoinGroupRequest::maybe_truncate_reason`] /
+//! [`protocol::group::JoinGroupRequest::join_reason`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
 //! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
 //! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
-//! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` /
+//! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` / `joinReason` /
 //! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
 //! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;
