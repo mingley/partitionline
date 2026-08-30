@@ -1881,6 +1881,23 @@ impl LeaveGroupResponse {
         }
         counts
     }
+
+    /// Java `LeaveGroupResponse.error`.
+    ///
+    /// Top-level `errorCode` when it is not `NONE`; otherwise the first
+    /// member-level non-`NONE` code; otherwise `NONE`.
+    #[must_use]
+    pub fn error(error_code: i16, members: &[LeaveGroupMemberResult]) -> i16 {
+        if error_code != 0 {
+            return error_code;
+        }
+        for member in members {
+            if member.error_code != 0 {
+                return member.error_code;
+            }
+        }
+        0
+    }
 }
 
 /// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
@@ -6474,6 +6491,35 @@ mod tests {
             }],
         );
         assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_MEMBER_ID, 2)]));
+    }
+
+    #[test]
+    fn leave_group_response_error_matches_java() {
+        assert_eq!(LeaveGroupResponse::error(0, &[]), 0);
+        assert_eq!(
+            LeaveGroupResponse::error(crate::error::NOT_COORDINATOR, &[]),
+            crate::error::NOT_COORDINATOR
+        );
+        let members = [
+            LeaveGroupMemberResult {
+                member_id: "ok".into(),
+                group_instance_id: None,
+                error_code: 0,
+            },
+            LeaveGroupMemberResult {
+                member_id: "unknown".into(),
+                group_instance_id: None,
+                error_code: crate::error::UNKNOWN_MEMBER_ID,
+            },
+        ];
+        assert_eq!(
+            LeaveGroupResponse::error(0, &members),
+            crate::error::UNKNOWN_MEMBER_ID
+        );
+        assert_eq!(
+            LeaveGroupResponse::error(crate::error::NOT_COORDINATOR, &members),
+            crate::error::NOT_COORDINATOR
+        );
     }
 
     #[test]

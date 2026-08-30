@@ -154,6 +154,9 @@
 //! [`protocol::group::LeaveGroupResponse::error_counts`] is Java
 //! `LeaveGroupResponse.errorCounts` (top-level `errorCode` plus each
 //! member-level code, including `NONE`);
+//! [`protocol::group::LeaveGroupResponse::error`] is Java
+//! `LeaveGroupResponse.error` (top-level when not `NONE`, else first
+//! member-level non-`NONE`);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
