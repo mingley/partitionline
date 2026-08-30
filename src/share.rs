@@ -512,7 +512,9 @@ impl ShareGroup {
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_SHARE).await?;
         let member_id = new_member_id()?;
         let hb_err = Arc::new(AtomicI16::new(0));
-        let hb_epoch = Arc::new(AtomicI32::new(0));
+        let hb_epoch = Arc::new(AtomicI32::new(
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+        ));
         let (hb_stop, hb_rx) = watch::channel(false);
         let mut g = Self {
             consumer,
@@ -520,7 +522,7 @@ impl ShareGroup {
             cfg: cfg.clone(),
             group_id,
             member_id,
-            member_epoch: 0,
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             topics,
             topic_match,
             last_match_refresh: Instant::now(),
@@ -651,7 +653,7 @@ impl ShareGroup {
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
-            member_epoch: 0,
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             subscribed_topic_names: Some(self.topics.clone()),
         };
         let body = self
@@ -975,8 +977,11 @@ impl ShareGroup {
         self.topic_ids.clear();
         self.share_epochs.clear();
         self.member_id.clear();
-        self.member_epoch = 0;
-        self.hb_epoch.store(0, Ordering::SeqCst);
+        self.member_epoch = ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH;
+        self.hb_epoch.store(
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            Ordering::SeqCst,
+        );
         self.hb_err.store(0, Ordering::SeqCst);
         Ok(())
     }
@@ -1209,7 +1214,7 @@ impl ShareGroup {
         last
     }
 
-    /// Leave the share group (member epoch `-1`).
+    /// Leave the share group ([`ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
@@ -1229,7 +1234,7 @@ impl ShareGroup {
         let req = ShareGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
-            member_epoch: -1,
+            member_epoch: ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
             subscribed_topic_names: None,
         };
         let body = coord_roundtrip(

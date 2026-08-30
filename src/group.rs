@@ -757,7 +757,9 @@ impl ConsumerGroup {
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));
-        let hb_generation = Arc::new(AtomicI32::new(0));
+        let hb_generation = Arc::new(AtomicI32::new(
+            ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+        ));
         let hb_assignment = Arc::new(parking_lot::Mutex::new(None));
         let hb_ack = Arc::new(parking_lot::Mutex::new(None));
         let (hb_stop, hb_rx) = watch::channel(false);
@@ -767,7 +769,7 @@ impl ConsumerGroup {
             cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
-            generation_id: 0,
+            generation_id: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             topics,
             topic_match,
             last_match_refresh: Instant::now(),
@@ -1663,9 +1665,11 @@ impl ConsumerGroup {
         self.apply_subscription(topics).await
     }
 
-    /// Leave the group (`LeaveGroup` or KIP-848 epoch `-1`).
+    /// Leave the group (`LeaveGroup` or KIP-848 heartbeat leave).
     ///
-    /// Classic LeaveGroup v5 sends [`LEAVE_GROUP_REASON_CLOSED`].
+    /// Classic LeaveGroup v5 sends [`LEAVE_GROUP_REASON_CLOSED`]. KIP-848
+    /// sends [`ConsumerGroupHeartbeatRequest::leave_group_epoch`] (static
+    /// members send [`ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`]).
     pub async fn leave(mut self) -> Result<()> {
         if self.member_id.is_empty() {
             self.hb_stop.send(true).unwrap_or(());
@@ -1707,7 +1711,9 @@ impl ConsumerGroup {
             let req = ConsumerGroupHeartbeatRequest {
                 group_id: self.group_id.clone(),
                 member_id: self.member_id.clone(),
-                member_epoch: -1,
+                member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(
+                    self.cfg.group_instance_id.as_deref(),
+                ),
                 instance_id: self.cfg.group_instance_id.clone(),
                 rack_id: self.cfg.rack.clone(),
                 subscribed_topic_names: None,
@@ -1937,13 +1943,15 @@ impl ConsumerGroup {
         let timeout = self.cfg.request_timeout;
         self.consumer.refresh_topics(&self.topics).await?;
         let version = spoken_consumer_group_heartbeat(self.coord.consumer_group_heartbeat_version)?;
-        if version >= 1 && self.member_id.is_empty() {
+        if version >= ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION
+            && self.member_id.is_empty()
+        {
             self.member_id = new_kip848_member_id()?;
         }
         let req = ConsumerGroupHeartbeatRequest {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
-            member_epoch: 0,
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: self.cfg.group_instance_id.clone(),
             rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(self.topics.clone()),
@@ -2299,7 +2307,9 @@ async fn leave_if_max_poll(
                 let req = ConsumerGroupHeartbeatRequest {
                     group_id: group_id.to_string(),
                     member_id: member_id.to_string(),
-                    member_epoch: -1,
+                    member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(
+                        cfg.group_instance_id.as_deref(),
+                    ),
                     instance_id: cfg.group_instance_id.clone(),
                     rack_id: cfg.rack.clone(),
                     subscribed_topic_names: None,

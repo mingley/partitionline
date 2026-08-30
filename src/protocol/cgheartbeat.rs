@@ -21,7 +21,9 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub group_id: String,
     /// Member id (`""` on v0 join; client-generated on v1, KIP-1082).
     pub member_id: String,
-    /// Member epoch (`0` join, `-1` leave, otherwise heartbeat).
+    /// Member epoch ([`Self::JOIN_GROUP_MEMBER_EPOCH`] join,
+    /// [`Self::LEAVE_GROUP_MEMBER_EPOCH`] /
+    /// [`Self::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] leave, otherwise heartbeat).
     pub member_epoch: i32,
     /// Kafka `group.instance.id`.
     pub instance_id: Option<String>,
@@ -33,6 +35,34 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub subscribed_topic_regex: Option<String>,
     /// Owned partitions (`None` means unchanged).
     pub topic_partitions: Option<Vec<TopicPartitions>>,
+}
+
+impl ConsumerGroupHeartbeatRequest {
+    /// Java `ConsumerGroupHeartbeatRequest.LEAVE_GROUP_MEMBER_EPOCH`.
+    ///
+    /// Dynamic members send this on leave.
+    pub const LEAVE_GROUP_MEMBER_EPOCH: i32 = -1;
+    /// Java `ConsumerGroupHeartbeatRequest.LEAVE_GROUP_STATIC_MEMBER_EPOCH`.
+    ///
+    /// Static members (`group.instance.id` present) send this on leave.
+    pub const LEAVE_GROUP_STATIC_MEMBER_EPOCH: i32 = -2;
+    /// Java `ConsumerGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
+    pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
+    /// Java `ConsumerGroupHeartbeatRequest.CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`.
+    ///
+    /// ConsumerGroupHeartbeat v1+ (KIP-1082): the client generates MemberId.
+    pub const CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION: i16 = 1;
+
+    /// Java `ConsumerMembershipManager.leaveGroupEpoch`.
+    ///
+    /// `Some` (including empty) is a static member (`Optional.isPresent`).
+    #[must_use]
+    pub const fn leave_group_epoch(group_instance_id: Option<&str>) -> i32 {
+        match group_instance_id {
+            Some(_) => Self::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            None => Self::LEAVE_GROUP_MEMBER_EPOCH,
+        }
+    }
 }
 
 /// ConsumerGroupHeartbeat response.
@@ -255,7 +285,7 @@ mod tests {
         ConsumerGroupHeartbeatRequest {
             group_id: "g".into(),
             member_id: String::new(),
-            member_epoch: 0,
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: Some("worker-1".into()),
             rack_id: Some("az1".into()),
             subscribed_topic_names: Some(vec!["t".into()]),
@@ -299,7 +329,7 @@ mod tests {
         let req = ConsumerGroupHeartbeatRequest {
             group_id: "g".into(),
             member_id: "m1".into(),
-            member_epoch: -1,
+            member_epoch: ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
             instance_id: None,
             rack_id: None,
             subscribed_topic_names: None,
@@ -309,8 +339,60 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
         let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap();
-        assert_eq!(decoded.member_epoch, -1);
+        assert_eq!(
+            decoded.member_epoch,
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH
+        );
         assert_eq!(decoded.member_id, "m1");
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_static_leave_has_epoch_minus_two() {
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: "m1".into(),
+            member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("worker-1")),
+            instance_id: Some("worker-1".into()),
+            rack_id: None,
+            subscribed_topic_names: None,
+            subscribed_topic_regex: None,
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap();
+        assert_eq!(
+            decoded.member_epoch,
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH
+        );
+        assert_eq!(decoded.instance_id.as_deref(), Some("worker-1"));
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_matches_java() {
+        assert_eq!(ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH, -1);
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            -2
+        );
+        assert_eq!(ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH, 0);
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION,
+            1
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(None),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("worker-1")),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("")),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            "Java Optional.isPresent is true for empty group.instance.id"
+        );
     }
 
     #[test]
@@ -333,7 +415,7 @@ mod tests {
         let req = ConsumerGroupHeartbeatRequest {
             group_id: "g".into(),
             member_id: String::new(),
-            member_epoch: 0,
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: None,
             rack_id: None,
             subscribed_topic_names: Some(vec!["t".into()]),

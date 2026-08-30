@@ -40,10 +40,20 @@ pub struct ShareGroupHeartbeatRequest {
     pub group_id: String,
     /// Member id (`""` on join).
     pub member_id: String,
-    /// Member epoch (`0` join, `-1` leave, otherwise heartbeat).
+    /// Member epoch ([`Self::JOIN_GROUP_MEMBER_EPOCH`] join,
+    /// [`Self::LEAVE_GROUP_MEMBER_EPOCH`] leave, otherwise heartbeat).
     pub member_epoch: i32,
     /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
+}
+
+impl ShareGroupHeartbeatRequest {
+    /// Java `ShareGroupHeartbeatRequest.LEAVE_GROUP_MEMBER_EPOCH`.
+    ///
+    /// Kafka 4.0 ShareGroupHeartbeat has no static-member leave epoch.
+    pub const LEAVE_GROUP_MEMBER_EPOCH: i32 = -1;
+    /// Java `ShareGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
+    pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
 }
 
 /// ShareGroupHeartbeat response.
@@ -836,7 +846,7 @@ mod tests {
         let req = ShareGroupHeartbeatRequest {
             group_id: "sg".into(),
             member_id: "m1".into(),
-            member_epoch: 0,
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             subscribed_topic_names: Some(vec!["t".into()]),
         };
         let mut buf = BytesMut::new();
@@ -844,7 +854,10 @@ mod tests {
         let mut cur = &buf[..];
         let decoded = decode_share_group_heartbeat_request(&mut cur, 1).unwrap();
         assert!(!cur.has_remaining(), "v1 request leftover-empty");
-        assert_eq!(decoded.member_epoch, 0);
+        assert_eq!(
+            decoded.member_epoch,
+            ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH
+        );
         assert_eq!(decoded.member_id, "m1");
         assert_eq!(decoded.subscribed_topic_names, Some(vec!["t".into()]));
 
@@ -871,7 +884,7 @@ mod tests {
         let leave = ShareGroupHeartbeatRequest {
             group_id: "sg".into(),
             member_id: "m1".into(),
-            member_epoch: -1,
+            member_epoch: ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
             subscribed_topic_names: None,
         };
         buf.clear();
@@ -881,7 +894,7 @@ mod tests {
             decode_share_group_heartbeat_request(&mut cur, 1)
                 .unwrap()
                 .member_epoch,
-            -1
+            ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH
         );
         assert!(!cur.has_remaining(), "v1 leave leftover-empty");
     }
@@ -894,7 +907,7 @@ mod tests {
         let req = ShareGroupHeartbeatRequest {
             group_id: "sg".into(),
             member_id: "m1".into(),
-            member_epoch: 0,
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             subscribed_topic_names: Some(vec!["t".into()]),
         };
         let mut v0 = BytesMut::new();
@@ -923,6 +936,8 @@ mod tests {
         assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 1, 0, 1), Some(1));
         assert_eq!(crate::protocol::api_keys::pick_version(2, 2, 0, 1), None);
+        assert_eq!(ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH, -1);
+        assert_eq!(ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH, 0);
 
         let resp = ShareGroupHeartbeatResponse {
             error_code: 0,

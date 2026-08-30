@@ -74,8 +74,19 @@
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry),
-//! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id),
-//! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
+//! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id;
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::leave_group_epoch`] /
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`]
+//! are Java `ConsumerGroupHeartbeatRequest` join/leave epochs and KIP-1082
+//! (`leave_group_epoch` is Java `ConsumerMembershipManager.leaveGroupEpoch`;
+//! static members send `-2`)),
+//! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
+//! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
+//! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
+//! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
@@ -732,7 +743,10 @@
 //! is sticky, [`ConsumerGroup::join_cooperative_sticky`] is KIP-429,
 //! [`ConsumerGroup::join_with_assignors`] is Java `partition.assignment.strategy`
 //! (JoinGroup Protocols of N), and
-//! [`ConsumerGroup::join_consumer`] is KIP-848. Each has a
+//! [`ConsumerGroup::join_consumer`] is KIP-848
+//! ([`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
+//! on join; leave uses
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::leave_group_epoch`]). Each has a
 //! `_topics` variant for several topics. [`ConsumerGroup::group_protocol`] is
 //! Java `GroupProtocol` (`CLASSIC` / `CONSUMER`; [`GroupProtocol::of`] is Java
 //! `GroupProtocol.of`). [`ConsumerGroup::join_matching`] /
@@ -746,7 +760,10 @@
 //! [`ShareGroup::join_matching`] / [`ShareGroup::subscribe`] /
 //! [`ShareGroup::subscribe_matching`] / [`ShareGroup::unsubscribe`] /
 //! [`ShareGroup::accept`] / [`ShareGroup::release`] / [`ShareGroup::reject`] /
-//! [`ShareGroup::acknowledge`]).
+//! [`ShareGroup::acknowledge`];
+//! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
+//! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]
+//! are Java `ShareGroupHeartbeatRequest` join/leave epochs).
 //! [`Consumer::seek_with_metadata`] / [`ConsumerGroup::seek_with_metadata`]
 //! are Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch
 //! `LastFetchedEpoch` from the leader epoch; metadata string ignored).
