@@ -183,6 +183,17 @@
 //! [`protocol::scram::xor`] are Java `ScramFormatter.saslName` / `username` /
 //! `xor` (`=` then `,`; leftover `=` is [`Error::protocol`]; length mismatch
 //! is Java `Argument arrays must be of the same length`),
+//! [`protocol::scram::ScramAlg::hash_algorithm`] /
+//! [`protocol::scram::ScramAlg::mac_algorithm`] /
+//! [`protocol::scram::ScramAlg::min_iterations`] /
+//! [`protocol::scram::ScramAlg::max_iterations`] /
+//! [`protocol::scram::ScramAlg::from_mechanism_name`] /
+//! [`protocol::scram::ScramAlg::mechanism_names`] /
+//! [`protocol::scram::ScramAlg::is_scram`] are Java internals
+//! `ScramMechanism.hashAlgorithm` / `macAlgorithm` / `minIterations` /
+//! `maxIterations` / `forMechanismName` / `mechanismNames` / `isScram`
+//! (unknown name is `None`; admin `ScramMechanism.fromMechanismName` returns
+//! `UNKNOWN` instead),
 //! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry;
 //! [`protocol::api::ApiVersionsRequest::is_valid`] is Java `ApiVersionsRequest.isValid`;
 //! [`protocol::api::ApiVersionsResponse::api_version`] /

@@ -3,7 +3,12 @@
 //!
 //! [`sasl_name`] / [`username`] / [`xor`] are Java `ScramFormatter.saslName` /
 //! `username` / `xor` (`=` then `,`; leftover `=` after decoding `=3D` is
-//! [`Error::protocol`]).
+//! [`Error::protocol`]). [`ScramAlg::hash_algorithm`] /
+//! [`ScramAlg::mac_algorithm`] / [`ScramAlg::min_iterations`] /
+//! [`ScramAlg::max_iterations`] / [`ScramAlg::from_mechanism_name`] /
+//! [`ScramAlg::mechanism_names`] / [`ScramAlg::is_scram`] are Java internals
+//! `ScramMechanism` (unknown name is `None`; this is not admin
+//! `ScramMechanism.fromMechanismName`, which returns `UNKNOWN`).
 
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
@@ -26,11 +31,70 @@ pub enum ScramAlg {
 
 impl ScramAlg {
     /// Kafka SASL mechanism name.
+    ///
+    /// Java internals `ScramMechanism.mechanismName` (`SCRAM-SHA-256`).
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Self::Sha256 => "SCRAM-SHA-256",
             Self::Sha512 => "SCRAM-SHA-512",
         }
+    }
+
+    /// Java internals `ScramMechanism.hashAlgorithm`.
+    #[must_use]
+    pub const fn hash_algorithm(self) -> &'static str {
+        match self {
+            Self::Sha256 => "SHA-256",
+            Self::Sha512 => "SHA-512",
+        }
+    }
+
+    /// Java internals `ScramMechanism.macAlgorithm`.
+    #[must_use]
+    pub const fn mac_algorithm(self) -> &'static str {
+        match self {
+            Self::Sha256 => "HmacSHA256",
+            Self::Sha512 => "HmacSHA512",
+        }
+    }
+
+    /// Java internals `ScramMechanism.minIterations` (`4096`).
+    #[must_use]
+    pub const fn min_iterations(self) -> i32 {
+        match self {
+            Self::Sha256 | Self::Sha512 => 4096,
+        }
+    }
+
+    /// Java internals `ScramMechanism.maxIterations` (`16384`).
+    #[must_use]
+    pub const fn max_iterations(self) -> i32 {
+        match self {
+            Self::Sha256 | Self::Sha512 => 16384,
+        }
+    }
+
+    /// Java internals `ScramMechanism.forMechanismName` (unknown is `None`).
+    #[must_use]
+    pub fn from_mechanism_name(name: &str) -> Option<Self> {
+        match name {
+            "SCRAM-SHA-256" => Some(Self::Sha256),
+            "SCRAM-SHA-512" => Some(Self::Sha512),
+            _ => None,
+        }
+    }
+
+    /// Java internals `ScramMechanism.mechanismNames` (declaration order).
+    #[must_use]
+    pub const fn mechanism_names() -> &'static [&'static str] {
+        &["SCRAM-SHA-256", "SCRAM-SHA-512"]
+    }
+
+    /// Java internals `ScramMechanism.isScram`.
+    #[must_use]
+    pub fn is_scram(mechanism_name: &str) -> bool {
+        Self::from_mechanism_name(mechanism_name).is_some()
     }
 
     fn output_len(self) -> usize {
@@ -371,5 +435,36 @@ mod tests {
         );
         let (first, _) = client_first("user=name,x", "n1");
         assert_eq!(first, "n,,n=user=3Dname=2Cx,r=n1");
+    }
+
+    #[test]
+    fn scram_mechanism_internals_match_java() {
+        assert_eq!(ScramAlg::Sha256.hash_algorithm(), "SHA-256");
+        assert_eq!(ScramAlg::Sha512.hash_algorithm(), "SHA-512");
+        assert_eq!(ScramAlg::Sha256.mac_algorithm(), "HmacSHA256");
+        assert_eq!(ScramAlg::Sha512.mac_algorithm(), "HmacSHA512");
+        assert_eq!(ScramAlg::Sha256.min_iterations(), 4096);
+        assert_eq!(ScramAlg::Sha512.min_iterations(), 4096);
+        assert_eq!(ScramAlg::Sha256.max_iterations(), 16384);
+        assert_eq!(ScramAlg::Sha512.max_iterations(), 16384);
+        assert_eq!(
+            ScramAlg::from_mechanism_name("SCRAM-SHA-256"),
+            Some(ScramAlg::Sha256)
+        );
+        assert_eq!(
+            ScramAlg::from_mechanism_name("SCRAM-SHA-512"),
+            Some(ScramAlg::Sha512)
+        );
+        assert_eq!(ScramAlg::from_mechanism_name("PLAIN"), None);
+        assert_eq!(ScramAlg::from_mechanism_name("UNKNOWN"), None);
+        assert_eq!(ScramAlg::from_mechanism_name("SCRAM_SHA_256"), None);
+        assert!(ScramAlg::is_scram("SCRAM-SHA-256"));
+        assert!(ScramAlg::is_scram("SCRAM-SHA-512"));
+        assert!(!ScramAlg::is_scram("PLAIN"));
+        assert!(!ScramAlg::is_scram("UNKNOWN"));
+        assert_eq!(
+            ScramAlg::mechanism_names(),
+            ["SCRAM-SHA-256", "SCRAM-SHA-512"]
+        );
     }
 }
