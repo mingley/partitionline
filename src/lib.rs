@@ -527,7 +527,8 @@
 //! [`OffsetAndTimestamp::UNKNOWN_TIMESTAMP`] are Java
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
 //! [`TopicIdPartition`] `Display` is Java
-//! `TopicIdPartition.toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
+//! `TopicIdPartition.toString`. [`TopicPartition::cluster_metadata`] is Java
+//! `Topic.CLUSTER_METADATA_TOPIC_PARTITION`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::from_string`]
 //! is Java `Uuid.fromString` (`Input string` length errors; invalid base64 is
 //! crate-specific). [`Uuid::random_uuid`] is Java `Uuid.randomUuid`.
@@ -1229,12 +1230,19 @@
 //! [`protocol::group::JoinGroupRequest::join_reason`] /
 //! [`protocol::group::JoinGroupRequest::validate_group_instance_id`] /
 //! [`protocol::group::Topic::validate`] /
+//! [`protocol::group::Topic::is_valid`] /
+//! [`protocol::group::Topic::is_internal`] /
+//! [`protocol::group::Topic::has_collision_chars`] /
+//! [`protocol::group::Topic::unify_collision_chars`] /
+//! [`protocol::group::Topic::has_collision`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
 //! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
 //! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
 //! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` / `joinReason` /
 //! `validateGroupInstanceId` / `Topic.validate` /
+//! `Topic.isValid` / `Topic.isInternal` / `Topic.hasCollisionChars` /
+//! `Topic.unifyCollisionChars` / `Topic.hasCollision` /
 //! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
 //! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;

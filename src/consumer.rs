@@ -757,6 +757,12 @@ impl TopicPartition {
         }
     }
 
+    /// Java `Topic.CLUSTER_METADATA_TOPIC_PARTITION` (`__cluster_metadata`-0).
+    #[must_use]
+    pub fn cluster_metadata() -> Self {
+        Self::new(Topic::CLUSTER_METADATA_TOPIC_NAME, 0)
+    }
+
     /// Java `TopicPartition.topic`.
     #[must_use]
     pub fn topic(&self) -> &str {
@@ -3314,6 +3320,10 @@ mod tests {
         let tp = TopicPartition::new("events", 3);
         assert_eq!(tp.topic(), "events");
         assert_eq!(tp.partition(), 3);
+        let cluster_md = TopicPartition::cluster_metadata();
+        assert_eq!(cluster_md.topic(), Topic::CLUSTER_METADATA_TOPIC_NAME);
+        assert_eq!(cluster_md.partition(), 0);
+        assert_eq!(cluster_md.to_string(), "__cluster_metadata-0");
         let tid = TopicIdPartition::from_topic(crate::Uuid::ONE, 3, "events");
         assert_eq!(tid.topic_id(), crate::Uuid::ONE);
         assert_eq!(tid.topic(), "events");

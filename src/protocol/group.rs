@@ -926,6 +926,19 @@ impl Topic {
     /// Java `Topic.MAX_NAME_LENGTH` (UTF-16 units).
     pub const MAX_NAME_LENGTH: usize = 249;
 
+    /// Java `Topic.GROUP_METADATA_TOPIC_NAME`.
+    pub const GROUP_METADATA_TOPIC_NAME: &str = "__consumer_offsets";
+    /// Java `Topic.TRANSACTION_STATE_TOPIC_NAME`.
+    pub const TRANSACTION_STATE_TOPIC_NAME: &str = "__transaction_state";
+    /// Java `Topic.SHARE_GROUP_STATE_TOPIC_NAME`.
+    pub const SHARE_GROUP_STATE_TOPIC_NAME: &str = "__share_group_state";
+    /// Java `Topic.CLUSTER_METADATA_TOPIC_NAME`.
+    ///
+    /// Not in Java `INTERNAL_TOPICS` ([`Self::is_internal`] is false).
+    pub const CLUSTER_METADATA_TOPIC_NAME: &str = "__cluster_metadata";
+    /// Java `Topic.LEGAL_CHARS` (documentation regex; validate uses the charset).
+    pub const LEGAL_CHARS: &str = "[a-zA-Z0-9._-]";
+
     /// Java `Topic.validate` (`Topic name is invalid: ...`).
     ///
     /// Empty, `.`, `..`, UTF-16 length above [`Self::MAX_NAME_LENGTH`], or
@@ -935,6 +948,47 @@ impl Topic {
             Some(reason) => Err(Error::protocol(format!("Topic name is invalid: {reason}"))),
             None => Ok(()),
         }
+    }
+
+    /// Java `Topic.isValid`.
+    #[must_use]
+    pub fn is_valid(name: &str) -> bool {
+        detect_invalid_topic_name(name).is_none()
+    }
+
+    /// Java `Topic.isInternal`.
+    ///
+    /// Only [`Self::GROUP_METADATA_TOPIC_NAME`],
+    /// [`Self::TRANSACTION_STATE_TOPIC_NAME`], and
+    /// [`Self::SHARE_GROUP_STATE_TOPIC_NAME`]. [`Self::CLUSTER_METADATA_TOPIC_NAME`]
+    /// is not internal. Subscription matching still skips every `__` prefix
+    /// (not this set).
+    #[must_use]
+    pub fn is_internal(topic: &str) -> bool {
+        matches!(
+            topic,
+            Self::GROUP_METADATA_TOPIC_NAME
+                | Self::TRANSACTION_STATE_TOPIC_NAME
+                | Self::SHARE_GROUP_STATE_TOPIC_NAME
+        )
+    }
+
+    /// Java `Topic.hasCollisionChars` (`.` or `_`).
+    #[must_use]
+    pub fn has_collision_chars(topic: &str) -> bool {
+        topic.contains('_') || topic.contains('.')
+    }
+
+    /// Java `Topic.unifyCollisionChars` (`.` → `_`).
+    #[must_use]
+    pub fn unify_collision_chars(topic: &str) -> String {
+        topic.replace('.', "_")
+    }
+
+    /// Java `Topic.hasCollision`.
+    #[must_use]
+    pub fn has_collision(topic_a: &str, topic_b: &str) -> bool {
+        Self::unify_collision_chars(topic_a) == Self::unify_collision_chars(topic_b)
     }
 }
 
@@ -3287,6 +3341,28 @@ mod tests {
             "{topic_bad}"
         );
         assert_eq!(Topic::MAX_NAME_LENGTH, 249);
+        assert_eq!(Topic::GROUP_METADATA_TOPIC_NAME, "__consumer_offsets");
+        assert_eq!(Topic::TRANSACTION_STATE_TOPIC_NAME, "__transaction_state");
+        assert_eq!(Topic::SHARE_GROUP_STATE_TOPIC_NAME, "__share_group_state");
+        assert_eq!(Topic::CLUSTER_METADATA_TOPIC_NAME, "__cluster_metadata");
+        assert_eq!(Topic::LEGAL_CHARS, "[a-zA-Z0-9._-]");
+        assert!(Topic::is_valid("orders"));
+        assert!(Topic::is_valid(&"a".repeat(249)));
+        assert!(!Topic::is_valid(""));
+        assert!(!Topic::is_valid("."));
+        assert!(!Topic::is_valid(".."));
+        assert!(!Topic::is_valid("bad id"));
+        assert!(Topic::is_internal(Topic::GROUP_METADATA_TOPIC_NAME));
+        assert!(Topic::is_internal(Topic::TRANSACTION_STATE_TOPIC_NAME));
+        assert!(Topic::is_internal(Topic::SHARE_GROUP_STATE_TOPIC_NAME));
+        assert!(!Topic::is_internal(Topic::CLUSTER_METADATA_TOPIC_NAME));
+        assert!(!Topic::is_internal("orders"));
+        assert!(Topic::has_collision_chars("foo.bar"));
+        assert!(Topic::has_collision_chars("foo_bar"));
+        assert!(!Topic::has_collision_chars("foobar"));
+        assert_eq!(Topic::unify_collision_chars("foo.bar"), "foo_bar");
+        assert!(Topic::has_collision("foo.bar", "foo_bar"));
+        assert!(!Topic::has_collision("foo", "bar"));
     }
 
     #[test]
