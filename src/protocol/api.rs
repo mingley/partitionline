@@ -798,7 +798,9 @@ impl MetadataRequestTopic {
         }
     }
 
-    /// Id-based Metadata topic (Name null). Requires Metadata v10+.
+    /// Id-based Metadata topic (Name null). Requires Metadata v12+
+    /// (Java `MetadataRequest.Builder`; v10 and v11 must not send TopicId
+    /// or a null Name).
     #[must_use]
     pub fn by_id(topic_id: [u8; 16]) -> Self {
         Self {
@@ -852,6 +854,10 @@ pub fn encode_metadata_request_with(
 ///
 /// Java `describeTopics(TopicCollection.ofTopicIds)` sends Name null
 /// and TopicId set. `topics = None` asks for all topics.
+///
+/// Java `MetadataRequest.Builder.build` rejects versions older than 1,
+/// `allowAutoTopicCreation` false below v4, and a null Name or non-zero
+/// TopicId below v12.
 pub fn encode_metadata_request_topics(
     buf: &mut BytesMut,
     version: i16,
@@ -859,6 +865,31 @@ pub fn encode_metadata_request_topics(
     allow_auto: bool,
     include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
+    if version < 1 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 1 are not supported.".into(),
+        ));
+    }
+    if !allow_auto && version < 4 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 4 don't support the allowAutoTopicCreation field"
+                .into(),
+        ));
+    }
+    if let Some(topics) = topics {
+        for t in topics {
+            if t.name.is_none() && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support null topic names."
+                )));
+            }
+            if t.topic_id != [0; 16] && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support non-zero topic IDs."
+                )));
+            }
+        }
+    }
     let flexible = version >= 9;
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
@@ -2266,5 +2297,50 @@ mod tests {
             Some(&[][..]),
             "name-only decode skips null-Name TopicId describes"
         );
+    }
+
+    #[test]
+    fn metadata_builder_matches_java() {
+        let names = ["t".to_string()];
+        let err = encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), true).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("older than 1"), "got {err}");
+        encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), true).unwrap();
+        let err =
+            encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), false).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "allowAutoTopicCreation false below v4 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("allowAutoTopicCreation"),
+            "got {err}"
+        );
+        encode_metadata_request(&mut BytesMut::new(), 4, Some(&names), false).unwrap();
+
+        let mut id = [0u8; 16];
+        id[0] = 1;
+        let by_id = [MetadataRequestTopic::by_id(id)];
+        let err =
+            encode_metadata_request_topics(&mut BytesMut::new(), 11, Some(&by_id), false, false)
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "null Name below v12 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("null topic names"), "got {err}");
+        encode_metadata_request_topics(&mut BytesMut::new(), 12, Some(&by_id), false, false)
+            .unwrap();
+        let named_id = [MetadataRequestTopic {
+            name: Some("t".into()),
+            topic_id: id,
+        }];
+        let err =
+            encode_metadata_request_topics(&mut BytesMut::new(), 11, Some(&named_id), true, false)
+                .unwrap_err();
+        assert!(err.to_string().contains("non-zero topic IDs"), "got {err}");
     }
 }

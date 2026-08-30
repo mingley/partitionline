@@ -797,7 +797,7 @@ impl Ord for Uuid {
 ///
 /// [`Admin::describe_topics_for`] / [`Admin::delete_topics_for`] dispatch
 /// names to DescribeTopicPartitions (Metadata fallback) and ids to
-/// Metadata v10+ / DeleteTopics v6. Existing
+/// Metadata v12+ / DeleteTopics v6. Existing
 /// [`Admin::describe_topics_by_id`] / [`Admin::delete_topics_by_id`] keep
 /// `&[[u8; 16]]` so `describe_topics_by_id(&[])` still infers.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -3840,8 +3840,9 @@ impl Admin {
 
     /// Describe topics by TopicId (Java `describeTopics(TopicCollection.ofTopicIds)`).
     ///
-    /// Metadata v10+ sends Topics of null Name + TopicId.
-    /// `AllowAutoTopicCreation` is false. Brokers that only speak v1–v9
+    /// Metadata v12+ sends Topics of null Name + TopicId (Java
+    /// `MetadataRequest.Builder`; v10 and v11 must not send TopicId).
+    /// `AllowAutoTopicCreation` is false. Brokers that only speak v1–v11
     /// return [`Error::Unsupported`]. Empty `ids` is a no-op. Unknown
     /// ids return `UNKNOWN_TOPIC_ID` (100) per topic with an empty name.
     /// See [`Self::describe_topics_by_id_with`]. Metadata has no TimeoutMs;
@@ -3857,8 +3858,8 @@ impl Admin {
     /// [`Self::describe_topics_by_id`] with Java
     /// `DescribeTopicsOptions.includeAuthorizedOperations`.
     ///
-    /// Metadata v10+ sends IncludeTopicAuthorizedOperations (the flag
-    /// exists from v8; TopicId requires v10). Metadata has no TimeoutMs;
+    /// Metadata v12+ sends IncludeTopicAuthorizedOperations (the flag
+    /// exists from v8; TopicId on the request requires v12). Metadata has no TimeoutMs;
     /// the RPC deadline is [`AdminConfig::request_timeout`]. For a
     /// one-shot deadline, use [`Self::describe_topics_by_id_with_timeout`].
     pub async fn describe_topics_by_id_with(
@@ -3895,9 +3896,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        if self.metadata_version < 10 {
+        if self.metadata_version < 12 {
             return Err(Error::Unsupported(
-                "broker does not support Metadata v10 topic IDs".into(),
+                "broker does not support Metadata v12 topic IDs".into(),
             ));
         }
         let topics: Vec<MetadataRequestTopic> = ids
@@ -3916,7 +3917,7 @@ impl Admin {
     /// [`TopicCollection::Names`] is [`Self::describe_topics`]
     /// (DescribeTopicPartitions, Metadata fallback).
     /// [`TopicCollection::Ids`] is [`Self::describe_topics_by_id`]
-    /// (Metadata v10+). Empty collections are a no-op.
+    /// (Metadata v12+). Empty collections are a no-op.
     /// DescribeTopicPartitions and Metadata have no TimeoutMs; the RPC
     /// deadline is [`AdminConfig::request_timeout`]. For a one-shot
     /// deadline, use [`Self::describe_topics_for_timeout`].

@@ -5524,7 +5524,7 @@ async fn admin_describe_topics_falls_back_to_metadata_without_dtp() {
     admin.close().await.unwrap();
 }
 
-/// Java `describeTopics(TopicCollection.ofTopicIds)` sends Metadata v10+
+/// Java `describeTopics(TopicCollection.ofTopicIds)` sends Metadata v12+
 /// Topics of null Name + TopicId.
 #[tokio::test]
 async fn admin_describe_topics_by_id() {

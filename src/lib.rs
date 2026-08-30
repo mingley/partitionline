@@ -35,7 +35,7 @@
 //! transactional id.
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
-//! v10+ TopicId on [`Admin::describe_topics_by_id`]).
+//! v12+ TopicId on [`Admin::describe_topics_by_id`]).
 //! [`protocol::api::MetadataResponse::NO_CONTROLLER_ID`] /
 //! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`protocol::api::MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] /
@@ -709,7 +709,7 @@
 //! `DescribeTopicsOptions.timeoutMs` /
 //! `DescribeTopicsOptions.partitionSizeLimitPerResponse` /
 //! `describeTopics(TopicCollection.ofTopicNames)` /
-//! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v10+)
+//! `describeTopics(TopicCollection.ofTopicIds)` (Metadata v12+)
 //! ([`TopicCollection`] / [`TopicListing`] / [`TopicDescription`] / [`Uuid`];
 //! [`Uuid::random_uuid`] is Java `Uuid.randomUuid`).
 //! [`Admin::describe_replica_log_dirs`] is Java `describeReplicaLogDirs`
