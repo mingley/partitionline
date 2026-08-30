@@ -30,6 +30,7 @@ use crate::error::Result;
 /// `RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client, correlationId=1, headerVersion=2)`.
 /// `apiKey` is the Kafka 4.0 `ApiKeys` enum name (not `ApiMessageType.name`).
 /// Null `clientId` prints `null`; an empty id prints empty.
+/// [`Self::size`] is Java `RequestHeader.size`.
 #[derive(Debug, Clone)]
 pub struct RequestHeader {
     /// Api key.
@@ -71,6 +72,26 @@ impl RequestHeader {
     #[must_use]
     pub fn header_version(&self) -> i16 {
         request_header_version(self.api_key, self.api_version)
+    }
+
+    /// Java `RequestHeader.size`.
+    ///
+    /// Serialized bytes: INT16 api key, INT16 api version, INT32 correlation
+    /// id, classic nullable STRING `clientId`, plus one empty tagged-fields
+    /// unsigned varint when [`Self::header_version`] is 2. Matches
+    /// [`encode_request_header`].
+    #[must_use]
+    pub fn size(&self) -> i32 {
+        let client_bytes = self.client_id.as_deref().map_or(0, str::len);
+        let mut n = 10i32; // 2+2+4 + INT16 length
+        match i32::try_from(client_bytes) {
+            Ok(len) => n = n.saturating_add(len),
+            Err(_) => return i32::MAX,
+        }
+        if self.header_version() >= 2 {
+            n = n.saturating_add(1);
+        }
+        n
     }
 }
 
@@ -1381,6 +1402,8 @@ mod tests {
 
         assert_eq!(crate::protocol::api_keys::name(43), Some("ELECT_LEADERS"));
         assert_eq!(crate::protocol::api_keys::name(999), None);
+        assert!(crate::protocol::api_keys::has_id(43));
+        assert!(!crate::protocol::api_keys::has_id(999));
         let unknown = RequestHeader {
             api_key: 999,
             api_version: 0,
@@ -1392,5 +1415,60 @@ mod tests {
             unknown.to_string(),
             "RequestHeader(apiKey=999, apiVersion=0, clientId=null, correlationId=0, headerVersion=1)"
         );
+    }
+
+    #[test]
+    fn request_header_size_matches_java() {
+        // Java RequestHeaderTest.testRequestHeaderV1: FIND_COORDINATOR v1,
+        // empty clientId, serialized size 10 (header version 1).
+        let v1 = RequestHeader {
+            api_key: FIND_COORDINATOR,
+            api_version: 1,
+            correlation_id: 10,
+            client_id: Some(String::new()),
+        };
+        assert_eq!(v1.header_version(), 1);
+        assert_eq!(v1.size(), 10);
+        let mut buf = BytesMut::new();
+        encode_request_header(&mut buf, &v1).unwrap();
+        assert_eq!(buf.len(), 10);
+
+        // Java RequestHeaderTest.testRequestHeaderV2: CREATE_DELEGATION_TOKEN
+        // v2, empty clientId, serialized size 11 (header version 2).
+        let v2 = RequestHeader {
+            api_key: CREATE_DELEGATION_TOKEN,
+            api_version: 2,
+            correlation_id: 10,
+            client_id: Some(String::new()),
+        };
+        assert_eq!(v2.header_version(), 2);
+        assert_eq!(v2.size(), 11);
+        buf.clear();
+        encode_request_header(&mut buf, &v2).unwrap();
+        assert_eq!(buf.len(), 11);
+
+        // Java RequestHeaderTest.verifySizeMethodsReturnSameValue clientId.
+        let named = RequestHeader {
+            api_key: FIND_COORDINATOR,
+            api_version: 10,
+            correlation_id: 123,
+            client_id: Some("hakuna-matata".into()),
+        };
+        assert_eq!(named.header_version(), 2);
+        assert_eq!(named.size(), 24);
+        buf.clear();
+        encode_request_header(&mut buf, &named).unwrap();
+        assert_eq!(buf.len(), 24);
+
+        let null_client = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: None,
+        };
+        assert_eq!(null_client.size(), 11);
+        buf.clear();
+        encode_request_header(&mut buf, &null_client).unwrap();
+        assert_eq!(buf.len(), 11);
     }
 }

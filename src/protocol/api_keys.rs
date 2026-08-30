@@ -1,5 +1,7 @@
 //! Kafka request api keys (`ApiKeys.java`) and version negotiation.
 
+use crate::error::{Error, Result};
+
 /// Produce (0).
 pub const PRODUCE: i16 = 0;
 /// Fetch (1).
@@ -244,6 +246,18 @@ pub const fn name(id: i16) -> Option<&'static str> {
     }
 }
 
+/// Java `ApiKeys.hasId`.
+#[must_use]
+pub const fn has_id(id: i16) -> bool {
+    name(id).is_some()
+}
+
+/// Java `ApiKeys.forId`. Unknown ids are [`Error::protocol`]
+/// (`Unexpected api key: {id}`).
+pub fn for_id(id: i16) -> Result<&'static str> {
+    name(id).ok_or_else(|| Error::protocol(format!("Unexpected api key: {id}")))
+}
+
 /// Highest version in both the broker range and the client range, if they overlap.
 pub fn pick_version(
     broker_min: i16,
@@ -254,4 +268,27 @@ pub fn pick_version(
     let lo = broker_min.max(client_min);
     let hi = broker_max.min(client_max);
     (lo <= hi).then_some(hi)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn has_id_and_for_id_match_java() {
+        assert!(has_id(PRODUCE));
+        assert!(has_id(43));
+        assert!(has_id(LIST_CONFIG_RESOURCES));
+        assert!(has_id(DESCRIBE_SHARE_GROUP_OFFSETS));
+        assert!(!has_id(999));
+        assert!(!has_id(-1));
+        assert_eq!(for_id(PRODUCE).unwrap(), "PRODUCE");
+        assert_eq!(for_id(43).unwrap(), "ELECT_LEADERS");
+        assert_eq!(
+            for_id(LIST_CONFIG_RESOURCES).unwrap(),
+            "LIST_CLIENT_METRICS_RESOURCES"
+        );
+        let err = for_id(999).unwrap_err();
+        assert!(err.to_string().contains("Unexpected api key: 999"), "{err}");
+    }
 }

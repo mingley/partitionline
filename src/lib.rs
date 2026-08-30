@@ -447,8 +447,11 @@
 //! ([`protocol::fetch::FetchMetadata::LEGACY`] on Fetch requests).
 //! [`protocol::header::RequestHeader`] `Display` is Java
 //! `RequestHeader.toString` (`apiKey` is the Kafka 4.0 `ApiKeys` enum
-//! name; null `clientId` prints `null`). [`protocol::api_keys::name`] is
-//! that enum name for an id.
+//! name; null `clientId` prints `null`). [`protocol::header::RequestHeader::size`]
+//! is Java `RequestHeader.size`. [`protocol::api_keys::name`] is
+//! that enum name for an id. [`protocol::api_keys::has_id`] /
+//! [`protocol::api_keys::for_id`] are Java `ApiKeys.hasId` / `forId`
+//! (`Unexpected api key: {id}`).
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! on ShareFetch / ShareAcknowledge).
