@@ -2783,6 +2783,21 @@ impl DeleteRecordsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
     }
+
+    /// Java `DeleteRecordsResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[DeletedRecordsTopic]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// One partition in a DeleteRecords request (v0–2).
@@ -7792,6 +7807,19 @@ impl DescribeGroupsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `DescribeGroupsResponse.errorCounts`.
+    ///
+    /// Counts per-group error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(groups: &[DescribedGroup]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for group in groups {
+            let count = counts.entry(group.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// `true` when DescribeGroups `version` is flexible.
@@ -8503,6 +8531,19 @@ impl DeleteGroupsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `DeleteGroupsResponse.errorCounts`.
+    ///
+    /// Counts per-group error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(results: &[DeletableGroupResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for result in results {
+            let count = counts.entry(result.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -14057,6 +14098,77 @@ mod tests {
         assert_eq!(
             counts,
             HashMap::from([(0, 2), (crate::error::INVALID_PARTITIONS, 1),])
+        );
+    }
+
+    #[test]
+    fn delete_records_response_error_counts_matches_java() {
+        assert!(DeleteRecordsResponse::error_counts(&[]).is_empty());
+        let counts = DeleteRecordsResponse::error_counts(&[
+            DeletedRecordsTopic {
+                topic: "ok".into(),
+                partitions: vec![
+                    DeletedRecordsPartition::error(0, 0),
+                    DeletedRecordsPartition::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ],
+            },
+            DeletedRecordsTopic {
+                topic: "missing".into(),
+                partitions: vec![DeletedRecordsPartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            DeletedRecordsTopic {
+                topic: "ok2".into(),
+                partitions: vec![DeletedRecordsPartition::error(0, 0)],
+            },
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn describe_groups_response_error_counts_matches_java() {
+        assert!(DescribeGroupsResponse::error_counts(&[]).is_empty());
+        let counts = DescribeGroupsResponse::error_counts(&[
+            DescribedGroup::new("ok", 0),
+            DescribedGroup::new("gone", crate::error::GROUP_ID_NOT_FOUND),
+            DescribedGroup::new("ok2", 0),
+            DescribedGroup::new("moved", crate::error::NOT_COORDINATOR),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::GROUP_ID_NOT_FOUND, 1),
+                (crate::error::NOT_COORDINATOR, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn delete_groups_response_error_counts_matches_java() {
+        assert!(DeleteGroupsResponse::error_counts(&[]).is_empty());
+        let counts = DeleteGroupsResponse::error_counts(&[
+            DeletableGroupResult::new("ok", 0),
+            DeletableGroupResult::new("busy", crate::error::NON_EMPTY_GROUP),
+            DeletableGroupResult::new("ok2", 0),
+            DeletableGroupResult::new("gone", crate::error::GROUP_ID_NOT_FOUND),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NON_EMPTY_GROUP, 1),
+                (crate::error::GROUP_ID_NOT_FOUND, 1),
+            ])
         );
     }
 

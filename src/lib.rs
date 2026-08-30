@@ -233,13 +233,17 @@
 //! [`protocol::admin::DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED`] /
 //! [`protocol::admin::DescribeGroupsResponse::should_client_throttle`] are Java
 //! `DescribeGroupsResponse` error sentinels / `shouldClientThrottle` (v2+);
-//! [`DescribedGroup::new`] is Java `groupError`),
+//! [`DescribedGroup::new`] is Java `groupError`;
+//! [`protocol::admin::DescribeGroupsResponse::error_counts`] is Java
+//! `DescribeGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
 //! [`protocol::admin::ListGroupsResponse::should_client_throttle`] is Java
 //! `ListGroupsResponse.shouldClientThrottle` (v2+)),
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
-//! `DeleteGroupsResponse.shouldClientThrottle` (v1+)),
+//! `DeleteGroupsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::DeleteGroupsResponse::error_counts`] is Java
+//! `DeleteGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible;
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
@@ -305,6 +309,8 @@
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
 //! [`protocol::admin::DeleteRecordsResponse::should_client_throttle`] is Java
 //! `DeleteRecordsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::DeleteRecordsResponse::error_counts`] is Java
+//! `DeleteRecordsResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::admin::DeletedRecordsPartition::error`] /
 //! [`protocol::admin::DeleteRecordsTopic::error_result`] are Java
 //! `DeleteRecordsRequest.getErrorResponse` (partition body / one topic)),
