@@ -96,6 +96,8 @@
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! EndTxn decode below v5 fills [`RecordBatch::NO_PRODUCER_ID`] /
+//! [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`);
 //! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),
 //! and TxnOffsetCommit v0–v5
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;

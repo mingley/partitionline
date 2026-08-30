@@ -737,11 +737,14 @@ impl Shared {
             .clone()
     }
 
-    /// Apply EndTxn v5 ProducerId / ProducerEpoch. Ignores `-1` (JSON
-    /// default / NOT_COORDINATOR). Clears per-partition sequences when
-    /// the identity changes (Java resets sequences on epoch bump).
+    /// Apply EndTxn v5 ProducerId / ProducerEpoch. Ignores
+    /// [`RecordBatch::NO_PRODUCER_ID`] (JSON default / NOT_COORDINATOR).
+    /// Clears per-partition sequences when the identity changes (Java
+    /// resets sequences on epoch bump).
     fn apply_end_txn_identity(&self, version: i16, producer_id: i64, producer_epoch: i16) {
-        if version <= EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 || producer_id < 0 {
+        if version <= EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+            || producer_id <= RecordBatch::NO_PRODUCER_ID
+        {
             return;
         }
         let old_pid = self.producer_id.load(Ordering::SeqCst);
@@ -756,7 +759,7 @@ impl Shared {
     /// Local epoch bump for the idempotent producer (KIP-360).
     fn bump_idempotent_epoch(&self) {
         let epoch = self.producer_epoch.load(Ordering::SeqCst);
-        if epoch < 0 || epoch == i16::MAX {
+        if epoch <= RecordBatch::NO_PRODUCER_EPOCH || epoch == i16::MAX {
             return;
         }
         self.producer_epoch
@@ -2901,7 +2904,7 @@ fn assign_sequences(
     producer_id: i64,
     seqs: &parking_lot::Mutex<HashMap<(Arc<str>, i32), i32>>,
 ) {
-    if producer_id < 0 {
+    if producer_id <= RecordBatch::NO_PRODUCER_ID {
         return;
     }
     for (topic, partition, pendings) in groups.iter_mut() {
@@ -2964,10 +2967,13 @@ fn encode_produce_body(
                 continue;
             };
             buf.put_i32(*partition);
-            let base_sequence = pendings
-                .first()
-                .and_then(|p| p.seq)
-                .unwrap_or(if producer_id < 0 { -1 } else { 0 });
+            let base_sequence = pendings.first().and_then(|p| p.seq).unwrap_or(
+                if producer_id <= RecordBatch::NO_PRODUCER_ID {
+                    RecordBatch::NO_SEQUENCE
+                } else {
+                    0
+                },
+            );
             if flexible {
                 let mut recs = BytesMut::new();
                 encode_pendings(
@@ -3017,8 +3023,8 @@ fn next_sequence(
     partition: i32,
     count: usize,
 ) -> i32 {
-    if producer_id < 0 {
-        return -1;
+    if producer_id <= RecordBatch::NO_PRODUCER_ID {
+        return RecordBatch::NO_SEQUENCE;
     }
     let mut g = seqs.lock();
     let e = g.entry((topic.clone(), partition)).or_insert(0);
@@ -3083,7 +3089,13 @@ fn complete_acks0(shared: &Shared, groups: Vec<(Arc<str>, i32, Vec<Pending>)>) {
         shared.note_acked(&topic, n);
         for p in pendings {
             shared.note_ack_latency(&topic, p.queued_at);
-            let md = record_metadata(&topic, part, -1, &p.rec, RecordBatch::NO_TIMESTAMP);
+            let md = record_metadata(
+                &topic,
+                part,
+                RecordMetadata::INVALID_OFFSET,
+                &p.rec,
+                RecordBatch::NO_TIMESTAMP,
+            );
             shared.interceptors.on_ack(&md);
             if let Some(tx) = p.tx {
                 drop(tx.send(Ok(md)));

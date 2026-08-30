@@ -4732,7 +4732,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     decode_end_txn_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 if st.txn_coord_node != node_id {
-                    encode_end_txn_response(&mut body, header.api_version, 16, -1, -1).unwrap();
+                    encode_end_txn_response(
+                        &mut body,
+                        header.api_version,
+                        16,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
                 } else {
                     if !committed {
                         let pending = std::mem::take(&mut st.txn_pending);
@@ -4748,7 +4755,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     let (out_pid, out_epoch) = if header.api_version >= 5 {
                         (pid, epoch.saturating_add(1))
                     } else {
-                        (-1, -1)
+                        (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH)
                     };
                     encode_end_txn_response(&mut body, header.api_version, 0, out_pid, out_epoch)
                         .unwrap();

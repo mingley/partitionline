@@ -6,6 +6,7 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
 /// AddPartitionsToTxn (24).
@@ -348,6 +349,9 @@ pub fn decode_end_txn_request<B: Buf>(
 }
 
 /// Encode EndTxn: throttle `0`, error code, and v5+ producer id / epoch.
+///
+/// Java `EndTxnResponseData` defaults ProducerId / ProducerEpoch to
+/// [`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`].
 pub fn encode_end_txn_response(
     buf: &mut BytesMut,
     version: i16,
@@ -370,7 +374,8 @@ pub fn encode_end_txn_response(
 
 /// Decode EndTxn: `(error, producer_id, producer_epoch)`.
 ///
-/// Below v5, producer id and epoch are `-1`.
+/// Below v5, producer id and epoch are [`RecordBatch::NO_PRODUCER_ID`] /
+/// [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`).
 pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i64, i16)> {
     let flexible = end_txn_flexible(version)?;
     let _th = buf::get_i32(buf)?;
@@ -379,7 +384,7 @@ pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16
         if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
             (buf::get_i64(buf)?, buf::get_i16(buf)?)
         } else {
-            (-1, -1)
+            (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH)
         };
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -974,9 +979,23 @@ mod tests {
         assert_eq!((tid.as_str(), pid, epoch, committed), ("tx", 9, 1, true));
         assert!(cur.is_empty());
         let mut resp = BytesMut::new();
-        encode_end_txn_response(&mut resp, 0, 0, -1, -1).unwrap();
+        encode_end_txn_response(
+            &mut resp,
+            0,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_end_txn_response(&mut cur, 0).unwrap(), (0, -1, -1));
+        assert_eq!(
+            decode_end_txn_response(&mut cur, 0).unwrap(),
+            (
+                0,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH
+            )
+        );
         assert!(cur.is_empty());
     }
 
@@ -993,9 +1012,23 @@ mod tests {
         );
 
         let mut resp = BytesMut::new();
-        encode_end_txn_response(&mut resp, 3, 0, -1, -1).unwrap();
+        encode_end_txn_response(
+            &mut resp,
+            3,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_end_txn_response(&mut cur, 3).unwrap(), (0, -1, -1));
+        assert_eq!(
+            decode_end_txn_response(&mut cur, 3).unwrap(),
+            (
+                0,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH
+            )
+        );
         assert!(
             cur.is_empty(),
             "EndTxn v3 response must consume compact tagged fields"
@@ -1047,7 +1080,14 @@ mod tests {
         // Throttle 0, error 0, tagged.
         const RESP: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         let mut buf = BytesMut::new();
-        encode_end_txn_response(&mut buf, 3, 0, -1, -1).unwrap();
+        encode_end_txn_response(
+            &mut buf,
+            3,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
         assert_eq!(&buf[..], RESP);
     }
 
