@@ -100,28 +100,69 @@ impl Records {
         if buffer.len() < header_up_to_magic {
             return Ok(None);
         }
-        let size_off = buf::usize_from_i32(Self::SIZE_OFFSET)?;
-        let record_size = buf::read_int_be(buffer, size_off)?;
-        // Java `LegacyRecord.RECORD_OVERHEAD_V0`.
-        const RECORD_OVERHEAD_V0: i32 = 14;
-        if record_size < RECORD_OVERHEAD_V0 {
-            return Err(Error::protocol(format!(
-                "Record size {record_size} is less than the minimum record overhead ({RECORD_OVERHEAD_V0})"
-            )));
-        }
-        let magic_off = buf::usize_from_i32(Self::MAGIC_OFFSET)?;
-        let magic_byte = buffer
-            .get(magic_off)
-            .copied()
-            .ok_or_else(|| Error::protocol("short magic byte"))?;
-        let magic = i8::from_ne_bytes([magic_byte]);
-        if !(0..=RecordBatch::CURRENT_MAGIC_VALUE).contains(&magic) {
-            return Err(Error::protocol(format!(
-                "Invalid magic found in record: {magic}"
-            )));
-        }
-        Ok(Some(record_size.wrapping_add(Self::LOG_OVERHEAD)))
+        next_batch_size(buffer, i32::MAX)
     }
+
+    /// Java `MemoryRecords.validBytes`.
+    ///
+    /// Sum of complete batch sizes (including [`Self::LOG_OVERHEAD`]). A
+    /// truncated trailing batch is ignored. Header corruption uses the same
+    /// [`Error::protocol`] messages as [`Self::first_batch_size`].
+    pub fn valid_bytes(buffer: &[u8]) -> Result<i32> {
+        let mut offset = 0;
+        let mut bytes = 0i32;
+        while let Some(remaining) = buffer.get(offset..) {
+            let Some(batch_size) = next_batch_size(remaining, i32::MAX)? else {
+                break;
+            };
+            let need = buf::usize_from_i32(batch_size)?;
+            if remaining.len() < need {
+                break;
+            }
+            bytes = bytes.wrapping_add(batch_size);
+            offset = offset.saturating_add(need);
+        }
+        Ok(bytes)
+    }
+}
+
+/// Java `ByteBufferLogInputStream.nextBatchSize` (`maxMessageSize` is the
+/// constructor argument; `MemoryRecords` uses `Integer.MAX_VALUE`).
+fn next_batch_size(buffer: &[u8], max_message_size: i32) -> Result<Option<i32>> {
+    let log_overhead = buf::usize_from_i32(Records::LOG_OVERHEAD)?;
+    if buffer.len() < log_overhead {
+        return Ok(None);
+    }
+    let size_off = buf::usize_from_i32(Records::SIZE_OFFSET)?;
+    let record_size = buf::read_int_be(buffer, size_off)?;
+    // Java `LegacyRecord.RECORD_OVERHEAD_V0`.
+    const RECORD_OVERHEAD_V0: i32 = 14;
+    if record_size < RECORD_OVERHEAD_V0 {
+        return Err(Error::protocol(format!(
+            "Record size {record_size} is less than the minimum record overhead ({RECORD_OVERHEAD_V0})"
+        )));
+    }
+    if record_size > max_message_size {
+        return Err(Error::protocol(format!(
+            "Record size {record_size} exceeds the largest allowable message size ({max_message_size})."
+        )));
+    }
+    let header_up_to_magic = buf::usize_from_i32(Records::HEADER_SIZE_UP_TO_MAGIC)?;
+    if buffer.len() < header_up_to_magic {
+        return Ok(None);
+    }
+    let magic_off = buf::usize_from_i32(Records::MAGIC_OFFSET)?;
+    let magic_byte = buffer
+        .get(magic_off)
+        .copied()
+        .ok_or_else(|| Error::protocol("short magic byte"))?;
+    let magic = i8::from_ne_bytes([magic_byte]);
+    if !(0..=RecordBatch::CURRENT_MAGIC_VALUE).contains(&magic) {
+        return Err(Error::protocol(format!(
+            "Invalid magic found in record: {magic}"
+        )));
+    }
+    Ok(Some(record_size.wrapping_add(Records::LOG_OVERHEAD)))
 }
 
 /// Kafka record-batch compression codec.
@@ -3058,5 +3099,82 @@ mod tests {
             Some(encoded_len)
         );
         assert_eq!(encoded_len, batch.size_in_bytes().unwrap());
+        assert_eq!(Records::valid_bytes(&encoded).unwrap(), encoded_len);
+    }
+
+    #[test]
+    fn valid_bytes_matches_java_memory_records() {
+        assert_eq!(Records::valid_bytes(&[]).unwrap(), 0);
+        assert_eq!(Records::valid_bytes(&[0; 11]).unwrap(), 0);
+
+        let err = Records::valid_bytes(&[0; 16]).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 0 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+
+        let mut almost = [0u8; 16];
+        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        let err = Records::valid_bytes(&almost).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 1 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+        assert!(Records::first_batch_size(&almost).unwrap().is_none());
+
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        }]);
+        let mut encoded = BytesMut::new();
+        encode_record_batch(&mut encoded, &batch).unwrap();
+        let encoded_len = i32::try_from(encoded.len()).unwrap();
+
+        let mut truncated = encoded.to_vec();
+        truncated.extend_from_slice(&[0u8; 11]);
+        assert_eq!(Records::valid_bytes(&truncated).unwrap(), encoded_len);
+
+        let mut two = encoded.clone();
+        two.extend_from_slice(&encoded);
+        assert_eq!(
+            Records::valid_bytes(&two).unwrap(),
+            encoded_len.wrapping_mul(2)
+        );
+
+        let mut tail_corrupt = encoded.to_vec();
+        let mut almost = [0u8; 16];
+        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        tail_corrupt.extend_from_slice(&almost);
+        let err = Records::valid_bytes(&tail_corrupt).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 1 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+
+        let err = next_batch_size(&[0u8; 17], 10).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 0 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+        let mut over = [0u8; 17];
+        over[8..12].copy_from_slice(&20i32.to_be_bytes());
+        over[16] = 2;
+        let err = next_batch_size(&over, 19).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 20 exceeds the largest allowable message size (19)."),
+            "{err}"
+        );
+        assert_eq!(next_batch_size(&over, 20).unwrap(), Some(32));
+        let mut header_only = [0u8; 12];
+        header_only[8..12].copy_from_slice(&14i32.to_be_bytes());
+        assert_eq!(next_batch_size(&header_only, 20).unwrap(), None);
+        let err = next_batch_size(&[0; 12], 20).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 0 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
     }
 }
