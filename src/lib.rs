@@ -954,6 +954,11 @@
 //! [`protocol::records::Records::record_batch_header_size_in_bytes`] are Java
 //! `AbstractRecords.estimateSizeInBytes` / `recordBatchHeaderSizeInBytes`
 //! (magic-v2; compressed estimate is `max(size / 2, 1024)` capped at 65536).
+//! [`protocol::records::Records::has_matching_magic`] /
+//! [`protocol::records::Records::first_batch`] /
+//! [`protocol::records::Records::last_batch`] are Java
+//! `AbstractRecords.hasMatchingMagic` / `firstBatch` / `lastBatch` (empty
+//! matching-magic is true; empty first/last is `None`).
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body

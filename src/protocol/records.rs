@@ -66,6 +66,27 @@ impl Records {
     pub const fn record_batch_header_size_in_bytes() -> i32 {
         RecordBatch::RECORD_BATCH_OVERHEAD
     }
+
+    /// Java `AbstractRecords.hasMatchingMagic`. Empty is true (vacuous).
+    ///
+    /// This crate's [`RecordBatch::magic`] is always
+    /// [`RecordBatch::CURRENT_MAGIC_VALUE`] (`2`).
+    #[must_use]
+    pub fn has_matching_magic(batches: &[RecordBatch], magic: i8) -> bool {
+        batches.iter().all(|batch| batch.magic() == magic)
+    }
+
+    /// Java `AbstractRecords.firstBatch`. Empty is `None`.
+    #[must_use]
+    pub fn first_batch(batches: &[RecordBatch]) -> Option<&RecordBatch> {
+        batches.first()
+    }
+
+    /// Java `AbstractRecords.lastBatch`. Empty is `None` (Java `Optional.empty`).
+    #[must_use]
+    pub fn last_batch(batches: &[RecordBatch]) -> Option<&RecordBatch> {
+        batches.last()
+    }
 }
 
 /// Kafka record-batch compression codec.
@@ -2879,6 +2900,55 @@ mod tests {
         assert_eq!(
             Records::estimate_size_in_bytes(Compression::Snappy, &huge).unwrap(),
             65_536
+        );
+    }
+
+    #[test]
+    fn has_matching_magic_matches_java_abstract_records() {
+        assert!(Records::has_matching_magic(
+            &[],
+            RecordBatch::CURRENT_MAGIC_VALUE
+        ));
+        assert!(Records::has_matching_magic(&[], 0));
+        assert!(Records::first_batch(&[]).is_none());
+        assert!(Records::last_batch(&[]).is_none());
+
+        let first = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        }]);
+        let mut second = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 2,
+            key: None,
+            value: Some(Bytes::from_static(b"b")),
+            headers: vec![],
+        }]);
+        second.base_offset = 10;
+        let batches = [first, second];
+        assert!(Records::has_matching_magic(
+            &batches,
+            RecordBatch::CURRENT_MAGIC_VALUE
+        ));
+        assert!(!Records::has_matching_magic(&batches, 0));
+        assert_eq!(
+            Records::first_batch(&batches).map(RecordBatch::base_offset),
+            Some(0)
+        );
+        assert_eq!(
+            Records::last_batch(&batches).map(RecordBatch::base_offset),
+            Some(10)
+        );
+        assert_eq!(
+            Records::first_batch(std::slice::from_ref(&batches[0])).map(RecordBatch::base_offset),
+            Some(0)
+        );
+        assert_eq!(
+            Records::last_batch(std::slice::from_ref(&batches[0])).map(RecordBatch::base_offset),
+            Some(0)
         );
     }
 }
