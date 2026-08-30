@@ -3,6 +3,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
 /// Check that OffsetForLeaderEpoch `version` is spoken (0–4).
@@ -70,19 +71,28 @@ impl OffsetForLeaderTopic {
 }
 
 /// One partition in an OffsetForLeaderEpoch response (`EpochEndOffset`).
+///
+/// [`Self::UNDEFINED_EPOCH`] / [`Self::UNDEFINED_EPOCH_OFFSET`] are Java
+/// `OffsetsForLeaderEpochResponse` sentinels
+/// (`RecordBatch.NO_PARTITION_LEADER_EPOCH`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EpochEndOffset {
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Partition index.
     pub partition: i32,
-    /// Leader epoch (v1+). `-1` below v1.
+    /// Leader epoch (v1+), or [`Self::UNDEFINED_EPOCH`].
     pub leader_epoch: i32,
-    /// End offset of the epoch, or `-1`.
+    /// End offset of the epoch, or [`Self::UNDEFINED_EPOCH_OFFSET`].
     pub end_offset: i64,
 }
 
 impl EpochEndOffset {
+    /// Java `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH`.
+    pub const UNDEFINED_EPOCH: i32 = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+    /// Java `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH_OFFSET`.
+    pub const UNDEFINED_EPOCH_OFFSET: i64 = RecordBatch::NO_PARTITION_LEADER_EPOCH as i64;
+
     /// Partition `partition` with this epoch end.
     #[must_use]
     pub fn new(error_code: i16, partition: i32, leader_epoch: i32, end_offset: i64) -> Self {
@@ -306,8 +316,9 @@ pub fn encode_offset_for_leader_epoch_topics_response(
 
 /// Decode a single-topic, single-partition OffsetForLeaderEpoch response.
 ///
-/// Returns `(error_code, leader_epoch, end_offset)`. `leader_epoch` is `-1`
-/// below v1. Empty Topics/Partitions is a protocol error.
+/// Returns `(error_code, leader_epoch, end_offset)`. `leader_epoch` is
+/// [`EpochEndOffset::UNDEFINED_EPOCH`] below v1. Empty Topics/Partitions is a
+/// protocol error.
 pub fn decode_offset_for_leader_epoch_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -341,7 +352,11 @@ pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
         for _ in 0..pn {
             let error_code = buf::get_i16(buf)?;
             let partition = buf::get_i32(buf)?;
-            let leader_epoch = if version >= 1 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 1 {
+                buf::get_i32(buf)?
+            } else {
+                EpochEndOffset::UNDEFINED_EPOCH
+            };
             let end_offset = buf::get_i64(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?; // partition
@@ -368,6 +383,20 @@ pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
 mod tests {
     use super::*;
     use bytes::Buf;
+
+    #[test]
+    fn epoch_end_offset_undefined_sentinels_match_java() {
+        assert_eq!(
+            EpochEndOffset::UNDEFINED_EPOCH,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            i64::from(RecordBatch::NO_PARTITION_LEADER_EPOCH)
+        );
+        assert_eq!(EpochEndOffset::UNDEFINED_EPOCH, -1);
+        assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
+    }
 
     #[test]
     fn offset_for_leader_epoch_v2_roundtrip() {

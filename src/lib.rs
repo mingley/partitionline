@@ -135,7 +135,11 @@
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_PREFERRED_REPLICA_ID`] are Java
 //! `FetchResponse` sentinels (`-1`). OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
-//! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken. [`ConsumerConfig::max_bytes`] sets
+//! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
+//! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
+//! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.
+//! [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /
 //! [`ConsumerConfig::max_partition_fetch_bytes`] set them independently.
