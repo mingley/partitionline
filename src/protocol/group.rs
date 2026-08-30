@@ -136,6 +136,65 @@ impl ConsumerProtocol {
         Ok(buf.to_vec())
     }
 
+    /// Java `ConsumerProtocol.serializeAssignment` at
+    /// [`Self::HIGHEST_SUPPORTED_VERSION`].
+    pub fn serialize_assignment(assignment: &ConsumerProtocolAssignment) -> Result<Vec<u8>> {
+        Self::serialize_assignment_version(assignment, Self::HIGHEST_SUPPORTED_VERSION)
+    }
+
+    /// Java `ConsumerProtocol.serializeAssignment` at `version`.
+    ///
+    /// Versions above [`Self::HIGHEST_SUPPORTED_VERSION`] encode as that
+    /// cap (Java `checkAssignmentVersion`). Assigned partitions are grouped
+    /// by first-seen topic and are **not** sorted (unlike
+    /// [`Self::serialize_subscription`]). User data is null.
+    pub fn serialize_assignment_version(
+        assignment: &ConsumerProtocolAssignment,
+        version: i16,
+    ) -> Result<Vec<u8>> {
+        let version = check_assignment_version(version)?;
+        let by_topic = group_assigned_partitions(&assignment.partitions);
+        let mut buf = BytesMut::new();
+        buf.put_i16(version);
+        buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
+        for (topic, parts) in &by_topic {
+            buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+            buf::put_array_len(&mut buf, false, Some(parts.len()))?;
+            for p in parts {
+                buf.put_i32(*p);
+            }
+        }
+        buf::put_classic_bytes(&mut buf, None)?;
+        Ok(buf.to_vec())
+    }
+
+    /// Java `ConsumerProtocol.deserializeAssignment`.
+    ///
+    /// Empty bytes are an empty assignment. Versions above
+    /// [`Self::HIGHEST_SUPPORTED_VERSION`] parse with that schema. User
+    /// data is discarded (this crate does not expose it).
+    pub fn deserialize_assignment(bytes: &[u8]) -> Result<ConsumerProtocolAssignment> {
+        if bytes.is_empty() {
+            return Ok(ConsumerProtocolAssignment::default());
+        }
+        let mut bytes = bytes;
+        let raw = buf::get_i16(&mut bytes)?;
+        let _ver = check_assignment_version(raw)?;
+        let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+        let mut partitions = Vec::new();
+        for _ in 0..n {
+            let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+            let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+            for _ in 0..pn {
+                partitions.push((topic.clone(), buf::get_i32(&mut bytes)?));
+            }
+        }
+        if !bytes.is_empty() {
+            let _user = buf::get_classic_bytes(&mut bytes)?;
+        }
+        Ok(ConsumerProtocolAssignment { partitions })
+    }
+
     /// Java `ConsumerProtocol.deserializeSubscription`.
     ///
     /// Empty bytes are an empty subscription. Versions above
@@ -235,6 +294,52 @@ impl Default for ConsumerProtocolSubscription {
     }
 }
 
+/// Java `ConsumerPartitionAssignor.Assignment` /
+/// `ConsumerProtocolAssignment` (classic SyncGroup member assignment).
+///
+/// [`ConsumerProtocol::serialize_assignment`] is Java
+/// `ConsumerProtocol.serializeAssignment`. [`Display`] is Java
+/// `Assignment.toString` (comma-space `topic-partition` list; user data
+/// is omitted when null).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerProtocolAssignment {
+    /// Assigned topic-partitions (Java `Assignment.partitions`).
+    pub partitions: Vec<(String, i32)>,
+}
+
+impl ConsumerProtocolAssignment {
+    /// Java `Assignment(List)` (null user data).
+    #[must_use]
+    pub fn new(partitions: Vec<(String, i32)>) -> Self {
+        Self { partitions }
+    }
+
+    /// Java `Assignment.partitions`.
+    #[must_use]
+    pub fn partitions(&self) -> &[(String, i32)] {
+        &self.partitions
+    }
+}
+
+impl Default for ConsumerProtocolAssignment {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+impl fmt::Display for ConsumerProtocolAssignment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Assignment(partitions=[")?;
+        for (i, (topic, partition)) in self.partitions.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            write!(f, "{topic}-{partition}")?;
+        }
+        f.write_str("])")
+    }
+}
+
 /// Cap `version` to [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`].
 ///
 /// Java `ConsumerProtocol.checkSubscriptionVersion` /
@@ -251,6 +356,33 @@ fn check_consumer_protocol_version(version: i16) -> Result<i16> {
     } else {
         Ok(version)
     }
+}
+
+/// Java `ConsumerProtocol.checkAssignmentVersion`.
+fn check_assignment_version(version: i16) -> Result<i16> {
+    if version < ConsumerProtocol::LOWEST_SUPPORTED_VERSION {
+        return Err(Error::protocol(format!(
+            "Unsupported assignment version: {version}"
+        )));
+    }
+    if version > ConsumerProtocol::HIGHEST_SUPPORTED_VERSION {
+        Ok(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION)
+    } else {
+        Ok(version)
+    }
+}
+
+/// Group assigned partitions by first-seen topic (Java
+/// `ConsumerProtocol.serializeAssignment`; not sorted).
+fn group_assigned_partitions(parts: &[(String, i32)]) -> Vec<(String, Vec<i32>)> {
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in parts {
+        match by_topic.iter_mut().find(|(t, _)| t == topic) {
+            Some((_, ps)) => ps.push(*part),
+            None => by_topic.push((topic.clone(), vec![*part])),
+        }
+    }
+    by_topic
 }
 
 /// Group owned partitions by topic after sorting by topic then partition
@@ -2365,50 +2497,25 @@ pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
 
 /// ConsumerProtocol assignment for one member, several topics.
 pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>> {
-    let mut buf = BytesMut::new();
-    buf.put_i16(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION);
-    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
-    for (topic, partitions) in topics {
-        buf::put_classic_nullable_string(&mut buf, Some(topic))?;
-        buf::put_array_len(&mut buf, false, Some(partitions.len()))?;
-        for p in partitions {
-            buf.put_i32(*p);
+    let mut partitions = Vec::new();
+    for (topic, parts) in topics {
+        for partition in parts {
+            partitions.push((topic.clone(), *partition));
         }
     }
-    buf.put_i32(-1);
-    Ok(buf.to_vec())
+    ConsumerProtocol::serialize_assignment(&ConsumerProtocolAssignment::new(partitions))
 }
 
 /// Group `(topic, partition)` pairs by topic, preserving first-seen order.
 pub fn encode_tp_assignment(parts: &[(String, i32)]) -> Result<Vec<u8>> {
-    let mut topics: Vec<(String, Vec<i32>)> = Vec::new();
-    for (topic, part) in parts {
-        match topics.iter_mut().find(|(t, _)| t == topic) {
-            Some((_, ps)) => ps.push(*part),
-            None => topics.push((topic.clone(), vec![*part])),
-        }
-    }
-    encode_owned_assignment(&topics)
+    ConsumerProtocol::serialize_assignment(&ConsumerProtocolAssignment::new(parts.to_vec()))
 }
 
 /// Decode ConsumerProtocol assignment: `(topic, partitions)` per topic.
-pub fn decode_assignment(mut bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
-    if bytes.is_empty() {
-        return Ok(Vec::new());
-    }
-    let _ver = buf::get_i16(&mut bytes)?;
-    let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
-    for _ in 0..n {
-        let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
-        let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-        let mut parts = Vec::with_capacity(pn);
-        for _ in 0..pn {
-            parts.push(buf::get_i32(&mut bytes)?);
-        }
-        out.push((topic, parts));
-    }
-    Ok(out)
+pub fn decode_assignment(bytes: &[u8]) -> Result<Vec<(String, Vec<i32>)>> {
+    Ok(group_assigned_partitions(
+        ConsumerProtocol::deserialize_assignment(bytes)?.partitions(),
+    ))
 }
 
 #[cfg(test)]
@@ -2916,6 +3023,74 @@ mod tests {
             ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
         );
         assert!(ConsumerProtocol::serialize_subscription_version(&sub, -1).is_err());
+    }
+
+    #[test]
+    fn consumer_protocol_assignment_matches_java_serialize() {
+        let asg = ConsumerProtocolAssignment::new(vec![
+            ("u".into(), 1),
+            ("t".into(), 2),
+            ("t".into(), 0),
+        ]);
+        assert_eq!(
+            asg.to_string(),
+            "Assignment(partitions=[u-1, t-2, t-0])",
+            "Java Assignment.toString"
+        );
+        assert_eq!(
+            ConsumerProtocolAssignment::new(Vec::new()).to_string(),
+            "Assignment(partitions=[])"
+        );
+        assert_eq!(
+            asg.partitions(),
+            &[("u".into(), 1), ("t".into(), 2), ("t".into(), 0)]
+        );
+
+        let bytes = ConsumerProtocol::serialize_assignment(&asg).unwrap();
+        assert_eq!(
+            ConsumerProtocol::deserialize_version(&bytes).unwrap(),
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
+        );
+        let got = ConsumerProtocol::deserialize_assignment(&bytes).unwrap();
+        assert_eq!(
+            got.partitions,
+            vec![("u".into(), 1), ("t".into(), 2), ("t".into(), 0)],
+            "serializeAssignment does not sort partitions"
+        );
+        assert_eq!(
+            decode_assignment(&bytes).unwrap(),
+            vec![("u".into(), vec![1]), ("t".into(), vec![2, 0])],
+            "first-seen topic order"
+        );
+        assert_eq!(
+            encode_tp_assignment(&[("u".into(), 1), ("t".into(), 2), ("t".into(), 0)]).unwrap(),
+            bytes
+        );
+
+        let v0 = ConsumerProtocol::serialize_assignment_version(&asg, 0).unwrap();
+        assert_eq!(ConsumerProtocol::deserialize_version(&v0).unwrap(), 0);
+        assert_eq!(
+            ConsumerProtocol::deserialize_assignment(&v0)
+                .unwrap()
+                .partitions,
+            asg.partitions
+        );
+
+        let capped = ConsumerProtocol::serialize_assignment_version(&asg, 9).unwrap();
+        assert_eq!(
+            ConsumerProtocol::deserialize_version(&capped).unwrap(),
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
+        );
+        let err = ConsumerProtocol::serialize_assignment_version(&asg, -1).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Unsupported assignment version: -1"),
+            "Java checkAssignmentVersion SchemaException, got {err}"
+        );
+        assert!(ConsumerProtocol::deserialize_assignment(&[])
+            .unwrap()
+            .partitions
+            .is_empty());
     }
 
     #[test]

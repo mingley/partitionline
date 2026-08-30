@@ -64,6 +64,10 @@
 //! [`protocol::group::ConsumerProtocol::serialize_subscription`] is Java
 //! `ConsumerProtocol.serializeSubscription` (v3 `GenerationId` / `RackId`;
 //! [`protocol::group::ConsumerProtocolSubscription::DEFAULT_GENERATION`]);
+//! [`protocol::group::ConsumerProtocol::serialize_assignment`] is Java
+//! `ConsumerProtocol.serializeAssignment` (does not sort partitions;
+//! [`protocol::group::ConsumerProtocolAssignment`] `Display` is Java
+//! `ConsumerPartitionAssignor.Assignment.toString`);
 //! [`group::resolve_sticky_owned_partitions`] is Java
 //! `AbstractStickyAssignor.allSubscriptionsEqual` owned-partition
 //! generation resolution (higher generation keeps the partition; the same
