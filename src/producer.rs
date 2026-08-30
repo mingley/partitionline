@@ -907,8 +907,8 @@ impl Producer {
                 (0, 0, 0, 0)
             };
 
-        let mut producer_id = -1i64;
-        let mut producer_epoch = -1i16;
+        let mut producer_id = RecordBatch::NO_PRODUCER_ID;
+        let mut producer_epoch = RecordBatch::NO_PRODUCER_EPOCH;
         let mut init_producer_id_version = 0i16;
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
             Some(
@@ -929,7 +929,7 @@ impl Producer {
                 &mut meta,
                 ipid_version,
                 find_coord_version,
-                (-1, -1),
+                (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
             )
             .await?;
             let (err, pid, epoch) =

@@ -27,7 +27,10 @@
 //! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
 //! `isTransactionV2Requested`.
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
-//! first init `-1`/`-1`, epoch-bump resume sends the last id/epoch).
+//! first init [`RecordBatch::NO_PRODUCER_ID`] /
+//! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
+//! id/epoch). Java `InitProducerIdRequest.getErrorResponse` writes those
+//! sentinels.
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v10+ TopicId on [`Admin::describe_topics_by_id`]).

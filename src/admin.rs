@@ -5707,8 +5707,8 @@ impl Admin {
                             version,
                             Some(transactional_id),
                             txn_timeout_ms,
-                            -1,
-                            -1,
+                            crate::RecordBatch::NO_PRODUCER_ID,
+                            crate::RecordBatch::NO_PRODUCER_EPOCH,
                         )
                     },
                     timeout,

@@ -22,10 +22,10 @@ use partitionline::{
     DescribeLogDirsRequest, DescribeShareGroupOffsetsGroup, Error, FetchedRecord, GroupProtocol,
     IsolationLevel, ListConsumerGroupOffsetsSpec, MemberToRemove, NewTopic, OffsetAndMetadata,
     OffsetAndTimestamp, Partitioner, ProduceRecord, Producer, ProducerConfig, ProducerInterceptor,
-    RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType, TopicPartition,
-    TopicPartitionReplica, Uuid, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_ENFORCE_REBALANCE_REASON,
-    DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP, EARLIEST_TIMESTAMP,
-    LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
+    RecordBatch, RecordMetadata, ReplicaLogDirInfo, Sasl, ShareGroup, TimestampType,
+    TopicPartition, TopicPartitionReplica, Uuid, CONFIG_RESOURCE_CLIENT_METRICS,
+    DEFAULT_ENFORCE_REBALANCE_REASON, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_LOCAL_TIMESTAMP,
+    EARLIEST_TIMESTAMP, LATEST_TIERED_TIMESTAMP, LATEST_TIMESTAMP, LEAVE_GROUP_REASON_CLOSED,
     LEAVE_GROUP_REASON_POLL_TIMEOUT, LEAVE_GROUP_REASON_UNSUBSCRIBED, MAX_TIMESTAMP,
 };
 use std::time::Duration;
@@ -3144,13 +3144,13 @@ async fn admin_fence_producers_inits_on_txn_coordinator() {
     );
     assert_eq!(
         mock.last_init_producer_id_producer_id(),
-        Some(-1),
-        "fenceProducers first InitProducerId must send ProducerId -1"
+        Some(RecordBatch::NO_PRODUCER_ID),
+        "fenceProducers first InitProducerId must send ProducerId NO_PRODUCER_ID"
     );
     assert_eq!(
         mock.last_init_producer_id_producer_epoch(),
-        Some(-1),
-        "fenceProducers first InitProducerId must send ProducerEpoch -1"
+        Some(RecordBatch::NO_PRODUCER_EPOCH),
+        "fenceProducers first InitProducerId must send ProducerEpoch NO_PRODUCER_EPOCH"
     );
     let empty = admin.fence_producers(Vec::<String>::new()).await.unwrap();
     assert!(empty.is_empty());

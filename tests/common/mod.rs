@@ -4659,8 +4659,14 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 if tid.is_some() && st.txn_coord_node != node_id {
                     st.init_producer_id_not_coordinator =
                         st.init_producer_id_not_coordinator.saturating_add(1);
-                    encode_init_producer_id_response(&mut body, header.api_version, 16, -1, -1)
-                        .unwrap();
+                    encode_init_producer_id_response(
+                        &mut body,
+                        header.api_version,
+                        16,
+                        RecordBatch::NO_PRODUCER_ID,
+                        RecordBatch::NO_PRODUCER_EPOCH,
+                    )
+                    .unwrap();
                 } else if producer_id >= 0 && producer_epoch >= 0 {
                     st.last_init_producer_id_node = Some(node_id);
                     let next_epoch = producer_epoch.saturating_add(1);

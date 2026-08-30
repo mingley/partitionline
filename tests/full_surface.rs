@@ -41,12 +41,13 @@ use partitionline::{
     FeatureUpdate, GroupProtocol, GroupState, GroupType, IsolationLevel,
     ListConsumerGroupOffsetsSpec, NewPartitionReassignment, NewPartitions, NewTopic, Node,
     OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment, PartitionReassignment,
-    ProduceRecord, Producer, ProducerConfig, RecordsToDelete, RenewDelegationTokenRequest,
-    ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType, TopicCollection, TopicPartition,
-    TopicPartitionReplica, TransactionState, TransactionTopic, UpgradeType,
-    UserScramCredentialAlteration, UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid,
-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON,
-    EARLIEST_TIMESTAMP, LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
+    ProduceRecord, Producer, ProducerConfig, RecordBatch, RecordsToDelete,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
+    TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
+    UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
+    UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
+    CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
+    LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
 use std::time::{Duration, Instant};
 
@@ -373,13 +374,13 @@ async fn idempotent_produce_gets_pid_and_offset() {
     );
     assert_eq!(
         mock.last_init_producer_id_producer_id(),
-        Some(-1),
-        "first InitProducerId must send ProducerId -1"
+        Some(RecordBatch::NO_PRODUCER_ID),
+        "first InitProducerId must send ProducerId NO_PRODUCER_ID"
     );
     assert_eq!(
         mock.last_init_producer_id_producer_epoch(),
-        Some(-1),
-        "first InitProducerId must send ProducerEpoch -1"
+        Some(RecordBatch::NO_PRODUCER_EPOCH),
+        "first InitProducerId must send ProducerEpoch NO_PRODUCER_EPOCH"
     );
 }
 
@@ -412,8 +413,14 @@ async fn transactional_abort_reinit_sends_last_pid_epoch() {
     pcfg.linger = Duration::ZERO;
     pcfg.transactional_id = Some("tx-bump".into());
     let producer = Producer::new(pcfg).await.unwrap();
-    assert_eq!(mock.last_init_producer_id_producer_id(), Some(-1));
-    assert_eq!(mock.last_init_producer_id_producer_epoch(), Some(-1));
+    assert_eq!(
+        mock.last_init_producer_id_producer_id(),
+        Some(RecordBatch::NO_PRODUCER_ID)
+    );
+    assert_eq!(
+        mock.last_init_producer_id_producer_epoch(),
+        Some(RecordBatch::NO_PRODUCER_EPOCH)
+    );
     producer.begin_transaction().await.unwrap();
     mock.set_produce_error_times(error::UNKNOWN_PRODUCER_ID, 1);
     let err = producer
