@@ -81,7 +81,8 @@
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
-//! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry),
+//! ApiVersions v0–v4 (v3+ ClientSoftwareName; v4 SupportedFeatures.MinVersion 0; KIP-511 retry;
+//! [`protocol::api::ApiVersionsRequest::is_valid`] is Java `ApiVersionsRequest.isValid`),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id;
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] /

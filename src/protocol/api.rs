@@ -65,6 +65,39 @@ pub struct ApiVersionsResponse {
     pub zk_migration_ready: bool,
 }
 
+/// Java `ApiVersionsRequest` helpers.
+pub struct ApiVersionsRequest;
+
+impl ApiVersionsRequest {
+    /// Java `ApiVersionsRequest.isValid`.
+    ///
+    /// v3+ requires ClientSoftwareName and ClientSoftwareVersion to start and
+    /// end with an ASCII alphanumeric, with interior `-` and `.` allowed.
+    /// Empty is invalid. Below v3 this is always true. Encode does not reject
+    /// invalid names; Java Builder does not either.
+    #[must_use]
+    pub fn is_valid(version: i16, software_name: &str, software_version: &str) -> bool {
+        version < 3
+            || (client_software_name_or_version_ok(software_name)
+                && client_software_name_or_version_ok(software_version))
+    }
+}
+
+/// Java `ApiVersionsRequest` `SOFTWARE_NAME_VERSION_PATTERN`.
+fn client_software_name_or_version_ok(s: &str) -> bool {
+    let mut chars = s.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphanumeric() {
+        return false;
+    }
+    let Some(last) = chars.next_back() else {
+        return true;
+    };
+    last.is_ascii_alphanumeric() && chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
+}
+
 /// `true` when ApiVersions `version` is flexible (v3+).
 ///
 /// Official Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "3+"`.
@@ -1718,6 +1751,26 @@ mod tests {
             !cur.has_remaining(),
             "ApiVersions v3 features must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn api_versions_request_is_valid_matches_java() {
+        assert!(ApiVersionsRequest::is_valid(2, "", ""));
+        assert!(ApiVersionsRequest::is_valid(2, "-invalid", "x."));
+        assert!(ApiVersionsRequest::is_valid(
+            3,
+            crate::CLIENT_NAME,
+            crate::CLIENT_VERSION
+        ));
+        assert!(ApiVersionsRequest::is_valid(4, "a", "1"));
+        assert!(ApiVersionsRequest::is_valid(3, "a-b.c", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "partitionline", ""));
+        assert!(!ApiVersionsRequest::is_valid(3, "-x", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x-", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, ".x", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x.", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x_y", "0.1.0"));
     }
 
     #[test]
