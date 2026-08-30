@@ -11,6 +11,7 @@
 //! `Utils.to32BitField` / `from32BitField`. [`is_blank`] / [`replace_suffix`]
 //! are Java `Utils.isBlank` / `replaceSuffix`. [`entries_with_prefix`] /
 //! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
+//! [`is_equal_constant_time`] is Java `Utils.isEqualConstantTime`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -224,6 +225,42 @@ pub fn entries_with_prefix_matching<V: Clone>(
         result.extend([(out_key, value.clone())]);
     }
     result
+}
+
+/// Java `Utils.isEqualConstantTime`.
+///
+/// `None` is Java `null`. Both `None` is true (Java `==`). When `second` is
+/// empty, Java returns whether `first` is empty without scanning. Otherwise
+/// every element of `first` is compared; indexes past `second` reuse the
+/// first element of `second`. Timing depends only on the length of `first`.
+#[must_use]
+pub fn is_equal_constant_time(first: Option<&[u16]>, second: Option<&[u16]>) -> bool {
+    match (first, second) {
+        (None, None) => true,
+        (None, Some(_)) | (Some(_), None) => false,
+        (Some(a), Some(b)) => equal_constant_time_chars(a, b),
+    }
+}
+
+fn equal_constant_time_chars(first: &[u16], second: &[u16]) -> bool {
+    if std::ptr::eq(first, second) {
+        return true;
+    }
+    if second.is_empty() {
+        return first.is_empty();
+    }
+    let mut matches = first.len() == second.len();
+    for (i, &ai) in first.iter().enumerate() {
+        let bj = if i < second.len() {
+            second.get(i)
+        } else {
+            second.first()
+        };
+        if bj.copied() != Some(ai) {
+            matches = false;
+        }
+    }
+    matches
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -1089,6 +1126,29 @@ mod tests {
         let empty_prefix = entries_with_prefix(&map, "");
         assert_eq!(empty_prefix.len(), 4);
         assert_eq!(empty_prefix.get("foo.bar"), Some(&1));
+    }
+
+    #[test]
+    fn is_equal_constant_time_matches_java_utils() {
+        assert!(is_equal_constant_time(None, None));
+        assert!(!is_equal_constant_time(None, Some(&[])));
+        assert!(!is_equal_constant_time(Some(&[]), None));
+        assert!(is_equal_constant_time(Some(&[]), Some(&[])));
+        assert!(!is_equal_constant_time(Some(&[1]), Some(&[])));
+        assert!(!is_equal_constant_time(Some(&[]), Some(&[1])));
+
+        let same = [1u16, 2, 3];
+        assert!(is_equal_constant_time(Some(&same), Some(&same)));
+
+        let a = [1u16, 2];
+        let b = [1u16, 2];
+        assert!(is_equal_constant_time(Some(&a), Some(&b)));
+        assert!(!is_equal_constant_time(Some(&[1, 2]), Some(&[1, 3])));
+        assert!(!is_equal_constant_time(Some(&[1, 2]), Some(&[1, 2, 3])));
+        assert!(!is_equal_constant_time(Some(&[1, 2, 3]), Some(&[1, 2])));
+        assert!(!is_equal_constant_time(Some(&[5, 5, 5]), Some(&[5])));
+        assert!(is_equal_constant_time(Some(&[0xD800]), Some(&[0xD800])));
+        assert!(!is_equal_constant_time(Some(&[0xD800]), Some(&[0xD801])));
     }
 
     #[test]
