@@ -143,6 +143,9 @@
 //! `Headers.lastHeader` / `headers(String)`.
 //! [`Header`] `Display` is Java `RecordHeader.toString`.
 //! [`FetchedRecord`] / [`ShareRecord`] `Display` is Java `ConsumerRecord.toString`.
+//! [`FetchedRecord::NO_TIMESTAMP`] / [`FetchedRecord::NULL_SIZE`] /
+//! [`ShareRecord::NO_TIMESTAMP`] / [`ShareRecord::NULL_SIZE`] are Java
+//! `ConsumerRecord.NO_TIMESTAMP` / `NULL_SIZE`.
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`OffsetAndMetadata::NO_METADATA`] is Java

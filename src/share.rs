@@ -115,6 +115,11 @@ pub struct ShareRecord {
 }
 
 impl ShareRecord {
+    /// Java `ConsumerRecord.NO_TIMESTAMP`.
+    pub const NO_TIMESTAMP: i64 = crate::RecordBatch::NO_TIMESTAMP;
+    /// Java `ConsumerRecord.NULL_SIZE`.
+    pub const NULL_SIZE: i32 = -1;
+
     /// Topic and partition of this record.
     #[must_use]
     pub fn topic_partition(&self) -> crate::TopicPartition {
@@ -192,22 +197,22 @@ impl ShareRecord {
         self.leader_epoch
     }
 
-    /// Serialized key size in bytes, or `-1` if there is no key (Java `serializedKeySize`).
+    /// Serialized key size in bytes, or [`Self::NULL_SIZE`] if there is no key (Java `serializedKeySize`).
     #[must_use]
     pub fn serialized_key_size(&self) -> i32 {
         self.key
             .as_ref()
             .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
-            .unwrap_or(-1)
+            .unwrap_or(Self::NULL_SIZE)
     }
 
-    /// Serialized value size in bytes, or `-1` if there is no value (Java `serializedValueSize`).
+    /// Serialized value size in bytes, or [`Self::NULL_SIZE`] if there is no value (Java `serializedValueSize`).
     #[must_use]
     pub fn serialized_value_size(&self) -> i32 {
         self.value
             .as_ref()
             .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
-            .unwrap_or(-1)
+            .unwrap_or(Self::NULL_SIZE)
     }
 }
 
@@ -1570,8 +1575,10 @@ mod tests {
         assert!(first.last_header("k").is_none());
         assert_eq!(first.delivery_count(), 1);
         assert!(first.leader_epoch().is_none());
-        assert_eq!(first.serialized_key_size(), -1);
-        assert_eq!(first.serialized_value_size(), -1);
+        assert_eq!(first.serialized_key_size(), ShareRecord::NULL_SIZE);
+        assert_eq!(first.serialized_value_size(), ShareRecord::NULL_SIZE);
+        assert_eq!(ShareRecord::NO_TIMESTAMP, crate::RecordBatch::NO_TIMESTAMP);
+        assert_eq!(ShareRecord::NULL_SIZE, -1);
         assert_eq!(
             first.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 1, CreateTime = 0, deliveryCount = 1, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
