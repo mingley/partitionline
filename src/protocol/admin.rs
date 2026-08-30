@@ -8790,6 +8790,27 @@ impl DeletableGroupResult {
     }
 }
 
+/// Java `DeleteGroupsRequest` helpers.
+pub struct DeleteGroupsRequest;
+
+impl DeleteGroupsRequest {
+    /// Java `DeleteGroupsRequest.getErrorResultCollection`.
+    ///
+    /// Each group is [`DeletableGroupResult::new`] (GroupId + ErrorCode).
+    /// Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result_collection<I>(group_ids: I, error_code: i16) -> Vec<DeletableGroupResult>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        group_ids
+            .into_iter()
+            .map(|id| DeletableGroupResult::new(id, error_code))
+            .collect()
+    }
+}
+
 /// `true` when DeleteGroups `version` is flexible.
 ///
 /// v0–v1 are classic (same request/response layout). v2 is the first
@@ -20561,6 +20582,15 @@ mod tests {
             "g",
             crate::error::NOT_COORDINATOR,
         )];
+        assert_eq!(
+            DeleteGroupsRequest::error_result_collection(["g"], crate::error::NOT_COORDINATOR),
+            resp
+        );
+        assert!(DeleteGroupsRequest::error_result_collection(
+            Vec::<String>::new(),
+            crate::error::NOT_COORDINATOR
+        )
+        .is_empty());
         buf.clear();
         encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);

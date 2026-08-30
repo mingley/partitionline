@@ -293,7 +293,10 @@
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::DeleteGroupsResponse::error_counts`] is Java
-//! `DeleteGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
+//! `DeleteGroupsResponse.errorCounts` (per-group codes, including `NONE`);
+//! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
+//! `DeleteGroupsRequest.getErrorResultCollection` (each id through
+//! [`DeletableGroupResult::new`])),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible;
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
