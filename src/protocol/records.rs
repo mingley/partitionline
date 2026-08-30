@@ -1400,6 +1400,11 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
 }
 
 /// Decode one magic-v2 batch (CRC32-C checked).
+///
+/// Nested records match Java `DefaultRecord.readFrom`: a negative header
+/// count, a header count larger than remaining bytes, a negative header
+/// key size, a declared body larger than remaining, and leftover payload
+/// bytes after headers use the Java `InvalidRecordException` messages.
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
@@ -1462,36 +1467,58 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     })
 }
 
+/// Java `DefaultRecord.readFrom` (magic-v2 inner record).
 fn decode_record<B: Buf>(buf: &mut B, base_offset: i64, base_timestamp: i64) -> Result<Record> {
-    let len = buf::get_varint(buf)?;
-    if len < 0 {
+    let size_of_body_in_bytes = buf::get_varint(buf)?;
+    if size_of_body_in_bytes < 0 {
         return Err(Error::protocol("negative record length"));
     }
-    let len_usize = buf::usize_from_i32(len)?;
-    buf::need(buf, len_usize)?;
+    let remaining = buf.remaining();
+    let len_usize = buf::usize_from_i32(size_of_body_in_bytes)?;
+    if remaining < len_usize {
+        return Err(Error::protocol(format!(
+            "Invalid record size: expected {size_of_body_in_bytes} bytes in record payload, but instead the buffer has only {remaining} remaining bytes."
+        )));
+    }
     let mut inner = buf.copy_to_bytes(len_usize);
     let _attributes = buf::get_i8(&mut inner)?;
     let timestamp_delta = buf::get_varlong(&mut inner)?;
     let offset_delta = buf::get_varint(&mut inner)?;
     let key = read_bytes_varint(&mut inner)?;
     let value = read_bytes_varint(&mut inner)?;
-    let header_count = buf::get_varint(&mut inner)?;
-    if header_count < 0 {
-        return Err(Error::protocol("negative header count"));
+    let num_headers = buf::get_varint(&mut inner)?;
+    if num_headers < 0 {
+        return Err(Error::protocol(format!(
+            "Found invalid number of record headers {num_headers}"
+        )));
     }
-    let mut headers = Vec::with_capacity(buf::usize_from_i32(header_count)?);
-    for _ in 0..header_count {
-        let key_len = buf::get_varint(&mut inner)?;
-        if key_len < 0 {
-            return Err(Error::protocol("null header key"));
+    let num_headers_usize = buf::usize_from_i32(num_headers)?;
+    if num_headers_usize > inner.remaining() {
+        return Err(Error::protocol(format!(
+            "Found invalid number of record headers. {num_headers} is larger than the remaining size of the buffer"
+        )));
+    }
+    let mut headers = Vec::with_capacity(num_headers_usize);
+    for _ in 0..num_headers_usize {
+        let header_key_size = buf::get_varint(&mut inner)?;
+        if header_key_size < 0 {
+            return Err(Error::protocol(format!(
+                "Invalid negative header key size {header_key_size}"
+            )));
         }
-        let key_len_usize = buf::usize_from_i32(key_len)?;
+        let key_len_usize = buf::usize_from_i32(header_key_size)?;
         buf::need(&inner, key_len_usize)?;
         let mut key_buf = vec![0u8; key_len_usize];
         inner.copy_to_slice(&mut key_buf);
         let key = String::from_utf8(key_buf).map_err(|e| Error::protocol(e.to_string()))?;
         let value = read_bytes_varint(&mut inner)?;
         headers.push(Header { key, value });
+    }
+    if inner.remaining() != 0 {
+        let consumed = len_usize - inner.remaining();
+        return Err(Error::protocol(format!(
+            "Invalid record size: expected to read {size_of_body_in_bytes} bytes in record payload, but instead read {consumed}"
+        )));
     }
     Ok(Record {
         offset: base_offset + i64::from(offset_delta),
@@ -2117,6 +2144,84 @@ mod tests {
         assert!(
             ptr_in_bytes(value.as_ptr(), &frozen),
             "value must be a view into the fetch frame"
+        );
+    }
+
+    fn wrap_record_body(inner: &[u8]) -> BytesMut {
+        let mut rec = BytesMut::new();
+        buf::put_varint(&mut rec, buf::i32_from_usize(inner.len()).unwrap());
+        rec.extend_from_slice(inner);
+        rec
+    }
+
+    fn decode_record_err(inner: &[u8]) -> String {
+        let rec = wrap_record_body(inner);
+        decode_record(&mut &rec[..], 0, 0).unwrap_err().to_string()
+    }
+
+    fn record_body_before_headers() -> BytesMut {
+        let mut inner = BytesMut::new();
+        inner.put_i8(0);
+        buf::put_varlong(&mut inner, 0);
+        buf::put_varint(&mut inner, 0);
+        buf::put_varint(&mut inner, -1);
+        buf::put_varint(&mut inner, -1);
+        inner
+    }
+
+    #[test]
+    fn decode_record_invalid_headers_match_java() {
+        let mut negative_count = record_body_before_headers();
+        buf::put_varint(&mut negative_count, -1);
+        let negative_count_err = decode_record_err(&negative_count);
+        assert!(
+            negative_count_err.contains("Found invalid number of record headers -1"),
+            "{negative_count_err}"
+        );
+
+        let mut too_many = record_body_before_headers();
+        buf::put_varint(&mut too_many, 10);
+        let too_many_err = decode_record_err(&too_many);
+        assert!(
+            too_many_err.contains(
+                "Found invalid number of record headers. 10 is larger than the remaining size of the buffer"
+            ),
+            "{too_many_err}"
+        );
+
+        let mut negative_key = record_body_before_headers();
+        buf::put_varint(&mut negative_key, 1);
+        buf::put_varint(&mut negative_key, -1);
+        let negative_key_err = decode_record_err(&negative_key);
+        assert!(
+            negative_key_err.contains("Invalid negative header key size -1"),
+            "{negative_key_err}"
+        );
+
+        let mut leftover = record_body_before_headers();
+        buf::put_varint(&mut leftover, 0);
+        let consumed = leftover.len();
+        leftover.put_u8(0);
+        let size = leftover.len();
+        let leftover_err = decode_record_err(&leftover);
+        assert!(
+            leftover_err.contains(&format!(
+                "Invalid record size: expected to read {size} bytes in record payload, but instead read {consumed}"
+            )),
+            "{leftover_err}"
+        );
+
+        let mut short = BytesMut::new();
+        buf::put_varint(&mut short, 10);
+        short.extend_from_slice(&[0, 1, 2]);
+        let short_err = decode_record(&mut &short[..], 0, 0)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            short_err.contains(
+                "Invalid record size: expected 10 bytes in record payload, but instead the buffer has only 3 remaining bytes."
+            ),
+            "{short_err}"
         );
     }
 

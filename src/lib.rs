@@ -593,6 +593,10 @@
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
+//! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
+//! `InvalidRecordException` messages (negative header count, header count
+//! larger than remaining bytes, negative header key size, declared body
+//! larger than remaining, leftover payload bytes after headers).
 //! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
 //! [`Record::has_magic`] / [`Record::is_compressed`] /
 //! [`Record::has_timestamp_type`] match Java `Record.hasMagic` /
