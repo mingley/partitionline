@@ -124,9 +124,20 @@
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`),
-//! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N),
-//! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType),
-//! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N),
+//! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
+//! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
+//! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
+//! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL`] /
+//! [`protocol::admin::DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED`] /
+//! [`protocol::admin::DescribeGroupsResponse::should_client_throttle`] are Java
+//! `DescribeGroupsResponse` error sentinels / `shouldClientThrottle` (v2+);
+//! [`DescribedGroup::new`] is Java `groupError`),
+//! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
+//! [`protocol::admin::ListGroupsResponse::should_client_throttle`] is Java
+//! `ListGroupsResponse.shouldClientThrottle` (v2+)),
+//! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
+//! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
+//! `DeleteGroupsResponse.shouldClientThrottle` (v1+)),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible),

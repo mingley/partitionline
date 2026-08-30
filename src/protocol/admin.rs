@@ -6596,16 +6596,22 @@ pub struct DescribedGroup {
 
 impl DescribedGroup {
     /// Construct [`Self`].
+    ///
+    /// Java `DescribeGroupsResponse.groupError` fills
+    /// [`DescribeGroupsResponse::UNKNOWN_STATE`] /
+    /// [`DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
+    /// [`DescribeGroupsResponse::UNKNOWN_PROTOCOL`] /
+    /// [`DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED`].
     pub fn new(group_id: impl Into<String>, error_code: i16) -> Self {
         Self {
             error_code,
             error_message: None,
             group_id: group_id.into(),
-            group_state: String::new(),
-            protocol_type: String::new(),
-            protocol_data: String::new(),
+            group_state: DescribeGroupsResponse::UNKNOWN_STATE.into(),
+            protocol_type: DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE.into(),
+            protocol_data: DescribeGroupsResponse::UNKNOWN_PROTOCOL.into(),
             members: Vec::new(),
-            authorized_operations: AUTHORIZED_OPERATIONS_OMITTED,
+            authorized_operations: DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED,
         }
     }
 
@@ -6661,6 +6667,26 @@ impl DescribedGroup {
     #[must_use]
     pub fn is_simple_consumer_group(&self) -> bool {
         self.protocol_type.is_empty()
+    }
+}
+
+/// Java `DescribeGroupsResponse` helpers.
+pub struct DescribeGroupsResponse;
+
+impl DescribeGroupsResponse {
+    /// Java `DescribeGroupsResponse.UNKNOWN_STATE`.
+    pub const UNKNOWN_STATE: &str = "";
+    /// Java `DescribeGroupsResponse.UNKNOWN_PROTOCOL_TYPE`.
+    pub const UNKNOWN_PROTOCOL_TYPE: &str = "";
+    /// Java `DescribeGroupsResponse.UNKNOWN_PROTOCOL`.
+    pub const UNKNOWN_PROTOCOL: &str = "";
+    /// Java `DescribeGroupsResponse.AUTHORIZED_OPERATIONS_OMITTED`.
+    pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
+
+    /// Java `DescribeGroupsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
     }
 }
 
@@ -7171,6 +7197,14 @@ pub struct ListGroupsResponse {
     pub groups: Vec<ListedGroup>,
 }
 
+impl ListGroupsResponse {
+    /// Java `ListGroupsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+}
+
 /// Encode a ListGroups request (v0–5).
 ///
 /// v0–v2 write an empty body. v3 writes tagged fields only. v4+ sends
@@ -7354,6 +7388,17 @@ fn delete_groups_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "DeleteGroups version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `DeleteGroupsResponse` helpers.
+pub struct DeleteGroupsResponse;
+
+impl DeleteGroupsResponse {
+    /// Java `DeleteGroupsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 }
 
@@ -16790,6 +16835,25 @@ mod tests {
         encode_describe_groups_request(&mut buf, 6, &ids, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DescribedGroup::new("g", crate::error::NOT_COORDINATOR)];
+        assert_eq!(resp[0].group_state, DescribeGroupsResponse::UNKNOWN_STATE);
+        assert_eq!(
+            resp[0].protocol_type,
+            DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE
+        );
+        assert_eq!(
+            resp[0].protocol_data,
+            DescribeGroupsResponse::UNKNOWN_PROTOCOL
+        );
+        assert_eq!(
+            resp[0].authorized_operations,
+            DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert_eq!(
+            DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert!(!DescribeGroupsResponse::should_client_throttle(1));
+        assert!(DescribeGroupsResponse::should_client_throttle(2));
         buf.clear();
         encode_describe_groups_response(&mut buf, 6, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
@@ -17025,6 +17089,8 @@ mod tests {
             error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
             groups: vec![ListedGroup::new("g")],
         };
+        assert!(!ListGroupsResponse::should_client_throttle(1));
+        assert!(ListGroupsResponse::should_client_throttle(2));
         buf.clear();
         encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         assert_eq!(&buf[..], RESP_15);
@@ -17289,6 +17355,8 @@ mod tests {
             "g",
             crate::error::NOT_COORDINATOR,
         )];
+        assert!(!DeleteGroupsResponse::should_client_throttle(0));
+        assert!(DeleteGroupsResponse::should_client_throttle(1));
         let mut buf = BytesMut::new();
         encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         let b7 = buf.get(7).copied().unwrap();
