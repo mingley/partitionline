@@ -1126,6 +1126,15 @@ impl MetadataResponse {
             .map(|topic| topic.topic_authorized_operations)
     }
 
+    /// Java `MetadataResponse.brokersById`.
+    #[must_use]
+    pub fn brokers_by_id(&self) -> HashMap<i32, Broker> {
+        self.brokers
+            .iter()
+            .map(|broker| (broker.node_id, broker.clone()))
+            .collect()
+    }
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -3067,6 +3076,30 @@ mod tests {
         );
         assert!(resp.topic_authorized_operations("nope").is_none());
         assert!(resp.topic_authorized_operations("").is_none());
+    }
+
+    #[test]
+    fn metadata_response_brokers_by_id_matches_java() {
+        let a = Broker::new(1, "127.0.0.1", 9092, Some("r".into()));
+        let b = Broker::new(3, "10.0.0.3", 9093, None);
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![a.clone(), b.clone()],
+            cluster_id: None,
+            controller_id: 1,
+            topics: Vec::new(),
+            error_code: 0,
+        };
+        assert_eq!(resp.brokers_by_id(), HashMap::from([(1, a), (3, b)]));
+        let empty = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            error_code: 0,
+        };
+        assert!(empty.brokers_by_id().is_empty());
     }
 
     #[test]

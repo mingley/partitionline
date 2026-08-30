@@ -59,9 +59,10 @@
 //! [`protocol::api::MetadataResponse::errors_by_topic_id`] /
 //! [`protocol::api::MetadataResponse::topics_by_error`] /
 //! [`protocol::api::MetadataResponse::error_counts`] /
-//! [`protocol::api::MetadataResponse::topic_authorized_operations`] are Java
+//! [`protocol::api::MetadataResponse::topic_authorized_operations`] /
+//! [`protocol::api::MetadataResponse::brokers_by_id`] are Java
 //! `MetadataResponse.errors` / `errorsByTopicId` / `topicsByError` /
-//! `errorCounts` / `topicAuthorizedOperations`
+//! `errorCounts` / `topicAuthorizedOperations` / `brokersById`
 //! (map values are Kafka error codes; `errors` throws when any topic name is
 //! `None`; `errors_by_topic_id` throws when any topic id is zeros;
 //! `errorCounts` counts topic and partition codes, not the top-level error).
