@@ -865,6 +865,9 @@
 //! [`protocol::buf::require`] / [`protocol::buf::require_message`] are Java
 //! `Utils.require` (failure is [`Error::protocol`]; the one-argument form
 //! is `requirement failed`).
+//! [`protocol::buf::min`] / [`protocol::buf::max`] / [`protocol::buf::min_i16`]
+//! are Java `Utils.min(long, long...)` / `Utils.max(long, long...)` /
+//! `Utils.min(short, short)` (empty rest returns first).
 //! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is

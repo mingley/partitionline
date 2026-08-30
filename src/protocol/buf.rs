@@ -13,6 +13,9 @@
 //! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
 //! [`is_equal_constant_time`] is Java `Utils.isEqualConstantTime`.
 //! [`require`] / [`require_message`] are Java `Utils.require`.
+//! [`min`] / [`max`] / [`min_i16`] are Java `Utils.min(long, long...)` /
+//! `Utils.max(long, long...)` / `Utils.min(short, short)` (empty rest returns
+//! first).
 
 use std::collections::{HashMap, HashSet};
 
@@ -280,6 +283,28 @@ pub fn require_message(requirement: bool, error_message: &str) -> Result<()> {
     } else {
         Err(Error::protocol(error_message))
     }
+}
+
+/// Java `Utils.min(long, long...)`.
+///
+/// Empty `rest` returns `first`.
+#[must_use]
+pub fn min(first: i64, rest: &[i64]) -> i64 {
+    rest.iter().copied().fold(first, i64::min)
+}
+
+/// Java `Utils.max(long, long...)`.
+///
+/// Empty `rest` returns `first`.
+#[must_use]
+pub fn max(first: i64, rest: &[i64]) -> i64 {
+    rest.iter().copied().fold(first, i64::max)
+}
+
+/// Java `Utils.min(short, short)`.
+#[must_use]
+pub fn min_i16(first: i16, second: i16) -> i16 {
+    first.min(second)
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -1181,6 +1206,25 @@ mod tests {
             .to_string();
         assert!(custom.contains("must be set"), "{custom}");
         assert!(!custom.contains("requirement failed"), "{custom}");
+    }
+
+    #[test]
+    fn min_matches_java_utils() {
+        assert_eq!(min(5, &[]), 5);
+        assert_eq!(min(5, &[3, 9]), 3);
+        assert_eq!(min(9, &[3, 5]), 3);
+        assert_eq!(min(i64::MIN, &[0]), i64::MIN);
+        assert_eq!(min(i64::MAX, &[i64::MIN]), i64::MIN);
+        assert_eq!(max(5, &[]), 5);
+        assert_eq!(max(5, &[3, 9]), 9);
+        assert_eq!(max(3, &[9, 5]), 9);
+        assert_eq!(max(i64::MAX, &[0]), i64::MAX);
+        assert_eq!(max(i64::MIN, &[i64::MAX]), i64::MAX);
+        assert_eq!(min_i16(3, 5), 3);
+        assert_eq!(min_i16(5, 3), 3);
+        assert_eq!(min_i16(-1, -2), -2);
+        assert_eq!(min_i16(i16::MIN, i16::MAX), i16::MIN);
+        assert_eq!(min_i16(i16::MAX, i16::MAX), i16::MAX);
     }
 
     #[test]
