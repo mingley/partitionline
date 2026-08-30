@@ -742,7 +742,8 @@
 //! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;
 //! JoinGroup v4+ without `group.instance.id`). JoinGroup v2–v3 and static
-//! members join in one RPC.
+//! members join in one RPC. JoinGroup v7+ encodes empty ProtocolName as null
+//! (Java `JoinGroupResponse`).
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on

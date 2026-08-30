@@ -608,6 +608,9 @@ pub struct JoinMember {
 }
 
 /// Encode JoinGroup: generation, protocol, leader, members.
+///
+/// Java `JoinGroupResponse` writes empty [`JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`]
+/// as a null ProtocolName on v7+ (nullable) and as an empty string below v7.
 #[expect(
     clippy::too_many_arguments,
     reason = "JoinGroup response fields match the Apache JSON layout"
@@ -629,7 +632,12 @@ pub fn encode_join_group_response(
     if version >= 7 {
         buf::put_string(buf, true, None)?;
     }
-    buf::put_string(buf, flexible, Some(protocol_name))?;
+    let protocol_name = if version >= 7 && protocol_name.is_empty() {
+        None
+    } else {
+        Some(protocol_name)
+    };
+    buf::put_string(buf, flexible, protocol_name)?;
     buf::put_string(buf, flexible, Some(leader))?;
     if JoinGroupRequest::supports_skipping_assignment(version) {
         buf.put_u8(0);
@@ -2965,6 +2973,70 @@ mod tests {
             &buf[..],
             &v7[..],
             "JoinGroup v9 response must include SkipAssignment"
+        );
+    }
+
+    #[test]
+    fn join_group_v7_empty_protocol_name_is_null() {
+        // Java JoinGroupResponse: v7+ empty ProtocolName is null (compact 0x00);
+        // v6 empty is compact empty string (0x01). Leader / member stay "".
+        const V7: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x01, 0x01,
+            0x01, 0x00,
+        ];
+        const V6: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xff, 0xff, 0xff, 0xff, 0x01, 0x01, 0x01, 0x01,
+            0x00,
+        ];
+        let mut v7 = BytesMut::new();
+        encode_join_group_response(
+            &mut v7,
+            7,
+            16,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(&v7[..], V7);
+        let mut v6 = BytesMut::new();
+        encode_join_group_response(
+            &mut v6,
+            6,
+            16,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(&v6[..], V6);
+        let mut cur = &v7[..];
+        let (err, gen, protocol, leader, member, skip, members) =
+            decode_join_group_response(&mut cur, 7).unwrap();
+        assert_eq!(err, 16);
+        assert_eq!(gen, JoinGroupRequest::UNKNOWN_GENERATION_ID);
+        assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+        assert_eq!(leader, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+        assert_eq!(member, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+        assert!(!skip);
+        assert!(members.is_empty());
+        assert!(
+            cur.is_empty(),
+            "v7 null ProtocolName leftover {} bytes",
+            cur.len()
+        );
+        let mut cur = &v6[..];
+        let (err, _, protocol, _, _, _, _) = decode_join_group_response(&mut cur, 6).unwrap();
+        assert_eq!(err, 16);
+        assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+        assert!(
+            cur.is_empty(),
+            "v6 empty ProtocolName leftover {} bytes",
+            cur.len()
         );
     }
 
