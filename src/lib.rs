@@ -923,6 +923,8 @@
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP` / `UNKNOWN_EPOCH`.
 //! [`protocol::offsets::ListOffsetsResponse::should_client_throttle`] is Java
 //! `ListOffsetsResponse.shouldClientThrottle` (v3+).
+//! [`protocol::offsets::ListOffsetsResponse::error_counts`] is Java
+//! `ListOffsetsResponse.errorCounts` (partition-level codes, including `NONE`).
 //! [`protocol::offsets::ListOffsetsResponse::singleton_list_offsets_topic_response`]
 //! is Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
 //! [`protocol::offsets::ListOffsetsResponsePartition::error`] /

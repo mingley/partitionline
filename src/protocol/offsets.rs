@@ -1,5 +1,6 @@
 //! ListOffsets (api key 2). v1–v5 classic; v6–v10 flexible.
 
+use std::collections::HashMap;
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -311,6 +312,21 @@ impl ListOffsetsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 3
+    }
+
+    /// Java `ListOffsetsResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[ListOffsetsTopicResponse]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
     }
 
     /// Java `ListOffsetsResponse.singletonListOffsetsTopicResponse`.
@@ -642,6 +658,7 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn offset_spec_matches_list_offsets_timestamp_constants() {
@@ -738,6 +755,36 @@ mod tests {
                     ListOffsetsPartition::ok(1_700_000_000_000, 44, 7)
                 )]
             )
+        );
+    }
+
+    #[test]
+    fn list_offsets_response_error_counts_matches_java() {
+        assert!(ListOffsetsResponse::error_counts(&[]).is_empty());
+        let counts = ListOffsetsResponse::error_counts(&[
+            ListOffsetsTopicResponse::new(
+                "ok",
+                vec![
+                    ListOffsetsResponsePartition::error(0, 0),
+                    ListOffsetsResponsePartition::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ],
+            ),
+            ListOffsetsTopicResponse::new(
+                "missing",
+                vec![ListOffsetsResponsePartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            ),
+            ListOffsetsTopicResponse::new("ok2", vec![ListOffsetsResponsePartition::error(0, 0)]),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
         );
     }
 
