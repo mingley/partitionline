@@ -338,6 +338,8 @@ impl CreateTopicsRequest {
 /// error. DeleteTopics leaves [`Self::num_partitions`],
 /// [`Self::replication_factor`], and [`Self::configs`] omitted (`-1` /
 /// empty).
+/// [`Self::error`] is Java `DeleteTopicsRequest.getErrorResponse` one topic
+/// (empty Name when the request Name is null; `errorMessage` omitted).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicResult {
     /// Topic name.
@@ -365,6 +367,24 @@ impl TopicResult {
             error_code,
             error_message,
             topic_id: [0; 16],
+            num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
+            replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
+            configs: Vec::new(),
+        }
+    }
+
+    /// Java `DeleteTopicsRequest.getErrorResponse` one topic.
+    ///
+    /// Name is empty when the request Name is null (DeleteTopics v6 Name is
+    /// nullable; encode writes null for an empty name). `errorMessage` is the
+    /// JSON default (`null`). CreateTopics v5+ fields are omitted.
+    #[must_use]
+    pub fn error(error_code: i16, name: Option<&str>, topic_id: [u8; 16]) -> Self {
+        Self {
+            name: name.map(str::to_owned).unwrap_or_default(),
+            error_code,
+            error_message: None,
+            topic_id,
             num_partitions: CreateTopicsRequest::NO_NUM_PARTITIONS,
             replication_factor: CreateTopicsRequest::NO_REPLICATION_FACTOR,
             configs: Vec::new(),
@@ -1212,6 +1232,8 @@ impl DeleteTopicsResponse {
 /// Java `deleteTopics(Collection<String>)` sends [`Self::by_name`]
 /// (Name set, TopicId zero). Java `deleteTopics(TopicCollection.ofTopicIds)`
 /// sends [`Self::by_id`] (Name null, TopicId set).
+/// [`Self::error_result`] is Java `DeleteTopicsRequest.getErrorResponse` one
+/// topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteTopicState {
     /// Topic name, or `None` when deleting by TopicId.
@@ -1237,6 +1259,14 @@ impl DeleteTopicState {
             name: None,
             topic_id,
         }
+    }
+
+    /// Java `DeleteTopicsRequest.getErrorResponse` one topic.
+    ///
+    /// Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TopicResult {
+        TopicResult::error(error_code, self.name.as_deref(), self.topic_id)
     }
 }
 
@@ -13450,6 +13480,31 @@ mod tests {
         assert!(
             names_only.is_empty(),
             "name-only decode skips null-Name TopicId deletes"
+        );
+        let named_err =
+            DeleteTopicState::by_name("t").error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            named_err,
+            TopicResult::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, Some("t"), [0; 16])
+        );
+        assert!(named_err.error_message.is_none());
+        let id_err =
+            DeleteTopicState::by_id(id).error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            id_err,
+            TopicResult::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, None, id)
+        );
+        assert_eq!(id_err.name, "");
+        let results = vec![named_err, id_err];
+        let mut err = BytesMut::new();
+        encode_delete_topics_response(&mut err, 6, &results).unwrap();
+        let mut cur = err.as_ref();
+        let decoded = decode_delete_topics_response(&mut cur, 6).unwrap();
+        assert_eq!(decoded, results);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

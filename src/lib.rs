@@ -140,7 +140,10 @@
 //! `CreateTopicsResponse.shouldClientThrottle` (v3+)),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
 //! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
-//! `DeleteTopicsResponse.shouldClientThrottle` (v2+)),
+//! `DeleteTopicsResponse.shouldClientThrottle` (v2+);
+//! [`protocol::admin::TopicResult::error`] /
+//! [`protocol::admin::DeleteTopicState::error_result`] are Java
+//! `DeleteTopicsRequest.getErrorResponse` (one topic)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
