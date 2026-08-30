@@ -371,9 +371,13 @@
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /
 //! [`protocol::group::FetchedOffset::has_error`] /
 //! [`protocol::group::FetchedOffset::unknown_partition`] /
-//! [`protocol::group::FetchedOffset::unauthorized_partition`] are Java
+//! [`protocol::group::FetchedOffset::unauthorized_partition`] /
+//! [`protocol::group::FetchedOffset::error`] /
+//! [`protocol::group::OffsetFetchTopic::error_result`] are Java
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
-//! `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`
+//! `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION` /
+//! `OffsetFetchRequest.getErrorResponse` (partition body / one topic; v2 and
+//! later omit partitions).
 //! (`FetchedOffset` `Display` is `PartitionData.toString`).
 //! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
 //! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /

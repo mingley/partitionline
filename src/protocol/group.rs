@@ -1732,6 +1732,9 @@ pub struct OffsetTopic {
 }
 
 /// Topic + partition indexes for OffsetFetch v1–v9.
+///
+/// [`Self::error_result`] is Java `OffsetFetchRequest.getErrorResponse` one
+/// topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetFetchTopic {
     /// Topic name.
@@ -1740,13 +1743,37 @@ pub struct OffsetFetchTopic {
     pub partitions: Vec<i32>,
 }
 
+impl OffsetFetchTopic {
+    /// Java `OffsetFetchRequest.getErrorResponse` one topic.
+    ///
+    /// OffsetFetch v1 fills each partition via [`FetchedOffset::error`]. v2
+    /// and later omit partitions (top-level / group ErrorCode). Throttle on
+    /// the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, version: i16, error_code: i16) -> FetchedOffsetTopic {
+        FetchedOffsetTopic {
+            topic: self.topic.clone(),
+            partitions: if version < 2 {
+                self.partitions
+                    .iter()
+                    .map(|&p| FetchedOffset::error(p, error_code))
+                    .collect()
+            } else {
+                Vec::new()
+            },
+        }
+    }
+}
+
 /// One partition in an OffsetFetch v1–v9 response.
 ///
 /// Java `OffsetFetchResponse.PartitionData` plus the partition index.
 /// [`Self::INVALID_OFFSET`] / [`Self::NO_METADATA`] / [`Self::has_error`]
-/// / [`Self::unknown_partition`] / [`Self::unauthorized_partition`] are Java
+/// / [`Self::unknown_partition`] / [`Self::unauthorized_partition`] /
+/// [`Self::error`] are Java
 /// `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
-/// `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`.
+/// `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`
+/// / `OffsetFetchRequest.getErrorResponse` partition body.
 /// [`Display`] is Java `PartitionData.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
@@ -1778,6 +1805,16 @@ impl FetchedOffset {
             metadata: Self::NO_METADATA.into(),
             error_code,
         }
+    }
+
+    /// Java `OffsetFetchRequest.getErrorResponse` partition body.
+    ///
+    /// Fills [`Self::INVALID_OFFSET`], empty leader epoch, and
+    /// [`Self::NO_METADATA`]. OffsetFetch v1 writes this on every request
+    /// partition; v2 and later omit partitions.
+    #[must_use]
+    pub fn error(partition: i32, error_code: i16) -> Self {
+        Self::new(partition, Self::INVALID_OFFSET, error_code)
     }
 
     /// Java `OffsetFetchResponse.UNKNOWN_PARTITION`.
@@ -2911,6 +2948,74 @@ mod tests {
         assert_eq!(
             unauthorized.to_string(),
             "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='TOPIC_AUTHORIZATION_FAILED')"
+        );
+        assert_eq!(
+            FetchedOffset::unknown_partition(1),
+            FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+        let topic = OffsetFetchTopic {
+            topic: "t".into(),
+            partitions: vec![0, 3],
+        };
+        let v1 = topic.error_result(1, crate::error::NOT_COORDINATOR);
+        assert_eq!(
+            v1,
+            FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![
+                    FetchedOffset::error(0, crate::error::NOT_COORDINATOR),
+                    FetchedOffset::error(3, crate::error::NOT_COORDINATOR),
+                ],
+            }
+        );
+        let v2 = topic.error_result(2, crate::error::NOT_COORDINATOR);
+        assert_eq!(
+            v2,
+            FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: Vec::new(),
+            }
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_response(
+            &mut buf,
+            1,
+            "g",
+            std::slice::from_ref(&v1),
+            crate::error::NOT_COORDINATOR,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded, vec![v1]);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch getErrorResponse v1 leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_response(
+            &mut buf,
+            2,
+            "g",
+            std::slice::from_ref(&v2),
+            crate::error::NOT_COORDINATOR,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        assert_eq!(
+            decoded,
+            vec![OffsetFetchGroupResult {
+                group_id: String::new(),
+                topics: vec![v2],
+                error_code: crate::error::NOT_COORDINATOR,
+            }]
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch getErrorResponse v2 leftover-empty; leftover {} bytes",
+            cur.len()
         );
         let ok = FetchedOffset {
             partition: 0,
