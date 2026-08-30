@@ -1744,8 +1744,10 @@ pub struct OffsetFetchTopic {
 ///
 /// Java `OffsetFetchResponse.PartitionData` plus the partition index.
 /// [`Self::INVALID_OFFSET`] / [`Self::NO_METADATA`] / [`Self::has_error`]
-/// are Java `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
-/// `PartitionData.hasError`. [`Display`] is Java `PartitionData.toString`.
+/// / [`Self::unknown_partition`] / [`Self::unauthorized_partition`] are Java
+/// `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
+/// `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`.
+/// [`Display`] is Java `PartitionData.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FetchedOffset {
     /// Partition index.
@@ -1776,6 +1778,34 @@ impl FetchedOffset {
             metadata: Self::NO_METADATA.into(),
             error_code,
         }
+    }
+
+    /// Java `OffsetFetchResponse.UNKNOWN_PARTITION`.
+    ///
+    /// [`Self::INVALID_OFFSET`], empty leader epoch, [`Self::NO_METADATA`],
+    /// and `UNKNOWN_TOPIC_OR_PARTITION`. Java `PartitionData` has no
+    /// partition index; this crate carries it on [`Self`].
+    #[must_use]
+    pub fn unknown_partition(partition: i32) -> Self {
+        Self::new(
+            partition,
+            Self::INVALID_OFFSET,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        )
+    }
+
+    /// Java `OffsetFetchResponse.UNAUTHORIZED_PARTITION`.
+    ///
+    /// [`Self::INVALID_OFFSET`], empty leader epoch, [`Self::NO_METADATA`],
+    /// and `TOPIC_AUTHORIZATION_FAILED`. Java `PartitionData` has no
+    /// partition index; this crate carries it on [`Self`].
+    #[must_use]
+    pub fn unauthorized_partition(partition: i32) -> Self {
+        Self::new(
+            partition,
+            Self::INVALID_OFFSET,
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        )
     }
 
     /// Java `OffsetFetchResponse.PartitionData.hasError`.
@@ -2854,15 +2884,33 @@ mod tests {
             none.to_string(),
             "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='NONE')"
         );
-        let unknown = FetchedOffset::new(
-            1,
-            FetchedOffset::INVALID_OFFSET,
-            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        let unknown = FetchedOffset::unknown_partition(1);
+        assert_eq!(
+            unknown,
+            FetchedOffset::new(
+                1,
+                FetchedOffset::INVALID_OFFSET,
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            )
         );
         assert!(unknown.has_error());
         assert_eq!(
             unknown.to_string(),
             "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='UNKNOWN_TOPIC_OR_PARTITION')"
+        );
+        let unauthorized = FetchedOffset::unauthorized_partition(2);
+        assert_eq!(
+            unauthorized,
+            FetchedOffset::new(
+                2,
+                FetchedOffset::INVALID_OFFSET,
+                crate::error::TOPIC_AUTHORIZATION_FAILED,
+            )
+        );
+        assert!(unauthorized.has_error());
+        assert_eq!(
+            unauthorized.to_string(),
+            "PartitionData(offset=-1, leaderEpoch=-1, metadata=, error='TOPIC_AUTHORIZATION_FAILED')"
         );
         let ok = FetchedOffset {
             partition: 0,

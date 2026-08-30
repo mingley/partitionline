@@ -340,10 +340,13 @@
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`protocol::group::FetchedOffset::INVALID_OFFSET`] /
 //! [`protocol::group::FetchedOffset::NO_METADATA`] /
-//! [`protocol::group::FetchedOffset::has_error`] are Java
+//! [`protocol::group::FetchedOffset::has_error`] /
+//! [`protocol::group::FetchedOffset::unknown_partition`] /
+//! [`protocol::group::FetchedOffset::unauthorized_partition`] are Java
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
-//! `PartitionData.hasError` (`FetchedOffset` `Display` is
-//! `PartitionData.toString`). [`protocol::group::OffsetFetchResponse::should_client_throttle`]
+//! `PartitionData.hasError` / `UNKNOWN_PARTITION` / `UNAUTHORIZED_PARTITION`
+//! (`FetchedOffset` `Display` is `PartitionData.toString`).
+//! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
 //! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
