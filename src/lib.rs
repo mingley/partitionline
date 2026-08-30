@@ -224,6 +224,9 @@
 //! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
+//! [`protocol::epoch::supports_topic_permission`] is Java
+//! `OffsetsForLeaderEpochRequest.supportsTopicPermission` (v3+ uses topic
+//! Describe instead of Cluster permission).
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
 //! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.

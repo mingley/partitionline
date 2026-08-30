@@ -12,6 +12,15 @@ pub const CONSUMER_REPLICA_ID: i32 = -1;
 /// Java `OffsetsForLeaderEpochRequest.DEBUGGING_REPLICA_ID`.
 pub const DEBUGGING_REPLICA_ID: i32 = -2;
 
+/// Java `OffsetsForLeaderEpochRequest.supportsTopicPermission`.
+///
+/// OffsetForLeaderEpoch v3+ needs topic Describe instead of Cluster
+/// permission. Java `Builder.forConsumer` therefore negotiates from v3.
+#[must_use]
+pub const fn supports_topic_permission(latest_usable_version: i16) -> bool {
+    latest_usable_version >= 3
+}
+
 /// Check that OffsetForLeaderEpoch `version` is spoken (0–4).
 ///
 /// v0–v1 have no ReplicaId and no CurrentLeaderEpoch. v1 response adds
@@ -414,6 +423,9 @@ mod tests {
     fn offset_for_leader_epoch_replica_id_sentinels_match_java() {
         assert_eq!(CONSUMER_REPLICA_ID, -1);
         assert_eq!(DEBUGGING_REPLICA_ID, -2);
+        assert!(!supports_topic_permission(2));
+        assert!(supports_topic_permission(3));
+        assert!(supports_topic_permission(4));
     }
 
     #[test]
