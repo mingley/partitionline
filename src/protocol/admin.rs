@@ -3283,6 +3283,10 @@ pub fn encode_describe_cluster_response(
 }
 
 /// One partition in AlterPartitionReassignments v0 (flexible).
+///
+/// [`Self::error_result`] is Java `AlterPartitionReassignmentsRequest.getErrorResponse`
+/// one partition (`PartitionIndex` / `ErrorCode`; `ErrorMessage` stays
+/// the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignablePartition {
     /// Partition index.
@@ -3291,7 +3295,45 @@ pub struct ReassignablePartition {
     pub replicas: Option<Vec<i32>>,
 }
 
+impl ReassignablePartition {
+    /// Partition `partition_index` with optional target replicas (`None`
+    /// cancels).
+    #[must_use]
+    pub fn new(partition_index: i32, replicas: Option<Vec<i32>>) -> Self {
+        Self {
+            partition_index,
+            replicas,
+        }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Target replicas, or `None` to cancel.
+    #[must_use]
+    pub fn replicas(&self) -> Option<&[i32]> {
+        self.replicas.as_deref()
+    }
+
+    /// Java `AlterPartitionReassignmentsRequest.getErrorResponse` one
+    /// partition.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. `ErrorMessage` is the JSON
+    /// default (null); official Java also sets the English `Errors.message`
+    /// string.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> ReassignmentPartitionResult {
+        ReassignmentPartitionResult::error(self.partition_index, error_code)
+    }
+}
+
 /// One topic in AlterPartitionReassignments v0.
+///
+/// [`Self::error_result`] is Java `AlterPartitionReassignmentsRequest.getErrorResponse`
+/// one topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignableTopic {
     /// Topic, resource, group, or feature name.
@@ -3300,7 +3342,47 @@ pub struct ReassignableTopic {
     pub partitions: Vec<ReassignablePartition>,
 }
 
+impl ReassignableTopic {
+    /// Topic `name` plus partitions.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partitions: Vec<ReassignablePartition>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partitions in this topic.
+    #[must_use]
+    pub fn partitions(&self) -> &[ReassignablePartition] {
+        &self.partitions
+    }
+
+    /// Java `AlterPartitionReassignmentsRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`ReassignablePartition::error_result`].
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> ReassignmentTopicResult {
+        ReassignmentTopicResult::new(
+            self.name.clone(),
+            self.partitions
+                .iter()
+                .map(|p| p.error_result(error_code))
+                .collect(),
+        )
+    }
+}
+
 /// Per-partition result of AlterPartitionReassignments.
+///
+/// [`Self::error`] is Java `AlterPartitionReassignmentsRequest.getErrorResponse`
+/// partition body (`ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReassignmentPartitionResult {
     /// Partition index.
@@ -3309,6 +3391,41 @@ pub struct ReassignmentPartitionResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl ReassignmentPartitionResult {
+    /// Java `AlterPartitionReassignmentsRequest.getErrorResponse` partition
+    /// body.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. `ErrorMessage` is the JSON
+    /// default (null); official Java also sets the English `Errors.message`
+    /// string.
+    #[must_use]
+    pub fn error(partition_index: i32, error_code: i16) -> Self {
+        Self {
+            partition_index,
+            error_code,
+            error_message: None,
+        }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition_index(&self) -> i32 {
+        self.partition_index
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// Per-topic result of AlterPartitionReassignments.
@@ -3320,7 +3437,33 @@ pub struct ReassignmentTopicResult {
     pub partitions: Vec<ReassignmentPartitionResult>,
 }
 
+impl ReassignmentTopicResult {
+    /// Topic `name` plus partition results.
+    #[must_use]
+    pub fn new(name: impl Into<String>, partitions: Vec<ReassignmentPartitionResult>) -> Self {
+        Self {
+            name: name.into(),
+            partitions,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Partition results.
+    #[must_use]
+    pub fn partitions(&self) -> &[ReassignmentPartitionResult] {
+        &self.partitions
+    }
+}
+
 /// AlterPartitionReassignments v0 response (top-level error after throttle).
+///
+/// [`Self::error`] is Java `AlterPartitionReassignmentsRequest.getErrorResponse`
+/// (`ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterPartitionReassignmentsResponse {
     /// Kafka error code (`0` is success).
@@ -3329,6 +3472,41 @@ pub struct AlterPartitionReassignmentsResponse {
     pub error_message: Option<String>,
     /// Per-item results.
     pub results: Vec<ReassignmentTopicResult>,
+}
+
+impl AlterPartitionReassignmentsResponse {
+    /// Java `AlterPartitionReassignmentsRequest.getErrorResponse`.
+    ///
+    /// Copies each request topic through [`ReassignableTopic::error_result`].
+    /// Top-level and per-partition `ErrorMessage` stay the JSON default
+    /// (null); official Java also sets the English `Errors.message`
+    /// string. Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error(error_code: i16, topics: &[ReassignableTopic]) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            results: topics.iter().map(|t| t.error_result(error_code)).collect(),
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Per-topic results.
+    #[must_use]
+    pub fn results(&self) -> &[ReassignmentTopicResult] {
+        &self.results
+    }
 }
 
 fn put_compact_nullable_i32_array(
@@ -14952,19 +15130,13 @@ mod tests {
 
     #[test]
     fn alter_partition_reassignments_v0_roundtrip_is_leftover_empty() {
-        let topics = vec![ReassignableTopic {
-            name: "t".into(),
-            partitions: vec![
-                ReassignablePartition {
-                    partition_index: 0,
-                    replicas: Some(vec![1, 2]),
-                },
-                ReassignablePartition {
-                    partition_index: 1,
-                    replicas: None,
-                },
+        let topics = vec![ReassignableTopic::new(
+            "t",
+            vec![
+                ReassignablePartition::new(0, Some(vec![1, 2])),
+                ReassignablePartition::new(1, None),
             ],
-        }];
+        )];
         let mut buf = BytesMut::new();
         encode_alter_partition_reassignments_request(&mut buf, 10_000, &topics).unwrap();
         let mut cur = &buf[..];
@@ -15005,6 +15177,52 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterPartitionReassignments v0 response must be leftover-empty"
+        );
+
+        let topic = ReassignableTopic::new(
+            "t",
+            vec![
+                ReassignablePartition::new(0, Some(vec![1, 2])),
+                ReassignablePartition::new(3, None),
+            ],
+        );
+        assert_eq!(topic.name(), "t");
+        let first_req = topic.partitions().first().expect("request partition");
+        assert_eq!(first_req.partition_index(), 0);
+        assert_eq!(first_req.replicas(), Some(&[1, 2][..]));
+        let topic_err = topic.error_result(crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            topic_err,
+            ReassignmentTopicResult::new(
+                "t",
+                vec![
+                    ReassignmentPartitionResult::error(0, crate::error::NOT_CONTROLLER),
+                    ReassignmentPartitionResult::error(3, crate::error::NOT_CONTROLLER),
+                ],
+            )
+        );
+        let first = topic_err.partitions().first().expect("error partition");
+        assert_eq!(first.partition_index(), 0);
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        let err = AlterPartitionReassignmentsResponse::error(
+            crate::error::NOT_CONTROLLER,
+            std::slice::from_ref(&topic),
+        );
+        assert_eq!(err.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(err.error_message().is_none());
+        assert_eq!(err.results(), std::slice::from_ref(&topic_err));
+        buf.clear();
+        encode_alter_partition_reassignments_response(&mut buf, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_partition_reassignments_response(&mut cur).unwrap(),
+            err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterPartitionReassignments getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

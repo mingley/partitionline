@@ -520,6 +520,14 @@
 //! [`Admin::alter_partition_reassignments_for`] is Java
 //! `alterPartitionReassignments(Map)` ([`NewPartitionReassignment`];
 //! `None` cancels).
+//! [`protocol::admin::ReassignablePartition::error_result`] /
+//! [`protocol::admin::ReassignableTopic::error_result`] /
+//! [`protocol::admin::AlterPartitionReassignmentsResponse::error`] are Java
+//! `AlterPartitionReassignmentsRequest.getErrorResponse` (one partition /
+//! one topic / the Responses list). Nested bodies copy `PartitionIndex`
+//! and `ErrorCode`; top-level and per-partition `ErrorMessage` stay the
+//! JSON default (null); official Java also sets the English
+//! `Errors.message` string.
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java

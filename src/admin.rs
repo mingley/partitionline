@@ -11362,24 +11362,22 @@ fn group_reassignments(assignments: &[PartitionReassignment]) -> Vec<Reassignabl
         match by_topic.entry(a.topic.clone()) {
             std::collections::hash_map::Entry::Vacant(slot) => {
                 order.push(a.topic.clone());
-                let _ = slot.insert(vec![ReassignablePartition {
-                    partition_index: a.partition,
-                    replicas: a.replicas.clone(),
-                }]);
+                let _ = slot.insert(vec![ReassignablePartition::new(
+                    a.partition,
+                    a.replicas.clone(),
+                )]);
             }
             std::collections::hash_map::Entry::Occupied(mut slot) => {
-                slot.get_mut().push(ReassignablePartition {
-                    partition_index: a.partition,
-                    replicas: a.replicas.clone(),
-                });
+                slot.get_mut()
+                    .push(ReassignablePartition::new(a.partition, a.replicas.clone()));
             }
         }
     }
     order
         .into_iter()
-        .map(|name| ReassignableTopic {
-            partitions: by_topic.remove(&name).unwrap_or_default(),
-            name,
+        .map(|name| {
+            let partitions = by_topic.remove(&name).unwrap_or_default();
+            ReassignableTopic::new(name, partitions)
         })
         .collect()
 }
