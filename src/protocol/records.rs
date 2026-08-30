@@ -436,6 +436,10 @@ impl RecordBatch {
     pub const NO_SEQUENCE: i32 = -1;
     /// Java `RecordBatch.NO_PARTITION_LEADER_EPOCH`.
     pub const NO_PARTITION_LEADER_EPOCH: i32 = -1;
+    /// Java `RecordBatch.MAGIC_VALUE_V2`. This crate speaks magic-v2 only.
+    pub const MAGIC_VALUE_V2: i8 = MAGIC_V2;
+    /// Java `RecordBatch.CURRENT_MAGIC_VALUE` ([`Self::MAGIC_VALUE_V2`]).
+    pub const CURRENT_MAGIC_VALUE: i8 = Self::MAGIC_VALUE_V2;
 
     /// Build a batch from records. Offsets become `0..n`; timestamps set
     /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
@@ -527,7 +531,7 @@ impl RecordBatch {
     /// Java `DefaultRecordBatch.magic` (this crate speaks magic-v2 only).
     #[must_use]
     pub fn magic(&self) -> i8 {
-        MAGIC_V2
+        Self::CURRENT_MAGIC_VALUE
     }
 
     /// Java `DefaultRecordBatch.baseOffset`.
@@ -1232,6 +1236,10 @@ mod tests {
         assert!(batch.is_transactional());
         assert!(batch.is_control_batch());
         assert_eq!(batch.magic(), MAGIC_V2);
+        assert_eq!(batch.magic(), RecordBatch::MAGIC_VALUE_V2);
+        assert_eq!(batch.magic(), RecordBatch::CURRENT_MAGIC_VALUE);
+        assert_eq!(RecordBatch::MAGIC_VALUE_V2, 2);
+        assert_eq!(RecordBatch::CURRENT_MAGIC_VALUE, 2);
         assert_eq!(batch.base_offset(), 0);
         assert_eq!(batch.last_offset(), 0);
         assert_eq!(batch.next_offset(), 1);

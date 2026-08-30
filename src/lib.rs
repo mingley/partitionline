@@ -86,7 +86,9 @@
 //! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
 //! match Java `RecordMetadata`. [`RecordBatch::NO_TIMESTAMP`] is Java
-//! `RecordBatch.NO_TIMESTAMP`.
+//! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
+//! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
+//! `CURRENT_MAGIC_VALUE`.
 //! [`Admin::get_telemetry_subscriptions`] / [`Admin::push_telemetry`] take
 //! [`Uuid`] or `[u8; 16]`.
 //!
