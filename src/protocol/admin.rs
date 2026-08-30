@@ -9277,6 +9277,29 @@ impl ShareGroupDescribeResponse {
     }
 }
 
+/// Java `ShareGroupDescribeRequest` helpers.
+pub struct ShareGroupDescribeRequest;
+
+impl ShareGroupDescribeRequest {
+    /// Java `ShareGroupDescribeRequest.getErrorDescribedGroupList`.
+    ///
+    /// Each group is [`DescribedShareGroup::new`] (GroupId + ErrorCode).
+    /// JSON defaults match: `ErrorMessage` null, empty state / assignor
+    /// strings, epoch `0`, empty Members, and
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn error_described_group_list<I>(group_ids: I, error_code: i16) -> Vec<DescribedShareGroup>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        group_ids
+            .into_iter()
+            .map(|id| DescribedShareGroup::new(id, error_code))
+            .collect()
+    }
+}
+
 /// Encode a ShareGroupDescribe request (`version` 0–1).
 ///
 /// Official Apache JSON (`apiKey: 77`, request `listeners: ["broker"]`,
@@ -20778,6 +20801,18 @@ mod tests {
         encode_share_group_describe_request(&mut buf, 1, &ids, false).unwrap();
         assert_eq!(&buf[..], REQ);
         let resp = vec![DescribedShareGroup::new("g", crate::error::NOT_COORDINATOR)];
+        assert_eq!(
+            ShareGroupDescribeRequest::error_described_group_list(
+                ["g"],
+                crate::error::NOT_COORDINATOR
+            ),
+            resp
+        );
+        assert!(ShareGroupDescribeRequest::error_described_group_list(
+            Vec::<String>::new(),
+            crate::error::NOT_COORDINATOR
+        )
+        .is_empty());
         buf.clear();
         encode_share_group_describe_response(&mut buf, 1, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
