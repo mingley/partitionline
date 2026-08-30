@@ -1328,6 +1328,39 @@ impl RecordBatch {
         Ok(stored == i64::from(crc32c::crc32c(rest)))
     }
 
+    /// Java `DefaultRecordBatch.ensureValid`.
+    ///
+    /// Declared size ([`Self::encoded_size_in_bytes`]) below
+    /// [`Self::RECORD_BATCH_OVERHEAD`] is [`Error::protocol`] matching Java
+    /// `CorruptRecordException` (`Record batch is corrupt`). Otherwise a CRC
+    /// mismatch is [`Error::protocol`] `Record is corrupt` (stored vs computed
+    /// over bytes from [`Self::ATTRIBUTES_OFFSET`] to the end of `buffer`).
+    /// Short size or CRC fields are [`Error::protocol`] `need 4 bytes`.
+    /// Distinct from [`decode_record_batch`], which CRC-checks the declared
+    /// body only.
+    pub fn ensure_valid(buffer: &[u8]) -> Result<()> {
+        let size_in_bytes = Self::encoded_size_in_bytes(buffer)?;
+        if size_in_bytes < Self::RECORD_BATCH_OVERHEAD {
+            return Err(Error::protocol(format!(
+                "Record batch is corrupt (the size {size_in_bytes} is smaller than the minimum allowed overhead {})",
+                Self::RECORD_BATCH_OVERHEAD
+            )));
+        }
+        if Self::is_valid(buffer)? {
+            return Ok(());
+        }
+        let crc_off = buf::usize_from_i32(Self::CRC_OFFSET)?;
+        let stored = buf::read_unsigned_int_at(buffer, crc_off)?;
+        let attr_off = buf::usize_from_i32(Self::ATTRIBUTES_OFFSET)?;
+        let rest = buffer
+            .get(attr_off..)
+            .ok_or_else(|| Error::protocol("short attributes field"))?;
+        let computed = i64::from(crc32c::crc32c(rest));
+        Err(Error::protocol(format!(
+            "Record is corrupt (stored crc = {stored}, computed crc = {computed})"
+        )))
+    }
+
     /// Java `DefaultRecordBatch.sizeInBytes(Iterable)` (uncompressed).
     ///
     /// Empty is `0` (not [`Self::RECORD_BATCH_OVERHEAD`]). Offset deltas are
@@ -2862,6 +2895,76 @@ mod tests {
             RecordBatch::encoded_size_in_bytes(&declared).unwrap(),
             encoded_len
         );
+    }
+
+    #[test]
+    fn ensure_valid_matches_java_default_record_batch() {
+        let mut encoded = BytesMut::new();
+        encode_record_batch(
+            &mut encoded,
+            &RecordBatch::from_records(vec![sample_record()]),
+        )
+        .unwrap();
+        RecordBatch::ensure_valid(&encoded).unwrap();
+
+        let size_err = RecordBatch::ensure_valid(&[0; 12]).unwrap_err().to_string();
+        assert!(
+            size_err.contains(
+                "Record batch is corrupt (the size 12 is smaller than the minimum allowed overhead 61)"
+            ),
+            "{size_err}"
+        );
+
+        let short = RecordBatch::ensure_valid(&[0; 11]).unwrap_err().to_string();
+        assert!(short.contains("need 4 bytes"), "{short}");
+
+        let mut undersized = encoded.clone();
+        undersized[8..12].copy_from_slice(&0i32.to_be_bytes());
+        let under = RecordBatch::ensure_valid(&undersized)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            under.contains(
+                "Record batch is corrupt (the size 12 is smaller than the minimum allowed overhead 61)"
+            ),
+            "{under}"
+        );
+
+        let mut flipped = encoded.clone();
+        let attr = RecordBatch::ATTRIBUTES_OFFSET as usize;
+        flipped[attr] ^= 0xff;
+        let crc_off = RecordBatch::CRC_OFFSET as usize;
+        let stored = u32::from_be_bytes(flipped[crc_off..crc_off + 4].try_into().unwrap());
+        let computed = crc32c::crc32c(&flipped[attr..]);
+        let crc_err = RecordBatch::ensure_valid(&flipped).unwrap_err().to_string();
+        assert!(
+            crc_err.contains(&format!(
+                "Record is corrupt (stored crc = {stored}, computed crc = {computed})"
+            )),
+            "{crc_err}"
+        );
+
+        let mut short_crc = [0u8; 12];
+        short_crc[8..12].copy_from_slice(&49i32.to_be_bytes());
+        let err = RecordBatch::ensure_valid(&short_crc)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("need 4 bytes"), "{err}");
+
+        let mut header_only = [0u8; 21];
+        header_only[8..12].copy_from_slice(&49i32.to_be_bytes());
+        RecordBatch::ensure_valid(&header_only).unwrap();
+
+        let mut trailing = encoded.clone();
+        trailing.put_u8(0xff);
+        assert!(!RecordBatch::is_valid(&trailing).unwrap());
+        let trail_err = RecordBatch::ensure_valid(&trailing)
+            .unwrap_err()
+            .to_string();
+        assert!(trail_err.contains("Record is corrupt"), "{trail_err}");
+        let mut trail_slice = trailing.as_ref();
+        drop(decode_record_batch(&mut trail_slice).unwrap());
+        assert_eq!(trail_slice, &[0xff]);
     }
 
     #[test]

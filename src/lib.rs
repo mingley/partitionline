@@ -949,6 +949,11 @@
 //! size below overhead is `false`; otherwise stored CRC32-C must match bytes
 //! from [`RecordBatch::ATTRIBUTES_OFFSET`]; short size/CRC fields are
 //! [`Error::protocol`] `need 4 bytes`).
+//! [`RecordBatch::ensure_valid`] is Java `DefaultRecordBatch.ensureValid` on
+//! a buffer (size below overhead is `Record batch is corrupt`; CRC of bytes
+//! from [`RecordBatch::ATTRIBUTES_OFFSET`] to the slice end; not used by
+//! [`protocol::records::decode_record_batch`], which CRC-checks the declared
+//! body).
 //! [`RecordBatch`] `Display` is Java `DefaultRecordBatch.toString`.
 //! [`Record::record_size_upper_bound`] /
 //! [`RecordBatch::estimate_batch_size_upper_bound`] /
