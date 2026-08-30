@@ -1441,6 +1441,28 @@ pub struct SyncGroupRequest<'a> {
     pub assignments: &'a [(String, Vec<u8>)],
 }
 
+impl SyncGroupRequest<'_> {
+    /// Java `SyncGroupRequest.areMandatoryProtocolTypeAndNamePresent`.
+    ///
+    /// ProtocolType and ProtocolName are mandatory since version 5. Below v5
+    /// this is always `true`. On v5+, both must be present (`Some`). Empty
+    /// string is present: Java checks `!= null`, not empty. This crate's
+    /// request type stores `&str` (never JSON-null); pass `None` here to
+    /// model a null STRING. Encode still writes the stored fields.
+    #[must_use]
+    pub const fn are_mandatory_protocol_type_and_name_present(
+        version: i16,
+        protocol_type: Option<&str>,
+        protocol_name: Option<&str>,
+    ) -> bool {
+        if version >= 5 {
+            protocol_type.is_some() && protocol_name.is_some()
+        } else {
+            true
+        }
+    }
+}
+
 /// Java `SyncGroupResponse` helpers.
 pub struct SyncGroupResponse;
 
@@ -3574,6 +3596,35 @@ mod tests {
         assert!(SyncGroupResponse::should_client_throttle(2));
         assert!(!HeartbeatResponse::should_client_throttle(1));
         assert!(HeartbeatResponse::should_client_throttle(2));
+    }
+
+    #[test]
+    fn sync_group_are_mandatory_protocol_type_and_name_present_matches_java() {
+        assert!(SyncGroupRequest::are_mandatory_protocol_type_and_name_present(4, None, None));
+        assert!(
+            SyncGroupRequest::are_mandatory_protocol_type_and_name_present(4, None, Some("range"))
+        );
+        assert!(
+            SyncGroupRequest::are_mandatory_protocol_type_and_name_present(
+                5,
+                Some("consumer"),
+                Some("range")
+            )
+        );
+        assert!(
+            SyncGroupRequest::are_mandatory_protocol_type_and_name_present(5, Some(""), Some(""))
+        );
+        assert!(
+            !SyncGroupRequest::are_mandatory_protocol_type_and_name_present(5, None, Some("range"))
+        );
+        assert!(
+            !SyncGroupRequest::are_mandatory_protocol_type_and_name_present(
+                5,
+                Some("consumer"),
+                None
+            )
+        );
+        assert!(!SyncGroupRequest::are_mandatory_protocol_type_and_name_present(5, None, None));
     }
 
     #[test]

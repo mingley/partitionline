@@ -135,6 +135,9 @@
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
+//! [`protocol::group::SyncGroupRequest::are_mandatory_protocol_type_and_name_present`] is Java
+//! `SyncGroupRequest.areMandatoryProtocolTypeAndNamePresent` (v5+ both ProtocolType and
+//! ProtocolName present; empty string is present; below v5 always true);
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
