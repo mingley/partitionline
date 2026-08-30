@@ -820,6 +820,12 @@ impl MetadataResponse {
         version >= 9
     }
 
+    /// Java `MetadataResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 6
+    }
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -1313,6 +1319,17 @@ impl ProduceRequest {
     }
 }
 
+/// Java `ProduceResponse` helpers.
+pub struct ProduceResponse;
+
+impl ProduceResponse {
+    /// Java `ProduceResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 6
+    }
+}
+
 /// `true` when Produce `version` is flexible (v9+).
 ///
 /// v3–v8 are classic. v9–v12 are compact arrays/strings/bytes plus tagged
@@ -1643,6 +1660,8 @@ mod tests {
         assert!(!ProduceRequest::is_transaction_v2_requested(11));
         assert!(ProduceRequest::is_transaction_v2_requested(12));
         assert!(!ProduceRequest::is_transaction_v2_requested(10));
+        assert!(!ProduceResponse::should_client_throttle(5));
+        assert!(ProduceResponse::should_client_throttle(6));
     }
 
     #[test]
@@ -2279,6 +2298,8 @@ mod tests {
             MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             crate::AUTHORIZED_OPERATIONS_OMITTED
         );
+        assert!(!MetadataResponse::should_client_throttle(5));
+        assert!(MetadataResponse::should_client_throttle(6));
     }
 
     #[test]

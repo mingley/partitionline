@@ -39,9 +39,11 @@
 //! [`protocol::api::MetadataResponse::NO_CONTROLLER_ID`] /
 //! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`protocol::api::MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] /
-//! [`protocol::api::MetadataResponse::has_reliable_leader_epochs`] are Java
+//! [`protocol::api::MetadataResponse::has_reliable_leader_epochs`] /
+//! [`protocol::api::MetadataResponse::should_client_throttle`] are Java
 //! `MetadataResponse.NO_CONTROLLER_ID` / `NO_LEADER_ID` /
-//! `AUTHORIZED_OPERATIONS_OMITTED` / `hasReliableLeaderEpochs`
+//! `AUTHORIZED_OPERATIONS_OMITTED` / `hasReliableLeaderEpochs` /
+//! `shouldClientThrottle`
 //! (Metadata versions before 9 do not retain leader epochs for Fetch,
 //! ListOffsets, or OffsetsForLeaderEpoch; the client cache fills missing
 //! partition leaders with `NO_LEADER_ID` and missing epochs with
@@ -158,7 +160,9 @@
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
 //! match Java `RecordMetadata`. [`RecordMetadata::UNKNOWN_PARTITION`] is Java
 //! `RecordMetadata.UNKNOWN_PARTITION`. [`protocol::api::ProducePartitionResponse::INVALID_OFFSET`]
-//! is Java `ProduceResponse.INVALID_OFFSET`. Produce decode below v5 fills
+//! is Java `ProduceResponse.INVALID_OFFSET`.
+//! [`protocol::api::ProduceResponse::should_client_throttle`] is Java
+//! `ProduceResponse.shouldClientThrottle` (v6+). Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
 //! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills
 //! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
