@@ -443,6 +443,12 @@ impl RecordBatch {
     pub const CURRENT_MAGIC_VALUE: i8 = Self::MAGIC_VALUE_V2;
     /// Java `DefaultRecordBatch.RECORD_BATCH_OVERHEAD` (bytes before the records).
     pub const RECORD_BATCH_OVERHEAD: i32 = 61;
+    /// Java `DefaultRecordBatch.CRC_OFFSET`.
+    pub const CRC_OFFSET: i32 = 17;
+    /// Java `DefaultRecordBatch.LAST_OFFSET_DELTA_OFFSET`.
+    pub const LAST_OFFSET_DELTA_OFFSET: i32 = 23;
+    /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
+    pub const RECORDS_COUNT_OFFSET: i32 = 57;
 
     /// Build a batch from records. Offsets become `0..n`; timestamps set
     /// `base_timestamp` / `max_timestamp`. Producer id / epoch / sequence
@@ -1245,6 +1251,9 @@ mod tests {
         assert_eq!(RecordBatch::MAGIC_VALUE_V2, 2);
         assert_eq!(RecordBatch::CURRENT_MAGIC_VALUE, 2);
         assert_eq!(RecordBatch::RECORD_BATCH_OVERHEAD, 61);
+        assert_eq!(RecordBatch::CRC_OFFSET, 17);
+        assert_eq!(RecordBatch::LAST_OFFSET_DELTA_OFFSET, 23);
+        assert_eq!(RecordBatch::RECORDS_COUNT_OFFSET, 57);
         assert_eq!(batch.base_offset(), 0);
         assert_eq!(batch.last_offset(), 0);
         assert_eq!(batch.next_offset(), 1);
