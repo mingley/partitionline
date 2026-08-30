@@ -1218,6 +1218,10 @@ fn leave_group_flexible(version: i16) -> Result<bool> {
 /// v0–v2 are GroupId + MemberId (v1 and v2 match v0). v3 Members +
 /// GroupInstanceId. v4 flexible. v5 Reason (KIP-800). This crate
 /// speaks 0–5. v6+ is not spoken.
+///
+/// Java `LeaveGroupRequest.Builder` rejects an empty member list
+/// and rejects more than one member below v3. Instance id and reason
+/// on v0–v2 are omitted (not an error).
 pub fn encode_leave_group_request_members(
     buf: &mut BytesMut,
     version: i16,
@@ -1225,6 +1229,15 @@ pub fn encode_leave_group_request_members(
     members: &[LeaveGroupMember],
 ) -> crate::error::Result<()> {
     let flexible = leave_group_flexible(version)?;
+    if members.is_empty() {
+        return Err(Error::protocol("leaving members should not be empty"));
+    }
+    if version < 3 && members.len() != 1 {
+        return Err(Error::Unsupported(format!(
+            "Version {version} leave group request only supports single member instance than {} members",
+            members.len()
+        )));
+    }
     buf::put_string(buf, flexible, Some(group_id))?;
     if version >= 3 {
         buf::put_array_len(buf, flexible, Some(members.len()))?;
@@ -4569,5 +4582,44 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_leave_group_request_members(&mut buf, 5, "g-rm", &members).unwrap();
         assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn leave_group_builder_matches_java() {
+        let empty =
+            encode_leave_group_request_members(&mut BytesMut::new(), 5, "g", &[]).unwrap_err();
+        assert!(
+            matches!(empty, Error::Protocol(_)),
+            "empty members is Java IllegalArgumentException, got {empty}"
+        );
+        assert!(
+            empty
+                .to_string()
+                .contains("leaving members should not be empty"),
+            "got {empty}"
+        );
+        let two = [
+            LeaveGroupMember {
+                member_id: "m1".into(),
+                group_instance_id: None,
+                reason: None,
+            },
+            LeaveGroupMember {
+                member_id: "m2".into(),
+                group_instance_id: None,
+                reason: None,
+            },
+        ];
+        let batched =
+            encode_leave_group_request_members(&mut BytesMut::new(), 0, "g", &two).unwrap_err();
+        assert!(
+            matches!(batched, Error::Unsupported(_)),
+            "v0 with two members is Java UnsupportedVersionException, got {batched}"
+        );
+        assert!(
+            batched.to_string().contains("only supports single member"),
+            "got {batched}"
+        );
+        encode_leave_group_request_members(&mut BytesMut::new(), 3, "g", &two).unwrap();
     }
 }
