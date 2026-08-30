@@ -980,6 +980,8 @@ impl RecordBatch {
     pub const ATTRIBUTES_OFFSET: i32 = Self::CRC_OFFSET + 4;
     /// Java `DefaultRecordBatch.LAST_OFFSET_DELTA_OFFSET`.
     pub const LAST_OFFSET_DELTA_OFFSET: i32 = 23;
+    /// Java `DefaultRecordBatch.BASE_TIMESTAMP_OFFSET`.
+    pub const BASE_TIMESTAMP_OFFSET: i32 = 27;
     /// Java `DefaultRecordBatch.BASE_SEQUENCE_OFFSET`.
     pub const BASE_SEQUENCE_OFFSET: i32 = 53;
     /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
@@ -1312,6 +1314,19 @@ impl RecordBatch {
         Ok(i64::from_be_bytes(arr))
     }
 
+    fn read_i16_be(buffer: &[u8], offset: usize) -> Result<i16> {
+        let have = buffer.len().saturating_sub(offset);
+        let end = offset
+            .checked_add(2)
+            .ok_or_else(|| Error::protocol(format!("need 2 bytes, have {have}")))?;
+        let slice = buffer
+            .get(offset..end)
+            .ok_or_else(|| Error::protocol(format!("need 2 bytes, have {have}")))?;
+        let arr = <[u8; 2]>::try_from(slice)
+            .map_err(|_| Error::protocol(format!("need 2 bytes, have {have}")))?;
+        Ok(i16::from_be_bytes(arr))
+    }
+
     /// Java `DefaultRecordBatch.lastOffset` on a buffer (`baseOffset` plus
     /// `lastOffsetDelta` at [`Self::LAST_OFFSET_DELTA_OFFSET`]).
     ///
@@ -1348,6 +1363,23 @@ impl RecordBatch {
         let delta_off = buf::usize_from_i32(Self::LAST_OFFSET_DELTA_OFFSET)?;
         let delta = buf::read_int_be(buffer, delta_off)?;
         Ok(Self::increment_sequence(base_sequence, delta))
+    }
+
+    /// Java `DefaultRecordBatch.deleteHorizonMs` on a buffer.
+    ///
+    /// Unset [`ATTR_DELETE_HORIZON`] is `None` without reading
+    /// [`Self::BASE_TIMESTAMP_OFFSET`]. Otherwise the stored base timestamp.
+    /// Distinct from [`Self::delete_horizon_ms`], which uses this batch's
+    /// fields. Short attributes or timestamp fields are [`Error::protocol`]
+    /// `need N bytes`.
+    pub fn encoded_delete_horizon_ms(buffer: &[u8]) -> Result<Option<i64>> {
+        let attr_off = buf::usize_from_i32(Self::ATTRIBUTES_OFFSET)?;
+        let attributes = Self::read_i16_be(buffer, attr_off)?;
+        if attributes & ATTR_DELETE_HORIZON == 0 {
+            return Ok(None);
+        }
+        let ts_off = buf::usize_from_i32(Self::BASE_TIMESTAMP_OFFSET)?;
+        Ok(Some(Self::read_i64_be(buffer, ts_off)?))
     }
 
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
@@ -2130,6 +2162,7 @@ mod tests {
         assert_eq!(RecordBatch::CRC_OFFSET, 17);
         assert_eq!(RecordBatch::ATTRIBUTES_OFFSET, 21);
         assert_eq!(RecordBatch::LAST_OFFSET_DELTA_OFFSET, 23);
+        assert_eq!(RecordBatch::BASE_TIMESTAMP_OFFSET, 27);
         assert_eq!(RecordBatch::BASE_SEQUENCE_OFFSET, 53);
         assert_eq!(RecordBatch::RECORDS_COUNT_OFFSET, 57);
         assert_eq!(batch.base_offset(), 0);
@@ -3108,6 +3141,51 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 4 bytes"), "{short}");
+    }
+
+    #[test]
+    fn encoded_delete_horizon_ms_matches_java_default_record_batch() {
+        let plain = RecordBatch::from_records(vec![sample_record()]);
+        let mut plain_buf = BytesMut::new();
+        encode_record_batch(&mut plain_buf, &plain).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_delete_horizon_ms(&plain_buf).unwrap(),
+            None
+        );
+        assert!(plain.delete_horizon_ms().is_none());
+
+        let horizon = plain.clone().with_delete_horizon(true);
+        let mut horizon_buf = BytesMut::new();
+        encode_record_batch(&mut horizon_buf, &horizon).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_delete_horizon_ms(&horizon_buf).unwrap(),
+            Some(1)
+        );
+        assert_eq!(horizon.delete_horizon_ms(), Some(1));
+
+        let mut mutated = horizon_buf.clone();
+        mutated[27..35].copy_from_slice(&99i64.to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_delete_horizon_ms(&mutated).unwrap(),
+            Some(99)
+        );
+        assert_eq!(horizon.delete_horizon_ms(), Some(1));
+
+        assert_eq!(
+            RecordBatch::encoded_delete_horizon_ms(&[0; 23]).unwrap(),
+            None
+        );
+        let short_attr = RecordBatch::encoded_delete_horizon_ms(&[0; 22])
+            .unwrap_err()
+            .to_string();
+        assert!(short_attr.contains("need 2 bytes"), "{short_attr}");
+
+        let mut flag_only = [0u8; 23];
+        flag_only[21..23].copy_from_slice(&ATTR_DELETE_HORIZON.to_be_bytes());
+        let short_ts = RecordBatch::encoded_delete_horizon_ms(&flag_only)
+            .unwrap_err()
+            .to_string();
+        assert!(short_ts.contains("need 8 bytes"), "{short_ts}");
     }
 
     #[test]

@@ -949,7 +949,9 @@
 //! [`Error::protocol`] `need N bytes`). [`RecordBatch::encoded_last_sequence`]
 //! is Java `DefaultRecordBatch.lastSequence` on a buffer (`NO_SEQUENCE` skips
 //! the delta; otherwise `incrementSequence` of the stored base and
-//! `lastOffsetDelta`). [`RecordBatch::size_in_bytes_of`] and
+//! `lastOffsetDelta`). [`RecordBatch::encoded_delete_horizon_ms`] is Java
+//! `DefaultRecordBatch.deleteHorizonMs` on a buffer (unset flag is `None`
+//! without reading the base timestamp). [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
 //! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
@@ -1024,7 +1026,8 @@
 //! [`RecordBatch::is_compressed`] is Java `isCompressed`.
 //! [`RecordBatch::offset_of_max_timestamp`] /
 //! [`RecordBatch::delete_horizon_ms`] are Java `offsetOfMaxTimestamp` /
-//! `deleteHorizonMs`.
+//! `deleteHorizonMs`. [`RecordBatch::encoded_delete_horizon_ms`] is the
+//! buffer form of `deleteHorizonMs`.
 //! [`FetchedRecord::serialized_key_size`] / [`FetchedRecord::serialized_value_size`]
 //! match Java `serializedKeySize` / `serializedValueSize`.
 //! [`Admin::create_partitions`] takes [`NewPartitions`].
