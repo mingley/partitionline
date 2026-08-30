@@ -11841,6 +11841,15 @@ impl AssignReplicasToDirsResponse {
     pub fn directories(&self) -> &[AssignReplicasToDirsResponseDirectory] {
         &self.directories
     }
+
+    /// Java `AssignReplicasToDirsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE`. Nested per-partition
+    /// codes are not counted (Java `Collections.singletonMap`).
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// AssignReplicasToDirs v0 (flexible from v0; KIP-858).
@@ -22612,6 +22621,31 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AssignReplicasToDirs v0 one-directory body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_response_error_counts_matches_java() {
+        assert_eq!(
+            AssignReplicasToDirsResponse::new(0, vec![]).error_counts(),
+            HashMap::from([(0, 1)])
+        );
+        let with_nested = AssignReplicasToDirsResponse::new(
+            crate::error::NOT_CONTROLLER,
+            vec![AssignReplicasToDirsResponseDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsResponseTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsResponsePartition::new(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    )],
+                )],
+            )],
+        );
+        assert_eq!(
+            with_nested.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
         );
     }
 

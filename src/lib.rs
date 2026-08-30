@@ -1510,6 +1510,9 @@
 //! [`Admin::assign_replicas_to_dirs_timeout`] is Java
 //! `AssignReplicasToDirsOptions.timeoutMs` (RPC deadline;
 //! AssignReplicasToDirs has no TimeoutMs; caps `NOT_CONTROLLER`).
+//! [`AssignReplicasToDirsResponse::error_counts`] is Java
+//! `AssignReplicasToDirsResponse.errorCounts` (top-level code only,
+//! including `NONE`; nested partition codes are not counted).
 //! [`Admin::alter_replica_log_dirs_timeout`] is Java
 //! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
 //! AlterReplicaLogDirs has no TimeoutMs).
