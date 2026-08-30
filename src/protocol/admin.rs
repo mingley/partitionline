@@ -5579,6 +5579,9 @@ impl TransactionTopic {
 /// Java `TransactionDescription` (without `coordinatorId`, which Java
 /// fills from the hop node). [`Self::transaction_start_time_ms`] is
 /// `None` when the wire value is negative (Java `OptionalLong`).
+/// [`Self::error`] / [`Self::error_results`] are Java
+/// `DescribeTransactionsRequest.getErrorResponse` (one transactional.id /
+/// the `TransactionStates` list).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionState {
     /// Kafka error code (`0` is success).
@@ -5600,6 +5603,44 @@ pub struct TransactionState {
 }
 
 impl TransactionState {
+    /// Java `DescribeTransactionsRequest.getErrorResponse` one
+    /// transactional.id.
+    ///
+    /// Sets `TransactionalId` and `ErrorCode`. Other fields are JSON
+    /// defaults: empty `TransactionState`, `TransactionTimeoutMs` `0`,
+    /// `TransactionStartTimeMs` `0`, `ProducerId` `0`, `ProducerEpoch`
+    /// `0`, empty `Topics`. Throttle on the response is the JSON default
+    /// (`0`).
+    #[must_use]
+    pub fn error(transactional_id: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            transactional_id: transactional_id.into(),
+            transaction_state: String::new(),
+            transaction_timeout_ms: 0,
+            transaction_start_time_ms: 0,
+            producer_id: 0,
+            producer_epoch: 0,
+            topics: Vec::new(),
+        }
+    }
+
+    /// Java `DescribeTransactionsRequest.getErrorResponse`
+    /// `TransactionStates`.
+    ///
+    /// Maps each request transactional.id through [`Self::error`].
+    #[must_use]
+    pub fn error_results<I>(transactional_ids: I, error_code: i16) -> Vec<Self>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        transactional_ids
+            .into_iter()
+            .map(|id| Self::error(id, error_code))
+            .collect()
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -15815,6 +15856,38 @@ mod tests {
             Some(1_700_000_000_000)
         );
         assert_eq!(described.topics(), std::slice::from_ref(&txn_topic));
+        let err = TransactionState::error("tx-1", crate::error::NOT_COORDINATOR);
+        assert_eq!(err.error_code(), crate::error::NOT_COORDINATOR);
+        assert_eq!(err.transactional_id(), "tx-1");
+        assert_eq!(err.state(), "");
+        assert_eq!(err.producer_id(), 0);
+        assert_eq!(err.producer_epoch(), 0);
+        assert_eq!(err.transaction_timeout_ms(), 0);
+        assert_eq!(err.transaction_start_time_ms(), Some(0));
+        assert!(err.topics().is_empty());
+        let err_list = TransactionState::error_results(
+            ["tx-1", "tx-2"],
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            err_list,
+            vec![
+                TransactionState::error("tx-1", crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                TransactionState::error("tx-2", crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_response(&mut buf, &err_list).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_transactions_response(&mut cur).unwrap(),
+            err_list
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeTransactions getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
         let empty_start = TransactionState {
             transaction_start_time_ms: -1,
             ..described.clone()
@@ -16400,16 +16473,10 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_describe_transactions_request(&mut buf, &ids).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = vec![TransactionState {
-            error_code: crate::error::NOT_COORDINATOR,
-            transactional_id: "tx-1".into(),
-            transaction_state: String::new(),
-            transaction_timeout_ms: 0,
-            transaction_start_time_ms: 0,
-            producer_id: 0,
-            producer_epoch: 0,
-            topics: Vec::new(),
-        }];
+        let resp = vec![TransactionState::error(
+            "tx-1",
+            crate::error::NOT_COORDINATOR,
+        )];
         buf.clear();
         encode_describe_transactions_response(&mut buf, &resp).unwrap();
         assert_eq!(&buf[..], RESP_16);
@@ -16462,16 +16529,10 @@ mod tests {
         // AllocateProducerIds (top-level 41 at bytes 4-5),
         // AlterClientQuotas (41 at bytes 5-6, different fields after),
         // or OffsetDelete (error before throttle).
-        let resp = vec![TransactionState {
-            error_code: crate::error::NOT_COORDINATOR,
-            transactional_id: "tx-1".into(),
-            transaction_state: String::new(),
-            transaction_timeout_ms: 0,
-            transaction_start_time_ms: 0,
-            producer_id: 0,
-            producer_epoch: 0,
-            topics: Vec::new(),
-        }];
+        let resp = vec![TransactionState::error(
+            "tx-1",
+            crate::error::NOT_COORDINATOR,
+        )];
         let mut buf = BytesMut::new();
         encode_describe_transactions_response(&mut buf, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();

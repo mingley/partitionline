@@ -655,6 +655,9 @@
 //! the broker string. [`TransactionState::state`] is Java
 //! `TransactionDescription.state`; [`TransactionState::transaction_start_time_ms`]
 //! is Java `OptionalLong` (`None` when the wire value is negative).
+//! [`TransactionState::error`] / [`TransactionState::error_results`] are Java
+//! `DescribeTransactionsRequest.getErrorResponse` (one transactional.id /
+//! the `TransactionStates` list).
 //! [`Admin::describe_transactions_timeout`] is Java
 //! `DescribeTransactionsOptions.timeoutMs` (RPC deadline;
 //! DescribeTransactions has no TimeoutMs).
