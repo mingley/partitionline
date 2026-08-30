@@ -597,6 +597,10 @@
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body
 //! larger than remaining, leftover payload bytes after headers).
+//! Batch decode matches Java `DefaultRecordBatch.RecordIterator`
+//! (`Found invalid record count` / leftover records after the declared
+//! count / premature EOF). A declared count of zero does not scan leftover
+//! record bytes (Java `iterator()` returns empty).
 //! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
 //! [`Record::has_magic`] / [`Record::is_compressed`] /
 //! [`Record::has_timestamp_type`] match Java `Record.hasMagic` /

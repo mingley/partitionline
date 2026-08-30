@@ -1405,6 +1405,9 @@ pub fn decode_record_batches<B: Buf>(buf: &mut B) -> Result<Vec<RecordBatch>> {
 /// count, a header count larger than remaining bytes, a negative header
 /// key size, a declared body larger than remaining, and leftover payload
 /// bytes after headers use the Java `InvalidRecordException` messages.
+/// Batch record-count checks match Java `DefaultRecordBatch.RecordIterator`
+/// (`Found invalid record count`, leftover records after the declared
+/// count, premature EOF when the count is larger than the payload).
 pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_offset = buf::get_i64(buf)?;
     let batch_len = buf::get_i32(buf)?;
@@ -1438,7 +1441,9 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
     let base_sequence = buf::get_i32(&mut body)?;
     let count = buf::get_i32(&mut body)?;
     if count < 0 {
-        return Err(Error::protocol("negative record count"));
+        return Err(Error::protocol(format!(
+            "Found invalid record count {count} in magic v{magic} batch"
+        )));
     }
     let mut records_cur = match compression {
         Compression::None => body,
@@ -1446,13 +1451,24 @@ pub fn decode_record_batch<B: Buf>(buf: &mut B) -> Result<RecordBatch> {
         Compression::Snappy => Bytes::from(snappy_decompress(&body)?),
         Compression::Lz4 => Bytes::from(lz4_decompress(&body)?),
     };
-    let mut records = Vec::with_capacity(buf::usize_from_i32(count.max(0))?);
-    for _ in 0..count {
+    let count_usize = buf::usize_from_i32(count)?;
+    let mut records = Vec::with_capacity(count_usize);
+    for _ in 0..count_usize {
+        if !records_cur.has_remaining() {
+            return Err(Error::protocol(
+                "Incorrect declared batch size, premature EOF reached",
+            ));
+        }
         records.push(decode_record(
             &mut records_cur,
             base_offset,
             base_timestamp,
         )?);
+    }
+    if count > 0 && records_cur.has_remaining() {
+        return Err(Error::protocol(
+            "Incorrect declared batch size, records still remaining in file",
+        ));
     }
     Ok(RecordBatch {
         base_offset,
@@ -2223,6 +2239,73 @@ mod tests {
             ),
             "{short_err}"
         );
+    }
+
+    fn sample_record() -> Record {
+        Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        }
+    }
+
+    fn patch_batch_count(buf: &mut [u8], count: i32) {
+        let count_off = RecordBatch::RECORDS_COUNT_OFFSET as usize;
+        let crc_off = RecordBatch::CRC_OFFSET as usize;
+        buf[count_off..count_off + 4].copy_from_slice(&count.to_be_bytes());
+        let crc_start = crc_off + 4;
+        let crc = crc32c::crc32c(&buf[crc_start..]);
+        buf[crc_off..crc_off + 4].copy_from_slice(&crc.to_be_bytes());
+    }
+
+    #[test]
+    fn decode_record_batch_count_checks_match_java() {
+        let rec = sample_record();
+        let mut two = BytesMut::new();
+        encode_record_batch(
+            &mut two,
+            &RecordBatch::from_records(vec![rec.clone(), rec.clone()]),
+        )
+        .unwrap();
+
+        let mut leftover = two.clone();
+        patch_batch_count(&mut leftover, 1);
+        let leftover_err = decode_record_batch(&mut leftover.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            leftover_err.contains("Incorrect declared batch size, records still remaining in file"),
+            "{leftover_err}"
+        );
+
+        let mut one = BytesMut::new();
+        encode_record_batch(&mut one, &RecordBatch::from_records(vec![rec.clone()])).unwrap();
+        let mut eof = one.clone();
+        patch_batch_count(&mut eof, 2);
+        let eof_err = decode_record_batch(&mut eof.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            eof_err.contains("Incorrect declared batch size, premature EOF reached"),
+            "{eof_err}"
+        );
+
+        let mut negative = one.clone();
+        patch_batch_count(&mut negative, -1);
+        let negative_err = decode_record_batch(&mut negative.as_ref())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            negative_err.contains("Found invalid record count -1 in magic v2 batch"),
+            "{negative_err}"
+        );
+
+        let mut zero = two.clone();
+        patch_batch_count(&mut zero, 0);
+        let skipped = decode_record_batch(&mut zero.as_ref()).unwrap();
+        assert!(skipped.records.is_empty());
     }
 
     #[test]
