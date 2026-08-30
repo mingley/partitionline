@@ -27,6 +27,8 @@
 //! [`Error::protocol`] `need 4 bytes`). [`read_bytes`] / [`read_bytes_at`]
 //! are Java `Utils.readBytes` (sequential `ByteBuffer` form: negative length
 //! is `None`; offset form is absolute; short buffer is [`Error::protocol`]
+//! `need N bytes`). [`size_delimited`] is Java `Utils.sizeDelimited`
+//! (negative size is `None`; short buffer is [`Error::protocol`]
 //! `need N bytes`).
 
 use std::collections::{HashMap, HashSet};
@@ -881,6 +883,27 @@ pub fn read_bytes_at(buffer: &[u8], offset: usize, length: usize) -> Result<Vec<
         .ok_or_else(|| Error::protocol(format!("need {length} bytes, have {have}")))
 }
 
+/// Java `Utils.sizeDelimited`.
+///
+/// Reads an indexed big-endian INT32 size at `start` (the size field is not
+/// consumed). Negative size is `None`. Otherwise the slice is the following
+/// `size` bytes. A short buffer is [`Error::protocol`] (`need N bytes`).
+pub fn size_delimited(buffer: &[u8], start: usize) -> Result<Option<&[u8]>> {
+    let size = read_int_be(buffer, start)?;
+    if size < 0 {
+        return Ok(None);
+    }
+    let n = usize_from_i32(size)?;
+    let data_start = start + 4;
+    let have = buffer.len();
+    let end = data_start
+        .checked_add(n)
+        .ok_or_else(|| Error::protocol(format!("need {n} bytes, have {have}")))?;
+    Ok(Some(buffer.get(data_start..end).ok_or_else(|| {
+        Error::protocol(format!("need {n} bytes, have {have}"))
+    })?))
+}
+
 /// Read `BOOLEAN` (`INT8 != 0`).
 pub fn get_bool<B: Buf>(buf: &mut B) -> Result<bool> {
     Ok(get_i8(buf)? != 0)
@@ -1451,6 +1474,37 @@ mod tests {
         assert!(short_at.contains("need 3 bytes, have 3"), "{short_at}");
         let past = read_bytes_at(&[1, 2], 5, 1).unwrap_err().to_string();
         assert!(past.contains("need 1 bytes, have 2"), "{past}");
+    }
+
+    #[test]
+    fn size_delimited_matches_java_utils() {
+        assert_eq!(
+            size_delimited(&[0, 0, 0, 2, 1, 2, 3], 0).ok(),
+            Some(Some(&[1, 2][..]))
+        );
+        assert_eq!(
+            size_delimited(&[0, 0, 0, 1, 42], 0).ok(),
+            Some(Some(&[42][..]))
+        );
+        assert_eq!(
+            size_delimited(&[99, 0, 0, 0, 1, 42], 1).ok(),
+            Some(Some(&[42][..]))
+        );
+        assert_eq!(size_delimited(&[0, 0, 0, 0], 0).ok(), Some(Some(&[][..])));
+        assert_eq!(
+            size_delimited(&[0xFF, 0xFF, 0xFF, 0xFF, 1, 2], 0).ok(),
+            Some(None)
+        );
+        assert_eq!(size_delimited(&[0x80, 0, 0, 0], 0).ok(), Some(None));
+        let short_size = size_delimited(&[0, 0], 0).unwrap_err().to_string();
+        assert!(short_size.contains("need 4 bytes, have 2"), "{short_size}");
+        let short_payload = size_delimited(&[0, 0, 0, 3, 1, 2], 0)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            short_payload.contains("need 3 bytes, have 6"),
+            "{short_payload}"
+        );
     }
 
     #[test]
