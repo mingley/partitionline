@@ -368,7 +368,7 @@ pub struct JoinGroupRequest<'a> {
     pub group_id: &'a str,
     /// Session timeout.
     pub session_timeout_ms: i32,
-    /// Member id (`""` on first join).
+    /// Member id ([`Self::UNKNOWN_MEMBER_ID`] on first join).
     pub member_id: &'a str,
     /// Kafka `group.instance.id`.
     pub group_instance_id: Option<&'a str>,
@@ -383,6 +383,10 @@ pub struct JoinGroupRequest<'a> {
 }
 
 impl JoinGroupRequest<'_> {
+    /// Java `JoinGroupRequest.UNKNOWN_MEMBER_ID`.
+    pub const UNKNOWN_MEMBER_ID: &'static str = "";
+    /// Java `JoinGroupRequest.UNKNOWN_GENERATION_ID`.
+    pub const UNKNOWN_GENERATION_ID: i32 = -1;
     /// Java `JoinGroupRequest.UNKNOWN_PROTOCOL_NAME`.
     pub const UNKNOWN_PROTOCOL_NAME: &'static str = "";
 
@@ -393,10 +397,26 @@ impl JoinGroupRequest<'_> {
         reason.chars().take(MAX).collect()
     }
 
-    /// Java `JoinGroupRequest.requiresKnownMemberId`.
+    /// Java `JoinGroupRequest.requiresKnownMemberId(short)` (KIP-394; v4+).
     #[must_use]
     pub const fn requires_known_member_id(api_version: i16) -> bool {
         api_version >= 4
+    }
+
+    /// Java `JoinGroupRequest.requiresKnownMemberId(JoinGroupRequestData, short)`.
+    ///
+    /// Dynamic members on JoinGroup v4+ with [`Self::UNKNOWN_MEMBER_ID`] must
+    /// rejoin after `MEMBER_ID_REQUIRED`. Static members (`group.instance.id`)
+    /// and JoinGroup v2–v3 join in one RPC.
+    #[must_use]
+    pub fn requires_known_member_id_for(
+        member_id: &str,
+        group_instance_id: Option<&str>,
+        api_version: i16,
+    ) -> bool {
+        group_instance_id.is_none()
+            && member_id == Self::UNKNOWN_MEMBER_ID
+            && Self::requires_known_member_id(api_version)
     }
 
     /// Java `JoinGroupRequest.supportsSkippingAssignment`.
@@ -439,7 +459,7 @@ pub struct JoinGroupProtocolsRequest<'a> {
     pub group_id: &'a str,
     /// Session timeout.
     pub session_timeout_ms: i32,
-    /// Member id (`""` on first join).
+    /// Member id ([`JoinGroupRequest::UNKNOWN_MEMBER_ID`] on first join).
     pub member_id: &'a str,
     /// Kafka `group.instance.id`.
     pub group_instance_id: Option<&'a str>,
@@ -2226,9 +2246,32 @@ mod tests {
 
     #[test]
     fn join_group_request_matches_java() {
+        assert_eq!(JoinGroupRequest::UNKNOWN_MEMBER_ID, "");
+        assert_eq!(JoinGroupRequest::UNKNOWN_GENERATION_ID, -1);
         assert_eq!(JoinGroupRequest::UNKNOWN_PROTOCOL_NAME, "");
         assert!(!JoinGroupRequest::requires_known_member_id(3));
         assert!(JoinGroupRequest::requires_known_member_id(4));
+        assert!(!JoinGroupRequest::requires_known_member_id_for(
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            None,
+            3
+        ));
+        assert!(JoinGroupRequest::requires_known_member_id_for(
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            None,
+            4
+        ));
+        assert!(
+            !JoinGroupRequest::requires_known_member_id_for(
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                Some("worker-1"),
+                4
+            ),
+            "static members skip MEMBER_ID_REQUIRED"
+        );
+        assert!(!JoinGroupRequest::requires_known_member_id_for(
+            "m-1", None, 9
+        ));
         assert!(!JoinGroupRequest::supports_skipping_assignment(8));
         assert!(JoinGroupRequest::supports_skipping_assignment(9));
         let keep = "a".repeat(255);

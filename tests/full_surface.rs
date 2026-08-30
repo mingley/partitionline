@@ -2327,6 +2327,11 @@ async fn consumer_group_join_fetch_commit() {
         "ConsumerGroup must prefer JoinGroup v9 when the broker advertises it"
     );
     assert_eq!(
+        mock.join_group_calls(),
+        2,
+        "dynamic JoinGroup v9 must two-step on MEMBER_ID_REQUIRED"
+    );
+    assert_eq!(
         mock.last_join_group_reason(),
         None,
         "first JoinGroup must send a null Reason"
@@ -2897,6 +2902,11 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         Some(8),
         "client must speak JoinGroup v8 when the broker max is 8"
     );
+    assert_eq!(
+        mock.join_group_calls(),
+        2,
+        "dynamic JoinGroup v8 must two-step on MEMBER_ID_REQUIRED"
+    );
 
     let mock = common::Mock::start().await;
     mock.set_api_max(JOIN_GROUP, 6);
@@ -2908,6 +2918,11 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         Some(6),
         "client must speak JoinGroup v6 when the broker max is 6"
     );
+    assert_eq!(
+        mock.join_group_calls(),
+        2,
+        "dynamic JoinGroup v6 must two-step on MEMBER_ID_REQUIRED"
+    );
 
     let mock = common::Mock::start().await;
     mock.set_api_max(JOIN_GROUP, 5);
@@ -2918,6 +2933,11 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         mock.last_join_group_version(),
         Some(5),
         "client must speak JoinGroup v5 when the broker max is 5"
+    );
+    assert_eq!(
+        mock.join_group_calls(),
+        2,
+        "dynamic JoinGroup v5 must two-step on MEMBER_ID_REQUIRED"
     );
 
     let mock = common::Mock::start().await;
@@ -2931,6 +2951,11 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         Some(4),
         "client must speak JoinGroup v4 when the broker max is 4"
     );
+    assert_eq!(
+        mock.join_group_calls(),
+        2,
+        "JoinGroup v4 does not send group.instance.id; dynamic two-step still applies"
+    );
 
     let mock = common::Mock::start().await;
     mock.set_api_max(JOIN_GROUP, 2);
@@ -2941,6 +2966,11 @@ async fn join_group_negotiates_below_v9_when_broker_caps() {
         mock.last_join_group_version(),
         Some(2),
         "client must speak JoinGroup v2 when the broker max is 2"
+    );
+    assert_eq!(
+        mock.join_group_calls(),
+        1,
+        "JoinGroup v2 must join in one RPC (requiresKnownMemberId is false)"
     );
 }
 

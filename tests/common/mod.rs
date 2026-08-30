@@ -140,9 +140,9 @@ use partitionline::protocol::group::{
     encode_heartbeat_response, encode_join_group_response, encode_leave_group_response_version,
     encode_offset_commit_response, encode_offset_delete_response,
     encode_offset_fetch_groups_response, encode_offset_fetch_response, encode_sync_group_response,
-    CoordinatorResult, FetchedOffset, FetchedOffsetTopic, JoinMember, LeaveGroupMember,
-    LeaveGroupMemberResult, OffsetDeleteResult, OffsetFetchGroupResult, OffsetPartition,
-    OffsetTopic, COORDINATOR_TRANSACTION,
+    CoordinatorResult, FetchedOffset, FetchedOffsetTopic, JoinGroupRequest, JoinMember,
+    LeaveGroupMember, LeaveGroupMemberResult, OffsetDeleteResult, OffsetFetchGroupResult,
+    OffsetPartition, OffsetTopic, COORDINATOR_TRANSACTION,
 };
 use partitionline::protocol::header::{decode_request_header, encode_response_header};
 use partitionline::protocol::idem::{
@@ -3251,9 +3251,17 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
     match api_key {
         HEARTBEAT => encode_heartbeat_response(body, api_version, NC).unwrap(),
         LEAVE_GROUP => encode_leave_group_response_version(body, api_version, NC, &[]).unwrap(),
-        JOIN_GROUP => {
-            encode_join_group_response(body, api_version, NC, -1, "", "", "", &[]).unwrap()
-        }
+        JOIN_GROUP => encode_join_group_response(
+            body,
+            api_version,
+            NC,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+        .unwrap(),
         SYNC_GROUP => encode_sync_group_response(body, api_version, NC, &[]).unwrap(),
         OFFSET_COMMIT => encode_offset_commit_response(
             body,
@@ -5643,16 +5651,24 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 st.last_join_group_reason = reason;
                 st.last_join_protocols_n = Some(protocols.len());
                 st.last_group_instance_id = instance.clone();
-                if member_id.is_empty() {
+                let assigned = if member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID {
                     st.member_seq += 1;
-                    let assigned = format!("m-{}", st.member_seq);
+                    format!("m-{}", st.member_seq)
+                } else {
+                    member_id.clone()
+                };
+                if JoinGroupRequest::requires_known_member_id_for(
+                    &member_id,
+                    instance.as_deref(),
+                    header.api_version,
+                ) {
                     encode_join_group_response(
                         &mut body,
                         header.api_version,
-                        79,
-                        -1,
+                        error::MEMBER_ID_REQUIRED,
+                        JoinGroupRequest::UNKNOWN_GENERATION_ID,
                         protocol_name,
-                        "",
+                        JoinGroupRequest::UNKNOWN_MEMBER_ID,
                         &assigned,
                         &[],
                     )
@@ -5668,16 +5684,16 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         hb_total: 0,
                     });
                     let mut bumped = false;
-                    if !g.members.contains_key(&member_id) || g.joined.contains(&member_id) {
+                    if !g.members.contains_key(&assigned) || g.joined.contains(&assigned) {
                         g.generation += 1;
                         g.joined.clear();
                         g.assignments.clear();
                         bumped = true;
                     }
-                    g.members.insert(member_id.clone(), metadata.clone());
-                    g.joined.insert(member_id.clone());
+                    g.members.insert(assigned.clone(), metadata.clone());
+                    g.joined.insert(assigned.clone());
                     if let Some(instance) = instance {
-                        let _ = g.instances.insert(member_id.clone(), instance);
+                        let _ = g.instances.insert(assigned.clone(), instance);
                     }
                     let leader = g.members.keys().next().cloned().unwrap_or_default();
                     let members: Vec<JoinMember> = g
@@ -5700,7 +5716,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         gen,
                         protocol_name,
                         &leader,
-                        &member_id,
+                        &assigned,
                         &members,
                     )
                     .unwrap();

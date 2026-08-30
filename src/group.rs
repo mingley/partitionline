@@ -31,8 +31,9 @@ use crate::protocol::group::{
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_subscription,
     encode_subscription_owned, encode_sync_group_request, encode_tp_assignment, ConsumerProtocol,
-    FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, LeaveGroupMember,
-    OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, COORDINATOR_GROUP,
+    FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest,
+    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
+    COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -61,7 +62,7 @@ pub const LEAVE_GROUP_REASON_POLL_TIMEOUT: &str = "consumer poll timeout has exp
 
 /// JoinGroup / LeaveGroup Reason is a STRING truncated to 255 characters (KIP-800).
 pub(crate) fn truncate_group_reason(reason: &str) -> String {
-    crate::protocol::group::JoinGroupRequest::maybe_truncate_reason(reason)
+    JoinGroupRequest::maybe_truncate_reason(reason)
 }
 
 /// Split `partitions` across sorted `members` (Java range assignor).
@@ -324,10 +325,12 @@ pub struct ConsumerGroupMetadata {
 }
 
 impl ConsumerGroupMetadata {
-    /// Java `JoinGroupRequest.UNKNOWN_GENERATION_ID`.
-    pub const UNKNOWN_GENERATION_ID: i32 = -1;
-    /// Java `JoinGroupRequest.UNKNOWN_MEMBER_ID`.
-    pub const UNKNOWN_MEMBER_ID: &'static str = "";
+    /// Java `JoinGroupRequest.UNKNOWN_GENERATION_ID`. Same sentinel as
+    /// [`crate::protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`].
+    pub const UNKNOWN_GENERATION_ID: i32 = JoinGroupRequest::UNKNOWN_GENERATION_ID;
+    /// Java `JoinGroupRequest.UNKNOWN_MEMBER_ID`. Same sentinel as
+    /// [`crate::protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`].
+    pub const UNKNOWN_MEMBER_ID: &'static str = JoinGroupRequest::UNKNOWN_MEMBER_ID;
 
     /// Java `ConsumerGroupMetadata(String)` (`generationId`
     /// [`Self::UNKNOWN_GENERATION_ID`], `memberId`
@@ -1745,7 +1748,7 @@ impl ConsumerGroup {
             .collect();
         let version = spoken_join_group(self.coord.join_group_version)?;
         let reason = self.rebalance_reason.take();
-        if self.member_id.is_empty() {
+        let (error, generation, protocol, leader, assigned_id, skip_assignment, members) = loop {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
@@ -1760,7 +1763,7 @@ impl ConsumerGroup {
                         &JoinGroupProtocolsRequest {
                             group_id: &self.group_id,
                             session_timeout_ms: self.cfg.session_timeout_ms,
-                            member_id: "",
+                            member_id: &self.member_id,
                             group_instance_id: self.cfg.group_instance_id.as_deref(),
                             protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
                             protocols: &protocols,
@@ -1771,40 +1774,16 @@ impl ConsumerGroup {
                 timeout,
             )
             .await?;
-            let (error, _, _, _, assigned_id, _, _) =
-                decode_join_group_response(&mut body.clone(), version)?;
-            self.member_id = assigned_id;
-            if error != 0 && error != error::MEMBER_ID_REQUIRED {
-                return Err(Error::broker(error, "JoinGroup"));
+            let decoded = decode_join_group_response(&mut body.clone(), version)?;
+            if decoded.0 == error::MEMBER_ID_REQUIRED
+                && self.member_id == JoinGroupRequest::UNKNOWN_MEMBER_ID
+                && !decoded.4.is_empty()
+            {
+                self.member_id = decoded.4;
+                continue;
             }
-        }
-        let body = coord_roundtrip(
-            &mut self.coord,
-            &self.cfg,
-            &self.group_id,
-            COORDINATOR_GROUP,
-            JOIN_GROUP,
-            version,
-            |buf| {
-                encode_join_group_protocols_request(
-                    buf,
-                    version,
-                    &JoinGroupProtocolsRequest {
-                        group_id: &self.group_id,
-                        session_timeout_ms: self.cfg.session_timeout_ms,
-                        member_id: &self.member_id,
-                        group_instance_id: self.cfg.group_instance_id.as_deref(),
-                        protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
-                        protocols: &protocols,
-                        reason: reason.as_deref(),
-                    },
-                )
-            },
-            timeout,
-        )
-        .await?;
-        let (error, generation, protocol, leader, assigned_id, skip_assignment, members) =
-            decode_join_group_response(&mut body.clone(), version)?;
+            break decoded;
+        };
         if error != 0 {
             return Err(Error::broker(error, "JoinGroup"));
         }
@@ -2758,7 +2737,7 @@ fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::group::FetchedOffset;
+    use crate::protocol::group::{FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
 
     #[test]
@@ -2791,6 +2770,14 @@ mod tests {
         let unknown = ConsumerGroupMetadata::new("g");
         assert_eq!(ConsumerGroupMetadata::UNKNOWN_GENERATION_ID, -1);
         assert_eq!(ConsumerGroupMetadata::UNKNOWN_MEMBER_ID, "");
+        assert_eq!(
+            ConsumerGroupMetadata::UNKNOWN_GENERATION_ID,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID
+        );
+        assert_eq!(
+            ConsumerGroupMetadata::UNKNOWN_MEMBER_ID,
+            JoinGroupRequest::UNKNOWN_MEMBER_ID
+        );
         assert_eq!(unknown.group_id(), "g");
         assert_eq!(
             unknown.generation_id(),

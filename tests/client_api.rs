@@ -534,6 +534,11 @@ async fn classic_join_sends_group_instance_id() {
     .unwrap();
     assert_eq!(group.group_protocol(), GroupProtocol::Classic);
     assert_eq!(mock.last_group_instance_id().as_deref(), Some("worker-1"));
+    assert_eq!(
+        mock.join_group_calls(),
+        1,
+        "static member JoinGroup v5+ skips MEMBER_ID_REQUIRED"
+    );
     group.leave().await.unwrap();
     assert_eq!(
         mock.last_leave_group_version(),

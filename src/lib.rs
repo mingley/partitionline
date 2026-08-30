@@ -729,12 +729,20 @@
 //! ([`ConsumerGroupMetadata::UNKNOWN_GENERATION_ID`] /
 //! [`ConsumerGroupMetadata::UNKNOWN_MEMBER_ID`]; Java
 //! `JoinGroupRequest.UNKNOWN_GENERATION_ID` / `UNKNOWN_MEMBER_ID`).
+//! [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`] /
+//! [`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] /
 //! [`protocol::group::JoinGroupRequest::maybe_truncate_reason`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
+//! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
 //! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
-//! `JoinGroupRequest.UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` /
-//! `requiresKnownMemberId` / `supportsSkippingAssignment`.
+//! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
+//! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` /
+//! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
+//! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
+//! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;
+//! JoinGroup v4+ without `group.instance.id`). JoinGroup v2–v3 and static
+//! members join in one RPC.
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on
