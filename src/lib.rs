@@ -455,7 +455,9 @@
 //! [`protocol::api_keys::name`] is
 //! that enum name for an id. [`protocol::api_keys::has_id`] /
 //! [`protocol::api_keys::for_id`] are Java `ApiKeys.hasId` / `forId`
-//! (`Unexpected api key: {id}`).
+//! (`Unexpected api key: {id}`). [`protocol::api_keys::cluster_action`] /
+//! [`protocol::api_keys::forwardable`] are Java `ApiKeys.clusterAction` /
+//! `forwardable`.
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! on ShareFetch / ShareAcknowledge).

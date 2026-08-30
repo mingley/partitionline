@@ -258,6 +258,68 @@ pub fn for_id(id: i16) -> Result<&'static str> {
     name(id).ok_or_else(|| Error::protocol(format!("Unexpected api key: {id}")))
 }
 
+/// Java `ApiKeys.clusterAction` (inter-broker ClusterAction APIs).
+///
+/// Kafka 4.0.0 constructors. Unknown ids and this crate's 4.1-oriented
+/// share-offset keys (90–92) are `false`.
+#[must_use]
+pub const fn cluster_action(id: i16) -> bool {
+    matches!(
+        id,
+        4 | 5
+            | 6
+            | 7
+            | WRITE_TXN_MARKERS
+            | 52
+            | 53
+            | 54
+            | 55
+            | 56
+            | UPDATE_FEATURES
+            | 58
+            | 62
+            | 63
+            | ALLOCATE_PRODUCER_IDS
+            | 83
+            | 84
+            | 85
+            | 86
+            | 87
+    )
+}
+
+/// Java `ApiKeys.forwardable`.
+///
+/// Kafka 4.0.0 constructors. Unknown ids and this crate's 4.1-oriented
+/// share-offset keys (90–92) are `false`.
+#[must_use]
+pub const fn forwardable(id: i16) -> bool {
+    matches!(
+        id,
+        CREATE_TOPICS
+            | DELETE_TOPICS
+            | CREATE_ACLS
+            | DELETE_ACLS
+            | ALTER_CONFIGS
+            | CREATE_PARTITIONS
+            | CREATE_DELEGATION_TOKEN
+            | RENEW_DELEGATION_TOKEN
+            | EXPIRE_DELEGATION_TOKEN
+            | 43
+            | INCREMENTAL_ALTER_CONFIGS
+            | ALTER_PARTITION_REASSIGNMENTS
+            | LIST_PARTITION_REASSIGNMENTS
+            | ALTER_CLIENT_QUOTAS
+            | ALTER_USER_SCRAM_CREDENTIALS
+            | 55
+            | UPDATE_FEATURES
+            | UNREGISTER_BROKER
+            | ALLOCATE_PRODUCER_IDS
+            | 80
+            | 81
+    )
+}
+
 /// Highest version in both the broker range and the client range, if they overlap.
 pub fn pick_version(
     broker_min: i16,
@@ -290,5 +352,31 @@ mod tests {
         );
         let err = for_id(999).unwrap_err();
         assert!(err.to_string().contains("Unexpected api key: 999"), "{err}");
+    }
+
+    #[test]
+    fn cluster_action_and_forwardable_match_java_4_0() {
+        assert!(!cluster_action(PRODUCE));
+        assert!(!forwardable(PRODUCE));
+        assert!(cluster_action(WRITE_TXN_MARKERS));
+        assert!(!forwardable(WRITE_TXN_MARKERS));
+        assert!(!cluster_action(CREATE_TOPICS));
+        assert!(forwardable(CREATE_TOPICS));
+        assert!(cluster_action(UPDATE_FEATURES));
+        assert!(forwardable(UPDATE_FEATURES));
+        assert!(!cluster_action(UNREGISTER_BROKER));
+        assert!(forwardable(UNREGISTER_BROKER));
+        assert!(cluster_action(ALLOCATE_PRODUCER_IDS));
+        assert!(forwardable(ALLOCATE_PRODUCER_IDS));
+        assert!(!cluster_action(43));
+        assert!(forwardable(43));
+        assert!(cluster_action(55));
+        assert!(forwardable(55));
+        assert!(cluster_action(4));
+        assert!(!forwardable(4));
+        assert!(!cluster_action(DESCRIBE_SHARE_GROUP_OFFSETS));
+        assert!(!forwardable(DESCRIBE_SHARE_GROUP_OFFSETS));
+        assert!(!cluster_action(999));
+        assert!(!forwardable(999));
     }
 }
