@@ -499,6 +499,26 @@ impl Record {
         false
     }
 
+    /// Java `DefaultRecord.sizeOfBodyInBytes` (no length-prefix varint).
+    ///
+    /// `offset_delta` / `timestamp_delta` are the magic-v2 relative fields
+    /// (`offset - baseOffset`, `timestamp - baseTimestamp`).
+    pub fn size_of_body_in_bytes(&self, offset_delta: i32, timestamp_delta: i64) -> Result<i32> {
+        record_body_size(
+            &EncodeRecord::from_record(self),
+            offset_delta,
+            timestamp_delta,
+        )
+    }
+
+    /// Java `DefaultRecord.sizeInBytes(int, long, ByteBuffer, ByteBuffer, Header[])`.
+    ///
+    /// Body size plus the zigzag varint that prefixes the body on the wire.
+    pub fn size_in_bytes(&self, offset_delta: i32, timestamp_delta: i64) -> Result<i32> {
+        let body = self.size_of_body_in_bytes(offset_delta, timestamp_delta)?;
+        buf::i32_from_usize(buf::usize_from_i32(body)? + buf::varint_size(body))
+    }
+
     /// Control record for [`EndTransactionMarker`] (Java
     /// `MemoryRecordsBuilder.appendEndTxnMarker`).
     pub fn from_end_transaction_marker(
@@ -1056,6 +1076,70 @@ impl RecordBatch {
     fn record_count_i64(&self) -> i64 {
         i64::try_from(self.records.len()).unwrap_or(i64::MAX)
     }
+
+    /// Java `DefaultRecordBatch.sizeInBytes()` (`Records.LOG_OVERHEAD` plus
+    /// the length field). Encoded size, including compression.
+    pub fn size_in_bytes(&self) -> Result<i32> {
+        buf::i32_from_usize(self.encoded()?.len())
+    }
+
+    /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
+    pub fn checksum(&self) -> Result<u32> {
+        let buf = self.encoded()?;
+        let off = buf::usize_from_i32(Self::CRC_OFFSET)?;
+        let end = off.saturating_add(4);
+        let bytes = buf
+            .get(off..end)
+            .ok_or_else(|| Error::protocol("short crc field"))?;
+        let arr = <[u8; 4]>::try_from(bytes).map_err(|_| Error::protocol("short crc field"))?;
+        Ok(u32::from_be_bytes(arr))
+    }
+
+    /// Java `DefaultRecordBatch.sizeInBytes(Iterable)` (uncompressed).
+    ///
+    /// Empty is `0` (not [`Self::RECORD_BATCH_OVERHEAD`]). Offset deltas are
+    /// `0..n`; timestamps are relative to the first record.
+    pub fn size_in_bytes_of(records: &[Record]) -> Result<i32> {
+        record_batch_size_in_bytes(records, None)
+    }
+
+    /// Java `DefaultRecordBatch.sizeInBytes(long, Iterable)` (uncompressed).
+    ///
+    /// Empty is `0`. Offset deltas are `record.offset - base_offset`;
+    /// timestamps are relative to the first record.
+    pub fn size_in_bytes_from(base_offset: i64, records: &[Record]) -> Result<i32> {
+        record_batch_size_in_bytes(records, Some(base_offset))
+    }
+
+    fn encoded(&self) -> Result<BytesMut> {
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, self)?;
+        Ok(buf)
+    }
+}
+
+impl fmt::Display for RecordBatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let crc = self.checksum().unwrap_or(0);
+        let compression = self.compression_type().unwrap_or(Compression::None);
+        f.write_str("RecordBatch(magic=")?;
+        write!(f, "{}", self.magic())?;
+        f.write_str(", offsets=[")?;
+        write!(f, "{}, {}", self.base_offset(), self.last_offset())?;
+        f.write_str("], sequence=[")?;
+        write!(f, "{}, {}", self.base_sequence(), self.last_sequence())?;
+        f.write_str("], isTransactional=")?;
+        write!(f, "{}", self.is_transactional())?;
+        f.write_str(", isControlBatch=")?;
+        write!(f, "{}", self.is_control_batch())?;
+        f.write_str(", compression=")?;
+        write!(f, "{compression}")?;
+        f.write_str(", timestampType=")?;
+        write!(f, "{}", self.timestamp_type())?;
+        f.write_str(", crc=")?;
+        write!(f, "{crc}")?;
+        f.write_str(")")
+    }
 }
 
 fn gzip_compress(src: &[u8]) -> Result<Vec<u8>> {
@@ -1320,12 +1404,12 @@ fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
     }
 }
 
-fn encode_record(
-    buf: &mut BytesMut,
+/// Java `DefaultRecord.sizeOfBodyInBytes` (attributes + deltas + key/value/headers).
+fn record_body_size(
     rec: &EncodeRecord<'_>,
     offset_delta: i32,
     timestamp_delta: i64,
-) -> crate::error::Result<()> {
+) -> Result<i32> {
     let mut inner = 1
         + buf::varlong_size(timestamp_delta)
         + buf::varint_size(offset_delta)
@@ -1336,7 +1420,45 @@ fn encode_record(
         inner += buf::varint_size(buf::i32_from_usize(h.key.len())?) + h.key.len();
         inner += nullable_bytes_len(h.value.as_deref());
     }
-    buf::put_varint(buf, buf::i32_from_usize(inner)?);
+    buf::i32_from_usize(inner)
+}
+
+/// Java `DefaultRecordBatch.sizeInBytes` static helpers.
+///
+/// `None` base offset is `0..n` deltas (SimpleRecord). `Some` uses
+/// `record.offset - base`. Empty is `0`.
+fn record_batch_size_in_bytes(records: &[Record], base_offset: Option<i64>) -> Result<i32> {
+    let Some((first, rest)) = records.split_first() else {
+        return Ok(0);
+    };
+    let mut size = buf::usize_from_i32(RecordBatch::RECORD_BATCH_OVERHEAD)?;
+    let base_timestamp = first.timestamp;
+    let first_delta = match base_offset {
+        Some(base) => i32::try_from(first.offset.wrapping_sub(base))
+            .map_err(|_| Error::protocol("offset delta exceeds i32"))?,
+        None => 0,
+    };
+    size += buf::usize_from_i32(first.size_in_bytes(first_delta, 0)?)?;
+    for (i, rec) in rest.iter().enumerate() {
+        let offset_delta = match base_offset {
+            Some(base) => i32::try_from(rec.offset.wrapping_sub(base))
+                .map_err(|_| Error::protocol("offset delta exceeds i32"))?,
+            None => buf::i32_from_usize(i.saturating_add(1))?,
+        };
+        let timestamp_delta = rec.timestamp.wrapping_sub(base_timestamp);
+        size += buf::usize_from_i32(rec.size_in_bytes(offset_delta, timestamp_delta)?)?;
+    }
+    buf::i32_from_usize(size)
+}
+
+fn encode_record(
+    buf: &mut BytesMut,
+    rec: &EncodeRecord<'_>,
+    offset_delta: i32,
+    timestamp_delta: i64,
+) -> crate::error::Result<()> {
+    let inner = record_body_size(rec, offset_delta, timestamp_delta)?;
+    buf::put_varint(buf, inner);
     buf.put_i8(0);
     buf::put_varlong(buf, timestamp_delta);
     buf::put_varint(buf, offset_delta);
@@ -1358,7 +1480,7 @@ fn encode_record(
     for h in rec.headers {
         buf::put_varint(buf, buf::i32_from_usize(h.key.len())?);
         buf.extend_from_slice(h.key.as_bytes());
-        match &h.value {
+        match h.value.as_deref() {
             None => buf::put_varint(buf, -1),
             Some(v) => {
                 buf::put_varint(buf, buf::i32_from_usize(v.len())?);
@@ -2379,5 +2501,125 @@ mod tests {
         let decoded = decode_record_batch(&mut &buf[..]).unwrap();
         assert_eq!(decoded.records[0].offset, 50);
         assert_eq!(decoded.records[1].offset, 51);
+    }
+
+    #[test]
+    fn record_and_batch_size_in_bytes_match_java() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 10,
+            key: Some(Bytes::from_static(b"k")),
+            value: Some(Bytes::from_static(b"val")),
+            headers: vec![Header::new("h", Bytes::from_static(b"v"))],
+        };
+        let offset_delta = 3;
+        let timestamp_delta = 5;
+        let body = rec
+            .size_of_body_in_bytes(offset_delta, timestamp_delta)
+            .unwrap();
+        let size = rec.size_in_bytes(offset_delta, timestamp_delta).unwrap();
+        assert_eq!(
+            size,
+            buf::i32_from_usize(buf::usize_from_i32(body).unwrap() + buf::varint_size(body))
+                .unwrap()
+        );
+        let mut encoded = BytesMut::new();
+        encode_record(
+            &mut encoded,
+            &EncodeRecord::from_record(&rec),
+            offset_delta,
+            timestamp_delta,
+        )
+        .unwrap();
+        assert_eq!(size, buf::i32_from_usize(encoded.len()).unwrap());
+
+        let rec_a = Record {
+            offset: 0,
+            timestamp: 100,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        let rec_b = Record {
+            offset: 1,
+            timestamp: 110,
+            key: None,
+            value: Some(Bytes::from_static(b"bb")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec_a.clone(), rec_b.clone()]);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let encoded_len = buf::i32_from_usize(buf.len()).unwrap();
+        assert_eq!(batch.size_in_bytes().unwrap(), encoded_len);
+        assert_eq!(
+            RecordBatch::size_in_bytes_of(&batch.records).unwrap(),
+            encoded_len
+        );
+
+        assert_eq!(RecordBatch::size_in_bytes_of(&[]).unwrap(), 0);
+        let empty_batch = RecordBatch::from_records(vec![]);
+        assert_eq!(
+            empty_batch.size_in_bytes().unwrap(),
+            RecordBatch::RECORD_BATCH_OVERHEAD
+        );
+
+        let aligned_a = Record {
+            offset: 10,
+            timestamp: 5,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        let aligned_b = Record {
+            offset: 11,
+            timestamp: 7,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        assert_eq!(
+            RecordBatch::size_in_bytes_from(10, &[aligned_a.clone(), aligned_b.clone()]).unwrap(),
+            RecordBatch::size_in_bytes_of(&[aligned_a.clone(), aligned_b]).unwrap()
+        );
+        let far_b = Record {
+            offset: 74,
+            timestamp: 5,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        };
+        assert_ne!(
+            RecordBatch::size_in_bytes_from(10, &[aligned_a.clone(), far_b.clone()]).unwrap(),
+            RecordBatch::size_in_bytes_of(&[aligned_a, far_b]).unwrap()
+        );
+
+        let crc = batch.checksum().unwrap();
+        let off = buf::usize_from_i32(RecordBatch::CRC_OFFSET).unwrap();
+        let crc_bytes = buf.get(off..off + 4).unwrap();
+        assert_eq!(crc, u32::from_be_bytes(crc_bytes.try_into().unwrap()));
+        assert_eq!(
+            batch.to_string(),
+            format!(
+                "RecordBatch(magic=2, offsets=[0, 1], sequence=[-1, -1], isTransactional=false, isControlBatch=false, compression=none, timestampType=CreateTime, crc={crc})"
+            )
+        );
+
+        let gz = batch.clone().with_compression(Compression::Gzip);
+        let mut gz_buf = BytesMut::new();
+        encode_record_batch(&mut gz_buf, &gz).unwrap();
+        assert_eq!(
+            gz.size_in_bytes().unwrap(),
+            buf::i32_from_usize(gz_buf.len()).unwrap()
+        );
+        let gz_crc = gz.checksum().unwrap();
+        assert_eq!(
+            gz.to_string(),
+            format!(
+                "RecordBatch(magic=2, offsets=[0, 1], sequence=[-1, -1], isTransactional=false, isControlBatch=false, compression=gzip, timestampType=CreateTime, crc={gz_crc})"
+            )
+        );
+        let lat = batch.with_timestamp_type(TimestampType::LogAppendTime);
+        assert!(lat.to_string().contains("timestampType=LogAppendTime"));
     }
 }

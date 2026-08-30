@@ -610,6 +610,13 @@
 //! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
+//! [`Record::size_of_body_in_bytes`] / [`Record::size_in_bytes`] are Java
+//! `DefaultRecord.sizeOfBodyInBytes` / `sizeInBytes`.
+//! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
+//! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
+//! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
+//! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
+//! [`RecordBatch`] `Display` is Java `DefaultRecordBatch.toString`.
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body
