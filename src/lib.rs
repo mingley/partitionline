@@ -144,6 +144,9 @@
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
 //! `LeaveGroupResponse.shouldClientThrottle` (v2+);
+//! [`protocol::group::LeaveGroupResponse::error_counts`] is Java
+//! `LeaveGroupResponse.errorCounts` (top-level `errorCode` plus each
+//! member-level code, including `NONE`);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),

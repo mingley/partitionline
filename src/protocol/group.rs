@@ -1841,6 +1841,23 @@ impl LeaveGroupResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `LeaveGroupResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// member-level code (including `NONE`). Members are empty below v3,
+    /// so that case is the top-level code alone.
+    #[must_use]
+    pub fn error_counts(error_code: i16, members: &[LeaveGroupMemberResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(error_code).or_insert(0);
+        *count += 1;
+        for member in members {
+            let count = counts.entry(member.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
@@ -6215,6 +6232,49 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_leave_group_request_members(&mut buf, 5, "g-rm", &members).unwrap();
         assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn leave_group_response_error_counts_matches_java() {
+        assert_eq!(
+            LeaveGroupResponse::error_counts(0, &[]),
+            HashMap::from([(0, 1)])
+        );
+        let counts = LeaveGroupResponse::error_counts(
+            0,
+            &[
+                LeaveGroupMemberResult {
+                    member_id: "ok".into(),
+                    group_instance_id: None,
+                    error_code: 0,
+                },
+                LeaveGroupMemberResult {
+                    member_id: "unknown".into(),
+                    group_instance_id: None,
+                    error_code: crate::error::UNKNOWN_MEMBER_ID,
+                },
+                LeaveGroupMemberResult {
+                    member_id: "ok2".into(),
+                    group_instance_id: Some("i1".into()),
+                    error_code: 0,
+                },
+            ],
+        );
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 3), (crate::error::UNKNOWN_MEMBER_ID, 1)])
+        );
+        let top = LeaveGroupResponse::error_counts(crate::error::NOT_COORDINATOR, &[]);
+        assert_eq!(top, HashMap::from([(crate::error::NOT_COORDINATOR, 1)]));
+        let same = LeaveGroupResponse::error_counts(
+            crate::error::UNKNOWN_MEMBER_ID,
+            &[LeaveGroupMemberResult {
+                member_id: "m".into(),
+                group_instance_id: None,
+                error_code: crate::error::UNKNOWN_MEMBER_ID,
+            }],
+        );
+        assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_MEMBER_ID, 2)]));
     }
 
     #[test]
