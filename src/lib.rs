@@ -54,6 +54,10 @@
 //! `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
 //! [`PartitionInfo::from_partition_metadata`] is Java
 //! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
+//! [`protocol::api::MetadataRequestTopic::convert_from_names`] /
+//! [`protocol::api::MetadataRequestTopic::convert_from_ids`] are Java
+//! `MetadataRequest.convertToMetadataRequestTopic` /
+//! `convertTopicIdsToMetadataRequestTopic`.
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).

@@ -3923,11 +3923,7 @@ impl Admin {
                 "broker does not support Metadata v12 topic IDs".into(),
             ));
         }
-        let topics: Vec<MetadataRequestTopic> = ids
-            .iter()
-            .copied()
-            .map(MetadataRequestTopic::by_id)
-            .collect();
+        let topics = MetadataRequestTopic::convert_from_ids(ids.iter().copied());
         let md = self
             .fetch_metadata_request_with(Some(&topics), include_authorized_operations, timeout)
             .await?;
@@ -6365,12 +6361,8 @@ impl Admin {
         topics: Option<&[String]>,
         include_topic_authorized_operations: bool,
     ) -> Result<MetadataResponse> {
-        let owned = topics.map(|names| {
-            names
-                .iter()
-                .map(|name| MetadataRequestTopic::by_name(name.clone()))
-                .collect::<Vec<_>>()
-        });
+        let owned =
+            topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
         let timeout = self.cfg.request_timeout;
         self.fetch_metadata_request_with(
             owned.as_deref(),
@@ -9744,10 +9736,7 @@ impl Admin {
         include_authorized_operations: bool,
         timeout: Duration,
     ) -> Result<Vec<TopicDescription>> {
-        let owned: Vec<MetadataRequestTopic> = names
-            .iter()
-            .map(|name| MetadataRequestTopic::by_name(name.clone()))
-            .collect();
+        let owned = MetadataRequestTopic::convert_from_names(names.iter().cloned());
         let md = self
             .fetch_metadata_request_with(Some(&owned), include_authorized_operations, timeout)
             .await?;

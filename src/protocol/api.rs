@@ -858,6 +858,9 @@ impl MetadataResponse {
 /// Java `describeTopics(Collection<String>)` sends [`Self::by_name`]
 /// (Name set, TopicId zero). Java `describeTopics(TopicCollection.ofTopicIds)`
 /// sends [`Self::by_id`] (Name null, TopicId set).
+/// [`Self::convert_from_names`] / [`Self::convert_from_ids`] are Java
+/// `MetadataRequest.convertToMetadataRequestTopic` /
+/// `convertTopicIdsToMetadataRequestTopic`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetadataRequestTopic {
     /// Topic name, or `None` when describing by TopicId.
@@ -886,6 +889,22 @@ impl MetadataRequestTopic {
             topic_id,
         }
     }
+
+    /// Java `MetadataRequest.convertToMetadataRequestTopic`.
+    #[must_use]
+    pub fn convert_from_names<I>(names: I) -> Vec<Self>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        names.into_iter().map(Self::by_name).collect()
+    }
+
+    /// Java `MetadataRequest.convertTopicIdsToMetadataRequestTopic`.
+    #[must_use]
+    pub fn convert_from_ids(ids: impl IntoIterator<Item = [u8; 16]>) -> Vec<Self> {
+        ids.into_iter().map(Self::by_id).collect()
+    }
 }
 
 /// Encode Metadata. `topics = None` asks for all topics.
@@ -913,12 +932,7 @@ pub fn encode_metadata_request_with(
     allow_auto: bool,
     include_topic_authorized_operations: bool,
 ) -> crate::error::Result<()> {
-    let owned = topics.map(|names| {
-        names
-            .iter()
-            .map(|name| MetadataRequestTopic::by_name(name.clone()))
-            .collect::<Vec<_>>()
-    });
+    let owned = topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
     encode_metadata_request_topics(
         buf,
         version,
@@ -2549,6 +2563,14 @@ mod tests {
         assert!(err.to_string().contains("null topic names"), "got {err}");
         encode_metadata_request_topics(&mut BytesMut::new(), 12, Some(&by_id), false, false)
             .unwrap();
+        assert_eq!(
+            MetadataRequestTopic::convert_from_names(["t"]),
+            vec![MetadataRequestTopic::by_name("t")]
+        );
+        assert_eq!(
+            MetadataRequestTopic::convert_from_ids([id]),
+            vec![MetadataRequestTopic::by_id(id)]
+        );
         let named_id = [MetadataRequestTopic {
             name: Some("t".into()),
             topic_id: id,
