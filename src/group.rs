@@ -2025,7 +2025,10 @@ impl ConsumerGroup {
                 starts.push((topic.clone(), *part, *o));
                 continue;
             }
-            let committed = map.get(&key).map(|m| m.offset).unwrap_or(-1);
+            let committed = map
+                .get(&key)
+                .map(|m| m.offset)
+                .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
             let start = if committed >= 0 {
                 committed
             } else {
@@ -2548,7 +2551,7 @@ fn committed_starts(
         let committed = map
             .get(&(topic.clone(), *part))
             .map(|m| m.offset)
-            .unwrap_or(-1);
+            .unwrap_or(OffsetAndMetadata::INVALID_OFFSET);
         let start = if committed >= 0 {
             committed
         } else {
@@ -3152,6 +3155,7 @@ mod tests {
         }];
         let starts = committed_starts(&wanted, &fetched, AutoOffsetReset::Earliest).unwrap();
         assert_eq!(starts, vec![("t".into(), 0, 5), ("t".into(), 1, 0)]);
+        assert_eq!(OffsetAndMetadata::INVALID_OFFSET, -1);
         assert!(committed_starts(&wanted, &fetched, AutoOffsetReset::None).is_err());
     }
 

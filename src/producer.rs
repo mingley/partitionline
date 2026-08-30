@@ -2849,7 +2849,10 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
         return Vec::new();
     };
     let topic0 = first.rec.topic.clone();
-    let part0 = first.rec.partition.unwrap_or(-1);
+    let part0 = first
+        .rec
+        .partition
+        .unwrap_or(RecordMetadata::UNKNOWN_PARTITION);
     let homogeneous = batch
         .iter()
         .all(|p| p.rec.partition == Some(part0) && p.rec.topic.as_ref() == topic0.as_ref());
@@ -2859,7 +2862,10 @@ fn group_pending(batch: Vec<Pending>) -> Vec<(Arc<str>, i32, Vec<Pending>)> {
     let mut assigned: HashMap<(Arc<str>, i32), Vec<Pending>> = HashMap::new();
     for p in batch {
         assigned
-            .entry((p.rec.topic.clone(), p.rec.partition.unwrap_or(-1)))
+            .entry((
+                p.rec.topic.clone(),
+                p.rec.partition.unwrap_or(RecordMetadata::UNKNOWN_PARTITION),
+            ))
             .or_default()
             .push(p);
     }

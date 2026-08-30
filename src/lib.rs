@@ -124,7 +124,8 @@
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
 //! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
-//! match Java `RecordMetadata`. [`protocol::api::ProducePartitionResponse::INVALID_OFFSET`]
+//! match Java `RecordMetadata`. [`RecordMetadata::UNKNOWN_PARTITION`] is Java
+//! `RecordMetadata.UNKNOWN_PARTITION`. [`protocol::api::ProducePartitionResponse::INVALID_OFFSET`]
 //! is Java `ProduceResponse.INVALID_OFFSET`. Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
 //! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills
@@ -206,7 +207,9 @@
 //! [`ConsumerConfig::max_partition_fetch_bytes`] set them independently.
 //! [`Consumer::partitions_for`] /
 //! [`Producer::partitions_for`] return Metadata (leader, replicas, ISR,
-//! [`PartitionInfo::offline_replicas`], [`PartitionInfo::leader_epoch`]).
+//! [`PartitionInfo::offline_replicas`], [`PartitionInfo::leader_epoch`];
+//! unknown leader is [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! [`Consumer::wakeup`] interrupts fetch
 //! (clone [`WakeupHandle`] for another task).
 //! [`Consumer::client_instance_id`] is Java `clientInstanceId` (KIP-714;
@@ -234,7 +237,9 @@
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
 //! `PartitionData.hasError` (`FetchedOffset` `Display` is
 //! `PartitionData.toString`). [`OffsetAndMetadata::NO_METADATA`] /
-//! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies. [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /
+//! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
+//! uses that sentinel when OffsetFetch omits a partition, then
+//! `auto.offset.reset`). [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /
 //! [`OffsetAndTimestamp::UNKNOWN_TIMESTAMP`] are Java
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
 //! [`TopicIdPartition`] `Display` is Java
@@ -293,8 +298,9 @@
 //! magic is 2 or greater; the other two are always false).
 //! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
 //! [`RecordBatch::has_producer_id`] is Java `AbstractRecordBatch.hasProducerId`
-//! (`NO_PRODUCER_ID < producerId`). Fetch LastFetchedEpoch resets and
-//! omitted last-fetched epoch use [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+//! (`NO_PRODUCER_ID < producerId`). Fetch LastFetchedEpoch resets,
+//! [`Consumer::seek`], and omitted last-fetched epoch use
+//! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`ControlRecordType`] / [`EndTransactionMarker`] are Java

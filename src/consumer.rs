@@ -476,7 +476,8 @@ pub struct FetchedRecord {
     pub headers: Vec<Header>,
     /// Partition leader epoch from the record batch (Java `leaderEpoch`).
     ///
-    /// `None` when the wire value is `-1`.
+    /// `None` when the wire value is [`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`]
+    /// or otherwise negative.
     pub leader_epoch: Option<i32>,
 }
 
@@ -492,13 +493,15 @@ impl FetchedRecord {
         TopicPartition::new(self.topic.clone(), self.partition)
     }
 
-    /// Serialized key size in bytes, or `-1` if there is no key (Java `serializedKeySize`).
+    /// Serialized key size in bytes, or [`Self::NULL_SIZE`] if there is no key
+    /// (Java `serializedKeySize`).
     #[must_use]
     pub fn serialized_key_size(&self) -> i32 {
         serialized_bytes_size(self.key.as_ref())
     }
 
-    /// Serialized value size in bytes, or `-1` if there is no value (Java `serializedValueSize`).
+    /// Serialized value size in bytes, or [`Self::NULL_SIZE`] if there is no value
+    /// (Java `serializedValueSize`).
     #[must_use]
     pub fn serialized_value_size(&self) -> i32 {
         serialized_bytes_size(self.value.as_ref())
@@ -599,7 +602,7 @@ impl fmt::Display for FetchedRecord {
 fn serialized_bytes_size(bytes: Option<&Bytes>) -> i32 {
     bytes
         .map(|b| i32::try_from(b.len()).unwrap_or(i32::MAX))
-        .unwrap_or(-1)
+        .unwrap_or(FetchedRecord::NULL_SIZE)
 }
 
 /// Records from one fetch or poll (Java `ConsumerRecords`).
@@ -1053,16 +1056,18 @@ impl fmt::Display for OffsetAndTimestamp {
 /// One partition from Metadata: leader, replicas, ISR, and offline replicas.
 ///
 /// Java `PartitionInfo`. [`Self::offline_replicas`] is Java `offlineReplicas`.
-/// [`Self::leader_epoch`] is Metadata v7+ (`-1` when unknown).
+/// [`Self::leader_epoch`] is Metadata v7+
+/// ([`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`] when unknown).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionInfo {
     /// Topic name.
     pub topic: String,
     /// Partition index.
     pub partition: i32,
-    /// Leader broker id, or `-1` if unknown.
+    /// Leader broker id, or [`MetadataResponse::NO_LEADER_ID`].
     pub leader: i32,
-    /// Leader epoch from Metadata v7+, or `-1`.
+    /// Leader epoch from Metadata v7+, or
+    /// [`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
     /// Replica broker ids.
     pub replicas: Vec<i32>,
@@ -1085,13 +1090,15 @@ impl PartitionInfo {
         self.partition
     }
 
-    /// Java `PartitionInfo.leader` (broker id, or `-1`).
+    /// Java `PartitionInfo.leader` (broker id, or
+    /// [`MetadataResponse::NO_LEADER_ID`]).
     #[must_use]
     pub fn leader(&self) -> i32 {
         self.leader
     }
 
-    /// Metadata v7+ leader epoch (`-1` when unknown).
+    /// Metadata v7+ leader epoch
+    /// ([`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`] when unknown).
     #[must_use]
     pub fn leader_epoch(&self) -> i32 {
         self.leader_epoch
@@ -2672,7 +2679,12 @@ impl Consumer {
     /// Clears Fetch `LastFetchedEpoch` (KIP-320). To keep a leader epoch,
     /// use [`Self::seek_with_metadata`].
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
-        self.seek_with_epoch(topic, partition, offset, -1)
+        self.seek_with_epoch(
+            topic,
+            partition,
+            offset,
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        )
     }
 
     /// [`Self::seek`] for a [`TopicPartition`].
@@ -3267,12 +3279,17 @@ mod tests {
         let no_leader = PartitionInfo {
             topic: "t".into(),
             partition: 0,
-            leader: -1,
-            leader_epoch: -1,
+            leader: MetadataResponse::NO_LEADER_ID,
+            leader_epoch: crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
             replicas: Vec::new(),
             isr: Vec::new(),
             offline_replicas: Vec::new(),
         };
+        assert_eq!(no_leader.leader(), MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            no_leader.leader_epoch(),
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert_eq!(
             no_leader.to_string(),
             "Partition(topic = t, partition = 0, leader = none, replicas = [], isr = [], offlineReplicas = [])"
@@ -3294,6 +3311,8 @@ mod tests {
             crate::RecordBatch::NO_TIMESTAMP
         );
         assert_eq!(FetchedRecord::NULL_SIZE, -1);
+        assert_eq!(rec.serialized_key_size(), FetchedRecord::NULL_SIZE);
+        assert_eq!(rec.serialized_value_size(), FetchedRecord::NULL_SIZE);
         assert_eq!(
             rec.to_string(),
             "ConsumerRecord(topic = t, partition = 0, leaderEpoch = null, offset = 11, CreateTime = 0, deliveryCount = null, serialized key size = -1, serialized value size = -1, headers = RecordHeaders(headers = [], isReadOnly = true), key = null, value = null)"
