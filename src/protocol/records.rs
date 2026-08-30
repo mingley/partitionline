@@ -31,6 +31,18 @@ impl Records {
     pub const MAGIC_LENGTH: i32 = 1;
     /// Java `Records.HEADER_SIZE_UP_TO_MAGIC`.
     pub const HEADER_SIZE_UP_TO_MAGIC: i32 = Self::MAGIC_OFFSET + Self::MAGIC_LENGTH;
+
+    /// Java `AbstractRecords.estimateSizeInBytesUpperBound` (magic-v2).
+    ///
+    /// Compression is ignored: v2 uses
+    /// [`RecordBatch::estimate_batch_size_upper_bound`].
+    pub fn estimate_size_in_bytes_upper_bound(
+        key: Option<&[u8]>,
+        value: Option<&[u8]>,
+        headers: &[Header],
+    ) -> Result<i32> {
+        RecordBatch::estimate_batch_size_upper_bound(key, value, headers)
+    }
 }
 
 /// Kafka record-batch compression codec.
@@ -517,6 +529,12 @@ impl Record {
     pub fn size_in_bytes(&self, offset_delta: i32, timestamp_delta: i64) -> Result<i32> {
         let body = self.size_of_body_in_bytes(offset_delta, timestamp_delta)?;
         buf::i32_from_usize(buf::usize_from_i32(body)? + buf::varint_size(body))
+    }
+
+    /// Java `DefaultRecord.recordSizeUpperBound` (`MAX_RECORD_OVERHEAD` plus
+    /// key, value, and headers; not the on-wire size).
+    pub fn record_size_upper_bound(&self) -> Result<i32> {
+        record_size_upper_bound(self.key(), self.value(), self.headers())
     }
 
     /// Control record for [`EndTransactionMarker`] (Java
@@ -1111,6 +1129,19 @@ impl RecordBatch {
         record_batch_size_in_bytes(records, Some(base_offset))
     }
 
+    /// Java `DefaultRecordBatch.estimateBatchSizeUpperBound` (one-record batch
+    /// overhead; compression is not included).
+    pub fn estimate_batch_size_upper_bound(
+        key: Option<&[u8]>,
+        value: Option<&[u8]>,
+        headers: &[Header],
+    ) -> Result<i32> {
+        buf::i32_from_usize(
+            buf::usize_from_i32(Self::RECORD_BATCH_OVERHEAD)?
+                + buf::usize_from_i32(record_size_upper_bound(key, value, headers)?)?,
+        )
+    }
+
     fn encoded(&self) -> Result<BytesMut> {
         let mut buf = BytesMut::new();
         encode_record_batch(&mut buf, self)?;
@@ -1404,23 +1435,45 @@ fn nullable_bytes_len(bytes: Option<&[u8]>) -> usize {
     }
 }
 
+/// Java `DefaultRecord.sizeOf` (key, value, headers; no attributes or deltas).
+fn size_of_key_value_headers(
+    key: Option<&[u8]>,
+    value: Option<&[u8]>,
+    headers: &[Header],
+) -> Result<usize> {
+    let mut size = nullable_bytes_len(key)
+        + nullable_bytes_len(value)
+        + buf::varint_size(buf::i32_from_usize(headers.len())?);
+    for h in headers {
+        size += buf::varint_size(buf::i32_from_usize(h.key.len())?) + h.key.len();
+        size += nullable_bytes_len(h.value.as_deref());
+    }
+    Ok(size)
+}
+
+/// Java `DefaultRecord.recordSizeUpperBound`.
+fn record_size_upper_bound(
+    key: Option<&[u8]>,
+    value: Option<&[u8]>,
+    headers: &[Header],
+) -> Result<i32> {
+    buf::i32_from_usize(
+        buf::usize_from_i32(Record::MAX_RECORD_OVERHEAD)?
+            + size_of_key_value_headers(key, value, headers)?,
+    )
+}
+
 /// Java `DefaultRecord.sizeOfBodyInBytes` (attributes + deltas + key/value/headers).
 fn record_body_size(
     rec: &EncodeRecord<'_>,
     offset_delta: i32,
     timestamp_delta: i64,
 ) -> Result<i32> {
-    let mut inner = 1
-        + buf::varlong_size(timestamp_delta)
-        + buf::varint_size(offset_delta)
-        + nullable_bytes_len(rec.key)
-        + nullable_bytes_len(rec.value)
-        + buf::varint_size(buf::i32_from_usize(rec.headers.len())?);
-    for h in rec.headers {
-        inner += buf::varint_size(buf::i32_from_usize(h.key.len())?) + h.key.len();
-        inner += nullable_bytes_len(h.value.as_deref());
-    }
-    buf::i32_from_usize(inner)
+    buf::i32_from_usize(
+        1 + buf::varlong_size(timestamp_delta)
+            + buf::varint_size(offset_delta)
+            + size_of_key_value_headers(rec.key, rec.value, rec.headers)?,
+    )
 }
 
 /// Java `DefaultRecordBatch.sizeInBytes` static helpers.
@@ -2621,5 +2674,33 @@ mod tests {
         );
         let lat = batch.with_timestamp_type(TimestampType::LogAppendTime);
         assert!(lat.to_string().contains("timestampType=LogAppendTime"));
+    }
+
+    #[test]
+    fn record_size_upper_bound_matches_java() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 0,
+            key: None,
+            value: Some(Bytes::from_static(b"abcd")),
+            headers: vec![],
+        };
+        let size_of = buf::i32_from_usize(
+            size_of_key_value_headers(rec.key(), rec.value(), rec.headers()).unwrap(),
+        )
+        .unwrap();
+        let upper = rec.record_size_upper_bound().unwrap();
+        assert_eq!(upper, Record::MAX_RECORD_OVERHEAD + size_of);
+        assert!(upper >= rec.size_in_bytes(0, 0).unwrap());
+        let batch_upper =
+            RecordBatch::estimate_batch_size_upper_bound(rec.key(), rec.value(), rec.headers())
+                .unwrap();
+        assert_eq!(batch_upper, RecordBatch::RECORD_BATCH_OVERHEAD + upper);
+        assert_eq!(
+            Records::estimate_size_in_bytes_upper_bound(rec.key(), rec.value(), rec.headers())
+                .unwrap(),
+            batch_upper
+        );
+        assert_eq!(batch_upper, 89);
     }
 }

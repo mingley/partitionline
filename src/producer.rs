@@ -27,7 +27,7 @@ use crate::protocol::header::encode_request_header_fields;
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::records::{
     write_java_optional, write_java_optional_bytes, write_java_record_headers, write_record_batch,
-    BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch,
+    BatchHeader, Compression, EncodeRecord, Header as RecordHeader, RecordBatch, Records,
 };
 use crate::protocol::txn::{
     decode_add_offsets_to_txn_response, decode_add_partitions_to_txn_response,
@@ -58,8 +58,10 @@ pub struct ProducerConfig {
     /// [`crate::Producer::send`] waits up to [`Self::max_block`];
     /// [`crate::Producer::try_send`] returns [`crate::Error::QueueFull`].
     pub buffer_memory: usize,
-    /// Kafka `max.request.size`. Key plus value bytes of one record must not
-    /// exceed this. Produce batches are also capped at
+    /// Kafka `max.request.size`. Java `KafkaProducer.ensureValidRecordSize`
+    /// compares [`crate::protocol::records::Records::estimate_size_in_bytes_upper_bound`]
+    /// to this.
+    /// Produce batches are also capped at
     /// `min(batch_bytes, max_request_size)` when both are non-zero. Default
     /// 1 MiB (Java). Zero means no extra cap ([`Self::batch_bytes`] still
     /// applies). Oversized records return [`crate::Error::RecordTooLarge`].
@@ -231,7 +233,9 @@ impl ProducerConfig {
         self
     }
 
-    /// Kafka `max.request.size`. Key plus value bytes of one record.
+    /// Kafka `max.request.size`. Java `ensureValidRecordSize` compares
+    /// [`crate::protocol::records::Records::estimate_size_in_bytes_upper_bound`]
+    /// to this.
     ///
     /// Default 1 MiB (Java). Zero means no extra cap. A record larger than
     /// this returns [`crate::Error::RecordTooLarge`] from `send` / `try_send`
@@ -871,11 +875,14 @@ fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
         return Ok(bytes);
     }
     let cap = u64::try_from(cap).unwrap_or(u64::MAX);
-    if bytes > cap {
-        return Err(Error::RecordTooLarge {
-            size: bytes,
-            max: cap,
-        });
+    let serialized = Records::estimate_size_in_bytes_upper_bound(
+        rec.key.as_deref(),
+        rec.value.as_deref(),
+        &rec.headers,
+    )?;
+    let size = u64::try_from(serialized).unwrap_or(u64::MAX);
+    if size > cap {
+        return Err(Error::RecordTooLarge { size, max: cap });
     }
     Ok(bytes)
 }
@@ -1300,7 +1307,8 @@ impl Producer {
     /// partition leader are ready, or when [`ProducerConfig::buffer_memory`]
     /// is full. Call again; [`Self::send`] waits up to
     /// [`ProducerConfig::max_block`].
-    /// A record larger than [`ProducerConfig::max_request_size`] returns
+    /// A record whose Java `estimateSizeInBytesUpperBound` is larger than
+    /// [`ProducerConfig::max_request_size`] returns
     /// [`Error::RecordTooLarge`] without waiting (Java `RecordTooLargeException`
     /// `The message is {size} bytes when serialized which is larger than {max},
     /// which is the value of the max.request.size configuration.`).

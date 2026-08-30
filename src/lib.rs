@@ -617,6 +617,13 @@
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
 //! [`RecordBatch`] `Display` is Java `DefaultRecordBatch.toString`.
+//! [`Record::record_size_upper_bound`] /
+//! [`RecordBatch::estimate_batch_size_upper_bound`] /
+//! [`protocol::records::Records::estimate_size_in_bytes_upper_bound`] are Java
+//! `DefaultRecord.recordSizeUpperBound` /
+//! `DefaultRecordBatch.estimateBatchSizeUpperBound` /
+//! `AbstractRecords.estimateSizeInBytesUpperBound` (magic-v2). `send` /
+//! `try_send` use that upper bound for [`Error::RecordTooLarge`].
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body
@@ -1259,9 +1266,9 @@
 //! [`ProducerConfig::buffer_memory`] is Kafka `buffer.memory` (queued
 //! key-plus-value bytes not yet acked; default 32 MiB, Java; zero is no
 //! client-side cap). [`ProducerConfig::max_request_size`] is Kafka
-//! `max.request.size` (key-plus-value bytes of one record; default 1 MiB,
-//! Java; zero is no extra cap; oversized records return
-//! [`Error::RecordTooLarge`], Java `RecordTooLargeException`
+//! `max.request.size` ([`protocol::records::Records::estimate_size_in_bytes_upper_bound`]
+//! of one record; default 1 MiB, Java; zero is no extra cap; oversized
+//! records return [`Error::RecordTooLarge`], Java `RecordTooLargeException`
 //! `The message is {size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration.`). [`ProducerConfig::retry_backoff`] /
 //! [`ProducerConfig::retry_backoff_max`] are Kafka `retry.backoff.ms` /
 //! `retry.backoff.max.ms` (exponential wait after a retriable Produce;

@@ -16,6 +16,7 @@ use partitionline::protocol::api_keys::{
     CONSUMER_GROUP_DESCRIBE, DELETE_SHARE_GROUP_OFFSETS, DESCRIBE_SHARE_GROUP_OFFSETS,
     GET_TELEMETRY_SUBSCRIPTIONS, LIST_CONFIG_RESOURCES, PUSH_TELEMETRY, SHARE_GROUP_DESCRIBE,
 };
+use partitionline::protocol::records::Records;
 use partitionline::{
     partition_for_key, AbortTransactionSpec, AcknowledgeType, Acks, Admin, AdminConfig,
     AutoOffsetReset, Compression, Consumer, ConsumerConfig, ConsumerGroup, ConsumerInterceptor,
@@ -1373,10 +1374,31 @@ async fn send_times_out_when_record_exceeds_buffer_memory() {
 #[tokio::test]
 async fn try_send_rejects_when_record_exceeds_max_request_size() {
     let mock = common::Mock::start().await;
+    let abc = ProduceRecord::to("t").value(&b"abc"[..]);
+    let abcd = ProduceRecord::to("t").value(&b"abcd"[..]);
+    let abc_size = usize::try_from(
+        Records::estimate_size_in_bytes_upper_bound(
+            abc.key.as_deref(),
+            abc.value.as_deref(),
+            &abc.headers,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let abcd_size = u64::try_from(
+        Records::estimate_size_in_bytes_upper_bound(
+            abcd.key.as_deref(),
+            abcd.value.as_deref(),
+            &abcd.headers,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let max = u64::try_from(abc_size).unwrap();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .linger(Duration::ZERO)
-            .max_request_size(3),
+            .max_request_size(abc_size),
     )
     .await
     .unwrap();
@@ -1384,20 +1406,24 @@ async fn try_send_rejects_when_record_exceeds_max_request_size() {
         .send(ProduceRecord::to("t").value(&b""[..]))
         .await
         .unwrap();
-    producer
-        .try_send(ProduceRecord::to("t").value(&b"abc"[..]))
-        .unwrap();
+    producer.try_send(abc).unwrap();
     producer.flush().await.unwrap();
-    let err = producer
-        .try_send(ProduceRecord::to("t").value(&b"abcd"[..]))
-        .unwrap_err();
+    let err = producer.try_send(abcd).unwrap_err();
     assert!(
-        matches!(err, Error::RecordTooLarge { size: 4, max: 3 }),
+        matches!(
+            err,
+            Error::RecordTooLarge {
+                size,
+                max: got_max
+            } if size == abcd_size && got_max == max
+        ),
         "got {err}"
     );
     assert_eq!(
         err.to_string(),
-        "The message is 4 bytes when serialized which is larger than 3, which is the value of the max.request.size configuration."
+        format!(
+            "The message is {abcd_size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration."
+        )
     );
     assert_eq!(producer.metrics().bytes_buffered, 0);
     producer.close().await.unwrap();
@@ -1406,26 +1432,46 @@ async fn try_send_rejects_when_record_exceeds_max_request_size() {
 #[tokio::test]
 async fn send_rejects_when_record_exceeds_max_request_size() {
     let mock = common::Mock::start().await;
+    let abcd = ProduceRecord::to("t").value(&b"abcd"[..]);
+    let abc_size = usize::try_from(
+        Records::estimate_size_in_bytes_upper_bound(None, Some(b"abc"), &[]).unwrap(),
+    )
+    .unwrap();
+    let abcd_size = u64::try_from(
+        Records::estimate_size_in_bytes_upper_bound(
+            abcd.key.as_deref(),
+            abcd.value.as_deref(),
+            &abcd.headers,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let max = u64::try_from(abc_size).unwrap();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .linger(Duration::ZERO)
-            .max_request_size(3)
+            .max_request_size(abc_size)
             .max_block(Duration::from_secs(5)),
     )
     .await
     .unwrap();
-    let err = producer
-        .send(ProduceRecord::to("t").value(&b"abcd"[..]))
-        .await
-        .unwrap_err();
+    let err = producer.send(abcd).await.unwrap_err();
     assert!(
-        matches!(err, Error::RecordTooLarge { size: 4, max: 3 }),
+        matches!(
+            err,
+            Error::RecordTooLarge {
+                size,
+                max: got_max
+            } if size == abcd_size && got_max == max
+        ),
         "got {err}"
     );
     assert!(!err.is_retriable());
     assert_eq!(
         err.to_string(),
-        "The message is 4 bytes when serialized which is larger than 3, which is the value of the max.request.size configuration."
+        format!(
+            "The message is {abcd_size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration."
+        )
     );
     producer.close().await.unwrap();
 }

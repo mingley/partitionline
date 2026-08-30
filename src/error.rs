@@ -34,13 +34,14 @@ pub enum Error {
     Timeout,
     /// `try_send` could not queue (metadata, connection, or `buffer.memory`).
     QueueFull,
-    /// Record key plus value exceeds [`crate::ProducerConfig::max_request_size`].
+    /// Serialized record size exceeds [`crate::ProducerConfig::max_request_size`].
     ///
     /// [`Display`] is Java `RecordTooLargeException` (`The message is {size}
     /// bytes when serialized which is larger than {max}, which is the value of
-    /// the max.request.size configuration.`).
+    /// the max.request.size configuration.`). `size` is Java
+    /// `AbstractRecords.estimateSizeInBytesUpperBound`.
     RecordTooLarge {
-        /// Key plus value bytes of the record.
+        /// Java `AbstractRecords.estimateSizeInBytesUpperBound` of the record.
         size: u64,
         /// Configured [`crate::ProducerConfig::max_request_size`].
         max: u64,
