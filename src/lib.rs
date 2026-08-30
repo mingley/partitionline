@@ -623,7 +623,9 @@
 //! `DefaultRecord.recordSizeUpperBound` /
 //! `DefaultRecordBatch.estimateBatchSizeUpperBound` /
 //! `AbstractRecords.estimateSizeInBytesUpperBound` (magic-v2). `send` /
-//! `try_send` use that upper bound for [`Error::RecordTooLarge`].
+//! `try_send` use that upper bound for [`Error::RecordTooLarge`]
+//! (`max.request.size` first, then `buffer.memory`; Java
+//! `KafkaProducer.ensureValidRecordSize`).
 //! [`protocol::records::Records::estimate_size_in_bytes`] /
 //! [`protocol::records::Records::estimate_size_in_bytes_from`] /
 //! [`protocol::records::Records::record_batch_header_size_in_bytes`] are Java
@@ -1270,7 +1272,10 @@
 //! [`ProducerConfig::buffer_memory`]; default 30s, Java 60s).
 //! [`ProducerConfig::buffer_memory`] is Kafka `buffer.memory` (queued
 //! key-plus-value bytes not yet acked; default 32 MiB, Java; zero is no
-//! client-side cap). [`ProducerConfig::max_request_size`] is Kafka
+//! client-side cap; a record whose
+//! [`protocol::records::Records::estimate_size_in_bytes_upper_bound`] exceeds
+//! this is [`Error::RecordTooLarge`], Java `ensureValidRecordSize`
+//! `buffer.memory`). [`ProducerConfig::max_request_size`] is Kafka
 //! `max.request.size` ([`protocol::records::Records::estimate_size_in_bytes_upper_bound`]
 //! of one record; default 1 MiB, Java; zero is no extra cap; oversized
 //! records return [`Error::RecordTooLarge`], Java `RecordTooLargeException`

@@ -1323,10 +1323,19 @@ async fn producer_and_consumer_metrics() {
 #[tokio::test]
 async fn try_send_queue_full_when_buffer_memory_is_full() {
     let mock = common::Mock::start().await;
+    // Java `ensureValidRecordSize` rejects a record whose batch upper bound
+    // exceeds `buffer.memory`. QueueFull is the remaining-buffer path, so the
+    // cap must be at least one record's upper bound and below two records'
+    // key-plus-value bytes.
+    let payload = vec![b'x'; 100];
+    let upper = usize::try_from(
+        Records::estimate_size_in_bytes_upper_bound(None, Some(&payload), &[]).unwrap(),
+    )
+    .unwrap();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .linger(Duration::ZERO)
-            .buffer_memory(3),
+            .buffer_memory(upper),
     )
     .await
     .unwrap();
@@ -1335,25 +1344,35 @@ async fn try_send_queue_full_when_buffer_memory_is_full() {
         .await
         .unwrap();
     producer
-        .try_send(ProduceRecord::to("t").value(&b"ab"[..]))
+        .try_send(ProduceRecord::to("t").value(payload.clone()))
         .unwrap();
     let err = producer
-        .try_send(ProduceRecord::to("t").value(&b"cd"[..]))
+        .try_send(ProduceRecord::to("t").value(payload.clone()))
         .unwrap_err();
     assert!(matches!(err, Error::QueueFull), "got {err}");
-    assert_eq!(producer.metrics().bytes_buffered, 2);
+    assert_eq!(producer.metrics().bytes_buffered, 100);
     producer.flush().await.unwrap();
     assert_eq!(producer.metrics().bytes_buffered, 0);
     producer
-        .try_send(ProduceRecord::to("t").value(&b"cd"[..]))
+        .try_send(ProduceRecord::to("t").value(payload))
         .unwrap();
     producer.flush().await.unwrap();
     producer.close().await.unwrap();
 }
 
 #[tokio::test]
-async fn send_times_out_when_record_exceeds_buffer_memory() {
+async fn send_rejects_when_record_exceeds_buffer_memory() {
     let mock = common::Mock::start().await;
+    let rec = ProduceRecord::to("t").value(&b"ab"[..]);
+    let size = u64::try_from(
+        Records::estimate_size_in_bytes_upper_bound(
+            rec.key.as_deref(),
+            rec.value.as_deref(),
+            &rec.headers,
+        )
+        .unwrap(),
+    )
+    .unwrap();
     let producer = Producer::new(
         ProducerConfig::bootstrap([mock.addr.clone()])
             .linger(Duration::ZERO)
@@ -1362,13 +1381,61 @@ async fn send_times_out_when_record_exceeds_buffer_memory() {
     )
     .await
     .unwrap();
-    let err = producer
-        .send(ProduceRecord::to("t").value(&b"ab"[..]))
-        .await
-        .unwrap_err();
-    assert!(matches!(err, Error::Timeout), "got {err}");
+    let err = producer.try_send(rec.clone()).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            Error::RecordTooLarge {
+                size: got_size,
+                max: 1,
+                config: Error::BUFFER_MEMORY_CONFIG
+            } if got_size == size
+        ),
+        "got {err}"
+    );
+    let err = producer.send(rec).await.unwrap_err();
+    assert!(
+        matches!(
+            err,
+            Error::RecordTooLarge {
+                size: got_size,
+                max: 1,
+                config: Error::BUFFER_MEMORY_CONFIG
+            } if got_size == size
+        ),
+        "got {err}"
+    );
+    assert_eq!(
+        err.to_string(),
+        format!(
+            "The message is {size} bytes when serialized which is larger than the total memory buffer you have configured with the buffer.memory configuration."
+        )
+    );
+    assert!(!err.is_retriable());
     assert_eq!(producer.metrics().bytes_buffered, 0);
     producer.close().await.unwrap();
+    let both = Producer::new(
+        ProducerConfig::bootstrap([mock.addr.clone()])
+            .linger(Duration::ZERO)
+            .max_request_size(1)
+            .buffer_memory(1),
+    )
+    .await
+    .unwrap();
+    let err = both
+        .try_send(ProduceRecord::to("t").value(&b"ab"[..]))
+        .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            Error::RecordTooLarge {
+                config: Error::MAX_REQUEST_SIZE_CONFIG,
+                ..
+            }
+        ),
+        "Java ensureValidRecordSize checks max.request.size first, got {err}"
+    );
+    both.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -1414,7 +1481,8 @@ async fn try_send_rejects_when_record_exceeds_max_request_size() {
             err,
             Error::RecordTooLarge {
                 size,
-                max: got_max
+                max: got_max,
+                config: Error::MAX_REQUEST_SIZE_CONFIG
             } if size == abcd_size && got_max == max
         ),
         "got {err}"
@@ -1461,7 +1529,8 @@ async fn send_rejects_when_record_exceeds_max_request_size() {
             err,
             Error::RecordTooLarge {
                 size,
-                max: got_max
+                max: got_max,
+                config: Error::MAX_REQUEST_SIZE_CONFIG
             } if size == abcd_size && got_max == max
         ),
         "got {err}"

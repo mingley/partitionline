@@ -57,10 +57,14 @@ pub struct ProducerConfig {
     /// per-connection channel still bounds how many records sit in memory).
     /// [`crate::Producer::send`] waits up to [`Self::max_block`];
     /// [`crate::Producer::try_send`] returns [`crate::Error::QueueFull`].
+    /// A single record whose
+    /// [`crate::protocol::records::Records::estimate_size_in_bytes_upper_bound`]
+    /// is larger than this returns [`crate::Error::RecordTooLarge`] (Java
+    /// `ensureValidRecordSize` `buffer.memory` check) without waiting.
     pub buffer_memory: usize,
     /// Kafka `max.request.size`. Java `KafkaProducer.ensureValidRecordSize`
     /// compares [`crate::protocol::records::Records::estimate_size_in_bytes_upper_bound`]
-    /// to this.
+    /// to this, then to [`Self::buffer_memory`].
     /// Produce batches are also capped at
     /// `min(batch_bytes, max_request_size)` when both are non-zero. Default
     /// 1 MiB (Java). Zero means no extra cap ([`Self::batch_bytes`] still
@@ -226,7 +230,9 @@ impl ProducerConfig {
 
     /// Kafka `buffer.memory`. Key plus value bytes queued and not yet acked.
     ///
-    /// Default 32 MiB (Java). Zero means no client-side cap.
+    /// Default 32 MiB (Java). Zero means no client-side cap. A record whose
+    /// Java `estimateSizeInBytesUpperBound` is larger than this returns
+    /// [`crate::Error::RecordTooLarge`] without waiting.
     #[must_use]
     pub fn buffer_memory(mut self, bytes: usize) -> Self {
         self.buffer_memory = bytes;
@@ -235,7 +241,7 @@ impl ProducerConfig {
 
     /// Kafka `max.request.size`. Java `ensureValidRecordSize` compares
     /// [`crate::protocol::records::Records::estimate_size_in_bytes_upper_bound`]
-    /// to this.
+    /// to this, then to [`Self::buffer_memory`].
     ///
     /// Default 1 MiB (Java). Zero means no extra cap. A record larger than
     /// this returns [`crate::Error::RecordTooLarge`] from `send` / `try_send`
@@ -870,19 +876,35 @@ fn reject_java_no_transaction_manager() -> Error {
 fn reject_oversized(cfg: &ProducerConfig, rec: &ProduceRecord) -> Result<u64> {
     reject_java_producer_record(rec)?;
     let bytes = rec_bytes(rec);
-    let cap = cfg.max_request_size;
-    if cap == 0 {
+    let max_request = if cfg.max_request_size == 0 {
+        None
+    } else {
+        Some(u64::try_from(cfg.max_request_size).unwrap_or(u64::MAX))
+    };
+    let buffer_memory = if cfg.buffer_memory == 0 {
+        None
+    } else {
+        Some(u64::try_from(cfg.buffer_memory).unwrap_or(u64::MAX))
+    };
+    if max_request.is_none() && buffer_memory.is_none() {
         return Ok(bytes);
     }
-    let cap = u64::try_from(cap).unwrap_or(u64::MAX);
     let serialized = Records::estimate_size_in_bytes_upper_bound(
         rec.key.as_deref(),
         rec.value.as_deref(),
         &rec.headers,
     )?;
     let size = u64::try_from(serialized).unwrap_or(u64::MAX);
-    if size > cap {
-        return Err(Error::RecordTooLarge { size, max: cap });
+    // Java `KafkaProducer.ensureValidRecordSize`: max.request.size first.
+    if let Some(cap) = max_request {
+        if size > cap {
+            return Err(Error::record_too_large_max_request_size(size, cap));
+        }
+    }
+    if let Some(cap) = buffer_memory {
+        if size > cap {
+            return Err(Error::record_too_large_buffer_memory(size, cap));
+        }
     }
     Ok(bytes)
 }
@@ -1308,10 +1330,9 @@ impl Producer {
     /// is full. Call again; [`Self::send`] waits up to
     /// [`ProducerConfig::max_block`].
     /// A record whose Java `estimateSizeInBytesUpperBound` is larger than
-    /// [`ProducerConfig::max_request_size`] returns
-    /// [`Error::RecordTooLarge`] without waiting (Java `RecordTooLargeException`
-    /// `The message is {size} bytes when serialized which is larger than {max},
-    /// which is the value of the max.request.size configuration.`).
+    /// [`ProducerConfig::max_request_size`] or [`ProducerConfig::buffer_memory`]
+    /// returns [`Error::RecordTooLarge`] without waiting (Java
+    /// `RecordTooLargeException` / `ensureValidRecordSize`).
     /// Records are never queued without a partition, so each partition is
     /// pinned to one TCP connection on its current leader.
     pub fn try_send(&self, rec: ProduceRecord) -> Result<()> {

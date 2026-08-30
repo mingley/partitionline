@@ -34,17 +34,27 @@ pub enum Error {
     Timeout,
     /// `try_send` could not queue (metadata, connection, or `buffer.memory`).
     QueueFull,
-    /// Serialized record size exceeds [`crate::ProducerConfig::max_request_size`].
+    /// Serialized record size exceeds [`crate::ProducerConfig::max_request_size`]
+    /// or [`crate::ProducerConfig::buffer_memory`].
     ///
-    /// [`Display`] is Java `RecordTooLargeException` (`The message is {size}
-    /// bytes when serialized which is larger than {max}, which is the value of
-    /// the max.request.size configuration.`). `size` is Java
+    /// Java `KafkaProducer.ensureValidRecordSize` checks `max.request.size`
+    /// first, then `buffer.memory`. [`Display`] is Java
+    /// `RecordTooLargeException`. For [`Self::MAX_REQUEST_SIZE_CONFIG`]:
+    /// `The message is {size} bytes when serialized which is larger than {max},
+    /// which is the value of the max.request.size configuration.` For
+    /// [`Self::BUFFER_MEMORY_CONFIG`]: `The message is {size} bytes when
+    /// serialized which is larger than the total memory buffer you have
+    /// configured with the buffer.memory configuration.` `size` is Java
     /// `AbstractRecords.estimateSizeInBytesUpperBound`.
     RecordTooLarge {
         /// Java `AbstractRecords.estimateSizeInBytesUpperBound` of the record.
         size: u64,
-        /// Configured [`crate::ProducerConfig::max_request_size`].
+        /// Configured cap that was exceeded (`max.request.size` or
+        /// `buffer.memory`).
         max: u64,
+        /// Java config name: [`Self::MAX_REQUEST_SIZE_CONFIG`] or
+        /// [`Self::BUFFER_MEMORY_CONFIG`].
+        config: &'static str,
     },
     /// [`crate::ConsumerGroup::poll`] was not called within `max.poll.interval.ms`.
     MaxPollInterval,
@@ -53,9 +63,36 @@ pub enum Error {
 }
 
 impl Error {
+    /// Java `ProducerConfig.MAX_REQUEST_SIZE_CONFIG`.
+    pub const MAX_REQUEST_SIZE_CONFIG: &str = "max.request.size";
+    /// Java `ProducerConfig.BUFFER_MEMORY_CONFIG`.
+    pub const BUFFER_MEMORY_CONFIG: &str = "buffer.memory";
+
     /// Wrap a protocol / client-side failure.
     pub fn protocol(msg: impl Into<String>) -> Self {
         Self::Protocol(msg.into())
+    }
+
+    /// Java `RecordTooLargeException` when `estimateSizeInBytesUpperBound`
+    /// exceeds `max.request.size`.
+    #[must_use]
+    pub(crate) fn record_too_large_max_request_size(size: u64, max: u64) -> Self {
+        Self::RecordTooLarge {
+            size,
+            max,
+            config: Self::MAX_REQUEST_SIZE_CONFIG,
+        }
+    }
+
+    /// Java `RecordTooLargeException` when `estimateSizeInBytesUpperBound`
+    /// exceeds `buffer.memory`.
+    #[must_use]
+    pub(crate) fn record_too_large_buffer_memory(size: u64, max: u64) -> Self {
+        Self::RecordTooLarge {
+            size,
+            max,
+            config: Self::BUFFER_MEMORY_CONFIG,
+        }
     }
 
     /// Broker `error_code` plus a short context string (api or `topic-partition`).
@@ -121,10 +158,18 @@ impl fmt::Display for Error {
             Self::Closed => write!(f, "producer closed"),
             Self::Timeout => write!(f, "timeout"),
             Self::QueueFull => write!(f, "producer queue full"),
-            Self::RecordTooLarge { size, max } => {
+            Self::RecordTooLarge {
+                size,
+                max: _,
+                config,
+            } if *config == Self::BUFFER_MEMORY_CONFIG => write!(
+                f,
+                "The message is {size} bytes when serialized which is larger than the total memory buffer you have configured with the {config} configuration."
+            ),
+            Self::RecordTooLarge { size, max, config } => {
                 write!(
                     f,
-                    "The message is {size} bytes when serialized which is larger than {max}, which is the value of the max.request.size configuration."
+                    "The message is {size} bytes when serialized which is larger than {max}, which is the value of the {config} configuration."
                 )
             }
             Self::MaxPollInterval => write!(f, "max.poll.interval.ms exceeded"),
@@ -166,9 +211,10 @@ impl Clone for Error {
             Self::Closed => Self::Closed,
             Self::Timeout => Self::Timeout,
             Self::QueueFull => Self::QueueFull,
-            Self::RecordTooLarge { size, max } => Self::RecordTooLarge {
+            Self::RecordTooLarge { size, max, config } => Self::RecordTooLarge {
                 size: *size,
                 max: *max,
+                config,
             },
             Self::MaxPollInterval => Self::MaxPollInterval,
             Self::Wakeup => Self::Wakeup,
