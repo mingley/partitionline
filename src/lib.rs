@@ -534,6 +534,10 @@
 //! [`DescribedDelegationToken::renewers_as_string`] /
 //! [`DescribedDelegationToken::owner_or_renewer`] are Java
 //! `TokenInformation.renewersAsString` / `ownerOrRenewer`.
+//! [`CreatableRenewer::USER_TYPE`] / [`CreatableRenewer::anonymous`]
+//! (and the same names on [`DescribeDelegationTokenOwner`] /
+//! [`DescribedDelegationTokenRenewer`]) are Java `KafkaPrincipal.USER_TYPE`
+//! / `ANONYMOUS`.
 //! [`Admin::describe_topic_partitions_timeout`] is the crate-first
 //! DescribeTopicPartitions (api 75) RPC deadline; Java `describeTopics`
 //! is [`Admin::describe_topics_timeout`].

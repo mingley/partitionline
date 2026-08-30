@@ -11107,6 +11107,9 @@ fn write_java_delegation_token<T: fmt::Display>(
 ///
 /// Official JSON `CreatableRenewers` has PrincipalType and
 /// PrincipalName only. There is no per-renewer ErrorCode.
+/// [`Display`] is Java `KafkaPrincipal.toString` (`type:name`).
+/// [`Self::USER_TYPE`] / [`Self::anonymous`] are Java
+/// `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreatableRenewer {
     /// Principal type (for example `User`).
@@ -11116,6 +11119,15 @@ pub struct CreatableRenewer {
 }
 
 impl CreatableRenewer {
+    /// Java `KafkaPrincipal.USER_TYPE`.
+    pub const USER_TYPE: &'static str = "User";
+
+    /// Java `KafkaPrincipal.ANONYMOUS` (`User:ANONYMOUS`).
+    #[must_use]
+    pub fn anonymous() -> Self {
+        Self::new(Self::USER_TYPE, "ANONYMOUS")
+    }
+
     /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {
@@ -11984,7 +11996,9 @@ pub fn decode_expire_delegation_token_response<B: Buf>(
 /// One owner principal in a DescribeDelegationToken (api 41) request.
 ///
 /// Official JSON `Owners` has PrincipalType and PrincipalName only.
-/// There is no per-owner ErrorCode.
+/// There is no per-owner ErrorCode. [`Display`] is Java
+/// `KafkaPrincipal.toString` (`type:name`). [`Self::USER_TYPE`] /
+/// [`Self::anonymous`] are Java `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeDelegationTokenOwner {
     /// Principal type (for example `User`).
@@ -11994,6 +12008,15 @@ pub struct DescribeDelegationTokenOwner {
 }
 
 impl DescribeDelegationTokenOwner {
+    /// Java `KafkaPrincipal.USER_TYPE`.
+    pub const USER_TYPE: &'static str = "User";
+
+    /// Java `KafkaPrincipal.ANONYMOUS` (`User:ANONYMOUS`).
+    #[must_use]
+    pub fn anonymous() -> Self {
+        Self::new(Self::USER_TYPE, "ANONYMOUS")
+    }
+
     /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {
@@ -12060,7 +12083,9 @@ impl Default for DescribeDelegationTokenRequest {
 /// One renewer principal on a described delegation token.
 ///
 /// Official JSON `Renewers` has PrincipalType and PrincipalName only.
-/// There is no per-renewer ErrorCode.
+/// There is no per-renewer ErrorCode. [`Display`] is Java
+/// `KafkaPrincipal.toString` (`type:name`). [`Self::USER_TYPE`] /
+/// [`Self::anonymous`] are Java `KafkaPrincipal.USER_TYPE` / `ANONYMOUS`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribedDelegationTokenRenewer {
     /// Principal type (for example `User`).
@@ -12070,6 +12095,15 @@ pub struct DescribedDelegationTokenRenewer {
 }
 
 impl DescribedDelegationTokenRenewer {
+    /// Java `KafkaPrincipal.USER_TYPE`.
+    pub const USER_TYPE: &'static str = "User";
+
+    /// Java `KafkaPrincipal.ANONYMOUS` (`User:ANONYMOUS`).
+    #[must_use]
+    pub fn anonymous() -> Self {
+        Self::new(Self::USER_TYPE, "ANONYMOUS")
+    }
+
     /// Construct [`Self`].
     pub fn new(principal_type: impl Into<String>, principal_name: impl Into<String>) -> Self {
         Self {

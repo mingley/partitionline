@@ -12548,6 +12548,16 @@ mod tests {
         assert_eq!(renewer.principal_type(), "User");
         assert_eq!(renewer.principal_name(), "r");
         assert_eq!(renewer.to_string(), "User:r");
+        assert_eq!(CreatableRenewer::USER_TYPE, "User");
+        assert_eq!(CreatableRenewer::anonymous().to_string(), "User:ANONYMOUS");
+        assert_eq!(
+            DescribeDelegationTokenOwner::anonymous().principal_name(),
+            "ANONYMOUS"
+        );
+        assert_eq!(
+            DescribedDelegationTokenRenewer::anonymous().to_string(),
+            "User:ANONYMOUS"
+        );
         let req = CreateDelegationTokenRequest::new(
             Some("User".into()),
             Some("alice".into()),
