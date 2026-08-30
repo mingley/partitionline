@@ -313,6 +313,14 @@
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
 //! [`DeletableGroupResult::new`])),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible;
+//! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_EXACT`] /
+//! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_DEFAULT`] /
+//! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_SPECIFIED`]
+//! are Java `DescribeClientQuotasRequest` MatchType constants;
+//! [`protocol::admin::DescribeClientQuotasRequest::filter`] is Java
+//! `DescribeClientQuotasRequest.filter` (`ofEntity` / `ofDefaultEntity` /
+//! `ofEntityType`, then `containsOnly` or `contains`; unknown MatchType
+//! is [`Error::protocol`]);
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
@@ -1315,6 +1323,9 @@
 //! `ClientQuotaFilterComponent` factories.
 //! [`ClientQuotaEntity::USER`] / [`ClientQuotaEntity::CLIENT_ID`] /
 //! [`ClientQuotaEntity::IP`] match Java `ClientQuotaEntity` constants.
+//! [`protocol::admin::DescribeClientQuotasRequest::filter`] is Java
+//! `DescribeClientQuotasRequest.filter` (unknown MatchType is
+//! [`Error::protocol`]).
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
 //! empty). [`ClientQuotaAlteration::error_result`] /
