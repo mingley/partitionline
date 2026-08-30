@@ -819,6 +819,10 @@
 //! [`protocol::buf::is_blank`] / [`protocol::buf::replace_suffix`] are Java
 //! `Utils.isBlank` / `replaceSuffix` (`None` is null; trim is code units at
 //! or below U+0020; missing suffix is [`Error::protocol`]).
+//! [`protocol::buf::entries_with_prefix`] /
+//! [`protocol::buf::entries_with_prefix_matching`] are Java
+//! `Utils.entriesWithPrefix` (two-argument form strips the prefix and omits
+//! keys equal to it).
 //! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is

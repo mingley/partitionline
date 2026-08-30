@@ -9,9 +9,10 @@
 //! continuation byte is `illegalVarlongException`. [`utf8_length`] is Java
 //! `Utils.utf8Length`. [`to_32_bit_field`] / [`from_32_bit_field`] are Java
 //! `Utils.to32BitField` / `from32BitField`. [`is_blank`] / [`replace_suffix`]
-//! are Java `Utils.isBlank` / `replaceSuffix`.
+//! are Java `Utils.isBlank` / `replaceSuffix`. [`entries_with_prefix`] /
+//! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -194,6 +195,35 @@ pub fn replace_suffix(s: &str, old_suffix: &str, new_suffix: &str) -> Result<Str
             "Expected string to end with {old_suffix} but string is {s}"
         ))),
     }
+}
+
+/// Java `Utils.entriesWithPrefix(map, prefix)` (strip the prefix; omit keys
+/// that equal the prefix).
+#[must_use]
+pub fn entries_with_prefix<V: Clone>(map: &HashMap<String, V>, prefix: &str) -> HashMap<String, V> {
+    entries_with_prefix_matching(map, prefix, true, false)
+}
+
+/// Java `Utils.entriesWithPrefix(map, prefix, strip, allowMatchingLength)`.
+#[must_use]
+pub fn entries_with_prefix_matching<V: Clone>(
+    map: &HashMap<String, V>,
+    prefix: &str,
+    strip: bool,
+    allow_matching_length: bool,
+) -> HashMap<String, V> {
+    let mut result = HashMap::new();
+    for (key, value) in map {
+        let Some(rest) = key.strip_prefix(prefix) else {
+            continue;
+        };
+        if !allow_matching_length && rest.is_empty() {
+            continue;
+        }
+        let out_key = if strip { rest.to_string() } else { key.clone() };
+        result.extend([(out_key, value.clone())]);
+    }
+    result
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -656,7 +686,7 @@ pub fn get_uuid<B: Buf>(buf: &mut B) -> Result<[u8; 16]> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     use super::*;
 
@@ -1017,6 +1047,48 @@ mod tests {
             missing.contains("Expected string to end with .tmp but string is foo.log"),
             "{missing}"
         );
+    }
+
+    #[test]
+    fn entries_with_prefix_matches_java_utils() {
+        let map = HashMap::from([
+            ("foo.bar".to_string(), 1i32),
+            ("foo".to_string(), 2),
+            ("baz.qux".to_string(), 3),
+            ("foo.baz".to_string(), 4),
+        ]);
+        assert_eq!(
+            entries_with_prefix(&map, "foo."),
+            HashMap::from([("bar".to_string(), 1), ("baz".to_string(), 4)])
+        );
+        assert_eq!(
+            entries_with_prefix(&map, "foo"),
+            HashMap::from([(".bar".to_string(), 1), (".baz".to_string(), 4)])
+        );
+        assert!(entries_with_prefix(&map, "nope").is_empty());
+        assert_eq!(
+            entries_with_prefix_matching(&map, "foo.", false, false),
+            HashMap::from([("foo.bar".to_string(), 1), ("foo.baz".to_string(), 4)])
+        );
+        assert_eq!(
+            entries_with_prefix_matching(&map, "foo", true, true),
+            HashMap::from([
+                (".bar".to_string(), 1),
+                (String::new(), 2),
+                (".baz".to_string(), 4)
+            ])
+        );
+        assert_eq!(
+            entries_with_prefix_matching(&map, "foo", false, true),
+            HashMap::from([
+                ("foo.bar".to_string(), 1),
+                ("foo".to_string(), 2),
+                ("foo.baz".to_string(), 4)
+            ])
+        );
+        let empty_prefix = entries_with_prefix(&map, "");
+        assert_eq!(empty_prefix.len(), 4);
+        assert_eq!(empty_prefix.get("foo.bar"), Some(&1));
     }
 
     #[test]
