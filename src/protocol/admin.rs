@@ -3,6 +3,7 @@
 //!
 //! ACL codecs live in [`super::acl`].
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -4279,6 +4280,10 @@ impl fmt::Debug for ScramCredentialUpsertion {
 }
 
 /// Per-user result of AlterUserScramCredentials v0.
+///
+/// [`Self::error`] / [`Self::error_results`] are Java
+/// `AlterUserScramCredentialsRequest.getErrorResponse` (one user /
+/// unique sorted names from Deletions and Upsertions).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterUserScramCredentialsResult {
     /// SCRAM user name.
@@ -4287,6 +4292,63 @@ pub struct AlterUserScramCredentialsResult {
     pub error_code: i16,
     /// Broker error message, when present.
     pub error_message: Option<String>,
+}
+
+impl AlterUserScramCredentialsResult {
+    /// Java `AlterUserScramCredentialsRequest.getErrorResponse` one user.
+    ///
+    /// Sets `User` and `ErrorCode`. `ErrorMessage` is the JSON default
+    /// (null); official Java also sets the English `Errors.message`
+    /// string. Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error(user: impl Into<String>, error_code: i16) -> Self {
+        Self {
+            user: user.into(),
+            error_code,
+            error_message: None,
+        }
+    }
+
+    /// Java `AlterUserScramCredentialsRequest.getErrorResponse` Results.
+    ///
+    /// Unique user names from Deletions then Upsertions, sorted, each
+    /// through [`Self::error`].
+    #[must_use]
+    pub fn error_results(
+        deletions: &[ScramCredentialDeletion],
+        upsertions: &[ScramCredentialUpsertion],
+        error_code: i16,
+    ) -> Vec<Self> {
+        let mut users = BTreeSet::new();
+        for d in deletions {
+            let _ = users.insert(d.name.clone());
+        }
+        for u in upsertions {
+            let _ = users.insert(u.name.clone());
+        }
+        users
+            .into_iter()
+            .map(|user| Self::error(user, error_code))
+            .collect()
+    }
+
+    /// SCRAM user name.
+    #[must_use]
+    pub fn user(&self) -> &str {
+        self.user.as_str()
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
 }
 
 /// AlterUserScramCredentials v0 (flexible from v0; KIP-554).
@@ -15707,6 +15769,64 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterUserScramCredentials v0 response must be leftover-empty"
+        );
+
+        let results = AlterUserScramCredentialsResult::error_results(
+            &deletions,
+            &upsertions,
+            crate::error::NOT_CONTROLLER,
+        );
+        assert_eq!(
+            results,
+            vec![
+                AlterUserScramCredentialsResult::error("alice", crate::error::NOT_CONTROLLER),
+                AlterUserScramCredentialsResult::error("olduser", crate::error::NOT_CONTROLLER),
+            ]
+        );
+        let first = results.first().expect("error user");
+        assert_eq!(first.user(), "alice");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        let dup = AlterUserScramCredentialsResult::error_results(
+            &[ScramCredentialDeletion {
+                name: "z".into(),
+                mechanism: SCRAM_SHA_512,
+            }],
+            &[
+                ScramCredentialUpsertion {
+                    name: "alice".into(),
+                    mechanism: SCRAM_SHA_256,
+                    iterations: 4096,
+                    salt: Vec::new(),
+                    salted_password: Vec::new(),
+                },
+                ScramCredentialUpsertion {
+                    name: "alice".into(),
+                    mechanism: SCRAM_SHA_512,
+                    iterations: 4096,
+                    salt: Vec::new(),
+                    salted_password: Vec::new(),
+                },
+            ],
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+        );
+        assert_eq!(
+            dup.iter()
+                .map(AlterUserScramCredentialsResult::user)
+                .collect::<Vec<_>>(),
+            vec!["alice", "z"]
+        );
+        buf.clear();
+        encode_alter_user_scram_credentials_response(&mut buf, &results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterUserScramCredentials getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
