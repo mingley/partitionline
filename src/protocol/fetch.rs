@@ -249,6 +249,17 @@ impl FetchedPartition {
     }
 }
 
+/// Java `FetchResponse` helpers.
+pub struct FetchResponse;
+
+impl FetchResponse {
+    /// Java `FetchResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 8
+    }
+}
+
 /// One topic in a Fetch response.
 #[derive(Debug, Clone)]
 pub struct FetchedTopic {
@@ -713,6 +724,8 @@ mod tests {
         assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH, -1);
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
+        assert!(!FetchResponse::should_client_throttle(7));
+        assert!(FetchResponse::should_client_throttle(8));
         let none = FetchedPartition {
             partition: 0,
             error_code: 0,

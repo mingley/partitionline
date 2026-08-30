@@ -216,7 +216,9 @@
 //! `FetchResponse` sentinels (`-1`).
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java
-//! `FetchResponse.isPreferredReplica` / `isDivergingEpoch`. Omitted Fetch
+//! `FetchResponse.isPreferredReplica` / `isDivergingEpoch`.
+//! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java
+//! `FetchResponse.shouldClientThrottle` (v8+). Omitted Fetch
 //! v12+ CurrentLeader fills [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
