@@ -825,6 +825,7 @@ impl fmt::Display for TopicPartition {
 /// Committed offset plus optional leader epoch and user metadata.
 ///
 /// Java `OffsetAndMetadata`. The epoch is `None` when the wire value is `-1`.
+/// [`Self::new`] uses [`Self::NO_METADATA`] (Java `OffsetFetchResponse.NO_METADATA`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetAndMetadata {
     /// Next fetch offset (the committed offset).
@@ -836,13 +837,18 @@ pub struct OffsetAndMetadata {
 }
 
 impl OffsetAndMetadata {
-    /// Offset only: unknown epoch, empty metadata.
+    /// Java `OffsetFetchResponse.NO_METADATA` (empty string; Java
+    /// `OffsetAndMetadata` stores this when the constructor metadata is
+    /// null).
+    pub const NO_METADATA: &'static str = "";
+
+    /// Offset only: unknown epoch, [`Self::NO_METADATA`].
     #[must_use]
     pub fn new(offset: i64) -> Self {
         Self {
             offset,
             leader_epoch: None,
-            metadata: String::new(),
+            metadata: Self::NO_METADATA.into(),
         }
     }
 
@@ -3128,6 +3134,11 @@ mod tests {
         assert_eq!(
             OffsetAndMetadata::new(1).to_string(),
             "OffsetAndMetadata{offset=1, leaderEpoch=null, metadata=''}"
+        );
+        assert_eq!(OffsetAndMetadata::NO_METADATA, "");
+        assert_eq!(
+            OffsetAndMetadata::new(1).metadata(),
+            OffsetAndMetadata::NO_METADATA
         );
         let listed = OffsetAndTimestamp::new(5, 1_700_000_000_000).with_leader_epoch(4);
         assert_eq!(listed.offset(), 5);

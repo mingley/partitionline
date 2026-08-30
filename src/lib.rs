@@ -143,7 +143,8 @@
 //! [`FetchedRecord`] / [`ShareRecord`] `Display` is Java `ConsumerRecord.toString`.
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
-//! match Java `toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
+//! match Java `toString`. [`OffsetAndMetadata::NO_METADATA`] is Java
+//! `OffsetFetchResponse.NO_METADATA`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
 //! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
 //! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
