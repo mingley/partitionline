@@ -523,12 +523,114 @@ fn write_java_optional(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Resul
 }
 
 /// Topic + partitions for TxnOffsetCommit v0–5.
+///
+/// [`Self::error_result`] is Java `TxnOffsetCommitRequest.getErrorResponse`
+/// / `getErrorResponseTopics` one topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetTopic {
     /// Topic name.
     pub topic: String,
     /// Partitions in this topic.
     pub partitions: Vec<TxnOffsetPartition>,
+}
+
+impl TxnOffsetTopic {
+    /// Java `TxnOffsetCommitRequest.getErrorResponse` /
+    /// `getErrorResponseTopics` one topic.
+    ///
+    /// Copies `Name` and each `PartitionIndex`. Nested body is
+    /// PartitionIndex + ErrorCode (no English message). Committed
+    /// offset / metadata / leader epoch stay on the request. Throttle
+    /// on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TxnOffsetCommitResponseTopic {
+        TxnOffsetCommitResponseTopic {
+            topic: self.topic.clone(),
+            partitions: self
+                .partitions
+                .iter()
+                .map(|p| TxnOffsetCommitResponsePartition::error(p.partition, error_code))
+                .collect(),
+        }
+    }
+
+    /// Java `TxnOffsetCommitRequest.getErrorResponse` /
+    /// `getErrorResponseTopics` Topics.
+    ///
+    /// Maps each request topic through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(topics: &[Self], error_code: i16) -> Vec<TxnOffsetCommitResponseTopic> {
+        topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect()
+    }
+}
+
+/// One partition in a TxnOffsetCommit v0–5 response.
+///
+/// [`Self::error`] is Java `TxnOffsetCommitRequest.getErrorResponse`
+/// / `getErrorResponseTopics` partition body (PartitionIndex + ErrorCode).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TxnOffsetCommitResponsePartition {
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+}
+
+impl TxnOffsetCommitResponsePartition {
+    /// Java `TxnOffsetCommitRequest.getErrorResponse` /
+    /// `getErrorResponseTopics` partition body.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. The nested body has no
+    /// error message field.
+    #[must_use]
+    pub fn error(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+        }
+    }
+
+    /// Java `TxnOffsetCommitResponsePartition.partitionIndex`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Per-partition error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+}
+
+/// One topic in a TxnOffsetCommit v0–5 response.
+///
+/// [`TxnOffsetTopic::error_result`] is Java
+/// `TxnOffsetCommitRequest.getErrorResponse` / `getErrorResponseTopics`
+/// one topic.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TxnOffsetCommitResponseTopic {
+    /// Topic name (Java `Name`).
+    pub topic: String,
+    /// Per-partition results.
+    pub partitions: Vec<TxnOffsetCommitResponsePartition>,
+}
+
+impl TxnOffsetCommitResponseTopic {
+    /// Java `TxnOffsetCommitResponseTopic.name`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `TxnOffsetCommitResponseTopic.partitions`.
+    #[must_use]
+    pub fn partitions(&self) -> &[TxnOffsetCommitResponsePartition] {
+        &self.partitions
+    }
 }
 
 /// Group member identity for TxnOffsetCommit v3+ (`generation.id`,
@@ -710,11 +812,30 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
 }
 
 /// Encode TxnOffsetCommit: one error code applied to every partition.
+///
+/// Applies `error` on every request partition via
+/// [`TxnOffsetTopic::error_results`]. Throttle is the JSON default (`0`).
 pub fn encode_txn_offset_commit_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[TxnOffsetTopic],
     error: i16,
+) -> Result<()> {
+    encode_txn_offset_commit_topics_response(
+        buf,
+        version,
+        &TxnOffsetTopic::error_results(topics, error),
+    )
+}
+
+/// Encode TxnOffsetCommit v0–5 from response Topics.
+///
+/// Throttle is the JSON default (`0`) on every spoken version. Nested
+/// body is PartitionIndex + ErrorCode.
+pub fn encode_txn_offset_commit_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[TxnOffsetCommitResponseTopic],
 ) -> Result<()> {
     let flexible = txn_offset_commit_flexible(version)?;
     buf.put_i32(0);
@@ -724,7 +845,7 @@ pub fn encode_txn_offset_commit_response(
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
-            buf.put_i16(error);
+            buf.put_i16(p.error_code);
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -741,31 +862,51 @@ pub fn encode_txn_offset_commit_response(
 
 /// Decode TxnOffsetCommit: first non-zero partition error, or `0`.
 pub fn decode_txn_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let topics = decode_txn_offset_commit_topics_response(buf, version)?;
+    let mut first_err = 0i16;
+    for t in &topics {
+        for p in &t.partitions {
+            if first_err == 0 && p.error_code != 0 {
+                first_err = p.error_code;
+            }
+        }
+    }
+    Ok(first_err)
+}
+
+/// Decode TxnOffsetCommit: every response topic.
+pub fn decode_txn_offset_commit_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<TxnOffsetCommitResponseTopic>> {
     let flexible = txn_offset_commit_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut first_err = 0i16;
+    let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
-        let _topic = buf::get_string(buf, flexible)?;
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
-            let err = buf::get_i16(buf)?;
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            if first_err == 0 && err != 0 {
-                first_err = err;
-            }
+            partitions.push(TxnOffsetCommitResponsePartition {
+                partition,
+                error_code,
+            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        topics.push(TxnOffsetCommitResponseTopic { topic, partitions });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(first_err)
+    Ok(topics)
 }
 
 /// One topic in a WriteTxnMarkers marker (api 27 v0–1).
@@ -1554,6 +1695,100 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_txn_offset_commit_response(&mut buf, 3, &topics, 0).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn txn_offset_commit_get_error_response_copies_names_and_partitions() {
+        let topics = [
+            TxnOffsetTopic {
+                topic: "orders".into(),
+                partitions: vec![
+                    TxnOffsetPartition::new(0, 10, 1, "m0"),
+                    TxnOffsetPartition::new(1, 20, 2, "m1"),
+                ],
+            },
+            TxnOffsetTopic {
+                topic: "payments".into(),
+                partitions: vec![TxnOffsetPartition::new(
+                    2,
+                    30,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    "",
+                )],
+            },
+        ];
+        let err =
+            TxnOffsetTopic::error_results(&topics, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        let orders = err.first().expect("orders");
+        assert_eq!(orders.topic(), "orders");
+        assert_eq!(
+            orders.partitions(),
+            [
+                TxnOffsetCommitResponsePartition::error(
+                    0,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED
+                ),
+                TxnOffsetCommitResponsePartition::error(
+                    1,
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED
+                ),
+            ]
+        );
+        let payments = err.get(1).expect("payments");
+        assert_eq!(payments.topic(), "payments");
+        assert_eq!(
+            payments.partitions(),
+            [TxnOffsetCommitResponsePartition::error(
+                2,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            )]
+        );
+        assert_eq!(
+            err,
+            vec![
+                topics[0].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                topics[1].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        for version in [0i16, 1, 2, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_topics_response(&mut buf, version, &err).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap(),
+                err
+            );
+            assert!(
+                !cur.has_remaining(),
+                "TxnOffsetCommit v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_txn_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            );
+        }
+        let empty = TxnOffsetTopic::error_results(&[], crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        for version in [0i16, 1, 2, 3, 5] {
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_topics_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_txn_offset_commit_topics_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "TxnOffsetCommit v{version} empty getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_txn_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
+                0
+            );
+        }
     }
 
     #[test]

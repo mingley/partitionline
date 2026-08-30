@@ -273,6 +273,12 @@
 //! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
 //! [`protocol::txn::TxnOffsetCommitResponse::should_client_throttle`] is Java
 //! `TxnOffsetCommitResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::TxnOffsetTopic::error_result`] /
+//! [`protocol::txn::TxnOffsetTopic::error_results`] /
+//! [`protocol::txn::TxnOffsetCommitResponsePartition::error`] are Java
+//! `TxnOffsetCommitRequest.getErrorResponse` / `getErrorResponseTopics`
+//! (one topic / Topics / partition body). Nested body is PartitionIndex
+//! and ErrorCode. Throttle is the JSON default (`0`);
 //! [`protocol::txn::TxnOffsetCommitMember::unknown`] /
 //! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] are Java
 //! `TxnOffsetCommitRequest.Builder` without group metadata /
