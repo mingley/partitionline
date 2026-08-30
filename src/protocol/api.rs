@@ -22,6 +22,26 @@ pub struct ApiVersion {
     pub max_version: i16,
 }
 
+impl ApiVersion {
+    /// Java `ApiVersionsResponseData.ApiVersion.apiKey`.
+    #[must_use]
+    pub fn api_key(&self) -> i16 {
+        self.api_key
+    }
+
+    /// Java `ApiVersionsResponseData.ApiVersion.minVersion`.
+    #[must_use]
+    pub fn min_version(&self) -> i16 {
+        self.min_version
+    }
+
+    /// Java `ApiVersionsResponseData.ApiVersion.maxVersion`.
+    #[must_use]
+    pub fn max_version(&self) -> i16 {
+        self.max_version
+    }
+}
+
 /// One broker-supported feature in ApiVersions v3+ tagged field 0 (KIP-482).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupportedFeatureKey {
@@ -85,6 +105,38 @@ impl ApiVersionsResponse {
     #[must_use]
     pub fn zk_migration_ready(&self) -> bool {
         self.zk_migration_ready
+    }
+
+    /// Java `ApiVersionsResponse.intersect`.
+    ///
+    /// `None` for either side is Java `null` (`Optional.empty`). Overlapping
+    /// ranges return the common min/max. No overlap is `None`. Different
+    /// api keys are Java `IllegalArgumentException`.
+    pub fn intersect(
+        this_version: Option<&ApiVersion>,
+        other: Option<&ApiVersion>,
+    ) -> Result<Option<ApiVersion>> {
+        let (Some(this_version), Some(other)) = (this_version, other) else {
+            return Ok(None);
+        };
+        if this_version.api_key() != other.api_key() {
+            return Err(Error::protocol(format!(
+                "thisVersion.apiKey: {} must be equal to other.apiKey: {}",
+                this_version.api_key(),
+                other.api_key()
+            )));
+        }
+        let min_version = this_version.min_version().max(other.min_version());
+        let max_version = this_version.max_version().min(other.max_version());
+        if min_version > max_version {
+            Ok(None)
+        } else {
+            Ok(Some(ApiVersion {
+                api_key: this_version.api_key(),
+                min_version,
+                max_version,
+            }))
+        }
     }
 }
 
@@ -2000,6 +2052,55 @@ mod tests {
         assert_eq!(resp.api_version(18).map(|v| v.max_version), Some(4));
         assert!(resp.api_version(1).is_none());
         assert!(resp.zk_migration_ready());
+        let produce = ApiVersion {
+            api_key: 0,
+            min_version: 0,
+            max_version: 12,
+        };
+        assert_eq!(produce.api_key(), 0);
+        assert_eq!(produce.min_version(), 0);
+        assert_eq!(produce.max_version(), 12);
+        let overlap = ApiVersion {
+            api_key: 0,
+            min_version: 3,
+            max_version: 9,
+        };
+        let got = ApiVersionsResponse::intersect(Some(&produce), Some(&overlap))
+            .expect("same api key")
+            .expect("overlap");
+        assert_eq!(got.api_key(), 0);
+        assert_eq!(got.min_version(), 3);
+        assert_eq!(got.max_version(), 9);
+        let disjoint = ApiVersion {
+            api_key: 0,
+            min_version: 13,
+            max_version: 15,
+        };
+        assert_eq!(
+            ApiVersionsResponse::intersect(Some(&produce), Some(&disjoint)).expect("same api key"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(None, Some(&produce)).expect("null"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(Some(&produce), None).expect("null"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(None, None).expect("null"),
+            None
+        );
+        let fetch = ApiVersion {
+            api_key: 1,
+            min_version: 0,
+            max_version: 17,
+        };
+        let err = ApiVersionsResponse::intersect(Some(&produce), Some(&fetch)).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("thisVersion.apiKey: 0 must be equal to other.apiKey: 1"));
     }
 
     #[test]
