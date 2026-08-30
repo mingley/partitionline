@@ -1097,6 +1097,35 @@ impl MetadataResponse {
             .collect()
     }
 
+    /// Java `MetadataResponse.errorCounts`.
+    ///
+    /// Counts topic-level and partition-level error codes (including `NONE`).
+    /// Does not include the v13+ top-level [`Self::error_code`].
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+
+    /// Java `MetadataResponse.topicAuthorizedOperations`.
+    ///
+    /// First topic whose `name` matches; `None` when no such topic.
+    #[must_use]
+    pub fn topic_authorized_operations(&self, topic_name: &str) -> Option<i32> {
+        self.topics
+            .iter()
+            .find(|topic| topic.name.as_deref() == Some(topic_name))
+            .map(|topic| topic.topic_authorized_operations)
+    }
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -2968,6 +2997,76 @@ mod tests {
         assert!(empty.errors().unwrap().is_empty());
         assert!(empty.errors_by_topic_id().unwrap().is_empty());
         assert!(empty.topics_by_error(0).is_empty());
+        assert!(empty.error_counts().is_empty());
+        assert!(empty.topic_authorized_operations("t").is_none());
+    }
+
+    #[test]
+    fn metadata_response_error_counts_matches_java() {
+        fn topic(
+            error_code: i16,
+            name: Option<&str>,
+            partitions: Vec<i16>,
+            authorized: i32,
+        ) -> TopicMetadata {
+            TopicMetadata {
+                error_code,
+                name: name.map(str::to_owned),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: partitions
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, error_code)| PartitionMetadata {
+                        error_code,
+                        partition_index: i32::try_from(i).unwrap_or(i32::MAX),
+                        leader_id: MetadataResponse::NO_LEADER_ID,
+                        leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                        replica_nodes: Vec::new(),
+                        isr_nodes: Vec::new(),
+                        offline_replicas: Vec::new(),
+                    })
+                    .collect(),
+                topic_authorized_operations: authorized,
+            }
+        }
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: vec![
+                topic(
+                    0,
+                    Some("ok"),
+                    vec![0, crate::error::NOT_LEADER_OR_FOLLOWER],
+                    1,
+                ),
+                topic(
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    Some("missing"),
+                    Vec::new(),
+                    MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                ),
+                topic(0, None, vec![0], 7),
+            ],
+            error_code: crate::error::TOPIC_AUTHORIZATION_FAILED,
+        };
+        assert_eq!(
+            resp.error_counts(),
+            HashMap::from([
+                (0, 4),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+        assert_eq!(resp.topic_authorized_operations("ok"), Some(1));
+        assert_eq!(
+            resp.topic_authorized_operations("missing"),
+            Some(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED)
+        );
+        assert!(resp.topic_authorized_operations("nope").is_none());
+        assert!(resp.topic_authorized_operations("").is_none());
     }
 
     #[test]

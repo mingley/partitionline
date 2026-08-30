@@ -57,10 +57,14 @@
 //! `PartitionMetadata.toString` uses the topic name).
 //! [`protocol::api::MetadataResponse::errors`] /
 //! [`protocol::api::MetadataResponse::errors_by_topic_id`] /
-//! [`protocol::api::MetadataResponse::topics_by_error`] are Java
-//! `MetadataResponse.errors` / `errorsByTopicId` / `topicsByError`
+//! [`protocol::api::MetadataResponse::topics_by_error`] /
+//! [`protocol::api::MetadataResponse::error_counts`] /
+//! [`protocol::api::MetadataResponse::topic_authorized_operations`] are Java
+//! `MetadataResponse.errors` / `errorsByTopicId` / `topicsByError` /
+//! `errorCounts` / `topicAuthorizedOperations`
 //! (map values are Kafka error codes; `errors` throws when any topic name is
-//! `None`; `errors_by_topic_id` throws when any topic id is zeros).
+//! `None`; `errors_by_topic_id` throws when any topic id is zeros;
+//! `errorCounts` counts topic and partition codes, not the top-level error).
 //! [`PartitionInfo::from_partition_metadata`] is Java
 //! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
 //! [`protocol::api::MetadataRequestTopic::convert_from_names`] /
