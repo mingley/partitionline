@@ -1709,6 +1709,19 @@ impl ProduceResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 6
     }
+
+    /// Java `ProduceResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(partitions: &[ProducePartitionResponse]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for partition in partitions {
+            let count = counts.entry(partition.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// `true` when Produce `version` is flexible (v9+).
@@ -2044,6 +2057,29 @@ mod tests {
         assert!(!ProduceRequest::is_transaction_v2_requested(10));
         assert!(!ProduceResponse::should_client_throttle(5));
         assert!(ProduceResponse::should_client_throttle(6));
+        assert!(ProduceResponse::error_counts(&[]).is_empty());
+        let counts = ProduceResponse::error_counts(&[
+            ProducePartitionResponse::partition_response("t", 0, 0),
+            ProducePartitionResponse::partition_response(
+                "t",
+                1,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+            ),
+            ProducePartitionResponse::partition_response("t", 2, 0),
+            ProducePartitionResponse::partition_response(
+                "u",
+                0,
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            ),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
     }
 
     #[test]

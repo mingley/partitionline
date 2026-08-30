@@ -387,7 +387,10 @@
 //! [`protocol::api::ProduceTopicData::error_result`] is Java
 //! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceResponse::should_client_throttle`] is Java
-//! `ProduceResponse.shouldClientThrottle` (v6+). Produce decode below v5 fills
+//! `ProduceResponse.shouldClientThrottle` (v6+).
+//! [`protocol::api::ProduceResponse::error_counts`] is Java
+//! `ProduceResponse.errorCounts` (partition-level codes, including `NONE`).
+//! Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
 //! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills
 //! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
