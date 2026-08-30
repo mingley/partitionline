@@ -880,6 +880,10 @@ impl PartitionMetadata {
 /// [`Self::error`] is Java `MetadataRequest.getErrorResponse` one topic
 /// (empty Name when the request Name is null, `isInternal` false, empty
 /// partitions, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
+/// [`Display`] is Java `MetadataResponse.TopicMetadata.toString`. Nested
+/// `PartitionMetadata.toString` uses this topic's name (`null` when
+/// [`Self::name`] is `None`) so the crate type does not store a
+/// `TopicPartition`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicMetadata {
     /// Kafka error code (`0` is success).
@@ -914,6 +918,84 @@ impl TopicMetadata {
             partitions: Vec::new(),
             topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
         }
+    }
+}
+
+fn write_java_uuid_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8; 16]) -> fmt::Result {
+    f.write_str(&base64::Engine::encode(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+        bytes.as_slice(),
+    ))
+}
+
+fn write_java_optional_i32(f: &mut fmt::Formatter<'_>, value: Option<i32>) -> fmt::Result {
+    match value {
+        None => f.write_str("Optional.empty"),
+        Some(n) => write!(f, "Optional[{n}]"),
+    }
+}
+
+fn write_java_int_csv(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result {
+    for (i, id) in ids.iter().enumerate() {
+        if i > 0 {
+            f.write_str(",")?;
+        }
+        write!(f, "{id}")?;
+    }
+    Ok(())
+}
+
+fn write_java_partition_metadata(
+    f: &mut fmt::Formatter<'_>,
+    topic: Option<&str>,
+    p: &PartitionMetadata,
+) -> fmt::Result {
+    f.write_str("PartitionMetadata(error=")?;
+    f.write_str(crate::error::for_code(p.error_code))?;
+    f.write_str(", partition=")?;
+    match topic {
+        Some(name) => write!(f, "{name}-{}", p.partition_index)?,
+        None => write!(f, "null-{}", p.partition_index)?,
+    }
+    f.write_str(", leader=")?;
+    write_java_optional_i32(f, (p.leader_id >= 0).then_some(p.leader_id))?;
+    f.write_str(", leaderEpoch=")?;
+    write_java_optional_i32(
+        f,
+        (p.leader_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH).then_some(p.leader_epoch),
+    )?;
+    f.write_str(", replicas=")?;
+    write_java_int_csv(f, &p.replica_nodes)?;
+    f.write_str(", isr=")?;
+    write_java_int_csv(f, &p.isr_nodes)?;
+    f.write_str(", offlineReplicas=")?;
+    write_java_int_csv(f, &p.offline_replicas)?;
+    f.write_str(")")
+}
+
+impl fmt::Display for TopicMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TopicMetadata{error=")?;
+        f.write_str(crate::error::for_code(self.error_code))?;
+        f.write_str(", topic='")?;
+        match self.name.as_deref() {
+            Some(name) => f.write_str(name)?,
+            None => f.write_str("null")?,
+        }
+        f.write_str("', topicId='")?;
+        write_java_uuid_bytes(f, &self.topic_id)?;
+        write!(f, "', isInternal={}, partitionMetadata=[", self.is_internal)?;
+        for (i, p) in self.partitions.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            write_java_partition_metadata(f, self.name.as_deref(), p)?;
+        }
+        write!(
+            f,
+            "], authorizedOperations={}}}",
+            self.topic_authorized_operations
+        )
     }
 }
 
@@ -2667,6 +2749,43 @@ mod tests {
         assert_eq!(stripped.isr_nodes, with_epoch.isr_nodes);
         assert_eq!(stripped.offline_replicas, with_epoch.offline_replicas);
         assert_eq!(with_epoch.leader_epoch, 8);
+        let topic = TopicMetadata {
+            error_code: 0,
+            name: Some("t".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: vec![with_epoch.clone()],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        assert_eq!(
+            topic.to_string(),
+            "TopicMetadata{error=NONE, topic='t', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=false, partitionMetadata=[PartitionMetadata(error=NONE, partition=t-1, leader=Optional[2], leaderEpoch=Optional[8], replicas=2,3, isr=2, offlineReplicas=3)], authorizedOperations=-2147483648}"
+        );
+        let empty = TopicMetadata::error(0, None, [0; 16]);
+        assert_eq!(
+            empty.to_string(),
+            "TopicMetadata{error=NONE, topic='', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=false, partitionMetadata=[], authorizedOperations=-2147483648}"
+        );
+        let unnamed = TopicMetadata {
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            name: None,
+            topic_id: [0; 16],
+            is_internal: true,
+            partitions: vec![PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: MetadataResponse::NO_LEADER_ID,
+                leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+            topic_authorized_operations: 0,
+        };
+        assert_eq!(
+            unnamed.to_string(),
+            "TopicMetadata{error=UNKNOWN_TOPIC_OR_PARTITION, topic='null', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=true, partitionMetadata=[PartitionMetadata(error=NONE, partition=null-0, leader=Optional.empty, leaderEpoch=Optional.empty, replicas=, isr=, offlineReplicas=)], authorizedOperations=0}"
+        );
     }
 
     #[test]

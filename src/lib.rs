@@ -52,6 +52,9 @@
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! [`protocol::api::PartitionMetadata::without_leader_epoch`] is Java
 //! `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
+//! [`protocol::api::TopicMetadata`] `Display` is Java
+//! `MetadataResponse.TopicMetadata.toString` (nested
+//! `PartitionMetadata.toString` uses the topic name).
 //! [`PartitionInfo::from_partition_metadata`] is Java
 //! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
 //! [`protocol::api::MetadataRequestTopic::convert_from_names`] /
