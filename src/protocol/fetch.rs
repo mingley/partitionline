@@ -188,8 +188,10 @@ pub struct FetchTopic {
 /// [`Self::INVALID_HIGH_WATERMARK`] / [`Self::INVALID_LAST_STABLE_OFFSET`] /
 /// [`Self::INVALID_LOG_START_OFFSET`] / [`Self::INVALID_PREFERRED_REPLICA_ID`]
 /// are Java `FetchResponse` sentinels (`-1`).
-/// [`Self::is_preferred_replica`] / [`Self::is_diverging_epoch`] are Java
-/// `FetchResponse.isPreferredReplica` / `isDivergingEpoch`. Omitted v12+
+/// [`Self::partition_response`] is Java `FetchResponse.partitionResponse`.
+/// [`Self::preferred_read_replica()`] / [`Self::is_preferred_replica`] /
+/// [`Self::is_diverging_epoch`] are Java `FetchResponse.preferredReadReplica`
+/// / `isPreferredReplica` / `isDivergingEpoch`. Omitted v12+
 /// CurrentLeader fills [`MetadataResponse::NO_LEADER_ID`] /
 /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 /// [`EpochEndOffset::UNDEFINED_EPOCH`] /
@@ -236,10 +238,42 @@ impl FetchedPartition {
     /// Java `FetchResponse.INVALID_PREFERRED_REPLICA_ID`.
     pub const INVALID_PREFERRED_REPLICA_ID: i32 = -1;
 
+    /// Java `FetchResponse.partitionResponse(int, Errors)`.
+    ///
+    /// Sets [`Self::INVALID_HIGH_WATERMARK`] and empty records. Other
+    /// fields are Apache JSON defaults (`LastStableOffset` /
+    /// `LogStartOffset` / `PreferredReadReplica` / omitted
+    /// `CurrentLeader` / omitted `DivergingEpoch`).
+    #[must_use]
+    pub fn partition_response(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+            high_watermark: Self::INVALID_HIGH_WATERMARK,
+            last_stable_offset: Self::INVALID_LAST_STABLE_OFFSET,
+            log_start_offset: Self::INVALID_LOG_START_OFFSET,
+            aborted_transactions: Vec::new(),
+            preferred_read_replica: Self::INVALID_PREFERRED_REPLICA_ID,
+            current_leader_id: MetadataResponse::NO_LEADER_ID,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            diverging_epoch: EpochEndOffset::UNDEFINED_EPOCH,
+            diverging_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
+            records: Vec::new(),
+        }
+    }
+
+    /// Java `FetchResponse.preferredReadReplica` (`None` is empty
+    /// `Optional`).
+    #[must_use]
+    pub fn preferred_read_replica(&self) -> Option<i32> {
+        (self.preferred_read_replica != Self::INVALID_PREFERRED_REPLICA_ID)
+            .then_some(self.preferred_read_replica)
+    }
+
     /// Java `FetchResponse.isPreferredReplica`.
     #[must_use]
     pub fn is_preferred_replica(&self) -> bool {
-        self.preferred_read_replica != Self::INVALID_PREFERRED_REPLICA_ID
+        self.preferred_read_replica().is_some()
     }
 
     /// Java `FetchResponse.isDivergingEpoch`.
@@ -726,24 +760,49 @@ mod tests {
         assert_eq!(EpochEndOffset::UNDEFINED_EPOCH_OFFSET, -1);
         assert!(!FetchResponse::should_client_throttle(7));
         assert!(FetchResponse::should_client_throttle(8));
-        let none = FetchedPartition {
-            partition: 0,
-            error_code: 0,
-            high_watermark: FetchedPartition::INVALID_HIGH_WATERMARK,
-            last_stable_offset: FetchedPartition::INVALID_LAST_STABLE_OFFSET,
-            log_start_offset: FetchedPartition::INVALID_LOG_START_OFFSET,
-            aborted_transactions: Vec::new(),
-            preferred_read_replica: FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
-            current_leader_id: MetadataResponse::NO_LEADER_ID,
-            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
-            diverging_epoch: EpochEndOffset::UNDEFINED_EPOCH,
-            diverging_end_offset: EpochEndOffset::UNDEFINED_EPOCH_OFFSET,
-            records: Vec::new(),
-        };
+        let none = FetchedPartition::partition_response(0, 0);
+        assert_eq!(
+            none.high_watermark,
+            FetchedPartition::INVALID_HIGH_WATERMARK
+        );
+        assert_eq!(
+            none.last_stable_offset,
+            FetchedPartition::INVALID_LAST_STABLE_OFFSET
+        );
+        assert_eq!(
+            none.log_start_offset,
+            FetchedPartition::INVALID_LOG_START_OFFSET
+        );
+        assert_eq!(
+            none.preferred_read_replica,
+            FetchedPartition::INVALID_PREFERRED_REPLICA_ID
+        );
+        assert_eq!(none.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            none.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(none.diverging_epoch, EpochEndOffset::UNDEFINED_EPOCH);
+        assert_eq!(
+            none.diverging_end_offset,
+            EpochEndOffset::UNDEFINED_EPOCH_OFFSET
+        );
+        assert!(none.records.is_empty());
+        assert_eq!(none.preferred_read_replica(), None);
         assert!(!none.is_preferred_replica());
         assert!(!none.is_diverging_epoch());
-        let mut pref = none.clone();
+        let unknown =
+            FetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(unknown.partition, 3);
+        assert_eq!(unknown.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            unknown.high_watermark,
+            FetchedPartition::INVALID_HIGH_WATERMARK
+        );
+        assert!(unknown.records.is_empty());
+        let mut pref = none;
         pref.preferred_read_replica = 2;
+        assert_eq!(pref.preferred_read_replica(), Some(2));
         assert!(pref.is_preferred_replica());
         pref.diverging_epoch = 3;
         assert!(pref.is_diverging_epoch());

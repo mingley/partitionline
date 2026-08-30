@@ -2402,15 +2402,16 @@ impl Consumer {
                 continue;
             };
             for part in topic.partitions {
-                if part.is_preferred_replica()
-                    && self.cfg.rack.is_some()
-                    && part.preferred_read_replica != node
-                {
-                    let _prev = self
-                        .preferred
-                        .insert((name.clone(), part.partition), part.preferred_read_replica);
-                    retry = retry.merge(FetchRetry::Redirect);
-                    continue;
+                if self.cfg.rack.is_some() {
+                    if let Some(replica) = part.preferred_read_replica() {
+                        if replica != node {
+                            let _prev = self
+                                .preferred
+                                .insert((name.clone(), part.partition), replica);
+                            retry = retry.merge(FetchRetry::Redirect);
+                            continue;
+                        }
+                    }
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
                     self.advance(&name, part.partition, part.log_start_offset);
