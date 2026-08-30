@@ -717,7 +717,7 @@ impl std::fmt::Display for TimestampType {
 pub struct RecordBatch {
     /// First offset in this batch.
     pub base_offset: i64,
-    /// Partition leader epoch, or `-1` when unknown.
+    /// Partition leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
     /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`] /
@@ -727,11 +727,11 @@ pub struct RecordBatch {
     pub base_timestamp: i64,
     /// Max timestamp among records in this batch.
     pub max_timestamp: i64,
-    /// Idempotent / transactional producer id, or `-1`.
+    /// Idempotent / transactional producer id, or [`RecordBatch::NO_PRODUCER_ID`].
     pub producer_id: i64,
-    /// Producer epoch, or `-1`.
+    /// Producer epoch, or [`RecordBatch::NO_PRODUCER_EPOCH`].
     pub producer_epoch: i16,
-    /// First sequence number in this batch, or `-1`.
+    /// First sequence number in this batch, or [`RecordBatch::NO_SEQUENCE`].
     pub base_sequence: i32,
     /// Records in this batch.
     pub records: Vec<Record>,
@@ -938,11 +938,10 @@ impl RecordBatch {
         self.producer_id
     }
 
-    /// Java `DefaultRecordBatch.hasProducerId` (`producerId` is not
-    /// [`Self::NO_PRODUCER_ID`]).
+    /// Java `AbstractRecordBatch.hasProducerId` (`NO_PRODUCER_ID < producerId`).
     #[must_use]
     pub fn has_producer_id(&self) -> bool {
-        self.producer_id >= 0
+        Self::NO_PRODUCER_ID < self.producer_id
     }
 
     /// Java `DefaultRecordBatch.producerEpoch` (`-1` when none).
@@ -1181,7 +1180,7 @@ impl<'a> EncodeRecord<'a> {
 pub struct BatchHeader {
     /// First offset in this batch.
     pub base_offset: i64,
-    /// Partition leader epoch, or `-1` when unknown.
+    /// Partition leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub partition_leader_epoch: i32,
     /// Attribute bits: compression in the low 3, plus
     /// [`ATTR_TIMESTAMP_TYPE`] / [`ATTR_TRANSACTIONAL`] / [`ATTR_CONTROL`] /
@@ -1191,11 +1190,11 @@ pub struct BatchHeader {
     pub base_timestamp: i64,
     /// Max timestamp among records in this batch.
     pub max_timestamp: i64,
-    /// Idempotent / transactional producer id, or `-1`.
+    /// Idempotent / transactional producer id, or [`RecordBatch::NO_PRODUCER_ID`].
     pub producer_id: i64,
-    /// Producer epoch, or `-1`.
+    /// Producer epoch, or [`RecordBatch::NO_PRODUCER_EPOCH`].
     pub producer_epoch: i16,
-    /// First sequence number in this batch, or `-1`.
+    /// First sequence number in this batch, or [`RecordBatch::NO_SEQUENCE`].
     pub base_sequence: i32,
     /// Number of records that will be written.
     pub count: i32,
@@ -1205,13 +1204,13 @@ impl Default for BatchHeader {
     fn default() -> Self {
         Self {
             base_offset: 0,
-            partition_leader_epoch: -1,
+            partition_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             attributes: 0,
             base_timestamp: 0,
             max_timestamp: 0,
-            producer_id: -1,
-            producer_epoch: -1,
-            base_sequence: -1,
+            producer_id: RecordBatch::NO_PRODUCER_ID,
+            producer_epoch: RecordBatch::NO_PRODUCER_EPOCH,
+            base_sequence: RecordBatch::NO_SEQUENCE,
             count: 0,
         }
     }
@@ -1653,6 +1652,21 @@ mod tests {
         assert_eq!(RecordBatch::NO_PRODUCER_EPOCH, -1);
         assert_eq!(RecordBatch::NO_SEQUENCE, -1);
         assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
+        let header = BatchHeader::default();
+        assert_eq!(
+            header.partition_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(header.producer_id, RecordBatch::NO_PRODUCER_ID);
+        assert_eq!(header.producer_epoch, RecordBatch::NO_PRODUCER_EPOCH);
+        assert_eq!(header.base_sequence, RecordBatch::NO_SEQUENCE);
+        let mut zero_pid = RecordBatch::from_records(vec![empty.clone()]);
+        zero_pid.producer_id = 0;
+        assert!(
+            RecordBatch::NO_PRODUCER_ID < zero_pid.producer_id,
+            "Java AbstractRecordBatch.hasProducerId is NO_PRODUCER_ID < producerId"
+        );
+        assert!(zero_pid.has_producer_id());
         let mut with_pid = RecordBatch::from_records(vec![empty.clone()]);
         with_pid.producer_id = 5;
         with_pid.producer_epoch = 1;

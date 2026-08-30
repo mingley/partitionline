@@ -882,7 +882,10 @@ impl fmt::Display for TopicIdPartition {
 
 /// Committed offset plus optional leader epoch and user metadata.
 ///
-/// Java `OffsetAndMetadata`. The epoch is `None` when the wire value is `-1`.
+/// Java `OffsetAndMetadata`. The epoch is `None` when the wire value is
+/// [`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`] or otherwise negative
+/// (Java `leaderEpoch()` is empty when the stored epoch is `null` or
+/// negative).
 /// [`Self::new`] uses [`Self::NO_METADATA`] (Java `OffsetFetchResponse.NO_METADATA`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetAndMetadata {
@@ -940,7 +943,8 @@ impl OffsetAndMetadata {
     }
 
     pub(crate) fn wire_epoch(&self) -> i32 {
-        self.leader_epoch.unwrap_or(-1)
+        self.leader_epoch
+            .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
     /// Java `OffsetAndMetadata.offset`.
@@ -1278,7 +1282,11 @@ impl Consumer {
         self.drop_pending_for(&topic, partition);
         self.assigned
             .retain(|(t, p, _)| !(t == &topic && *p == partition));
-        self.set_last_fetched_epoch(&topic, partition, -1);
+        self.set_last_fetched_epoch(
+            &topic,
+            partition,
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        );
         self.assigned.push((topic, partition, offset));
         Ok(())
     }
@@ -1377,7 +1385,7 @@ impl Consumer {
         self.assigned.retain(|(t, _, _)| t != &topic);
         for p in parts {
             self.drop_pending_for(&topic, p);
-            self.set_last_fetched_epoch(&topic, p, -1);
+            self.set_last_fetched_epoch(&topic, p, crate::RecordBatch::NO_PARTITION_LEADER_EPOCH);
             self.assigned.push((topic.clone(), p, offset));
         }
         Ok(())
@@ -1419,7 +1427,7 @@ impl Consumer {
         self.last_fetched_epochs
             .get(&(topic.to_string(), partition))
             .copied()
-            .unwrap_or(-1)
+            .unwrap_or(crate::RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
     pub(crate) fn set_last_fetched_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
@@ -2401,7 +2409,11 @@ impl Consumer {
                 }
                 if part.error_code == error::OFFSET_OUT_OF_RANGE {
                     self.advance(&name, part.partition, part.log_start_offset);
-                    self.set_last_fetched_epoch(&name, part.partition, -1);
+                    self.set_last_fetched_epoch(
+                        &name,
+                        part.partition,
+                        crate::RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    );
                     continue;
                 }
                 if part.error_code == error::FENCED_LEADER_EPOCH
@@ -2440,7 +2452,7 @@ impl Consumer {
                     continue;
                 }
                 let mut next = None;
-                let mut last_epoch = -1;
+                let mut last_epoch = crate::RecordBatch::NO_PARTITION_LEADER_EPOCH;
                 let isolation = self.cfg.isolation_level;
                 for batch in part.records {
                     if batch.attributes & crate::protocol::records::ATTR_CONTROL != 0 {

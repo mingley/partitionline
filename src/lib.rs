@@ -290,6 +290,9 @@
 //! `isCompressed` / `hasTimestampType` (magic-v2: `hasMagic` is true when
 //! magic is 2 or greater; the other two are always false).
 //! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
+//! [`RecordBatch::has_producer_id`] is Java `AbstractRecordBatch.hasProducerId`
+//! (`NO_PRODUCER_ID < producerId`). Fetch LastFetchedEpoch resets and
+//! omitted last-fetched epoch use [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`ControlRecordType`] / [`EndTransactionMarker`] are Java
