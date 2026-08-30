@@ -146,6 +146,60 @@ impl Compression {
             Self::Lz4 => "lz4",
         }
     }
+
+    /// Java `CompressionType.GZIP.MIN_LEVEL` (`Deflater.BEST_SPEED`).
+    pub const GZIP_MIN_LEVEL: i32 = 1;
+    /// Java `CompressionType.GZIP.MAX_LEVEL` (`Deflater.BEST_COMPRESSION`).
+    pub const GZIP_MAX_LEVEL: i32 = 9;
+    /// Java `CompressionType.GZIP.DEFAULT_LEVEL` (`Deflater.DEFAULT_COMPRESSION`).
+    pub const GZIP_DEFAULT_LEVEL: i32 = -1;
+    /// Java `CompressionType.LZ4` min (`LZ4Constants`).
+    pub const LZ4_MIN_LEVEL: i32 = 1;
+    /// Java `CompressionType.LZ4` max (`LZ4Constants`).
+    pub const LZ4_MAX_LEVEL: i32 = 17;
+    /// Java `CompressionType.LZ4` default (`LZ4Constants`).
+    pub const LZ4_DEFAULT_LEVEL: i32 = 9;
+
+    fn levels_unsupported(self) -> Error {
+        Error::Unsupported(format!(
+            "Compression levels are not defined for this compression type: {}",
+            self.as_str()
+        ))
+    }
+
+    /// Java `CompressionType.defaultLevel`.
+    ///
+    /// [`Self::None`] / [`Self::Snappy`] are [`Error::Unsupported`]. zstd is
+    /// not spoken.
+    pub fn default_level(self) -> Result<i32> {
+        match self {
+            Self::Gzip => Ok(Self::GZIP_DEFAULT_LEVEL),
+            Self::Lz4 => Ok(Self::LZ4_DEFAULT_LEVEL),
+            other => Err(other.levels_unsupported()),
+        }
+    }
+
+    /// Java `CompressionType.minLevel`.
+    ///
+    /// [`Self::None`] / [`Self::Snappy`] are [`Error::Unsupported`].
+    pub fn min_level(self) -> Result<i32> {
+        match self {
+            Self::Gzip => Ok(Self::GZIP_MIN_LEVEL),
+            Self::Lz4 => Ok(Self::LZ4_MIN_LEVEL),
+            other => Err(other.levels_unsupported()),
+        }
+    }
+
+    /// Java `CompressionType.maxLevel`.
+    ///
+    /// [`Self::None`] / [`Self::Snappy`] are [`Error::Unsupported`].
+    pub fn max_level(self) -> Result<i32> {
+        match self {
+            Self::Gzip => Ok(Self::GZIP_MAX_LEVEL),
+            Self::Lz4 => Ok(Self::LZ4_MAX_LEVEL),
+            other => Err(other.levels_unsupported()),
+        }
+    }
 }
 
 impl fmt::Display for Compression {
@@ -2121,6 +2175,54 @@ mod tests {
         );
         assert_eq!(Compression::from_name("gzip").unwrap(), Compression::Gzip);
         assert_eq!(Compression::from_name("").unwrap(), Compression::None);
+        assert_eq!(
+            Compression::Gzip.default_level().unwrap(),
+            Compression::GZIP_DEFAULT_LEVEL
+        );
+        assert_eq!(
+            Compression::Gzip.min_level().unwrap(),
+            Compression::GZIP_MIN_LEVEL
+        );
+        assert_eq!(
+            Compression::Gzip.max_level().unwrap(),
+            Compression::GZIP_MAX_LEVEL
+        );
+        assert_eq!(Compression::GZIP_DEFAULT_LEVEL, -1);
+        assert_eq!(Compression::GZIP_MIN_LEVEL, 1);
+        assert_eq!(Compression::GZIP_MAX_LEVEL, 9);
+        assert_eq!(
+            Compression::Lz4.default_level().unwrap(),
+            Compression::LZ4_DEFAULT_LEVEL
+        );
+        assert_eq!(
+            Compression::Lz4.min_level().unwrap(),
+            Compression::LZ4_MIN_LEVEL
+        );
+        assert_eq!(
+            Compression::Lz4.max_level().unwrap(),
+            Compression::LZ4_MAX_LEVEL
+        );
+        assert_eq!(Compression::LZ4_DEFAULT_LEVEL, 9);
+        assert_eq!(Compression::LZ4_MIN_LEVEL, 1);
+        assert_eq!(Compression::LZ4_MAX_LEVEL, 17);
+        let none_lvl = Compression::None.default_level().unwrap_err();
+        assert!(
+            matches!(none_lvl, crate::error::Error::Unsupported(_)),
+            "{none_lvl}"
+        );
+        assert!(
+            none_lvl
+                .to_string()
+                .contains("Compression levels are not defined for this compression type: none"),
+            "{none_lvl}"
+        );
+        let snappy_lvl = Compression::Snappy.min_level().unwrap_err();
+        assert!(
+            snappy_lvl
+                .to_string()
+                .contains("Compression levels are not defined for this compression type: snappy"),
+            "{snappy_lvl}"
+        );
         assert_eq!(TimestampType::from_attributes(0), TimestampType::CreateTime);
         assert_eq!(
             TimestampType::from_attributes(ATTR_TIMESTAMP_TYPE),

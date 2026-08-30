@@ -791,6 +791,10 @@
 //! [`Compression::from_id`] / [`Compression::from_name`] are Java
 //! `CompressionType.id` / `forId` / `forName`
 //! (zstd `4` is `None`; this crate does not speak zstd).
+//! [`Compression::default_level`] / [`Compression::min_level`] /
+//! [`Compression::max_level`] are Java `CompressionType.defaultLevel` /
+//! `minLevel` / `maxLevel` (`gzip` / `lz4`; [`Error::Unsupported`] for
+//! `none` / `snappy`).
 //! [`TimestampType::id`] / [`TimestampType::from_name`] are Java
 //! `TimestampType.id` / `forName`.
 //! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
