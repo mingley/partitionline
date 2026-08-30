@@ -2708,6 +2708,9 @@ impl Consumer {
     /// Set the next fetch offset for an assigned partition (Java
     /// `seek(TopicPartition, long)`).
     ///
+    /// A negative offset is Java `IllegalArgumentException` (`seek offset
+    /// must not be a negative number`). An unassigned partition is Java
+    /// `IllegalStateException` (`No current assignment for partition`).
     /// Clears Fetch `LastFetchedEpoch` (KIP-320). To keep a leader epoch,
     /// use [`Self::seek_with_metadata`].
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
@@ -2727,10 +2730,11 @@ impl Consumer {
 
     /// Seek using [`OffsetAndMetadata`] (Java `seek(TopicPartition, OffsetAndMetadata)`).
     ///
-    /// The offset is the next fetch position. The leader epoch is sent as
-    /// Fetch `LastFetchedEpoch` (KIP-320). Unknown epoch (`None`) clears it,
-    /// matching Java `Optional.empty()`. The metadata string is ignored
-    /// (Java does the same).
+    /// The offset is the next fetch position. A negative offset and an
+    /// unassigned partition use the same Java messages as [`Self::seek`].
+    /// The leader epoch is sent as Fetch `LastFetchedEpoch` (KIP-320).
+    /// Unknown epoch (`None`) clears it, matching Java `Optional.empty()`.
+    /// The metadata string is ignored (Java does the same).
     pub fn seek_with_metadata(
         &mut self,
         partition: impl Into<TopicPartition>,
@@ -2748,6 +2752,9 @@ impl Consumer {
         offset: i64,
         last_fetched_epoch: i32,
     ) -> Result<()> {
+        if offset < 0 {
+            return Err(Error::protocol("seek offset must not be a negative number"));
+        }
         if let Some(slot) = self
             .assigned
             .iter_mut()
@@ -2759,7 +2766,7 @@ impl Consumer {
             return Ok(());
         }
         Err(Error::protocol(format!(
-            "seek of unassigned {topic}-{partition}"
+            "No current assignment for partition {topic}-{partition}"
         )))
     }
 

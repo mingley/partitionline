@@ -2556,7 +2556,8 @@ async fn seek_with_metadata_sets_position_and_last_fetched_epoch() {
         .seek_with_metadata(("u", 0), OffsetAndMetadata::new(0))
         .unwrap_err();
     assert!(
-        err.to_string().contains("unassigned"),
+        err.to_string()
+            .contains("No current assignment for partition u-0"),
         "seek of unassigned must fail, got {err}"
     );
     consumer.close().await.unwrap();
@@ -2580,6 +2581,53 @@ async fn seek_with_metadata_sets_position_and_last_fetched_epoch() {
         "group seek_with_metadata must send LastFetchedEpoch"
     );
     group.leave().await.unwrap();
+}
+
+#[tokio::test]
+async fn seek_checks_match_java() {
+    let mock = common::Mock::start().await;
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    consumer.assign("t", 0, 0).await.unwrap();
+
+    let neg = consumer.seek("t", 0, -1).unwrap_err().to_string();
+    assert!(
+        neg.contains("seek offset must not be a negative number"),
+        "{neg}"
+    );
+    let neg_to = consumer
+        .seek_to(
+            TopicPartition::new("t", 0),
+            OffsetAndMetadata::INVALID_OFFSET,
+        )
+        .unwrap_err()
+        .to_string();
+    assert!(
+        neg_to.contains("seek offset must not be a negative number"),
+        "{neg_to}"
+    );
+    let neg_meta = consumer
+        .seek_with_metadata(("t", 0), OffsetAndMetadata::new(-1))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        neg_meta.contains("seek offset must not be a negative number"),
+        "{neg_meta}"
+    );
+    let neg_unassigned = consumer.seek("missing", 1, -1).unwrap_err().to_string();
+    assert!(
+        neg_unassigned.contains("seek offset must not be a negative number"),
+        "negative offset must win over unassigned, got {neg_unassigned}"
+    );
+    let unassigned = consumer.seek("missing", 1, 0).unwrap_err().to_string();
+    assert!(
+        unassigned.contains("No current assignment for partition missing-1"),
+        "{unassigned}"
+    );
+    consumer.seek("t", 0, 0).unwrap();
+    consumer.close().await.unwrap();
 }
 
 #[tokio::test]

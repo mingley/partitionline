@@ -897,6 +897,10 @@ impl ConsumerGroup {
 
     /// Set the next fetch offset for an assigned partition (Java
     /// `seek(TopicPartition, long)`).
+    ///
+    /// A negative offset is Java `IllegalArgumentException` (`seek offset
+    /// must not be a negative number`). An unassigned partition is Java
+    /// `IllegalStateException` (`No current assignment for partition`).
     pub fn seek(&mut self, topic: &str, partition: i32, offset: i64) -> Result<()> {
         self.consumer.seek(topic, partition, offset)
     }
@@ -908,8 +912,9 @@ impl ConsumerGroup {
 
     /// Seek using [`OffsetAndMetadata`] (Java `seek(TopicPartition, OffsetAndMetadata)`).
     ///
-    /// The leader epoch is sent as Fetch `LastFetchedEpoch`. The metadata
-    /// string is ignored.
+    /// A negative offset and an unassigned partition use the same Java
+    /// messages as [`Self::seek`]. The leader epoch is sent as Fetch
+    /// `LastFetchedEpoch`. The metadata string is ignored.
     pub fn seek_with_metadata(
         &mut self,
         partition: impl Into<TopicPartition>,
