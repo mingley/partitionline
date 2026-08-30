@@ -7110,6 +7110,25 @@ impl UnregisterBrokerResponse {
     pub fn error_message(&self) -> Option<&str> {
         self.error_message.as_deref()
     }
+
+    /// Java `UnregisterBrokerResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
+    }
+
+    /// Java `UnregisterBrokerResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only when it is not `NONE`. Success (`NONE`)
+    /// is an empty map (Java does not call `updateErrorCounts` for `0`).
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        if self.error_code == 0 {
+            HashMap::new()
+        } else {
+            HashMap::from([(self.error_code, 1)])
+        }
+    }
 }
 
 /// Encode an UnregisterBroker request.
@@ -14773,6 +14792,19 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::GROUP_ID_NOT_FOUND, 1),])
         );
+    }
+
+    #[test]
+    fn unregister_broker_response_error_counts_matches_java() {
+        assert!(UnregisterBrokerResponse::new(0, None)
+            .error_counts()
+            .is_empty());
+        assert_eq!(
+            UnregisterBrokerResponse::new(crate::error::NOT_CONTROLLER, None).error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+        assert!(UnregisterBrokerResponse::should_client_throttle(0));
+        assert!(UnregisterBrokerResponse::should_client_throttle(1));
     }
 
     #[test]

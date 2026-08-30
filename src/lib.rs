@@ -1252,6 +1252,11 @@
 //! [`Admin::unregister_broker_timeout`] is Java
 //! `UnregisterBrokerOptions.timeoutMs` (RPC deadline; UnregisterBroker has
 //! no TimeoutMs; caps `NOT_CONTROLLER`).
+//! [`UnregisterBrokerResponse::error_counts`] is Java
+//! `UnregisterBrokerResponse.errorCounts` (top-level code only when it is
+//! not `NONE`; success is an empty map).
+//! [`UnregisterBrokerResponse::should_client_throttle`] is Java
+//! `UnregisterBrokerResponse.shouldClientThrottle` (always).
 //! [`Admin::allocate_producer_ids_timeout`] is the crate-first
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
 //! `allocateProducerIds`. [`Admin::new`] does not require that API,
