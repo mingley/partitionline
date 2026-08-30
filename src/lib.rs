@@ -960,6 +960,9 @@
 //! `AbstractRecordBatch.hasProducerId` on a buffer (producer id greater than
 //! [`RecordBatch::NO_PRODUCER_ID`]; short field is [`Error::protocol`]
 //! `need 8 bytes`).
+//! [`RecordBatch::encoded_count_or_null`] is Java
+//! `DefaultRecordBatch.countOrNull` on a buffer (header records count;
+//! magic-v2 is always `Some`).
 //! [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
@@ -1014,6 +1017,7 @@
 //! `isCompressed` / `hasTimestampType` (magic-v2: `hasMagic` is true when
 //! magic is 2 or greater; the other two are always false).
 //! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
+//! [`RecordBatch::encoded_count_or_null`] is the buffer form.
 //! [`RecordBatch::has_producer_id`] is Java `AbstractRecordBatch.hasProducerId`
 //! (`NO_PRODUCER_ID < producerId`).
 //! [`RecordBatch::encoded_has_producer_id`] is the buffer form.

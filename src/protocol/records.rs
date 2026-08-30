@@ -1425,6 +1425,17 @@ impl RecordBatch {
         Ok(Self::NO_PRODUCER_ID < Self::read_i64_be(buffer, off)?)
     }
 
+    /// Java `DefaultRecordBatch.countOrNull` on a buffer (header records
+    /// count at [`Self::RECORDS_COUNT_OFFSET`]).
+    ///
+    /// Magic-v2 is always `Some` (Java never returns null). Distinct from
+    /// [`Self::count_or_null`], which uses `records.len()`. Short count field
+    /// is [`Error::protocol`] `need 4 bytes`.
+    pub fn encoded_count_or_null(buffer: &[u8]) -> Result<Option<i32>> {
+        let off = buf::usize_from_i32(Self::RECORDS_COUNT_OFFSET)?;
+        Ok(Some(buf::read_int_be(buffer, off)?))
+    }
+
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
     pub fn checksum(&self) -> Result<u32> {
         let buf = self.encoded()?;
@@ -3320,6 +3331,51 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short.contains("need 8 bytes"), "{short}");
+    }
+
+    #[test]
+    fn encoded_count_or_null_matches_java_default_record_batch() {
+        let empty = RecordBatch::from_records(vec![]);
+        let mut empty_buf = BytesMut::new();
+        encode_record_batch(&mut empty_buf, &empty).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_count_or_null(&empty_buf).unwrap(),
+            Some(0)
+        );
+        assert_eq!(empty.count_or_null(), Some(0));
+
+        let one = RecordBatch::from_records(vec![sample_record()]);
+        let mut one_buf = BytesMut::new();
+        encode_record_batch(&mut one_buf, &one).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_count_or_null(&one_buf).unwrap(),
+            Some(1)
+        );
+        assert_eq!(one.count_or_null(), Some(1));
+
+        let mut mutated = one_buf.clone();
+        mutated[57..61].copy_from_slice(&99i32.to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_count_or_null(&mutated).unwrap(),
+            Some(99)
+        );
+        assert_eq!(one.count_or_null(), Some(1));
+
+        let mut negative = [0u8; 61];
+        negative[57..61].copy_from_slice(&(-1i32).to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_count_or_null(&negative).unwrap(),
+            Some(-1)
+        );
+
+        assert_eq!(
+            RecordBatch::encoded_count_or_null(&[0; 61]).unwrap(),
+            Some(0)
+        );
+        let short = RecordBatch::encoded_count_or_null(&[0; 56])
+            .unwrap_err()
+            .to_string();
+        assert!(short.contains("need 4 bytes"), "{short}");
     }
 
     #[test]
