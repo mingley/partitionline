@@ -2536,6 +2536,9 @@ pub struct DeleteRecordsPartition {
 }
 
 /// Topic + partitions for DeleteRecords (v0–2).
+///
+/// [`Self::error_result`] is Java `DeleteRecordsRequest.getErrorResponse` one
+/// topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeleteRecordsTopic {
     /// Topic name.
@@ -2544,10 +2547,30 @@ pub struct DeleteRecordsTopic {
     pub partitions: Vec<DeleteRecordsPartition>,
 }
 
+impl DeleteRecordsTopic {
+    /// Java `DeleteRecordsRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`DeletedRecordsPartition::error`]. Throttle on the
+    /// response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> DeletedRecordsTopic {
+        DeletedRecordsTopic {
+            topic: self.topic.clone(),
+            partitions: self
+                .partitions
+                .iter()
+                .map(|p| DeletedRecordsPartition::error(p.partition, error_code))
+                .collect(),
+        }
+    }
+}
+
 /// One partition in a DeleteRecords response (v0–2).
 ///
 /// [`Self::INVALID_LOW_WATERMARK`] is Java
 /// `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
+/// [`Self::error`] is Java `DeleteRecordsRequest.getErrorResponse` partition
+/// body (`INVALID_LOW_WATERMARK`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletedRecordsPartition {
     /// Partition index.
@@ -2561,6 +2584,18 @@ pub struct DeletedRecordsPartition {
 impl DeletedRecordsPartition {
     /// Java `DeleteRecordsResponse.INVALID_LOW_WATERMARK`.
     pub const INVALID_LOW_WATERMARK: i64 = -1;
+
+    /// Java `DeleteRecordsRequest.getErrorResponse` partition body.
+    ///
+    /// Fills [`Self::INVALID_LOW_WATERMARK`].
+    #[must_use]
+    pub fn error(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            low_watermark: Self::INVALID_LOW_WATERMARK,
+            error_code,
+        }
+    }
 }
 
 /// Topic + partition results from DeleteRecords (v0–2).
@@ -12937,6 +12972,44 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DeleteRecords INVALID_LOW_WATERMARK response must be leftover-empty"
+        );
+        let topic = DeleteRecordsTopic {
+            topic: "t".into(),
+            partitions: vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 5,
+                },
+                DeleteRecordsPartition {
+                    partition: 1,
+                    offset: DeleteRecordsRequest::HIGH_WATERMARK,
+                },
+            ],
+        };
+        let result = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            result,
+            DeletedRecordsTopic {
+                topic: "t".into(),
+                partitions: vec![
+                    DeletedRecordsPartition::error(0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                    DeletedRecordsPartition::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                ],
+            }
+        );
+        assert_eq!(
+            result.partitions.first().map(|p| p.low_watermark),
+            Some(DeletedRecordsPartition::INVALID_LOW_WATERMARK)
+        );
+        let mut err = BytesMut::new();
+        encode_delete_records_topics_response(&mut err, 2, std::slice::from_ref(&result)).unwrap();
+        let mut cur = err.as_ref();
+        let decoded = decode_delete_records_topics_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, vec![result]);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteRecords getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
