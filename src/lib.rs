@@ -116,6 +116,11 @@
 //! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
 //! partitions; including `NONE`);
+//! [`protocol::group::OffsetFetchResponse::group_has_error`] /
+//! [`protocol::group::OffsetFetchResponse::group_level_error`] are Java
+//! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
+//! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
+//! `group_id` and use the top-level code, including `NONE`);
 //! [`protocol::group::OffsetFetchGroup::error_result`] /
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
@@ -645,7 +650,13 @@
 //! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
 //! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
-//! partitions; including `NONE`). [`OffsetAndMetadata::NO_METADATA`] /
+//! partitions; including `NONE`).
+//! [`protocol::group::OffsetFetchResponse::group_has_error`] /
+//! [`protocol::group::OffsetFetchResponse::group_level_error`] are Java
+//! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
+//! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
+//! `group_id` and use the top-level code, including `NONE`).
+//! [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
 //! `auto.offset.reset`). [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /

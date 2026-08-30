@@ -2199,16 +2199,54 @@ impl OffsetFetchResponse {
             }
             return counts;
         }
-        let topics = groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]);
-        let top = if version >= 2 {
-            groups.first().map(|g| g.error_code).unwrap_or(0)
-        } else {
-            offset_fetch_v1_top_level_error(topics)
-        };
+        let top = offset_fetch_v0_to_v7_error(version, groups);
         let count = counts.entry(top).or_insert(0);
         *count += 1;
-        offset_fetch_add_partition_error_counts(&mut counts, topics);
+        offset_fetch_add_partition_error_counts(
+            &mut counts,
+            groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]),
+        );
         counts
+    }
+
+    /// Java `OffsetFetchResponse.groupHasError`.
+    ///
+    /// v8+: `true` when the named group's `errorCode` is not `NONE`. A
+    /// missing group is `false` (Java `groupLevelErrors.get` is null and
+    /// the wrapper `error` field is null). v1–v7 ignore `group_id` and
+    /// return whether the top-level code is not `NONE`. v1 has no
+    /// top-level field; Java uses the first non-partition error from the
+    /// partitions (or `NONE`).
+    #[must_use]
+    pub fn group_has_error(
+        version: i16,
+        groups: &[OffsetFetchGroupResult],
+        group_id: &str,
+    ) -> bool {
+        Self::group_level_error(version, groups, group_id).is_some_and(|code| code != 0)
+    }
+
+    /// Java `OffsetFetchResponse.groupLevelError`.
+    ///
+    /// v8+: the named group's `errorCode`, or `None` when the group is
+    /// missing (Java `null`). Duplicate group ids keep the last match
+    /// (Java `HashMap.put`). v1–v7 ignore `group_id` and return `Some` of
+    /// the top-level code (including `NONE`). v1 synthesizes that code as
+    /// in [`Self::error_counts`].
+    #[must_use]
+    pub fn group_level_error(
+        version: i16,
+        groups: &[OffsetFetchGroupResult],
+        group_id: &str,
+    ) -> Option<i16> {
+        if version >= 8 {
+            groups
+                .iter()
+                .rfind(|group| group.group_id == group_id)
+                .map(|group| group.error_code)
+        } else {
+            Some(offset_fetch_v0_to_v7_error(version, groups))
+        }
     }
 }
 
@@ -2315,6 +2353,14 @@ impl OffsetFetchGroupResult {
             topics: Vec::new(),
             error_code,
         }
+    }
+}
+
+fn offset_fetch_v0_to_v7_error(version: i16, groups: &[OffsetFetchGroupResult]) -> i16 {
+    if version >= 2 {
+        groups.first().map(|g| g.error_code).unwrap_or(0)
+    } else {
+        offset_fetch_v1_top_level_error(groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]))
     }
 }
 
@@ -3830,6 +3876,110 @@ mod tests {
         assert_eq!(
             v1_coord,
             HashMap::from([(crate::error::NOT_COORDINATOR, 2)])
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_group_has_error_matches_java() {
+        assert!(!OffsetFetchResponse::group_has_error(8, &[], "g"));
+        assert_eq!(OffsetFetchResponse::group_level_error(8, &[], "g"), None);
+        assert!(!OffsetFetchResponse::group_has_error(7, &[], "g"));
+        assert_eq!(OffsetFetchResponse::group_level_error(7, &[], "g"), Some(0));
+        assert!(!OffsetFetchResponse::group_has_error(1, &[], "g"));
+        assert_eq!(OffsetFetchResponse::group_level_error(1, &[], "g"), Some(0));
+
+        let groups = [
+            OffsetFetchGroupResult {
+                group_id: "ok".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::error(0, 0)],
+                }],
+                error_code: 0,
+            },
+            OffsetFetchGroupResult::error("missing", crate::error::NOT_COORDINATOR),
+            OffsetFetchGroupResult::error("loading", crate::error::COORDINATOR_LOAD_IN_PROGRESS),
+        ];
+        assert!(!OffsetFetchResponse::group_has_error(8, &groups, "ok"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &groups, "ok"),
+            Some(0)
+        );
+        assert!(OffsetFetchResponse::group_has_error(8, &groups, "missing"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &groups, "missing"),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        assert!(OffsetFetchResponse::group_has_error(8, &groups, "loading"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &groups, "loading"),
+            Some(crate::error::COORDINATOR_LOAD_IN_PROGRESS)
+        );
+        assert!(!OffsetFetchResponse::group_has_error(8, &groups, "other"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &groups, "other"),
+            None
+        );
+
+        let v7 = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::error(0, 0)],
+            }],
+            error_code: crate::error::NOT_COORDINATOR,
+        }];
+        assert!(OffsetFetchResponse::group_has_error(7, &v7, "ignored"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(7, &v7, "ignored"),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        let v7_none = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: Vec::new(),
+            error_code: 0,
+        }];
+        assert!(!OffsetFetchResponse::group_has_error(7, &v7_none, "g"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(7, &v7_none, "g"),
+            Some(0)
+        );
+
+        let v1_partition = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::unknown_partition(0)],
+            }],
+            error_code: 0,
+        }];
+        assert!(!OffsetFetchResponse::group_has_error(1, &v1_partition, "g"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(1, &v1_partition, "g"),
+            Some(0)
+        );
+        let v1_coord = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::error(0, crate::error::NOT_COORDINATOR)],
+            }],
+            error_code: 0,
+        }];
+        assert!(OffsetFetchResponse::group_has_error(1, &v1_coord, "g"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(1, &v1_coord, "g"),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+
+        let dup = [
+            OffsetFetchGroupResult::error("g", 0),
+            OffsetFetchGroupResult::error("g", crate::error::NOT_COORDINATOR),
+        ];
+        assert!(OffsetFetchResponse::group_has_error(8, &dup, "g"));
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &dup, "g"),
+            Some(crate::error::NOT_COORDINATOR)
         );
     }
 
