@@ -1263,10 +1263,17 @@ fn offset_commit_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `OffsetCommitRequest.DEFAULT_GENERATION_ID`.
+pub const DEFAULT_GENERATION_ID: i32 = -1;
+/// Java `OffsetCommitRequest.DEFAULT_MEMBER_ID`.
+pub const DEFAULT_MEMBER_ID: &str = "";
+/// Java `OffsetCommitRequest.DEFAULT_RETENTION_TIME` (v2–v4 RetentionTimeMs).
+pub const DEFAULT_RETENTION_TIME: i64 = -1;
+
 /// Encode OffsetCommit v2–v9.
 ///
 /// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "8+"`.
-/// v2–v4 send RetentionTimeMs `-1` after MemberId. v5 omits retention.
+/// v2–v4 send [`DEFAULT_RETENTION_TIME`] after MemberId. v5 omits retention.
 /// v6 CommittedLeaderEpoch. v7 GroupInstanceId. v8 flexible. v9 matches
 /// v8. This crate speaks 2–9. v0–v1 and v10+ are not spoken.
 pub fn encode_offset_commit_request(
@@ -1286,7 +1293,7 @@ pub fn encode_offset_commit_request(
         buf::put_string(buf, flexible, group_instance_id)?;
     }
     if (2..=4).contains(&version) {
-        buf.put_i64(-1);
+        buf.put_i64(DEFAULT_RETENTION_TIME);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -2136,6 +2143,13 @@ mod tests {
         assert_eq!(MIN_BATCHED_VERSION, 4);
         assert!(find_coordinator_batched(MIN_BATCHED_VERSION));
         assert!(!find_coordinator_batched(MIN_BATCHED_VERSION - 1));
+    }
+
+    #[test]
+    fn offset_commit_defaults_match_java() {
+        assert_eq!(DEFAULT_GENERATION_ID, -1);
+        assert_eq!(DEFAULT_MEMBER_ID, "");
+        assert_eq!(DEFAULT_RETENTION_TIME, -1);
     }
 
     #[test]

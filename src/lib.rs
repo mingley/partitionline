@@ -37,7 +37,7 @@
 //! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
-//! OffsetCommit v2–v9 (v2–v4 retention `-1`; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
+//! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
