@@ -10571,6 +10571,12 @@ impl AlterReplicaLogDirsResponse {
         Self { results }
     }
 
+    /// Java `AlterReplicaLogDirsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+
     /// Per-item results.
     #[must_use]
     pub fn results(&self) -> &[AlterReplicaLogDirsResponseTopic] {
@@ -10821,6 +10827,8 @@ impl DescribeLogDirsRequest {
 
 /// Java `DescribeLogDirsResponse.UNKNOWN_VOLUME_BYTES` (`-1`).
 pub const UNKNOWN_VOLUME_BYTES: i64 = -1;
+/// Java `DescribeLogDirsResponse.INVALID_OFFSET_LAG` (`-1`).
+pub const INVALID_OFFSET_LAG: i64 = -1;
 
 /// One partition in a DescribeLogDirs (api 35) response.
 ///
@@ -11009,12 +11017,23 @@ pub struct DescribeLogDirsResponse {
 }
 
 impl DescribeLogDirsResponse {
+    /// Java `DescribeLogDirsResponse.UNKNOWN_VOLUME_BYTES`.
+    pub const UNKNOWN_VOLUME_BYTES: i64 = -1;
+    /// Java `DescribeLogDirsResponse.INVALID_OFFSET_LAG`.
+    pub const INVALID_OFFSET_LAG: i64 = -1;
+
     /// Construct [`Self`].
     pub fn new(error_code: i16, results: Vec<DescribeLogDirsResult>) -> Self {
         Self {
             error_code,
             results,
         }
+    }
+
+    /// Java `DescribeLogDirsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 
     /// Kafka error code (`0` is success).
@@ -11513,6 +11532,12 @@ impl CreateDelegationTokenResponse {
         }
     }
 
+    /// Java `CreateDelegationTokenResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -11874,6 +11899,12 @@ impl RenewDelegationTokenResponse {
         }
     }
 
+    /// Java `RenewDelegationTokenResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -12070,6 +12101,12 @@ impl ExpireDelegationTokenResponse {
             error_code,
             expiry_timestamp_ms,
         }
+    }
+
+    /// Java `ExpireDelegationTokenResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 
     /// Kafka error code (`0` is success).
@@ -12571,6 +12608,12 @@ impl DescribeDelegationTokenResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, tokens: Vec<DescribedDelegationToken>) -> Self {
         Self { error_code, tokens }
+    }
+
+    /// Java `DescribeDelegationTokenResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 
     /// Kafka error code (`0` is success).
@@ -15596,6 +15639,11 @@ mod tests {
         let simple = DescribedGroup::new("s", 0);
         assert!(simple.is_simple_consumer_group());
         let replica = DescribeLogDirsPartition::new(0, 10, 3, true);
+        assert_eq!(DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES, -1);
+        assert_eq!(DescribeLogDirsResponse::INVALID_OFFSET_LAG, -1);
+        assert_eq!(INVALID_OFFSET_LAG, -1);
+        assert!(!DescribeLogDirsResponse::should_client_throttle(0));
+        assert!(DescribeLogDirsResponse::should_client_throttle(1));
         assert_eq!(replica.partition_index(), 0);
         assert_eq!(replica.size(), 10);
         assert_eq!(replica.offset_lag(), 3);
@@ -18966,6 +19014,8 @@ mod tests {
 
     #[test]
     fn alter_replica_log_dirs_v2_matches_kafka_protocol_0_18() {
+        assert!(!AlterReplicaLogDirsResponse::should_client_throttle(0));
+        assert!(AlterReplicaLogDirsResponse::should_client_throttle(1));
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 34
         // validVersions 1-2, flexibleVersions 2+, listeners broker only.
@@ -19779,6 +19829,8 @@ mod tests {
 
     #[test]
     fn create_delegation_token_v3_matches_kafka_protocol_0_18() {
+        assert!(!CreateDelegationTokenResponse::should_client_throttle(0));
+        assert!(CreateDelegationTokenResponse::should_client_throttle(1));
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 38
         // listeners broker + controller. This crate speaks 1–3.
@@ -20332,6 +20384,8 @@ mod tests {
 
     #[test]
     fn renew_delegation_token_v2_matches_kafka_protocol_0_18() {
+        assert!(!RenewDelegationTokenResponse::should_client_throttle(0));
+        assert!(RenewDelegationTokenResponse::should_client_throttle(1));
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 39
         // listeners broker + controller. This crate speaks 1–2.
@@ -20730,6 +20784,8 @@ mod tests {
 
     #[test]
     fn expire_delegation_token_v2_matches_kafka_protocol_0_18() {
+        assert!(!ExpireDelegationTokenResponse::should_client_throttle(0));
+        assert!(ExpireDelegationTokenResponse::should_client_throttle(1));
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 40
         // listeners broker + controller. This crate speaks 1–2.
@@ -21132,6 +21188,8 @@ mod tests {
 
     #[test]
     fn describe_delegation_token_v3_matches_kafka_protocol_0_18() {
+        assert!(!DescribeDelegationTokenResponse::should_client_throttle(0));
+        assert!(DescribeDelegationTokenResponse::should_client_throttle(1));
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 41
         // listeners broker + controller. This crate speaks 1–3.

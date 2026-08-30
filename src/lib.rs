@@ -144,12 +144,26 @@
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+)),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
-//! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible),
-//! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes),
-//! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester),
-//! RenewDelegationToken v1–v2 (v1 classic; v2 flexible),
-//! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible),
-//! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester),
+//! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
+//! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
+//! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+)),
+//! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes;
+//! [`protocol::admin::DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES`] /
+//! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /
+//! [`protocol::admin::DescribeLogDirsResponse::should_client_throttle`] are Java
+//! `DescribeLogDirsResponse` sentinels / `shouldClientThrottle` (v1+)),
+//! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester;
+//! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
+//! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! RenewDelegationToken v1–v2 (v1 classic; v2 flexible;
+//! [`protocol::admin::RenewDelegationTokenResponse::should_client_throttle`] is Java
+//! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible;
+//! [`protocol::admin::ExpireDelegationTokenResponse::should_client_throttle`] is Java
+//! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester;
+//! [`protocol::admin::DescribeDelegationTokenResponse::should_client_throttle`] is Java
+//! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+)),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible;
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+)),
@@ -618,7 +632,8 @@
 //! empty for CLASSIC). [`ConsumerGroupMember`] / [`DescribedGroupMember`]
 //! getters match Java `MemberDescription`. [`DescribeLogDirsResult`]
 //! getters match Java `LogDirDescription` (`totalBytes` / `usableBytes`
-//! are `None` when [`UNKNOWN_VOLUME_BYTES`]). [`DescribeLogDirsPartition`]
+//! are `None` when [`UNKNOWN_VOLUME_BYTES`]). [`INVALID_OFFSET_LAG`] is Java
+//! `DescribeLogDirsResponse.INVALID_OFFSET_LAG`. [`DescribeLogDirsPartition`]
 //! getters match Java `ReplicaInfo`.
 //! [`Admin::describe_classic_groups_timeout`] /
 //! [`Admin::describe_consumer_groups_timeout`] /
@@ -1039,9 +1054,10 @@ pub use admin::{
     CONFIG_SOURCE_STATIC_BROKER, CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
     CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
     CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, DEFAULT_LEAVE_GROUP_REASON,
-    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
-    QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN, UNKNOWN_VOLUME_BYTES,
-    UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE, UPGRADE_TYPE_UPGRADE,
+    ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS, INVALID_OFFSET_LAG, QUOTA_MATCH_ANY,
+    QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT, SCRAM_SHA_256, SCRAM_SHA_512, SCRAM_UNKNOWN,
+    UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
+    UPGRADE_TYPE_UPGRADE,
 };
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
