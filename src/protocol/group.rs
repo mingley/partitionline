@@ -1484,6 +1484,18 @@ impl SyncGroupRequest<'_> {
             true
         }
     }
+
+    /// Java `SyncGroupRequest.getErrorResponse`.
+    ///
+    /// Assignment is empty. ProtocolType / ProtocolName stay the JSON default
+    /// (null) on v5+. Throttle is the JSON default (`0`) on v1+.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_sync_group_response(buf, version, error_code, &[])
+    }
 }
 
 /// Java `SyncGroupResponse` helpers.
@@ -6567,6 +6579,51 @@ mod tests {
             &v4[..],
             "SyncGroup v5 response must include ProtocolType / ProtocolName"
         );
+    }
+
+    #[test]
+    fn sync_group_error_response_matches_java() {
+        // Java SyncGroupRequest.getErrorResponse: empty assignment, throttle
+        // JSON default 0 on v1+. ProtocolType / ProtocolName stay JSON default
+        // (null) on v5+.
+        const V5: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x01, 0x00];
+        for version in [0_i16, 1, 4, 5] {
+            let mut expected = BytesMut::new();
+            encode_sync_group_response(&mut expected, version, 16, &[]).unwrap();
+            let mut got = BytesMut::new();
+            SyncGroupRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "SyncGroup v{version} getErrorResponse must match empty-assignment encode"
+            );
+            if version == 5 {
+                assert_eq!(&got[..], V5);
+            }
+            let mut cur = &got[..];
+            let (err, assignment) = decode_sync_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert!(assignment.is_empty(), "v{version} assignment must be empty");
+            assert!(
+                cur.is_empty(),
+                "SyncGroup v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v4 = BytesMut::new();
+        SyncGroupRequest::error_response(&mut v4, 4, 16).unwrap();
+        let mut v5 = BytesMut::new();
+        SyncGroupRequest::error_response(&mut v5, 5, 16).unwrap();
+        assert_ne!(
+            &v4[..],
+            &v5[..],
+            "v5 getErrorResponse ProtocolType / ProtocolName are null"
+        );
+        let mut v0 = BytesMut::new();
+        SyncGroupRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        SyncGroupRequest::error_response(&mut v1, 1, 16).unwrap();
+        assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
     }
 
     #[test]

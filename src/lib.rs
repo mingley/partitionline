@@ -147,6 +147,9 @@
 //! [`protocol::group::SyncGroupRequest::are_mandatory_protocol_type_and_name_present`] is Java
 //! `SyncGroupRequest.areMandatoryProtocolTypeAndNamePresent` (v5+ both ProtocolType and
 //! ProtocolName present; empty string is present; below v5 always true);
+//! [`protocol::group::SyncGroupRequest::error_response`] is Java
+//! `SyncGroupRequest.getErrorResponse` (empty assignment; ProtocolType /
+//! ProtocolName JSON default (null) on v5+);
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
