@@ -1,6 +1,9 @@
 //! Client counters and latency stats. Snapshots, not HDR histograms.
+//!
+//! [`Quota`] is Java `org.apache.kafka.common.metrics.Quota`.
 
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -110,6 +113,76 @@ fn format_scaled_two_digit(n: u64, scale: u64) -> String {
         format!("{whole}.{}", frac / 10)
     } else {
         format!("{whole}.{frac:02}")
+    }
+}
+
+/// Java `Double.toString` for [`Quota`] `Display`.
+fn write_java_double(f: &mut fmt::Formatter<'_>, v: f64) -> fmt::Result {
+    if v.is_nan() {
+        return f.write_str("NaN");
+    }
+    if v == f64::INFINITY {
+        return f.write_str("Infinity");
+    }
+    if v == f64::NEG_INFINITY {
+        return f.write_str("-Infinity");
+    }
+    write!(f, "{v:?}")
+}
+
+/// Java `org.apache.kafka.common.metrics.Quota`.
+///
+/// [`Display`] is Java `Quota.toString` (`upper=1.0` / `lower=1.0`).
+/// [`Self::acceptable`] is at or below the bound for an upper bound and at
+/// or above for a lower bound.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Quota {
+    bound: f64,
+    upper: bool,
+}
+
+impl Quota {
+    /// Java `Quota(double, boolean)`.
+    #[must_use]
+    pub fn new(bound: f64, upper: bool) -> Self {
+        Self { bound, upper }
+    }
+
+    /// Java `Quota.upperBound`.
+    #[must_use]
+    pub fn upper_bound(upper_bound: f64) -> Self {
+        Self::new(upper_bound, true)
+    }
+
+    /// Java `Quota.lowerBound`.
+    #[must_use]
+    pub fn lower_bound(lower_bound: f64) -> Self {
+        Self::new(lower_bound, false)
+    }
+
+    /// Java `Quota.isUpperBound`.
+    #[must_use]
+    pub fn is_upper_bound(&self) -> bool {
+        self.upper
+    }
+
+    /// Java `Quota.bound`.
+    #[must_use]
+    pub fn bound(&self) -> f64 {
+        self.bound
+    }
+
+    /// Java `Quota.acceptable`.
+    #[must_use]
+    pub fn acceptable(&self, value: f64) -> bool {
+        (self.upper && value <= self.bound) || (!self.upper && value >= self.bound)
+    }
+}
+
+impl fmt::Display for Quota {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(if self.upper { "upper=" } else { "lower=" })?;
+        write_java_double(f, self.bound)
     }
 }
 
@@ -575,5 +648,35 @@ mod tests {
         assert_eq!(format_bytes(1_153_433), "1.1 MB");
         assert_eq!(format_bytes(10 * 1024 * 1024), "10 MB");
         assert_eq!(format_bytes(0), "0.0");
+    }
+
+    #[test]
+    fn quota_matches_java_metrics() {
+        let upper = Quota::upper_bound(1.0);
+        assert!(upper.is_upper_bound());
+        assert_eq!(upper.bound(), 1.0);
+        assert_eq!(upper.to_string(), "upper=1.0");
+        assert!(upper.acceptable(1.0));
+        assert!(upper.acceptable(0.5));
+        assert!(!upper.acceptable(1.1));
+        assert_eq!(Quota::new(1.0, true), upper);
+
+        let lower = Quota::lower_bound(1.0);
+        assert!(!lower.is_upper_bound());
+        assert_eq!(lower.to_string(), "lower=1.0");
+        assert!(lower.acceptable(1.0));
+        assert!(lower.acceptable(1.1));
+        assert!(!lower.acceptable(0.5));
+
+        assert_eq!(
+            Quota::upper_bound(f64::INFINITY).to_string(),
+            "upper=Infinity"
+        );
+        assert_eq!(
+            Quota::lower_bound(f64::NEG_INFINITY).to_string(),
+            "lower=-Infinity"
+        );
+        assert_eq!(Quota::upper_bound(f64::NAN).to_string(), "upper=NaN");
+        assert!(!Quota::upper_bound(1.0).acceptable(f64::NAN));
     }
 }

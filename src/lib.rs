@@ -474,7 +474,10 @@
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
 //! [`metrics::format_bytes`] is Java `Utils.formatBytes` (English `0.##`
-//! scale; `-1` is `-1`; `1024` is `1 KB`). [`partitioner::abs`] is Java
+//! scale; `-1` is `-1`; `1024` is `1 KB`). [`Quota`] is Java
+//! `org.apache.kafka.common.metrics.Quota` (`upper=1.0` / `lower=1.0`;
+//! `acceptable` is at or below the bound for an upper bound and at or
+//! above for a lower bound). [`partitioner::abs`] is Java
 //! `Utils.abs` ([`i32::MIN`] is `0`). [`partitioner::to_positive`] is Java
 //! `Utils.toPositive`.
 //! [`Admin::metrics`] is the same snapshot pattern for Admin RPCs
@@ -1610,7 +1613,7 @@ pub mod error;
 pub mod group;
 /// Produce and fetch interceptors.
 pub mod interceptor;
-/// Client counters, latency min/mean/max plus p50/p99, and per-topic rows: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`], [`AdminMetrics`].
+/// Client counters, latency min/mean/max plus p50/p99, per-topic rows, and [`Quota`]: [`ProducerMetrics`], [`ConsumerMetrics`], [`ShareMetrics`], [`AdminMetrics`].
 pub mod metrics;
 /// TCP and TLS broker connections.
 pub mod net;
@@ -1692,8 +1695,8 @@ pub use group::{
 };
 pub use interceptor::{ConsumerInterceptor, ProducerInterceptor};
 pub use metrics::{
-    AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, ShareMetrics, TopicFetchMetrics,
-    TopicProduceMetrics,
+    AdminMetrics, ConsumerMetrics, LatencyStats, ProducerMetrics, Quota, ShareMetrics,
+    TopicFetchMetrics, TopicProduceMetrics,
 };
 pub use net::TlsConfig;
 pub use partitioner::{
