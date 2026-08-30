@@ -1,5 +1,7 @@
 //! Fetch (api key 1). v4–v11 classic; v12–v17 flexible.
 
+use std::fmt;
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
@@ -41,6 +43,113 @@ pub fn describe_replica_id(replica_id: i32) -> String {
         FUTURE_LOCAL_REPLICA_ID => "future local replica".into(),
         id if is_valid_broker_id(id) => format!("replica [{id}]"),
         id => format!("invalid replica [{id}]"),
+    }
+}
+
+/// Java `FetchMetadata` (incremental fetch session id and epoch).
+///
+/// Encode writes [`Self::LEGACY`] (`session_id` 0 / `epoch` `-1`): close any
+/// session and do not create one. [`Display`] is Java `toString`
+/// (`(sessionId=INVALID, epoch=FINAL)`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FetchMetadata {
+    session_id: i32,
+    epoch: i32,
+}
+
+impl FetchMetadata {
+    /// Java `FetchMetadata.INVALID_SESSION_ID`.
+    pub const INVALID_SESSION_ID: i32 = 0;
+    /// Java `FetchMetadata.INITIAL_EPOCH`.
+    pub const INITIAL_EPOCH: i32 = 0;
+    /// Java `FetchMetadata.FINAL_EPOCH`.
+    pub const FINAL_EPOCH: i32 = -1;
+    /// Java `FetchMetadata.INITIAL`.
+    pub const INITIAL: Self = Self {
+        session_id: Self::INVALID_SESSION_ID,
+        epoch: Self::INITIAL_EPOCH,
+    };
+    /// Java `FetchMetadata.LEGACY`.
+    pub const LEGACY: Self = Self {
+        session_id: Self::INVALID_SESSION_ID,
+        epoch: Self::FINAL_EPOCH,
+    };
+
+    /// Java `FetchMetadata(int, int)`.
+    #[must_use]
+    pub const fn new(session_id: i32, epoch: i32) -> Self {
+        Self { session_id, epoch }
+    }
+
+    /// Java `FetchMetadata.sessionId`.
+    #[must_use]
+    pub const fn session_id(self) -> i32 {
+        self.session_id
+    }
+
+    /// Java `FetchMetadata.epoch`.
+    #[must_use]
+    pub const fn epoch(self) -> i32 {
+        self.epoch
+    }
+
+    /// Java `FetchMetadata.isFull`.
+    #[must_use]
+    pub const fn is_full(self) -> bool {
+        self.epoch == Self::INITIAL_EPOCH || self.epoch == Self::FINAL_EPOCH
+    }
+
+    /// Java `FetchMetadata.nextEpoch`.
+    #[must_use]
+    pub const fn next_epoch(prev_epoch: i32) -> i32 {
+        if prev_epoch < 0 {
+            Self::FINAL_EPOCH
+        } else if prev_epoch == i32::MAX {
+            1
+        } else {
+            prev_epoch + 1
+        }
+    }
+
+    /// Java `FetchMetadata.nextCloseExisting`.
+    #[must_use]
+    pub const fn next_close_existing(self) -> Self {
+        Self::new(self.session_id, Self::FINAL_EPOCH)
+    }
+
+    /// Java `FetchMetadata.nextCloseExistingAttemptNew`.
+    #[must_use]
+    pub const fn next_close_existing_attempt_new(self) -> Self {
+        Self::new(self.session_id, Self::INITIAL_EPOCH)
+    }
+
+    /// Java `FetchMetadata.newIncremental`.
+    #[must_use]
+    pub const fn new_incremental(session_id: i32) -> Self {
+        Self::new(session_id, Self::next_epoch(Self::INITIAL_EPOCH))
+    }
+
+    /// Java `FetchMetadata.nextIncremental`.
+    #[must_use]
+    pub const fn next_incremental(self) -> Self {
+        Self::new(self.session_id, Self::next_epoch(self.epoch))
+    }
+}
+
+impl fmt::Display for FetchMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.session_id == Self::INVALID_SESSION_ID {
+            f.write_str("(sessionId=INVALID, ")?;
+        } else {
+            write!(f, "(sessionId={}, ", self.session_id)?;
+        }
+        if self.epoch == Self::INITIAL_EPOCH {
+            f.write_str("epoch=INITIAL)")
+        } else if self.epoch == Self::FINAL_EPOCH {
+            f.write_str("epoch=FINAL)")
+        } else {
+            write!(f, "epoch={})", self.epoch)
+        }
     }
 }
 
@@ -151,8 +260,8 @@ pub fn encode_fetch_request(
     buf.put_i32(min_bytes);
     buf.put_i32(max_bytes);
     buf.put_i8(isolation_level);
-    buf.put_i32(0); // session_id
-    buf.put_i32(-1); // session_epoch
+    buf.put_i32(FetchMetadata::LEGACY.session_id());
+    buf.put_i32(FetchMetadata::LEGACY.epoch());
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
@@ -426,7 +535,7 @@ pub fn encode_fetch_response_with_endpoints(
     let flexible = fetch_flexible(version)?;
     buf.put_i32(0); // throttle
     buf.put_i16(0); // top-level error
-    buf.put_i32(0); // session_id
+    buf.put_i32(FetchMetadata::INVALID_SESSION_ID);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
@@ -560,7 +669,7 @@ pub fn decode_fetch_response<B: Buf>(
 mod tests {
     use super::*;
     use crate::protocol::records::Record;
-    use bytes::{BufMut, Bytes};
+    use bytes::{Buf, BufMut, Bytes};
 
     #[test]
     fn fetched_partition_invalid_sentinels_match_java() {
@@ -600,6 +709,48 @@ mod tests {
     }
 
     #[test]
+    fn fetch_metadata_matches_java() {
+        assert_eq!(FetchMetadata::INVALID_SESSION_ID, 0);
+        assert_eq!(FetchMetadata::INITIAL_EPOCH, 0);
+        assert_eq!(FetchMetadata::FINAL_EPOCH, -1);
+        assert_eq!(FetchMetadata::INITIAL.session_id(), 0);
+        assert_eq!(FetchMetadata::INITIAL.epoch(), 0);
+        assert_eq!(FetchMetadata::LEGACY.session_id(), 0);
+        assert_eq!(FetchMetadata::LEGACY.epoch(), -1);
+        assert!(FetchMetadata::INITIAL.is_full());
+        assert!(FetchMetadata::LEGACY.is_full());
+        assert!(!FetchMetadata::new_incremental(9).is_full());
+        assert_eq!(FetchMetadata::next_epoch(-1), FetchMetadata::FINAL_EPOCH);
+        assert_eq!(FetchMetadata::next_epoch(FetchMetadata::INITIAL_EPOCH), 1);
+        assert_eq!(FetchMetadata::next_epoch(i32::MAX), 1);
+        assert_eq!(
+            FetchMetadata::new(9, 4).next_close_existing(),
+            FetchMetadata::new(9, FetchMetadata::FINAL_EPOCH)
+        );
+        assert_eq!(
+            FetchMetadata::new(9, 4).next_close_existing_attempt_new(),
+            FetchMetadata::new(9, FetchMetadata::INITIAL_EPOCH)
+        );
+        assert_eq!(FetchMetadata::new_incremental(9), FetchMetadata::new(9, 1));
+        assert_eq!(
+            FetchMetadata::new(9, 1).next_incremental(),
+            FetchMetadata::new(9, 2)
+        );
+        assert_eq!(
+            FetchMetadata::INITIAL.to_string(),
+            "(sessionId=INVALID, epoch=INITIAL)"
+        );
+        assert_eq!(
+            FetchMetadata::LEGACY.to_string(),
+            "(sessionId=INVALID, epoch=FINAL)"
+        );
+        assert_eq!(
+            FetchMetadata::new(12, 3).to_string(),
+            "(sessionId=12, epoch=3)"
+        );
+    }
+
+    #[test]
     fn fetch_request_sends_current_leader_epoch() {
         let topics = vec![FetchTopic {
             topic: "t".into(),
@@ -614,6 +765,14 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &topics, None).unwrap();
+        let mut session = &buf[..];
+        assert_eq!(session.get_i32(), CONSUMER_REPLICA_ID);
+        assert_eq!(session.get_i32(), 10);
+        assert_eq!(session.get_i32(), 1);
+        assert_eq!(session.get_i32(), 1024);
+        assert_eq!(session.get_i8(), 0);
+        assert_eq!(session.get_i32(), FetchMetadata::LEGACY.session_id());
+        assert_eq!(session.get_i32(), FetchMetadata::LEGACY.epoch());
         let mut cur = &buf[..];
         let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 11).unwrap();
         assert_eq!(iso, 0);
