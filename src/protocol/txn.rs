@@ -6,6 +6,7 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
+use super::group::JoinGroupRequest;
 use super::records::RecordBatch;
 use crate::error::{Error, Result};
 
@@ -423,26 +424,41 @@ pub struct TxnOffsetTopic {
 }
 
 /// Group member identity for TxnOffsetCommit v3+ (`generation.id`,
-/// `member.id`, `group.instance.id`). Ignored on v0–v2.
+/// `member.id`, `group.instance.id`).
+///
+/// [`Self::unknown`] is Java `TxnOffsetCommitRequest.Builder` without
+/// group metadata ([`JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
+/// [`JoinGroupRequest::UNKNOWN_MEMBER_ID`] / null instance). v0–v2
+/// reject [`Self::group_metadata_set`] (Java `groupMetadataSet`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetCommitMember {
-    /// Classic generation, or `-1` when unknown.
+    /// Classic generation, or [`JoinGroupRequest::UNKNOWN_GENERATION_ID`].
     pub generation_id: i32,
-    /// Coordinator-assigned member id, or empty.
+    /// Coordinator-assigned member id, or [`JoinGroupRequest::UNKNOWN_MEMBER_ID`].
     pub member_id: String,
     /// Kafka `group.instance.id`, if static membership is set.
     pub group_instance_id: Option<String>,
 }
 
 impl TxnOffsetCommitMember {
-    /// v3+ JSON defaults: generation `-1`, empty member id, null instance.
+    /// Java `TxnOffsetCommitRequest.Builder` without group metadata.
     #[must_use]
     pub fn unknown() -> Self {
         Self {
-            generation_id: -1,
-            member_id: String::new(),
+            generation_id: JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            member_id: JoinGroupRequest::UNKNOWN_MEMBER_ID.into(),
             group_instance_id: None,
         }
+    }
+
+    /// Java `TxnOffsetCommitRequest.Builder.groupMetadataSet`.
+    ///
+    /// `Some` instance id (including empty) is present (`!= null`).
+    #[must_use]
+    pub fn group_metadata_set(&self) -> bool {
+        self.member_id != JoinGroupRequest::UNKNOWN_MEMBER_ID
+            || self.generation_id != JoinGroupRequest::UNKNOWN_GENERATION_ID
+            || self.group_instance_id.is_some()
     }
 }
 
@@ -480,6 +496,11 @@ pub fn encode_txn_offset_commit_request(
     topics: &[TxnOffsetTopic],
 ) -> crate::error::Result<()> {
     let flexible = txn_offset_commit_flexible(version)?;
+    if version < 3 && member.group_metadata_set() {
+        return Err(Error::Unsupported(format!(
+            "Broker doesn't support group metadata commit API on version {version}, minimum supported request version is 3 which requires brokers to be on version 2.5 or above."
+        )));
+    }
     buf::put_string(buf, flexible, Some(transactional_id))?;
     buf::put_string(buf, flexible, Some(group_id))?;
     buf.put_i64(producer_id);
@@ -1108,6 +1129,86 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_end_txn_response(&mut buf, 5, 0, 9, 2).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn txn_offset_commit_member_matches_java() {
+        let unknown = TxnOffsetCommitMember::unknown();
+        assert_eq!(
+            unknown.generation_id,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID
+        );
+        assert_eq!(unknown.member_id, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+        assert!(unknown.group_instance_id.is_none());
+        assert!(!unknown.group_metadata_set());
+        assert!(TxnOffsetCommitMember {
+            generation_id: 1,
+            member_id: JoinGroupRequest::UNKNOWN_MEMBER_ID.into(),
+            group_instance_id: None,
+        }
+        .group_metadata_set());
+        assert!(TxnOffsetCommitMember {
+            generation_id: JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            member_id: "m".into(),
+            group_instance_id: None,
+        }
+        .group_metadata_set());
+        assert!(TxnOffsetCommitMember {
+            generation_id: JoinGroupRequest::UNKNOWN_GENERATION_ID,
+            member_id: JoinGroupRequest::UNKNOWN_MEMBER_ID.into(),
+            group_instance_id: Some("worker-1".into()),
+        }
+        .group_metadata_set());
+        assert!(
+            TxnOffsetCommitMember {
+                generation_id: JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                member_id: JoinGroupRequest::UNKNOWN_MEMBER_ID.into(),
+                group_instance_id: Some(String::new()),
+            }
+            .group_metadata_set(),
+            "Java groupInstanceId != null is true for empty Optional.of(\"\")"
+        );
+
+        let topics = [TxnOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![TxnOffsetPartition {
+                partition: 0,
+                offset: 7,
+                leader_epoch: 9,
+                metadata: String::new(),
+            }],
+        }];
+        let member = TxnOffsetCommitMember {
+            generation_id: 7,
+            member_id: "m".into(),
+            group_instance_id: None,
+        };
+        let err = encode_txn_offset_commit_request(
+            &mut BytesMut::new(),
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &member,
+            &topics,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "v2 with group metadata is Java UnsupportedVersionException, got {err}"
+        );
+        encode_txn_offset_commit_request(
+            &mut BytesMut::new(),
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &topics,
+        )
+        .unwrap();
     }
 
     #[test]

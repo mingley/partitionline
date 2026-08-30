@@ -1487,6 +1487,8 @@ impl Producer {
     ///
     /// TxnOffsetCommit v3+ sends `generation.id`, `member.id`, and
     /// `group.instance.id` from [`crate::ConsumerGroupMetadata`].
+    /// Brokers below request v3 return [`crate::Error::Unsupported`] when that
+    /// identity is set (Java `TxnOffsetCommitRequest.Builder.groupMetadataSet`).
     pub async fn send_offsets_for_group(
         &self,
         group: &crate::ConsumerGroupMetadata,

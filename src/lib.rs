@@ -124,7 +124,11 @@
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
-//! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]).
+//! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`protocol::txn::TxnOffsetCommitMember::unknown`] /
+//! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] are Java
+//! `TxnOffsetCommitRequest.Builder` without group metadata /
+//! `groupMetadataSet`).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
@@ -804,7 +808,10 @@
 //! [`Producer::send_offsets_with_metadata`] / [`Producer::send_offsets_for_group`]
 //! commit transactional offsets with epoch and metadata.
 //! `send_offsets_for_group` also sends generation / member / instance on
-//! TxnOffsetCommit v3+.
+//! TxnOffsetCommit v3+ ([`protocol::txn::TxnOffsetCommitMember::unknown`] is
+//! Java `TxnOffsetCommitRequest.Builder` without group metadata;
+//! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] is Java
+//! `groupMetadataSet`, rejected below v3).
 //! [`Producer::send_offsets_to_transaction`] takes [`TopicPartition`].
 //! [`Admin::close`] / [`Admin::close_timeout`] drop the admin connection
 //! (Java `close(Duration)`; the duration is unused).
