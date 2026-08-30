@@ -16,7 +16,9 @@
 //! [`min`] / [`max`] / [`min_i16`] are Java `Utils.min(long, long...)` /
 //! `Utils.max(long, long...)` / `Utils.min(short, short)` (empty rest returns
 //! first). [`deep_to_string`] is Java `MessageUtil.deepToString` (comma-space
-//! inside square brackets; empty is `[]`).
+//! inside square brackets; empty is `[]`). [`compare_raw_tagged_fields`] is
+//! Java `MessageUtil.compareRawTaggedFields` (`None` is null; a null list
+//! equals null or empty).
 
 use std::collections::{HashMap, HashSet};
 
@@ -717,6 +719,19 @@ pub fn put_empty_tagged_fields(buf: &mut BytesMut) {
     put_unsigned_varint(buf, 0);
 }
 
+/// Java `MessageUtil.compareRawTaggedFields`.
+///
+/// `None` is Java `null`. A null list equals null or empty.
+#[must_use]
+pub fn compare_raw_tagged_fields<T: PartialEq>(first: Option<&[T]>, second: Option<&[T]>) -> bool {
+    match (first, second) {
+        (None, None) => true,
+        (None, Some(s)) => s.is_empty(),
+        (Some(f), None) => f.is_empty(),
+        (Some(f), Some(s)) => f == s,
+    }
+}
+
 /// Overwrite a previously reserved `i32` (record-batch length / CRC placeholders).
 pub fn patch_i32(buf: &mut BytesMut, pos: usize, v: i32) -> Result<()> {
     let slot = buf
@@ -1243,6 +1258,21 @@ mod tests {
         assert_eq!(deep_to_string([1]), "[1]");
         assert_eq!(deep_to_string([1, 2]), "[1, 2]");
         assert_eq!(deep_to_string(["a", "b", "c"]), "[a, b, c]");
+    }
+
+    #[test]
+    fn compare_raw_tagged_fields_matches_java_message_util() {
+        let empty: &[u8] = &[];
+        let one: &[u8] = &[1];
+        let other: &[u8] = &[2];
+        assert!(compare_raw_tagged_fields::<u8>(None, None));
+        assert!(compare_raw_tagged_fields(None, Some(empty)));
+        assert!(compare_raw_tagged_fields(Some(empty), None));
+        assert!(!compare_raw_tagged_fields(None, Some(one)));
+        assert!(!compare_raw_tagged_fields(Some(one), None));
+        assert!(compare_raw_tagged_fields(Some(one), Some(one)));
+        assert!(!compare_raw_tagged_fields(Some(one), Some(other)));
+        assert!(compare_raw_tagged_fields(Some(empty), Some(empty)));
     }
 
     #[test]
