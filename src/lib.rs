@@ -832,6 +832,12 @@
 //! `ClientQuotaFilterComponent` factories.
 //! [`ClientQuotaEntity::USER`] / [`ClientQuotaEntity::CLIENT_ID`] /
 //! [`ClientQuotaEntity::IP`] match Java `ClientQuotaEntity` constants.
+//! [`ClientQuotaAlteration::error_result`] /
+//! [`ClientQuotaAlterationResult::error`] /
+//! [`ClientQuotaAlterationResult::error_results`] are Java
+//! `AlterClientQuotasRequest.getErrorResponse` (one entry / Entries).
+//! `ErrorMessage` stays the JSON default (null); official Java also
+//! sets the English `Errors.message` string.
 //! [`Admin::alter_user_scram_credentials_with`] is Java
 //! `alterUserScramCredentials(List)` ([`UserScramCredentialAlteration`]).
 //! [`AlterUserScramCredentialsResult::error`] /

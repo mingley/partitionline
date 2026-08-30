@@ -5028,6 +5028,9 @@ impl fmt::Display for ClientQuotaOp {
 ///
 /// [`Display`] is Java `ClientQuotaAlteration.toString`. The entity list
 /// prints as one `ClientQuotaEntity(entries={...})` map.
+/// [`Self::error_result`] is Java `AlterClientQuotasRequest.getErrorResponse`
+/// one entry (copy entity type/name; `ErrorMessage` stays the JSON default,
+/// null).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClientQuotaAlteration {
     /// Quota entity entries.
@@ -5054,6 +5057,17 @@ impl ClientQuotaAlteration {
     pub fn ops(&self) -> &[ClientQuotaOp] {
         &self.ops
     }
+
+    /// Java `AlterClientQuotasRequest.getErrorResponse` one entry.
+    ///
+    /// Copies this entry's entity type/name list and sets `ErrorCode`.
+    /// `ErrorMessage` is the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Throttle on the
+    /// response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> ClientQuotaAlterationResult {
+        ClientQuotaAlterationResult::error(self.entity.iter().cloned(), error_code)
+    }
 }
 
 impl fmt::Display for ClientQuotaAlteration {
@@ -5068,6 +5082,9 @@ impl fmt::Display for ClientQuotaAlteration {
 
 /// Per-entry result of AlterClientQuotas. Error sits on the entry;
 /// there is no top-level response error_code.
+///
+/// [`Self::error`] is Java `AlterClientQuotasRequest.getErrorResponse`
+/// one entry (`ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientQuotaAlterationResult {
     /// Kafka error code (`0` is success).
@@ -5079,6 +5096,32 @@ pub struct ClientQuotaAlterationResult {
 }
 
 impl ClientQuotaAlterationResult {
+    /// Java `AlterClientQuotasRequest.getErrorResponse` one entry.
+    ///
+    /// Sets `Entity` (type/name pairs) and `ErrorCode`. `ErrorMessage`
+    /// is the JSON default (null); official Java also sets the English
+    /// `Errors.message` string. Throttle on the response is the JSON
+    /// default (`0`).
+    #[must_use]
+    pub fn error(entity: impl IntoIterator<Item = ClientQuotaEntity>, error_code: i16) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            entity: entity.into_iter().collect(),
+        }
+    }
+
+    /// Java `AlterClientQuotasRequest.getErrorResponse` Entries.
+    ///
+    /// Maps each request entry through [`ClientQuotaAlteration::error_result`].
+    #[must_use]
+    pub fn error_results(entries: &[ClientQuotaAlteration], error_code: i16) -> Vec<Self> {
+        entries
+            .iter()
+            .map(|entry| entry.error_result(error_code))
+            .collect()
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -15948,6 +15991,108 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterClientQuotas v1 response must be leftover-empty"
+        );
+
+        let results =
+            ClientQuotaAlterationResult::error_results(&entries, crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            results,
+            vec![
+                ClientQuotaAlterationResult::error(
+                    vec![ClientQuotaEntity::new("user", Some("alice".into()))],
+                    crate::error::NOT_CONTROLLER,
+                ),
+                entries
+                    .get(1)
+                    .expect("carol entry")
+                    .error_result(crate::error::NOT_CONTROLLER),
+            ]
+        );
+        let first = results.first().expect("error entry");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        assert_eq!(
+            first.entity(),
+            [ClientQuotaEntity::new("user", Some("alice".into()))]
+        );
+        let default_user = ClientQuotaAlteration::new(
+            vec![ClientQuotaEntity::new("user", None)],
+            vec![ClientQuotaOp::set("producer_byte_rate", 1024.0)],
+        );
+        let default_err = default_user.error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(default_err.entity(), [ClientQuotaEntity::new("user", None)]);
+        assert!(default_err.error_message().is_none());
+        let multi = ClientQuotaAlteration::new(
+            vec![
+                ClientQuotaEntity::new("user", Some("alice".into())),
+                ClientQuotaEntity::new("client-id", Some("app".into())),
+            ],
+            vec![],
+        );
+        let multi_err = multi.error_result(crate::error::NOT_CONTROLLER);
+        assert_eq!(multi_err.entity().len(), 2);
+        let empty = ClientQuotaAlterationResult::error_results(&[], crate::error::NOT_CONTROLLER);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 1, &results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 0, &results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 0).unwrap(),
+            results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 1, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 1, std::slice::from_ref(&default_err))
+            .unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            vec![default_err]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas default-entity getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_client_quotas_response(&mut buf, 1, std::slice::from_ref(&multi_err)).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            vec![multi_err]
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterClientQuotas multi-entity getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
