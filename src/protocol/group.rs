@@ -790,6 +790,21 @@ impl JoinGroupRequest<'_> {
         }
     }
 
+    /// Java `JoinGroupRequest.validateGroupInstanceId`.
+    ///
+    /// Java `Topic.validate` with prefix `"Group instance id"` (empty, `.`,
+    /// `..`, UTF-16 length above 249, or characters other than ASCII
+    /// alphanumerics / `.` / `_` / `-`). Encode does not call this; Java
+    /// Builder does not either.
+    pub fn validate_group_instance_id(id: &str) -> Result<()> {
+        match detect_invalid_topic_name(id) {
+            Some(reason) => Err(Error::protocol(format!(
+                "Group instance id is invalid: {reason}"
+            ))),
+            None => Ok(()),
+        }
+    }
+
     /// Java `JoinGroupRequest.requiresKnownMemberId(short)` (KIP-394; v4+).
     #[must_use]
     pub const fn requires_known_member_id(api_version: i16) -> bool {
@@ -817,6 +832,37 @@ impl JoinGroupRequest<'_> {
     pub const fn supports_skipping_assignment(api_version: i16) -> bool {
         api_version >= 9
     }
+}
+
+/// Java `Topic.detectInvalidTopic` (UTF-16 length, same charset).
+fn detect_invalid_topic_name(name: &str) -> Option<String> {
+    const MAX_NAME_LENGTH: usize = 249;
+    if name.is_empty() {
+        return Some("the empty string is not allowed".into());
+    }
+    if name == "." {
+        return Some("'.' is not allowed".into());
+    }
+    if name == ".." {
+        return Some("'..' is not allowed".into());
+    }
+    if name.encode_utf16().count() > MAX_NAME_LENGTH {
+        return Some(format!(
+            "the length of '{name}' is longer than the max allowed length {MAX_NAME_LENGTH}"
+        ));
+    }
+    if !topic_name_contains_valid_pattern(name) {
+        return Some(format!(
+            "'{name}' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+        ));
+    }
+    None
+}
+
+/// Java `Topic.containsValidPattern`.
+fn topic_name_contains_valid_pattern(name: &str) -> bool {
+    name.chars()
+        .all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '_' | '-'))
 }
 
 /// Java `JoinGroupResponse` helpers.
@@ -2680,6 +2726,29 @@ mod tests {
             " ",
             "Java isEmpty, not isBlank"
         );
+        assert!(JoinGroupRequest::validate_group_instance_id("worker-1").is_ok());
+        assert!(JoinGroupRequest::validate_group_instance_id(&"a".repeat(249)).is_ok());
+        let empty = JoinGroupRequest::validate_group_instance_id("").unwrap_err();
+        assert!(empty
+            .to_string()
+            .contains("Group instance id is invalid: the empty string is not allowed"));
+        let dot = JoinGroupRequest::validate_group_instance_id(".").unwrap_err();
+        assert!(dot
+            .to_string()
+            .contains("Group instance id is invalid: '.' is not allowed"));
+        let dots = JoinGroupRequest::validate_group_instance_id("..").unwrap_err();
+        assert!(dots
+            .to_string()
+            .contains("Group instance id is invalid: '..' is not allowed"));
+        let long_id = "a".repeat(250);
+        let long = JoinGroupRequest::validate_group_instance_id(&long_id).unwrap_err();
+        assert!(long.to_string().contains(&format!(
+            "Group instance id is invalid: the length of '{long_id}' is longer than the max allowed length 249"
+        )));
+        let bad = JoinGroupRequest::validate_group_instance_id("bad id").unwrap_err();
+        assert!(bad.to_string().contains(
+            "Group instance id is invalid: 'bad id' contains one or more characters other than ASCII alphanumerics, '.', '_' and '-'"
+        ));
     }
 
     #[test]
