@@ -145,7 +145,16 @@
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N),
-//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs),
+//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs;
+//! [`protocol::share::ShareFetchedPartition::partition_response`] is Java
+//! `ShareFetchResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
+//! Records and acquired ranges stay empty. Official Java leaves ErrorMessage,
+//! AcknowledgeErrorCode, AcknowledgeErrorMessage, CurrentLeader, and Records
+//! at JSON defaults (null / 0 / 0/0 / null). Crate encode writes ErrorMessage
+//! null, AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
+//! id 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
+//! v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
+//! (crate encode). Throttle is the JSON default (`0`)),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;

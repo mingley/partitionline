@@ -114,6 +114,16 @@ pub struct AcquiredRange {
 }
 
 /// One partition in a ShareFetch response.
+///
+/// [`Self::partition_response`] is Java `ShareFetchResponse.partitionResponse`
+/// (`PartitionIndex` and `ErrorCode`). Records and acquired ranges stay
+/// empty. Official Java leaves ErrorMessage, AcknowledgeErrorCode,
+/// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
+/// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
+/// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader id
+/// 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
+/// v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
+/// (crate encode). Throttle is the JSON default (`0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchedPartition {
     /// Partition index.
@@ -124,6 +134,29 @@ pub struct ShareFetchedPartition {
     pub records: Vec<RecordBatch>,
     /// Offsets acquired by this member.
     pub acquired: Vec<AcquiredRange>,
+}
+
+impl ShareFetchedPartition {
+    /// Java `ShareFetchResponse.partitionResponse(int, Errors)`.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. Records and acquired ranges
+    /// stay empty. Official Java leaves ErrorMessage, AcknowledgeErrorCode,
+    /// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
+    /// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
+    /// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
+    /// id 1 epoch 0, empty Records, empty AcquiredRecords, empty
+    /// NodeEndpoints. v1 AcquisitionLockTimeoutMs is 15000. Top-level
+    /// ErrorCode stays 0 (crate encode). Throttle is the JSON default
+    /// (`0`).
+    #[must_use]
+    pub fn partition_response(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+            records: Vec::new(),
+            acquired: Vec::new(),
+        }
+    }
 }
 
 /// One topic in a ShareFetch response.
@@ -490,6 +523,11 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// Encode a successful ShareFetch response (`version` 0–1).
 ///
 /// v1 adds AcquisitionLockTimeoutMs after ErrorMessage. v0 omits it.
+/// Throttle is the JSON default (`0`). Top-level ErrorCode is 0.
+/// [`ShareFetchedPartition::partition_response`] is Java
+/// `ShareFetchResponse.partitionResponse` (PartitionIndex and ErrorCode;
+/// crate encode writes CurrentLeader id 1 epoch 0 and v1
+/// AcquisitionLockTimeoutMs 15000).
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -839,7 +877,7 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
 mod tests {
     use super::*;
     use crate::protocol::records::Record;
-    use bytes::Bytes;
+    use bytes::{Buf, Bytes};
 
     #[test]
     fn share_group_heartbeat_join_leave_roundtrip() {
@@ -1261,5 +1299,55 @@ mod tests {
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
         );
+    }
+
+    #[test]
+    fn share_fetch_partition_response_leftover_empty() {
+        let err = ShareFetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_ID);
+        assert_eq!(
+            err,
+            ShareFetchedPartition {
+                partition: 3,
+                error_code: crate::error::UNKNOWN_TOPIC_ID,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }
+        );
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![
+                ShareFetchedPartition::partition_response(0, crate::error::UNKNOWN_TOPIC_ID),
+                ShareFetchedPartition::partition_response(3, crate::error::UNKNOWN_TOPIC_ID),
+            ],
+        }];
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response(&mut buf, version, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_share_fetch_response(&mut cur, version).unwrap(),
+                topics
+            );
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} partitionResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        let empty: Vec<ShareFetchedTopic> = Vec::new();
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_share_fetch_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} empty partitionResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 }
