@@ -4,7 +4,10 @@
 //! and [`size_of_varlong`] are Java `ByteUtils.sizeOfUnsignedVarint` /
 //! `sizeOfVarint` / `sizeOfUnsignedVarlong` / `sizeOfVarlong`. The unsigned
 //! helpers take a signed value and reinterpret the bits, so `-1` is five
-//! bytes (varint) or ten (varlong). [`utf8_length`] is Java `Utils.utf8Length`.
+//! bytes (varint) or ten (varlong). A fifth unsigned-varint continuation byte
+//! is Java `ByteUtils.illegalVarintException`; a tenth unsigned-varlong
+//! continuation byte is `illegalVarlongException`. [`utf8_length`] is Java
+//! `Utils.utf8Length`.
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -162,6 +165,20 @@ pub fn utf8_length(s: &str) -> i32 {
     encoded_len_i32(s.len())
 }
 
+/// Java `ByteUtils.illegalVarintException`.
+fn illegal_varint_exception(value: u32) -> Error {
+    Error::protocol(format!(
+        "Varint is too long, the most significant bit in the 5th byte is set, converted value: {value:x}"
+    ))
+}
+
+/// Java `ByteUtils.illegalVarlongException`.
+fn illegal_varlong_exception(value: u64) -> Error {
+    Error::protocol(format!(
+        "Varlong is too long, most significant bit in the 10th byte is set, converted value: {value:x}"
+    ))
+}
+
 /// Write an unsigned varint (compact protocol lengths).
 pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
     while v >= 0x80 {
@@ -172,9 +189,12 @@ pub fn put_unsigned_varint(buf: &mut BytesMut, mut v: u32) {
 }
 
 /// Read an unsigned varint.
+///
+/// Java `ByteUtils.readUnsignedVarint`. A fifth continuation byte is
+/// `illegalVarintException`.
 pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
     let mut result = 0u32;
-    for i in 0..5 {
+    for i in 0..4 {
         need(buf, 1)?;
         let b = buf.get_u8();
         result |= u32::from(b & 0x7f) << (i * 7);
@@ -182,7 +202,14 @@ pub fn get_unsigned_varint<B: Buf>(buf: &mut B) -> Result<u32> {
             return Ok(result);
         }
     }
-    Err(Error::protocol("unsigned varint overflow"))
+    need(buf, 1)?;
+    // Java `result |= (tmp = buffer.get()) << 28;` then `if (tmp < 0)`.
+    let tmp = i8::from_ne_bytes([buf.get_u8()]);
+    result |= u32::from_ne_bytes(i32::from(tmp).wrapping_shl(28).to_ne_bytes());
+    if tmp < 0 {
+        return Err(illegal_varint_exception(result));
+    }
+    Ok(result)
 }
 
 /// Write a zigzag varint (record lengths).
@@ -205,9 +232,12 @@ pub fn put_unsigned_varlong(buf: &mut BytesMut, mut v: u64) {
 }
 
 /// Read an unsigned varlong.
+///
+/// Java `ByteUtils.readUnsignedVarlong`. A tenth continuation byte is
+/// `illegalVarlongException`.
 pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
     let mut result = 0u64;
-    for i in 0..10 {
+    for i in 0..9 {
         need(buf, 1)?;
         let b = buf.get_u8();
         result |= u64::from(b & 0x7f) << (i * 7);
@@ -215,7 +245,13 @@ pub fn get_unsigned_varlong<B: Buf>(buf: &mut B) -> Result<u64> {
             return Ok(result);
         }
     }
-    Err(Error::protocol("unsigned varlong overflow"))
+    need(buf, 1)?;
+    let b = buf.get_u8();
+    result |= u64::from(b & 0x7f) << 63;
+    if b & 0x80 != 0 {
+        return Err(illegal_varlong_exception(result));
+    }
+    Ok(result)
 }
 
 /// Write a zigzag varlong.
@@ -853,5 +889,35 @@ mod tests {
         assert_eq!(utf8_length("你"), 3);
         assert_eq!(utf8_length("😀"), 4);
         assert_eq!(utf8_length("a😀é"), 7);
+    }
+
+    #[test]
+    fn invalid_varint_matches_java_byte_utils() {
+        // ByteUtilsTest.testInvalidVarint: five 0xFF continuation bytes plus 0x01.
+        let mut buf: &[u8] = &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01];
+        let msg = get_varint(&mut buf).unwrap_err().to_string();
+        assert!(
+            msg.contains(
+                "Varint is too long, the most significant bit in the 5th byte is set, converted value: "
+            ),
+            "{msg}"
+        );
+        assert!(msg.contains("converted value: ffffffff"), "{msg}");
+    }
+
+    #[test]
+    fn invalid_varlong_matches_java_byte_utils() {
+        // ByteUtilsTest.testInvalidVarlong: ten 0xFF continuation bytes plus 0x01.
+        let mut buf: &[u8] = &[
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
+        ];
+        let msg = get_varlong(&mut buf).unwrap_err().to_string();
+        assert!(
+            msg.contains(
+                "Varlong is too long, most significant bit in the 10th byte is set, converted value: "
+            ),
+            "{msg}"
+        );
+        assert!(msg.contains("converted value: ffffffffffffffff"), "{msg}");
     }
 }
