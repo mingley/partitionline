@@ -822,6 +822,64 @@ impl fmt::Display for TopicPartition {
     }
 }
 
+/// Topic id plus topic-partition (Java `TopicIdPartition`).
+///
+/// [`Display`] is Java `TopicIdPartition.toString` (`topicId:topic-partition`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TopicIdPartition {
+    /// Topic id.
+    pub topic_id: crate::Uuid,
+    /// Topic name and partition index.
+    pub topic_partition: TopicPartition,
+}
+
+impl TopicIdPartition {
+    /// Java `TopicIdPartition(Uuid, TopicPartition)`.
+    #[must_use]
+    pub fn new(topic_id: crate::Uuid, topic_partition: impl Into<TopicPartition>) -> Self {
+        Self {
+            topic_id,
+            topic_partition: topic_partition.into(),
+        }
+    }
+
+    /// Java `TopicIdPartition(Uuid, int, String)`.
+    #[must_use]
+    pub fn from_topic(topic_id: crate::Uuid, partition: i32, topic: impl Into<String>) -> Self {
+        Self::new(topic_id, TopicPartition::new(topic, partition))
+    }
+
+    /// Java `TopicIdPartition.topicId`.
+    #[must_use]
+    pub fn topic_id(&self) -> crate::Uuid {
+        self.topic_id
+    }
+
+    /// Java `TopicIdPartition.topic`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic_partition.topic()
+    }
+
+    /// Java `TopicIdPartition.partition`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.topic_partition.partition()
+    }
+
+    /// Java `TopicIdPartition.topicPartition`.
+    #[must_use]
+    pub fn topic_partition(&self) -> &TopicPartition {
+        &self.topic_partition
+    }
+}
+
+impl fmt::Display for TopicIdPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}-{}", self.topic_id, self.topic(), self.partition())
+    }
+}
+
 /// Committed offset plus optional leader epoch and user metadata.
 ///
 /// Java `OffsetAndMetadata`. The epoch is `None` when the wire value is `-1`.
@@ -3123,6 +3181,16 @@ mod tests {
         let tp = TopicPartition::new("events", 3);
         assert_eq!(tp.topic(), "events");
         assert_eq!(tp.partition(), 3);
+        let tid = TopicIdPartition::from_topic(crate::Uuid::ONE, 3, "events");
+        assert_eq!(tid.topic_id(), crate::Uuid::ONE);
+        assert_eq!(tid.topic(), "events");
+        assert_eq!(tid.partition(), 3);
+        assert_eq!(tid.topic_partition(), &tp);
+        assert_eq!(
+            TopicIdPartition::new(crate::Uuid::ONE, tp.clone()).to_string(),
+            "AAAAAAAAAAAAAAAAAAAAAQ:events-3"
+        );
+        assert_eq!(tid.to_string(), "AAAAAAAAAAAAAAAAAAAAAQ:events-3");
         let committed = OffsetAndMetadata::with_metadata(9, "meta").with_leader_epoch(2);
         assert_eq!(committed.offset(), 9);
         assert_eq!(committed.leader_epoch(), Some(2));

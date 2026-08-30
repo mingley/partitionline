@@ -144,7 +144,8 @@
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`OffsetAndMetadata::NO_METADATA`] is Java
-//! `OffsetFetchResponse.NO_METADATA`. [`TopicListing`] / [`TopicPartitionReplica`] /
+//! `OffsetFetchResponse.NO_METADATA`. [`TopicIdPartition`] `Display` is Java
+//! `TopicIdPartition.toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
 //! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
 //! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
@@ -787,7 +788,8 @@ pub use admin::{
 pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
 pub use consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
-    OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicPartition, WakeupHandle,
+    OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
+    WakeupHandle,
 };
 pub use error::{Error, Result};
 pub use group::{
