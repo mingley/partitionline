@@ -142,6 +142,9 @@
 //! [`protocol::offsets::CONSUMER_REPLICA_ID`] /
 //! [`protocol::epoch::CONSUMER_REPLICA_ID`] are Java `ListOffsetsRequest` /
 //! `OffsetsForLeaderEpochRequest` consumer replica ids.
+//! [`protocol::fetch::is_consumer`] / [`protocol::fetch::is_valid_broker_id`] /
+//! [`protocol::fetch::describe_replica_id`] are Java `FetchRequest.isConsumer` /
+//! `isValidBrokerId` / `describeReplicaId`.
 //! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /

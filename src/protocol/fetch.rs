@@ -20,6 +20,30 @@ pub const FUTURE_LOCAL_REPLICA_ID: i32 = -3;
 /// [`FetchedPartition::INVALID_LOG_START_OFFSET`].
 pub const INVALID_LOG_START_OFFSET: i64 = -1;
 
+/// Java `FetchRequest.isValidBrokerId`.
+#[must_use]
+pub const fn is_valid_broker_id(broker_id: i32) -> bool {
+    broker_id >= 0
+}
+
+/// Java `FetchRequest.isConsumer`.
+#[must_use]
+pub const fn is_consumer(replica_id: i32) -> bool {
+    replica_id < 0 && replica_id != FUTURE_LOCAL_REPLICA_ID
+}
+
+/// Java `FetchRequest.describeReplicaId`.
+#[must_use]
+pub fn describe_replica_id(replica_id: i32) -> String {
+    match replica_id {
+        ORDINARY_CONSUMER_ID => "consumer".into(),
+        DEBUGGING_CONSUMER_ID => "debug consumer".into(),
+        FUTURE_LOCAL_REPLICA_ID => "future local replica".into(),
+        id if is_valid_broker_id(id) => format!("replica [{id}]"),
+        id => format!("invalid replica [{id}]"),
+    }
+}
+
 /// One partition in a Fetch request.
 #[derive(Debug, Clone)]
 pub struct FetchPartition {
@@ -557,6 +581,22 @@ mod tests {
             INVALID_LOG_START_OFFSET,
             FetchedPartition::INVALID_LOG_START_OFFSET
         );
+        assert!(is_consumer(CONSUMER_REPLICA_ID));
+        assert!(is_consumer(ORDINARY_CONSUMER_ID));
+        assert!(is_consumer(DEBUGGING_CONSUMER_ID));
+        assert!(!is_consumer(FUTURE_LOCAL_REPLICA_ID));
+        assert!(!is_consumer(1));
+        assert!(is_valid_broker_id(0));
+        assert!(is_valid_broker_id(1));
+        assert!(!is_valid_broker_id(ORDINARY_CONSUMER_ID));
+        assert_eq!(describe_replica_id(ORDINARY_CONSUMER_ID), "consumer");
+        assert_eq!(describe_replica_id(DEBUGGING_CONSUMER_ID), "debug consumer");
+        assert_eq!(
+            describe_replica_id(FUTURE_LOCAL_REPLICA_ID),
+            "future local replica"
+        );
+        assert_eq!(describe_replica_id(3), "replica [3]");
+        assert_eq!(describe_replica_id(-4), "invalid replica [-4]");
     }
 
     #[test]
