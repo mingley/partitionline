@@ -76,8 +76,9 @@
 //! `AbstractStickyAssignor.allSubscriptionsEqual` owned-partition
 //! generation resolution (higher generation keeps the partition; the same
 //! generation revokes it from both);
-//! [`protocol::group::JoinGroupResponse::is_leader`] is Java
-//! `JoinGroupResponse.isLeader`).
+//! [`protocol::group::JoinGroupResponse::is_leader`] /
+//! [`protocol::group::JoinGroupResponse::should_client_throttle`] are Java
+//! `JoinGroupResponse.isLeader` / `shouldClientThrottle`).
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
@@ -277,7 +278,8 @@
 //! [`protocol::group::FetchedOffset::has_error`] are Java
 //! `OffsetFetchResponse.INVALID_OFFSET` / `NO_METADATA` /
 //! `PartitionData.hasError` (`FetchedOffset` `Display` is
-//! `PartitionData.toString`). [`OffsetAndMetadata::NO_METADATA`] /
+//! `PartitionData.toString`). [`protocol::group::OffsetFetchResponse::should_client_throttle`]
+//! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
 //! `auto.offset.reset`). [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /

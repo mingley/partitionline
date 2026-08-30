@@ -874,6 +874,12 @@ impl JoinGroupResponse {
     pub fn is_leader(member_id: &str, leader: &str) -> bool {
         member_id == leader
     }
+
+    /// Java `JoinGroupResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 3
+    }
 }
 
 /// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
@@ -1746,6 +1752,17 @@ impl fmt::Display for FetchedOffset {
         f.write_str(", error='")?;
         f.write_str(error_name(self.error_code).unwrap_or("UNKNOWN_SERVER_ERROR"))?;
         f.write_str("')")
+    }
+}
+
+/// Java `OffsetFetchResponse` helpers.
+pub struct OffsetFetchResponse;
+
+impl OffsetFetchResponse {
+    /// Java `OffsetFetchResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 4
     }
 }
 
@@ -2711,6 +2728,8 @@ mod tests {
         assert!(JoinGroupRequest::supports_skipping_assignment(9));
         assert!(JoinGroupResponse::is_leader("m-1", "m-1"));
         assert!(!JoinGroupResponse::is_leader("m-1", "m-2"));
+        assert!(!JoinGroupResponse::should_client_throttle(2));
+        assert!(JoinGroupResponse::should_client_throttle(3));
         let keep = "a".repeat(255);
         assert_eq!(JoinGroupRequest::maybe_truncate_reason(&keep), keep);
         let long = "a".repeat(256);
@@ -2755,6 +2774,8 @@ mod tests {
     fn fetched_offset_partition_data_matches_java() {
         assert_eq!(FetchedOffset::INVALID_OFFSET, -1);
         assert_eq!(FetchedOffset::NO_METADATA, "");
+        assert!(!OffsetFetchResponse::should_client_throttle(3));
+        assert!(OffsetFetchResponse::should_client_throttle(4));
         assert_eq!(
             FetchedOffset::INVALID_OFFSET,
             crate::OffsetAndMetadata::INVALID_OFFSET
