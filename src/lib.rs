@@ -589,6 +589,9 @@
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
 //! `OffsetsForLeaderEpochResponse.UNDEFINED_EPOCH` / `UNDEFINED_EPOCH_OFFSET`.
+//! [`protocol::epoch::OffsetsForLeaderEpochResponse::error_counts`] is Java
+//! `OffsetsForLeaderEpochResponse.errorCounts` (partition-level codes,
+//! including `NONE`).
 //! [`protocol::epoch::EpochEndOffset::error`] /
 //! [`protocol::epoch::OffsetForLeaderTopic::error_result`] are Java
 //! `OffsetsForLeaderEpochRequest.getErrorResponse` (partition body /

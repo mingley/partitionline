@@ -1,5 +1,7 @@
 //! OffsetForLeaderEpoch (api key 23). Classic v0–v3; flexible v4.
 
+use std::collections::HashMap;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -168,6 +170,26 @@ impl OffsetForLeaderTopicResult {
             topic: topic.into(),
             partitions,
         }
+    }
+}
+
+/// Java `OffsetsForLeaderEpochResponse` helpers.
+pub struct OffsetsForLeaderEpochResponse;
+
+impl OffsetsForLeaderEpochResponse {
+    /// Java `OffsetsForLeaderEpochResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[OffsetForLeaderTopicResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
     }
 }
 
@@ -434,6 +456,7 @@ pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
 mod tests {
     use super::*;
     use bytes::Buf;
+    use std::collections::HashMap;
 
     #[test]
     fn epoch_end_offset_undefined_sentinels_match_java() {
@@ -480,6 +503,38 @@ mod tests {
             cur.is_empty(),
             "error-response leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn offsets_for_leader_epoch_response_error_counts_matches_java() {
+        assert!(OffsetsForLeaderEpochResponse::error_counts(&[]).is_empty());
+        let counts = OffsetsForLeaderEpochResponse::error_counts(&[
+            OffsetForLeaderTopicResult::new(
+                "t",
+                vec![
+                    EpochEndOffset::error(0, 0),
+                    EpochEndOffset::error(crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                ],
+            ),
+            OffsetForLeaderTopicResult::new(
+                "u",
+                vec![EpochEndOffset::error(
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                    0,
+                )],
+            ),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 1), (crate::error::NOT_LEADER_OR_FOLLOWER, 2)])
+        );
+        assert_eq!(
+            OffsetsForLeaderEpochResponse::error_counts(&[OffsetForLeaderTopicResult::new(
+                "ok",
+                vec![EpochEndOffset::error(0, 0)]
+            )]),
+            HashMap::from([(0, 1)])
         );
     }
 
