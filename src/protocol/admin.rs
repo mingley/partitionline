@@ -3,7 +3,7 @@
 //!
 //! ACL codecs live in [`super::acl`].
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -1044,6 +1044,19 @@ impl CreateTopicsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 3
     }
+
+    /// Java `CreateTopicsResponse.errorCounts`.
+    ///
+    /// Counts per-topic error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[TopicResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
 }
 
 /// CreateTopics v0–7 (classic through v4; flexible from v5).
@@ -1308,6 +1321,19 @@ impl DeleteTopicsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
+    }
+
+    /// Java `DeleteTopicsResponse.errorCounts`.
+    ///
+    /// Counts per-topic error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[TopicResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -1863,6 +1889,19 @@ impl CreatePartitionsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `CreatePartitionsResponse.errorCounts`.
+    ///
+    /// Counts per-topic error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(topics: &[TopicResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in topics {
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
     }
 }
 
@@ -13955,6 +13994,7 @@ pub fn decode_describe_delegation_token_response<B: Buf>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn create_topics_request_no_partition_sentinels_match_java() {
@@ -13971,6 +14011,53 @@ mod tests {
         );
         assert!(!CreateTopicsResponse::should_client_throttle(2));
         assert!(CreateTopicsResponse::should_client_throttle(3));
+    }
+
+    #[test]
+    fn create_topics_response_error_counts_matches_java() {
+        assert!(CreateTopicsResponse::error_counts(&[]).is_empty());
+        let counts = CreateTopicsResponse::error_counts(&[
+            TopicResult::new("ok", 0, None),
+            TopicResult::new("dup", crate::error::TOPIC_ALREADY_EXISTS, None),
+            TopicResult::new("ok2", 0, None),
+            TopicResult::new("bad", crate::error::INVALID_PARTITIONS, None),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::TOPIC_ALREADY_EXISTS, 1),
+                (crate::error::INVALID_PARTITIONS, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn delete_topics_response_error_counts_matches_java() {
+        assert!(DeleteTopicsResponse::error_counts(&[]).is_empty());
+        let counts = DeleteTopicsResponse::error_counts(&[
+            TopicResult::new("ok", 0, None),
+            TopicResult::new("missing", crate::error::UNKNOWN_TOPIC_OR_PARTITION, None),
+            TopicResult::new("ok2", 0, None),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),])
+        );
+    }
+
+    #[test]
+    fn create_partitions_response_error_counts_matches_java() {
+        assert!(CreatePartitionsResponse::error_counts(&[]).is_empty());
+        let counts = CreatePartitionsResponse::error_counts(&[
+            TopicResult::new("ok", 0, None),
+            TopicResult::new("bad", crate::error::INVALID_PARTITIONS, None),
+            TopicResult::new("ok2", 0, None),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([(0, 2), (crate::error::INVALID_PARTITIONS, 1),])
+        );
     }
 
     #[test]

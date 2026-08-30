@@ -210,6 +210,8 @@
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
 //! [`protocol::admin::CreateTopicsResponse::should_client_throttle`] is Java
 //! `CreateTopicsResponse.shouldClientThrottle` (v3+);
+//! [`protocol::admin::CreateTopicsResponse::error_counts`] is Java
+//! `CreateTopicsResponse.errorCounts` (per-topic codes, including `NONE`);
 //! [`protocol::admin::CreatableTopic::error_result`] /
 //! [`protocol::admin::CreateTopicsRequest::error_results`] are Java
 //! `CreateTopicsRequest.getErrorResponse` (one topic / Topics). v5+
@@ -219,6 +221,8 @@
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
 //! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
 //! `DeleteTopicsResponse.shouldClientThrottle` (v2+);
+//! [`protocol::admin::DeleteTopicsResponse::error_counts`] is Java
+//! `DeleteTopicsResponse.errorCounts` (per-topic codes, including `NONE`);
 //! [`protocol::admin::TopicResult::error`] /
 //! [`protocol::admin::DeleteTopicState::error_result`] are Java
 //! `DeleteTopicsRequest.getErrorResponse` (one topic)),
@@ -283,6 +287,8 @@
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::CreatePartitionsResponse::error_counts`] is Java
+//! `CreatePartitionsResponse.errorCounts` (per-topic codes, including `NONE`);
 //! [`protocol::admin::CreatePartitionsTopic::error_result`] /
 //! [`protocol::admin::CreatePartitionsTopic::error_results`] are Java
 //! `CreatePartitionsRequest.getErrorResponse` (one topic / Results).
