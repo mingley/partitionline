@@ -992,6 +992,29 @@ impl JoinGroupRequest<'_> {
     pub const fn supports_skipping_assignment(api_version: i16) -> bool {
         api_version >= 9
     }
+
+    /// Java `JoinGroupRequest.getErrorResponse`.
+    ///
+    /// Generation is [`Self::UNKNOWN_GENERATION_ID`]. Protocol name is
+    /// [`Self::UNKNOWN_PROTOCOL_NAME`] (encode writes null on v7+). Leader
+    /// and member id are [`Self::UNKNOWN_MEMBER_ID`]. Members is empty.
+    /// Throttle is the JSON default (`0`).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_join_group_response(
+            buf,
+            version,
+            error_code,
+            Self::UNKNOWN_GENERATION_ID,
+            Self::UNKNOWN_PROTOCOL_NAME,
+            Self::UNKNOWN_MEMBER_ID,
+            Self::UNKNOWN_MEMBER_ID,
+            &[],
+        )
+    }
 }
 
 /// Java `org.apache.kafka.common.internals.Topic`.
@@ -5221,6 +5244,73 @@ mod tests {
             cur.is_empty(),
             "v6 empty ProtocolName leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn join_group_error_response_matches_java() {
+        // Java JoinGroupRequest.getErrorResponse: UNKNOWN generation /
+        // protocol / member sentinels, empty members, throttle JSON default 0.
+        // ProtocolName is null on v7+ and empty string below. SkipAssignment
+        // on v9+ stays the JSON default (false).
+        const V7: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x01, 0x01,
+            0x01, 0x00,
+        ];
+        for version in [2_i16, 6, 7, 9] {
+            let mut expected = BytesMut::new();
+            encode_join_group_response(
+                &mut expected,
+                version,
+                16,
+                JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                &[],
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            JoinGroupRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "JoinGroup v{version} getErrorResponse must match sentinel encode"
+            );
+            if version == 7 {
+                assert_eq!(&got[..], V7);
+            }
+            let mut cur = &got[..];
+            let (err, gen, protocol, leader, member, skip, members) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(gen, JoinGroupRequest::UNKNOWN_GENERATION_ID);
+            assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+            assert_eq!(leader, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+            assert_eq!(member, JoinGroupRequest::UNKNOWN_MEMBER_ID);
+            assert!(!skip, "v{version} SkipAssignment JSON default is false");
+            assert!(members.is_empty());
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v6 = BytesMut::new();
+        JoinGroupRequest::error_response(&mut v6, 6, 16).unwrap();
+        let mut v7 = BytesMut::new();
+        JoinGroupRequest::error_response(&mut v7, 7, 16).unwrap();
+        assert_ne!(
+            &v6[..],
+            &v7[..],
+            "v7+ getErrorResponse ProtocolName is null, not empty compact string"
+        );
+        let mut v9 = BytesMut::new();
+        JoinGroupRequest::error_response(&mut v9, 9, 16).unwrap();
+        assert_ne!(
+            &v7[..],
+            &v9[..],
+            "v9 getErrorResponse must include SkipAssignment"
         );
     }
 

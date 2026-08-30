@@ -168,7 +168,11 @@
 //! generation revokes it from both);
 //! [`protocol::group::JoinGroupResponse::is_leader`] /
 //! [`protocol::group::JoinGroupResponse::should_client_throttle`] are Java
-//! `JoinGroupResponse.isLeader` / `shouldClientThrottle`).
+//! `JoinGroupResponse.isLeader` / `shouldClientThrottle`;
+//! [`protocol::group::JoinGroupRequest::error_response`] is Java
+//! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
+//! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];
+//! empty members; ProtocolName null on v7+)),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
 //! `LeaveGroupResponse.shouldClientThrottle` (v2+);
@@ -1653,6 +1657,7 @@
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] /
+//! [`protocol::group::JoinGroupRequest::error_response`] /
 //! [`protocol::group::JoinGroupRequest::maybe_truncate_reason`] /
 //! [`protocol::group::JoinGroupRequest::join_reason`] /
 //! [`protocol::group::JoinGroupRequest::validate_group_instance_id`] /
@@ -1666,7 +1671,7 @@
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
 //! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
 //! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
-//! `UNKNOWN_PROTOCOL_NAME` / `maybeTruncateReason` / `joinReason` /
+//! `UNKNOWN_PROTOCOL_NAME` / `getErrorResponse` / `maybeTruncateReason` / `joinReason` /
 //! `validateGroupInstanceId` / `Topic.validate` /
 //! `Topic.isValid` / `Topic.isInternal` / `Topic.hasCollisionChars` /
 //! `Topic.unifyCollisionChars` / `Topic.hasCollision` /
