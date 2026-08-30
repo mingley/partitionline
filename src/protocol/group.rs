@@ -2588,6 +2588,10 @@ pub fn decode_offset_fetch_groups_response<B: Buf>(
 }
 
 /// Topic + partitions for OffsetDelete (api 47) v0.
+///
+/// [`Self::error_result`] is Java `OffsetDeleteResponse.Builder.addPartitions`
+/// one topic. Official Java `OffsetDeleteRequest.getErrorResponse` writes
+/// only the top-level ErrorCode (empty Topics).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetDeleteTopic {
     /// Topic name.
@@ -2596,7 +2600,47 @@ pub struct OffsetDeleteTopic {
     pub partitions: Vec<i32>,
 }
 
+impl OffsetDeleteTopic {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partitions: Vec<i32>) -> Self {
+        Self {
+            topic: topic.into(),
+            partitions,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition indexes to delete.
+    #[must_use]
+    pub fn partitions(&self) -> &[i32] {
+        &self.partitions
+    }
+
+    /// Java `OffsetDeleteResponse.Builder.addPartitions` one topic.
+    ///
+    /// Each partition is [`OffsetDeleteResult::new`]. Throttle on the
+    /// response is the JSON default (`0`). Official Java
+    /// `OffsetDeleteRequest.getErrorResponse` does not fill Topics.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> Vec<OffsetDeleteResult> {
+        self.partitions
+            .iter()
+            .map(|&partition| OffsetDeleteResult::new(self.topic.clone(), partition, error_code))
+            .collect()
+    }
+}
+
 /// One partition result from OffsetDelete (api 47) v0.
+///
+/// [`Self::new`] is Java `OffsetDeleteResponse.Builder.addPartition`
+/// partition body (`PartitionIndex` / `ErrorCode`) plus the topic name
+/// (this crate stores a flat list).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetDeleteResult {
     /// Topic name.
@@ -2605,6 +2649,36 @@ pub struct OffsetDeleteResult {
     pub partition: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
+}
+
+impl OffsetDeleteResult {
+    /// Java `OffsetDeleteResponse.Builder.addPartition` partition body.
+    #[must_use]
+    pub fn new(topic: impl Into<String>, partition: i32, error_code: i16) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+            error_code,
+        }
+    }
+
+    /// Topic name.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
 }
 
 /// OffsetDelete v0 (classic; error_code is *before* throttle).
@@ -5007,10 +5081,7 @@ mod tests {
 
     #[test]
     fn offset_delete_v0_roundtrip_is_leftover_empty() {
-        let topics = vec![OffsetDeleteTopic {
-            topic: "t".into(),
-            partitions: vec![0, 1],
-        }];
+        let topics = vec![OffsetDeleteTopic::new("t", vec![0, 1])];
         let mut buf = BytesMut::new();
         encode_offset_delete_request(&mut buf, "g", &topics).unwrap();
         let mut cur = &buf[..];
@@ -5023,16 +5094,8 @@ mod tests {
         );
 
         let results = vec![
-            OffsetDeleteResult {
-                topic: "t".into(),
-                partition: 0,
-                error_code: 0,
-            },
-            OffsetDeleteResult {
-                topic: "t".into(),
-                partition: 1,
-                error_code: 0,
-            },
+            OffsetDeleteResult::new("t", 0, 0),
+            OffsetDeleteResult::new("t", 1, 0),
         ];
         buf.clear();
         encode_offset_delete_response(&mut buf, 0, &results).unwrap();
@@ -5043,6 +5106,33 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetDelete v0 response must be leftover-empty"
+        );
+
+        let topic = OffsetDeleteTopic::new("t", vec![0, 3]);
+        assert_eq!(topic.topic(), "t");
+        assert_eq!(topic.partitions(), &[0, 3]);
+        let part_err = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            part_err,
+            vec![
+                OffsetDeleteResult::new("t", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                OffsetDeleteResult::new("t", 3, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ]
+        );
+        let first = part_err.first().expect("error partition");
+        assert_eq!(first.topic(), "t");
+        assert_eq!(first.partition(), 0);
+        assert_eq!(first.error_code(), crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        buf.clear();
+        encode_offset_delete_response(&mut buf, 0, &part_err).unwrap();
+        let mut cur = buf.as_ref();
+        let (top, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(top, 0);
+        assert_eq!(decoded, part_err);
+        assert!(
+            !cur.has_remaining(),
+            "OffsetDelete addPartitions leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

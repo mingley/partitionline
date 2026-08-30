@@ -759,6 +759,12 @@
 //! `AlterShareGroupOffsetsOptions` / `DeleteShareGroupOffsetsOptions.timeoutMs`
 //! (RPC deadline; these RPCs have no TimeoutMs).
 //! [`Admin::delete_consumer_group_offsets`] is Java `deleteConsumerGroupOffsets`.
+//! [`OffsetDeleteResult::new`] /
+//! [`protocol::group::OffsetDeleteTopic::error_result`] are Java
+//! `OffsetDeleteResponse.Builder.addPartition` / `addPartitions` (one
+//! partition / one topic). Official Java
+//! `OffsetDeleteRequest.getErrorResponse` writes only the top-level
+//! ErrorCode.
 //! [`Admin::delete_offsets_timeout`] / [`Admin::delete_consumer_group_offsets_timeout`]
 //! are Java `DeleteConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
 //! OffsetDelete has no TimeoutMs).
