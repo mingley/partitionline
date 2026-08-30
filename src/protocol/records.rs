@@ -1365,6 +1365,11 @@ impl RecordBatch {
         Ok(Self::increment_sequence(base_sequence, delta))
     }
 
+    fn encoded_attributes(buffer: &[u8]) -> Result<i16> {
+        let attr_off = buf::usize_from_i32(Self::ATTRIBUTES_OFFSET)?;
+        Self::read_i16_be(buffer, attr_off)
+    }
+
     /// Java `DefaultRecordBatch.deleteHorizonMs` on a buffer.
     ///
     /// Unset [`ATTR_DELETE_HORIZON`] is `None` without reading
@@ -1373,13 +1378,38 @@ impl RecordBatch {
     /// fields. Short attributes or timestamp fields are [`Error::protocol`]
     /// `need N bytes`.
     pub fn encoded_delete_horizon_ms(buffer: &[u8]) -> Result<Option<i64>> {
-        let attr_off = buf::usize_from_i32(Self::ATTRIBUTES_OFFSET)?;
-        let attributes = Self::read_i16_be(buffer, attr_off)?;
+        let attributes = Self::encoded_attributes(buffer)?;
         if attributes & ATTR_DELETE_HORIZON == 0 {
             return Ok(None);
         }
         let ts_off = buf::usize_from_i32(Self::BASE_TIMESTAMP_OFFSET)?;
         Ok(Some(Self::read_i64_be(buffer, ts_off)?))
+    }
+
+    /// Java `DefaultRecordBatch.isTransactional` on a buffer.
+    ///
+    /// Distinct from [`Self::is_transactional`], which uses this batch's
+    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    pub fn encoded_is_transactional(buffer: &[u8]) -> Result<bool> {
+        Ok(Self::encoded_attributes(buffer)? & ATTR_TRANSACTIONAL != 0)
+    }
+
+    /// Java `DefaultRecordBatch.isControlBatch` on a buffer.
+    ///
+    /// Distinct from [`Self::is_control_batch`], which uses this batch's
+    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    pub fn encoded_is_control_batch(buffer: &[u8]) -> Result<bool> {
+        Ok(Self::encoded_attributes(buffer)? & ATTR_CONTROL != 0)
+    }
+
+    /// Java `DefaultRecordBatch.timestampType` on a buffer.
+    ///
+    /// Distinct from [`Self::timestamp_type`], which uses this batch's
+    /// attributes. Short attributes field is [`Error::protocol`] `need 2 bytes`.
+    pub fn encoded_timestamp_type(buffer: &[u8]) -> Result<TimestampType> {
+        Ok(TimestampType::from_attributes(Self::encoded_attributes(
+            buffer,
+        )?))
     }
 
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
@@ -3186,6 +3216,67 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short_ts.contains("need 8 bytes"), "{short_ts}");
+    }
+
+    #[test]
+    fn encoded_is_transactional_matches_java_default_record_batch() {
+        let plain = RecordBatch::from_records(vec![sample_record()]);
+        let mut plain_buf = BytesMut::new();
+        encode_record_batch(&mut plain_buf, &plain).unwrap();
+        assert!(!RecordBatch::encoded_is_transactional(&plain_buf).unwrap());
+        assert!(!RecordBatch::encoded_is_control_batch(&plain_buf).unwrap());
+        assert_eq!(
+            RecordBatch::encoded_timestamp_type(&plain_buf).unwrap(),
+            TimestampType::CreateTime
+        );
+
+        let flagged = plain
+            .clone()
+            .with_transactional(true)
+            .with_control_batch(true)
+            .with_timestamp_type(TimestampType::LogAppendTime);
+        let mut flagged_buf = BytesMut::new();
+        encode_record_batch(&mut flagged_buf, &flagged).unwrap();
+        assert!(RecordBatch::encoded_is_transactional(&flagged_buf).unwrap());
+        assert!(RecordBatch::encoded_is_control_batch(&flagged_buf).unwrap());
+        assert_eq!(
+            RecordBatch::encoded_timestamp_type(&flagged_buf).unwrap(),
+            TimestampType::LogAppendTime
+        );
+        assert!(flagged.is_transactional());
+        assert!(flagged.is_control_batch());
+        assert_eq!(flagged.timestamp_type(), TimestampType::LogAppendTime);
+
+        let mut mutated = flagged_buf.clone();
+        mutated[21..23].copy_from_slice(&0i16.to_be_bytes());
+        assert!(!RecordBatch::encoded_is_transactional(&mutated).unwrap());
+        assert!(!RecordBatch::encoded_is_control_batch(&mutated).unwrap());
+        assert_eq!(
+            RecordBatch::encoded_timestamp_type(&mutated).unwrap(),
+            TimestampType::CreateTime
+        );
+        assert!(flagged.is_transactional());
+        assert!(flagged.is_control_batch());
+        assert_eq!(flagged.timestamp_type(), TimestampType::LogAppendTime);
+
+        assert!(!RecordBatch::encoded_is_transactional(&[0; 23]).unwrap());
+        assert!(!RecordBatch::encoded_is_control_batch(&[0; 23]).unwrap());
+        assert_eq!(
+            RecordBatch::encoded_timestamp_type(&[0; 23]).unwrap(),
+            TimestampType::CreateTime
+        );
+        let short = RecordBatch::encoded_is_transactional(&[0; 22])
+            .unwrap_err()
+            .to_string();
+        assert!(short.contains("need 2 bytes"), "{short}");
+        let short_ctrl = RecordBatch::encoded_is_control_batch(&[0; 22])
+            .unwrap_err()
+            .to_string();
+        assert!(short_ctrl.contains("need 2 bytes"), "{short_ctrl}");
+        let short_ts = RecordBatch::encoded_timestamp_type(&[0; 22])
+            .unwrap_err()
+            .to_string();
+        assert!(short_ts.contains("need 2 bytes"), "{short_ts}");
     }
 
     #[test]

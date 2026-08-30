@@ -951,7 +951,12 @@
 //! the delta; otherwise `incrementSequence` of the stored base and
 //! `lastOffsetDelta`). [`RecordBatch::encoded_delete_horizon_ms`] is Java
 //! `DefaultRecordBatch.deleteHorizonMs` on a buffer (unset flag is `None`
-//! without reading the base timestamp). [`RecordBatch::size_in_bytes_of`] and
+//! without reading the base timestamp). [`RecordBatch::encoded_is_transactional`]
+//! / [`RecordBatch::encoded_is_control_batch`] /
+//! [`RecordBatch::encoded_timestamp_type`] are Java
+//! `DefaultRecordBatch.isTransactional` / `isControlBatch` / `timestampType`
+//! on a buffer (short attributes field is [`Error::protocol`] `need 2 bytes`).
+//! [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
 //! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
@@ -1011,6 +1016,9 @@
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
+//! [`RecordBatch::encoded_is_transactional`] /
+//! [`RecordBatch::encoded_is_control_batch`] /
+//! [`RecordBatch::encoded_timestamp_type`] are the buffer forms.
 //! [`ControlRecordType`] / [`EndTransactionMarker`] are Java
 //! `ControlRecordType` / `EndTransactionMarker` (`type` / `fromTypeId` /
 //! `parse`; COMMIT/ABORT marker key and value).
