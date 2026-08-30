@@ -205,6 +205,161 @@ pub(crate) fn write_java_optional<T: fmt::Display>(
     }
 }
 
+fn be_i16_at(buf: &[u8], offset: usize) -> Result<i16> {
+    let b0 = buf
+        .get(offset)
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    let b1 = buf
+        .get(offset.saturating_add(1))
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    Ok(i16::from_be_bytes([b0, b1]))
+}
+
+fn be_i32_at(buf: &[u8], offset: usize) -> Result<i32> {
+    let b0 = buf
+        .get(offset)
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    let b1 = buf
+        .get(offset.saturating_add(1))
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    let b2 = buf
+        .get(offset.saturating_add(2))
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    let b3 = buf
+        .get(offset.saturating_add(3))
+        .copied()
+        .ok_or_else(|| Error::protocol("short control record"))?;
+    Ok(i32::from_be_bytes([b0, b1, b2, b3]))
+}
+
+/// Java `ControlRecordType` (control-record key `type`).
+///
+/// [`Display`] is Java `ControlRecordType.toString` (`ABORT` / `COMMIT` /
+/// `LEADER_CHANGE` / `SNAPSHOT_HEADER` / `SNAPSHOT_FOOTER` / `KRAFT_VERSION` /
+/// `KRAFT_VOTERS` / `UNKNOWN`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ControlRecordType {
+    /// Java `ABORT` (`type` 0).
+    Abort,
+    /// Java `COMMIT` (`type` 1).
+    Commit,
+    /// Java `LEADER_CHANGE` (`type` 2).
+    LeaderChange,
+    /// Java `SNAPSHOT_HEADER` (`type` 3).
+    SnapshotHeader,
+    /// Java `SNAPSHOT_FOOTER` (`type` 4).
+    SnapshotFooter,
+    /// Java `KRAFT_VERSION` (`type` 5).
+    KraftVersion,
+    /// Java `KRAFT_VOTERS` (`type` 6).
+    KraftVoters,
+    /// Java `UNKNOWN` (`type` -1).
+    Unknown,
+}
+
+impl ControlRecordType {
+    /// Java `ControlRecordType.CURRENT_CONTROL_RECORD_KEY_VERSION` (package-private).
+    const CURRENT_CONTROL_RECORD_KEY_VERSION: i16 = 0;
+    /// Java `ControlRecordType.CURRENT_CONTROL_RECORD_KEY_SIZE` (package-private).
+    const CURRENT_CONTROL_RECORD_KEY_SIZE: usize = 4;
+
+    /// Java `ControlRecordType.type`.
+    #[must_use]
+    pub const fn type_id(self) -> i16 {
+        match self {
+            Self::Abort => 0,
+            Self::Commit => 1,
+            Self::LeaderChange => 2,
+            Self::SnapshotHeader => 3,
+            Self::SnapshotFooter => 4,
+            Self::KraftVersion => 5,
+            Self::KraftVoters => 6,
+            Self::Unknown => -1,
+        }
+    }
+
+    /// Java `ControlRecordType.fromTypeId`. Unknown ids are [`Self::Unknown`].
+    #[must_use]
+    pub const fn from_type_id(type_id: i16) -> Self {
+        match type_id {
+            0 => Self::Abort,
+            1 => Self::Commit,
+            2 => Self::LeaderChange,
+            3 => Self::SnapshotHeader,
+            4 => Self::SnapshotFooter,
+            5 => Self::KraftVersion,
+            6 => Self::KraftVoters,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// Java `ControlRecordType.toString`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Abort => "ABORT",
+            Self::Commit => "COMMIT",
+            Self::LeaderChange => "LEADER_CHANGE",
+            Self::SnapshotHeader => "SNAPSHOT_HEADER",
+            Self::SnapshotFooter => "SNAPSHOT_FOOTER",
+            Self::KraftVersion => "KRAFT_VERSION",
+            Self::KraftVoters => "KRAFT_VOTERS",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+
+    /// Java `ControlRecordType.parseTypeId`.
+    pub fn parse_type_id(key: &[u8]) -> Result<i16> {
+        if key.len() < Self::CURRENT_CONTROL_RECORD_KEY_SIZE {
+            return Err(Error::protocol(format!(
+                "Invalid value size found for end control record key. Must have at least {} bytes, but found only {}",
+                Self::CURRENT_CONTROL_RECORD_KEY_SIZE,
+                key.len()
+            )));
+        }
+        let version = be_i16_at(key, 0)?;
+        if version < 0 {
+            return Err(Error::protocol(format!(
+                "Invalid version found for control record: {version}. May indicate data corruption"
+            )));
+        }
+        be_i16_at(key, 2)
+    }
+
+    /// Java `ControlRecordType.parse`.
+    pub fn parse(key: &[u8]) -> Result<Self> {
+        Ok(Self::from_type_id(Self::parse_type_id(key)?))
+    }
+
+    /// Java `ControlRecordType.recordKey` (version 0 key bytes). [`Self::Unknown`]
+    /// cannot be serialized.
+    pub fn record_key(self) -> Result<[u8; 4]> {
+        if matches!(self, Self::Unknown) {
+            return Err(Error::protocol(
+                "Cannot serialize UNKNOWN control record type",
+            ));
+        }
+        let tid = self.type_id().to_be_bytes();
+        let hi = tid.first().copied().unwrap_or(0);
+        let lo = tid.get(1).copied().unwrap_or(0);
+        let ver = Self::CURRENT_CONTROL_RECORD_KEY_VERSION.to_be_bytes();
+        let vh = ver.first().copied().unwrap_or(0);
+        let vl = ver.get(1).copied().unwrap_or(0);
+        Ok([vh, vl, hi, lo])
+    }
+}
+
+impl fmt::Display for ControlRecordType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// One record inside a magic-v2 batch.
 ///
 /// [`Display`] is Java `DefaultRecord.toString` (`key=N bytes`; null is
@@ -318,6 +473,22 @@ impl Record {
     pub fn has_timestamp_type(&self, _timestamp_type: TimestampType) -> bool {
         false
     }
+
+    /// Control record for [`EndTransactionMarker`] (Java
+    /// `MemoryRecordsBuilder.appendEndTxnMarker`).
+    pub fn from_end_transaction_marker(
+        timestamp: i64,
+        marker: &EndTransactionMarker,
+    ) -> Result<Self> {
+        let key = marker.control_type().record_key()?;
+        Ok(Self {
+            offset: 0,
+            timestamp,
+            key: Some(Bytes::copy_from_slice(&key)),
+            value: Some(Bytes::copy_from_slice(&marker.serialize_value())),
+            headers: Vec::new(),
+        })
+    }
 }
 
 impl fmt::Display for Record {
@@ -333,6 +504,106 @@ impl fmt::Display for Record {
             self.key.as_ref().map_or(0, Bytes::len)
         )?;
         write!(f, "{} bytes)", self.value.as_ref().map_or(0, Bytes::len))
+    }
+}
+
+/// Java `EndTransactionMarker` (COMMIT/ABORT control record value).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct EndTransactionMarker {
+    control_type: ControlRecordType,
+    coordinator_epoch: i32,
+}
+
+impl EndTransactionMarker {
+    /// Java `EndTransactionMarker.CURRENT_END_TXN_MARKER_VERSION` (package-private).
+    const CURRENT_END_TXN_MARKER_VERSION: i16 = 0;
+    /// Java `EndTransactionMarker.CURRENT_END_TXN_MARKER_VALUE_SIZE` (package-private).
+    const CURRENT_END_TXN_MARKER_VALUE_SIZE: usize = 6;
+
+    /// Java `EndTransactionMarker(ControlRecordType, int)`. Only
+    /// [`ControlRecordType::Commit`] and [`ControlRecordType::Abort`] are valid.
+    pub fn new(control_type: ControlRecordType, coordinator_epoch: i32) -> Result<Self> {
+        Self::ensure_transaction_marker_control_type(control_type)?;
+        Ok(Self {
+            control_type,
+            coordinator_epoch,
+        })
+    }
+
+    /// Java `EndTransactionMarker.coordinatorEpoch`.
+    #[must_use]
+    pub fn coordinator_epoch(self) -> i32 {
+        self.coordinator_epoch
+    }
+
+    /// Java `EndTransactionMarker.controlType`.
+    #[must_use]
+    pub fn control_type(self) -> ControlRecordType {
+        self.control_type
+    }
+
+    /// Java `EndTransactionMarker.serializeValue`.
+    #[must_use]
+    pub fn serialize_value(self) -> [u8; 6] {
+        let epoch = self.coordinator_epoch.to_be_bytes();
+        let ver = Self::CURRENT_END_TXN_MARKER_VERSION.to_be_bytes();
+        [
+            ver.first().copied().unwrap_or(0),
+            ver.get(1).copied().unwrap_or(0),
+            epoch.first().copied().unwrap_or(0),
+            epoch.get(1).copied().unwrap_or(0),
+            epoch.get(2).copied().unwrap_or(0),
+            epoch.get(3).copied().unwrap_or(0),
+        ]
+    }
+
+    /// Java `EndTransactionMarker.deserialize`.
+    pub fn deserialize(record: &Record) -> Result<Self> {
+        let key = record
+            .key
+            .as_deref()
+            .ok_or_else(|| Error::protocol("end transaction marker key is null"))?;
+        let value = record
+            .value
+            .as_deref()
+            .ok_or_else(|| Error::protocol("end transaction marker value is null"))?;
+        let control_type = ControlRecordType::parse(key)?;
+        Self::deserialize_value(control_type, value)
+    }
+
+    fn ensure_transaction_marker_control_type(control_type: ControlRecordType) -> Result<()> {
+        if matches!(
+            control_type,
+            ControlRecordType::Commit | ControlRecordType::Abort
+        ) {
+            Ok(())
+        } else {
+            Err(Error::protocol(format!(
+                "Invalid control record type for end transaction marker{control_type}"
+            )))
+        }
+    }
+
+    fn deserialize_value(control_type: ControlRecordType, value: &[u8]) -> Result<Self> {
+        Self::ensure_transaction_marker_control_type(control_type)?;
+        if value.len() < Self::CURRENT_END_TXN_MARKER_VALUE_SIZE {
+            return Err(Error::protocol(format!(
+                "Invalid value size found for end transaction marker. Must have at least {} bytes, but found only {}",
+                Self::CURRENT_END_TXN_MARKER_VALUE_SIZE,
+                value.len()
+            )));
+        }
+        let version = be_i16_at(value, 0)?;
+        if version < 0 {
+            return Err(Error::protocol(format!(
+                "Invalid version found for end transaction marker: {version}. May indicate data corruption"
+            )));
+        }
+        let coordinator_epoch = be_i32_at(value, 2)?;
+        Ok(Self {
+            control_type,
+            coordinator_epoch,
+        })
     }
 }
 
@@ -553,6 +824,30 @@ impl RecordBatch {
             self.attributes &= !ATTR_CONTROL;
         }
         self
+    }
+
+    /// Java `MemoryRecords.withEndTransactionMarker`.
+    ///
+    /// Builds a transactional control batch with one COMMIT/ABORT record.
+    /// [`Self::base_sequence`] is [`Self::NO_SEQUENCE`].
+    pub fn with_end_transaction_marker(
+        initial_offset: i64,
+        timestamp: i64,
+        partition_leader_epoch: i32,
+        producer_id: i64,
+        producer_epoch: i16,
+        marker: &EndTransactionMarker,
+    ) -> Result<Self> {
+        let rec = Record::from_end_transaction_marker(timestamp, marker)?;
+        let mut batch = Self::from_records(vec![rec])
+            .with_transactional(true)
+            .with_control_batch(true);
+        batch.base_offset = initial_offset;
+        batch.partition_leader_epoch = partition_leader_epoch;
+        batch.producer_id = producer_id;
+        batch.producer_epoch = producer_epoch;
+        batch.base_sequence = Self::NO_SEQUENCE;
+        Ok(batch)
     }
 
     /// Java `DefaultRecordBatch.magic` (this crate speaks magic-v2 only).
@@ -1366,6 +1661,102 @@ mod tests {
         let cleared = decoded.with_transactional(false).with_control_batch(false);
         assert!(!cleared.is_transactional());
         assert!(!cleared.is_control_batch());
+    }
+
+    #[test]
+    fn control_record_type_and_end_txn_marker_match_java() {
+        assert_eq!(ControlRecordType::Abort.type_id(), 0);
+        assert_eq!(ControlRecordType::Commit.type_id(), 1);
+        assert_eq!(ControlRecordType::LeaderChange.type_id(), 2);
+        assert_eq!(ControlRecordType::SnapshotHeader.type_id(), 3);
+        assert_eq!(ControlRecordType::SnapshotFooter.type_id(), 4);
+        assert_eq!(ControlRecordType::KraftVersion.type_id(), 5);
+        assert_eq!(ControlRecordType::KraftVoters.type_id(), 6);
+        assert_eq!(ControlRecordType::Unknown.type_id(), -1);
+        assert_eq!(ControlRecordType::from_type_id(0), ControlRecordType::Abort);
+        assert_eq!(
+            ControlRecordType::from_type_id(1),
+            ControlRecordType::Commit
+        );
+        assert_eq!(
+            ControlRecordType::from_type_id(99),
+            ControlRecordType::Unknown
+        );
+        assert_eq!(ControlRecordType::Abort.to_string(), "ABORT");
+        assert_eq!(ControlRecordType::Commit.to_string(), "COMMIT");
+        assert_eq!(ControlRecordType::LeaderChange.to_string(), "LEADER_CHANGE");
+        assert_eq!(ControlRecordType::Unknown.to_string(), "UNKNOWN");
+        let commit_key = ControlRecordType::Commit.record_key().unwrap();
+        assert_eq!(commit_key, [0, 0, 0, 1]);
+        assert_eq!(
+            ControlRecordType::parse(&commit_key).unwrap(),
+            ControlRecordType::Commit
+        );
+        assert_eq!(
+            ControlRecordType::parse_type_id(&[0, 1, 0, 0]).unwrap(),
+            0,
+            "newer key version still reads type at offset 2"
+        );
+        assert!(ControlRecordType::parse_type_id(&[0, 0, 0]).is_err());
+        assert!(ControlRecordType::parse_type_id(&[0xff, 0xff, 0, 1]).is_err());
+        assert!(ControlRecordType::Unknown.record_key().is_err());
+        assert!(EndTransactionMarker::new(ControlRecordType::LeaderChange, 1).is_err());
+        let marker = EndTransactionMarker::new(ControlRecordType::Abort, 7).unwrap();
+        assert_eq!(marker.control_type(), ControlRecordType::Abort);
+        assert_eq!(marker.coordinator_epoch(), 7);
+        assert_eq!(marker.serialize_value(), [0, 0, 0, 0, 0, 7]);
+        let batch = RecordBatch::with_end_transaction_marker(10, 99, 3, 42, 1, &marker).unwrap();
+        assert!(batch.is_transactional());
+        assert!(batch.is_control_batch());
+        assert_eq!(batch.base_offset(), 10);
+        assert_eq!(batch.partition_leader_epoch(), 3);
+        assert_eq!(batch.producer_id(), 42);
+        assert_eq!(batch.producer_epoch(), 1);
+        assert_eq!(batch.base_sequence(), RecordBatch::NO_SEQUENCE);
+        assert_eq!(batch.count(), 1);
+        let decoded_marker =
+            EndTransactionMarker::deserialize(batch.records().first().expect("marker record"))
+                .unwrap();
+        assert_eq!(decoded_marker, marker);
+        let mut buf = BytesMut::new();
+        encode_record_batch(&mut buf, &batch).unwrap();
+        let decoded = decode_record_batch(&mut &buf[..]).unwrap();
+        assert!(decoded.is_control_batch());
+        assert!(decoded.is_transactional());
+        assert_eq!(decoded.base_offset(), 10);
+        assert_eq!(
+            EndTransactionMarker::deserialize(decoded.records().first().expect("marker record"))
+                .unwrap(),
+            marker
+        );
+        let commit = EndTransactionMarker::new(ControlRecordType::Commit, 0).unwrap();
+        assert_eq!(
+            EndTransactionMarker::deserialize(
+                &Record::from_end_transaction_marker(0, &commit).unwrap()
+            )
+            .unwrap(),
+            commit
+        );
+        assert!(EndTransactionMarker::deserialize(&Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::copy_from_slice(
+                &ControlRecordType::LeaderChange.record_key().unwrap()
+            )),
+            value: Some(Bytes::from_static(&[0, 0, 0, 0, 0, 0])),
+            headers: vec![],
+        })
+        .is_err());
+        assert!(EndTransactionMarker::deserialize(&Record {
+            offset: 0,
+            timestamp: 0,
+            key: Some(Bytes::copy_from_slice(
+                &ControlRecordType::Abort.record_key().unwrap()
+            )),
+            value: Some(Bytes::from_static(&[0, 0, 0])),
+            headers: vec![],
+        })
+        .is_err());
     }
 
     #[test]

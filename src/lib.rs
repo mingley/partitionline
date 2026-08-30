@@ -252,6 +252,11 @@
 //! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
+//! [`ControlRecordType`] / [`EndTransactionMarker`] are Java
+//! `ControlRecordType` / `EndTransactionMarker` (`type` / `fromTypeId` /
+//! `parse`; COMMIT/ABORT marker key and value).
+//! [`RecordBatch::with_end_transaction_marker`] is Java
+//! `MemoryRecords.withEndTransactionMarker`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
 //! [`RecordBatch::last_sequence`] are Java `lastOffset` / `nextOffset` /
 //! `lastSequence`. [`RecordBatch::is_compressed`] is Java `isCompressed`.
@@ -900,7 +905,10 @@ pub use protocol::offsets::{
     LATEST_TIMESTAMP, MAX_TIMESTAMP,
 };
 pub use protocol::oidc::OidcConfig;
-pub use protocol::records::{Compression, Header, Record, RecordBatch, TimestampType};
+pub use protocol::records::{
+    Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
+    TimestampType,
+};
 pub use protocol::txn::TransactionResult;
 pub use share::{
     AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT,

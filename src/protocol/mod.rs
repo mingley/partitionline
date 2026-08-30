@@ -68,4 +68,7 @@ pub use header::{
     decode_request_header, decode_response_header, encode_request_header, encode_response_header,
     request_header_version, response_header_version, RequestHeader,
 };
-pub use records::{Compression, Record, RecordBatch, TimestampType};
+pub use records::{
+    Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
+    TimestampType,
+};
