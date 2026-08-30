@@ -112,6 +112,10 @@
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
 //! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
 //! (`None` Topics is every committed partition; `Some` empty is not);
+//! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
+//! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
+//! v2–v7 top-level plus partitions; v1 first non-partition error plus
+//! partitions; including `NONE`);
 //! [`protocol::group::OffsetFetchGroup::error_result`] /
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
@@ -626,7 +630,11 @@
 //! [`error::for_code`] / [`error::UNKNOWN_SERVER_ERROR`] are Java
 //! `Errors.forCode` (Kafka 4.0.0 enum name; unknown is `UNKNOWN_SERVER_ERROR`) / code `-1`.
 //! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
-//! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /
+//! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+).
+//! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
+//! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
+//! v2–v7 top-level plus partitions; v1 first non-partition error plus
+//! partitions; including `NONE`). [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
 //! `auto.offset.reset`). [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /

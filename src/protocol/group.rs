@@ -2161,6 +2161,38 @@ impl OffsetFetchResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 4
     }
+
+    /// Java `OffsetFetchResponse.errorCounts`.
+    ///
+    /// v8+ counts each group-level `errorCode` (including `NONE`) plus
+    /// each partition-level code (including `NONE`). v2–v7 count the
+    /// top-level `errorCode` stored on the single
+    /// [`OffsetFetchGroupResult`] plus partitions. v1 has no top-level
+    /// field; Java uses the first non-partition error from the
+    /// partitions (or `NONE`) plus each partition code. Partition errors
+    /// are `UNKNOWN_TOPIC_OR_PARTITION` and `TOPIC_AUTHORIZATION_FAILED`.
+    #[must_use]
+    pub fn error_counts(version: i16, groups: &[OffsetFetchGroupResult]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        if version >= 8 {
+            for group in groups {
+                let count = counts.entry(group.error_code).or_insert(0);
+                *count += 1;
+                offset_fetch_add_partition_error_counts(&mut counts, &group.topics);
+            }
+            return counts;
+        }
+        let topics = groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]);
+        let top = if version >= 2 {
+            groups.first().map(|g| g.error_code).unwrap_or(0)
+        } else {
+            offset_fetch_v1_top_level_error(topics)
+        };
+        let count = counts.entry(top).or_insert(0);
+        *count += 1;
+        offset_fetch_add_partition_error_counts(&mut counts, topics);
+        counts
+    }
 }
 
 /// Topic + committed offsets from OffsetFetch v1–v9.
@@ -2267,6 +2299,32 @@ impl OffsetFetchGroupResult {
             error_code,
         }
     }
+}
+
+fn offset_fetch_add_partition_error_counts(
+    counts: &mut HashMap<i16, i32>,
+    topics: &[FetchedOffsetTopic],
+) {
+    for topic in topics {
+        for partition in &topic.partitions {
+            let count = counts.entry(partition.error_code).or_insert(0);
+            *count += 1;
+        }
+    }
+}
+
+fn offset_fetch_v1_top_level_error(topics: &[FetchedOffsetTopic]) -> i16 {
+    for topic in topics {
+        for partition in &topic.partitions {
+            if partition.error_code != 0
+                && partition.error_code != crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                && partition.error_code != crate::error::TOPIC_AUTHORIZATION_FAILED
+            {
+                return partition.error_code;
+            }
+        }
+    }
+    0
 }
 
 /// `true` when OffsetCommit `version` is flexible (v8+).
@@ -3669,6 +3727,92 @@ mod tests {
         assert_eq!(
             ok.to_string(),
             "PartitionData(offset=5, leaderEpoch=2, metadata=m, error='NONE')"
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_error_counts_matches_java() {
+        assert!(OffsetFetchResponse::error_counts(8, &[]).is_empty());
+        assert_eq!(
+            OffsetFetchResponse::error_counts(7, &[]),
+            HashMap::from([(0, 1)])
+        );
+        assert_eq!(
+            OffsetFetchResponse::error_counts(1, &[]),
+            HashMap::from([(0, 1)])
+        );
+        let v8 = OffsetFetchResponse::error_counts(
+            8,
+            &[
+                OffsetFetchGroupResult {
+                    group_id: "ok".into(),
+                    topics: vec![FetchedOffsetTopic {
+                        topic: "t".into(),
+                        partitions: vec![
+                            FetchedOffset::error(0, 0),
+                            FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                        ],
+                    }],
+                    error_code: 0,
+                },
+                OffsetFetchGroupResult::error("missing", crate::error::NOT_COORDINATOR),
+            ],
+        );
+        assert_eq!(
+            v8,
+            HashMap::from([
+                (0, 2),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+                (crate::error::NOT_COORDINATOR, 1),
+            ])
+        );
+        let v7 = OffsetFetchResponse::error_counts(
+            7,
+            &[OffsetFetchGroupResult {
+                group_id: String::new(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![
+                        FetchedOffset::error(0, 0),
+                        FetchedOffset::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+                    ],
+                }],
+                error_code: 0,
+            }],
+        );
+        assert_eq!(
+            v7,
+            HashMap::from([(0, 2), (crate::error::NOT_LEADER_OR_FOLLOWER, 1)])
+        );
+        let v1_partition = OffsetFetchResponse::error_counts(
+            1,
+            &[OffsetFetchGroupResult {
+                group_id: String::new(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::unknown_partition(0)],
+                }],
+                error_code: 0,
+            }],
+        );
+        assert_eq!(
+            v1_partition,
+            HashMap::from([(0, 1), (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1)])
+        );
+        let v1_coord = OffsetFetchResponse::error_counts(
+            1,
+            &[OffsetFetchGroupResult {
+                group_id: String::new(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::error(0, crate::error::NOT_COORDINATOR)],
+                }],
+                error_code: 0,
+            }],
+        );
+        assert_eq!(
+            v1_coord,
+            HashMap::from([(crate::error::NOT_COORDINATOR, 2)])
         );
     }
 
