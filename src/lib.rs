@@ -938,9 +938,12 @@
 //! offset form is absolute; short buffer is [`Error::protocol`] `need N bytes`).
 //! [`protocol::buf::size_delimited`] is Java `Utils.sizeDelimited` (negative
 //! size is `None`; short buffer is [`Error::protocol`] `need N bytes`).
-//! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
-//! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
-//! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
+//! [`RecordBatch::size_in_bytes`] encodes this batch (including compression).
+//! [`RecordBatch::encoded_size_in_bytes`] is Java
+//! `DefaultRecordBatch.sizeInBytes()` on a buffer (`LOG_OVERHEAD` plus the
+//! length field; wrapping add; short size field is [`Error::protocol`]
+//! `need 4 bytes`). [`RecordBatch::size_in_bytes_of`] and
+//! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
 //! [`RecordBatch::is_valid`] is Java `DefaultRecordBatch.isValid` (declared
 //! size below overhead is `false`; otherwise stored CRC32-C must match bytes

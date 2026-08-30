@@ -1276,10 +1276,25 @@ impl RecordBatch {
         i64::try_from(self.records.len()).unwrap_or(i64::MAX)
     }
 
-    /// Java `DefaultRecordBatch.sizeInBytes()` (`Records.LOG_OVERHEAD` plus
-    /// the length field). Encoded size, including compression.
+    /// Encoded size of this batch, including compression.
+    ///
+    /// Distinct from [`Self::encoded_size_in_bytes`], which reads the length
+    /// field from a buffer (Java `DefaultRecordBatch.sizeInBytes()`).
     pub fn size_in_bytes(&self) -> Result<i32> {
         buf::i32_from_usize(self.encoded()?.len())
+    }
+
+    /// Java `DefaultRecordBatch.sizeInBytes()` on a buffer
+    /// (`Records.LOG_OVERHEAD` plus the length field at
+    /// [`Records::SIZE_OFFSET`]).
+    ///
+    /// Uses wrapping add (Java `int` overflow). Short size field is
+    /// [`Error::protocol`] `need 4 bytes`. Distinct from [`Self::size_in_bytes`],
+    /// which encodes this batch.
+    pub fn encoded_size_in_bytes(buffer: &[u8]) -> Result<i32> {
+        let size_off = buf::usize_from_i32(Records::SIZE_OFFSET)?;
+        let record_size = buf::read_int_be(buffer, size_off)?;
+        Ok(Records::LOG_OVERHEAD.wrapping_add(record_size))
     }
 
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
@@ -1296,15 +1311,12 @@ impl RecordBatch {
 
     /// Java `DefaultRecordBatch.isValid`.
     ///
-    /// Declared size ([`Records::LOG_OVERHEAD`] plus the length field) below
+    /// Declared size ([`Self::encoded_size_in_bytes`]) below
     /// [`Self::RECORD_BATCH_OVERHEAD`] is `false`. Otherwise the stored CRC must
     /// match CRC32-C of the bytes from [`Self::ATTRIBUTES_OFFSET`] to the end of
     /// `buffer`. Short size or CRC fields are [`Error::protocol`] `need 4 bytes`.
     pub fn is_valid(buffer: &[u8]) -> Result<bool> {
-        let size_off = buf::usize_from_i32(Records::SIZE_OFFSET)?;
-        let record_size = buf::read_int_be(buffer, size_off)?;
-        let size_in_bytes = Records::LOG_OVERHEAD.wrapping_add(record_size);
-        if size_in_bytes < Self::RECORD_BATCH_OVERHEAD {
+        if Self::encoded_size_in_bytes(buffer)? < Self::RECORD_BATCH_OVERHEAD {
             return Ok(false);
         }
         let crc_off = buf::usize_from_i32(Self::CRC_OFFSET)?;
@@ -2807,6 +2819,49 @@ mod tests {
         let mut header_only = [0u8; 21];
         header_only[8..12].copy_from_slice(&49i32.to_be_bytes());
         assert!(RecordBatch::is_valid(&header_only).unwrap());
+    }
+
+    #[test]
+    fn encoded_size_in_bytes_matches_java_default_record_batch() {
+        let mut encoded = BytesMut::new();
+        encode_record_batch(
+            &mut encoded,
+            &RecordBatch::from_records(vec![sample_record()]),
+        )
+        .unwrap();
+        let encoded_len = i32::try_from(encoded.len()).unwrap();
+        assert_eq!(
+            RecordBatch::encoded_size_in_bytes(&encoded).unwrap(),
+            encoded_len
+        );
+        assert_eq!(
+            RecordBatch::from_records(vec![sample_record()])
+                .size_in_bytes()
+                .unwrap(),
+            encoded_len
+        );
+
+        assert_eq!(RecordBatch::encoded_size_in_bytes(&[0; 12]).unwrap(), 12);
+
+        let err = RecordBatch::encoded_size_in_bytes(&[0; 11])
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("need 4 bytes"), "{err}");
+
+        let mut wrap = [0u8; 12];
+        wrap[8..12].copy_from_slice(&i32::MAX.to_be_bytes());
+        assert_eq!(
+            RecordBatch::encoded_size_in_bytes(&wrap).unwrap(),
+            Records::LOG_OVERHEAD.wrapping_add(i32::MAX)
+        );
+
+        let mut declared = encoded.clone();
+        declared[8..12].copy_from_slice(&100i32.to_be_bytes());
+        assert_eq!(RecordBatch::encoded_size_in_bytes(&declared).unwrap(), 112);
+        assert_ne!(
+            RecordBatch::encoded_size_in_bytes(&declared).unwrap(),
+            encoded_len
+        );
     }
 
     #[test]
