@@ -267,7 +267,9 @@
 //! `DeleteTopicsResponse.errorCounts` (per-topic codes, including `NONE`);
 //! [`protocol::admin::TopicResult::error`] /
 //! [`protocol::admin::DeleteTopicState::error_result`] are Java
-//! `DeleteTopicsRequest.getErrorResponse` (one topic)),
+//! `DeleteTopicsRequest.getErrorResponse` (one topic);
+//! [`protocol::admin::DeleteTopicsRequest::topic_ids`] is Java
+//! `DeleteTopicsRequest.topicIds` (empty below v6; otherwise each TopicId)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /

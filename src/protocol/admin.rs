@@ -1380,6 +1380,24 @@ impl DeleteTopicState {
     }
 }
 
+/// Java `DeleteTopicsRequest` helpers.
+pub struct DeleteTopicsRequest;
+
+impl DeleteTopicsRequest {
+    /// Java `DeleteTopicsRequest.topicIds`.
+    ///
+    /// Empty below DeleteTopics v6. Otherwise each request topic's TopicId
+    /// (zeros when deleting by name).
+    #[must_use]
+    pub fn topic_ids(version: i16, topics: &[DeleteTopicState]) -> Vec<[u8; 16]> {
+        if version >= 6 {
+            topics.iter().map(|topic| topic.topic_id).collect()
+        } else {
+            Vec::new()
+        }
+    }
+}
+
 /// DeleteTopics v0–6 (classic through v3; flexible from v4).
 ///
 /// Name-based: v6 sends Topics of Name + zero TopicId (Java
@@ -15512,6 +15530,18 @@ mod tests {
             "DeleteTopics getErrorResponse leftover-empty; leftover {} bytes",
             cur.remaining()
         );
+    }
+
+    #[test]
+    fn delete_topics_request_topic_ids_matches_java() {
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let by_id = [DeleteTopicState::by_id(id)];
+        assert!(DeleteTopicsRequest::topic_ids(5, &by_id).is_empty());
+        assert_eq!(DeleteTopicsRequest::topic_ids(6, &by_id), vec![id]);
+        let by_name = [DeleteTopicState::by_name("t")];
+        assert_eq!(DeleteTopicsRequest::topic_ids(6, &by_name), vec![[0u8; 16]]);
+        assert!(DeleteTopicsRequest::topic_ids(6, &[]).is_empty());
     }
 
     #[test]
