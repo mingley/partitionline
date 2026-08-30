@@ -1796,12 +1796,110 @@ impl OffsetPartition {
 }
 
 /// Topic + partitions for OffsetCommit v2–v9.
+///
+/// [`Self::error_result`] is Java `OffsetCommitRequest.getErrorResponse` one
+/// topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OffsetTopic {
     /// Topic name.
     pub topic: String,
     /// Partitions to commit.
     pub partitions: Vec<OffsetPartition>,
+}
+
+impl OffsetTopic {
+    /// Java `OffsetCommitRequest.getErrorResponse` one topic.
+    ///
+    /// Copies `Name` and each `PartitionIndex`. Nested body is
+    /// PartitionIndex + ErrorCode (no English message). Committed
+    /// offset / metadata / leader epoch stay on the request. Throttle
+    /// on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> OffsetCommitResponseTopic {
+        OffsetCommitResponseTopic {
+            topic: self.topic.clone(),
+            partitions: self
+                .partitions
+                .iter()
+                .map(|p| OffsetCommitResponsePartition::error(p.partition, error_code))
+                .collect(),
+        }
+    }
+
+    /// Java `OffsetCommitRequest.getErrorResponse` Topics.
+    ///
+    /// Maps each request topic through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(topics: &[Self], error_code: i16) -> Vec<OffsetCommitResponseTopic> {
+        topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect()
+    }
+}
+
+/// One partition in an OffsetCommit v2–v9 response.
+///
+/// [`Self::error`] is Java `OffsetCommitRequest.getErrorResponse` partition
+/// body (PartitionIndex + ErrorCode).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetCommitResponsePartition {
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+}
+
+impl OffsetCommitResponsePartition {
+    /// Java `OffsetCommitRequest.getErrorResponse` partition body.
+    ///
+    /// Sets `PartitionIndex` and `ErrorCode`. The nested body has no
+    /// error message field.
+    #[must_use]
+    pub fn error(partition: i32, error_code: i16) -> Self {
+        Self {
+            partition,
+            error_code,
+        }
+    }
+
+    /// Java `OffsetCommitResponsePartition.partitionIndex`.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Per-partition error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+}
+
+/// One topic in an OffsetCommit v2–v9 response.
+///
+/// [`OffsetTopic::error_result`] is Java
+/// `OffsetCommitRequest.getErrorResponse` one topic.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OffsetCommitResponseTopic {
+    /// Topic name (Java `Name`).
+    pub topic: String,
+    /// Per-partition results.
+    pub partitions: Vec<OffsetCommitResponsePartition>,
+}
+
+impl OffsetCommitResponseTopic {
+    /// Java `OffsetCommitResponseTopic.name`.
+    #[must_use]
+    pub fn topic(&self) -> &str {
+        self.topic.as_str()
+    }
+
+    /// Java `OffsetCommitResponseTopic.partitions`.
+    #[must_use]
+    pub fn partitions(&self) -> &[OffsetCommitResponsePartition] {
+        &self.partitions
+    }
 }
 
 /// Topic + partition indexes for OffsetFetch v1–v9.
@@ -2147,11 +2245,26 @@ pub fn decode_offset_commit_request<B: Buf>(
 }
 
 /// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
+///
+/// Applies `error` on every request partition via
+/// [`OffsetTopic::error_results`].
 pub fn encode_offset_commit_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[OffsetTopic],
     error: i16,
+) -> crate::error::Result<()> {
+    encode_offset_commit_topics_response(buf, version, &OffsetTopic::error_results(topics, error))
+}
+
+/// Encode OffsetCommit v2–v9 from response Topics.
+///
+/// Throttle is the JSON default (`0`) on v3+. Nested body is
+/// PartitionIndex + ErrorCode.
+pub fn encode_offset_commit_topics_response(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetCommitResponseTopic],
 ) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
     if version >= 3 {
@@ -2163,7 +2276,7 @@ pub fn encode_offset_commit_response(
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
         for p in &t.partitions {
             buf.put_i32(p.partition);
-            buf.put_i16(error);
+            buf.put_i16(p.error_code);
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
@@ -2181,33 +2294,53 @@ pub fn encode_offset_commit_response(
 /// Decode OffsetCommit: first non-zero partition error, or `0`.
 /// Throttle is v3+.
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
+    let topics = decode_offset_commit_topics_response(buf, version)?;
+    let mut first_err = 0i16;
+    for t in &topics {
+        for p in &t.partitions {
+            if first_err == 0 && p.error_code != 0 {
+                first_err = p.error_code;
+            }
+        }
+    }
+    Ok(first_err)
+}
+
+/// Decode OffsetCommit: every response topic.
+pub fn decode_offset_commit_topics_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<OffsetCommitResponseTopic>> {
     let flexible = offset_commit_flexible(version)?;
     if version >= 3 {
         let _throttle = buf::get_i32(buf)?;
     }
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut first_err = 0i16;
+    let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
-        let _topic = buf::get_string(buf, flexible)?;
+        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
-            let err = buf::get_i16(buf)?;
+            let partition = buf::get_i32(buf)?;
+            let error_code = buf::get_i16(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            if first_err == 0 && err != 0 {
-                first_err = err;
-            }
+            partitions.push(OffsetCommitResponsePartition {
+                partition,
+                error_code,
+            });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        topics.push(OffsetCommitResponseTopic { topic, partitions });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(first_err)
+    Ok(topics)
 }
 
 /// `true` when OffsetFetch `version` is flexible (v6+).
@@ -4490,6 +4623,85 @@ mod tests {
         buf.clear();
         encode_offset_commit_response(&mut buf, 8, &topics, 16).unwrap();
         assert_eq!(decode_offset_commit_response(&mut &buf[..], 8).unwrap(), 16);
+    }
+
+    #[test]
+    fn offset_commit_get_error_response_copies_names_and_partitions() {
+        let topics = [
+            OffsetTopic {
+                topic: "orders".into(),
+                partitions: vec![OffsetPartition::new(0, 10), OffsetPartition::new(1, 20)],
+            },
+            OffsetTopic {
+                topic: "payments".into(),
+                partitions: vec![OffsetPartition::new(2, 30)],
+            },
+        ];
+        let err = OffsetTopic::error_results(&topics, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(err.len(), 2);
+        let orders = err.first().expect("orders");
+        assert_eq!(orders.topic(), "orders");
+        assert_eq!(
+            orders.partitions(),
+            [
+                OffsetCommitResponsePartition::error(0, crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                OffsetCommitResponsePartition::error(1, crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        let payments = err.get(1).expect("payments");
+        assert_eq!(payments.topic(), "payments");
+        assert_eq!(
+            payments.partitions(),
+            [OffsetCommitResponsePartition::error(
+                2,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            )]
+        );
+        assert_eq!(
+            err,
+            vec![
+                topics[0].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                topics[1].error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ]
+        );
+        for version in [2i16, 3, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_topics_response(&mut buf, version, &err).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_offset_commit_topics_response(&mut cur, version).unwrap(),
+                err
+            );
+            assert!(
+                !cur.has_remaining(),
+                "OffsetCommit v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
+                crate::error::CLUSTER_AUTHORIZATION_FAILED
+            );
+        }
+        let empty = OffsetTopic::error_results(&[], crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(empty.is_empty());
+        for version in [2i16, 3, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_topics_response(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_offset_commit_topics_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "OffsetCommit v{version} empty getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            assert_eq!(
+                decode_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
+                0
+            );
+        }
     }
 
     #[test]

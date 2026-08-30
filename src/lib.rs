@@ -82,7 +82,13 @@
 //! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
-//! `OffsetCommitResponse.shouldClientThrottle` (v4+)),
+//! `OffsetCommitResponse.shouldClientThrottle` (v4+);
+//! [`protocol::group::OffsetTopic::error_result`] /
+//! [`protocol::group::OffsetTopic::error_results`] /
+//! [`protocol::group::OffsetCommitResponsePartition::error`] are Java
+//! `OffsetCommitRequest.getErrorResponse` (one topic / Topics / partition
+//! body). Nested body is PartitionIndex + ErrorCode. Throttle is the JSON
+//! default (`0`)),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
