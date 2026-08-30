@@ -880,7 +880,8 @@
 //! `UpdateFeaturesOptions.validateOnly` (UpdateFeatures v0–v2; v1
 //! UpgradeType / ValidateOnly; v2 omits Results; Java `FeatureUpdate`
 //! constructor rejects maxVersionLevel 0 with `UpgradeType.UPGRADE` and a
-//! negative maxVersionLevel).
+//! negative maxVersionLevel; `Admin::update_features` rejects an empty
+//! list and a blank feature name).
 //! [`protocol::admin::UpdateFeaturesResponse::create_with_errors`] /
 //! [`protocol::admin::UpdateFeaturesResponse::error`] /
 //! [`protocol::admin::UpdatableFeatureResult::error`] are Java

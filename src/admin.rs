@@ -4812,7 +4812,9 @@ impl Admin {
     /// [`Self::update_features_with`] for Java
     /// `UpdateFeaturesOptions.validateOnly`. Optional at [`Self::new`]
     /// (Kafka 2.7+ / KIP-584); a broker that omits api 57 returns
-    /// [`Error::Unsupported`].
+    /// [`Error::Unsupported`]. An empty list is Java `IllegalArgumentException`
+    /// (`Feature updates can not be null or empty`). A blank feature name
+    /// is `Provided feature can not be empty`.
     pub async fn update_features(
         &mut self,
         updates: &[FeatureUpdate],
@@ -4870,6 +4872,19 @@ impl Admin {
             .await
     }
 
+    /// Java `KafkaAdminClient.updateFeatures` argument checks.
+    fn reject_java_feature_updates(updates: &[FeatureUpdate]) -> Result<()> {
+        if updates.is_empty() {
+            return Err(Error::protocol("Feature updates can not be null or empty."));
+        }
+        for u in updates {
+            if u.name.trim().is_empty() {
+                return Err(Error::protocol("Provided feature can not be empty."));
+            }
+        }
+        Ok(())
+    }
+
     async fn update_features_inner(
         &mut self,
         updates: &[FeatureUpdate],
@@ -4877,6 +4892,7 @@ impl Admin {
         validate_only: bool,
         timeout: Duration,
     ) -> Result<Vec<FeatureUpdateResult>> {
+        Self::reject_java_feature_updates(updates)?;
         let keys: Vec<FeatureUpdateKey> = updates
             .iter()
             .map(|u| FeatureUpdateKey {
@@ -11779,6 +11795,32 @@ mod tests {
             .offset(),
             crate::protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK
         );
+    }
+
+    #[test]
+    fn update_features_client_checks_match_java() {
+        let empty = Admin::reject_java_feature_updates(&[])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            empty.contains("Feature updates can not be null or empty."),
+            "{empty}"
+        );
+        let blank = Admin::reject_java_feature_updates(&[FeatureUpdate::new("  ", 1)])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            blank.contains("Provided feature can not be empty."),
+            "{blank}"
+        );
+        let unnamed = Admin::reject_java_feature_updates(&[FeatureUpdate::new("", 1)])
+            .unwrap_err()
+            .to_string();
+        assert!(
+            unnamed.contains("Provided feature can not be empty."),
+            "{unnamed}"
+        );
+        Admin::reject_java_feature_updates(&[FeatureUpdate::new("metadata.version", 17)]).unwrap();
     }
 
     #[test]
