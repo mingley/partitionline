@@ -225,6 +225,9 @@ impl Clone for Error {
 /// Client result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Kafka `UNKNOWN_SERVER_ERROR` (-1). Java `Errors.forCode` uses this for
+/// a code this crate (or Kafka) does not name.
+pub const UNKNOWN_SERVER_ERROR: i16 = -1;
 /// Kafka `NONE` (0).
 pub const NONE: i16 = 0;
 /// Kafka `OFFSET_OUT_OF_RANGE` (1).
@@ -335,6 +338,7 @@ pub fn consumer_group_describe_classic_fallback(code: i16) -> bool {
 #[must_use]
 pub fn error_name(code: i16) -> Option<&'static str> {
     Some(match code {
+        UNKNOWN_SERVER_ERROR => "UNKNOWN_SERVER_ERROR",
         NONE => "NONE",
         OFFSET_OUT_OF_RANGE => "OFFSET_OUT_OF_RANGE",
         UNKNOWN_TOPIC_OR_PARTITION => "UNKNOWN_TOPIC_OR_PARTITION",
@@ -380,4 +384,35 @@ pub fn error_name(code: i16) -> Option<&'static str> {
         SHARE_SESSION_LIMIT_REACHED => "SHARE_SESSION_LIMIT_REACHED",
         _ => return None,
     })
+}
+
+/// Java `Errors.forCode` then the enum name.
+///
+/// Codes this crate does not name are `UNKNOWN_SERVER_ERROR`.
+#[must_use]
+pub fn for_code(code: i16) -> &'static str {
+    error_name(code).unwrap_or("UNKNOWN_SERVER_ERROR")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn for_code_matches_java_errors() {
+        assert_eq!(for_code(NONE), "NONE");
+        assert_eq!(for_code(UNKNOWN_SERVER_ERROR), "UNKNOWN_SERVER_ERROR");
+        assert_eq!(for_code(-1), "UNKNOWN_SERVER_ERROR");
+        assert_eq!(
+            for_code(UNKNOWN_TOPIC_OR_PARTITION),
+            "UNKNOWN_TOPIC_OR_PARTITION"
+        );
+        assert_eq!(for_code(999), "UNKNOWN_SERVER_ERROR");
+        assert_eq!(error_name(NONE), Some("NONE"));
+        assert_eq!(
+            error_name(UNKNOWN_SERVER_ERROR),
+            Some("UNKNOWN_SERVER_ERROR")
+        );
+        assert_eq!(error_name(999), None);
+    }
 }

@@ -7,7 +7,7 @@ use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
 use super::records::RecordBatch;
-use crate::error::{error_name, Error, Result};
+use crate::error::{for_code, Error, Result};
 
 /// FindCoordinator `key_type` for a consumer group.
 pub const COORDINATOR_GROUP: i8 = 0;
@@ -2106,7 +2106,7 @@ impl fmt::Display for FetchedOffset {
         f.write_str(", metadata=")?;
         f.write_str(&self.metadata)?;
         f.write_str(", error='")?;
-        f.write_str(error_name(self.error_code).unwrap_or("UNKNOWN_SERVER_ERROR"))?;
+        f.write_str(for_code(self.error_code))?;
         f.write_str("')")
     }
 }

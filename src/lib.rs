@@ -537,6 +537,8 @@
 //! v1–v7; one group / Groups on v8+). v1 fills request partitions; v2–v7
 //! omit partitions; v8+ copies GroupId with empty Topics.
 //! (`FetchedOffset` `Display` is `PartitionData.toString`).
+//! [`error::for_code`] / [`error::UNKNOWN_SERVER_ERROR`] are Java
+//! `Errors.forCode` (enum name; unknown is `UNKNOWN_SERVER_ERROR`) / code `-1`.
 //! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
 //! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+). [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
