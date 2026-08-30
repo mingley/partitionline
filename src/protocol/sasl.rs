@@ -223,7 +223,7 @@ pub async fn authenticate_plain(
 ) -> Result<()> {
     let (hs_version, auth_version) = spoken_sasl_versions(conn)?;
     let hs = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_HANDSHAKE,
             hs_version,
             |buf| encode_sasl_handshake_request(buf, hs_version, "PLAIN"),
@@ -241,7 +241,7 @@ pub async fn authenticate_plain(
     }
     let auth = plain_auth_bytes(user, pass);
     let body = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_AUTHENTICATE,
             auth_version,
             |buf| encode_sasl_authenticate_request(buf, auth_version, &auth),
@@ -273,7 +273,7 @@ pub async fn authenticate_scram(
     let (hs_version, auth_version) = spoken_sasl_versions(conn)?;
     let name = alg.name();
     let hs = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_HANDSHAKE,
             hs_version,
             |buf| encode_sasl_handshake_request(buf, hs_version, name),
@@ -292,7 +292,7 @@ pub async fn authenticate_scram(
     let nonce = super::scram::client_nonce();
     let (first, bare) = super::scram::client_first(user, &nonce);
     let body = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_AUTHENTICATE,
             auth_version,
             |buf| encode_sasl_authenticate_request(buf, auth_version, first.as_bytes()),
@@ -310,7 +310,7 @@ pub async fn authenticate_scram(
         String::from_utf8(bytes).map_err(|_| Error::protocol("scram server-first not utf8"))?;
     let client_final = super::scram::client_final(alg, pass, &bare, &server_first)?;
     let body = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_AUTHENTICATE,
             auth_version,
             |buf| encode_sasl_authenticate_request(buf, auth_version, client_final.as_bytes()),
@@ -364,7 +364,7 @@ pub async fn authenticate_oauthbearer_token(
 ) -> Result<()> {
     let (hs_version, auth_version) = spoken_sasl_versions(conn)?;
     let hs = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_HANDSHAKE,
             hs_version,
             |buf| encode_sasl_handshake_request(buf, hs_version, "OAUTHBEARER"),
@@ -382,7 +382,7 @@ pub async fn authenticate_oauthbearer_token(
     }
     let auth = super::oauth::client_initial(token);
     let body = conn
-        .roundtrip(
+        .roundtrip_sasl(
             SASL_AUTHENTICATE,
             auth_version,
             |buf| encode_sasl_authenticate_request(buf, auth_version, &auth),
@@ -401,7 +401,7 @@ pub async fn authenticate_oauthbearer_token(
     if !bytes.is_empty() {
         let err = String::from_utf8_lossy(&bytes).into_owned();
         drop(
-            conn.roundtrip(
+            conn.roundtrip_sasl(
                 SASL_AUTHENTICATE,
                 auth_version,
                 |buf| encode_sasl_authenticate_request(buf, auth_version, &[0x01]),

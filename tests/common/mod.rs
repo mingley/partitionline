@@ -399,7 +399,9 @@ struct State {
     last_leave_group_members: Option<Vec<LeaveGroupMember>>,
     last_leave_group_version: Option<i16>,
     last_sasl_handshake_version: Option<i16>,
+    last_sasl_handshake_correlation: Option<i32>,
     last_sasl_authenticate_version: Option<i16>,
+    last_sasl_authenticate_correlation: Option<i32>,
     last_list_groups_node: Option<i32>,
     last_list_groups: Option<(Vec<String>, Vec<String>)>,
     last_list_groups_version: Option<i16>,
@@ -755,7 +757,9 @@ fn new_state(
         last_leave_group_members: None,
         last_leave_group_version: None,
         last_sasl_handshake_version: None,
+        last_sasl_handshake_correlation: None,
         last_sasl_authenticate_version: None,
+        last_sasl_authenticate_correlation: None,
         last_list_groups_node: None,
         last_list_groups: None,
         last_list_groups_version: None,
@@ -2372,8 +2376,16 @@ impl Mock {
         self.state.lock().last_sasl_handshake_version
     }
 
+    pub fn last_sasl_handshake_correlation(&self) -> Option<i32> {
+        self.state.lock().last_sasl_handshake_correlation
+    }
+
     pub fn last_sasl_authenticate_version(&self) -> Option<i16> {
         self.state.lock().last_sasl_authenticate_version
+    }
+
+    pub fn last_sasl_authenticate_correlation(&self) -> Option<i32> {
+        self.state.lock().last_sasl_authenticate_correlation
     }
 
     pub fn last_list_groups_node(&self) -> Option<i32> {
@@ -5225,6 +5237,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (scram, oauth) = {
                     let mut st = state.lock();
                     st.last_sasl_handshake_version = Some(version);
+                    st.last_sasl_handshake_correlation = Some(header.correlation_id);
                     (st.scram_user.clone(), st.oauth_principal.clone())
                 };
                 let _mech = decode_sasl_handshake_request(&mut frame, version).unwrap_or_default();
@@ -5242,6 +5255,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let (scram_user, oauth_principal, sasl_user) = {
                     let mut st = state.lock();
                     st.last_sasl_authenticate_version = Some(version);
+                    st.last_sasl_authenticate_correlation = Some(header.correlation_id);
                     (
                         st.scram_user.clone(),
                         st.oauth_principal.clone(),

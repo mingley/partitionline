@@ -1329,9 +1329,11 @@
 //! bootstrap urls given in bootstrap.servers`).
 //! [`net::MIN_RESERVED_CORRELATION_ID`] /
 //! [`net::MAX_RESERVED_CORRELATION_ID`] /
-//! [`net::is_reserved_correlation_id`] / [`net::next_correlation_id`] are
-//! Java `SaslClientAuthenticator` reserved correlation ids and
-//! `NetworkClient.nextCorrelationId`.
+//! [`net::is_reserved_correlation_id`] / [`net::next_correlation_id`] /
+//! [`net::next_sasl_correlation_id`] are Java
+//! `SaslClientAuthenticator` reserved correlation ids,
+//! `NetworkClient.nextCorrelationId`, and
+//! `SaslClientAuthenticator.nextCorrelationId`.
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
 //! Kafka `max.block.ms` (how long `send` waits for metadata and

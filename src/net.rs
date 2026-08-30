@@ -52,6 +52,22 @@ pub fn next_correlation_id(correlation: &mut i32) -> i32 {
     issued
 }
 
+/// Java `SaslClientAuthenticator.nextCorrelationId`.
+///
+/// Issues ids in [`MIN_RESERVED_CORRELATION_ID`] through
+/// [`MAX_RESERVED_CORRELATION_ID`]. A field outside that range (including
+/// the start value `0` and wrap to `i32::MIN` after `i32::MAX`) jumps to
+/// [`MIN_RESERVED_CORRELATION_ID`].
+#[must_use]
+pub fn next_sasl_correlation_id(correlation: &mut i32) -> i32 {
+    if !is_reserved_correlation_id(*correlation) {
+        *correlation = MIN_RESERVED_CORRELATION_ID;
+    }
+    let issued = *correlation;
+    *correlation = correlation.wrapping_add(1);
+    issued
+}
+
 /// Grow `read_buf` once to the known frame size so a 16MiB Fetch does not
 /// memcpy through the 8KiB → 16KiB → … doubling path.
 pub(crate) fn reserve_frame(buf: &mut BytesMut, total: usize) {
@@ -406,6 +422,7 @@ pub struct BrokerConn {
     read_buf: BytesMut,
     write_buf: BytesMut,
     next_correlation: i32,
+    sasl_correlation: i32,
     client_id: String,
     addr: String,
     last_io: Instant,
@@ -498,6 +515,7 @@ impl BrokerConn {
             read_buf: BytesMut::with_capacity(8 * 1024),
             write_buf: BytesMut::with_capacity(16 * 1024),
             next_correlation: 1,
+            sasl_correlation: 0,
             client_id: client_id.to_string(),
             addr: addr.to_string(),
             last_io: Instant::now(),
@@ -526,6 +544,16 @@ impl BrokerConn {
     /// Java `NetworkClient.nextCorrelationId` ([`next_correlation_id`]).
     pub fn next_correlation(&mut self) -> i32 {
         next_correlation_id(&mut self.next_correlation)
+    }
+
+    /// Next SASL request correlation id.
+    ///
+    /// Java `SaslClientAuthenticator.nextCorrelationId`
+    /// ([`next_sasl_correlation_id`]). Handshake and authenticate use this
+    /// reserved range so a delayed SASL response cannot be parsed as a
+    /// Kafka response.
+    pub fn next_sasl_correlation(&mut self) -> i32 {
+        next_sasl_correlation_id(&mut self.sasl_correlation)
     }
 
     /// Write `bytes` or fail with [`Error::Timeout`].
@@ -600,6 +628,25 @@ impl BrokerConn {
         request_timeout: Duration,
     ) -> Result<i32> {
         let correlation = self.next_correlation();
+        self.write_request(
+            api_key,
+            api_version,
+            correlation,
+            encode_body,
+            request_timeout,
+        )
+        .await?;
+        Ok(correlation)
+    }
+
+    async fn write_request(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        correlation: i32,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        request_timeout: Duration,
+    ) -> Result<()> {
         self.write_buf.clear();
         self.write_buf.put_i32(0);
         encode_request_header_fields(
@@ -618,7 +665,7 @@ impl BrokerConn {
         slot.copy_from_slice(&size.to_be_bytes());
         let payload = self.write_buf.split();
         self.write_all_timeout(&payload, request_timeout).await?;
-        Ok(correlation)
+        Ok(())
     }
 
     /// Write a request and read its response.
@@ -634,6 +681,39 @@ impl BrokerConn {
             let correlation = self
                 .send(api_key, api_version, encode_body, request_timeout)
                 .await?;
+            self.read_response(api_key, api_version, correlation, request_timeout)
+                .await
+        }
+        .await;
+        if let Some(stats) = &self.stats {
+            stats.record(started.elapsed(), result.is_ok());
+        }
+        result
+    }
+
+    /// Write a SASL request and read its response.
+    ///
+    /// Java `SaslClientAuthenticator.nextRequestHeader`: correlation ids
+    /// come from [`next_sasl_correlation_id`], not
+    /// [`next_correlation_id`].
+    pub(crate) async fn roundtrip_sasl(
+        &mut self,
+        api_key: i16,
+        api_version: i16,
+        encode_body: impl FnOnce(&mut BytesMut) -> Result<()>,
+        request_timeout: Duration,
+    ) -> Result<Bytes> {
+        let started = Instant::now();
+        let result = async {
+            let correlation = self.next_sasl_correlation();
+            self.write_request(
+                api_key,
+                api_version,
+                correlation,
+                encode_body,
+                request_timeout,
+            )
+            .await?;
             self.read_response(api_key, api_version, correlation, request_timeout)
                 .await
         }
@@ -743,6 +823,38 @@ mod tests {
         assert_eq!(next_correlation_id(&mut wrap), i32::MAX - 8);
         assert_eq!(next_correlation_id(&mut wrap), i32::MIN);
         assert_eq!(next_correlation_id(&mut wrap), i32::MIN + 1);
+    }
+
+    #[test]
+    fn next_sasl_correlation_id_uses_reserved_range() {
+        // SaslClientAuthenticator.nextCorrelationId: field starts at 0.
+        let mut correlation = 0i32;
+        assert_eq!(
+            next_sasl_correlation_id(&mut correlation),
+            MIN_RESERVED_CORRELATION_ID
+        );
+        assert_eq!(
+            next_sasl_correlation_id(&mut correlation),
+            MIN_RESERVED_CORRELATION_ID + 1
+        );
+
+        let mut cycling = MIN_RESERVED_CORRELATION_ID;
+        let mut issued = Vec::new();
+        for _ in 0..8 {
+            issued.push(next_sasl_correlation_id(&mut cycling));
+        }
+        assert_eq!(
+            issued,
+            (MIN_RESERVED_CORRELATION_ID..=MAX_RESERVED_CORRELATION_ID).collect::<Vec<_>>()
+        );
+        assert_eq!(cycling, i32::MIN);
+        // After Integer.MAX_VALUE the field wraps to MIN_VALUE, which is
+        // not reserved, so the next id resets to MIN_RESERVED.
+        assert_eq!(
+            next_sasl_correlation_id(&mut cycling),
+            MIN_RESERVED_CORRELATION_ID
+        );
+        assert!(!is_reserved_correlation_id(i32::MIN));
     }
 
     #[test]

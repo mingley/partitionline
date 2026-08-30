@@ -2144,9 +2144,19 @@ async fn sasl_plain_then_produce() {
         "Producer must prefer SaslHandshake v1 when the broker advertises it"
     );
     assert_eq!(
+        mock.last_sasl_handshake_correlation(),
+        Some(partitionline::net::MIN_RESERVED_CORRELATION_ID),
+        "SaslHandshake uses SaslClientAuthenticator reserved correlation ids"
+    );
+    assert_eq!(
         mock.last_sasl_authenticate_version(),
         Some(2),
         "Producer must prefer SaslAuthenticate v2 when the broker advertises it"
+    );
+    assert_eq!(
+        mock.last_sasl_authenticate_correlation(),
+        Some(partitionline::net::MIN_RESERVED_CORRELATION_ID + 1),
+        "SaslAuthenticate continues the reserved range after handshake"
     );
     let md = producer
         .send(ProduceRecord::to("t").value(&b"sasl-ok"[..]))
