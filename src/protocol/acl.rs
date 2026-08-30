@@ -1240,6 +1240,24 @@ fn acl_api_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `DescribeAclsResponse.validate` / `DeleteAclsResponse.validate` /
+/// `CreateAclsRequest.validate`: v0 only supports LITERAL patterns.
+fn reject_v0_non_literal_acl_patterns<'a>(
+    version: i16,
+    acls: impl IntoIterator<Item = &'a AclBinding>,
+) -> Result<()> {
+    if version == 0
+        && acls
+            .into_iter()
+            .any(|a| a.pattern_type != ACL_PATTERN_LITERAL)
+    {
+        return Err(Error::Unsupported(
+            "Version 0 only supports literal resource pattern types".into(),
+        ));
+    }
+    Ok(())
+}
+
 /// Encode CreateAcls v0–3 (classic through v1; flexible from v2).
 ///
 /// Java `CreateAclsRequest.validate` rejects non-LITERAL pattern types
@@ -1250,11 +1268,7 @@ pub fn encode_create_acls_request(
     acls: &[AclBinding],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
-    if version == 0 && acls.iter().any(|a| a.pattern_type != ACL_PATTERN_LITERAL) {
-        return Err(Error::Unsupported(
-            "Version 0 only supports literal resource pattern types".into(),
-        ));
-    }
+    reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     buf::put_array_len(buf, flexible, Some(acls.len()))?;
     for a in acls {
         buf.put_i8(a.resource_type);
@@ -1388,12 +1402,16 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result
 }
 
 /// Encode DescribeAcls with matching bindings.
+///
+/// Java `DescribeAclsResponse.validate` rejects non-LITERAL pattern types
+/// on v0 (`UnsupportedVersionException`).
 pub fn encode_describe_acls_response(
     buf: &mut BytesMut,
     version: i16,
     acls: &[AclBinding],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     buf.put_i32(0);
     buf.put_i16(0);
     buf::put_string(buf, flexible, None)?;
@@ -1644,12 +1662,16 @@ pub fn encode_delete_acls_response(
 }
 
 /// Encode DeleteAcls FilterResults of N.
+///
+/// Java `DeleteAclsResponse.validate` rejects non-LITERAL matching ACL
+/// pattern types on v0 (`UnsupportedVersionException`).
 pub fn encode_delete_acls_filter_results(
     buf: &mut BytesMut,
     version: i16,
     results: &[DeletedAclsFilterResult],
 ) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
+    reject_v0_non_literal_acl_patterns(version, results.iter().flat_map(|r| r.matching.iter()))?;
     buf.put_i32(0);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -2141,6 +2163,30 @@ mod tests {
             "got {err}"
         );
         encode_delete_acls_request(&mut BytesMut::new(), 1, std::slice::from_ref(&match_filter))
+            .unwrap();
+
+        let err =
+            encode_describe_acls_response(&mut BytesMut::new(), 0, std::slice::from_ref(&prefixed))
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DescribeAcls response v0 PREFIXED is Java UnsupportedVersionException, got {err}"
+        );
+        encode_describe_acls_response(&mut BytesMut::new(), 1, std::slice::from_ref(&prefixed))
+            .unwrap();
+
+        let err = encode_delete_acls_response(
+            &mut BytesMut::new(),
+            0,
+            0,
+            std::slice::from_ref(&prefixed),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "DeleteAcls response v0 PREFIXED is Java UnsupportedVersionException, got {err}"
+        );
+        encode_delete_acls_response(&mut BytesMut::new(), 1, 0, std::slice::from_ref(&prefixed))
             .unwrap();
     }
 }
