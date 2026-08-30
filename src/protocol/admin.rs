@@ -4795,6 +4795,10 @@ impl fmt::Display for ScramCredentialInfo {
 /// Per-user result of DescribeUserScramCredentials v0.
 ///
 /// [`Display`] is Java `UserScramCredentialsDescription.toString`.
+/// [`Self::error`] / [`Self::error_results`] are Java
+/// `DescribeUserScramCredentialsRequest.getErrorResponse` one result /
+/// `nCopies`. Request user names are not copied (`User` stays the JSON
+/// default, empty).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResult {
     /// SCRAM user name.
@@ -4808,6 +4812,29 @@ pub struct DescribeUserScramCredentialsResult {
 }
 
 impl DescribeUserScramCredentialsResult {
+    /// Java `DescribeUserScramCredentialsRequest.getErrorResponse` one result.
+    ///
+    /// Sets `ErrorCode`. `User` stays the JSON default (empty);
+    /// `CredentialInfos` stays empty; `ErrorMessage` is the JSON default
+    /// (null). Official Java also sets the English `Errors.message`
+    /// string. Request user names are not copied.
+    #[must_use]
+    pub fn error(error_code: i16) -> Self {
+        Self {
+            user: String::new(),
+            error_code,
+            error_message: None,
+            credential_infos: Vec::new(),
+        }
+    }
+
+    /// Java `DescribeUserScramCredentialsRequest.getErrorResponse` Results
+    /// (`nCopies` of [`Self::error`]; request names are not copied).
+    #[must_use]
+    pub fn error_results(n: usize, error_code: i16) -> Vec<Self> {
+        vec![Self::error(error_code); n]
+    }
+
     /// Java `UserScramCredentialsDescription.name`.
     #[must_use]
     pub fn user(&self) -> &str {
@@ -4856,6 +4883,8 @@ impl fmt::Display for DescribeUserScramCredentialsResult {
 /// Measured: **41 is the top-level ErrorCode at bytes 4–5**, after
 /// throttle. Not a first-result field (AlterUserScramCredentials puts
 /// 41 after compact User at bytes 11–12). Fixture users only.
+/// [`Self::error`] is Java
+/// `DescribeUserScramCredentialsRequest.getErrorResponse`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeUserScramCredentialsResponse {
     /// Kafka error code (`0` is success).
@@ -4864,6 +4893,44 @@ pub struct DescribeUserScramCredentialsResponse {
     pub error_message: Option<String>,
     /// Per-item results.
     pub results: Vec<DescribeUserScramCredentialsResult>,
+}
+
+impl DescribeUserScramCredentialsResponse {
+    /// Java `DescribeUserScramCredentialsRequest.getErrorResponse`.
+    ///
+    /// Sets top-level `ErrorCode` and `nCopies` of
+    /// [`DescribeUserScramCredentialsResult::error`]. Request user names
+    /// are not copied (`User` stays empty). `ErrorMessage` is the JSON
+    /// default (null); official Java also sets the English
+    /// `Errors.message` string. Throttle is the JSON default (`0`).
+    /// Java NPEs when request `Users` is null; pass `n = 0` for empty
+    /// Users.
+    #[must_use]
+    pub fn error(error_code: i16, n: usize) -> Self {
+        Self {
+            error_code,
+            error_message: None,
+            results: DescribeUserScramCredentialsResult::error_results(n, error_code),
+        }
+    }
+
+    /// Kafka error code (`0` is success).
+    #[must_use]
+    pub fn error_code(&self) -> i16 {
+        self.error_code
+    }
+
+    /// Broker error message, when present.
+    #[must_use]
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    /// Per-user results.
+    #[must_use]
+    pub fn results(&self) -> &[DescribeUserScramCredentialsResult] {
+        &self.results
+    }
 }
 
 /// Encode a DescribeUserScramCredentials request.
@@ -18592,6 +18659,63 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "DescribeUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_user_scram_credentials_get_error_response_does_not_copy_names() {
+        let users = ["alice", "bob"];
+        let err = DescribeUserScramCredentialsResponse::error(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            users.len(),
+        );
+        assert_eq!(err.error_code(), crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert!(err.error_message().is_none());
+        assert_eq!(err.results().len(), 2);
+        let first = err.results().first().expect("first result");
+        assert_eq!(first.user(), "");
+        assert_ne!(first.user(), "alice", "getErrorResponse must not copy User");
+        assert_eq!(
+            first.error_code(),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED
+        );
+        assert!(first.error_message().is_none());
+        assert!(first.credential_infos().is_empty());
+        assert_eq!(
+            err.results(),
+            DescribeUserScramCredentialsResult::error_results(
+                2,
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            )
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_user_scram_credentials_response(&mut buf, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_user_scram_credentials_response(&mut cur).unwrap(),
+            err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let empty = DescribeUserScramCredentialsResponse::error(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            0,
+        );
+        assert!(empty.results().is_empty());
+        buf.clear();
+        encode_describe_user_scram_credentials_response(&mut buf, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_describe_user_scram_credentials_response(&mut cur).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DescribeUserScramCredentials n=0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 

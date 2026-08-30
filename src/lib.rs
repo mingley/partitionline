@@ -462,7 +462,16 @@
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on
-//! [`DescribeUserScramCredentialsResult`]). [`ScramMechanism::id`] is Java
+//! [`DescribeUserScramCredentialsResult`]).
+//! [`DescribeUserScramCredentialsResult::error`] /
+//! [`DescribeUserScramCredentialsResult::error_results`] /
+//! [`protocol::admin::DescribeUserScramCredentialsResponse::error`] are Java
+//! `DescribeUserScramCredentialsRequest.getErrorResponse` (one result /
+//! `nCopies` / top-level plus Results). Request user names are not
+//! copied (`User` stays the JSON default, empty). `ErrorMessage` stays
+//! the JSON default (null); official Java also sets the English
+//! `Errors.message` string. Throttle is the JSON default (`0`).
+//! [`ScramMechanism::id`] is Java
 //! `ScramMechanism.type`. [`ActiveProducer`] `Display`
 //! is Java `ProducerState.toString`. [`DescribeProducersPartition`]
 //! `Display` is Java `PartitionProducerState.toString`.
