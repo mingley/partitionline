@@ -4977,7 +4977,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
-                                preferred_read_replica: -1,
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
                                 diverging_epoch: epoch,
@@ -4996,7 +4997,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
-                                preferred_read_replica: -1,
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
                                 current_leader_id,
                                 current_leader_epoch,
                                 diverging_epoch: -1,
@@ -5040,7 +5042,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
-                                preferred_read_replica: -1,
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
                                 diverging_epoch: -1,
@@ -5057,7 +5060,8 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                 last_stable_offset: 0,
                                 log_start_offset: 0,
                                 aborted_transactions: Vec::new(),
-                                preferred_read_replica: -1,
+                                preferred_read_replica:
+                                    FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
                                 current_leader_id: -1,
                                 current_leader_epoch: -1,
                                 diverging_epoch: -1,
@@ -5134,7 +5138,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                             last_stable_offset: lso,
                             log_start_offset: log_start,
                             aborted_transactions,
-                            preferred_read_replica: -1,
+                            preferred_read_replica: FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
                             current_leader_id: -1,
                             current_leader_epoch: -1,
                             diverging_epoch: -1,

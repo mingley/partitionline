@@ -147,7 +147,11 @@
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_PREFERRED_REPLICA_ID`] are Java
-//! `FetchResponse` sentinels (`-1`). [`protocol::fetch::CONSUMER_REPLICA_ID`] is Java
+//! `FetchResponse` sentinels (`-1`).
+//! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
+//! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java
+//! `FetchResponse.isPreferredReplica` / `isDivergingEpoch`.
+//! [`protocol::fetch::CONSUMER_REPLICA_ID`] is Java
 //! `FetchRequest.CONSUMER_REPLICA_ID` (written through v14).
 //! [`protocol::offsets::CONSUMER_REPLICA_ID`] /
 //! [`protocol::epoch::CONSUMER_REPLICA_ID`] are Java `ListOffsetsRequest` /

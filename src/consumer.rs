@@ -2388,7 +2388,7 @@ impl Consumer {
                 continue;
             };
             for part in topic.partitions {
-                if part.preferred_read_replica >= 0
+                if part.is_preferred_replica()
                     && self.cfg.rack.is_some()
                     && part.preferred_read_replica != node
                 {
@@ -2431,7 +2431,7 @@ impl Consumer {
                     }
                     return Err(e);
                 }
-                if part.diverging_epoch >= 0 && part.diverging_end_offset >= 0 {
+                if part.is_diverging_epoch() && part.diverging_end_offset >= 0 {
                     self.advance(&name, part.partition, part.diverging_end_offset);
                     self.set_last_fetched_epoch(&name, part.partition, part.diverging_epoch);
                     self.drop_pending_for(&name, part.partition);

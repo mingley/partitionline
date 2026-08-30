@@ -184,6 +184,8 @@ pub struct FetchTopic {
 /// [`Self::INVALID_HIGH_WATERMARK`] / [`Self::INVALID_LAST_STABLE_OFFSET`] /
 /// [`Self::INVALID_LOG_START_OFFSET`] / [`Self::INVALID_PREFERRED_REPLICA_ID`]
 /// are Java `FetchResponse` sentinels (`-1`).
+/// [`Self::is_preferred_replica`] / [`Self::is_diverging_epoch`] are Java
+/// `FetchResponse.isPreferredReplica` / `isDivergingEpoch`.
 #[derive(Debug, Clone)]
 pub struct FetchedPartition {
     /// Partition index.
@@ -221,6 +223,18 @@ impl FetchedPartition {
     pub const INVALID_LOG_START_OFFSET: i64 = -1;
     /// Java `FetchResponse.INVALID_PREFERRED_REPLICA_ID`.
     pub const INVALID_PREFERRED_REPLICA_ID: i32 = -1;
+
+    /// Java `FetchResponse.isPreferredReplica`.
+    #[must_use]
+    pub fn is_preferred_replica(&self) -> bool {
+        self.preferred_read_replica != Self::INVALID_PREFERRED_REPLICA_ID
+    }
+
+    /// Java `FetchResponse.isDivergingEpoch`.
+    #[must_use]
+    pub fn is_diverging_epoch(&self) -> bool {
+        self.diverging_epoch >= 0
+    }
 }
 
 /// One topic in a Fetch response.
@@ -677,6 +691,27 @@ mod tests {
         assert_eq!(FetchedPartition::INVALID_LAST_STABLE_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_LOG_START_OFFSET, -1);
         assert_eq!(FetchedPartition::INVALID_PREFERRED_REPLICA_ID, -1);
+        let none = FetchedPartition {
+            partition: 0,
+            error_code: 0,
+            high_watermark: FetchedPartition::INVALID_HIGH_WATERMARK,
+            last_stable_offset: FetchedPartition::INVALID_LAST_STABLE_OFFSET,
+            log_start_offset: FetchedPartition::INVALID_LOG_START_OFFSET,
+            aborted_transactions: Vec::new(),
+            preferred_read_replica: FetchedPartition::INVALID_PREFERRED_REPLICA_ID,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+            diverging_epoch: -1,
+            diverging_end_offset: -1,
+            records: Vec::new(),
+        };
+        assert!(!none.is_preferred_replica());
+        assert!(!none.is_diverging_epoch());
+        let mut pref = none.clone();
+        pref.preferred_read_replica = 2;
+        assert!(pref.is_preferred_replica());
+        pref.diverging_epoch = 3;
+        assert!(pref.is_diverging_epoch());
     }
 
     #[test]
