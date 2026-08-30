@@ -122,8 +122,12 @@
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N),
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994),
-//! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId),
-//! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`),
+//! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
+//! [`protocol::admin::CreateTopicsResponse::should_client_throttle`] is Java
+//! `CreateTopicsResponse.shouldClientThrottle` (v3+)),
+//! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
+//! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
+//! `DeleteTopicsResponse.shouldClientThrottle` (v2+)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
@@ -147,12 +151,16 @@
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester),
 //! DescribeConfigs v0–v4 (v1 synonyms; v3 IncludeDocumentation / ConfigType; v4 flexible),
-//! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599),
+//! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
+//! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
+//! `CreatePartitionsResponse.shouldClientThrottle` (v1+)),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
-//! [`DeletedRecords::INVALID_LOW_WATERMARK`]),
+//! [`DeletedRecords::INVALID_LOW_WATERMARK`];
+//! [`protocol::admin::DeleteRecordsResponse::should_client_throttle`] is Java
+//! `DeleteRecordsResponse.shouldClientThrottle` (v1+)),
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
 //! AddPartitionsToTxn v0–v3 (v3 flexible;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java

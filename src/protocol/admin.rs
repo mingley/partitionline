@@ -931,6 +931,17 @@ fn create_topics_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `CreateTopicsResponse` helpers.
+pub struct CreateTopicsResponse;
+
+impl CreateTopicsResponse {
+    /// Java `CreateTopicsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 3
+    }
+}
+
 /// CreateTopics v0–7 (classic through v4; flexible from v5).
 ///
 /// Java `CreateTopicsRequest.Builder.build` rejects `validateOnly` on v0
@@ -1182,6 +1193,17 @@ fn delete_topics_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "DeleteTopics version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `DeleteTopicsResponse` helpers.
+pub struct DeleteTopicsResponse;
+
+impl DeleteTopicsResponse {
+    /// Java `DeleteTopicsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
     }
 }
 
@@ -1705,6 +1727,17 @@ fn create_partitions_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "CreatePartitions version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `CreatePartitionsResponse` helpers.
+pub struct CreatePartitionsResponse;
+
+impl CreatePartitionsResponse {
+    /// Java `CreatePartitionsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 }
 
@@ -2447,6 +2480,17 @@ pub struct DeleteRecordsRequest;
 impl DeleteRecordsRequest {
     /// Java `DeleteRecordsRequest.HIGH_WATERMARK`.
     pub const HIGH_WATERMARK: i64 = -1;
+}
+
+/// Java `DeleteRecordsResponse` helpers.
+pub struct DeleteRecordsResponse;
+
+impl DeleteRecordsResponse {
+    /// Java `DeleteRecordsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
 }
 
 /// One partition in a DeleteRecords request (v0–2).
@@ -12749,12 +12793,16 @@ mod tests {
             omitted.replication_factor(),
             CreateTopicsRequest::NO_REPLICATION_FACTOR
         );
+        assert!(!CreateTopicsResponse::should_client_throttle(2));
+        assert!(CreateTopicsResponse::should_client_throttle(3));
     }
 
     #[test]
     fn delete_records_sentinels_match_java() {
         assert_eq!(DeleteRecordsRequest::HIGH_WATERMARK, -1);
         assert_eq!(DeletedRecordsPartition::INVALID_LOW_WATERMARK, -1);
+        assert!(!DeleteRecordsResponse::should_client_throttle(0));
+        assert!(DeleteRecordsResponse::should_client_throttle(1));
         let mut buf = BytesMut::new();
         encode_delete_records_request(
             &mut buf,
@@ -13302,6 +13350,8 @@ mod tests {
             crate::error::NOT_CONTROLLER,
             Some("Not controller".into()),
         )];
+        assert!(!DeleteTopicsResponse::should_client_throttle(1));
+        assert!(DeleteTopicsResponse::should_client_throttle(2));
         for version in [4i16, 5, 6] {
             let mut buf = BytesMut::new();
             encode_delete_topics_response(&mut buf, version, &results).unwrap();
@@ -13471,6 +13521,8 @@ mod tests {
             crate::error::NOT_CONTROLLER,
             Some("Not controller".into()),
         )];
+        assert!(!CreatePartitionsResponse::should_client_throttle(0));
+        assert!(CreatePartitionsResponse::should_client_throttle(1));
         for version in [2i16, 3] {
             let mut buf = BytesMut::new();
             encode_create_partitions_response(&mut buf, version, &results).unwrap();
