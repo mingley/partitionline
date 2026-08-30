@@ -56,6 +56,9 @@
 //! Protocols of N via [`ConsumerGroup::join_with_assignors`];
 //! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java
 //! `ConsumerProtocol.PROTOCOL_TYPE`;
+//! [`protocol::group::ConsumerProtocol::serialize_subscription`] is Java
+//! `ConsumerProtocol.serializeSubscription` (v3 `GenerationId` / `RackId`;
+//! [`protocol::group::ConsumerProtocolSubscription::DEFAULT_GENERATION`]);
 //! [`protocol::group::JoinGroupResponse::is_leader`] is Java
 //! `JoinGroupResponse.isLeader`).
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;

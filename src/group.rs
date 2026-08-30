@@ -29,11 +29,11 @@ use crate::protocol::group::{
     decode_offset_fetch_response, decode_subscription_owned, decode_sync_group_response,
     encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
-    encode_offset_commit_request, encode_offset_fetch_request, encode_subscription,
-    encode_subscription_owned, encode_sync_group_request, encode_tp_assignment, ConsumerProtocol,
-    FetchedOffsetTopic, JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest,
-    JoinGroupResponse, LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic,
-    SyncGroupRequest, COORDINATOR_GROUP,
+    encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
+    encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
+    JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
+    LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest,
+    COORDINATOR_GROUP,
 };
 use crate::protocol::sasl;
 
@@ -583,7 +583,7 @@ impl ConsumerGroup {
             cfg: cfg.clone(),
             group_id,
             member_id: String::new(),
-            generation_id: 0,
+            generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
             topics,
             topic_match,
             last_match_refresh: Instant::now(),
@@ -1727,14 +1727,15 @@ impl ConsumerGroup {
         } else {
             self.assignors.clone()
         };
+        let metadata = ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription {
+            topics: self.topics.clone(),
+            owned_partitions: owned,
+            generation_id: self.generation_id,
+            rack_id: self.cfg.rack.clone(),
+        })?;
         let mut out = Vec::with_capacity(names.len());
         for name in names {
-            let metadata = if name == "range" {
-                encode_subscription(&self.topics)?
-            } else {
-                encode_subscription_owned(&self.topics, &owned)?
-            };
-            out.push((name, metadata));
+            out.push((name, metadata.clone()));
         }
         Ok(out)
     }

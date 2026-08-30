@@ -77,6 +77,195 @@ pub struct ConsumerProtocol;
 impl ConsumerProtocol {
     /// Java `ConsumerProtocol.PROTOCOL_TYPE`.
     pub const PROTOCOL_TYPE: &'static str = "consumer";
+    /// Java `ConsumerProtocolSubscription.LOWEST_SUPPORTED_VERSION` /
+    /// `ConsumerProtocolAssignment.LOWEST_SUPPORTED_VERSION`.
+    pub const LOWEST_SUPPORTED_VERSION: i16 = 0;
+    /// Java `ConsumerProtocolSubscription.HIGHEST_SUPPORTED_VERSION` /
+    /// `ConsumerProtocolAssignment.HIGHEST_SUPPORTED_VERSION` (`0-3`).
+    pub const HIGHEST_SUPPORTED_VERSION: i16 = 3;
+
+    /// Java `ConsumerProtocol.deserializeVersion`.
+    pub fn deserialize_version(bytes: &[u8]) -> Result<i16> {
+        let mut bytes = bytes;
+        buf::get_i16(&mut bytes)
+    }
+
+    /// Java `ConsumerProtocol.serializeSubscription` at
+    /// [`Self::HIGHEST_SUPPORTED_VERSION`].
+    pub fn serialize_subscription(subscription: &ConsumerProtocolSubscription) -> Result<Vec<u8>> {
+        Self::serialize_subscription_version(subscription, Self::HIGHEST_SUPPORTED_VERSION)
+    }
+
+    /// Java `ConsumerProtocol.serializeSubscription` at `version`.
+    ///
+    /// Versions above [`Self::HIGHEST_SUPPORTED_VERSION`] encode as that
+    /// cap (Java `checkSubscriptionVersion`). Topics are sorted. Owned
+    /// partitions are sorted by topic then partition.
+    pub fn serialize_subscription_version(
+        subscription: &ConsumerProtocolSubscription,
+        version: i16,
+    ) -> Result<Vec<u8>> {
+        let version = check_consumer_protocol_version(version)?;
+        let mut topics = subscription.topics.clone();
+        topics.sort();
+        let mut buf = BytesMut::new();
+        buf.put_i16(version);
+        buf::put_array_len(&mut buf, false, Some(topics.len()))?;
+        for t in &topics {
+            buf::put_classic_nullable_string(&mut buf, Some(t))?;
+        }
+        buf::put_classic_bytes(&mut buf, None)?;
+        if version >= 1 {
+            let by_topic = group_sorted_owned_partitions(&subscription.owned_partitions);
+            buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
+            for (topic, parts) in &by_topic {
+                buf::put_classic_nullable_string(&mut buf, Some(topic))?;
+                buf::put_array_len(&mut buf, false, Some(parts.len()))?;
+                for p in parts {
+                    buf.put_i32(*p);
+                }
+            }
+        }
+        if version >= 2 {
+            buf.put_i32(subscription.generation_id);
+        }
+        if version >= 3 {
+            let rack = subscription.rack_id.as_deref().filter(|s| !s.is_empty());
+            buf::put_classic_nullable_string(&mut buf, rack)?;
+        }
+        Ok(buf.to_vec())
+    }
+
+    /// Java `ConsumerProtocol.deserializeSubscription`.
+    ///
+    /// Empty bytes are an empty subscription. Versions above
+    /// [`Self::HIGHEST_SUPPORTED_VERSION`] parse with that schema. v2+
+    /// omitted `GenerationId` is [`ConsumerProtocolSubscription::DEFAULT_GENERATION`].
+    /// Null or empty `RackId` is `None`.
+    pub fn deserialize_subscription(bytes: &[u8]) -> Result<ConsumerProtocolSubscription> {
+        if bytes.is_empty() {
+            return Ok(ConsumerProtocolSubscription::default());
+        }
+        let mut bytes = bytes;
+        let raw = buf::get_i16(&mut bytes)?;
+        let ver = check_consumer_protocol_version(raw)?;
+        let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+        let mut topics = Vec::with_capacity(n);
+        for _ in 0..n {
+            topics.push(buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default());
+        }
+        let mut owned = Vec::new();
+        let mut generation_id = ConsumerProtocolSubscription::DEFAULT_GENERATION;
+        let mut rack_id = None;
+        if bytes.is_empty() {
+            return Ok(ConsumerProtocolSubscription {
+                topics,
+                owned_partitions: owned,
+                generation_id,
+                rack_id,
+            });
+        }
+        let _user = buf::get_classic_bytes(&mut bytes)?;
+        if ver >= 1 && !bytes.is_empty() {
+            let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+            for _ in 0..tn {
+                let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
+                let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
+                for _ in 0..pn {
+                    owned.push((topic.clone(), buf::get_i32(&mut bytes)?));
+                }
+            }
+        }
+        if ver >= 2 && !bytes.is_empty() {
+            generation_id = buf::get_i32(&mut bytes)?;
+        }
+        if ver >= 3 && !bytes.is_empty() {
+            let rack = buf::get_classic_nullable_string(&mut bytes)?;
+            rack_id = rack.filter(|s| !s.is_empty());
+        }
+        Ok(ConsumerProtocolSubscription {
+            topics,
+            owned_partitions: owned,
+            generation_id,
+            rack_id,
+        })
+    }
+}
+
+/// Java `ConsumerPartitionAssignor.Subscription` /
+/// `ConsumerProtocolSubscription` (classic JoinGroup member metadata).
+///
+/// [`ConsumerProtocol::serialize_subscription`] is Java
+/// `ConsumerProtocol.serializeSubscription`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConsumerProtocolSubscription {
+    /// Subscribed topic names (Java `Subscription.topics`).
+    pub topics: Vec<String>,
+    /// Currently owned topic-partitions (Java `Subscription.ownedPartitions`;
+    /// v1+).
+    pub owned_partitions: Vec<(String, i32)>,
+    /// Member generation (Java `Subscription.generationId`; v2+).
+    /// [`Self::DEFAULT_GENERATION`] when unknown.
+    pub generation_id: i32,
+    /// `client.rack` (Java `Subscription.rackId`; v3+).
+    pub rack_id: Option<String>,
+}
+
+impl ConsumerProtocolSubscription {
+    /// Java `AbstractStickyAssignor.DEFAULT_GENERATION` (`Subscription`
+    /// `generationId` when unknown).
+    pub const DEFAULT_GENERATION: i32 = -1;
+
+    /// Java `Subscription(List)` (no owned partitions, default generation,
+    /// no rack).
+    #[must_use]
+    pub fn new(topics: Vec<String>) -> Self {
+        Self {
+            topics,
+            owned_partitions: Vec::new(),
+            generation_id: Self::DEFAULT_GENERATION,
+            rack_id: None,
+        }
+    }
+}
+
+impl Default for ConsumerProtocolSubscription {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+/// Cap `version` to [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`].
+///
+/// Java `ConsumerProtocol.checkSubscriptionVersion` /
+/// `checkAssignmentVersion`: below lowest is an error; above highest
+/// uses the highest schema.
+fn check_consumer_protocol_version(version: i16) -> Result<i16> {
+    if version < ConsumerProtocol::LOWEST_SUPPORTED_VERSION {
+        return Err(Error::protocol(format!(
+            "Unsupported consumer protocol version: {version}"
+        )));
+    }
+    if version > ConsumerProtocol::HIGHEST_SUPPORTED_VERSION {
+        Ok(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION)
+    } else {
+        Ok(version)
+    }
+}
+
+/// Group owned partitions by topic after sorting by topic then partition
+/// (Java `ConsumerProtocol.serializeSubscription`).
+fn group_sorted_owned_partitions(owned: &[(String, i32)]) -> Vec<(String, Vec<i32>)> {
+    let mut sorted = owned.to_vec();
+    sorted.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
+    for (topic, part) in sorted {
+        match by_topic.last_mut() {
+            Some((t, ps)) if *t == topic => ps.push(part),
+            _ => by_topic.push((topic, vec![part])),
+        }
+    }
+    by_topic
 }
 
 /// `true` when FindCoordinator `version` is flexible (v3+).
@@ -2088,95 +2277,53 @@ pub fn decode_offset_delete_response<B: Buf>(
     Ok((error_code, out))
 }
 
-/// ConsumerProtocol subscription v0 (topics only).
+/// ConsumerProtocol subscription at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
+/// (Java `serializeSubscription`; topics only, default generation, no rack).
 pub fn encode_subscription(topics: &[String]) -> Result<Vec<u8>> {
-    let mut buf = BytesMut::new();
-    buf.put_i16(0);
-    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
-    for t in topics {
-        buf::put_classic_nullable_string(&mut buf, Some(t))?;
-    }
-    buf.put_i32(-1);
-    Ok(buf.to_vec())
+    ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription::new(topics.to_vec()))
 }
 
-/// ConsumerProtocol subscription v1: topics plus currently owned partitions
-/// (KIP-429 cooperative / sticky).
+/// ConsumerProtocol subscription with owned partitions (KIP-429).
+///
+/// Encodes at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`] with
+/// [`ConsumerProtocolSubscription::DEFAULT_GENERATION`] and no rack.
 pub fn encode_subscription_owned(topics: &[String], owned: &[(String, i32)]) -> Result<Vec<u8>> {
-    let mut buf = BytesMut::new();
-    buf.put_i16(1);
-    buf::put_array_len(&mut buf, false, Some(topics.len()))?;
-    for t in topics {
-        buf::put_classic_nullable_string(&mut buf, Some(t))?;
-    }
-    buf::put_classic_bytes(&mut buf, None)?;
-    let mut by_topic: Vec<(String, Vec<i32>)> = Vec::new();
-    for (topic, part) in owned {
-        match by_topic.iter_mut().find(|(t, _)| t == topic) {
-            Some((_, ps)) => ps.push(*part),
-            None => by_topic.push((topic.clone(), vec![*part])),
-        }
-    }
-    buf::put_array_len(&mut buf, false, Some(by_topic.len()))?;
-    for (topic, parts) in &by_topic {
-        buf::put_classic_nullable_string(&mut buf, Some(topic))?;
-        buf::put_array_len(&mut buf, false, Some(parts.len()))?;
-        for p in parts {
-            buf.put_i32(*p);
-        }
-    }
-    Ok(buf.to_vec())
+    ConsumerProtocol::serialize_subscription(&ConsumerProtocolSubscription {
+        topics: topics.to_vec(),
+        owned_partitions: owned.to_vec(),
+        generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
+        rack_id: None,
+    })
 }
 
-/// Decode ConsumerProtocol subscription topics (v0 or v1, owned partitions ignored).
+/// Decode ConsumerProtocol subscription topics (v0–v3, owned partitions ignored).
 pub fn decode_subscription(bytes: &[u8]) -> Result<Vec<String>> {
     Ok(decode_subscription_owned(bytes)?.0)
 }
 
 /// Topics plus owned `(topic, partition)` pairs from ConsumerProtocol subscription metadata.
 ///
-/// v0 metadata yields an empty owned list.
+/// v0 metadata yields an empty owned list. Generation and rack are
+/// available on [`ConsumerProtocol::deserialize_subscription`].
 #[expect(
     clippy::type_complexity,
     reason = "subscription is topics plus owned topic-partitions"
 )]
-pub fn decode_subscription_owned(mut bytes: &[u8]) -> Result<(Vec<String>, Vec<(String, i32)>)> {
-    if bytes.is_empty() {
-        return Ok((Vec::new(), Vec::new()));
-    }
-    let ver = buf::get_i16(&mut bytes)?;
-    let n = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-    let mut topics = Vec::with_capacity(n);
-    for _ in 0..n {
-        topics.push(buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default());
-    }
-    let mut owned = Vec::new();
-    if bytes.is_empty() {
-        return Ok((topics, owned));
-    }
-    let _user = buf::get_classic_bytes(&mut bytes)?;
-    if ver >= 1 && !bytes.is_empty() {
-        let tn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-        for _ in 0..tn {
-            let topic = buf::get_classic_nullable_string(&mut bytes)?.unwrap_or_default();
-            let pn = buf::get_array_len(&mut bytes, false)?.unwrap_or(0);
-            for _ in 0..pn {
-                owned.push((topic.clone(), buf::get_i32(&mut bytes)?));
-            }
-        }
-    }
-    Ok((topics, owned))
+pub fn decode_subscription_owned(bytes: &[u8]) -> Result<(Vec<String>, Vec<(String, i32)>)> {
+    let sub = ConsumerProtocol::deserialize_subscription(bytes)?;
+    Ok((sub.topics, sub.owned_partitions))
 }
 
-/// ConsumerProtocol assignment v0 for one topic.
+/// ConsumerProtocol assignment at [`ConsumerProtocol::HIGHEST_SUPPORTED_VERSION`]
+/// (Java `serializeAssignment`; same fields as v0).
 pub fn encode_assignment(topic: &str, partitions: &[i32]) -> Result<Vec<u8>> {
     encode_owned_assignment(&[(topic.to_string(), partitions.to_vec())])
 }
 
-/// ConsumerProtocol assignment v0 for one member, several topics.
+/// ConsumerProtocol assignment for one member, several topics.
 pub fn encode_owned_assignment(topics: &[(String, Vec<i32>)]) -> Result<Vec<u8>> {
     let mut buf = BytesMut::new();
-    buf.put_i16(0);
+    buf.put_i16(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION);
     buf::put_array_len(&mut buf, false, Some(topics.len()))?;
     for (topic, partitions) in topics {
         buf::put_classic_nullable_string(&mut buf, Some(topic))?;
@@ -2254,6 +2401,13 @@ mod tests {
     #[test]
     fn consumer_protocol_type_matches_java() {
         assert_eq!(ConsumerProtocol::PROTOCOL_TYPE, "consumer");
+        assert_eq!(ConsumerProtocol::LOWEST_SUPPORTED_VERSION, 0);
+        assert_eq!(ConsumerProtocol::HIGHEST_SUPPORTED_VERSION, 3);
+        assert_eq!(ConsumerProtocolSubscription::DEFAULT_GENERATION, -1);
+        assert_eq!(
+            ConsumerProtocolSubscription::DEFAULT_GENERATION,
+            JoinGroupRequest::UNKNOWN_GENERATION_ID
+        );
     }
 
     #[test]
@@ -2574,7 +2728,19 @@ mod tests {
     #[test]
     fn subscription_assignment_roundtrip() {
         let sub = encode_subscription(&["t".into()]).unwrap();
+        assert_eq!(
+            ConsumerProtocol::deserialize_version(&sub).unwrap(),
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
+        );
         assert_eq!(decode_subscription(&sub).unwrap(), vec!["t".to_string()]);
+        let decoded = ConsumerProtocol::deserialize_subscription(&sub).unwrap();
+        assert_eq!(decoded.topics, vec!["t".to_string()]);
+        assert!(decoded.owned_partitions.is_empty());
+        assert_eq!(
+            decoded.generation_id,
+            ConsumerProtocolSubscription::DEFAULT_GENERATION
+        );
+        assert_eq!(decoded.rack_id, None);
         let owned = encode_subscription_owned(
             &["t".into(), "u".into()],
             &[("t".into(), 0), ("u".into(), 1), ("t".into(), 2)],
@@ -2585,6 +2751,10 @@ mod tests {
         assert_eq!(tps, vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]);
         assert_eq!(decode_subscription(&owned).unwrap(), topics);
         let asg = encode_assignment("t", &[0, 1]).unwrap();
+        assert_eq!(
+            ConsumerProtocol::deserialize_version(&asg).unwrap(),
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
+        );
         let decoded = decode_assignment(&asg).unwrap();
         assert_eq!(decoded[0].0, "t");
         assert_eq!(decoded[0].1, vec![0, 1]);
@@ -2594,6 +2764,69 @@ mod tests {
         assert_eq!(decoded.len(), 2);
         assert_eq!(decoded[0], ("a".into(), vec![0, 2]));
         assert_eq!(decoded[1], ("b".into(), vec![1]));
+    }
+
+    #[test]
+    fn consumer_protocol_subscription_v3_matches_java_serialize() {
+        let sub = ConsumerProtocolSubscription {
+            topics: vec!["u".into(), "t".into()],
+            owned_partitions: vec![("u".into(), 1), ("t".into(), 2), ("t".into(), 0)],
+            generation_id: 7,
+            rack_id: Some("az1".into()),
+        };
+        let bytes = ConsumerProtocol::serialize_subscription(&sub).unwrap();
+        assert_eq!(ConsumerProtocol::deserialize_version(&bytes).unwrap(), 3);
+        let got = ConsumerProtocol::deserialize_subscription(&bytes).unwrap();
+        assert_eq!(got.topics, vec!["t".to_string(), "u".to_string()]);
+        assert_eq!(
+            got.owned_partitions,
+            vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]
+        );
+        assert_eq!(got.generation_id, 7);
+        assert_eq!(got.rack_id.as_deref(), Some("az1"));
+
+        let v1 = ConsumerProtocol::serialize_subscription_version(&sub, 1).unwrap();
+        assert_eq!(ConsumerProtocol::deserialize_version(&v1).unwrap(), 1);
+        let v1_got = ConsumerProtocol::deserialize_subscription(&v1).unwrap();
+        assert_eq!(
+            v1_got.generation_id,
+            ConsumerProtocolSubscription::DEFAULT_GENERATION
+        );
+        assert_eq!(v1_got.rack_id, None);
+        assert_eq!(
+            v1_got.owned_partitions,
+            vec![("t".into(), 0), ("t".into(), 2), ("u".into(), 1)]
+        );
+
+        let v0 = ConsumerProtocol::serialize_subscription_version(
+            &ConsumerProtocolSubscription::new(vec!["t".into()]),
+            0,
+        )
+        .unwrap();
+        assert_eq!(ConsumerProtocol::deserialize_version(&v0).unwrap(), 0);
+        let v0_got = ConsumerProtocol::deserialize_subscription(&v0).unwrap();
+        assert!(v0_got.owned_partitions.is_empty());
+        assert_eq!(
+            v0_got.generation_id,
+            ConsumerProtocolSubscription::DEFAULT_GENERATION
+        );
+
+        let empty_rack = ConsumerProtocolSubscription {
+            topics: vec!["t".into()],
+            owned_partitions: Vec::new(),
+            generation_id: ConsumerProtocolSubscription::DEFAULT_GENERATION,
+            rack_id: Some(String::new()),
+        };
+        let empty_bytes = ConsumerProtocol::serialize_subscription(&empty_rack).unwrap();
+        let empty_got = ConsumerProtocol::deserialize_subscription(&empty_bytes).unwrap();
+        assert_eq!(empty_got.rack_id, None);
+
+        let capped = ConsumerProtocol::serialize_subscription_version(&sub, 9).unwrap();
+        assert_eq!(
+            ConsumerProtocol::deserialize_version(&capped).unwrap(),
+            ConsumerProtocol::HIGHEST_SUPPORTED_VERSION
+        );
+        assert!(ConsumerProtocol::serialize_subscription_version(&sub, -1).is_err());
     }
 
     #[test]
