@@ -784,6 +784,10 @@ impl PartitionMetadata {
 }
 
 /// One topic in a Metadata response.
+///
+/// [`Self::error`] is Java `MetadataRequest.getErrorResponse` one topic
+/// (empty Name when the request Name is null, `isInternal` false, empty
+/// partitions, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicMetadata {
     /// Kafka error code (`0` is success).
@@ -799,6 +803,26 @@ pub struct TopicMetadata {
     /// Topic authorized operations (v8+).
     /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] when omitted.
     pub topic_authorized_operations: i32,
+}
+
+impl TopicMetadata {
+    /// Java `MetadataRequest.getErrorResponse` one topic.
+    ///
+    /// Name is empty when the request Name is null (Java: the response does
+    /// not allow null). `isInternal` is false, partitions are empty, and
+    /// `topicAuthorizedOperations` is the JSON default
+    /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn error(error_code: i16, name: Option<&str>, topic_id: [u8; 16]) -> Self {
+        Self {
+            error_code,
+            name: Some(name.map(str::to_owned).unwrap_or_default()),
+            topic_id,
+            is_internal: false,
+            partitions: Vec::new(),
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
 }
 
 /// Metadata response body.
@@ -861,6 +885,8 @@ impl MetadataResponse {
 /// [`Self::convert_from_names`] / [`Self::convert_from_ids`] are Java
 /// `MetadataRequest.convertToMetadataRequestTopic` /
 /// `convertTopicIdsToMetadataRequestTopic`.
+/// [`Self::error_result`] is Java `MetadataRequest.getErrorResponse` one
+/// topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetadataRequestTopic {
     /// Topic name, or `None` when describing by TopicId.
@@ -904,6 +930,15 @@ impl MetadataRequestTopic {
     #[must_use]
     pub fn convert_from_ids(ids: impl IntoIterator<Item = [u8; 16]>) -> Vec<Self> {
         ids.into_iter().map(Self::by_id).collect()
+    }
+
+    /// Java `MetadataRequest.getErrorResponse` one topic.
+    ///
+    /// Throttle on the response is the JSON default (`0`). Top-level
+    /// `ErrorCode` (Metadata v13) is the same `error_code`.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TopicMetadata {
+        TopicMetadata::error(error_code, self.name.as_deref(), self.topic_id)
     }
 }
 
@@ -2571,6 +2606,39 @@ mod tests {
             MetadataRequestTopic::convert_from_ids([id]),
             vec![MetadataRequestTopic::by_id(id)]
         );
+        let named_err = MetadataRequestTopic::by_name("t")
+            .error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            named_err,
+            TopicMetadata::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, Some("t"), [0; 16])
+        );
+        assert!(!named_err.is_internal);
+        assert!(named_err.partitions.is_empty());
+        assert_eq!(
+            named_err.topic_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        let id_err =
+            MetadataRequestTopic::by_id(id).error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            id_err,
+            TopicMetadata::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, None, id)
+        );
+        assert_eq!(id_err.name.as_deref(), Some(""));
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: vec![named_err, id_err],
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 13, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, 13).unwrap();
+        leftover_empty(&cur, "Metadata getErrorResponse v13").unwrap();
+        assert_eq!(decoded, resp);
         let named_id = [MetadataRequestTopic {
             name: Some("t".into()),
             topic_id: id,
