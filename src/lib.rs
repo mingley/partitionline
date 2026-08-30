@@ -361,8 +361,10 @@
 //! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
 //! [`TopicIdPartition`] `Display` is Java
 //! `TopicIdPartition.toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
-//! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
-//! is Java `Uuid.randomUuid`. [`Uuid::ZERO_UUID`] / [`Uuid::ONE_UUID`] are Java
+//! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::from_string`]
+//! is Java `Uuid.fromString` (`Input string` length errors; invalid base64 is
+//! crate-specific). [`Uuid::random_uuid`] is Java `Uuid.randomUuid`.
+//! [`Uuid::ZERO_UUID`] / [`Uuid::ONE_UUID`] are Java
 //! `ZERO_UUID` / `ONE_UUID`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
 //! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
 //! `toString` (`ConfigEntry.toString` on [`CreatedTopicConfig`];

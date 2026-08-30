@@ -692,7 +692,7 @@ impl Uuid {
         if s.len() > 24 {
             let prefix = s.get(..24).unwrap_or(s);
             return Err(Error::protocol(format!(
-                "Uuid string with prefix `{prefix}` is too long to be decoded as a base64 UUID"
+                "Input string with prefix `{prefix}` is too long to be decoded as a base64 UUID"
             )));
         }
         let decoded =
@@ -706,7 +706,7 @@ impl Uuid {
         let n = decoded.len();
         let bytes = <[u8; 16]>::try_from(decoded).map_err(|_| {
             Error::protocol(format!(
-                "Uuid string `{s}` decoded as {n} bytes, which is not equal to the expected 16 bytes of a base64-encoded UUID"
+                "Input string `{s}` decoded as {n} bytes, which is not equal to the expected 16 bytes of a base64-encoded UUID"
             ))
         })?;
         Ok(Self(bytes))
@@ -12868,8 +12868,27 @@ mod tests {
             Uuid::ONE,
             "Java fromString accepts URL-safe padding"
         );
-        assert!(Uuid::from_string("not-a-uuid").is_err());
-        assert!(Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAAAAA").is_err());
+        let invalid = Uuid::from_string("!!!!").unwrap_err();
+        assert!(
+            invalid
+                .to_string()
+                .contains("Uuid string `!!!!` is not a base64url UUID"),
+            "{invalid}"
+        );
+        let too_long = Uuid::from_string("AAAAAAAAAAAAAAAAAAAAAAAAA").unwrap_err();
+        assert!(
+            too_long.to_string().contains(
+                "Input string with prefix `AAAAAAAAAAAAAAAAAAAAAAAA` is too long to be decoded as a base64 UUID"
+            ),
+            "{too_long}"
+        );
+        let wrong_len = Uuid::from_string("AAAA").unwrap_err();
+        assert!(
+            wrong_len.to_string().contains(
+                "Input string `AAAA` decoded as 3 bytes, which is not equal to the expected 16 bytes of a base64-encoded UUID"
+            ),
+            "{wrong_len}"
+        );
         let parsed: Uuid = "AAAAAAAAAAAAAAAAAAAAAA".parse().unwrap();
         assert_eq!(parsed, Uuid::ZERO);
         assert_eq!(<[u8; 16]>::from(Uuid::ONE), Uuid::ONE.to_bytes());
