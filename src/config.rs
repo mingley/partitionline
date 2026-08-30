@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::{Duration, Instant};
 
+use crate::error::{Error, Result};
 use crate::net::TlsConfig;
 use crate::protocol::oidc::OidcConfig;
 
@@ -186,6 +187,87 @@ impl IsolationLevel {
 impl fmt::Display for IsolationLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+/// Java `org.apache.kafka.common.security.auth.SecurityProtocol`.
+///
+/// Channel type: PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL.
+/// [`Display`] is Java `SecurityProtocol.toString` / the `name` field
+/// (`PLAINTEXT`). This crate still configures TLS via [`TlsConfig`] and
+/// SASL via [`Sasl`]; the enum is the Java id/name mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(i16)]
+pub enum SecurityProtocol {
+    /// Unauthenticated, unencrypted (`PLAINTEXT`).
+    Plaintext = 0,
+    /// TLS (`SSL`).
+    Ssl = 1,
+    /// SASL without TLS (`SASL_PLAINTEXT`).
+    SaslPlaintext = 2,
+    /// SASL over TLS (`SASL_SSL`).
+    SaslSsl = 3,
+}
+
+impl SecurityProtocol {
+    /// Java `SecurityProtocol.id`.
+    #[must_use]
+    pub const fn id(self) -> i16 {
+        self as i16
+    }
+
+    /// Java `SecurityProtocol.name` (enum constant name).
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Plaintext => "PLAINTEXT",
+            Self::Ssl => "SSL",
+            Self::SaslPlaintext => "SASL_PLAINTEXT",
+            Self::SaslSsl => "SASL_SSL",
+        }
+    }
+
+    /// Java `SecurityProtocol.forId`. Unknown ids are `None` (Java `null`).
+    #[must_use]
+    pub const fn from_id(id: i16) -> Option<Self> {
+        match id {
+            0 => Some(Self::Plaintext),
+            1 => Some(Self::Ssl),
+            2 => Some(Self::SaslPlaintext),
+            3 => Some(Self::SaslSsl),
+            _ => None,
+        }
+    }
+
+    /// Java `SecurityProtocol.forName` (`toUpperCase`; unknown is
+    /// [`Error::protocol`], Java `IllegalArgumentException` from `valueOf`).
+    pub fn from_name(name: &str) -> Result<Self> {
+        if name.eq_ignore_ascii_case("PLAINTEXT") {
+            Ok(Self::Plaintext)
+        } else if name.eq_ignore_ascii_case("SSL") {
+            Ok(Self::Ssl)
+        } else if name.eq_ignore_ascii_case("SASL_PLAINTEXT") {
+            Ok(Self::SaslPlaintext)
+        } else if name.eq_ignore_ascii_case("SASL_SSL") {
+            Ok(Self::SaslSsl)
+        } else {
+            Err(Error::protocol(format!(
+                "No enum constant org.apache.kafka.common.security.auth.SecurityProtocol.{}",
+                name.to_ascii_uppercase()
+            )))
+        }
+    }
+
+    /// Java `SecurityProtocol.names` (declaration order).
+    #[must_use]
+    pub const fn names() -> &'static [&'static str] {
+        &["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"]
+    }
+}
+
+impl fmt::Display for SecurityProtocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
     }
 }
 
@@ -369,6 +451,76 @@ mod tests {
         );
         assert_eq!(IsolationLevel::ReadCommitted.to_string(), "read_committed");
         assert_eq!(IsolationLevel::ReadUncommitted.as_str(), "read_uncommitted");
+    }
+
+    #[test]
+    fn security_protocol_matches_java() {
+        assert_eq!(SecurityProtocol::Plaintext.id(), 0);
+        assert_eq!(SecurityProtocol::Ssl.id(), 1);
+        assert_eq!(SecurityProtocol::SaslPlaintext.id(), 2);
+        assert_eq!(SecurityProtocol::SaslSsl.id(), 3);
+        assert_eq!(SecurityProtocol::Plaintext.name(), "PLAINTEXT");
+        assert_eq!(SecurityProtocol::Ssl.name(), "SSL");
+        assert_eq!(SecurityProtocol::SaslPlaintext.name(), "SASL_PLAINTEXT");
+        assert_eq!(SecurityProtocol::SaslSsl.name(), "SASL_SSL");
+        assert_eq!(SecurityProtocol::Plaintext.to_string(), "PLAINTEXT");
+        assert_eq!(SecurityProtocol::Ssl.to_string(), "SSL");
+        assert_eq!(
+            SecurityProtocol::SaslPlaintext.to_string(),
+            "SASL_PLAINTEXT"
+        );
+        assert_eq!(SecurityProtocol::SaslSsl.to_string(), "SASL_SSL");
+        assert_eq!(
+            SecurityProtocol::from_id(0),
+            Some(SecurityProtocol::Plaintext)
+        );
+        assert_eq!(SecurityProtocol::from_id(1), Some(SecurityProtocol::Ssl));
+        assert_eq!(
+            SecurityProtocol::from_id(2),
+            Some(SecurityProtocol::SaslPlaintext)
+        );
+        assert_eq!(
+            SecurityProtocol::from_id(3),
+            Some(SecurityProtocol::SaslSsl)
+        );
+        assert_eq!(SecurityProtocol::from_id(4), None);
+        assert_eq!(SecurityProtocol::from_id(-1), None);
+        assert_eq!(
+            SecurityProtocol::from_name("PLAINTEXT").unwrap(),
+            SecurityProtocol::Plaintext
+        );
+        assert_eq!(
+            SecurityProtocol::from_name("plaintext").unwrap(),
+            SecurityProtocol::Plaintext
+        );
+        assert_eq!(
+            SecurityProtocol::from_name("Ssl").unwrap(),
+            SecurityProtocol::Ssl
+        );
+        assert_eq!(
+            SecurityProtocol::from_name("sasl_plaintext").unwrap(),
+            SecurityProtocol::SaslPlaintext
+        );
+        assert_eq!(
+            SecurityProtocol::from_name("SASL_SSL").unwrap(),
+            SecurityProtocol::SaslSsl
+        );
+        let unknown = SecurityProtocol::from_name("FOO").unwrap_err();
+        assert!(
+            unknown.to_string().contains(
+                "No enum constant org.apache.kafka.common.security.auth.SecurityProtocol.FOO"
+            ),
+            "got {unknown}"
+        );
+        let lower = SecurityProtocol::from_name("foo").unwrap_err();
+        assert!(
+            lower.to_string().contains("SecurityProtocol.FOO"),
+            "Java valueOf uses the uppercased name, got {lower}"
+        );
+        assert_eq!(
+            SecurityProtocol::names(),
+            ["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"]
+        );
     }
 
     #[test]

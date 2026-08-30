@@ -825,7 +825,12 @@
 //! [`IsolationLevel`] / [`Compression`] `Display` match Java
 //! `IsolationLevel.toString` / `CompressionType.toString`.
 //! [`IsolationLevel::id`] / [`IsolationLevel::from_id`] are Java
-//! `IsolationLevel.id` / `forId`. [`Compression::id`] /
+//! `IsolationLevel.id` / `forId`. [`SecurityProtocol::id`] /
+//! [`SecurityProtocol::from_id`] / [`SecurityProtocol::from_name`] /
+//! [`SecurityProtocol::names`] are Java `SecurityProtocol.id` / `forId` /
+//! `forName` / `names` (unknown id is `None`; unknown name is
+//! [`Error::protocol`]). [`SecurityProtocol`] `Display` is Java
+//! `SecurityProtocol.toString` (`PLAINTEXT`). [`Compression::id`] /
 //! [`Compression::from_id`] / [`Compression::from_name`] are Java
 //! `CompressionType.id` / `forId` / `forName`
 //! (zstd `4` is `None`; this crate does not speak zstd).
@@ -1576,7 +1581,7 @@
 //!
 //! ```no_run
 //! use std::time::Duration;
-//! use partitionline::{Acks, Compression, IsolationLevel, ProducerConfig, Sasl};
+//! use partitionline::{Acks, Compression, IsolationLevel, ProducerConfig, Sasl, SecurityProtocol};
 //!
 //! let _cfg = ProducerConfig::bootstrap(["127.0.0.1:9092"])
 //!     .acks(Acks::All)
@@ -1585,6 +1590,7 @@
 //!     .sasl(Sasl::scram_sha256("alice", "secret"));
 //!
 //! let _iso = IsolationLevel::ReadCommitted;
+//! let _proto = SecurityProtocol::Plaintext;
 //! ```
 //!
 //! TLS is [`TlsConfig`] on the same builders (rustls, no OpenSSL).
@@ -1663,7 +1669,7 @@
 /// Admin client: topics, partitions, configs, ACLs, and the rest of Kafka admin.
 pub mod admin;
 pub(crate) mod cluster;
-/// Shared config: [`Acks`], [`IsolationLevel`], [`Sasl`].
+/// Shared config: [`Acks`], [`IsolationLevel`], [`SecurityProtocol`], [`Sasl`].
 pub mod config;
 /// Fetch client with manual partition assignment.
 pub mod consumer;
@@ -1741,7 +1747,7 @@ pub use admin::{
     UNKNOWN_VOLUME_BYTES, UPGRADE_TYPE_SAFE_DOWNGRADE, UPGRADE_TYPE_UNSAFE_DOWNGRADE,
     UPGRADE_TYPE_UPGRADE,
 };
-pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl};
+pub use config::{Acks, AutoOffsetReset, IsolationLevel, Sasl, SecurityProtocol};
 pub use consumer::{
     Consumer, ConsumerConfig, ConsumerRecords, FetchedRecord, OffsetAndMetadata,
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
