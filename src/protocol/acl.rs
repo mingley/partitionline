@@ -1240,6 +1240,39 @@ fn acl_api_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `CreateAclsResponse` helpers.
+pub struct CreateAclsResponse;
+
+impl CreateAclsResponse {
+    /// Java `CreateAclsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+}
+
+/// Java `DescribeAclsResponse` helpers.
+pub struct DescribeAclsResponse;
+
+impl DescribeAclsResponse {
+    /// Java `DescribeAclsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+}
+
+/// Java `DeleteAclsResponse` helpers.
+pub struct DeleteAclsResponse;
+
+impl DeleteAclsResponse {
+    /// Java `DeleteAclsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+}
+
 /// Java `DescribeAclsResponse.validate` / `DeleteAclsResponse.validate` /
 /// `CreateAclsRequest.validate`: v0 only supports LITERAL patterns.
 fn reject_v0_non_literal_acl_patterns<'a>(
@@ -2116,6 +2149,12 @@ mod tests {
 
     #[test]
     fn acl_v0_pattern_type_matches_java() {
+        assert!(!CreateAclsResponse::should_client_throttle(0));
+        assert!(CreateAclsResponse::should_client_throttle(1));
+        assert!(!DescribeAclsResponse::should_client_throttle(0));
+        assert!(DescribeAclsResponse::should_client_throttle(1));
+        assert!(!DeleteAclsResponse::should_client_throttle(0));
+        assert!(DeleteAclsResponse::should_client_throttle(1));
         let prefixed =
             AclBinding::allow_topic("t", "User:alice").pattern_type(AclPatternType::Prefixed);
         let err =

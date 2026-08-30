@@ -161,7 +161,11 @@
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];
 //! [`protocol::admin::DeleteRecordsResponse::should_client_throttle`] is Java
 //! `DeleteRecordsResponse.shouldClientThrottle` (v1+)),
-//! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
+//! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible;
+//! [`protocol::acl::CreateAclsResponse::should_client_throttle`] /
+//! [`protocol::acl::DescribeAclsResponse::should_client_throttle`] /
+//! [`protocol::acl::DeleteAclsResponse::should_client_throttle`] are Java
+//! `shouldClientThrottle` (v1+)),
 //! AddPartitionsToTxn v0–v3 (v3 flexible;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
 //! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+)), AddOffsetsToTxn v0–v4
