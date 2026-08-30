@@ -690,6 +690,10 @@
 //! (`FetchedOffset` `Display` is `PartitionData.toString`).
 //! [`error::for_code`] / [`error::UNKNOWN_SERVER_ERROR`] are Java
 //! `Errors.forCode` (Kafka 4.0.0 enum name; unknown is `UNKNOWN_SERVER_ERROR`) / code `-1`.
+//! [`ApiError`] is Java `org.apache.kafka.common.requests.ApiError`
+//! (`NONE` is code 0 and a null message; unknown codes become
+//! [`error::UNKNOWN_SERVER_ERROR`]; `Display` is
+//! `ApiError(error=NONE, message=null)`).
 //! [`protocol::group::OffsetFetchResponse::should_client_throttle`]
 //! is Java `OffsetFetchResponse.shouldClientThrottle` (v4+).
 //! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
@@ -1155,6 +1159,8 @@
 //! [`protocol::admin::UpdateFeaturesResponse::error_counts`] is Java
 //! `UpdateFeaturesResponse.errorCounts` (top-level `errorCode` plus each
 //! per-feature code, including `NONE`).
+//! [`protocol::admin::UpdateFeaturesResponse::top_level_error`] is Java
+//! `UpdateFeaturesResponse.topLevelError`.
 //! [`Admin::update_features_timeout`] / [`Admin::update_features_with_timeout`]
 //! are Java `UpdateFeaturesOptions.timeoutMs` (RPC deadline and TimeoutMs).
 //! [`Admin::fence_producers`] is Java `fenceProducers` ([`FencedProducer`]).
@@ -1687,7 +1693,7 @@ pub use consumer::{
     OffsetAndTimestamp, PartitionInfo, RebalanceListener, TopicIdPartition, TopicPartition,
     WakeupHandle,
 };
-pub use error::{Error, Result};
+pub use error::{ApiError, Error, Result};
 pub use group::{
     ConsumerGroup, ConsumerGroupMetadata, CoordinatorType, GroupProtocol,
     DEFAULT_ENFORCE_REBALANCE_REASON, LEAVE_GROUP_REASON_CLOSED, LEAVE_GROUP_REASON_POLL_TIMEOUT,

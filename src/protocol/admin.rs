@@ -9,7 +9,7 @@ use std::fmt;
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::{Error, Result};
+use crate::error::{ApiError, Error, Result};
 
 /// Kafka SCRAM mechanism id (KIP-554 / `ScramMechanism`).
 pub const SCRAM_UNKNOWN: i8 = 0;
@@ -4523,6 +4523,15 @@ impl UpdateFeaturesResponse {
     #[must_use]
     pub fn error_message(&self) -> Option<&str> {
         self.error_message.as_deref()
+    }
+
+    /// Java `UpdateFeaturesResponse.topLevelError`.
+    ///
+    /// Unknown codes become [`crate::error::UNKNOWN_SERVER_ERROR`] (Java
+    /// `Errors.forCode`).
+    #[must_use]
+    pub fn top_level_error(&self) -> ApiError {
+        ApiError::from_code(self.error_code, self.error_message.clone())
     }
 
     /// Per-feature Results (empty on v2 decode; v2 omits them on the wire).
@@ -14951,6 +14960,23 @@ mod tests {
         assert_eq!(
             top.error_counts(),
             HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+        assert_eq!(
+            top.top_level_error().to_string(),
+            "ApiError(error=NOT_CONTROLLER, message=null)"
+        );
+        assert_eq!(
+            UpdateFeaturesResponse::error(0).top_level_error(),
+            crate::error::ApiError::NONE
+        );
+        let with_msg = UpdateFeaturesResponse {
+            error_code: crate::error::NOT_CONTROLLER,
+            error_message: Some("no".into()),
+            results: Vec::new(),
+        };
+        assert_eq!(
+            with_msg.top_level_error().to_string(),
+            "ApiError(error=NOT_CONTROLLER, message=no)"
         );
     }
 

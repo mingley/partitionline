@@ -1,4 +1,6 @@
 //! Kafka and client error types.
+//!
+//! [`ApiError`] is Java `org.apache.kafka.common.requests.ApiError`.
 
 use std::fmt;
 use std::io;
@@ -665,6 +667,86 @@ pub fn for_code(code: i16) -> &'static str {
     error_name(code).unwrap_or("UNKNOWN_SERVER_ERROR")
 }
 
+fn errors_for_code(code: i16) -> i16 {
+    if error_name(code).is_some() {
+        code
+    } else {
+        UNKNOWN_SERVER_ERROR
+    }
+}
+
+/// Java `org.apache.kafka.common.requests.ApiError`.
+///
+/// [`Self::NONE`] is code [`NONE`] with a null message. [`Self::from_code`]
+/// is Java `ApiError(short, String)`: unknown codes become
+/// [`UNKNOWN_SERVER_ERROR`] (Java `Errors.forCode`). [`Display`] is Java
+/// `ApiError.toString` (`ApiError(error=NONE, message=null)`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiError {
+    error: i16,
+    message: Option<String>,
+}
+
+impl ApiError {
+    /// Java `ApiError.NONE`.
+    pub const NONE: Self = Self {
+        error: 0,
+        message: None,
+    };
+
+    /// Java `ApiError(short, String)`.
+    ///
+    /// Unknown codes become [`UNKNOWN_SERVER_ERROR`].
+    #[must_use]
+    pub fn from_code(code: i16, message: Option<String>) -> Self {
+        Self {
+            error: errors_for_code(code),
+            message,
+        }
+    }
+
+    /// Java `ApiError.is(Errors)`.
+    #[must_use]
+    pub fn is(&self, code: i16) -> bool {
+        self.error == code
+    }
+
+    /// Java `ApiError.isSuccess`.
+    #[must_use]
+    pub fn is_success(&self) -> bool {
+        self.is(NONE)
+    }
+
+    /// Java `ApiError.isFailure`.
+    #[must_use]
+    pub fn is_failure(&self) -> bool {
+        !self.is_success()
+    }
+
+    /// Java `ApiError.error` as the `Errors` code.
+    #[must_use]
+    pub fn error(&self) -> i16 {
+        self.error
+    }
+
+    /// Java `ApiError.message` (`None` is null).
+    #[must_use]
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
+    }
+}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ApiError(error={}, message={})",
+            for_code(self.error),
+            self.message.as_deref().unwrap_or("null")
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -727,5 +809,34 @@ mod tests {
             assert!(names.insert(name), "duplicate Errors name {name}");
         }
         assert_eq!(names.len(), 131);
+    }
+
+    #[test]
+    fn api_error_matches_java() {
+        assert_eq!(
+            ApiError::NONE.to_string(),
+            "ApiError(error=NONE, message=null)"
+        );
+        assert!(ApiError::NONE.is_success());
+        assert!(!ApiError::NONE.is_failure());
+        assert!(ApiError::NONE.is(NONE));
+        assert_eq!(ApiError::NONE.error(), NONE);
+        assert!(ApiError::NONE.message().is_none());
+        assert_eq!(ApiError::from_code(NONE, None), ApiError::NONE);
+
+        let unknown = ApiError::from_code(999, Some("nope".into()));
+        assert_eq!(unknown.error(), UNKNOWN_SERVER_ERROR);
+        assert_eq!(
+            unknown.to_string(),
+            "ApiError(error=UNKNOWN_SERVER_ERROR, message=nope)"
+        );
+        assert!(unknown.is(UNKNOWN_SERVER_ERROR));
+        assert!(unknown.is_failure());
+        assert!(!unknown.is_success());
+
+        let with_msg = ApiError::from_code(NONE, Some("ok".into()));
+        assert_eq!(with_msg.to_string(), "ApiError(error=NONE, message=ok)");
+        assert!(with_msg.is_success());
+        assert_eq!(with_msg.message(), Some("ok"));
     }
 }
