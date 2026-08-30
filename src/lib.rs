@@ -956,6 +956,10 @@
 //! [`RecordBatch::encoded_timestamp_type`] are Java
 //! `DefaultRecordBatch.isTransactional` / `isControlBatch` / `timestampType`
 //! on a buffer (short attributes field is [`Error::protocol`] `need 2 bytes`).
+//! [`RecordBatch::encoded_has_producer_id`] is Java
+//! `AbstractRecordBatch.hasProducerId` on a buffer (producer id greater than
+//! [`RecordBatch::NO_PRODUCER_ID`]; short field is [`Error::protocol`]
+//! `need 8 bytes`).
 //! [`RecordBatch::size_in_bytes_of`] and
 //! [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is
 //! `0`). [`RecordBatch::checksum`] is Java `DefaultRecordBatch.checksum`.
@@ -1011,7 +1015,9 @@
 //! magic is 2 or greater; the other two are always false).
 //! [`RecordBatch::count_or_null`] is Java `RecordBatch.countOrNull`.
 //! [`RecordBatch::has_producer_id`] is Java `AbstractRecordBatch.hasProducerId`
-//! (`NO_PRODUCER_ID < producerId`). Fetch LastFetchedEpoch resets,
+//! (`NO_PRODUCER_ID < producerId`).
+//! [`RecordBatch::encoded_has_producer_id`] is the buffer form.
+//! Fetch LastFetchedEpoch resets,
 //! [`Consumer::seek`], and omitted last-fetched epoch use
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are

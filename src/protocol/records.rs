@@ -982,6 +982,8 @@ impl RecordBatch {
     pub const LAST_OFFSET_DELTA_OFFSET: i32 = 23;
     /// Java `DefaultRecordBatch.BASE_TIMESTAMP_OFFSET`.
     pub const BASE_TIMESTAMP_OFFSET: i32 = 27;
+    /// Java `DefaultRecordBatch.PRODUCER_ID_OFFSET`.
+    pub const PRODUCER_ID_OFFSET: i32 = 43;
     /// Java `DefaultRecordBatch.BASE_SEQUENCE_OFFSET`.
     pub const BASE_SEQUENCE_OFFSET: i32 = 53;
     /// Java `DefaultRecordBatch.RECORDS_COUNT_OFFSET`.
@@ -1410,6 +1412,17 @@ impl RecordBatch {
         Ok(TimestampType::from_attributes(Self::encoded_attributes(
             buffer,
         )?))
+    }
+
+    /// Java `AbstractRecordBatch.hasProducerId` on a buffer (producer id is
+    /// greater than [`Self::NO_PRODUCER_ID`]).
+    ///
+    /// Distinct from [`Self::has_producer_id`], which uses this batch's
+    /// producer id. Short producer-id field is [`Error::protocol`]
+    /// `need 8 bytes`.
+    pub fn encoded_has_producer_id(buffer: &[u8]) -> Result<bool> {
+        let off = buf::usize_from_i32(Self::PRODUCER_ID_OFFSET)?;
+        Ok(Self::NO_PRODUCER_ID < Self::read_i64_be(buffer, off)?)
     }
 
     /// Java `DefaultRecordBatch.checksum` (unsigned CRC32-C as `long`).
@@ -2193,6 +2206,7 @@ mod tests {
         assert_eq!(RecordBatch::ATTRIBUTES_OFFSET, 21);
         assert_eq!(RecordBatch::LAST_OFFSET_DELTA_OFFSET, 23);
         assert_eq!(RecordBatch::BASE_TIMESTAMP_OFFSET, 27);
+        assert_eq!(RecordBatch::PRODUCER_ID_OFFSET, 43);
         assert_eq!(RecordBatch::BASE_SEQUENCE_OFFSET, 53);
         assert_eq!(RecordBatch::RECORDS_COUNT_OFFSET, 57);
         assert_eq!(batch.base_offset(), 0);
@@ -3277,6 +3291,35 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(short_ts.contains("need 2 bytes"), "{short_ts}");
+    }
+
+    #[test]
+    fn encoded_has_producer_id_matches_java_abstract_record_batch() {
+        let plain = RecordBatch::from_records(vec![sample_record()]);
+        let mut plain_buf = BytesMut::new();
+        encode_record_batch(&mut plain_buf, &plain).unwrap();
+        assert!(!RecordBatch::encoded_has_producer_id(&plain_buf).unwrap());
+        assert!(!plain.has_producer_id());
+
+        let mut with_id = plain.clone();
+        with_id.producer_id = 7;
+        let mut with_id_buf = BytesMut::new();
+        encode_record_batch(&mut with_id_buf, &with_id).unwrap();
+        assert!(RecordBatch::encoded_has_producer_id(&with_id_buf).unwrap());
+        assert!(with_id.has_producer_id());
+
+        let mut mutated = with_id_buf.clone();
+        mutated[43..51].copy_from_slice(&RecordBatch::NO_PRODUCER_ID.to_be_bytes());
+        assert!(!RecordBatch::encoded_has_producer_id(&mutated).unwrap());
+        assert!(with_id.has_producer_id());
+
+        // Java `NO_PRODUCER_ID < 0` is true: a zero producer id counts as set.
+        assert!(RecordBatch::encoded_has_producer_id(&[0; 51]).unwrap());
+
+        let short = RecordBatch::encoded_has_producer_id(&[0; 42])
+            .unwrap_err()
+            .to_string();
+        assert!(short.contains("need 8 bytes"), "{short}");
     }
 
     #[test]
