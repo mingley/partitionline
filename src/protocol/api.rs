@@ -1318,12 +1318,37 @@ pub fn encode_metadata_response(
 }
 
 /// One topic in a Produce request.
+///
+/// [`Self::error_result`] is Java `ProduceRequest.getErrorResponse` one topic.
 #[derive(Debug, Clone)]
 pub struct ProduceTopicData {
     /// Topic name.
     pub topic: String,
     /// Partition batches.
     pub partitions: Vec<ProducePartitionData>,
+}
+
+impl ProduceTopicData {
+    /// Java `ProduceRequest.getErrorResponse` one topic.
+    ///
+    /// Maps each request partition through
+    /// [`ProducePartitionResponse::partition_response`]. Java returns null
+    /// when `acks` is 0 (whole request). `recordErrors` is the empty array
+    /// and `errorMessage` is null (JSON defaults; encode writes those on
+    /// v8+). Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> Vec<ProducePartitionResponse> {
+        self.partitions
+            .iter()
+            .map(|p| {
+                ProducePartitionResponse::partition_response(
+                    self.topic.clone(),
+                    p.index,
+                    error_code,
+                )
+            })
+            .collect()
+    }
 }
 
 /// One partition in a Produce request.
@@ -1790,6 +1815,42 @@ mod tests {
             unknown.log_start_offset,
             ProducePartitionResponse::INVALID_OFFSET
         );
+        let topic = ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![
+                ProducePartitionData {
+                    index: 0,
+                    records: RecordBatch::from_records(vec![]),
+                },
+                ProducePartitionData {
+                    index: 3,
+                    records: RecordBatch::from_records(vec![]),
+                },
+            ],
+        };
+        let result = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            result,
+            vec![
+                ProducePartitionResponse::partition_response(
+                    "t",
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+                ProducePartitionResponse::partition_response(
+                    "t",
+                    3,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+            ]
+        );
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 8, &result).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints) = decode_produce_response(&mut cur, 8).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, result);
+        leftover_empty(&cur, "Produce getErrorResponse v8").unwrap();
     }
 
     #[test]

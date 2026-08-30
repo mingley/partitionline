@@ -246,6 +246,8 @@
 //! is Java `ProduceResponse.INVALID_OFFSET`.
 //! [`protocol::api::ProducePartitionResponse::partition_response`] is Java
 //! `ProduceResponse.PartitionResponse(Errors)`.
+//! [`protocol::api::ProduceTopicData::error_result`] is Java
+//! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceResponse::should_client_throttle`] is Java
 //! `ProduceResponse.shouldClientThrottle` (v6+). Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
