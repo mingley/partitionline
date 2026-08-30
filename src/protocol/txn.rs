@@ -25,6 +25,17 @@ impl EndTxnRequest {
     pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
 }
 
+/// Java `EndTxnResponse` helpers.
+pub struct EndTxnResponse;
+
+impl EndTxnResponse {
+    /// Java `EndTxnResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
+}
+
 /// Java `TransactionResult` (EndTxn committed flag / WriteTxnMarkers
 /// `transactionResult`).
 ///
@@ -98,6 +109,17 @@ fn add_partitions_to_txn_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "AddPartitionsToTxn version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `AddPartitionsToTxnResponse` helpers.
+pub struct AddPartitionsToTxnResponse;
+
+impl AddPartitionsToTxnResponse {
+    /// Java `AddPartitionsToTxnResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 }
 
@@ -231,6 +253,17 @@ fn add_offsets_to_txn_flexible(version: i16) -> Result<bool> {
         other => Err(Error::protocol(format!(
             "AddOffsetsToTxn version {other} is not implemented"
         ))),
+    }
+}
+
+/// Java `AddOffsetsToTxnResponse` helpers.
+pub struct AddOffsetsToTxnResponse;
+
+impl AddOffsetsToTxnResponse {
+    /// Java `AddOffsetsToTxnResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
     }
 }
 
@@ -399,6 +432,17 @@ pub struct TxnOffsetCommitRequest;
 impl TxnOffsetCommitRequest {
     /// Java `TxnOffsetCommitRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
     pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
+}
+
+/// Java `TxnOffsetCommitResponse` helpers.
+pub struct TxnOffsetCommitResponse;
+
+impl TxnOffsetCommitResponse {
+    /// Java `TxnOffsetCommitResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 1
+    }
 }
 
 /// One partition in TxnOffsetCommit v0–5.
@@ -1016,6 +1060,14 @@ mod tests {
             TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
             4
         );
+        assert!(!AddPartitionsToTxnResponse::should_client_throttle(0));
+        assert!(AddPartitionsToTxnResponse::should_client_throttle(1));
+        assert!(!AddOffsetsToTxnResponse::should_client_throttle(0));
+        assert!(AddOffsetsToTxnResponse::should_client_throttle(1));
+        assert!(!EndTxnResponse::should_client_throttle(0));
+        assert!(EndTxnResponse::should_client_throttle(1));
+        assert!(!TxnOffsetCommitResponse::should_client_throttle(0));
+        assert!(TxnOffsetCommitResponse::should_client_throttle(1));
     }
 
     #[test]

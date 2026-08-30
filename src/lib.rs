@@ -143,10 +143,16 @@
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`]),
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible),
-//! AddPartitionsToTxn v0–v3 (v3 flexible), AddOffsetsToTxn v0–v4
-//! (v3+ flexible; v4 TRANSACTION_ABORTABLE), EndTxn v0–v5
+//! AddPartitionsToTxn v0–v3 (v3 flexible;
+//! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
+//! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+)), AddOffsetsToTxn v0–v4
+//! (v3+ flexible; v4 TRANSACTION_ABORTABLE;
+//! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
+//! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`protocol::txn::EndTxnResponse::should_client_throttle`] is Java
+//! `EndTxnResponse.shouldClientThrottle` (v1+);
 //! EndTxn decode below v5 fills [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`);
 //! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),
@@ -155,6 +161,8 @@
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
 //! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
+//! [`protocol::txn::TxnOffsetCommitResponse::should_client_throttle`] is Java
+//! `TxnOffsetCommitResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::TxnOffsetCommitMember::unknown`] /
 //! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] are Java
 //! `TxnOffsetCommitRequest.Builder` without group metadata /
