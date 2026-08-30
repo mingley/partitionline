@@ -155,6 +155,10 @@
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
 //! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs;
+//! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
+//! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
+//! / [`ShareRequestMetadata::next_epoch`]; `nextEpoch` wraps `i32::MAX` to `1`.
+//! [`ShareGroup`] uses those epochs on ShareFetch / ShareAcknowledge);
 //! [`protocol::share::ShareFetchedPartition::partition_response`] is Java
 //! `ShareFetchResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
 //! Records and acquired ranges stay empty. Official Java leaves ErrorMessage,
@@ -426,6 +430,9 @@
 //! `isValidBrokerId` / `describeReplicaId`.
 //! [`protocol::fetch::FetchMetadata`] is Java `FetchMetadata`
 //! ([`protocol::fetch::FetchMetadata::LEGACY`] on Fetch requests).
+//! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
+//! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
+//! on ShareFetch / ShareAcknowledge).
 //! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
@@ -570,6 +577,8 @@
 //! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
 //! (`accept`). [`AcknowledgeType::id`] / [`AcknowledgeType::from_id`] are
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
+//! [`ShareRequestMetadata`] `Display` is Java `ShareRequestMetadata.toString`
+//! (`(memberId=..., epoch=INITIAL)`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
 //! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
@@ -1112,7 +1121,9 @@
 //! [`ShareGroup::acknowledge`];
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`]
-//! are Java `ShareGroupHeartbeatRequest` join/leave epochs).
+//! are Java `ShareGroupHeartbeatRequest` join/leave epochs;
+//! [`ShareRequestMetadata`] is Java `ShareRequestMetadata` share-session
+//! member id and epoch).
 //! [`Consumer::seek_with_metadata`] / [`ConsumerGroup::seek_with_metadata`]
 //! are Java `seek(TopicPartition, OffsetAndMetadata)` (Fetch
 //! `LastFetchedEpoch` from the leader epoch; metadata string ignored).
@@ -1350,8 +1361,8 @@ pub use protocol::records::{
 };
 pub use protocol::txn::TransactionResult;
 pub use share::{
-    AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, SHARE_ACK_ACCEPT, SHARE_ACK_REJECT,
-    SHARE_ACK_RELEASE,
+    AcknowledgeType, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata, SHARE_ACK_ACCEPT,
+    SHARE_ACK_REJECT, SHARE_ACK_RELEASE,
 };
 
 /// Software name sent in ApiVersions v3–v4.

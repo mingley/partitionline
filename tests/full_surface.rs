@@ -42,10 +42,10 @@ use partitionline::{
     GroupType, IsolationLevel, ListConsumerGroupOffsetsSpec, NewPartitionReassignment,
     NewPartitions, NewTopic, Node, OffsetAndMetadata, OffsetSpec, OidcConfig, OngoingReassignment,
     PartitionReassignment, ProduceRecord, Producer, ProducerConfig, RecordBatch, RecordsToDelete,
-    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup, TimestampType,
-    TopicCollection, TopicPartition, TopicPartitionReplica, TransactionState, TransactionTopic,
-    UpgradeType, UserScramCredentialAlteration, UserScramCredentialDeletion,
-    UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
+    RenewDelegationTokenRequest, ReplicaLogDirInfo, ScramMechanism, ShareGroup,
+    ShareRequestMetadata, TimestampType, TopicCollection, TopicPartition, TopicPartitionReplica,
+    TransactionState, TransactionTopic, UpgradeType, UserScramCredentialAlteration,
+    UserScramCredentialDeletion, UserScramCredentialUpsertion, Uuid, AUTHORIZED_OPERATIONS_OMITTED,
     CONFIG_RESOURCE_CLIENT_METRICS, DEFAULT_LEAVE_GROUP_REASON, EARLIEST_TIMESTAMP,
     LATEST_TIMESTAMP, SCRAM_SHA_256, SCRAM_SHA_512,
 };
@@ -3381,6 +3381,9 @@ async fn share_acknowledge_negotiates_v0_when_broker_caps() {
     let mut ccfg = ConsumerConfig::bootstrap([mock.addr.clone()]);
     ccfg.max_wait_ms = 10;
     let mut g = ShareGroup::join(ccfg, "sg-ack0", "t").await.unwrap();
+    assert_eq!(ShareRequestMetadata::INITIAL_EPOCH, 0);
+    assert_eq!(ShareRequestMetadata::FINAL_EPOCH, -1);
+    assert_eq!(ShareRequestMetadata::next_epoch(i32::MAX), 1);
     let recs = g.poll().await.unwrap();
     assert_eq!(recs[0].value.as_deref(), Some(&b"share-ack0"[..]));
     g.acknowledge(&recs, AcknowledgeType::Accept).await.unwrap();

@@ -32,6 +32,7 @@ use crate::protocol::share::{
     ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
     ACK_RELEASE,
 };
+use crate::Uuid;
 
 pub use crate::protocol::share::{
     ACK_ACCEPT as SHARE_ACK_ACCEPT, ACK_REJECT as SHARE_ACK_REJECT,
@@ -86,6 +87,111 @@ impl AcknowledgeType {
 impl fmt::Display for AcknowledgeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+/// Java `ShareRequestMetadata` (share session member id and epoch).
+///
+/// [`Display`] is Java `toString` (`(memberId=..., epoch=INITIAL)`). Member
+/// id is Java `Uuid` ([`Uuid`] `Display` is base64url). ShareFetch /
+/// ShareAcknowledge encode still take `member_id: &str` and
+/// `share_session_epoch: i32`; [`ShareGroup`] uses [`Self::INITIAL_EPOCH`] /
+/// [`Self::FINAL_EPOCH`] / [`Self::next_epoch`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ShareRequestMetadata {
+    member_id: Uuid,
+    epoch: i32,
+}
+
+impl ShareRequestMetadata {
+    /// Java `ShareRequestMetadata.INITIAL_EPOCH`.
+    pub const INITIAL_EPOCH: i32 = 0;
+    /// Java `ShareRequestMetadata.FINAL_EPOCH`.
+    pub const FINAL_EPOCH: i32 = -1;
+
+    /// Java `ShareRequestMetadata(Uuid, int)`.
+    #[must_use]
+    pub const fn new(member_id: Uuid, epoch: i32) -> Self {
+        Self { member_id, epoch }
+    }
+
+    /// Java `ShareRequestMetadata.initialEpoch`.
+    #[must_use]
+    pub const fn initial_epoch(member_id: Uuid) -> Self {
+        Self::new(member_id, Self::INITIAL_EPOCH)
+    }
+
+    /// Java `ShareRequestMetadata.memberId`.
+    #[must_use]
+    pub const fn member_id(self) -> Uuid {
+        self.member_id
+    }
+
+    /// Java `ShareRequestMetadata.epoch`.
+    #[must_use]
+    pub const fn epoch(self) -> i32 {
+        self.epoch
+    }
+
+    /// Java `ShareRequestMetadata.isNewSession`.
+    #[must_use]
+    pub const fn is_new_session(self) -> bool {
+        self.epoch == Self::INITIAL_EPOCH
+    }
+
+    /// Java `ShareRequestMetadata.isFull`.
+    #[must_use]
+    pub const fn is_full(self) -> bool {
+        self.epoch == Self::INITIAL_EPOCH || self.epoch == Self::FINAL_EPOCH
+    }
+
+    /// Java `ShareRequestMetadata.isFinalEpoch`.
+    #[must_use]
+    pub const fn is_final_epoch(self) -> bool {
+        self.epoch == Self::FINAL_EPOCH
+    }
+
+    /// Java `ShareRequestMetadata.nextEpoch(int)`.
+    #[must_use]
+    pub const fn next_epoch(prev_epoch: i32) -> i32 {
+        if prev_epoch < 0 {
+            Self::FINAL_EPOCH
+        } else if prev_epoch == i32::MAX {
+            1
+        } else {
+            prev_epoch + 1
+        }
+    }
+
+    /// Java `ShareRequestMetadata.nextEpoch()` (instance).
+    #[must_use]
+    pub const fn next_epoch_metadata(self) -> Self {
+        Self::new(self.member_id, Self::next_epoch(self.epoch))
+    }
+
+    /// Java `ShareRequestMetadata.nextCloseExistingAttemptNew`.
+    #[must_use]
+    pub const fn next_close_existing_attempt_new(self) -> Self {
+        Self::new(self.member_id, Self::INITIAL_EPOCH)
+    }
+
+    /// Java `ShareRequestMetadata.finalEpoch`.
+    #[must_use]
+    pub const fn final_epoch(self) -> Self {
+        Self::new(self.member_id, Self::FINAL_EPOCH)
+    }
+}
+
+impl fmt::Display for ShareRequestMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(memberId={}, ", self.member_id)?;
+        if self.epoch == Self::INITIAL_EPOCH {
+            f.write_str("epoch=INITIAL)")
+        } else if self.epoch == Self::FINAL_EPOCH {
+            f.write_str("epoch=FINAL)")
+        } else {
+            write!(f, "epoch={})", self.epoch)
+        }
     }
 }
 
@@ -794,11 +900,14 @@ impl ShareGroup {
     }
 
     fn session_epoch(&self, node: i32) -> i32 {
-        self.share_epochs.get(&node).copied().unwrap_or(0)
+        self.share_epochs
+            .get(&node)
+            .copied()
+            .unwrap_or(ShareRequestMetadata::INITIAL_EPOCH)
     }
 
     fn advance_node_epoch(&mut self, node: i32) {
-        let next = self.session_epoch(node).saturating_add(1);
+        let next = ShareRequestMetadata::next_epoch(self.session_epoch(node));
         let _ = self.share_epochs.insert(node, next);
     }
 
@@ -1108,7 +1217,9 @@ impl ShareGroup {
         let timeout = self.cfg.request_timeout;
         for (node, node_tps) in by_leader {
             let epoch = self.session_epoch(node);
-            if epoch <= 0 {
+            if epoch == ShareRequestMetadata::INITIAL_EPOCH
+                || epoch == ShareRequestMetadata::FINAL_EPOCH
+            {
                 return Err(Error::protocol(
                     "ShareAcknowledge requires an open share session (poll first)",
                 ));
@@ -1172,7 +1283,10 @@ impl ShareGroup {
         let open: Vec<i32> = self
             .share_epochs
             .iter()
-            .filter(|(_, e)| **e > 0)
+            .filter(|(_, e)| {
+                **e != ShareRequestMetadata::INITIAL_EPOCH
+                    && **e != ShareRequestMetadata::FINAL_EPOCH
+            })
             .map(|(n, _)| *n)
             .collect();
         if open.is_empty() {
@@ -1194,7 +1308,7 @@ impl ShareGroup {
                             version,
                             &self.group_id,
                             &self.member_id,
-                            -1,
+                            ShareRequestMetadata::FINAL_EPOCH,
                             [0u8; 16],
                             &[],
                         )
@@ -1510,6 +1624,68 @@ mod tests {
         assert_eq!(AcknowledgeType::Release.to_string(), "release");
         assert_eq!(AcknowledgeType::Reject.to_string(), "reject");
         assert_eq!(AcknowledgeType::Accept.as_str(), "accept");
+    }
+
+    #[test]
+    fn share_request_metadata_matches_java() {
+        let id = Uuid::ONE_UUID;
+        assert_eq!(ShareRequestMetadata::INITIAL_EPOCH, 0);
+        assert_eq!(ShareRequestMetadata::FINAL_EPOCH, -1);
+        let initial = ShareRequestMetadata::initial_epoch(id);
+        assert_eq!(initial.member_id(), id);
+        assert_eq!(initial.epoch(), ShareRequestMetadata::INITIAL_EPOCH);
+        assert!(initial.is_new_session());
+        assert!(initial.is_full());
+        assert!(!initial.is_final_epoch());
+        let fin = initial.final_epoch();
+        assert_eq!(fin.member_id(), id);
+        assert_eq!(fin.epoch(), ShareRequestMetadata::FINAL_EPOCH);
+        assert!(fin.is_final_epoch());
+        assert!(fin.is_full());
+        assert!(!fin.is_new_session());
+        let mid = ShareRequestMetadata::new(id, 3);
+        assert!(!mid.is_full());
+        assert!(!mid.is_new_session());
+        assert!(!mid.is_final_epoch());
+        assert_eq!(
+            ShareRequestMetadata::next_epoch(-1),
+            ShareRequestMetadata::FINAL_EPOCH
+        );
+        assert_eq!(
+            ShareRequestMetadata::next_epoch(-2),
+            ShareRequestMetadata::FINAL_EPOCH
+        );
+        assert_eq!(
+            ShareRequestMetadata::next_epoch(ShareRequestMetadata::INITIAL_EPOCH),
+            1
+        );
+        assert_eq!(ShareRequestMetadata::next_epoch(i32::MAX), 1);
+        assert_eq!(
+            initial.next_epoch_metadata(),
+            ShareRequestMetadata::new(id, 1)
+        );
+        assert_eq!(
+            ShareRequestMetadata::new(id, i32::MAX).next_epoch_metadata(),
+            ShareRequestMetadata::new(id, 1)
+        );
+        assert_eq!(
+            fin.next_epoch_metadata(),
+            ShareRequestMetadata::new(id, ShareRequestMetadata::FINAL_EPOCH)
+        );
+        assert_eq!(
+            mid.next_close_existing_attempt_new(),
+            ShareRequestMetadata::initial_epoch(id)
+        );
+        assert_eq!(
+            initial.to_string(),
+            format!("(memberId={id}, epoch=INITIAL)")
+        );
+        assert_eq!(fin.to_string(), format!("(memberId={id}, epoch=FINAL)"));
+        assert_eq!(mid.to_string(), format!("(memberId={id}, epoch=3)"));
+        assert_eq!(
+            ShareRequestMetadata::initial_epoch(Uuid::ZERO_UUID).to_string(),
+            format!("(memberId={}, epoch=INITIAL)", Uuid::ZERO_UUID)
+        );
     }
 
     #[test]
