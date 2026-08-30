@@ -407,7 +407,7 @@ pub struct TxnOffsetPartition {
     pub partition: i32,
     /// Committed offset.
     pub offset: i64,
-    /// Leader epoch (v2+), or `-1`.
+    /// Leader epoch (v2+), or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
     /// Commit metadata string.
     pub metadata: String,
@@ -520,6 +520,9 @@ pub fn encode_txn_offset_commit_request(
 }
 
 /// Decode TxnOffsetCommit: `(transactional_id, group_id, member, topics)`.
+///
+/// Decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
+/// omitted `CommittedLeaderEpoch`.
 pub fn decode_txn_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -550,7 +553,11 @@ pub fn decode_txn_offset_commit_request<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 2 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -1137,7 +1144,8 @@ mod tests {
         assert_eq!(part.partition, 0);
         assert_eq!(part.offset, 7);
         assert_eq!(
-            part.leader_epoch, -1,
+            part.leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
             "v0 must not write committed_leader_epoch"
         );
         assert!(

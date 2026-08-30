@@ -38,7 +38,8 @@ fn offset_for_leader_epoch_flexible(version: i16) -> Result<bool> {
 pub struct OffsetForLeaderPartition {
     /// Partition index.
     pub partition: i32,
-    /// Current leader epoch (v2+). Written as `-1` below v2 on decode.
+    /// Current leader epoch (v2+). Decode below v2 fills
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub current_leader_epoch: i32,
     /// Epoch to look up an end offset for.
     pub leader_epoch: i32,
@@ -195,7 +196,8 @@ pub fn encode_offset_for_leader_epoch_topics_request(
 /// Decode a single-topic, single-partition OffsetForLeaderEpoch request.
 ///
 /// Returns `(topic, partition, current_leader_epoch, leader_epoch)`.
-/// `current_leader_epoch` is `-1` below v2. Empty Topics/Partitions is a
+/// `current_leader_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
+/// below v2. Empty Topics/Partitions is a
 /// protocol error.
 pub fn decode_offset_for_leader_epoch_request<B: Buf>(
     buf: &mut B,
@@ -234,7 +236,11 @@ pub fn decode_offset_for_leader_epoch_topics_request<B: Buf>(
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
-            let current_leader_epoch = if version >= 2 { buf::get_i32(buf)? } else { -1 };
+            let current_leader_epoch = if version >= 2 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let leader_epoch = buf::get_i32(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?; // partition
@@ -436,7 +442,10 @@ mod tests {
         encode_offset_for_leader_epoch_request(&mut req, 0, "t", 1, 9, 2).unwrap();
         let (topic, part, current, epoch) =
             decode_offset_for_leader_epoch_request(&mut &req[..], 0).unwrap();
-        assert_eq!((topic.as_str(), part, current, epoch), ("t", 1, -1, 2));
+        assert_eq!(
+            (topic.as_str(), part, current, epoch),
+            ("t", 1, RecordBatch::NO_PARTITION_LEADER_EPOCH, 2)
+        );
     }
 
     #[test]

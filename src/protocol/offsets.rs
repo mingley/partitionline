@@ -177,7 +177,7 @@ fn write_java_optional(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Resul
 pub struct ListOffsetsPartitionRequest {
     /// Partition index.
     pub partition: i32,
-    /// Current leader epoch (v4+), or `-1`.
+    /// Current leader epoch (v4+), or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub current_leader_epoch: i32,
     /// Timestamp to search (`-2` earliest, `-1` latest, `-3` max
     /// timestamp, `-4` earliest local, `-5` latest tiered, or milliseconds).
@@ -359,7 +359,8 @@ pub fn encode_list_offsets_topics_request(
 /// Decode a single-topic, single-partition ListOffsets request.
 ///
 /// Returns `(isolation_level, topic, partition, current_leader_epoch, timestamp)`.
-/// Isolation is `0` below v2. `current_leader_epoch` is `-1` below v4.
+/// Isolation is `0` below v2. `current_leader_epoch` is
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] below v4.
 /// Extra topics or partitions in the body are consumed and ignored.
 pub fn decode_list_offsets_request<B: Buf>(
     buf: &mut B,
@@ -401,7 +402,11 @@ pub fn decode_list_offsets_topics_request<B: Buf>(
         let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
-            let current_leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
+            let current_leader_epoch = if version >= 4 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let timestamp = buf::get_i64(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -629,7 +634,10 @@ mod tests {
         encode_list_offsets_request(&mut req, 2, 1, "t", 3, 9, EARLIEST_TIMESTAMP, 0).unwrap();
         let mut cur = &req[..];
         let (iso, topic, part, epoch, ts) = decode_list_offsets_request(&mut cur, 2).unwrap();
-        assert_eq!((iso, topic.as_str(), part, epoch, ts), (1, "t", 3, -1, -2));
+        assert_eq!(
+            (iso, topic.as_str(), part, epoch, ts),
+            (1, "t", 3, RecordBatch::NO_PARTITION_LEADER_EPOCH, -2)
+        );
         assert!(
             cur.is_empty(),
             "v2 request has no current_leader_epoch; leftover {} bytes",

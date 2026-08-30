@@ -1389,7 +1389,7 @@ pub struct OffsetPartition {
     pub partition: i32,
     /// Committed offset.
     pub offset: i64,
-    /// Leader epoch, or `-1`.
+    /// Leader epoch, or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
     /// Commit metadata string.
     pub metadata: String,
@@ -1402,7 +1402,7 @@ impl OffsetPartition {
         Self {
             partition,
             offset,
-            leader_epoch: -1,
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
             metadata: String::new(),
         }
     }
@@ -1617,6 +1617,9 @@ pub fn encode_offset_commit_request(
 }
 
 /// Decode OffsetCommit: `(group_id, member_id, topics)`.
+///
+/// Decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
+/// omitted `CommittedLeaderEpoch`.
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1640,7 +1643,11 @@ pub fn decode_offset_commit_request<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 6 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 6 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let metadata = buf::get_string(buf, flexible)?.unwrap_or_default();
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -3334,7 +3341,10 @@ mod tests {
         let (gid, mid, got) = decode_offset_commit_request(&mut cur, 2).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got[0].partitions[0].offset, 3);
-        assert_eq!(got[0].partitions[0].leader_epoch, -1);
+        assert_eq!(
+            got[0].partitions[0].leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert!(cur.is_empty(), "v2 request leftover-empty");
 
         let mut v5 = BytesMut::new();
@@ -3342,7 +3352,10 @@ mod tests {
         assert_ne!(v4.as_ref(), v5.as_ref(), "v5 drops RetentionTimeMs");
         let mut cur = v5.as_ref();
         let (_gid, _mid, got) = decode_offset_commit_request(&mut cur, 5).unwrap();
-        assert_eq!(got[0].partitions[0].leader_epoch, -1);
+        assert_eq!(
+            got[0].partitions[0].leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert!(cur.is_empty(), "v5 request leftover-empty");
 
         let mut v6 = BytesMut::new();

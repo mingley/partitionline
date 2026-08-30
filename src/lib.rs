@@ -48,7 +48,8 @@
 //! [`CoordinatorType`] is Java `FindCoordinatorRequest.CoordinatorType`
 //! (`id` / `forId`; unknown is `None`). [`protocol::group::MIN_BATCHED_VERSION`]
 //! is Java `FindCoordinatorRequest.MIN_BATCHED_VERSION`.
-//! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
+//! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
+//! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName),
@@ -104,6 +105,7 @@
 //! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),
 //! and TxnOffsetCommit v0–v5
 //! (v3+ flexible; GenerationId / MemberId / GroupInstanceId;
+//! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v5 skips AddOffsetsToTxn, KIP-890 Part 2;
 //! [`protocol::txn::TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
@@ -160,7 +162,8 @@
 //! every partition leader in parallel. Fetch negotiates v4–v17 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
-//! v12+ LastFetchedEpoch from the last consumed batch, KIP-320). v18+
+//! v12+ LastFetchedEpoch from the last consumed batch, KIP-320;
+//! decode below v12 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). v18+
 //! is not spoken. [`protocol::fetch::FetchedPartition::INVALID_HIGH_WATERMARK`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LAST_STABLE_OFFSET`] /
 //! [`protocol::fetch::FetchedPartition::INVALID_LOG_START_OFFSET`] /
@@ -180,6 +183,7 @@
 //! [`protocol::fetch::FetchMetadata`] is Java `FetchMetadata`
 //! ([`protocol::fetch::FetchMetadata::LEGACY`] on Fetch requests).
 //! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
+//! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH`] /
 //! [`protocol::epoch::EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] are Java
@@ -431,7 +435,8 @@
 //! (`coordinatorEpoch` / `currentTransactionStartOffset` are `None` when
 //! the wire value is negative).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
-//! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10).
+//! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10;
+//! decode below v4 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! [`protocol::offsets::ListOffsetsPartition`] getters / `Display` match
 //! Java `ListOffsetsResult.ListOffsetsResultInfo` (`leaderEpoch` is
 //! `Optional.empty` when the wire value is `-1`).

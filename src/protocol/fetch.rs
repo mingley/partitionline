@@ -158,11 +158,13 @@ impl fmt::Display for FetchMetadata {
 pub struct FetchPartition {
     /// Partition index.
     pub partition: i32,
-    /// Current leader epoch from Metadata, or `-1`.
+    /// Current leader epoch from Metadata, or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub current_leader_epoch: i32,
     /// Next offset to fetch.
     pub fetch_offset: i64,
-    /// Epoch of the last fetched record (v12+), or `-1`.
+    /// Epoch of the last fetched record (v12+), or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub last_fetched_epoch: i32,
     /// Max bytes for this partition.
     pub partition_max_bytes: i32,
@@ -456,7 +458,8 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 
 /// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
 ///
-/// `last_fetched_epoch` is `-1` below v12.
+/// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
+/// below v12.
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -484,7 +487,7 @@ pub fn decode_fetch_request<B: Buf>(
             let last_fetched_epoch = if version >= 12 {
                 buf::get_i32(buf)?
             } else {
-                -1
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
             };
             let _log_start = buf::get_i64(buf)?;
             let partition_max_bytes = buf::get_i32(buf)?;
@@ -814,6 +817,10 @@ mod tests {
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(decoded[0].partitions[0].fetch_offset, 3);
+        assert_eq!(
+            decoded[0].partitions[0].last_fetched_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
         assert_eq!(decoded[0].partitions[0].partition_max_bytes, 1024);
         assert!(rack.is_empty());
         assert!(
