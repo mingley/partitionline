@@ -364,7 +364,10 @@
 //! [`protocol::admin::DescribeConfigsResponse::should_client_throttle`] is Java
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+);
 //! [`protocol::admin::DescribeConfigsResponse::error_counts`] is Java
-//! `DescribeConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
+//! `DescribeConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
+//! [`protocol::admin::DescribeConfigsResponse::result_map`] is Java
+//! `DescribeConfigsResponse.resultMap` (ConfigResource to each result;
+//! unknown resource types are UNKNOWN)),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
@@ -379,12 +382,18 @@
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
 //! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+);
 //! [`protocol::admin::IncrementalAlterConfigsResponse::error_counts`] is Java
-//! `IncrementalAlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
+//! `IncrementalAlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
+//! [`protocol::admin::IncrementalAlterConfigsResponse::from_response_data`] is Java
+//! `IncrementalAlterConfigsResponse.fromResponseData` (ConfigResource to
+//! [`ApiError`]; unknown resource types are UNKNOWN)),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N;
 //! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
 //! `AlterConfigsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::AlterConfigsResponse::error_counts`] is Java
-//! `AlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`)),
+//! `AlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
+//! [`protocol::admin::AlterConfigsResponse::errors`] is Java
+//! `AlterConfigsResponse.errors` (ConfigResource to [`ApiError`]; unknown
+//! resource types are UNKNOWN)),
 //! DeleteRecords v0–v2 (v2 flexible;
 //! [`protocol::admin::DeleteRecordsRequest::HIGH_WATERMARK`];
 //! [`DeletedRecords::INVALID_LOW_WATERMARK`];

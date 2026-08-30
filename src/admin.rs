@@ -1455,7 +1455,7 @@ impl fmt::Display for ConfigResourceType {
 }
 
 /// Resource for DescribeConfigs / IncrementalAlterConfigs / AlterConfigs.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ConfigResource {
     /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, [`ConfigResourceType::Topic`], …).
     pub resource_type: i8,
@@ -1528,6 +1528,77 @@ impl fmt::Display for ConfigResource {
             None => f.write_str("UNKNOWN")?,
         }
         write!(f, ", name='{}')", self.name)
+    }
+}
+
+/// Java `ConfigResource.Type.forId` then `ConfigResource(Type, name)`.
+///
+/// Unknown type ids become `UNKNOWN` (0).
+fn config_resource_from_response(resource_type: i8, name: impl Into<String>) -> ConfigResource {
+    ConfigResource {
+        resource_type: ConfigResourceType::from_id(resource_type)
+            .map(ConfigResourceType::id)
+            .unwrap_or(0),
+        name: name.into(),
+        keys: None,
+    }
+}
+
+fn alter_config_api_errors(
+    results: &[AlterConfigsResourceResult],
+) -> HashMap<ConfigResource, crate::error::ApiError> {
+    let mut map = HashMap::new();
+    for result in results {
+        map.extend([(
+            config_resource_from_response(result.resource_type, result.name.clone()),
+            crate::error::ApiError::from_code(result.error_code, result.error_message.clone()),
+        )]);
+    }
+    map
+}
+
+impl crate::protocol::admin::AlterConfigsResponse {
+    /// Java `AlterConfigsResponse.errors`.
+    ///
+    /// Each key is a [`ConfigResource`] (Java `Type.forId`; unknown ids are
+    /// `UNKNOWN`). Values are [`crate::error::ApiError`].
+    #[must_use]
+    pub fn errors(
+        results: &[AlterConfigsResourceResult],
+    ) -> HashMap<ConfigResource, crate::error::ApiError> {
+        alter_config_api_errors(results)
+    }
+}
+
+impl crate::protocol::admin::IncrementalAlterConfigsResponse {
+    /// Java `IncrementalAlterConfigsResponse.fromResponseData`.
+    ///
+    /// Same map as [`crate::protocol::admin::AlterConfigsResponse::errors`].
+    #[must_use]
+    pub fn from_response_data(
+        results: &[AlterConfigsResourceResult],
+    ) -> HashMap<ConfigResource, crate::error::ApiError> {
+        alter_config_api_errors(results)
+    }
+}
+
+impl crate::protocol::admin::DescribeConfigsResponse {
+    /// Java `DescribeConfigsResponse.resultMap`.
+    ///
+    /// Each key is a [`ConfigResource`] (Java `Type.forId`; unknown ids are
+    /// `UNKNOWN`).
+    #[must_use]
+    pub fn result_map(
+        results: &[DescribeConfigsResult],
+    ) -> HashMap<ConfigResource, DescribeConfigsResult> {
+        let mut map = HashMap::new();
+        for result in results {
+            map.extend([(
+                config_resource_from_response(result.resource_type, result.name.clone()),
+                result.clone(),
+            )]);
+        }
+        map
     }
 }
 
@@ -12268,6 +12339,55 @@ mod tests {
         assert_eq!(
             replacement.configs,
             vec![("retention.ms".into(), Some("1000".into()))]
+        );
+        let by_resource = crate::protocol::admin::DescribeConfigsResponse::result_map(
+            std::slice::from_ref(&described),
+        );
+        assert_eq!(
+            by_resource.get(&ConfigResource::topic("t")),
+            Some(&described)
+        );
+        let unknown_type = DescribeConfigsResult {
+            error_code: 0,
+            error_message: None,
+            resource_type: 99,
+            name: "x".into(),
+            entries: Vec::new(),
+        };
+        let unknown_map = crate::protocol::admin::DescribeConfigsResponse::result_map(
+            std::slice::from_ref(&unknown_type),
+        );
+        assert_eq!(
+            unknown_map.get(&ConfigResource {
+                resource_type: 0,
+                name: "x".into(),
+                keys: None,
+            }),
+            Some(&unknown_type)
+        );
+    }
+
+    #[test]
+    fn alter_configs_errors_match_java() {
+        let ok = AlterConfigsResourceResult::error(CONFIG_RESOURCE_TOPIC, "t", 0);
+        let bad = AlterConfigsResourceResult::error(
+            CONFIG_RESOURCE_BROKER,
+            "1",
+            crate::error::INVALID_REQUEST,
+        );
+        let results = [ok, bad];
+        let errors = crate::protocol::admin::AlterConfigsResponse::errors(&results);
+        assert_eq!(errors.len(), 2);
+        assert_eq!(
+            errors.get(&ConfigResource::topic("t")),
+            Some(&crate::error::ApiError::NONE)
+        );
+        let broker = errors.get(&ConfigResource::broker(1)).unwrap();
+        assert_eq!(broker.error(), crate::error::INVALID_REQUEST);
+        assert!(broker.message().is_none());
+        assert_eq!(
+            crate::protocol::admin::IncrementalAlterConfigsResponse::from_response_data(&results),
+            errors
         );
     }
 
