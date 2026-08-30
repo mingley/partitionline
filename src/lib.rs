@@ -179,6 +179,9 @@
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];
 //! empty members; ProtocolName null on v7+)),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
+//! [`protocol::group::LeaveGroupRequest::error_response`] is Java
+//! `LeaveGroupRequest.getErrorResponse` (empty Members; request members are
+//! not copied);
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
 //! `LeaveGroupResponse.shouldClientThrottle` (v2+);
 //! [`protocol::group::LeaveGroupResponse::error_counts`] is Java

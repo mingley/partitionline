@@ -1963,6 +1963,23 @@ pub fn decode_leave_group_response_version<B: Buf>(
     Ok((error_code, members))
 }
 
+/// Java `LeaveGroupRequest` helpers.
+pub struct LeaveGroupRequest;
+
+impl LeaveGroupRequest {
+    /// Java `LeaveGroupRequest.getErrorResponse`.
+    ///
+    /// Members stay empty (request members are not copied). Throttle is
+    /// the JSON default (`0`) on v1+.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_leave_group_response_version(buf, version, error_code, &[])
+    }
+}
+
 /// Java `LeaveGroupResponse` helpers.
 pub struct LeaveGroupResponse;
 
@@ -6899,6 +6916,52 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_leave_group_request_members(&mut buf, 5, "g-rm", &members).unwrap();
         assert_eq!(&buf[..], REQ);
+    }
+
+    #[test]
+    fn leave_group_error_response_matches_java() {
+        // Java LeaveGroupRequest.getErrorResponse: top-level error only.
+        // Members stay empty (request members are not copied). Throttle is
+        // JSON default 0 on v1+.
+        for version in [0_i16, 1, 3, 5] {
+            let mut expected = BytesMut::new();
+            encode_leave_group_response_version(&mut expected, version, 16, &[]).unwrap();
+            let mut got = BytesMut::new();
+            LeaveGroupRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "LeaveGroup v{version} getErrorResponse must match empty-Members encode"
+            );
+            let mut cur = &got[..];
+            let (err, members) = decode_leave_group_response_version(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert!(members.is_empty(), "v{version} Members must be empty");
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v0 = BytesMut::new();
+        LeaveGroupRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        LeaveGroupRequest::error_response(&mut v1, 1, 16).unwrap();
+        assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
+        let copied = [LeaveGroupMemberResult {
+            member_id: "m1".into(),
+            group_instance_id: None,
+            error_code: 16,
+        }];
+        let mut with_member = BytesMut::new();
+        encode_leave_group_response_version(&mut with_member, 3, 16, &copied).unwrap();
+        let mut empty = BytesMut::new();
+        LeaveGroupRequest::error_response(&mut empty, 3, 16).unwrap();
+        assert_ne!(
+            &empty[..],
+            &with_member[..],
+            "getErrorResponse must not copy request members"
+        );
     }
 
     #[test]
