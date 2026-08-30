@@ -1074,11 +1074,16 @@ impl ConsumerGroup {
     /// Returns [`Error::MaxPollInterval`] if this member did not poll within
     /// [`ConsumerConfig::max_poll_interval`]. The heartbeat thread also leaves
     /// the group when that happens.
+    ///
+    /// Not subscribed is Java `IllegalStateException` (`Consumer is not
+    /// subscribed to any topics or assigned any partitions`).
     pub async fn poll(&mut self) -> Result<ConsumerRecords> {
         self.poll_fetch(None).await
     }
 
     /// Poll with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
+    ///
+    /// Not subscribed is the same Java `IllegalStateException` as [`Self::poll`].
     pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
         self.poll_fetch(Some(timeout)).await
     }
@@ -1088,6 +1093,9 @@ impl ConsumerGroup {
             return Err(Error::MaxPollInterval);
         }
         self.check_max_poll_interval()?;
+        if self.topics.is_empty() && self.topic_match.is_none() {
+            return Err(crate::consumer::reject_java_no_subscription_or_assignment());
+        }
         self.maybe_refresh_matching().await?;
         let force = std::mem::replace(&mut self.rebalance_needed, false);
         if self.kip848 {
@@ -1101,8 +1109,8 @@ impl ConsumerGroup {
         }
         self.flush_async_commits().await;
         let recs = match wait {
-            Some(t) => self.consumer.fetch_timeout(t).await?,
-            None => self.consumer.fetch().await?,
+            Some(t) => self.consumer.fetch_allow_unassigned_timeout(t).await?,
+            None => self.consumer.fetch_allow_unassigned().await?,
         };
         self.maybe_auto_commit().await?;
         Ok(recs)

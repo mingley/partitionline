@@ -1693,6 +1693,71 @@ async fn offsets_for_times_rejects_negative_timestamp_match_java() {
     consumer.close().await.unwrap();
 }
 
+#[tokio::test]
+async fn poll_without_subscription_or_assignment_match_java() {
+    let mock = common::Mock::start().await;
+    let kafka = "Consumer is not subscribed to any topics or assigned any partitions";
+    let share_msg = "Consumer is not subscribed to any topics.";
+
+    let mut consumer =
+        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+    let fetch = consumer.fetch().await.unwrap_err().to_string();
+    assert!(fetch.contains(kafka), "{fetch}");
+    let fetch_timeout = consumer
+        .fetch_timeout(Duration::from_millis(10))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(fetch_timeout.contains(kafka), "{fetch_timeout}");
+    consumer.assign("t", 0, 0).await.unwrap();
+    consumer.unassign();
+    let unassigned = consumer.fetch().await.unwrap_err().to_string();
+    assert!(unassigned.contains(kafka), "{unassigned}");
+    consumer.close().await.unwrap();
+
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "poll-unsub",
+        "t",
+    )
+    .await
+    .unwrap();
+    group.unsubscribe().await.unwrap();
+    let poll = group.poll().await.unwrap_err().to_string();
+    assert!(poll.contains(kafka), "{poll}");
+    let poll_timeout = group
+        .poll_timeout(Duration::from_millis(10))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(poll_timeout.contains(kafka), "{poll_timeout}");
+    group.leave().await.unwrap();
+
+    let mut share_group = ShareGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10),
+        "sg-poll-unsub",
+        "t",
+    )
+    .await
+    .unwrap();
+    share_group.unsubscribe().await.unwrap();
+    let share_poll = share_group.poll().await.unwrap_err().to_string();
+    assert!(share_poll.contains(share_msg), "{share_poll}");
+    assert!(
+        !share_poll.contains("or assigned any partitions"),
+        "ShareConsumer uses the shorter message, got {share_poll}"
+    );
+    let share_timeout = share_group
+        .poll_timeout(Duration::from_millis(10))
+        .await
+        .unwrap_err()
+        .to_string();
+    assert!(share_timeout.contains(share_msg), "{share_timeout}");
+    share_group.leave().await.unwrap();
+}
+
 #[test]
 fn topic_partition_from_tuple() {
     let tp: TopicPartition = ("orders", 3).into();

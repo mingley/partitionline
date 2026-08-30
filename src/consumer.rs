@@ -1992,16 +1992,30 @@ impl Consumer {
     /// Fetch one round from every assigned partition that is not paused.
     ///
     /// Returns [`ConsumerRecords`], which indexes like a slice of
-    /// [`FetchedRecord`]. Empty if nothing is assigned, or every assigned
-    /// partition is paused.
+    /// [`FetchedRecord`]. Empty when every assigned partition is paused.
+    /// Nothing assigned is Java `IllegalStateException` (`Consumer is not
+    /// subscribed to any topics or assigned any partitions`).
     /// Partitions that share a leader go in one Fetch. Distinct leaders are
     /// fetched at the same time.
     ///
     /// When [`ConsumerConfig::max_poll_records`] is set, extra records from
     /// the Fetch stay buffered and are returned on the next call.
     pub async fn fetch(&mut self) -> Result<ConsumerRecords> {
+        self.fetch_records(true).await
+    }
+
+    /// [`Self::fetch`] for a subscribed [`crate::ConsumerGroup`] (assignment
+    /// may still be empty while the coordinator is joining).
+    pub(crate) async fn fetch_allow_unassigned(&mut self) -> Result<ConsumerRecords> {
+        self.fetch_records(false).await
+    }
+
+    async fn fetch_records(&mut self, require_assignment: bool) -> Result<ConsumerRecords> {
         if self.take_wakeup() {
             return Err(Error::Wakeup);
+        }
+        if require_assignment && self.assigned.is_empty() {
+            return Err(reject_java_no_subscription_or_assignment());
         }
         let started = Instant::now();
         let result = self.fetch_assigned().await;
@@ -2036,11 +2050,28 @@ impl Consumer {
 
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
-    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
+    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards. Nothing
+    /// assigned is the same Java `IllegalStateException` as [`Self::fetch`].
     pub async fn fetch_timeout(&mut self, timeout: Duration) -> Result<ConsumerRecords> {
+        self.fetch_records_timeout(timeout, true).await
+    }
+
+    /// [`Self::fetch_timeout`] for a subscribed [`crate::ConsumerGroup`].
+    pub(crate) async fn fetch_allow_unassigned_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<ConsumerRecords> {
+        self.fetch_records_timeout(timeout, false).await
+    }
+
+    async fn fetch_records_timeout(
+        &mut self,
+        timeout: Duration,
+        require_assignment: bool,
+    ) -> Result<ConsumerRecords> {
         let prev = self.cfg.max_wait_ms;
         self.cfg.max_wait_ms = duration_millis_i32(timeout);
-        let out = self.fetch().await;
+        let out = self.fetch_records(require_assignment).await;
         self.cfg.max_wait_ms = prev;
         out
     }
@@ -3164,6 +3195,11 @@ fn fetched_bytes(rec: &FetchedRecord) -> u64 {
 
 pub(crate) fn duration_millis_i32(d: Duration) -> i32 {
     i32::try_from(d.as_millis()).unwrap_or(i32::MAX).max(0)
+}
+
+/// Java `KafkaConsumer.poll` when `SubscriptionState.hasNoSubscriptionOrUserAssignment`.
+pub(crate) fn reject_java_no_subscription_or_assignment() -> Error {
+    Error::protocol("Consumer is not subscribed to any topics or assigned any partitions")
 }
 
 pub(crate) fn partition_infos_from(

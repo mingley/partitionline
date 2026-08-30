@@ -403,7 +403,10 @@
 //! `seek offset must not be a negative number`, and an unassigned partition
 //! is Java `No current assignment for partition`). [`Consumer::pause`] / [`Consumer::resume`] skip
 //! partitions without dropping the assignment. [`Consumer::fetch`] talks to
-//! every partition leader in parallel. Fetch negotiates v4–v17 (v12+ is
+//! every partition leader in parallel. Nothing assigned is Java
+//! `Consumer is not subscribed to any topics or assigned any partitions`
+//! ([`ConsumerGroup::poll`] uses the same check; [`ShareGroup::poll`] is
+//! `Consumer is not subscribed to any topics.`). Fetch negotiates v4–v17 (v12+ is
 //! flexible; v13+ topic IDs, KIP-516; v15 omits untagged ReplicaId, KIP-903;
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320;

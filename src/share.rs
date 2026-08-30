@@ -821,9 +821,15 @@ impl ShareGroup {
     /// Fetch records from assigned share partitions.
     ///
     /// Returns [`ShareRecords`], which indexes like a slice of [`ShareRecord`].
+    ///
+    /// Not subscribed is Java `IllegalStateException` (`Consumer is not
+    /// subscribed to any topics.`).
     pub async fn poll(&mut self) -> Result<ShareRecords> {
         if self.consumer.take_wakeup() {
             return Err(Error::Wakeup);
+        }
+        if self.topics.is_empty() && self.topic_match.is_none() {
+            return Err(reject_java_share_not_subscribed());
         }
         self.maybe_refresh_matching().await?;
         let hb = self.hb_err.load(Ordering::SeqCst);
@@ -1055,7 +1061,8 @@ impl ShareGroup {
 
     /// Fetch with a one-shot `fetch.max.wait.ms` (Java `poll(Duration)`).
     ///
-    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards.
+    /// [`ConsumerConfig::max_wait_ms`] is restored afterwards. Not subscribed
+    /// is the same Java `IllegalStateException` as [`Self::poll`].
     pub async fn poll_timeout(&mut self, timeout: Duration) -> Result<ShareRecords> {
         let prev = self.cfg.max_wait_ms;
         self.cfg.max_wait_ms = crate::consumer::duration_millis_i32(timeout);
@@ -1491,6 +1498,11 @@ fn share_session_reset(e: &Error) -> bool {
             ..
         }
     )
+}
+
+/// Java `ShareConsumerImpl.poll` when `hasNoSubscriptionOrUserAssignment`.
+fn reject_java_share_not_subscribed() -> Error {
+    Error::protocol("Consumer is not subscribed to any topics.")
 }
 
 /// Collapse records into KIP-932 acknowledgement batches.
