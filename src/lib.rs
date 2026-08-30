@@ -959,6 +959,9 @@
 //! [`protocol::records::Records::last_batch`] are Java
 //! `AbstractRecords.hasMatchingMagic` / `firstBatch` / `lastBatch` (empty
 //! matching-magic is true; empty first/last is `None`).
+//! [`protocol::records::Records::first_batch_size`] is Java
+//! `MemoryRecords.firstBatchSize` (short header is `None`; undersized or
+//! invalid magic is [`Error::protocol`]).
 //! Magic-v2 record decode matches Java `DefaultRecord.readFrom`
 //! `InvalidRecordException` messages (negative header count, header count
 //! larger than remaining bytes, negative header key size, declared body

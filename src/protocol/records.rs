@@ -87,6 +87,41 @@ impl Records {
     pub fn last_batch(batches: &[RecordBatch]) -> Option<&RecordBatch> {
         batches.last()
     }
+
+    /// Java `MemoryRecords.firstBatchSize`.
+    ///
+    /// Fewer than [`Self::HEADER_SIZE_UP_TO_MAGIC`] bytes is `None` (the size
+    /// field is not validated). Size below Java `LegacyRecord.RECORD_OVERHEAD_V0`
+    /// (14) or magic outside 0 through [`RecordBatch::CURRENT_MAGIC_VALUE`] is
+    /// [`Error::protocol`] (`CorruptRecordException`). The returned size includes
+    /// [`Self::LOG_OVERHEAD`].
+    pub fn first_batch_size(buffer: &[u8]) -> Result<Option<i32>> {
+        let header_up_to_magic = buf::usize_from_i32(Self::HEADER_SIZE_UP_TO_MAGIC)?;
+        if buffer.len() < header_up_to_magic {
+            return Ok(None);
+        }
+        let size_off = buf::usize_from_i32(Self::SIZE_OFFSET)?;
+        let record_size = buf::read_int_be(buffer, size_off)?;
+        // Java `LegacyRecord.RECORD_OVERHEAD_V0`.
+        const RECORD_OVERHEAD_V0: i32 = 14;
+        if record_size < RECORD_OVERHEAD_V0 {
+            return Err(Error::protocol(format!(
+                "Record size {record_size} is less than the minimum record overhead ({RECORD_OVERHEAD_V0})"
+            )));
+        }
+        let magic_off = buf::usize_from_i32(Self::MAGIC_OFFSET)?;
+        let magic_byte = buffer
+            .get(magic_off)
+            .copied()
+            .ok_or_else(|| Error::protocol("short magic byte"))?;
+        let magic = i8::from_ne_bytes([magic_byte]);
+        if !(0..=RecordBatch::CURRENT_MAGIC_VALUE).contains(&magic) {
+            return Err(Error::protocol(format!(
+                "Invalid magic found in record: {magic}"
+            )));
+        }
+        Ok(Some(record_size.wrapping_add(Self::LOG_OVERHEAD)))
+    }
 }
 
 /// Kafka record-batch compression codec.
@@ -2950,5 +2985,78 @@ mod tests {
             Records::last_batch(std::slice::from_ref(&batches[0])).map(RecordBatch::base_offset),
             Some(0)
         );
+    }
+
+    #[test]
+    fn first_batch_size_matches_java_memory_records() {
+        assert_eq!(Records::first_batch_size(&[]).unwrap(), None);
+        assert_eq!(Records::first_batch_size(&[0; 16]).unwrap(), None);
+        let mut almost = [0u8; 16];
+        almost[8..12].copy_from_slice(&1i32.to_be_bytes());
+        assert_eq!(Records::first_batch_size(&almost).unwrap(), None);
+
+        let mut buf = [0u8; 17];
+        buf[8..12].copy_from_slice(&14i32.to_be_bytes());
+        buf[16] = 2;
+        assert_eq!(Records::first_batch_size(&buf).unwrap(), Some(26));
+        buf[16] = 0;
+        assert_eq!(Records::first_batch_size(&buf).unwrap(), Some(26));
+
+        let mut small = [0u8; 17];
+        small[8..12].copy_from_slice(&13i32.to_be_bytes());
+        small[16] = 2;
+        let err = Records::first_batch_size(&small).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size 13 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+
+        let mut neg = [0u8; 17];
+        neg[8..12].copy_from_slice(&(-1i32).to_be_bytes());
+        let err = Records::first_batch_size(&neg).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size -1 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+
+        let mut min = [0u8; 17];
+        min[8..12].copy_from_slice(&i32::MIN.to_be_bytes());
+        let err = Records::first_batch_size(&min).unwrap_err().to_string();
+        assert!(
+            err.contains("Record size -2147483648 is less than the minimum record overhead (14)"),
+            "{err}"
+        );
+
+        let mut bad_magic = [0u8; 17];
+        bad_magic[8..12].copy_from_slice(&14i32.to_be_bytes());
+        bad_magic[16] = 3;
+        let err = Records::first_batch_size(&bad_magic)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Invalid magic found in record: 3"), "{err}");
+
+        let mut signed_magic = [0u8; 17];
+        signed_magic[8..12].copy_from_slice(&14i32.to_be_bytes());
+        signed_magic[16] = 0xff;
+        let err = Records::first_batch_size(&signed_magic)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("Invalid magic found in record: -1"), "{err}");
+
+        let batch = RecordBatch::from_records(vec![Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"a")),
+            headers: vec![],
+        }]);
+        let mut encoded = BytesMut::new();
+        encode_record_batch(&mut encoded, &batch).unwrap();
+        let encoded_len = i32::try_from(encoded.len()).unwrap();
+        assert_eq!(
+            Records::first_batch_size(&encoded).unwrap(),
+            Some(encoded_len)
+        );
+        assert_eq!(encoded_len, batch.size_in_bytes().unwrap());
     }
 }
