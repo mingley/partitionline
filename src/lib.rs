@@ -196,7 +196,12 @@
 //! `DescribeConfigsResponse.shouldClientThrottle` (v2+)),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
-//! `CreatePartitionsResponse.shouldClientThrottle` (v1+)),
+//! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::CreatePartitionsTopic::error_result`] /
+//! [`protocol::admin::CreatePartitionsTopic::error_results`] are Java
+//! `CreatePartitionsRequest.getErrorResponse` (one topic / Results).
+//! `ErrorMessage` stays the JSON default (null); official Java also
+//! sets the English `Errors.message` string),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N;
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
 //! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+)),

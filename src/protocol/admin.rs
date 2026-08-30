@@ -1871,6 +1871,8 @@ impl CreatePartitionsResponse {
 /// `assignments = None` is a null Assignments array: the broker assigns
 /// replicas (Java `NewPartitions.increaseTo(int)`). `Some` is Java
 /// `increaseTo(int, List<List<Integer>>)`.
+/// [`Self::error_result`] is Java `CreatePartitionsRequest.getErrorResponse`
+/// one topic (copy `Name`; `ErrorMessage` stays the JSON default, null).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreatePartitionsTopic {
     /// Topic name.
@@ -1890,6 +1892,28 @@ impl CreatePartitionsTopic {
             count,
             assignments: None,
         }
+    }
+
+    /// Java `CreatePartitionsRequest.getErrorResponse` one topic.
+    ///
+    /// Sets `Name` and `ErrorCode`. `ErrorMessage` is the JSON default
+    /// (null); official Java also sets the English `Errors.message`
+    /// string. Request count and assignments are not copied. Throttle
+    /// on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TopicResult {
+        TopicResult::error(error_code, Some(self.name.as_str()), [0; 16])
+    }
+
+    /// Java `CreatePartitionsRequest.getErrorResponse` Results.
+    ///
+    /// Maps each request topic through [`Self::error_result`].
+    #[must_use]
+    pub fn error_results(topics: &[Self], error_code: i16) -> Vec<TopicResult> {
+        topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect()
     }
 }
 
@@ -14538,6 +14562,101 @@ mod tests {
             &buf[..],
             &v1r[..],
             "CreatePartitions v2 response must not be classic v1"
+        );
+
+        let err_results =
+            CreatePartitionsTopic::error_results(&topics, crate::error::NOT_CONTROLLER);
+        assert_eq!(
+            err_results,
+            vec![TopicResult::error(
+                crate::error::NOT_CONTROLLER,
+                Some("t"),
+                [0; 16],
+            )]
+        );
+        let first = err_results.first().expect("error topic");
+        assert_eq!(first.name(), "t");
+        assert_eq!(first.error_code(), crate::error::NOT_CONTROLLER);
+        assert!(first.error_message().is_none());
+        let two = vec![
+            CreatePartitionsTopic::new("a", 3),
+            CreatePartitionsTopic {
+                name: "b".into(),
+                count: 4,
+                assignments: Some(vec![vec![1, 2]]),
+            },
+        ];
+        let two_err =
+            CreatePartitionsTopic::error_results(&two, crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(two_err.len(), 2);
+        assert_eq!(
+            two.get(1)
+                .expect("b topic")
+                .error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED)
+                .name(),
+            "b"
+        );
+        let empty = CreatePartitionsTopic::error_results(&[], crate::error::NOT_CONTROLLER);
+        assert!(empty.is_empty());
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 2, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 2).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v2 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 1, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 1).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 0, &err_results).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 0).unwrap(),
+            err_results
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 2, &two_err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 2).unwrap(),
+            two_err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions two-topic getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_create_partitions_response(&mut buf, 2, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_partitions_response(&mut cur, 2).unwrap(),
+            empty
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreatePartitions empty getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
         );
     }
 
