@@ -60,6 +60,10 @@
 //! [`protocol::group::ConsumerProtocol::serialize_subscription`] is Java
 //! `ConsumerProtocol.serializeSubscription` (v3 `GenerationId` / `RackId`;
 //! [`protocol::group::ConsumerProtocolSubscription::DEFAULT_GENERATION`]);
+//! [`group::resolve_sticky_owned_partitions`] is Java
+//! `AbstractStickyAssignor.allSubscriptionsEqual` owned-partition
+//! generation resolution (higher generation keeps the partition; the same
+//! generation revokes it from both);
 //! [`protocol::group::JoinGroupResponse::is_leader`] is Java
 //! `JoinGroupResponse.isLeader`).
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;

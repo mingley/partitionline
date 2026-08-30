@@ -26,7 +26,7 @@ use crate::protocol::cgheartbeat::{
 use crate::protocol::group::{
     decode_assignment, decode_find_coordinator_response, decode_heartbeat_response,
     decode_join_group_response, decode_leave_group_response_version, decode_offset_commit_response,
-    decode_offset_fetch_response, decode_subscription_owned, decode_sync_group_response,
+    decode_offset_fetch_response, decode_sync_group_response,
     encode_find_coordinator_request_typed, encode_heartbeat_request,
     encode_join_group_protocols_request, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_fetch_request, encode_sync_group_request,
@@ -247,6 +247,59 @@ pub fn assign_range_subscribed(
                 for p in ps {
                     slot.push((topic.clone(), p));
                 }
+            }
+        }
+    }
+    out
+}
+
+/// `(member_id, owned topic-partitions, generation_id)` for
+/// [`resolve_sticky_owned_partitions`].
+type StickyOwnedClaim = (String, Vec<(String, i32)>, i32);
+
+/// Resolve overlapping owned partitions the way Java
+/// `AbstractStickyAssignor.allSubscriptionsEqual` does.
+///
+/// Each claim is `(member_id, owned topic-partitions, generation_id)`.
+/// The higher [`ConsumerProtocolSubscription::generation_id`] keeps the
+/// partition. The same generation revokes it from both members
+/// (KAFKA-13081). [`ConsumerProtocolSubscription::DEFAULT_GENERATION`] is
+/// unknown.
+pub fn resolve_sticky_owned_partitions(
+    claims: &[StickyOwnedClaim],
+) -> HashMap<String, Vec<(String, i32)>> {
+    let mut out: HashMap<String, Vec<(String, i32)>> = HashMap::new();
+    for (member, _, _) in claims {
+        let _ = out.entry(member.clone()).or_default();
+    }
+    let mut owner: HashMap<(String, i32), (String, i32)> = HashMap::new();
+    for (member, owned, generation) in claims {
+        for tp in owned {
+            match owner.get(tp).cloned() {
+                None => {
+                    if let Some(slot) = out.get_mut(member) {
+                        slot.push(tp.clone());
+                    }
+                    let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                }
+                Some((other, other_generation)) => match generation.cmp(&other_generation) {
+                    std::cmp::Ordering::Equal => {
+                        if let Some(other_slot) = out.get_mut(&other) {
+                            other_slot.retain(|p| p != tp);
+                        }
+                        let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                    }
+                    std::cmp::Ordering::Greater => {
+                        if let Some(other_slot) = out.get_mut(&other) {
+                            other_slot.retain(|p| p != tp);
+                        }
+                        if let Some(slot) = out.get_mut(member) {
+                            slot.push(tp.clone());
+                        }
+                        let _ = owner.insert(tp.clone(), (member.clone(), *generation));
+                    }
+                    std::cmp::Ordering::Less => {}
+                },
             }
         }
     }
@@ -1795,22 +1848,28 @@ impl ConsumerGroup {
         }
 
         let mut member_subs: Vec<(String, Vec<String>)> = Vec::with_capacity(members.len());
-        let mut owned_prev = self.prev_assignment.clone();
+        let mut owned_claims: Vec<StickyOwnedClaim> = Vec::with_capacity(members.len());
         let mut topic_set = self.topics.clone();
         for m in &members {
-            let (subs, owned) = match decode_subscription_owned(&m.metadata) {
-                Ok((t, o)) if !t.is_empty() => (t, o),
-                Ok((_, o)) => (self.topics.clone(), o),
-                Err(_) => (self.topics.clone(), Vec::new()),
+            let sub = match ConsumerProtocol::deserialize_subscription(&m.metadata) {
+                Ok(s) if !s.topics.is_empty() => s,
+                Ok(s) => ConsumerProtocolSubscription {
+                    topics: self.topics.clone(),
+                    owned_partitions: s.owned_partitions,
+                    generation_id: s.generation_id,
+                    rack_id: s.rack_id,
+                },
+                Err(_) => ConsumerProtocolSubscription::new(self.topics.clone()),
             };
-            for t in &subs {
+            for t in &sub.topics {
                 if !topic_set.iter().any(|x| x == t) {
                     topic_set.push(t.clone());
                 }
             }
-            let _ = owned_prev.insert(m.member_id.clone(), owned);
-            member_subs.push((m.member_id.clone(), subs));
+            member_subs.push((m.member_id.clone(), sub.topics));
+            owned_claims.push((m.member_id.clone(), sub.owned_partitions, sub.generation_id));
         }
+        let owned_prev = resolve_sticky_owned_partitions(&owned_claims);
         self.consumer.refresh_topics(&topic_set).await?;
         let mut by_topic = Vec::with_capacity(topic_set.len());
         for topic in &topic_set {
@@ -2739,7 +2798,7 @@ fn coordinator_error(api_key: i16, api_version: i16, body: &[u8]) -> Option<i16>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::group::{FetchedOffset, JoinGroupRequest};
+    use crate::protocol::group::{ConsumerProtocolSubscription, FetchedOffset, JoinGroupRequest};
     use std::collections::HashMap;
 
     #[test]
@@ -2821,6 +2880,55 @@ mod tests {
         assert!(a.iter().all(|p| !b.contains(p)));
         assert_eq!(a, vec![0, 1]);
         assert_eq!(b, vec![2, 3]);
+    }
+
+    #[test]
+    fn sticky_owned_higher_generation_keeps_partition() {
+        let claims = vec![
+            (
+                "a".into(),
+                vec![("t".into(), 0), ("t".into(), 1)],
+                ConsumerProtocolSubscription::DEFAULT_GENERATION,
+            ),
+            ("b".into(), vec![("t".into(), 0), ("t".into(), 2)], 3),
+        ];
+        let got = resolve_sticky_owned_partitions(&claims);
+        assert_eq!(
+            got.get("a").cloned().unwrap_or_default(),
+            vec![("t".into(), 1)]
+        );
+        assert_eq!(
+            got.get("b").cloned().unwrap_or_default(),
+            vec![("t".into(), 0), ("t".into(), 2)]
+        );
+    }
+
+    #[test]
+    fn sticky_owned_same_generation_revokes_from_both() {
+        let gen = 4;
+        let claims = vec![
+            ("a".into(), vec![("t".into(), 0)], gen),
+            ("b".into(), vec![("t".into(), 0)], gen),
+        ];
+        let got = resolve_sticky_owned_partitions(&claims);
+        assert!(got.get("a").cloned().unwrap_or_default().is_empty());
+        assert!(got.get("b").cloned().unwrap_or_default().is_empty());
+    }
+
+    #[test]
+    fn sticky_owned_later_higher_generation_takes_doubly_claimed() {
+        let claims = vec![
+            ("a".into(), vec![("t".into(), 0)], 5),
+            ("b".into(), vec![("t".into(), 0)], 5),
+            ("c".into(), vec![("t".into(), 0)], 6),
+        ];
+        let got = resolve_sticky_owned_partitions(&claims);
+        assert!(got.get("a").cloned().unwrap_or_default().is_empty());
+        assert!(got.get("b").cloned().unwrap_or_default().is_empty());
+        assert_eq!(
+            got.get("c").cloned().unwrap_or_default(),
+            vec![("t".into(), 0)]
+        );
     }
 
     #[test]
