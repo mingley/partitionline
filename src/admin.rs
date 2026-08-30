@@ -2851,9 +2851,8 @@ impl Admin {
     /// are optional at connect. Missing APIs fail on the method with
     /// [`Error::Unsupported`].
     pub async fn new(cfg: AdminConfig) -> Result<Self> {
-        if cfg.bootstrap.is_empty() {
-            return Err(Error::protocol("no bootstrap servers"));
-        }
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let stats = Arc::new(crate::metrics::AdminTracker::default());
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,

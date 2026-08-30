@@ -1291,7 +1291,11 @@
 //! [`net::valid_host_pattern`] are Java `Utils.getHost` / `getPort` /
 //! `formatAddress` / `validHostPattern` (IPv6 brackets, optional
 //! `PLAINTEXT://` scheme). TLS SNI uses `getHost` when the bootstrap
-//! address parses.
+//! address parses. [`net::parse_and_validate_addresses`] is Java
+//! `ClientUtils.parseAndValidateAddresses` without DNS (`Invalid url in
+//! bootstrap.servers`, `Invalid port in bootstrap.servers`; an empty list
+//! is still `no bootstrap servers`; all-blank entries are `No resolvable
+//! bootstrap urls given in bootstrap.servers`).
 //! [`ProducerConfig::delivery_timeout`] is Kafka `delivery.timeout.ms`
 //! (default 30s; Java defaults to 120s). [`ProducerConfig::max_block`] is
 //! Kafka `max.block.ms` (how long `send` waits for metadata and

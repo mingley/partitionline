@@ -163,6 +163,51 @@ pub fn format_address(host: &str, port: i32) -> String {
     }
 }
 
+/// Java `ClientUtils.parseAndValidateAddresses` without DNS lookup.
+///
+/// Empty input is `no bootstrap servers`. Blank entries are skipped. A
+/// non-empty url that [`get_host`] / [`get_port`] cannot parse is
+/// `Invalid url in bootstrap.servers: {url}`. A port that does not fit
+/// `u16` is `Invalid port in bootstrap.servers: {url}`. If nothing remains
+/// after skipping blanks, `No resolvable bootstrap urls given in
+/// bootstrap.servers`. Does not resolve hosts (`Unknown host in
+/// bootstrap.servers`).
+pub fn parse_and_validate_addresses(urls: &[String]) -> Result<Vec<String>> {
+    if urls.is_empty() {
+        return Err(Error::protocol("no bootstrap servers"));
+    }
+    let mut addresses = Vec::new();
+    for url in urls {
+        if url.is_empty() {
+            continue;
+        }
+        addresses.push(parse_bootstrap_url(url)?);
+    }
+    if addresses.is_empty() {
+        return Err(Error::protocol(
+            "No resolvable bootstrap urls given in bootstrap.servers",
+        ));
+    }
+    Ok(addresses)
+}
+
+fn parse_bootstrap_url(url: &str) -> Result<String> {
+    let (host, port) = match (get_host(url), get_port(url)) {
+        (Some(host), Some(port)) => (host, port),
+        _ => {
+            return Err(Error::protocol(format!(
+                "Invalid url in bootstrap.servers: {url}"
+            )));
+        }
+    };
+    if u16::try_from(port).is_err() {
+        return Err(Error::protocol(format!(
+            "Invalid port in bootstrap.servers: {url}"
+        )));
+    }
+    Ok(format_address(host, port))
+}
+
 fn host_of(addr: &str) -> &str {
     if let Some(host) = get_host(addr) {
         return host;
@@ -392,11 +437,9 @@ impl BrokerConn {
         connect_timeout: Duration,
         tls: Option<&TlsConfig>,
     ) -> Result<Self> {
-        if addrs.is_empty() {
-            return Err(Error::protocol("no bootstrap servers"));
-        }
+        let addrs = parse_and_validate_addresses(addrs)?;
         let mut last = Error::protocol("all bootstrap servers failed");
-        for addr in addrs {
+        for addr in &addrs {
             match Self::connect_tls(addr, client_id, connect_timeout, tls).await {
                 Ok(conn) => return Ok(conn),
                 Err(e) => last = e,
@@ -695,5 +738,39 @@ mod tests {
         assert_eq!(host_of("127.0.0.1:9092"), "127.0.0.1");
         assert_eq!(host_of("[::1]:9092"), "::1");
         assert_eq!(host_of("PLAINTEXT://broker.local:9093"), "broker.local");
+    }
+
+    #[test]
+    fn parse_and_validate_addresses_match_java() {
+        let empty: Vec<String> = Vec::new();
+        assert!(parse_and_validate_addresses(&empty)
+            .unwrap_err()
+            .to_string()
+            .contains("no bootstrap servers"));
+        let blanks = vec![String::new(), String::new()];
+        assert!(parse_and_validate_addresses(&blanks)
+            .unwrap_err()
+            .to_string()
+            .contains("No resolvable bootstrap urls given in bootstrap.servers"));
+        let bad = vec!["ho)st:9092".to_string()];
+        assert!(parse_and_validate_addresses(&bad)
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid url in bootstrap.servers: ho)st:9092"));
+        let port = vec!["host:70000".to_string()];
+        assert!(parse_and_validate_addresses(&port)
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid port in bootstrap.servers: host:70000"));
+        let scheme = vec!["PLAINTEXT://127.0.0.1:9092".to_string()];
+        assert_eq!(
+            parse_and_validate_addresses(&scheme).unwrap(),
+            vec!["127.0.0.1:9092".to_string()]
+        );
+        let v6 = vec!["[::1]:9092".to_string()];
+        assert_eq!(
+            parse_and_validate_addresses(&v6).unwrap(),
+            vec!["[::1]:9092".to_string()]
+        );
     }
 }

@@ -925,9 +925,8 @@ impl Producer {
     /// Connect using `cfg`. Negotiates ApiVersions, optional SASL/TLS, and
     /// `InitProducerId` when idempotent or transactional.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
-        if cfg.bootstrap.is_empty() {
-            return Err(Error::protocol("no bootstrap servers"));
-        }
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let mut meta = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,

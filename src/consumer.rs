@@ -1236,9 +1236,8 @@ impl Consumer {
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     pub async fn new(cfg: ConsumerConfig) -> Result<Self> {
-        if cfg.bootstrap.is_empty() {
-            return Err(Error::protocol("no bootstrap servers"));
-        }
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let mut conn = BrokerConn::connect_tls_any(
             &cfg.bootstrap,
             &cfg.client_id,

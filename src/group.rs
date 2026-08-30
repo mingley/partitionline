@@ -625,6 +625,8 @@ impl ConsumerGroup {
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
         reject_java_empty_group_id(&group_id)?;
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let protocol = assignors
             .first()
             .cloned()
@@ -766,6 +768,8 @@ impl ConsumerGroup {
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
         reject_java_empty_group_id(&group_id)?;
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let coord = discover_coord(&cfg, &group_id, COORDINATOR_GROUP).await?;
         let hb_err = Arc::new(AtomicI16::new(0));

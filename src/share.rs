@@ -607,6 +607,8 @@ impl ShareGroup {
         topic_match: Option<TopicMatch>,
     ) -> Result<Self> {
         reject_java_share_group_id(&group_id)?;
+        let mut cfg = cfg;
+        cfg.bootstrap = crate::net::parse_and_validate_addresses(&cfg.bootstrap)?;
         let consumer = Consumer::new(cfg.clone()).await?;
         let share_fetch_version = consumer
             .versions()
