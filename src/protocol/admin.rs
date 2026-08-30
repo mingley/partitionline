@@ -10520,6 +10520,9 @@ pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
 }
 
 /// One topic in an AlterReplicaLogDirs (api 34) request.
+///
+/// [`Self::error_result`] is Java `AlterReplicaLogDirsRequest.getErrorResponse`
+/// one topic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsTopic {
     /// Topic, resource, group, or feature name.
@@ -10547,6 +10550,21 @@ impl AlterReplicaLogDirsTopic {
     #[must_use]
     pub fn partitions(&self) -> &[i32] {
         &self.partitions
+    }
+
+    /// Java `AlterReplicaLogDirsRequest.getErrorResponse` one topic.
+    ///
+    /// Each partition is [`AlterReplicaLogDirsResponsePartition::new`].
+    /// Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> AlterReplicaLogDirsResponseTopic {
+        AlterReplicaLogDirsResponseTopic::new(
+            self.name.clone(),
+            self.partitions
+                .iter()
+                .map(|&p| AlterReplicaLogDirsResponsePartition::new(p, error_code))
+                .collect(),
+        )
     }
 }
 
@@ -10603,9 +10621,26 @@ impl AlterReplicaLogDirsRequest {
     pub fn dirs(&self) -> &[AlterReplicaLogDirsDirectory] {
         &self.dirs
     }
+
+    /// Java `AlterReplicaLogDirsRequest.getErrorResponse`.
+    ///
+    /// Flattens each directory's topics (Java `dirs().stream().flatMap`).
+    /// Throttle on the response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> AlterReplicaLogDirsResponse {
+        AlterReplicaLogDirsResponse::new(
+            self.dirs
+                .iter()
+                .flat_map(|d| d.topics.iter().map(|t| t.error_result(error_code)))
+                .collect(),
+        )
+    }
 }
 
 /// One partition in an AlterReplicaLogDirs (api 34) response.
+///
+/// [`Self::new`] is Java `AlterReplicaLogDirsRequest.getErrorResponse`
+/// partition body (`PartitionIndex` / `ErrorCode`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsResponsePartition {
     /// Partition index.
@@ -10615,7 +10650,7 @@ pub struct AlterReplicaLogDirsResponsePartition {
 }
 
 impl AlterReplicaLogDirsResponsePartition {
-    /// Construct [`Self`].
+    /// Java `AlterReplicaLogDirsRequest.getErrorResponse` partition body.
     pub fn new(partition_index: i32, error_code: i16) -> Self {
         Self {
             partition_index,
@@ -19347,6 +19382,56 @@ mod tests {
         )
         .unwrap();
         assert_eq!(&buf[..], RESP_EMPTY);
+        let topic = AlterReplicaLogDirsTopic::new("t", vec![0, 3]);
+        let topic_err = topic.error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(
+            topic_err,
+            AlterReplicaLogDirsResponseTopic::new(
+                "t",
+                vec![
+                    AlterReplicaLogDirsResponsePartition::new(
+                        0,
+                        crate::error::CLUSTER_AUTHORIZATION_FAILED
+                    ),
+                    AlterReplicaLogDirsResponsePartition::new(
+                        3,
+                        crate::error::CLUSTER_AUTHORIZATION_FAILED
+                    ),
+                ],
+            )
+        );
+        let two_dirs = AlterReplicaLogDirsRequest::new(vec![
+            AlterReplicaLogDirsDirectory::new(
+                "/d1",
+                vec![AlterReplicaLogDirsTopic::new("a", vec![0])],
+            ),
+            AlterReplicaLogDirsDirectory::new(
+                "/d2",
+                vec![AlterReplicaLogDirsTopic::new("b", vec![1])],
+            ),
+        ]);
+        let flat = two_dirs.error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(
+            flat,
+            AlterReplicaLogDirsResponse::new(vec![
+                AlterReplicaLogDirsTopic::new("a", vec![0])
+                    .error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+                AlterReplicaLogDirsTopic::new("b", vec![1])
+                    .error_result(crate::error::CLUSTER_AUTHORIZATION_FAILED),
+            ])
+        );
+        buf.clear();
+        encode_alter_replica_log_dirs_response(&mut buf, 2, &flat).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_alter_replica_log_dirs_response(&mut cur, 2).unwrap(),
+            flat
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]

@@ -162,7 +162,10 @@
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
-//! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+)),
+//! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);
+//! [`AlterReplicaLogDirsTopic::error_result`] /
+//! [`AlterReplicaLogDirsRequest::error_result`] are Java
+//! `AlterReplicaLogDirsRequest.getErrorResponse` (one topic / flatten dirs)),
 //! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes;
 //! [`protocol::admin::DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES`] /
 //! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /
