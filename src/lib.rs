@@ -722,9 +722,11 @@
 //! copied (`User` stays the JSON default, empty). `ErrorMessage` stays
 //! the JSON default (null); official Java also sets the English
 //! `Errors.message` string. Throttle is the JSON default (`0`).
-//! [`protocol::admin::DescribeUserScramCredentialsResponse::error_counts`] is Java
-//! `DescribeUserScramCredentialsResponse.errorCounts` (per-user codes,
-//! including `NONE`; the top-level `errorCode` is not counted).
+//! [`protocol::admin::DescribeUserScramCredentialsResponse::error_counts`] /
+//! [`protocol::admin::DescribeUserScramCredentialsResponse::should_client_throttle`]
+//! are Java `DescribeUserScramCredentialsResponse.errorCounts` (per-user
+//! codes, including `NONE`; the top-level `errorCode` is not counted) /
+//! `shouldClientThrottle` (always).
 //! [`ScramMechanism::id`] is Java
 //! `ScramMechanism.type`. [`ActiveProducer`] `Display`
 //! is Java `ProducerState.toString`. [`DescribeProducersPartition`]
@@ -1246,8 +1248,10 @@
 //! unique sorted names from Deletions and Upsertions). `ErrorMessage`
 //! stays the JSON default (null); official Java also sets the English
 //! `Errors.message` string.
-//! [`protocol::admin::AlterUserScramCredentialsResponse::error_counts`] is Java
-//! `AlterUserScramCredentialsResponse.errorCounts` (per-user codes, including `NONE`).
+//! [`protocol::admin::AlterUserScramCredentialsResponse::error_counts`] /
+//! [`protocol::admin::AlterUserScramCredentialsResponse::should_client_throttle`]
+//! are Java `AlterUserScramCredentialsResponse.errorCounts` (per-user codes,
+//! including `NONE`) / `shouldClientThrottle` (always).
 //! [`Admin::alter_user_scram_credentials_timeout`] /
 //! [`Admin::describe_user_scram_credentials_timeout`] are Java
 //! `AlterUserScramCredentialsOptions` /

@@ -4785,6 +4785,12 @@ impl AlterUserScramCredentialsResult {
 pub struct AlterUserScramCredentialsResponse;
 
 impl AlterUserScramCredentialsResponse {
+    /// Java `AlterUserScramCredentialsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
+    }
+
     /// Java `AlterUserScramCredentialsResponse.errorCounts`.
     ///
     /// Counts per-user result error codes (including `NONE`). There is
@@ -5090,6 +5096,12 @@ impl DescribeUserScramCredentialsResponse {
     #[must_use]
     pub fn results(&self) -> &[DescribeUserScramCredentialsResult] {
         &self.results
+    }
+
+    /// Java `DescribeUserScramCredentialsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(_version: i16) -> bool {
+        true
     }
 
     /// Java `DescribeUserScramCredentialsResponse.errorCounts`.
@@ -14713,6 +14725,8 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::RESOURCE_NOT_FOUND, 1),])
         );
+        assert!(DescribeUserScramCredentialsResponse::should_client_throttle(0));
+        assert!(DescribeUserScramCredentialsResponse::should_client_throttle(1));
     }
 
     #[test]
@@ -14770,6 +14784,8 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::DUPLICATE_RESOURCE, 1),])
         );
+        assert!(AlterUserScramCredentialsResponse::should_client_throttle(0));
+        assert!(AlterUserScramCredentialsResponse::should_client_throttle(1));
     }
 
     #[test]
