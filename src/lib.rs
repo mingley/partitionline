@@ -294,6 +294,9 @@
 //! `DeleteAclsResponse.validate` reject UNKNOWN on response resources /
 //! MatchingAcls (`Contain UNKNOWN elements` /
 //! `DeleteAclsMatchingAcls contain UNKNOWN elements`);
+//! [`protocol::acl::DescribeAclsResponse::acls_resources`] /
+//! [`protocol::acl::DescribeAclsResponse::acl_bindings`] are Java
+//! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]);
 //! [`DeletedAclsFilterResult::error`] / [`DeletedAclsFilterResult::error_results`]
 //! are Java `DeleteAclsRequest.getErrorResponse` (one FilterResult /
 //! `nCopies`). MatchingAcls stay the JSON default (empty); `ErrorMessage`
@@ -524,7 +527,10 @@
 //! `Filters contain UNKNOWN elements`). Java `DescribeAclsResponse.validate` /
 //! `DeleteAclsResponse.validate` reject UNKNOWN on response resources /
 //! MatchingAcls (`Contain UNKNOWN elements` /
-//! `DeleteAclsMatchingAcls contain UNKNOWN elements`). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
+//! `DeleteAclsMatchingAcls contain UNKNOWN elements`).
+//! [`protocol::acl::DescribeAclsResponse::acls_resources`] /
+//! [`protocol::acl::DescribeAclsResponse::acl_bindings`] are Java
+//! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]). [`NewTopic`] / [`NewPartitions`] / [`ListedGroup`] `Display`
 //! match Java `toString` (`GroupListing.toString` on [`ListedGroup`]).
 //! [`ClientQuotaEntity`] / [`ClientQuotaFilter`] /
 //! [`ClientQuotaFilterComponent`] / [`ClientQuotaAlteration`] `Display`

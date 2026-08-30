@@ -1325,6 +1325,59 @@ impl AclCreationResult {
     }
 }
 
+/// One resource in a DescribeAcls response (Java `DescribeAclsResource`).
+///
+/// [`DescribeAclsResponse::acls_resources`] groups [`AclBinding`]s that
+/// share a [`ResourcePattern`]. Encode writes this grouped layout;
+/// decode flattens with [`DescribeAclsResponse::acl_bindings`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribeAclsResource {
+    /// Kafka resource type (`ACL_RESOURCE_TOPIC`, [`AclResourceType::Topic`], …).
+    pub resource_type: i8,
+    /// Resource name (topic name, …).
+    pub resource_name: String,
+    /// Pattern type (`ACL_PATTERN_LITERAL`, [`AclPatternType::Literal`], …).
+    pub pattern_type: i8,
+    /// ACEs on this resource (Java `AclDescription` list).
+    pub acls: Vec<AccessControlEntry>,
+}
+
+impl DescribeAclsResource {
+    /// Java `DescribeAclsResource.resourceType`.
+    #[must_use]
+    pub fn resource_type(&self) -> AclResourceType {
+        AclResourceType::from_id(self.resource_type)
+    }
+
+    /// Java `DescribeAclsResource.resourceName`.
+    #[must_use]
+    pub fn resource_name(&self) -> &str {
+        self.resource_name.as_str()
+    }
+
+    /// Java `DescribeAclsResource.patternType`.
+    #[must_use]
+    pub fn pattern_type(&self) -> AclPatternType {
+        AclPatternType::from_id(self.pattern_type)
+    }
+
+    /// Java `DescribeAclsResource.acls`.
+    #[must_use]
+    pub fn acls(&self) -> &[AccessControlEntry] {
+        &self.acls
+    }
+
+    /// Java `ResourcePattern` for this resource.
+    #[must_use]
+    pub fn pattern(&self) -> ResourcePattern {
+        ResourcePattern {
+            resource_type: self.resource_type,
+            name: self.resource_name.clone(),
+            pattern_type: self.pattern_type,
+        }
+    }
+}
+
 /// Java `DescribeAclsResponse` helpers.
 pub struct DescribeAclsResponse;
 
@@ -1333,6 +1386,52 @@ impl DescribeAclsResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `DescribeAclsResponse.aclsResources`.
+    ///
+    /// Groups bindings that share a [`ResourcePattern`]. Duplicate ACEs
+    /// on the same pattern are dropped (Java `HashSet`). Resource and
+    /// ACE order is first-seen (Java `HashMap` / `HashSet` order is not
+    /// stable).
+    #[must_use]
+    pub fn acls_resources(acls: &[AclBinding]) -> Vec<DescribeAclsResource> {
+        let mut resources: Vec<DescribeAclsResource> = Vec::new();
+        for acl in acls {
+            let entry = acl.entry();
+            if let Some(resource) = resources.iter_mut().find(|r| {
+                r.resource_type == acl.resource_type
+                    && r.resource_name == acl.resource_name
+                    && r.pattern_type == acl.pattern_type
+            }) {
+                if !resource.acls.contains(&entry) {
+                    resource.acls.push(entry);
+                }
+            } else {
+                resources.push(DescribeAclsResource {
+                    resource_type: acl.resource_type,
+                    resource_name: acl.resource_name.clone(),
+                    pattern_type: acl.pattern_type,
+                    acls: vec![entry],
+                });
+            }
+        }
+        resources
+    }
+
+    /// Java `DescribeAclsResponse.aclBindings`.
+    #[must_use]
+    pub fn acl_bindings(resources: &[DescribeAclsResource]) -> Vec<AclBinding> {
+        resources
+            .iter()
+            .flat_map(|resource| {
+                resource
+                    .acls
+                    .iter()
+                    .cloned()
+                    .map(|entry| AclBinding::new(resource.pattern(), entry))
+            })
+            .collect()
     }
 }
 
@@ -1614,7 +1713,9 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result
 
 /// Encode DescribeAcls with matching bindings.
 ///
-/// Java `DescribeAclsResponse.validate` rejects non-LITERAL pattern types
+/// Java `DescribeAclsResponse.aclsResources` groups bindings that share
+/// a [`ResourcePattern`] (one resource, several ACEs). Java
+/// `DescribeAclsResponse.validate` rejects non-LITERAL pattern types
 /// on v0 (`UnsupportedVersionException`) and UNKNOWN resource / pattern /
 /// operation / permission (`Contain UNKNOWN elements`).
 pub fn encode_describe_acls_response(
@@ -1625,23 +1726,28 @@ pub fn encode_describe_acls_response(
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     reject_describe_acls_response_unknown_elements(acls)?;
+    let resources = DescribeAclsResponse::acls_resources(acls);
     buf.put_i32(0);
     buf.put_i16(0);
     buf::put_string(buf, flexible, None)?;
-    buf::put_array_len(buf, flexible, Some(acls.len()))?;
-    for a in acls {
-        buf.put_i8(a.resource_type);
-        buf::put_string(buf, flexible, Some(&a.resource_name))?;
+    buf::put_array_len(buf, flexible, Some(resources.len()))?;
+    for resource in &resources {
+        buf.put_i8(resource.resource_type);
+        buf::put_string(buf, flexible, Some(&resource.resource_name))?;
         if version >= 1 {
-            buf.put_i8(a.pattern_type);
+            buf.put_i8(resource.pattern_type);
         }
-        buf::put_array_len(buf, flexible, Some(1))?;
-        buf::put_string(buf, flexible, Some(&a.principal))?;
-        buf::put_string(buf, flexible, Some(&a.host))?;
-        buf.put_i8(a.operation);
-        buf.put_i8(a.permission);
+        buf::put_array_len(buf, flexible, Some(resource.acls.len()))?;
+        for ace in &resource.acls {
+            buf::put_string(buf, flexible, Some(&ace.principal))?;
+            buf::put_string(buf, flexible, Some(&ace.host))?;
+            buf.put_i8(ace.operation);
+            buf.put_i8(ace.permission);
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
         if flexible {
-            buf::put_empty_tagged_fields(buf);
             buf::put_empty_tagged_fields(buf);
         }
     }
@@ -1652,13 +1758,16 @@ pub fn encode_describe_acls_response(
 }
 
 /// Decode DescribeAcls bindings. Top-level error returns an empty list.
+///
+/// Flattens grouped resources with [`DescribeAclsResponse::acl_bindings`]
+/// (Java `DescribeAclsResponse.aclBindings`).
 pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<AclBinding>> {
     let flexible = acl_api_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
     let _msg = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    let mut out = Vec::new();
+    let mut resources = Vec::new();
     for _ in 0..n {
         let resource_type = buf::get_i8(buf)?;
         let resource_name = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1668,6 +1777,7 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
             ACL_PATTERN_LITERAL
         };
         let an = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut acls = Vec::with_capacity(an);
         for _ in 0..an {
             let principal = buf::get_string(buf, flexible)?.unwrap_or_default();
             let host = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1676,10 +1786,7 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
-            out.push(AclBinding {
-                resource_type,
-                resource_name: resource_name.clone(),
-                pattern_type,
+            acls.push(AccessControlEntry {
                 principal,
                 host,
                 operation,
@@ -1689,6 +1796,12 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        resources.push(DescribeAclsResource {
+            resource_type,
+            resource_name,
+            pattern_type,
+            acls,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -1696,7 +1809,7 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     if err != 0 {
         return Ok(Vec::new());
     }
-    Ok(out)
+    Ok(DescribeAclsResponse::acl_bindings(&resources))
 }
 
 fn put_acl_filter_fields(
@@ -2087,6 +2200,69 @@ mod tests {
             encode_create_acls_request(&mut BytesMut::new(), 4, std::slice::from_ref(&acl))
                 .is_err(),
             "CreateAcls v4+ is not spoken"
+        );
+    }
+
+    #[test]
+    fn describe_acls_response_groups_bindings_like_java() {
+        let alice = AclBinding::allow_topic("t", "User:alice");
+        let bob = AclBinding::allow_topic("t", "User:bob");
+        let other = AclBinding::allow_topic("u", "User:alice");
+        let grouped = DescribeAclsResponse::acls_resources(&[
+            alice.clone(),
+            bob.clone(),
+            alice.clone(),
+            other.clone(),
+        ]);
+        assert_eq!(grouped.len(), 2, "two ResourcePatterns");
+        let first = grouped.first().expect("topic t");
+        assert_eq!(first.resource_name(), "t");
+        assert_eq!(first.resource_type(), AclResourceType::Topic);
+        assert_eq!(first.pattern_type(), AclPatternType::Literal);
+        assert_eq!(first.pattern(), alice.pattern());
+        assert_eq!(first.acls(), &[alice.entry(), bob.entry()]);
+        let second = grouped.get(1).expect("topic u");
+        assert_eq!(second.resource_name(), "u");
+        assert_eq!(second.acls(), &[other.entry()]);
+        assert_eq!(
+            DescribeAclsResponse::acl_bindings(&grouped),
+            vec![alice.clone(), bob.clone(), other.clone()],
+            "aclBindings flattens grouped resources"
+        );
+
+        for version in [0i16, 1, 2, 3] {
+            let acls = [alice.clone(), bob.clone()];
+            let mut buf = BytesMut::new();
+            encode_describe_acls_response(&mut buf, version, &acls).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_describe_acls_response(&mut cur, version).unwrap(),
+                acls.to_vec()
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeAcls v{version} grouped leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+
+        // v0 classic: throttle i32 + error i16 + null STRING i16, then
+        // Resources INT32 length. Grouped same-pattern ACLs are one resource.
+        let mut v0 = BytesMut::new();
+        encode_describe_acls_response(&mut v0, 0, &[alice.clone(), bob.clone()]).unwrap();
+        assert_eq!(
+            v0.get(8..12),
+            Some([0, 0, 0, 1].as_slice()),
+            "v0 grouped Resources length is 1"
+        );
+        // v2 flexible: throttle i32 + error i16 + compact-null STRING,
+        // then compact array length n+1 (1 resource is 0x02).
+        let mut v2 = BytesMut::new();
+        encode_describe_acls_response(&mut v2, 2, &[alice, bob]).unwrap();
+        assert_eq!(
+            v2.get(7).copied(),
+            Some(0x02),
+            "v2 grouped Resources compact length is 1"
         );
     }
 
