@@ -409,8 +409,11 @@
 //! `IsolationLevel.toString` / `CompressionType.toString`.
 //! [`IsolationLevel::id`] / [`IsolationLevel::from_id`] are Java
 //! `IsolationLevel.id` / `forId`. [`Compression::id`] /
-//! [`Compression::from_id`] are Java `CompressionType.id` / `forId`
+//! [`Compression::from_id`] / [`Compression::from_name`] are Java
+//! `CompressionType.id` / `forId` / `forName`
 //! (zstd `4` is `None`; this crate does not speak zstd).
+//! [`TimestampType::id`] / [`TimestampType::from_name`] are Java
+//! `TimestampType.id` / `forName`.
 //! [`AcknowledgeType`] `Display` is Java `AcknowledgeType.toString`
 //! (`accept`). [`AcknowledgeType::id`] / [`AcknowledgeType::from_id`] are
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).

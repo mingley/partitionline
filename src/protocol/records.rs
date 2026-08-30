@@ -64,14 +64,17 @@ impl Compression {
         }
     }
 
-    /// `none` / `gzip` / `snappy` / `lz4`.
+    /// Java `CompressionType.forName` (`none` / `gzip` / `snappy` / `lz4`).
+    /// Empty is [`Self::None`]. zstd is not spoken.
     pub fn from_name(name: &str) -> Result<Self> {
         match name {
             "none" | "" => Ok(Self::None),
             "gzip" => Ok(Self::Gzip),
             "snappy" => Ok(Self::Snappy),
             "lz4" => Ok(Self::Lz4),
-            other => Err(Error::protocol(format!("unknown compression {other}"))),
+            other => Err(Error::protocol(format!(
+                "Unknown compression name: {other}"
+            ))),
         }
     }
 
@@ -691,7 +694,7 @@ impl TimestampType {
             "NoTimestampType" => Ok(Self::NoTimestampType),
             "CreateTime" => Ok(Self::CreateTime),
             "LogAppendTime" => Ok(Self::LogAppendTime),
-            other => Err(Error::protocol(format!("unknown timestamp type {other}"))),
+            other => Err(Error::protocol(format!("Invalid timestamp type {other}"))),
         }
     }
 
@@ -1847,9 +1850,18 @@ mod tests {
         );
         let unknown = TimestampType::from_name("bogus").unwrap_err();
         assert!(
-            unknown.to_string().contains("unknown timestamp type"),
+            unknown.to_string().contains("Invalid timestamp type bogus"),
             "{unknown}"
         );
+        let unknown_codec = Compression::from_name("bogus").unwrap_err();
+        assert!(
+            unknown_codec
+                .to_string()
+                .contains("Unknown compression name: bogus"),
+            "{unknown_codec}"
+        );
+        assert_eq!(Compression::from_name("gzip").unwrap(), Compression::Gzip);
+        assert_eq!(Compression::from_name("").unwrap(), Compression::None);
         assert_eq!(TimestampType::from_attributes(0), TimestampType::CreateTime);
         assert_eq!(
             TimestampType::from_attributes(ATTR_TIMESTAMP_TYPE),
