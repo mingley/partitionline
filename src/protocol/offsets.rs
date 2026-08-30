@@ -108,6 +108,11 @@ pub struct ListOffsetsPartition {
 }
 
 impl ListOffsetsPartition {
+    /// Java `ListOffsetsResponse.UNKNOWN_OFFSET`.
+    pub const UNKNOWN_OFFSET: i64 = -1;
+    /// Java `ListOffsetsResponse.UNKNOWN_TIMESTAMP`.
+    pub const UNKNOWN_TIMESTAMP: i64 = -1;
+
     /// Successful partition body.
     #[must_use]
     pub fn ok(timestamp: i64, offset: i64, leader_epoch: i32) -> Self {
@@ -580,9 +585,13 @@ mod tests {
             "ListOffsetsResultInfo(offset=2, timestamp=1, leaderEpoch=Optional[0])"
         );
 
-        let unknown = ListOffsetsPartition::ok(-1, -1, RecordBatch::NO_PARTITION_LEADER_EPOCH);
-        assert_eq!(unknown.offset(), -1);
-        assert_eq!(unknown.timestamp(), -1);
+        let unknown = ListOffsetsPartition::ok(
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+        );
+        assert_eq!(unknown.offset(), ListOffsetsPartition::UNKNOWN_OFFSET);
+        assert_eq!(unknown.timestamp(), ListOffsetsPartition::UNKNOWN_TIMESTAMP);
         assert_eq!(unknown.leader_epoch(), None);
         assert_eq!(
             unknown.to_string(),

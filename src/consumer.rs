@@ -900,6 +900,9 @@ impl OffsetAndMetadata {
     /// null).
     pub const NO_METADATA: &'static str = "";
 
+    /// Java `OffsetFetchResponse.INVALID_OFFSET`.
+    pub const INVALID_OFFSET: i64 = -1;
+
     /// Offset only: unknown epoch, [`Self::NO_METADATA`].
     #[must_use]
     pub fn new(offset: i64) -> Self {
@@ -993,6 +996,11 @@ pub struct OffsetAndTimestamp {
 }
 
 impl OffsetAndTimestamp {
+    /// Java `ListOffsetsResponse.UNKNOWN_OFFSET`.
+    pub const UNKNOWN_OFFSET: i64 = -1;
+    /// Java `ListOffsetsResponse.UNKNOWN_TIMESTAMP`.
+    pub const UNKNOWN_TIMESTAMP: i64 = -1;
+
     /// Offset and timestamp with an unknown leader epoch.
     #[must_use]
     pub fn new(offset: i64, timestamp: i64) -> Self {
@@ -3204,6 +3212,7 @@ mod tests {
             "OffsetAndMetadata{offset=1, leaderEpoch=null, metadata=''}"
         );
         assert_eq!(OffsetAndMetadata::NO_METADATA, "");
+        assert_eq!(OffsetAndMetadata::INVALID_OFFSET, -1);
         assert_eq!(
             OffsetAndMetadata::new(1).metadata(),
             OffsetAndMetadata::NO_METADATA
@@ -3220,6 +3229,8 @@ mod tests {
             OffsetAndTimestamp::new(1, 2).to_string(),
             "(timestamp=2, leaderEpoch=null, offset=1)"
         );
+        assert_eq!(OffsetAndTimestamp::UNKNOWN_OFFSET, -1);
+        assert_eq!(OffsetAndTimestamp::UNKNOWN_TIMESTAMP, -1);
         let info = PartitionInfo {
             topic: "t".into(),
             partition: 1,

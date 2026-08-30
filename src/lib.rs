@@ -85,7 +85,9 @@
 //! [`Producer::client_instance_id_timeout`] is Java `clientInstanceId(Duration)`.
 //! [`RecordMetadata::timestamp`] / [`RecordMetadata::has_timestamp`] /
 //! [`RecordMetadata::serialized_key_size`] / [`RecordMetadata::serialized_value_size`]
-//! match Java `RecordMetadata`. [`RecordBatch::NO_TIMESTAMP`] is Java
+//! match Java `RecordMetadata`. [`RecordMetadata::INVALID_OFFSET`] is Java
+//! `ProduceResponse.INVALID_OFFSET` (`hasOffset` is false when the offset is
+//! that value). [`RecordBatch::NO_TIMESTAMP`] is Java
 //! `RecordBatch.NO_TIMESTAMP`. [`RecordBatch::MAGIC_VALUE_V2`] /
 //! [`RecordBatch::CURRENT_MAGIC_VALUE`] are Java `MAGIC_VALUE_V2` /
 //! `CURRENT_MAGIC_VALUE`. [`RecordBatch::RECORD_BATCH_OVERHEAD`] is Java
@@ -155,7 +157,11 @@
 //! [`ProduceRecord`] `Display` is Java `ProducerRecord.toString`.
 //! [`OffsetAndMetadata`] / [`OffsetAndTimestamp`] / [`PartitionInfo`] `Display`
 //! match Java `toString`. [`OffsetAndMetadata::NO_METADATA`] is Java
-//! `OffsetFetchResponse.NO_METADATA`. [`TopicIdPartition`] `Display` is Java
+//! `OffsetFetchResponse.NO_METADATA`. [`OffsetAndMetadata::INVALID_OFFSET`] is
+//! Java `OffsetFetchResponse.INVALID_OFFSET`. [`OffsetAndTimestamp::UNKNOWN_OFFSET`] /
+//! [`OffsetAndTimestamp::UNKNOWN_TIMESTAMP`] are Java
+//! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
+//! [`TopicIdPartition`] `Display` is Java
 //! `TopicIdPartition.toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
 //! is Java `Uuid.randomUuid`. [`Uuid::ZERO_UUID`] / [`Uuid::ONE_UUID`] are Java
@@ -355,6 +361,9 @@
 //! [`protocol::offsets::ListOffsetsPartition`] getters / `Display` match
 //! Java `ListOffsetsResult.ListOffsetsResultInfo` (`leaderEpoch` is
 //! `Optional.empty` when the wire value is `-1`).
+//! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_OFFSET`] /
+//! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_TIMESTAMP`] are Java
+//! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]

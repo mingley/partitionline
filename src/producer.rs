@@ -545,7 +545,8 @@ impl fmt::Display for ProduceRecord {
 
 /// Broker acknowledgement for a produced record.
 ///
-/// Java `RecordMetadata`. [`Self::has_offset`] is Java `hasOffset` (`offset != -1`).
+/// Java `RecordMetadata`. [`Self::has_offset`] is Java `hasOffset` (`offset` is
+/// not [`Self::INVALID_OFFSET`]).
 /// [`Self::has_timestamp`] is Java `hasTimestamp` (`timestamp` is not
 /// [`RecordBatch::NO_TIMESTAMP`]). [`Self::serialized_key_size`] /
 /// [`Self::serialized_value_size`] are `-1` when the key or value is null.
@@ -570,6 +571,8 @@ pub struct RecordMetadata {
 impl RecordMetadata {
     /// Java `RecordMetadata.UNKNOWN_PARTITION`.
     pub const UNKNOWN_PARTITION: i32 = -1;
+    /// Java `ProduceResponse.INVALID_OFFSET`.
+    pub const INVALID_OFFSET: i64 = -1;
 
     /// Java `RecordMetadata.topic`.
     #[must_use]
@@ -592,7 +595,7 @@ impl RecordMetadata {
     /// Java `RecordMetadata.hasOffset`.
     #[must_use]
     pub fn has_offset(&self) -> bool {
-        self.offset != -1
+        self.offset != Self::INVALID_OFFSET
     }
 
     /// Java `RecordMetadata.timestamp` ([`RecordBatch::NO_TIMESTAMP`] when
@@ -3191,10 +3194,11 @@ mod tests {
         );
         assert_eq!(md.to_string(), "events-2@9");
         assert_eq!(RecordMetadata::UNKNOWN_PARTITION, -1);
+        assert_eq!(RecordMetadata::INVALID_OFFSET, -1);
         let acks0 = RecordMetadata {
             topic: "events".into(),
             partition: 0,
-            offset: -1,
+            offset: RecordMetadata::INVALID_OFFSET,
             timestamp: RecordBatch::NO_TIMESTAMP,
             serialized_key_size: -1,
             serialized_value_size: -1,
