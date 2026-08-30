@@ -611,8 +611,14 @@ impl Uuid {
     /// Java `Uuid.ZERO_UUID` (`0, 0`).
     pub const ZERO: Self = Self([0; 16]);
 
+    /// Java `Uuid.ZERO_UUID` ([`Self::ZERO`]).
+    pub const ZERO_UUID: Self = Self::ZERO;
+
     /// Java `Uuid.ONE_UUID` (`0, 1`). Also [`Self::METADATA_TOPIC_ID`].
     pub const ONE: Self = Self([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+
+    /// Java `Uuid.ONE_UUID` ([`Self::ONE`]).
+    pub const ONE_UUID: Self = Self::ONE;
 
     /// Java `Uuid.METADATA_TOPIC_ID` (KRaft metadata topic).
     pub const METADATA_TOPIC_ID: Self = Self::ONE;
@@ -12744,6 +12750,8 @@ mod tests {
     fn uuid_matches_java() {
         assert_eq!(Uuid::ZERO.to_string(), "AAAAAAAAAAAAAAAAAAAAAA");
         assert_eq!(Uuid::ONE.to_string(), "AAAAAAAAAAAAAAAAAAAAAQ");
+        assert_eq!(Uuid::ZERO_UUID, Uuid::ZERO);
+        assert_eq!(Uuid::ONE_UUID, Uuid::ONE);
         assert_eq!(Uuid::METADATA_TOPIC_ID, Uuid::ONE);
         assert_eq!(Uuid::ZERO.most_significant_bits(), 0);
         assert_eq!(Uuid::ZERO.least_significant_bits(), 0);

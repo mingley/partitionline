@@ -155,7 +155,8 @@
 //! `OffsetFetchResponse.NO_METADATA`. [`TopicIdPartition`] `Display` is Java
 //! `TopicIdPartition.toString`. [`TopicListing`] / [`TopicPartitionReplica`] /
 //! [`ReplicaLogDirInfo`] `Display` match Java `toString`. [`Uuid::random_uuid`]
-//! is Java `Uuid.randomUuid`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
+//! is Java `Uuid.randomUuid`. [`Uuid::ZERO_UUID`] / [`Uuid::ONE_UUID`] are Java
+//! `ZERO_UUID` / `ONE_UUID`. [`Config`] / [`ConfigEntry`] / [`ConfigResource`] /
 //! [`CreatedTopicConfig`] / [`ListedConfigResource`] `Display` match Java
 //! `toString` (`ConfigEntry.toString` on [`CreatedTopicConfig`];
 //! `ConfigResource.toString` on [`ListedConfigResource`]). [`AclBinding`] /
