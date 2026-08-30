@@ -11512,15 +11512,7 @@ fn topic_description_from(t: &crate::protocol::api::TopicMetadata) -> TopicDescr
     let partitions = if t.error_code == 0 {
         t.partitions
             .iter()
-            .map(|p| crate::PartitionInfo {
-                topic: name.clone(),
-                partition: p.partition_index,
-                leader: p.leader_id,
-                leader_epoch: p.leader_epoch,
-                replicas: p.replica_nodes.clone(),
-                isr: p.isr_nodes.clone(),
-                offline_replicas: p.offline_replicas.clone(),
-            })
+            .map(|p| crate::PartitionInfo::from_partition_metadata(name.as_str(), p))
             .collect()
     } else {
         Vec::new()

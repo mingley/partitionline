@@ -50,6 +50,10 @@
 //! ListOffsets, or OffsetsForLeaderEpoch; the client cache fills missing
 //! partition leaders with `NO_LEADER_ID` and missing epochs with
 //! [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
+//! [`protocol::api::PartitionMetadata::without_leader_epoch`] is Java
+//! `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
+//! [`PartitionInfo::from_partition_metadata`] is Java
+//! `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).

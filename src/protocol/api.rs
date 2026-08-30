@@ -748,6 +748,9 @@ pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
 }
 
 /// One partition in a Metadata response.
+///
+/// [`Self::without_leader_epoch`] is Java
+/// `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionMetadata {
     /// Kafka error code (`0` is success).
@@ -764,6 +767,20 @@ pub struct PartitionMetadata {
     pub isr_nodes: Vec<i32>,
     /// Offline replica broker ids (v5+). Java `offlineReplicas`.
     pub offline_replicas: Vec<i32>,
+}
+
+impl PartitionMetadata {
+    /// Java `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
+    ///
+    /// Sets [`Self::leader_epoch`] to [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
+    /// (Java `Optional.empty`).
+    #[must_use]
+    pub fn without_leader_epoch(&self) -> Self {
+        Self {
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            ..self.clone()
+        }
+    }
 }
 
 /// One topic in a Metadata response.
@@ -2362,6 +2379,27 @@ mod tests {
         );
         assert!(!MetadataResponse::should_client_throttle(5));
         assert!(MetadataResponse::should_client_throttle(6));
+        let with_epoch = PartitionMetadata {
+            error_code: 0,
+            partition_index: 1,
+            leader_id: 2,
+            leader_epoch: 8,
+            replica_nodes: vec![2, 3],
+            isr_nodes: vec![2],
+            offline_replicas: vec![3],
+        };
+        let stripped = with_epoch.without_leader_epoch();
+        assert_eq!(
+            stripped.leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(stripped.error_code, with_epoch.error_code);
+        assert_eq!(stripped.partition_index, with_epoch.partition_index);
+        assert_eq!(stripped.leader_id, with_epoch.leader_id);
+        assert_eq!(stripped.replica_nodes, with_epoch.replica_nodes);
+        assert_eq!(stripped.isr_nodes, with_epoch.isr_nodes);
+        assert_eq!(stripped.offline_replicas, with_epoch.offline_replicas);
+        assert_eq!(with_epoch.leader_epoch, 8);
     }
 
     #[test]

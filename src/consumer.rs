@@ -16,6 +16,7 @@ use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
 use crate::protocol::api::{
     decode_metadata_response, encode_metadata_request, ApiVersion, MetadataResponse,
+    PartitionMetadata,
 };
 use crate::protocol::api_keys::{
     pick_version, FETCH, GET_TELEMETRY_SUBSCRIPTIONS, LIST_OFFSETS, METADATA,
@@ -1056,6 +1057,8 @@ impl fmt::Display for OffsetAndTimestamp {
 /// Java `PartitionInfo`. [`Self::offline_replicas`] is Java `offlineReplicas`.
 /// [`Self::leader_epoch`] is Metadata v7+
 /// ([`crate::RecordBatch::NO_PARTITION_LEADER_EPOCH`] when unknown).
+/// [`Self::from_partition_metadata`] is Java `MetadataResponse.toPartitionInfo`
+/// (broker ids, not `Node`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionInfo {
     /// Topic name.
@@ -1076,6 +1079,24 @@ pub struct PartitionInfo {
 }
 
 impl PartitionInfo {
+    /// Java `MetadataResponse.toPartitionInfo` (broker ids, not `Node`).
+    ///
+    /// Java `PartitionMetadata` carries the topic name; this type stores it as
+    /// a field, so callers pass `topic`. Also copies Metadata `leader_epoch`
+    /// (Java `PartitionInfo` has no epoch).
+    #[must_use]
+    pub fn from_partition_metadata(topic: impl Into<String>, p: &PartitionMetadata) -> Self {
+        Self {
+            topic: topic.into(),
+            partition: p.partition_index,
+            leader: p.leader_id,
+            leader_epoch: p.leader_epoch,
+            replicas: p.replica_nodes.clone(),
+            isr: p.isr_nodes.clone(),
+            offline_replicas: p.offline_replicas.clone(),
+        }
+    }
+
     /// Java `PartitionInfo.topic`.
     #[must_use]
     pub fn topic(&self) -> &str {
@@ -3130,15 +3151,7 @@ pub(crate) fn partition_infos_from(
             return Err(Error::broker(tmd.error_code, name.clone()));
         }
         for p in &tmd.partitions {
-            out.push(PartitionInfo {
-                topic: name.clone(),
-                partition: p.partition_index,
-                leader: p.leader_id,
-                leader_epoch: p.leader_epoch,
-                replicas: p.replica_nodes.clone(),
-                isr: p.isr_nodes.clone(),
-                offline_replicas: p.offline_replicas.clone(),
-            });
+            out.push(PartitionInfo::from_partition_metadata(name.as_str(), p));
         }
     }
     Ok(out)
@@ -3270,6 +3283,20 @@ mod tests {
         assert_eq!(
             info.to_string(),
             "Partition(topic = t, partition = 1, leader = 2, replicas = [2,3], isr = [2], offlineReplicas = [3])"
+        );
+        let md = PartitionMetadata {
+            error_code: 0,
+            partition_index: 1,
+            leader_id: 2,
+            leader_epoch: 8,
+            replica_nodes: vec![2, 3],
+            isr_nodes: vec![2],
+            offline_replicas: vec![3],
+        };
+        assert_eq!(PartitionInfo::from_partition_metadata("t", &md), info);
+        assert_eq!(
+            PartitionInfo::from_partition_metadata("t", &md.without_leader_epoch()).leader_epoch(),
+            crate::RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
         let no_leader = PartitionInfo {
             topic: "t".into(),
