@@ -287,6 +287,11 @@
 //! [`protocol::admin::DescribeGroupsResponse::should_client_throttle`] are Java
 //! `DescribeGroupsResponse` error sentinels / `shouldClientThrottle` (v2+);
 //! [`DescribedGroup::new`] is Java `groupError`;
+//! [`protocol::admin::DescribeGroupsResponse::group_member`] /
+//! [`protocol::admin::DescribeGroupsResponse::group_metadata`] /
+//! [`protocol::admin::DescribeGroupsResponse::group_error`] are Java
+//! `groupMember` / `groupMetadata` / `groupError` with `ErrorMessage`
+//! (`ErrorMessage` stays JSON default (null) on `groupMetadata`);
 //! [`protocol::admin::DescribeGroupsRequest::error_described_group_list`] is Java
 //! `DescribeGroupsRequest.getErrorDescribedGroupList` (each id through
 //! [`DescribedGroup::new`]);

@@ -8106,6 +8106,73 @@ impl DescribeGroupsResponse {
         }
         counts
     }
+
+    /// Java `DescribeGroupsResponse.groupMember`.
+    ///
+    /// `group_instance_id` stays the JSON default (null) when `None`.
+    /// `assignment` is `MemberAssignment`; `metadata` is `MemberMetadata`.
+    #[must_use]
+    pub fn group_member(
+        member_id: impl Into<String>,
+        group_instance_id: Option<&str>,
+        client_id: impl Into<String>,
+        client_host: impl Into<String>,
+        assignment: &[u8],
+        metadata: &[u8],
+    ) -> DescribedGroupMember {
+        DescribedGroupMember {
+            member_id: member_id.into(),
+            group_instance_id: group_instance_id.map(str::to_owned),
+            client_id: client_id.into(),
+            client_host: client_host.into(),
+            member_assignment: assignment.to_vec(),
+            member_metadata: metadata.to_vec(),
+        }
+    }
+
+    /// Java `DescribeGroupsResponse.groupMetadata` (`int authorizedOperations`).
+    ///
+    /// Unset `ErrorMessage` stays the JSON default (null). Two-argument
+    /// [`DescribedGroup::new`] is `groupError` (`UNKNOWN_STATE` / empty
+    /// protocol strings / empty Members /
+    /// [`Self::AUTHORIZED_OPERATIONS_OMITTED`]).
+    #[must_use]
+    pub fn group_metadata(
+        group_id: impl Into<String>,
+        error_code: i16,
+        state: impl Into<String>,
+        protocol_type: impl Into<String>,
+        protocol: impl Into<String>,
+        members: Vec<DescribedGroupMember>,
+        authorized_operations: i32,
+    ) -> DescribedGroup {
+        DescribedGroup {
+            error_code,
+            error_message: None,
+            group_id: group_id.into(),
+            group_state: state.into(),
+            protocol_type: protocol_type.into(),
+            protocol_data: protocol.into(),
+            members,
+            authorized_operations,
+        }
+    }
+
+    /// Java `DescribeGroupsResponse.groupError` with `ErrorMessage`.
+    ///
+    /// Unset fields stay JSON defaults (empty protocol strings, empty
+    /// Members, [`Self::AUTHORIZED_OPERATIONS_OMITTED`]).
+    /// [`DescribedGroup::new`] is the two-argument `groupError`.
+    #[must_use]
+    pub fn group_error(
+        group_id: impl Into<String>,
+        error_code: i16,
+        error_message: Option<&str>,
+    ) -> DescribedGroup {
+        let mut group = DescribedGroup::new(group_id, error_code);
+        group.error_message = error_message.map(str::to_owned);
+        group
+    }
 }
 
 /// Java `DescribeGroupsRequest` helpers.
@@ -20285,6 +20352,71 @@ mod tests {
             crate::error::NOT_COORDINATOR
         )
         .is_empty());
+        let member =
+            DescribeGroupsResponse::group_member("m", Some("gi"), "cid", "chost", &[1, 2], &[3]);
+        assert_eq!(member.member_id, "m");
+        assert_eq!(member.group_instance_id.as_deref(), Some("gi"));
+        assert_eq!(member.client_id, "cid");
+        assert_eq!(member.client_host, "chost");
+        assert_eq!(member.member_assignment, vec![1, 2]);
+        assert_eq!(member.member_metadata, vec![3]);
+        let no_instance = DescribeGroupsResponse::group_member("m", None, "c", "h", &[], &[]);
+        assert!(no_instance.group_instance_id.is_none());
+        assert!(no_instance.member_assignment.is_empty());
+        assert!(no_instance.member_metadata.is_empty());
+        let stable = DescribeGroupsResponse::group_metadata(
+            "g",
+            0,
+            "Stable",
+            "consumer",
+            "range",
+            vec![member],
+            8,
+        );
+        assert_eq!(stable.group_id, "g");
+        assert_eq!(stable.error_code, 0);
+        assert!(stable.error_message.is_none());
+        assert_eq!(stable.group_state, "Stable");
+        assert_eq!(stable.protocol_type, "consumer");
+        assert_eq!(stable.protocol_data, "range");
+        assert_eq!(stable.members.len(), 1);
+        assert_eq!(stable.authorized_operations, 8);
+        assert_eq!(
+            DescribeGroupsResponse::group_metadata(
+                "g",
+                crate::error::NOT_COORDINATOR,
+                DescribeGroupsResponse::UNKNOWN_STATE,
+                DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE,
+                DescribeGroupsResponse::UNKNOWN_PROTOCOL,
+                Vec::new(),
+                DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            ),
+            DescribedGroup::new("g", crate::error::NOT_COORDINATOR)
+        );
+        assert_eq!(
+            DescribeGroupsResponse::group_error("g", crate::error::NOT_COORDINATOR, None),
+            DescribedGroup::new("g", crate::error::NOT_COORDINATOR)
+        );
+        let with_msg = DescribeGroupsResponse::group_error(
+            "g",
+            crate::error::NOT_COORDINATOR,
+            Some("no such group"),
+        );
+        assert_eq!(with_msg.error_message.as_deref(), Some("no such group"));
+        assert_eq!(with_msg.group_state, DescribeGroupsResponse::UNKNOWN_STATE);
+        assert_eq!(
+            with_msg.protocol_type,
+            DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE
+        );
+        assert_eq!(
+            with_msg.protocol_data,
+            DescribeGroupsResponse::UNKNOWN_PROTOCOL
+        );
+        assert!(with_msg.members.is_empty());
+        assert_eq!(
+            with_msg.authorized_operations,
+            DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
         assert_eq!(
             DescribeGroupsResponse::AUTHORIZED_OPERATIONS_OMITTED,
             AUTHORIZED_OPERATIONS_OMITTED
