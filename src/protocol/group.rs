@@ -1897,8 +1897,10 @@ fn decode_fetched_offset_topics<B: Buf>(
 /// partitions). v7 RequireStable. v8 Groups (nullable Topics per
 /// group; one or more). v9 MemberId / MemberEpoch.
 /// This crate speaks 1–9. v0 and v10+ are not spoken. Null Topics
-/// is v2+; v1 returns a protocol error. For several groups on v8+,
-/// use [`encode_offset_fetch_groups_request`].
+/// is v2+; v1 is Java `UnsupportedVersionException`. For several groups
+/// on v8+, use [`encode_offset_fetch_groups_request`].
+///
+/// Java `OffsetFetchRequest.Builder.build` rejects null Topics below v2.
 pub fn encode_offset_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1910,8 +1912,8 @@ pub fn encode_offset_fetch_request(
 ) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
     if version < 2 && topics.is_none() {
-        return Err(Error::protocol(format!(
-            "OffsetFetch version {version} does not support null Topics"
+        return Err(Error::Unsupported(format!(
+            "The broker only supports OffsetFetchRequest v{version}, but we need v2 or newer to request all topic partitions."
         )));
     }
     if version <= 7 {
@@ -1963,8 +1965,11 @@ fn encode_offset_fetch_group_item(
 
 /// Encode OffsetFetch v8–v9 with a Groups array of N (KIP-709).
 ///
-/// v1–v7 return a protocol error (`does not support Groups`). Null Topics
-/// per group is allowed. Empty `groups` writes Groups length 0.
+/// v1–v7 return an error. More than one group below v8 is Java
+/// `NoBatchedOffsetFetchRequestException`. A single group below v8
+/// is a protocol error (`does not support Groups`; use
+/// [`encode_offset_fetch_request`]). Null Topics per group is allowed.
+/// Empty `groups` writes Groups length 0.
 pub fn encode_offset_fetch_groups_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1973,6 +1978,11 @@ pub fn encode_offset_fetch_groups_request(
 ) -> crate::error::Result<()> {
     let _flexible = offset_fetch_flexible(version)?;
     if version < 8 {
+        if groups.len() > 1 {
+            return Err(Error::Unsupported(format!(
+                "Broker does not support batching groups for fetch offset request on version {version}"
+            )));
+        }
         return Err(Error::protocol(format!(
             "OffsetFetch version {version} does not support Groups"
         )));
@@ -3825,7 +3835,11 @@ mod tests {
         let mut v1 = BytesMut::new();
         let err = encode_offset_fetch_request(&mut v1, 1, "g", None, -1, false, None).unwrap_err();
         assert!(
-            err.to_string().contains("null Topics"),
+            matches!(err, Error::Unsupported(_)),
+            "null Topics on v1 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("v2 or newer"),
             "v1 Topics is not nullable, got {err}"
         );
 
@@ -3934,7 +3948,26 @@ mod tests {
 
         let err = encode_offset_fetch_groups_request(&mut BytesMut::new(), 7, &groups, false)
             .unwrap_err();
-        assert!(err.to_string().contains("does not support Groups"));
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "two groups on v7 is Java NoBatchedOffsetFetchRequestException, got {err}"
+        );
+        assert!(err.to_string().contains("batching groups"), "got {err}");
+    }
+
+    #[test]
+    fn offset_fetch_builder_matches_java() {
+        let err = encode_offset_fetch_request(&mut BytesMut::new(), 1, "g", None, -1, false, None)
+            .unwrap_err();
+        assert!(matches!(err, Error::Unsupported(_)), "got {err}");
+        let one = [OffsetFetchGroup::new("g", None)];
+        let err =
+            encode_offset_fetch_groups_request(&mut BytesMut::new(), 7, &one, false).unwrap_err();
+        assert!(
+            err.to_string().contains("does not support Groups"),
+            "single group below v8 stays on encode_offset_fetch_request, got {err}"
+        );
+        encode_offset_fetch_groups_request(&mut BytesMut::new(), 8, &one, false).unwrap();
     }
 
     #[test]
