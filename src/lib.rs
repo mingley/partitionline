@@ -28,6 +28,9 @@
 //! Metadata negotiates v1–v13 (v9+ flexible; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
 //! v10+ TopicId on [`Admin::describe_topics_by_id`]).
+//! [`protocol::api::MetadataResponse::NO_CONTROLLER_ID`] /
+//! [`protocol::api::MetadataResponse::NO_LEADER_ID`] are Java
+//! `MetadataResponse.NO_CONTROLLER_ID` / `NO_LEADER_ID`.
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups),

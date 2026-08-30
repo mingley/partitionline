@@ -699,7 +699,7 @@ pub struct PartitionMetadata {
     pub error_code: i16,
     /// Partition index.
     pub partition_index: i32,
-    /// Leader broker id, or `-1`.
+    /// Leader broker id, or [`MetadataResponse::NO_LEADER_ID`].
     pub leader_id: i32,
     /// Leader epoch (v7+), or `-1`.
     pub leader_epoch: i32,
@@ -738,7 +738,7 @@ pub struct MetadataResponse {
     pub brokers: Vec<Broker>,
     /// Cluster id (v2+).
     pub cluster_id: Option<String>,
-    /// Controller broker id (v1+), or `-1`.
+    /// Controller broker id (v1+), or [`Self::NO_CONTROLLER_ID`].
     pub controller_id: i32,
     /// Topics.
     pub topics: Vec<TopicMetadata>,
@@ -747,6 +747,11 @@ pub struct MetadataResponse {
 }
 
 impl MetadataResponse {
+    /// Java `MetadataResponse.NO_CONTROLLER_ID`.
+    pub const NO_CONTROLLER_ID: i32 = -1;
+    /// Java `MetadataResponse.NO_LEADER_ID`.
+    pub const NO_LEADER_ID: i32 = -1;
+
     /// Fail when the v13+ top-level ErrorCode is non-zero.
     pub(crate) fn check(&self) -> Result<()> {
         if self.error_code == 0 {
@@ -982,7 +987,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
     } else {
         None
     };
-    let controller_id = if version >= 1 { buf::get_i32(buf)? } else { -1 };
+    let controller_id = if version >= 1 {
+        buf::get_i32(buf)?
+    } else {
+        MetadataResponse::NO_CONTROLLER_ID
+    };
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(topic_count);
     for _ in 0..topic_count {
@@ -2013,10 +2022,13 @@ mod tests {
             throttle_time_ms: 0,
             brokers: Vec::new(),
             cluster_id: None,
-            controller_id: -1,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
             topics: Vec::new(),
             error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
         };
+        assert_eq!(resp.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        assert_eq!(MetadataResponse::NO_CONTROLLER_ID, -1);
+        assert_eq!(MetadataResponse::NO_LEADER_ID, -1);
         let mut buf = BytesMut::new();
         encode_metadata_response(&mut buf, 13, &resp).unwrap();
         let decoded = decode_metadata_response(&mut &buf[..], 13).unwrap();
