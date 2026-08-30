@@ -1210,6 +1210,63 @@ impl MetadataRequestTopic {
     }
 }
 
+/// Java `MetadataRequest` helpers.
+pub struct MetadataRequest;
+
+impl MetadataRequest {
+    /// Java `MetadataRequest.isAllTopics`.
+    ///
+    /// Null Topics is all topics. An empty Topics list is all topics only on
+    /// Metadata v0 (this crate does not speak v0; encode rejects versions
+    /// older than 1).
+    #[must_use]
+    pub const fn is_all_topics(version: i16, topics: Option<&[MetadataRequestTopic]>) -> bool {
+        match topics {
+            None => true,
+            Some(topics) => topics.is_empty() && version == 0,
+        }
+    }
+
+    /// Java `MetadataRequest.topicIds`.
+    ///
+    /// Empty when [`Self::is_all_topics`] or below Metadata v10. Otherwise
+    /// each request topic's TopicId (zeros when describing by name).
+    #[must_use]
+    pub fn topic_ids(version: i16, topics: Option<&[MetadataRequestTopic]>) -> Vec<[u8; 16]> {
+        if Self::is_all_topics(version, topics) || version < 10 {
+            Vec::new()
+        } else {
+            topics
+                .unwrap_or(&[])
+                .iter()
+                .map(|topic| topic.topic_id)
+                .collect()
+        }
+    }
+
+    /// Java `MetadataRequest.topics`.
+    ///
+    /// `None` when [`Self::is_all_topics`]. Otherwise each topic Name (`None`
+    /// when describing by TopicId).
+    #[must_use]
+    pub fn topics(
+        version: i16,
+        topics: Option<&[MetadataRequestTopic]>,
+    ) -> Option<Vec<Option<&str>>> {
+        if Self::is_all_topics(version, topics) {
+            None
+        } else {
+            Some(
+                topics
+                    .unwrap_or(&[])
+                    .iter()
+                    .map(|topic| topic.name.as_deref())
+                    .collect(),
+            )
+        }
+    }
+}
+
 /// Encode Metadata. `topics = None` asks for all topics.
 ///
 /// `IncludeTopicAuthorizedOperations` is false (Java default). Use
@@ -3293,6 +3350,27 @@ mod tests {
             MetadataRequestTopic::convert_from_ids([id]),
             vec![MetadataRequestTopic::by_id(id)]
         );
+        assert!(MetadataRequest::is_all_topics(12, None));
+        assert!(MetadataRequest::is_all_topics(0, Some(&[])));
+        assert!(!MetadataRequest::is_all_topics(1, Some(&[])));
+        let named = [MetadataRequestTopic::by_name("t")];
+        assert!(!MetadataRequest::is_all_topics(12, Some(&named)));
+        assert!(MetadataRequest::topic_ids(12, None).is_empty());
+        assert!(MetadataRequest::topic_ids(0, Some(&[])).is_empty());
+        assert!(MetadataRequest::topic_ids(9, Some(&named)).is_empty());
+        assert_eq!(
+            MetadataRequest::topic_ids(10, Some(&named)),
+            vec![[0u8; 16]]
+        );
+        assert_eq!(MetadataRequest::topic_ids(12, Some(&by_id)), vec![id]);
+        assert_eq!(MetadataRequest::topics(12, None), None);
+        assert_eq!(MetadataRequest::topics(0, Some(&[])), None);
+        assert_eq!(MetadataRequest::topics(1, Some(&[])), Some(Vec::new()));
+        assert_eq!(
+            MetadataRequest::topics(12, Some(&named)),
+            Some(vec![Some("t")])
+        );
+        assert_eq!(MetadataRequest::topics(12, Some(&by_id)), Some(vec![None]));
         let named_err = MetadataRequestTopic::by_name("t")
             .error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
         assert_eq!(
