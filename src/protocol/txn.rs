@@ -402,6 +402,10 @@ impl TxnOffsetCommitRequest {
 }
 
 /// One partition in TxnOffsetCommit v0–5.
+///
+/// [`Display`] is Java `TxnOffsetCommitRequest.CommittedOffset.toString`.
+/// [`Self::leader_epoch`] is Java `CommittedOffset.leaderEpoch` (`None`
+/// when [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TxnOffsetPartition {
     /// Partition index.
@@ -412,6 +416,66 @@ pub struct TxnOffsetPartition {
     pub leader_epoch: i32,
     /// Commit metadata string.
     pub metadata: String,
+}
+
+impl TxnOffsetPartition {
+    /// Partition `partition` at `offset` with `leader_epoch` and `metadata`.
+    #[must_use]
+    pub fn new(
+        partition: i32,
+        offset: i64,
+        leader_epoch: i32,
+        metadata: impl Into<String>,
+    ) -> Self {
+        Self {
+            partition,
+            offset,
+            leader_epoch,
+            metadata: metadata.into(),
+        }
+    }
+
+    /// Partition index.
+    #[must_use]
+    pub fn partition(&self) -> i32 {
+        self.partition
+    }
+
+    /// Java `CommittedOffset.offset`.
+    #[must_use]
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+
+    /// Java `CommittedOffset.leaderEpoch` (`None` when
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; Java
+    /// `RequestUtils.getLeaderEpoch`).
+    #[must_use]
+    pub fn leader_epoch(&self) -> Option<i32> {
+        (self.leader_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH).then_some(self.leader_epoch)
+    }
+
+    /// Java `CommittedOffset.metadata`.
+    #[must_use]
+    pub fn metadata(&self) -> &str {
+        self.metadata.as_str()
+    }
+}
+
+impl fmt::Display for TxnOffsetPartition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CommittedOffset(offset={}, leaderEpoch=", self.offset)?;
+        write_java_optional(f, self.leader_epoch())?;
+        write!(f, ", metadata='{}')", self.metadata)
+    }
+}
+
+/// Java `Optional.toString` (`Optional[n]` / `Optional.empty`).
+fn write_java_optional(f: &mut fmt::Formatter<'_>, v: Option<i32>) -> fmt::Result {
+    match v {
+        Some(n) => write!(f, "Optional[{n}]"),
+        None => f.write_str("Optional.empty"),
+    }
 }
 
 /// Topic + partitions for TxnOffsetCommit v0–5.
@@ -1129,6 +1193,25 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_end_txn_response(&mut buf, 5, 0, 9, 2).unwrap();
         assert_eq!(&buf[..], RESP);
+    }
+
+    #[test]
+    fn txn_offset_partition_matches_java_committed_offset() {
+        let p = TxnOffsetPartition::new(0, 7, 9, "");
+        assert_eq!(p.partition(), 0);
+        assert_eq!(p.offset(), 7);
+        assert_eq!(p.leader_epoch(), Some(9));
+        assert_eq!(p.metadata(), "");
+        assert_eq!(
+            p.to_string(),
+            "CommittedOffset(offset=7, leaderEpoch=Optional[9], metadata='')"
+        );
+        let empty = TxnOffsetPartition::new(1, 3, RecordBatch::NO_PARTITION_LEADER_EPOCH, "m");
+        assert_eq!(empty.leader_epoch(), None);
+        assert_eq!(
+            empty.to_string(),
+            "CommittedOffset(offset=3, leaderEpoch=Optional.empty, metadata='m')"
+        );
     }
 
     #[test]

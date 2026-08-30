@@ -137,7 +137,9 @@
 //! [`protocol::txn::TxnOffsetCommitMember::unknown`] /
 //! [`protocol::txn::TxnOffsetCommitMember::group_metadata_set`] are Java
 //! `TxnOffsetCommitRequest.Builder` without group metadata /
-//! `groupMetadataSet`).
+//! `groupMetadataSet`;
+//! [`protocol::txn::TxnOffsetPartition`] getters / `Display` match Java
+//! `TxnOffsetCommitRequest.CommittedOffset`).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
