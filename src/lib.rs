@@ -834,6 +834,9 @@
 //! `Utils.isEqualConstantTime` (`None` is null; both null is true; empty
 //! `second` returns whether `first` is empty; otherwise every element of
 //! `first` is compared and timing depends only on its length).
+//! [`protocol::buf::require`] / [`protocol::buf::require_message`] are Java
+//! `Utils.require` (failure is [`Error::protocol`]; the one-argument form
+//! is `requirement failed`).
 //! [`RecordBatch::size_in_bytes`] is Java `DefaultRecordBatch.sizeInBytes()`
 //! (encoded size, including compression). [`RecordBatch::size_in_bytes_of`]
 //! and [`RecordBatch::size_in_bytes_from`] are the static helpers (empty is

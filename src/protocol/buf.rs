@@ -12,6 +12,7 @@
 //! are Java `Utils.isBlank` / `replaceSuffix`. [`entries_with_prefix`] /
 //! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
 //! [`is_equal_constant_time`] is Java `Utils.isEqualConstantTime`.
+//! [`require`] / [`require_message`] are Java `Utils.require`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -261,6 +262,24 @@ fn equal_constant_time_chars(first: &[u16], second: &[u16]) -> bool {
         }
     }
     matches
+}
+
+/// Java `Utils.require(boolean)`.
+///
+/// Failure is [`Error::protocol`] (`requirement failed`).
+pub fn require(requirement: bool) -> Result<()> {
+    require_message(requirement, "requirement failed")
+}
+
+/// Java `Utils.require(boolean, String)`.
+///
+/// Failure is [`Error::protocol`] with `error_message`.
+pub fn require_message(requirement: bool, error_message: &str) -> Result<()> {
+    if requirement {
+        Ok(())
+    } else {
+        Err(Error::protocol(error_message))
+    }
 }
 
 fn check_range(i: i8) -> Result<u8> {
@@ -1149,6 +1168,19 @@ mod tests {
         assert!(!is_equal_constant_time(Some(&[5, 5, 5]), Some(&[5])));
         assert!(is_equal_constant_time(Some(&[0xD800]), Some(&[0xD800])));
         assert!(!is_equal_constant_time(Some(&[0xD800]), Some(&[0xD801])));
+    }
+
+    #[test]
+    fn require_matches_java_utils() {
+        assert!(require(true).is_ok());
+        let failed = require(false).unwrap_err().to_string();
+        assert!(failed.contains("requirement failed"), "{failed}");
+        assert!(require_message(true, "must be set").is_ok());
+        let custom = require_message(false, "must be set")
+            .unwrap_err()
+            .to_string();
+        assert!(custom.contains("must be set"), "{custom}");
+        assert!(!custom.contains("requirement failed"), "{custom}");
     }
 
     #[test]
