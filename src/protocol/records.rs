@@ -226,6 +226,9 @@ pub struct Record {
 }
 
 impl Record {
+    /// Java `Record.EMPTY_HEADERS`.
+    pub const EMPTY_HEADERS: &'static [Header] = &[];
+
     /// Java `Record.offset`.
     #[must_use]
     pub fn offset(&self) -> i64 {
@@ -1218,6 +1221,7 @@ mod tests {
         assert!(!empty.has_value());
         assert_eq!(empty.key_size(), -1);
         assert_eq!(empty.value_size(), -1);
+        assert_eq!(empty.headers(), Record::EMPTY_HEADERS);
         assert_eq!(
             empty.to_string(),
             "DefaultRecord(offset=0, timestamp=0, key=0 bytes, value=0 bytes)"

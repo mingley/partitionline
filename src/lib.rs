@@ -192,6 +192,7 @@
 //! Java `AcknowledgeType.id` / `forId` (gap `0` is `None`).
 //! [`AutoOffsetReset`] `Display` is Java `OffsetResetStrategy.toString`.
 //! [`Record`] `Display` is Java `DefaultRecord.toString`.
+//! [`Record::EMPTY_HEADERS`] is Java `Record.EMPTY_HEADERS`.
 //! [`RecordBatch::is_transactional`] / [`RecordBatch::is_control_batch`] are
 //! Java `DefaultRecordBatch.isTransactional` / `isControlBatch`.
 //! [`RecordBatch::last_offset`] / [`RecordBatch::next_offset`] /
