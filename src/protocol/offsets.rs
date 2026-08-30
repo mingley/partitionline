@@ -98,7 +98,7 @@ impl From<OffsetSpec> for i64 {
 ///
 /// Getters and [`Display`] match Java `ListOffsetsResult.ListOffsetsResultInfo`.
 /// [`Self::leader_epoch`] is `None` when the wire value is
-/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+/// [`Self::UNKNOWN_EPOCH`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ListOffsetsPartition {
     /// Kafka error code (`0` is success).
@@ -107,7 +107,8 @@ pub struct ListOffsetsPartition {
     pub timestamp: i64,
     /// Log offset, or `-1` when unknown.
     pub offset: i64,
-    /// Leader epoch (v4+). `-1` when unknown or the request version is below 4.
+    /// Leader epoch (v4+). [`Self::UNKNOWN_EPOCH`] when unknown or the
+    /// request version is below 4.
     pub leader_epoch: i32,
 }
 
@@ -116,6 +117,8 @@ impl ListOffsetsPartition {
     pub const UNKNOWN_OFFSET: i64 = -1;
     /// Java `ListOffsetsResponse.UNKNOWN_TIMESTAMP`.
     pub const UNKNOWN_TIMESTAMP: i64 = -1;
+    /// Java `ListOffsetsResponse.UNKNOWN_EPOCH`.
+    pub const UNKNOWN_EPOCH: i32 = RecordBatch::NO_PARTITION_LEADER_EPOCH;
 
     /// Successful partition body.
     #[must_use]
@@ -142,10 +145,10 @@ impl ListOffsetsPartition {
 
     /// Java `ListOffsetsResult.ListOffsetsResultInfo.leaderEpoch`.
     ///
-    /// `None` when the wire value is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
+    /// `None` when the wire value is [`Self::UNKNOWN_EPOCH`].
     #[must_use]
     pub fn leader_epoch(self) -> Option<i32> {
-        (self.leader_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH).then_some(self.leader_epoch)
+        (self.leader_epoch != Self::UNKNOWN_EPOCH).then_some(self.leader_epoch)
     }
 }
 
@@ -224,7 +227,8 @@ pub struct ListOffsetsResponsePartition {
     pub timestamp: i64,
     /// Log offset, or `-1` when unknown.
     pub offset: i64,
-    /// Leader epoch (v4+). `-1` when unknown or the request version is below 4.
+    /// Leader epoch (v4+). [`ListOffsetsPartition::UNKNOWN_EPOCH`] when
+    /// unknown or the request version is below 4.
     pub leader_epoch: i32,
 }
 
@@ -481,7 +485,8 @@ pub fn encode_list_offsets_topics_response(
 /// Decode a single-topic, single-partition ListOffsets response.
 ///
 /// Broker `error_code != 0` is [`Error::Broker`]. Below v4 the leader
-/// epoch field is `-1` ([`ListOffsetsPartition::leader_epoch`] is then `None`).
+/// epoch field is [`ListOffsetsPartition::UNKNOWN_EPOCH`]
+/// ([`ListOffsetsPartition::leader_epoch`] is then `None`).
 pub fn decode_list_offsets_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -525,7 +530,11 @@ pub fn decode_list_offsets_topics_response<B: Buf>(
             let error_code = buf::get_i16(buf)?;
             let timestamp = buf::get_i64(buf)?;
             let offset = buf::get_i64(buf)?;
-            let leader_epoch = if version >= 4 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 4 {
+                buf::get_i32(buf)?
+            } else {
+                ListOffsetsPartition::UNKNOWN_EPOCH
+            };
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
@@ -598,7 +607,12 @@ mod tests {
         let unknown = ListOffsetsPartition::ok(
             ListOffsetsPartition::UNKNOWN_TIMESTAMP,
             ListOffsetsPartition::UNKNOWN_OFFSET,
-            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            ListOffsetsPartition::UNKNOWN_EPOCH,
+        );
+        assert_eq!(ListOffsetsPartition::UNKNOWN_EPOCH, -1);
+        assert_eq!(
+            ListOffsetsPartition::UNKNOWN_EPOCH,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
         );
         assert_eq!(unknown.offset(), ListOffsetsPartition::UNKNOWN_OFFSET);
         assert_eq!(unknown.timestamp(), ListOffsetsPartition::UNKNOWN_TIMESTAMP);

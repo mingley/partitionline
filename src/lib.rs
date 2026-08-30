@@ -402,8 +402,9 @@
 //! Java `ListOffsetsResult.ListOffsetsResultInfo` (`leaderEpoch` is
 //! `Optional.empty` when the wire value is `-1`).
 //! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_OFFSET`] /
-//! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_TIMESTAMP`] are Java
-//! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP`.
+//! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_TIMESTAMP`] /
+//! [`protocol::offsets::ListOffsetsPartition::UNKNOWN_EPOCH`] are Java
+//! `ListOffsetsResponse.UNKNOWN_OFFSET` / `UNKNOWN_TIMESTAMP` / `UNKNOWN_EPOCH`.
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]

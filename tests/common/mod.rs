@@ -1264,8 +1264,8 @@ fn list_offsets_partition_result(
                 ListOffsetsPartition {
                     error_code: error::NOT_LEADER_OR_FOLLOWER,
                     timestamp,
-                    offset: -1,
-                    leader_epoch: -1,
+                    offset: ListOffsetsPartition::UNKNOWN_OFFSET,
+                    leader_epoch: ListOffsetsPartition::UNKNOWN_EPOCH,
                 },
             ),
         );
@@ -1281,7 +1281,10 @@ fn list_offsets_partition_result(
     let log_start = *st.log_start.get(&key).unwrap_or(&0);
     let hw = *st.next_offset.get(&key).unwrap_or(&0);
     let (resp_ts, offset) = if error_code != 0 {
-        (-1, -1)
+        (
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+        )
     } else if timestamp == EARLIEST_TIMESTAMP || timestamp == EARLIEST_LOCAL_TIMESTAMP {
         (timestamp, log_start)
     } else if timestamp == LATEST_TIMESTAMP {
@@ -1291,15 +1294,24 @@ fn list_offsets_partition_result(
             .get(&key)
             .and_then(|recs| recs.iter().max_by_key(|r| (r.timestamp, r.offset)))
             .map(|r| (r.timestamp, r.offset))
-            .unwrap_or((-1, -1))
+            .unwrap_or((
+                ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                ListOffsetsPartition::UNKNOWN_OFFSET,
+            ))
     } else if timestamp == LATEST_TIERED_TIMESTAMP {
-        (-1, -1)
+        (
+            ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+            ListOffsetsPartition::UNKNOWN_OFFSET,
+        )
     } else {
         st.log
             .get(&key)
             .and_then(|recs| recs.iter().find(|r| r.timestamp >= timestamp))
             .map(|r| (r.timestamp, r.offset))
-            .unwrap_or((-1, -1))
+            .unwrap_or((
+                ListOffsetsPartition::UNKNOWN_TIMESTAMP,
+                ListOffsetsPartition::UNKNOWN_OFFSET,
+            ))
     };
     (
         true,
@@ -1309,7 +1321,11 @@ fn list_offsets_partition_result(
                 error_code,
                 timestamp: resp_ts,
                 offset,
-                leader_epoch: if error_code == 0 { broker_epoch } else { -1 },
+                leader_epoch: if error_code == 0 {
+                    broker_epoch
+                } else {
+                    ListOffsetsPartition::UNKNOWN_EPOCH
+                },
             },
         ),
     )
