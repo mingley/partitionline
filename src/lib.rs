@@ -207,7 +207,10 @@
 //! epoch 0, empty NodeEndpoints. Top-level ErrorCode stays 0 (crate encode
 //! of this factory). Throttle is the JSON default (`0`). Official Java
 //! `ShareAcknowledgeRequest.getErrorResponse` writes only the top-level
-//! ErrorCode (empty Responses)),
+//! ErrorCode (empty Responses);
+//! [`protocol::share::ShareAcknowledgeResponse::error_counts`] is Java
+//! `ShareAcknowledgeResponse.errorCounts` (top-level `errorCode` plus each
+//! partition-level code, including `NONE`)),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::ConsumerGroupDescribeResponse::error_counts`] is Java
 //! `ConsumerGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),

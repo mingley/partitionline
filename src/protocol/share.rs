@@ -9,6 +9,8 @@
 //! flexible from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
 //! (v0 removed). This crate speaks 0–1. Same fields. v2+ is not spoken.
 
+use std::collections::HashMap;
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use super::buf;
@@ -210,6 +212,32 @@ pub struct ShareAcknowledgeResponseTopic {
     pub topic_id: [u8; 16],
     /// Partition bodies.
     pub partitions: Vec<ShareAcknowledgeResponsePartition>,
+}
+
+/// Java `ShareAcknowledgeResponse` helpers.
+pub struct ShareAcknowledgeResponse;
+
+impl ShareAcknowledgeResponse {
+    /// Java `ShareAcknowledgeResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`).
+    #[must_use]
+    pub fn error_counts(
+        error_code: i16,
+        topics: &[ShareAcknowledgeResponseTopic],
+    ) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(error_code).or_insert(0);
+        *count += 1;
+        for topic in topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// `true` when ShareGroupHeartbeat `version` is flexible.
@@ -989,6 +1017,7 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::{Buf, Bytes};
+    use std::collections::HashMap;
 
     #[test]
     fn share_group_heartbeat_join_leave_roundtrip() {
@@ -1528,5 +1557,50 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn share_acknowledge_response_error_counts_matches_java() {
+        assert_eq!(
+            ShareAcknowledgeResponse::error_counts(0, &[]),
+            HashMap::from([(0, 1)])
+        );
+        let topics = vec![
+            ShareAcknowledgeResponseTopic {
+                topic_id: [1u8; 16],
+                partitions: vec![
+                    ShareAcknowledgeResponsePartition::partition_response(0, 0),
+                    ShareAcknowledgeResponsePartition::partition_response(
+                        1,
+                        crate::error::UNKNOWN_TOPIC_ID,
+                    ),
+                ],
+            },
+            ShareAcknowledgeResponseTopic {
+                topic_id: [2u8; 16],
+                partitions: vec![ShareAcknowledgeResponsePartition::partition_response(0, 0)],
+            },
+        ];
+        assert_eq!(
+            ShareAcknowledgeResponse::error_counts(0, &topics),
+            HashMap::from([(0, 3), (crate::error::UNKNOWN_TOPIC_ID, 1)])
+        );
+        let top =
+            ShareAcknowledgeResponse::error_counts(crate::error::GROUP_AUTHORIZATION_FAILED, &[]);
+        assert_eq!(
+            top,
+            HashMap::from([(crate::error::GROUP_AUTHORIZATION_FAILED, 1)])
+        );
+        let same = ShareAcknowledgeResponse::error_counts(
+            crate::error::UNKNOWN_TOPIC_ID,
+            &[ShareAcknowledgeResponseTopic {
+                topic_id: [3u8; 16],
+                partitions: vec![ShareAcknowledgeResponsePartition::partition_response(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_ID,
+                )],
+            }],
+        );
+        assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_TOPIC_ID, 2)]));
     }
 }
