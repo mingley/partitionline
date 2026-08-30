@@ -181,7 +181,13 @@
 //! `DescribeLogDirsRequest.isAllTopicPartitions`),
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester;
 //! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
-//! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+)),
+//! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+);
+//! [`CreateDelegationTokenResponse::error`] /
+//! [`CreateDelegationTokenResponse::prepare_response`] are Java
+//! `CreateDelegationTokenRequest.getErrorResponse` /
+//! `CreateDelegationTokenResponse.prepareResponse` (`KafkaPrincipal.ANONYMOUS`
+//! owner and requester; timestamps `-1`; empty TokenId / Hmac).
+//! TokenRequester fields are v3+; throttle stays the JSON default (`0`)),
 //! RenewDelegationToken v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::RenewDelegationTokenResponse::should_client_throttle`] is Java
 //! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+)),

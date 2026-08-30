@@ -12303,6 +12303,12 @@ impl CreateDelegationTokenRequest {
 /// not a token array: there is no first-token ErrorCode and no
 /// first-renewer ErrorCode (renewers are request-only).
 ///
+/// [`Self::error`] is Java `CreateDelegationTokenRequest.getErrorResponse`
+/// (`prepareResponse` with `KafkaPrincipal.ANONYMOUS` owner and
+/// requester). [`Self::prepare_response`] is the five-argument Java
+/// `CreateDelegationTokenResponse.prepareResponse` overload (timestamps
+/// `-1`, empty TokenId / Hmac).
+///
 /// [`Debug`] redacts [`Self::hmac`] (Java `DelegationToken.toString`
 /// prints `hmac=[*******]`).
 #[derive(Clone, PartialEq, Eq)]
@@ -12365,6 +12371,54 @@ impl CreateDelegationTokenResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `CreateDelegationTokenResponse.prepareResponse` (version,
+    /// throttle, error, owner, requester).
+    ///
+    /// Sets ErrorCode, owner PrincipalType / PrincipalName, timestamps
+    /// `-1`, empty TokenId, and empty Hmac. TokenRequester fields are
+    /// copied from `requester` on v3+; below v3 they stay the JSON
+    /// default (empty). Throttle is the JSON default (`0`); official
+    /// Java also sets `throttleTimeMs` from the argument.
+    /// [`encode_create_delegation_token_response`] writes throttle `0`.
+    #[must_use]
+    pub fn prepare_response(
+        version: i16,
+        error_code: i16,
+        owner: &CreatableRenewer,
+        requester: &CreatableRenewer,
+    ) -> Self {
+        let (token_requester_principal_type, token_requester_principal_name) = if version > 2 {
+            (
+                requester.principal_type.as_str(),
+                requester.principal_name.as_str(),
+            )
+        } else {
+            ("", "")
+        };
+        Self::new(
+            error_code,
+            owner.principal_type.as_str(),
+            owner.principal_name.as_str(),
+            token_requester_principal_type,
+            token_requester_principal_name,
+            -1,
+            -1,
+            -1,
+            "",
+            Vec::new(),
+        )
+    }
+
+    /// Java `CreateDelegationTokenRequest.getErrorResponse`.
+    ///
+    /// Calls [`Self::prepare_response`] with `KafkaPrincipal.ANONYMOUS`
+    /// (`User:ANONYMOUS`) for owner and requester.
+    #[must_use]
+    pub fn error(version: i16, error_code: i16) -> Self {
+        let anonymous = CreatableRenewer::anonymous();
+        Self::prepare_response(version, error_code, &anonymous, &anonymous)
     }
 
     /// Kafka error code (`0` is success).
@@ -21748,6 +21802,66 @@ mod tests {
             "CreateDelegationToken v3 response must be leftover-empty"
         );
 
+        let err = CreateDelegationTokenResponse::error(
+            3,
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+        );
+        assert_eq!(err.principal_type(), CreatableRenewer::USER_TYPE);
+        assert_eq!(err.principal_name(), "ANONYMOUS");
+        assert_eq!(
+            err.token_requester_principal_type(),
+            CreatableRenewer::USER_TYPE
+        );
+        assert_eq!(err.token_requester_principal_name(), "ANONYMOUS");
+        assert_eq!(err.issue_timestamp(), -1);
+        assert_eq!(err.expiry_timestamp(), -1);
+        assert_eq!(err.max_timestamp(), -1);
+        assert_eq!(err.token_id(), "");
+        assert!(err.hmac().is_empty());
+        assert_eq!(
+            err.error_code(),
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED
+        );
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, 3, &err).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur, 3).unwrap(),
+            err
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
+        let owner = CreatableRenewer::new("User", "alice");
+        let requester = CreatableRenewer::new("User", "bob");
+        let prepared = CreateDelegationTokenResponse::prepare_response(
+            3,
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            &owner,
+            &requester,
+        );
+        assert_eq!(prepared.principal_name(), "alice");
+        assert_eq!(prepared.token_requester_principal_name(), "bob");
+        assert_eq!(
+            prepared.error_code(),
+            crate::error::CLUSTER_AUTHORIZATION_FAILED
+        );
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, 3, &prepared).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur, 3).unwrap(),
+            prepared
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v3 prepareResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
         buf.clear();
         encode_create_delegation_token_request(
             &mut buf,
@@ -22120,6 +22234,70 @@ mod tests {
             "v2 decode fills requester empty"
         );
         assert_eq!(got.token_requester_principal_name, "");
+
+        let err_v1 = CreateDelegationTokenResponse::error(
+            1,
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+        );
+        assert_eq!(err_v1.principal_type(), CreatableRenewer::USER_TYPE);
+        assert_eq!(err_v1.principal_name(), "ANONYMOUS");
+        assert_eq!(err_v1.token_requester_principal_type(), "");
+        assert_eq!(err_v1.token_requester_principal_name(), "");
+        assert_eq!(err_v1.issue_timestamp(), -1);
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, 1, &err_v1).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur, 1).unwrap(),
+            err_v1
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v1 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
+        let err_v2 = CreateDelegationTokenResponse::error(
+            2,
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+        );
+        assert_eq!(err_v2.token_requester_principal_name(), "");
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, 2, &err_v2).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur, 2).unwrap(),
+            err_v2
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v2 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
+        let owner = CreatableRenewer::new("User", "alice");
+        let requester = CreatableRenewer::new("User", "bob");
+        let prepared_v1 = CreateDelegationTokenResponse::prepare_response(
+            1,
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            &owner,
+            &requester,
+        );
+        assert_eq!(prepared_v1.principal_name(), "alice");
+        assert_eq!(prepared_v1.token_requester_principal_name(), "");
+        buf.clear();
+        encode_create_delegation_token_response(&mut buf, 1, &prepared_v1).unwrap();
+        let mut cur = buf.as_ref();
+        assert_eq!(
+            decode_create_delegation_token_response(&mut cur, 1).unwrap(),
+            prepared_v1
+        );
+        assert!(
+            !cur.has_remaining(),
+            "CreateDelegationToken v1 prepareResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+
         assert_eq!(crate::protocol::api_keys::pick_version(1, 3, 1, 3), Some(3));
         assert_eq!(crate::protocol::api_keys::pick_version(1, 2, 1, 3), Some(2));
         assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 1, 3), Some(1));
