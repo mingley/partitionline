@@ -1957,7 +1957,8 @@ impl FeatureUpdateResult {
 /// Supported version range from [`Admin::describe_features`] (Java `SupportedVersionRange`).
 ///
 /// [`Display`] is Java `SupportedVersionRange.toString` (no feature name;
-/// that is the `supportedFeatures` map key).
+/// that is the `supportedFeatures` map key). Java constructor requires a
+/// non-negative min through max; [`Self::new`] checks that.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupportedVersionRange {
     /// Feature name (for example `metadata.version`).
@@ -1970,13 +1971,20 @@ pub struct SupportedVersionRange {
 
 impl SupportedVersionRange {
     /// Feature `name` supported from `min_version` through `max_version`.
-    #[must_use]
-    pub fn new(name: impl Into<String>, min_version: i16, max_version: i16) -> Self {
-        Self {
+    ///
+    /// Java `SupportedVersionRange(short, short)` rejects a negative min
+    /// or max, or max below min.
+    pub fn new(name: impl Into<String>, min_version: i16, max_version: i16) -> Result<Self> {
+        if min_version < 0 || max_version < 0 || max_version < min_version {
+            return Err(Error::protocol(format!(
+                "Expected 0 <= minVersion <= maxVersion but received minVersion:{min_version}, maxVersion:{max_version}."
+            )));
+        }
+        Ok(Self {
             name: name.into(),
             min_version,
             max_version,
-        }
+        })
     }
 
     /// Feature name.
@@ -2011,7 +2019,8 @@ impl fmt::Display for SupportedVersionRange {
 /// Finalized version range from [`Admin::describe_features`] (Java `FinalizedVersionRange`).
 ///
 /// [`Display`] is Java `FinalizedVersionRange.toString` (no feature name;
-/// that is the `finalizedFeatures` map key).
+/// that is the `finalizedFeatures` map key). Java constructor requires
+/// non-negative min/max and max at least min; [`Self::new`] checks that.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FinalizedVersionRange {
     /// Feature name (for example `metadata.version`).
@@ -2024,13 +2033,24 @@ pub struct FinalizedVersionRange {
 
 impl FinalizedVersionRange {
     /// Feature `name` finalized from `min_version_level` through `max_version_level`.
-    #[must_use]
-    pub fn new(name: impl Into<String>, min_version_level: i16, max_version_level: i16) -> Self {
-        Self {
+    ///
+    /// Java `FinalizedVersionRange(short, short)` rejects a negative min
+    /// or max, or max below min.
+    pub fn new(
+        name: impl Into<String>,
+        min_version_level: i16,
+        max_version_level: i16,
+    ) -> Result<Self> {
+        if min_version_level < 0 || max_version_level < 0 || max_version_level < min_version_level {
+            return Err(Error::protocol(format!(
+                "Expected minVersionLevel >= 0, maxVersionLevel >= 0 and maxVersionLevel >= minVersionLevel, but received minVersionLevel: {min_version_level}, maxVersionLevel: {max_version_level}"
+            )));
+        }
+        Ok(Self {
             name: name.into(),
             min_version_level,
             max_version_level,
-        }
+        })
     }
 
     /// Feature name.
@@ -4939,7 +4959,9 @@ impl Admin {
     /// on the bootstrap connection and reads KIP-482 tagged fields
     /// (`supportedFeatures`, `finalizedFeaturesEpoch`, `finalizedFeatures`,
     /// `zkMigrationReady`). v4 includes SupportedFeatures with MinVersion 0
-    /// (KAFKA-17011). ApiVersions has no TimeoutMs; the RPC deadline is
+    /// (KAFKA-17011). Java `SupportedVersionRange` / `FinalizedVersionRange`
+    /// constructors reject a negative min or max, or max below min.
+    /// ApiVersions has no TimeoutMs; the RPC deadline is
     /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use
     /// [`Self::describe_features_timeout`].
     pub async fn describe_features(&mut self) -> Result<FeatureMetadata> {
@@ -4977,21 +4999,15 @@ impl Admin {
             supported_features: resp
                 .supported_features
                 .into_iter()
-                .map(|f| SupportedVersionRange {
-                    name: f.name,
-                    min_version: f.min_version,
-                    max_version: f.max_version,
-                })
-                .collect(),
+                .map(|f| SupportedVersionRange::new(f.name, f.min_version, f.max_version))
+                .collect::<Result<Vec<_>>>()?,
             finalized_features: resp
                 .finalized_features
                 .into_iter()
-                .map(|f| FinalizedVersionRange {
-                    name: f.name,
-                    min_version_level: f.min_version_level,
-                    max_version_level: f.max_version_level,
+                .map(|f| {
+                    FinalizedVersionRange::new(f.name, f.min_version_level, f.max_version_level)
                 })
-                .collect(),
+                .collect::<Result<Vec<_>>>()?,
             finalized_features_epoch: resp.finalized_features_epoch,
             zk_migration_ready: resp.zk_migration_ready,
         })
@@ -12038,20 +12054,62 @@ mod tests {
                 .to_string(),
             "FeatureUpdate{maxVersionLevel:1, upgradeType:UNKNOWN}"
         );
-        let range = SupportedVersionRange::new("metadata.version", 1, 20);
+        let range = SupportedVersionRange::new("metadata.version", 1, 20).unwrap();
         assert_eq!(range.min_version(), 1);
         assert_eq!(range.max_version(), 20);
         assert_eq!(
             range.to_string(),
             "SupportedVersionRange[min_version:1, max_version:20]"
         );
-        let fin = FinalizedVersionRange::new("metadata.version", 1, 17);
+        let fin = FinalizedVersionRange::new("metadata.version", 1, 17).unwrap();
         assert_eq!(fin.min_version_level(), 1);
         assert_eq!(fin.max_version_level(), 17);
         assert_eq!(
             fin.to_string(),
             "FinalizedVersionRange[min_version_level:1, max_version_level:17]"
         );
+        let kraft = SupportedVersionRange::new("kraft.version", 0, 1).unwrap();
+        assert_eq!(
+            kraft.to_string(),
+            "SupportedVersionRange[min_version:0, max_version:1]"
+        );
+        let err = SupportedVersionRange::new("f", 0, -1).unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "negative maxVersion is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains(
+                "Expected 0 <= minVersion <= maxVersion but received minVersion:0, maxVersion:-1."
+            ),
+            "got {err}"
+        );
+        let err = SupportedVersionRange::new("f", 2, 1).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("but received minVersion:2, maxVersion:1."),
+            "got {err}"
+        );
+        let err = FinalizedVersionRange::new("f", -1, 1).unwrap_err();
+        assert!(
+            matches!(err, Error::Protocol(_)),
+            "negative minVersionLevel is Java IllegalArgumentException, got {err}"
+        );
+        assert!(
+            err.to_string().contains(
+                "Expected minVersionLevel >= 0, maxVersionLevel >= 0 and maxVersionLevel >= minVersionLevel, but received minVersionLevel: -1, maxVersionLevel: 1"
+            ),
+            "got {err}"
+        );
+        let err = FinalizedVersionRange::new("f", 2, 1).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("minVersionLevel: 2, maxVersionLevel: 1"),
+            "got {err}"
+        );
+        let zero = FinalizedVersionRange::new("f", 0, 0).unwrap();
+        assert_eq!(zero.min_version_level(), 0);
+        assert_eq!(zero.max_version_level(), 0);
         let md = FeatureMetadata {
             supported_features: vec![range],
             finalized_features: vec![fin],

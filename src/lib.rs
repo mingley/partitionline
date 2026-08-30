@@ -373,7 +373,9 @@
 //! `FeatureUpdate.UpgradeType.code` / `fromCode` (Java `UNKNOWN` is `None`).
 //! Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
 //! `UpgradeType.UPGRADE` and a negative maxVersionLevel (checked at
-//! UpdateFeatures encode).
+//! UpdateFeatures encode). Java `SupportedVersionRange` /
+//! `FinalizedVersionRange` constructors reject a negative min or max, or
+//! max below min.
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
 //! [`DescribeUserScramCredentialsResult`] `Display` match Java `toString`
 //! (`UserScramCredentialsDescription.toString` on
