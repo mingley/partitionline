@@ -22,7 +22,7 @@ use super::api_keys::{
     TXN_OFFSET_COMMIT, UNREGISTER_BROKER, UPDATE_FEATURES, WRITE_TXN_MARKERS,
 };
 use super::buf;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 /// Kafka request header (`api_key` through `client_id`, plus tagged fields when flexible).
 ///
@@ -103,6 +103,20 @@ impl RequestHeader {
     pub const fn to_response_header(&self) -> ResponseHeader {
         ResponseHeader {
             correlation_id: self.correlation_id,
+        }
+    }
+
+    /// Java `AbstractResponse.parseResponse` correlation-id check
+    /// (`CorrelationIdMismatchException`).
+    pub fn check_correlation(&self, response: &ResponseHeader) -> Result<()> {
+        if self.correlation_id() == response.correlation_id() {
+            Ok(())
+        } else {
+            Err(Error::protocol(format!(
+                "Correlation id for response ({}) does not match request ({}), request header: {self}",
+                response.correlation_id(),
+                self.correlation_id()
+            )))
         }
     }
 }
@@ -1523,5 +1537,27 @@ mod tests {
         buf.clear();
         encode_response_header(&mut buf, PRODUCE, 9, 10).unwrap();
         assert_eq!(buf.len(), 5);
+    }
+
+    #[test]
+    fn check_correlation_matches_java() {
+        let req = RequestHeader {
+            api_key: PRODUCE,
+            api_version: 9,
+            correlation_id: 1,
+            client_id: Some("client".into()),
+        };
+        let ok = ResponseHeader { correlation_id: 1 };
+        req.check_correlation(&ok).unwrap();
+        let err = req
+            .check_correlation(&ResponseHeader { correlation_id: 2 })
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains(
+                "Correlation id for response (2) does not match request (1), request header: RequestHeader(apiKey=PRODUCE, apiVersion=9, clientId=client, correlationId=1, headerVersion=2)"
+            ),
+            "{err}"
+        );
     }
 }

@@ -465,7 +465,10 @@
 //! `RequestHeader.toString` (`apiKey` is the Kafka 4.0 `ApiKeys` enum
 //! name; null `clientId` prints `null`). [`protocol::header::RequestHeader::size`]
 //! is Java `RequestHeader.size`. [`protocol::header::RequestHeader::to_response_header`]
-//! is Java `RequestHeader.toResponseHeader`. [`protocol::header::response_header_size`]
+//! is Java `RequestHeader.toResponseHeader`.
+//! [`protocol::header::RequestHeader::check_correlation`] is Java
+//! `AbstractResponse.parseResponse` (`CorrelationIdMismatchException`).
+//! [`protocol::header::response_header_size`]
 //! is Java `ResponseHeader.size` for a header version (this crate's
 //! [`protocol::header::ResponseHeader`] stores only `correlationId`).
 //! [`protocol::api_keys::name`] is

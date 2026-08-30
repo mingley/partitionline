@@ -18,7 +18,9 @@ use tokio_rustls::client::TlsStream;
 use tokio_rustls::TlsConnector;
 
 use crate::error::{Error, Result};
-use crate::protocol::header::{decode_response_header, encode_request_header_fields};
+use crate::protocol::header::{
+    decode_response_header, encode_request_header_fields, RequestHeader,
+};
 
 /// Max Kafka response frame (100 MiB). Larger is treated as a protocol error.
 pub const MAX_FRAME: i32 = 100 * 1024 * 1024;
@@ -529,10 +531,13 @@ impl BrokerConn {
         let mut cur = frame;
         let header = decode_response_header(&mut cur, api_key, api_version)?;
         if header.correlation_id != correlation {
-            return Err(Error::protocol(format!(
-                "correlation mismatch: sent {correlation}, got {}",
-                header.correlation_id
-            )));
+            RequestHeader {
+                api_key,
+                api_version,
+                correlation_id: correlation,
+                client_id: Some(self.client_id.clone()),
+            }
+            .check_correlation(&header)?;
         }
         self.touch();
         Ok(cur)
