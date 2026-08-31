@@ -335,10 +335,16 @@
 //! [`protocol::api::ApiVersionsResponse::api_version`] /
 //! [`protocol::api::ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH`] /
 //! [`protocol::api::ApiVersionsResponse::should_client_throttle`] /
-//! [`protocol::api::ApiVersionsResponse::intersect`] are Java
+//! [`protocol::api::ApiVersionsResponse::intersect`] /
+//! [`protocol::api::ApiVersionsResponse::create_finalized_feature_keys`] /
+//! [`protocol::api::ApiVersionsResponse::maybe_filter_supported_feature_keys`] are Java
 //! `ApiVersionsResponse.apiVersion` / `UNKNOWN_FINALIZED_FEATURES_EPOCH` /
 //! `shouldClientThrottle` / `intersect` (`null` is `None`; mismatched api
-//! keys are `IllegalArgumentException`);
+//! keys are `IllegalArgumentException`) / `createFinalizedFeatureKeys`
+//! (level `0` is omitted; last-wins name; first-seen order; encode still
+//! writes FinalizedFeatures as-is) / `maybeFilterSupportedFeatureKeys`
+//! (`alterFeatureLevel0` omits `minVersion` `0`; encode already filters
+//! the same way on v3);
 //! [`protocol::api::SupportedFeatureKey::name`] /
 //! [`protocol::api::SupportedFeatureKey::min_version`] /
 //! [`protocol::api::SupportedFeatureKey::max_version`] /

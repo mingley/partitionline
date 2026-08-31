@@ -179,6 +179,64 @@ impl ApiVersionsResponse {
             }))
         }
     }
+
+    /// Java `ApiVersionsResponse.createFinalizedFeatureKeys`.
+    ///
+    /// Last-wins on feature name (Java `HashMap.put`). Order is first-seen
+    /// (Java `HashMap.entrySet` order is unspecified). Level `0` is omitted
+    /// (`if (versionLevel != 0)`). Surviving names copy that level onto
+    /// both `min_version_level` and `max_version_level`. Encode still writes
+    /// FinalizedFeatures as-is.
+    #[must_use]
+    pub fn create_finalized_feature_keys<'a, I>(finalized_features: I) -> Vec<FinalizedFeatureKey>
+    where
+        I: IntoIterator<Item = (&'a str, i16)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut levels: HashMap<String, i16> = HashMap::new();
+        for (name, level) in finalized_features {
+            match levels.entry(name.to_string()) {
+                std::collections::hash_map::Entry::Vacant(slot) => {
+                    order.push(slot.key().clone());
+                    let _inserted = slot.insert(level);
+                }
+                std::collections::hash_map::Entry::Occupied(mut slot) => {
+                    let _prev = slot.insert(level);
+                }
+            }
+        }
+        order
+            .into_iter()
+            .filter_map(|name| {
+                let level = levels.remove(&name)?;
+                (level != 0).then_some(FinalizedFeatureKey {
+                    name,
+                    max_version_level: level,
+                    min_version_level: level,
+                })
+            })
+            .collect()
+    }
+
+    /// Java `ApiVersionsResponse.maybeFilterSupportedFeatureKeys`.
+    ///
+    /// When `alter_feature_level_0` is true, omit features whose
+    /// `min_version` is `0` (KAFKA-17492: older clients cannot
+    /// deserialize min 0; Java Builder sets this for ApiVersions before
+    /// v4). Other features are copied as-is. Names are not uniqued (Java
+    /// `Features.features()` is already a unique Map). Encode already
+    /// applies the equivalent filter (`version >= 4 || min_version != 0`).
+    #[must_use]
+    pub fn maybe_filter_supported_feature_keys(
+        supported_features: &[SupportedFeatureKey],
+        alter_feature_level_0: bool,
+    ) -> Vec<SupportedFeatureKey> {
+        supported_features
+            .iter()
+            .filter(|feature| !(alter_feature_level_0 && feature.min_version == 0))
+            .cloned()
+            .collect()
+    }
 }
 
 /// Java `ApiVersionsRequest` helpers.
@@ -3080,6 +3138,172 @@ mod tests {
                     1 => "ApiVersions v1 Request.getErrorResponse empty leftover-empty",
                     3 => "ApiVersions v3 Request.getErrorResponse empty leftover-empty",
                     _ => "ApiVersions v4 Request.getErrorResponse empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn api_versions_create_finalized_feature_keys_matches_java() {
+        // Java createFinalizedFeatureKeys: HashMap.put last-wins, then
+        // skip versionLevel 0. Surviving names copy the same level onto
+        // min and max. Encode still writes FinalizedFeatures as-is.
+        let empty =
+            ApiVersionsResponse::create_finalized_feature_keys(std::iter::empty::<(&str, i16)>());
+        assert!(empty.is_empty());
+        assert!(ApiVersionsResponse::create_finalized_feature_keys([("f", 0)]).is_empty());
+
+        let skipped = ApiVersionsResponse::create_finalized_feature_keys([("f", 5), ("f", 0)]);
+        assert!(skipped.is_empty(), "last-wins then skip");
+
+        let kept = ApiVersionsResponse::create_finalized_feature_keys([("f", 0), ("f", 5)]);
+        assert_eq!(
+            kept,
+            [FinalizedFeatureKey {
+                name: "f".into(),
+                max_version_level: 5,
+                min_version_level: 5,
+            }]
+        );
+
+        let keys = ApiVersionsResponse::create_finalized_feature_keys([
+            ("b", 2),
+            ("a", 0),
+            ("c", 3),
+            ("b", 7),
+        ]);
+        assert_eq!(
+            keys,
+            [
+                FinalizedFeatureKey {
+                    name: "b".into(),
+                    max_version_level: 7,
+                    min_version_level: 7,
+                },
+                FinalizedFeatureKey {
+                    name: "c".into(),
+                    max_version_level: 3,
+                    min_version_level: 3,
+                },
+            ],
+            "first-seen order; skip 0"
+        );
+
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                finalized_features: keys.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.finalized_features, keys);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 createFinalizedFeatureKeys leftover-empty",
+                    _ => "ApiVersions v4 createFinalizedFeatureKeys leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                finalized_features: empty.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(decoded.finalized_features.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 createFinalizedFeatureKeys empty leftover-empty",
+                    _ => "ApiVersions v4 createFinalizedFeatureKeys empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn api_versions_maybe_filter_supported_feature_keys_matches_java() {
+        // Java maybeFilterSupportedFeatureKeys: alterFeatureLevel0 omits
+        // minVersion 0 (KAFKA-17492). Names are not uniqued. Encode already
+        // applies the equivalent filter on v3, so leftover-empty encodes
+        // the helper output (not the unfiltered slice).
+        let kraft = SupportedFeatureKey {
+            name: "kraft.version".into(),
+            min_version: 0,
+            max_version: 1,
+        };
+        let meta = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        assert!(ApiVersionsResponse::maybe_filter_supported_feature_keys(&[], true).is_empty());
+        assert!(ApiVersionsResponse::maybe_filter_supported_feature_keys(&[], false).is_empty());
+
+        let filtered = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), kraft.clone()],
+            true,
+        );
+        assert_eq!(filtered.as_slice(), std::slice::from_ref(&meta));
+
+        let kept = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), kraft.clone()],
+            false,
+        );
+        assert_eq!(kept, [meta.clone(), kraft.clone()]);
+
+        let skipped = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            std::slice::from_ref(&kraft),
+            true,
+        );
+        assert!(skipped.is_empty());
+
+        let dup = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), meta.clone()],
+            true,
+        );
+        assert_eq!(dup.len(), 2, "names are not uniqued");
+
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                supported_features: filtered.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.supported_features, filtered);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 maybeFilterSupportedFeatureKeys leftover-empty",
+                    _ => "ApiVersions v4 maybeFilterSupportedFeatureKeys leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse::default();
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(decoded.supported_features.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 maybeFilterSupportedFeatureKeys empty leftover-empty",
+                    _ => "ApiVersions v4 maybeFilterSupportedFeatureKeys empty leftover-empty",
                 },
             )
             .unwrap();
