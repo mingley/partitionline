@@ -867,6 +867,8 @@
 //! [`protocol::admin::PushTelemetryResponse::error_counts`] is Java
 //! `PushTelemetryResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::PushTelemetryResponse::has_error`] is Java
+//! `PushTelemetryResponse.hasError` (`error() != NONE`);
 //! [`protocol::admin::PushTelemetryRequest::error_response`] is Java
 //! `PushTelemetryRequest.getErrorResponse` (ThrottleTimeMs JSON `0+`;
 //! convenience fills `0`);
