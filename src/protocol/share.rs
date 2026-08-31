@@ -986,12 +986,65 @@ pub fn encode_share_acknowledge_request(
 }
 
 /// One topic in a multi-topic ShareAcknowledge request.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareAckTopic {
     /// Topic id (UUID).
     pub topic_id: [u8; 16],
     /// `(partition, acknowledgement batches)`.
     pub partitions: Vec<(i32, Vec<AcknowledgementBatch>)>,
+}
+
+/// Java `ShareAcknowledgeRequest` helpers.
+pub struct ShareAcknowledgeRequest;
+
+impl ShareAcknowledgeRequest {
+    /// Java `ShareAcknowledgeRequest.Builder.forConsumer` Topics.
+    ///
+    /// Groups `(topic id, partition, batches)` by topic id (Java
+    /// `HashMap`; first-seen id order — `HashMap.forEach` order is
+    /// unspecified). A later partition for the same id appends in
+    /// first-seen partition order. Duplicate `(id, partition)`
+    /// **replaces** the batches (Java `setAcknowledgementBatches`, last
+    /// wins). Empty is empty. Topic name is not used (Java
+    /// `TopicIdPartition.topicId` / `partition` only). GroupId,
+    /// MemberId, and ShareSessionEpoch stay with the encode caller.
+    /// Encode still writes the caller's Topics as-is. Distinct from
+    /// [`ShareAcknowledgeResponse::to_message`], which groups response
+    /// bodies and overwrites the partition index from the key.
+    #[must_use]
+    pub fn for_consumer<I>(acknowledgements: I) -> Vec<ShareAckTopic>
+    where
+        I: IntoIterator<Item = ([u8; 16], i32, Vec<AcknowledgementBatch>)>,
+    {
+        let mut topic_order = Vec::new();
+        let mut by_id = HashMap::new();
+        for (topic_id, partition, batches) in acknowledgements {
+            let (part_order, part_map) = by_id.entry(topic_id).or_insert_with(|| {
+                topic_order.push(topic_id);
+                (Vec::new(), HashMap::new())
+            });
+            if part_map.insert(partition, batches).is_none() {
+                part_order.push(partition);
+            }
+        }
+        let mut topics = Vec::with_capacity(topic_order.len());
+        for topic_id in topic_order {
+            let Some((part_order, mut part_map)) = by_id.remove(&topic_id) else {
+                continue;
+            };
+            let mut partitions = Vec::with_capacity(part_order.len());
+            for partition in part_order {
+                if let Some(batches) = part_map.remove(&partition) {
+                    partitions.push((partition, batches));
+                }
+            }
+            topics.push(ShareAckTopic {
+                topic_id,
+                partitions,
+            });
+        }
+        topics
+    }
 }
 
 /// ShareAcknowledge with several topics in one request (`version` 0–1).
@@ -1930,6 +1983,103 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn share_acknowledge_request_for_consumer_matches_java() {
+        // Java ShareAcknowledgeRequest.Builder.forConsumer: HashMap by
+        // topicId, inner HashMap by partitionIndex.
+        // setAcknowledgementBatches replaces (last wins). Empty map is
+        // empty Topics. Intervening ids still merge. Topic name is not
+        // used.
+        assert!(ShareAcknowledgeRequest::for_consumer(std::iter::empty::<(
+            [u8; 16],
+            i32,
+            Vec<AcknowledgementBatch>
+        )>())
+        .is_empty());
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let b0 = AcknowledgementBatch {
+            first_offset: 0,
+            last_offset: 1,
+            types: vec![ACK_ACCEPT],
+        };
+        let b1 = AcknowledgementBatch {
+            first_offset: 2,
+            last_offset: 3,
+            types: vec![ACK_RELEASE],
+        };
+        let b2 = AcknowledgementBatch {
+            first_offset: 4,
+            last_offset: 5,
+            types: vec![ACK_REJECT],
+        };
+        let grouped = ShareAcknowledgeRequest::for_consumer([
+            (a, 0, vec![b0.clone()]),
+            (b, 1, vec![b1.clone()]),
+            (a, 2, vec![b2.clone()]),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                ShareAckTopic {
+                    topic_id: a,
+                    partitions: vec![(0, vec![b0.clone()]), (2, vec![b2.clone()])],
+                },
+                ShareAckTopic {
+                    topic_id: b,
+                    partitions: vec![(1, vec![b1.clone()])],
+                },
+            ]
+        );
+        let last_wins = ShareAcknowledgeRequest::for_consumer([
+            (a, 0, vec![b0.clone()]),
+            (a, 0, vec![b2.clone()]),
+        ]);
+        assert_eq!(
+            last_wins,
+            vec![ShareAckTopic {
+                topic_id: a,
+                partitions: vec![(0, vec![b2.clone()])],
+            }]
+        );
+        let order = ShareAcknowledgeRequest::for_consumer([
+            (a, 0, vec![b0]),
+            (a, 1, vec![b1.clone()]),
+            (a, 0, vec![b2.clone()]),
+        ]);
+        assert_eq!(
+            order,
+            vec![ShareAckTopic {
+                topic_id: a,
+                partitions: vec![(0, vec![b2]), (1, vec![b1])],
+            }]
+        );
+        leftover_share_ack_for_consumer(0, &grouped);
+        leftover_share_ack_for_consumer(0, &[]);
+        leftover_share_ack_for_consumer(1, &grouped);
+        leftover_share_ack_for_consumer(1, &[]);
+    }
+
+    fn leftover_share_ack_for_consumer(version: i16, topics: &[ShareAckTopic]) {
+        let mut buf = BytesMut::new();
+        encode_share_acknowledge_topics(&mut buf, version, "g", "m", 1, topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (gid, mid, epoch, flat) = decode_share_acknowledge_request(&mut cur, version).unwrap();
+        assert_eq!(gid, "g");
+        assert_eq!(mid, "m");
+        assert_eq!(epoch, 1);
+        assert_eq!(
+            ShareAcknowledgeRequest::for_consumer(flat).as_slice(),
+            topics
+        );
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            !cur.has_remaining(),
+            "ShareAcknowledge v{version} Builder.forConsumer {empty}leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]

@@ -412,7 +412,11 @@
 //! partition-level code, including `NONE`);
 //! [`protocol::share::ShareAcknowledgeResponse::to_message`] is Java
 //! `ShareAcknowledgeResponse.toMessage` Responses (group by `topic_id` in
-//! first-seen order; key partition overwrites the body)),
+//! first-seen order; key partition overwrites the body);
+//! [`protocol::share::ShareAcknowledgeRequest::for_consumer`] is Java
+//! `ShareAcknowledgeRequest.Builder.forConsumer` Topics (group by topic
+//! id; first-seen id and partition order; duplicate `(id, partition)`
+//! replaces the batches)),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::ConsumerGroupDescribeRequest::error_described_group_list`] is Java
 //! `ConsumerGroupDescribeRequest.getErrorDescribedGroupList` (each id through
