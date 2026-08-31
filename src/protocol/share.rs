@@ -898,6 +898,8 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 /// ForgottenTopicsData stays empty ([`encode_share_fetch_request_with_forgotten`]
 /// writes a non-empty list). MaxWaitMs is JSON `0+` (decode returns it).
 /// MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
+/// MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`;
+/// JSON default `0x7fffffff`).
 /// v2+ is not spoken.
 pub fn encode_share_fetch_request(
     buf: &mut BytesMut,
@@ -1076,7 +1078,7 @@ fn encode_share_fetch_request_fields(
 
 /// Decode a ShareFetch request (`version` 0–1):
 /// `(group_id, member_id, epoch, max_records, topics, forgotten,
-/// batch_size, max_wait_ms, min_bytes)`.
+/// batch_size, max_wait_ms, min_bytes, max_bytes)`.
 ///
 /// `max_records` is the v1 MaxRecords field; v0 omits it and decode
 /// fills `0`. `batch_size` is the v1 BatchSize field; v0 omits it and
@@ -1085,10 +1087,12 @@ fn encode_share_fetch_request_fields(
 /// (on the wire for every spoken version). MaxWaitMs is JSON `0+` (INT32
 /// after ShareSessionEpoch; official Java `ShareFetchRequest.maxWait`).
 /// MinBytes is JSON `0+` (INT32 after MaxWaitMs; official Java
-/// `ShareFetchRequest.minBytes`).
+/// `ShareFetchRequest.minBytes`). MaxBytes is JSON `0+` (INT32 after
+/// MinBytes; JSON default `0x7fffffff`; official Java
+/// `ShareFetchRequest.maxBytes`).
 #[expect(
     clippy::type_complexity,
-    reason = "ShareFetch request decode returns group, member, epoch, max records, topics, forgotten, batch size, max wait, and min bytes together"
+    reason = "ShareFetch request decode returns group, member, epoch, max records, topics, forgotten, batch size, max wait, min bytes, and max bytes together"
 )]
 pub fn decode_share_fetch_request<B: Buf>(
     buf: &mut B,
@@ -1103,6 +1107,7 @@ pub fn decode_share_fetch_request<B: Buf>(
     i32,
     i32,
     i32,
+    i32,
 )> {
     let flexible = share_fetch_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1110,7 +1115,7 @@ pub fn decode_share_fetch_request<B: Buf>(
     let epoch = buf::get_i32(buf)?;
     let max_wait_ms = buf::get_i32(buf)?;
     let min_bytes = buf::get_i32(buf)?;
-    let _max_bytes = buf::get_i32(buf)?;
+    let max_bytes = buf::get_i32(buf)?;
     let (max_records, batch_size) = if version >= 1 {
         (buf::get_i32(buf)?, buf::get_i32(buf)?)
     } else {
@@ -1173,6 +1178,7 @@ pub fn decode_share_fetch_request<B: Buf>(
         batch_size,
         max_wait_ms,
         min_bytes,
+        max_bytes,
     ))
 }
 
@@ -4593,7 +4599,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., got, _, _, _) = decode_share_fetch_request(&mut cur, version).unwrap();
+            let (.., got, _, _, _, _) = decode_share_fetch_request(&mut cur, version).unwrap();
             assert_eq!(got.as_slice(), forgotten.as_slice());
             assert!(
                 cur.is_empty(),
@@ -4859,7 +4865,7 @@ mod tests {
         encode_share_fetch_request(&mut ten, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics).unwrap();
         assert_ne!(&with[..], &ten[..], "v0 MaxWaitMs is not always 10");
         let mut cur = ten.as_ref();
-        let (.., max_wait, _) = decode_share_fetch_request(&mut cur, 0).unwrap();
+        let (.., max_wait, _, _) = decode_share_fetch_request(&mut cur, 0).unwrap();
         assert_eq!(max_wait, 10);
 
         let mut v1_with = BytesMut::new();
@@ -4906,7 +4912,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (gid, mid, epoch, max_records, got, forgotten, batch_size, max_wait, min_bytes) =
+            let (gid, mid, epoch, max_records, got, forgotten, batch_size, max_wait, min_bytes, ..) =
                 decode_share_fetch_request(&mut cur, version).unwrap();
             assert_eq!(gid.as_str(), "sg");
             assert_eq!(mid.as_str(), "m1");
@@ -4937,7 +4943,7 @@ mod tests {
         encode_share_fetch_request(&mut one, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics).unwrap();
         assert_ne!(&with[..], &one[..], "v0 MinBytes is not always 1");
         let mut cur = one.as_ref();
-        let (.., min_bytes) = decode_share_fetch_request(&mut cur, 0).unwrap();
+        let (.., min_bytes, _) = decode_share_fetch_request(&mut cur, 0).unwrap();
         assert_eq!(min_bytes, 1);
 
         let mut v1_with = BytesMut::new();
@@ -4958,6 +4964,115 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 both write MinBytes (JSON 0+); v1 still adds MaxRecords / BatchSize"
+        );
+    }
+
+    #[test]
+    fn share_fetch_request_max_bytes_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareFetchRequest.json MaxBytes is versions
+        // 0+ (INT32 after MinBytes; JSON default 0x7fffffff). Official
+        // Java ShareFetchRequest.maxBytes reads it. Encode already takes
+        // max_bytes; decode previously discarded it. This crate speaks
+        // 0–1. This is not MinBytes / MaxWaitMs / BatchSize /
+        // PartitionMaxBytes / Fetch MaxBytes.
+        let topics = vec![ShareFetchTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchPartition {
+                partition: 0,
+                partition_max_bytes: 0,
+                acknowledgements: vec![],
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request(
+                &mut buf, version, "sg", "m1", 0, 10, 1, 3_600_000, 16, &topics,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (
+                gid,
+                mid,
+                epoch,
+                max_records,
+                got,
+                forgotten,
+                batch_size,
+                max_wait,
+                min_bytes,
+                max_bytes,
+            ) = decode_share_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(gid.as_str(), "sg");
+            assert_eq!(mid.as_str(), "m1");
+            assert_eq!(epoch, 0);
+            assert!(forgotten.is_empty());
+            assert_eq!(got, topics);
+            assert_eq!(max_wait, 10);
+            assert_eq!(min_bytes, 1);
+            assert_eq!(max_bytes, 3_600_000);
+            if version >= 1 {
+                assert_eq!(max_records, 16);
+                assert_eq!(batch_size, 16);
+            } else {
+                assert_eq!(max_records, 0);
+                assert_eq!(batch_size, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "ShareFetch request v{version} MaxBytes leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_request(&mut with, 0, "sg", "m1", 0, 10, 1, 3_600_000, 16, &topics)
+            .unwrap();
+        let mut kilo = BytesMut::new();
+        encode_share_fetch_request(&mut kilo, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics).unwrap();
+        assert_ne!(&with[..], &kilo[..], "v0 MaxBytes is not always 1024");
+        let mut cur = kilo.as_ref();
+        let (.., max_bytes) = decode_share_fetch_request(&mut cur, 0).unwrap();
+        assert_eq!(max_bytes, 1024);
+        let mut json_default = BytesMut::new();
+        encode_share_fetch_request(
+            &mut json_default,
+            0,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            i32::MAX,
+            16,
+            &topics,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &json_default[..],
+            "v0 MaxBytes is not always JSON default 0x7fffffff"
+        );
+        let mut cur = json_default.as_ref();
+        let (.., max_bytes) = decode_share_fetch_request(&mut cur, 0).unwrap();
+        assert_eq!(max_bytes, i32::MAX);
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_request(
+            &mut v1_with,
+            1,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            3_600_000,
+            16,
+            &topics,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write MaxBytes (JSON 0+); v1 still adds MaxRecords / BatchSize"
         );
     }
 

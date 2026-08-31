@@ -444,6 +444,7 @@
 //! still writes BatchSize as MaxRecords; v0 omits even when non-zero and decode fills 0;
 //! MaxWaitMs is JSON `0+` (decode returns it; encode already takes `max_wait_ms`);
 //! MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`);
+//! MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`; JSON default `0x7fffffff`);
 //! AcquisitionLockTimeoutMs
 //! JSON `1+` after ErrorMessage;
 //! [`protocol::share::encode_share_fetch_response_with_acquisition_lock_timeout`]
