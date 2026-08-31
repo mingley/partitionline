@@ -12088,6 +12088,8 @@ impl ListedConfigResource {
 /// field and not a first-config field. Resources have no ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListConfigResourcesResponse {
+    /// ListConfigResources `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Matching config resources.
@@ -12098,6 +12100,7 @@ impl ListConfigResourcesResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, config_resources: Vec<ListedConfigResource>) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             config_resources,
         }
@@ -12190,13 +12193,16 @@ pub fn decode_list_config_resources_request<B: Buf>(buf: &mut B, version: i16) -
 }
 
 /// Encode a ListConfigResources response (v0–1). ResourceType is v1+.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`ListConfigResourcesResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_list_config_resources_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ListConfigResourcesResponse,
 ) -> crate::error::Result<()> {
     list_config_resources_spoken(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.config_resources.len()))?;
     for r in &resp.config_resources {
@@ -12211,12 +12217,14 @@ pub fn encode_list_config_resources_response(
 }
 
 /// Decode a ListConfigResources response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_list_config_resources_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ListConfigResourcesResponse> {
     list_config_resources_spoken(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut config_resources = Vec::with_capacity(n);
@@ -12235,6 +12243,7 @@ pub fn decode_list_config_resources_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(ListConfigResourcesResponse {
+        throttle_time_ms,
         error_code,
         config_resources,
     })
@@ -25321,6 +25330,58 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "DescribeTopicPartitionsRequest::error_response still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn list_config_resources_response_throttle_time_ms_matches_java() {
+        // Kafka 4.1.0 ListConfigResourcesResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v0–v1). Kafka 4.0.0 api 74 is
+        // ListClientMetricsResourcesResponse.json, same ThrottleTimeMs
+        // 0+. Official Java ListConfigResourcesRequest.getErrorResponse
+        // / ListConfigResourcesResponse.throttleTimeMs set / read it.
+        // Encode writes ListConfigResourcesResponse.throttle_time_ms
+        // (JSON default 0; ListConfigResourcesResponse::new fills 0).
+        // This crate speaks 0–1. Empty-resource bodies: v0 == v1. This
+        // is not DescribeTopicPartitions ThrottleTimeMs.
+        let zero = ListConfigResourcesResponse::new(
+            crate::error::CLUSTER_AUTHORIZATION_FAILED,
+            Vec::new(),
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [0, 1] {
+            let mut buf = BytesMut::new();
+            encode_list_config_resources_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v0 = BytesMut::new();
+        encode_list_config_resources_response(&mut with_v0, 0, &with).unwrap();
+        let mut zero_v0 = BytesMut::new();
+        encode_list_config_resources_response(&mut zero_v0, 0, &zero).unwrap();
+        assert_ne!(
+            &with_v0[..],
+            &zero_v0[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v1 = BytesMut::new();
+        encode_list_config_resources_response(&mut with_v1, 1, &with).unwrap();
+        assert_eq!(
+            &with_v0[..],
+            &with_v1[..],
+            "empty-resource ThrottleTimeMs bodies: v0 == v1"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "ListConfigResourcesResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
