@@ -674,6 +674,7 @@
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
+//! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
 //! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);

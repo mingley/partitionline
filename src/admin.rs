@@ -12858,6 +12858,7 @@ mod tests {
             vec!["m".into()],
         );
         assert_eq!(telemetry.error_code(), 0);
+        assert_eq!(telemetry.throttle_time_ms(), 0);
         assert_eq!(telemetry.client_instance_id(), Uuid::from_bytes([0x11; 16]));
         assert_eq!(telemetry.subscription_id(), 1);
         assert_eq!(telemetry.accepted_compression_types(), &[1]);

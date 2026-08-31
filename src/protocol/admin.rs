@@ -12256,6 +12256,8 @@ pub fn decode_list_config_resources_response<B: Buf>(
 /// RequestedMetrics are compact strings with no ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetTelemetrySubscriptionsResponse {
+    /// GetTelemetrySubscriptions `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Top-level error code (`0` is success).
     pub error_code: i16,
     /// KIP-714 client instance UUID (Java `clientInstanceId`).
@@ -12291,6 +12293,7 @@ impl GetTelemetrySubscriptionsResponse {
         requested_metrics: Vec<String>,
     ) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             client_instance_id: client_instance_id.into(),
             subscription_id,
@@ -12300,6 +12303,12 @@ impl GetTelemetrySubscriptionsResponse {
             delta_temporality,
             requested_metrics,
         }
+    }
+
+    /// GetTelemetrySubscriptions `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -12402,11 +12411,14 @@ pub fn decode_get_telemetry_subscriptions_request<B: Buf>(buf: &mut B) -> Result
 }
 
 /// Encode a GetTelemetrySubscriptions response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`GetTelemetrySubscriptionsResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_get_telemetry_subscriptions_response(
     buf: &mut BytesMut,
     resp: &GetTelemetrySubscriptionsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf.extend_from_slice(&resp.client_instance_id);
     buf.put_i32(resp.subscription_id);
@@ -12426,10 +12438,12 @@ pub fn encode_get_telemetry_subscriptions_response(
 }
 
 /// Decode a GetTelemetrySubscriptions response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
     buf: &mut B,
 ) -> Result<GetTelemetrySubscriptionsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let client_instance_id = buf::get_uuid(buf)?;
     let subscription_id = buf::get_i32(buf)?;
@@ -12448,6 +12462,7 @@ pub fn decode_get_telemetry_subscriptions_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(GetTelemetrySubscriptionsResponse {
+        throttle_time_ms,
         error_code,
         client_instance_id,
         subscription_id,
@@ -25561,6 +25576,55 @@ mod tests {
         assert!(
             err.to_string().contains("not implemented"),
             "v2+ is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 GetTelemetrySubscriptionsResponse.json
+        // ThrottleTimeMs is versions 0+ (INT32 on the spoken v0).
+        // Official Java GetTelemetrySubscriptionsRequest.getErrorResponse
+        // / GetTelemetrySubscriptionsResponse.throttleTimeMs set / read
+        // it. Encode writes GetTelemetrySubscriptionsResponse.throttle_time_ms
+        // (JSON default 0; GetTelemetrySubscriptionsResponse::new fills
+        // 0). This crate speaks v0 only. This is not ListConfigResources
+        // ThrottleTimeMs.
+        let zero = GetTelemetrySubscriptionsResponse::new(
+            crate::error::UNSUPPORTED_VERSION,
+            [0x11; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_get_telemetry_subscriptions_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "GetTelemetrySubscriptions v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "GetTelemetrySubscriptionsResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
