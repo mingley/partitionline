@@ -12683,6 +12683,25 @@ impl ListConfigResourcesResponse {
     }
 }
 
+/// Java `ListConfigResourcesRequest` helpers.
+pub struct ListConfigResourcesRequest;
+
+impl ListConfigResourcesRequest {
+    /// Java `ListConfigResourcesRequest.getErrorResponse`.
+    ///
+    /// ConfigResources stay empty (request ResourceTypes are not copied).
+    /// `ErrorCode` is the argument. ThrottleTimeMs is JSON `0+` (JSON
+    /// default `0`; [`ListConfigResourcesResponse::new`] fills `0`).
+    /// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+    /// argument. This is not [`ListConfigResourcesResponse::error`] /
+    /// [`ListConfigResourcesResponse::error_counts`] /
+    /// DescribeTopicPartitions `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ListConfigResourcesResponse {
+        ListConfigResourcesResponse::new(error_code, Vec::new())
+    }
+}
+
 /// Reject ListConfigResources versions this crate does not speak.
 ///
 /// Flexible from v0. Kafka 4.0 api 74 is ListClientMetricsResources
@@ -27627,6 +27646,60 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn list_config_resources_request_error_response_matches_java() {
+        // Java 4.1.0 ListConfigResourcesRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs;
+        // ConfigResources stay empty. Official Java
+        // ListConfigResourcesRequest.getErrorResponse (4.1.0; 4.0.0 404
+        // as the current name). Request ResourceTypes are not copied.
+        // Official Java sets throttleTimeMs from the argument;
+        // ListConfigResourcesResponse::new fills 0. This crate speaks
+        // 0-1. This is not ListConfigResourcesResponse.error /
+        // errorCounts / DescribeTopicPartitions getErrorResponse.
+        assert_eq!(
+            ListConfigResourcesRequest::error_response(0),
+            ListConfigResourcesResponse::new(0, Vec::new())
+        );
+        let err = ListConfigResourcesRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(err.error_code, crate::error::INVALID_REQUEST);
+        assert!(err.config_resources.is_empty());
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "ListConfigResourcesResponse::new still fills ThrottleTimeMs 0"
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_list_config_resources_response(&mut resp, version, &err).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_list_config_resources_response(&mut with_buf, 0, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_list_config_resources_response(&mut zero_buf, 0, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_list_config_resources_response(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
+        );
     }
 
     #[test]

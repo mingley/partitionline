@@ -814,7 +814,10 @@
 //! [`protocol::admin::ListConfigResourcesResponse::error`] is Java
 //! `ListConfigResourcesResponse.error` (`ApiError` from the top-level
 //! `errorCode`; unknown codes become `UNKNOWN_SERVER_ERROR`; JSON has
-//! no ErrorMessage)),
+//! no ErrorMessage);
+//! [`protocol::admin::ListConfigResourcesRequest::error_response`] is Java
+//! `ListConfigResourcesRequest.getErrorResponse` (empty ConfigResources;
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
