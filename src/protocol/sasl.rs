@@ -211,6 +211,27 @@ pub fn decode_sasl_authenticate_response<B: Buf>(
     Ok((error_code, message, bytes))
 }
 
+/// Java `SaslAuthenticateRequest` helpers.
+pub struct SaslAuthenticateRequest;
+
+impl SaslAuthenticateRequest {
+    /// Java `SaslAuthenticateRequest.getErrorResponse`.
+    ///
+    /// AuthBytes stay empty (the request bytes are not copied).
+    /// SessionLifetimeMs is the JSON default (`0`) on v1+. The Java
+    /// `throttleTimeMs` argument is unused (no throttle field).
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. Encode still writes the
+    /// caller's AuthBytes / message as-is.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_sasl_authenticate_response(buf, version, error_code, None, &[])
+    }
+}
+
 /// RFC 4616 PLAIN: `NUL authcid NUL passwd`.
 pub fn plain_auth_bytes(user: &str, pass: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(user.len() + pass.len() + 2);
@@ -540,6 +561,73 @@ mod tests {
             &v1[..],
             &with_plain[..],
             "getErrorResponse must not copy the requested mechanism"
+        );
+    }
+
+    #[test]
+    fn sasl_authenticate_error_response_matches_java() {
+        // Java SaslAuthenticateRequest.getErrorResponse: ErrorCode only.
+        // AuthBytes stay empty (the request bytes are not copied).
+        // SessionLifetimeMs is the JSON default (0) on v1+. ErrorMessage
+        // stays the JSON default (null). The Java throttleTimeMs argument
+        // is unused (no throttle field).
+        for version in [0_i16, 1, 2] {
+            let mut expected = BytesMut::new();
+            encode_sasl_authenticate_response(&mut expected, version, 16, None, &[]).unwrap();
+            let mut got = BytesMut::new();
+            SaslAuthenticateRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "SaslAuthenticate v{version} getErrorResponse must match empty-AuthBytes encode"
+            );
+            let mut cur = &got[..];
+            let (err, msg, bytes) = decode_sasl_authenticate_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(msg, None, "v{version} ErrorMessage stays JSON default null");
+            assert!(bytes.is_empty(), "v{version} AuthBytes must be empty");
+            assert!(
+                cur.is_empty(),
+                "SaslAuthenticate v{version} Request.getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in [0_i16, 1, 2] {
+            let mut got = BytesMut::new();
+            SaslAuthenticateRequest::error_response(&mut got, version, 0).unwrap();
+            let mut cur = &got[..];
+            let (err, msg, bytes) = decode_sasl_authenticate_response(&mut cur, version).unwrap();
+            assert_eq!(err, 0);
+            assert_eq!(msg, None);
+            assert!(bytes.is_empty());
+            assert!(
+                cur.is_empty(),
+                "SaslAuthenticate v{version} Request.getErrorResponse empty leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v0 = BytesMut::new();
+        SaslAuthenticateRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        SaslAuthenticateRequest::error_response(&mut v1, 1, 16).unwrap();
+        let mut v2 = BytesMut::new();
+        SaslAuthenticateRequest::error_response(&mut v2, 2, 16).unwrap();
+        assert_ne!(
+            &v0[..],
+            &v1[..],
+            "v1 getErrorResponse adds SessionLifetimeMs"
+        );
+        assert_ne!(
+            &v1[..],
+            &v2[..],
+            "v2 getErrorResponse uses compact strings/bytes"
+        );
+        let mut with_bytes = BytesMut::new();
+        encode_sasl_authenticate_response(&mut with_bytes, 1, 16, None, b"token").unwrap();
+        assert_ne!(
+            &v1[..],
+            &with_bytes[..],
+            "getErrorResponse must not copy the request AuthBytes"
         );
     }
 

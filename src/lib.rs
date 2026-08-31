@@ -293,7 +293,12 @@
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate;
 //! [`protocol::sasl::SaslHandshakeRequest::error_response`] is Java
 //! `SaslHandshakeRequest.getErrorResponse` (empty Mechanisms)),
-//! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
+//! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible;
+//! [`protocol::sasl::SaslAuthenticateRequest::error_response`] is Java
+//! `SaslAuthenticateRequest.getErrorResponse` (empty AuthBytes; the
+//! request bytes are not copied; SessionLifetimeMs is `0`; the Java
+//! `throttleTimeMs` argument is unused; `ErrorMessage` stays the JSON
+//! default, null)),
 //! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
 //! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
 //! [`protocol::scram::to_bytes`] / [`protocol::scram::normalize`] are Java
