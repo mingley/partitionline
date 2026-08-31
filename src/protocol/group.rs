@@ -998,7 +998,8 @@ impl JoinGroupRequest<'_> {
     /// Generation is [`Self::UNKNOWN_GENERATION_ID`]. Protocol name is
     /// [`Self::UNKNOWN_PROTOCOL_NAME`] (encode writes null on v7+). Leader
     /// and member id are [`Self::UNKNOWN_MEMBER_ID`]. Members is empty.
-    /// Throttle is the JSON default (`0`).
+    /// ProtocolType stays the JSON default (`null`) on v7+. Throttle is
+    /// the JSON default (`0`).
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -1355,6 +1356,7 @@ pub struct JoinMember {
 ///
 /// Java `JoinGroupResponse` writes empty [`JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`]
 /// as a null ProtocolName on v7+ (nullable) and as an empty string below v7.
+/// ProtocolType is the JSON default (`null`) on v7+.
 #[expect(
     clippy::too_many_arguments,
     reason = "JoinGroup response fields match the Apache JSON layout"
@@ -1369,12 +1371,46 @@ pub fn encode_join_group_response(
     member_id: &str,
     members: &[JoinMember],
 ) -> crate::error::Result<()> {
+    encode_join_group_response_with_protocol_type(
+        buf,
+        version,
+        error_code,
+        generation_id,
+        protocol_name,
+        leader,
+        member_id,
+        members,
+        None,
+    )
+}
+
+/// Encode JoinGroup v2–v9 with ProtocolType.
+///
+/// Below v7 ProtocolType is omitted even when the body has a value.
+/// Decode fills `None`. Empty string is still present (Java `!= null`).
+/// [`encode_join_group_response`] still writes null. ProtocolName empty
+/// still becomes null on v7+. Throttle is `0`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType"
+)]
+pub fn encode_join_group_response_with_protocol_type(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    generation_id: i32,
+    protocol_name: &str,
+    leader: &str,
+    member_id: &str,
+    members: &[JoinMember],
+    protocol_type: Option<&str>,
+) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
     buf.put_i32(0);
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
     if version >= 7 {
-        buf::put_string(buf, true, None)?;
+        buf::put_string(buf, true, protocol_type)?;
     }
     let protocol_name = if version >= 7 && protocol_name.is_empty() {
         None
@@ -1404,22 +1440,35 @@ pub fn encode_join_group_response(
     Ok(())
 }
 
-/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members)`.
+/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members, protocol_type)`.
+///
+/// Below v7 ProtocolType is omitted; decode fills `None`.
 #[expect(
     clippy::type_complexity,
-    reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members"
+    reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members, protocol type"
 )]
 pub fn decode_join_group_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, i32, String, String, String, bool, Vec<JoinMember>)> {
+) -> Result<(
+    i16,
+    i32,
+    String,
+    String,
+    String,
+    bool,
+    Vec<JoinMember>,
+    Option<String>,
+)> {
     let flexible = join_group_flexible(version)?;
     let _throttle = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
     let generation = buf::get_i32(buf)?;
-    if version >= 7 {
-        let _ptype = buf::get_string(buf, true)?;
-    }
+    let protocol_type = if version >= 7 {
+        buf::get_string(buf, true)?
+    } else {
+        None
+    };
     let protocol = buf::get_string(buf, flexible)?.unwrap_or_default();
     let leader = buf::get_string(buf, flexible)?.unwrap_or_default();
     let skip_assignment = if JoinGroupRequest::supports_skipping_assignment(version) {
@@ -1455,6 +1504,7 @@ pub fn decode_join_group_response<B: Buf>(
         member_id,
         skip_assignment,
         members,
+        protocol_type,
     ))
 }
 
@@ -6748,7 +6798,7 @@ mod tests {
             "v5 response members add GroupInstanceId"
         );
         let mut cur = v2.as_ref();
-        let (err, gen, proto, leader, mid, skip, got) =
+        let (err, gen, proto, leader, mid, skip, got, ..) =
             decode_join_group_response(&mut cur, 2).unwrap();
         assert_eq!(
             (
@@ -6806,7 +6856,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_join_group_response(&mut resp, 6, 0, 7, "range", "l", "m1", &members).unwrap();
         let mut cur = &resp[..];
-        let (err, gen, proto, leader, mid, skip, got) =
+        let (err, gen, proto, leader, mid, skip, got, ..) =
             decode_join_group_response(&mut cur, 6).unwrap();
         assert_eq!(
             (
@@ -6844,7 +6894,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_join_group_response(&mut resp, 8, 0, 7, "range", "l", "m1", &[]).unwrap();
         let mut cur = &resp[..];
-        let (err, _, _, _, _, skip, members) = decode_join_group_response(&mut cur, 8).unwrap();
+        let (err, _, _, _, _, skip, members, ..) = decode_join_group_response(&mut cur, 8).unwrap();
         assert_eq!((err, skip, members.len()), (0, false, 0));
         assert!(cur.is_empty(), "v8 response leftover {} bytes", cur.len());
     }
@@ -6863,7 +6913,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_join_group_response(&mut resp, 9, 0, 7, "range", "l", "m1", &[]).unwrap();
         let mut cur = &resp[..];
-        let (err, _, _, _, _, skip, _) = decode_join_group_response(&mut cur, 9).unwrap();
+        let (err, _, _, _, _, skip, ..) = decode_join_group_response(&mut cur, 9).unwrap();
         assert_eq!((err, skip), (0, false));
         assert!(
             cur.is_empty(),
@@ -7155,7 +7205,7 @@ mod tests {
         .unwrap();
         assert_eq!(&v6[..], V6);
         let mut cur = &v7[..];
-        let (err, gen, protocol, leader, member, skip, members) =
+        let (err, gen, protocol, leader, member, skip, members, ..) =
             decode_join_group_response(&mut cur, 7).unwrap();
         assert_eq!(err, 16);
         assert_eq!(gen, JoinGroupRequest::UNKNOWN_GENERATION_ID);
@@ -7170,7 +7220,7 @@ mod tests {
             cur.len()
         );
         let mut cur = &v6[..];
-        let (err, _, protocol, _, _, _, _) = decode_join_group_response(&mut cur, 6).unwrap();
+        let (err, _, protocol, ..) = decode_join_group_response(&mut cur, 6).unwrap();
         assert_eq!(err, 16);
         assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
         assert!(
@@ -7214,8 +7264,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (err, _, protocol, _, _, _, _) =
-                decode_join_group_response(&mut cur, version).unwrap();
+            let (err, _, protocol, ..) = decode_join_group_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
             assert!(
@@ -7239,8 +7288,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (err, _, protocol, _, _, _, _) =
-                decode_join_group_response(&mut cur, version).unwrap();
+            let (err, _, protocol, ..) = decode_join_group_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
             assert!(
@@ -7285,7 +7333,7 @@ mod tests {
                 assert_eq!(&got[..], V7);
             }
             let mut cur = &got[..];
-            let (err, gen, protocol, leader, member, skip, members) =
+            let (err, gen, protocol, leader, member, skip, members, ..) =
                 decode_join_group_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert_eq!(gen, JoinGroupRequest::UNKNOWN_GENERATION_ID);
@@ -7315,6 +7363,168 @@ mod tests {
             &v7[..],
             &v9[..],
             "v9 getErrorResponse must include SkipAssignment"
+        );
+    }
+
+    #[test]
+    fn join_group_response_protocol_type_matches_java() {
+        for version in [7_i16, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response_with_protocol_type(
+                &mut buf,
+                version,
+                0,
+                7,
+                "range",
+                "l",
+                "m1",
+                &[],
+                Some("consumer"),
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, gen, proto, leader, mid, skip, members, ptype) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 0);
+            assert_eq!(gen, 7);
+            assert_eq!(proto, "range");
+            assert_eq!(leader, "l");
+            assert_eq!(mid, "m1");
+            assert!(!skip);
+            assert!(members.is_empty());
+            assert_eq!(ptype.as_deref(), Some("consumer"));
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} response ProtocolType leftover-empty"
+            );
+        }
+
+        for version in [2_i16, 6] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response_with_protocol_type(
+                &mut buf,
+                version,
+                0,
+                7,
+                "range",
+                "l",
+                "m1",
+                &[],
+                Some("consumer"),
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (_, _, _, _, _, _, _, ptype) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} response ProtocolType leftover-empty"
+            );
+            assert_eq!(
+                ptype, None,
+                "JoinGroup v{version} omits response ProtocolType even when the body has a value"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_response_with_protocol_type(
+            &mut with,
+            7,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &[],
+            Some("consumer"),
+        )
+        .unwrap();
+        let mut none = BytesMut::new();
+        encode_join_group_response_with_protocol_type(
+            &mut none,
+            7,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &[],
+            None,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v7 response ProtocolType is not always the JSON default null"
+        );
+        let mut conv = BytesMut::new();
+        encode_join_group_response(&mut conv, 7, 0, 7, "range", "l", "m1", &[]).unwrap();
+        assert_eq!(
+            &conv[..],
+            &none[..],
+            "encode_join_group_response still writes null ProtocolType"
+        );
+        let mut v6_with = BytesMut::new();
+        encode_join_group_response_with_protocol_type(
+            &mut v6_with,
+            6,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &[],
+            Some("consumer"),
+        )
+        .unwrap();
+        let mut v6_none = BytesMut::new();
+        encode_join_group_response_with_protocol_type(
+            &mut v6_none,
+            6,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &[],
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            &v6_with[..],
+            &v6_none[..],
+            "v6 encode omits response ProtocolType even when the body has a value"
+        );
+        assert_ne!(
+            &v6_with[..],
+            &with[..],
+            "v7 adds response ProtocolType after GenerationId"
+        );
+
+        let mut empty_buf = BytesMut::new();
+        encode_join_group_response_with_protocol_type(
+            &mut empty_buf,
+            7,
+            0,
+            7,
+            "range",
+            "l",
+            "m1",
+            &[],
+            Some(""),
+        )
+        .unwrap();
+        let mut cur = empty_buf.as_ref();
+        let (_, _, _, _, _, _, _, ptype) = decode_join_group_response(&mut cur, 7).unwrap();
+        assert_eq!(ptype.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "JoinGroup v7 empty response ProtocolType leftover-empty"
+        );
+        assert_ne!(
+            &empty_buf[..],
+            &none[..],
+            "empty response ProtocolType is still present (Java != null)"
         );
     }
 

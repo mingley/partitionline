@@ -293,10 +293,13 @@
 //! `JoinGroupResponse.isLeader` / `shouldClientThrottle` /
 //! `JoinGroupResponse(JoinGroupResponseData, short)` ProtocolName
 //! (below v7 null becomes empty; v7+ empty becomes null);
+//! v7+ round-trips ProtocolType; below v7 encode omits it even when
+//! the body has a value and decode fills `None`;
+//! [`protocol::group::encode_join_group_response`] still writes null;
 //! [`protocol::group::JoinGroupRequest::error_response`] is Java
 //! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];
-//! empty members; ProtocolName null on v7+);
+//! empty members; ProtocolName null on v7+; ProtocolType stays null);
 //! [`protocol::group::JoinGroupRequest::build`] is Java
 //! `JoinGroupRequest.Builder.build` (a present `group.instance.id`
 //! below v5 is `UnsupportedVersionException`; encode still omits)),

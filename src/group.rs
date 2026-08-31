@@ -1849,7 +1849,7 @@ impl ConsumerGroup {
             .collect();
         let version = spoken_join_group(self.coord.join_group_version)?;
         let reason = self.rebalance_reason.take();
-        let (error, generation, protocol, leader, assigned_id, skip_assignment, members) = loop {
+        let (error, generation, protocol, leader, assigned_id, skip_assignment, members, ..) = loop {
             let body = coord_roundtrip(
                 &mut self.coord,
                 &self.cfg,
