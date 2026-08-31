@@ -1419,8 +1419,9 @@
 //! [`protocol::group::OffsetDeleteTopic::error_result`] are Java
 //! `OffsetDeleteResponse.Builder.addPartition` / `addPartitions` (one
 //! partition / one topic). Official Java
-//! `OffsetDeleteRequest.getErrorResponse` writes only the top-level
-//! ErrorCode.
+//! [`protocol::group::OffsetDeleteRequest::error_response`] is Java
+//! `OffsetDeleteRequest.getErrorResponse` (top-level ErrorCode only;
+//! empty Topics).
 //! [`protocol::group::OffsetDeleteResponse::error_counts`] is Java
 //! `OffsetDeleteResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`).

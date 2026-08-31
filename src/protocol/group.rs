@@ -3319,6 +3319,20 @@ impl OffsetDeleteResult {
     }
 }
 
+/// Java `OffsetDeleteRequest` helpers.
+pub struct OffsetDeleteRequest;
+
+impl OffsetDeleteRequest {
+    /// Java `OffsetDeleteRequest.getErrorResponse`.
+    ///
+    /// Writes only the top-level ErrorCode. Topics stay empty (request
+    /// partitions are not copied). Throttle is the JSON default (`0`).
+    /// ErrorCode is encoded before throttle.
+    pub fn error_response(buf: &mut BytesMut, error_code: i16) -> crate::error::Result<()> {
+        encode_offset_delete_response(buf, error_code, &[])
+    }
+}
+
 /// Java `OffsetDeleteResponse` helpers.
 pub struct OffsetDeleteResponse;
 
@@ -6718,6 +6732,39 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "OffsetDelete v0 NOT_COORDINATOR must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn offset_delete_error_response_matches_java() {
+        // Java OffsetDeleteRequest.getErrorResponse: top-level ErrorCode
+        // only. Topics stay empty (Builder.addPartitions is a different
+        // path). Throttle JSON default 0. ErrorCode is before throttle.
+        let mut expected = BytesMut::new();
+        encode_offset_delete_response(&mut expected, 16, &[]).unwrap();
+        let mut got = BytesMut::new();
+        OffsetDeleteRequest::error_response(&mut got, 16).unwrap();
+        assert_eq!(
+            &got[..],
+            &expected[..],
+            "OffsetDelete getErrorResponse must match empty-Topics encode"
+        );
+        let mut cur = &got[..];
+        let (err, results) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(err, 16);
+        assert!(results.is_empty(), "getErrorResponse Topics must be empty");
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let copied = OffsetDeleteTopic::new("t", vec![0, 1]).error_result(16);
+        let mut with_topics = BytesMut::new();
+        encode_offset_delete_response(&mut with_topics, 16, &copied).unwrap();
+        assert_ne!(
+            &got[..],
+            &with_topics[..],
+            "getErrorResponse must not copy request partitions"
         );
     }
 
