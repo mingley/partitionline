@@ -393,7 +393,10 @@
 //! `AlterReplicaLogDirsResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`AlterReplicaLogDirsTopic::error_result`] /
 //! [`AlterReplicaLogDirsRequest::error_result`] are Java
-//! `AlterReplicaLogDirsRequest.getErrorResponse` (one topic / flatten dirs)),
+//! `AlterReplicaLogDirsRequest.getErrorResponse` (one topic / flatten dirs);
+//! [`AlterReplicaLogDirsRequest::partition_dirs`] is Java
+//! `AlterReplicaLogDirsRequest.partitionDirs` (`(topic, partition)` to path;
+//! a later directory overwrites)),
 //! DescribeLogDirs v1–v4 (v1 classic; v2+ flexible; v3 ErrorCode; v4 TotalBytes;
 //! [`protocol::admin::DescribeLogDirsResponse::UNKNOWN_VOLUME_BYTES`] /
 //! [`protocol::admin::DescribeLogDirsResponse::INVALID_OFFSET_LAG`] /

@@ -12200,6 +12200,24 @@ impl AlterReplicaLogDirsRequest {
                 .collect(),
         )
     }
+
+    /// Java `AlterReplicaLogDirsRequest.partitionDirs`.
+    ///
+    /// Each `(topic, partition)` maps to that directory's path. A later
+    /// directory overwrites an earlier one for the same pair (Java
+    /// `HashMap.put`).
+    #[must_use]
+    pub fn partition_dirs(&self) -> HashMap<(String, i32), String> {
+        let mut result = HashMap::new();
+        for dir in &self.dirs {
+            for topic in &dir.topics {
+                for &partition in &topic.partitions {
+                    let _prev = result.insert((topic.name.clone(), partition), dir.path.clone());
+                }
+            }
+        }
+        result
+    }
 }
 
 /// One partition in an AlterReplicaLogDirs (api 34) response.
@@ -22930,6 +22948,68 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterReplicaLogDirs getErrorResponse leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_partition_dirs_matches_java() {
+        // Java AlterReplicaLogDirsRequest.partitionDirs: each
+        // (topic, partition) maps to that directory path. Later dirs
+        // overwrite the same pair (HashMap.put).
+        assert!(AlterReplicaLogDirsRequest::new(vec![])
+            .partition_dirs()
+            .is_empty());
+        let one = AlterReplicaLogDirsRequest::new(vec![AlterReplicaLogDirsDirectory::new(
+            "/d",
+            vec![AlterReplicaLogDirsTopic::new("t", vec![0, 3])],
+        )]);
+        assert_eq!(
+            one.partition_dirs(),
+            HashMap::from([
+                (("t".into(), 0), "/d".into()),
+                (("t".into(), 3), "/d".into()),
+            ])
+        );
+        let two = AlterReplicaLogDirsRequest::new(vec![
+            AlterReplicaLogDirsDirectory::new(
+                "/d1",
+                vec![AlterReplicaLogDirsTopic::new("a", vec![0])],
+            ),
+            AlterReplicaLogDirsDirectory::new(
+                "/d2",
+                vec![
+                    AlterReplicaLogDirsTopic::new("b", vec![1]),
+                    AlterReplicaLogDirsTopic::new("a", vec![0]),
+                ],
+            ),
+        ]);
+        assert_eq!(
+            two.partition_dirs(),
+            HashMap::from([
+                (("a".into(), 0), "/d2".into()),
+                (("b".into(), 1), "/d2".into()),
+            ]),
+            "later directory overwrites the same topic-partition"
+        );
+        let mut buf = BytesMut::new();
+        encode_alter_replica_log_dirs_request(&mut buf, 1, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_alter_replica_log_dirs_request(&mut cur, 1).unwrap();
+        assert_eq!(decoded.partition_dirs(), two.partition_dirs());
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v1 partitionDirs leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_alter_replica_log_dirs_request(&mut buf, 2, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_alter_replica_log_dirs_request(&mut cur, 2).unwrap();
+        assert_eq!(decoded.partition_dirs(), two.partition_dirs());
+        assert!(
+            !cur.has_remaining(),
+            "AlterReplicaLogDirs v2 partitionDirs leftover-empty; leftover {} bytes",
             cur.remaining()
         );
     }
