@@ -436,6 +436,26 @@ impl FetchRequest {
             Vec::new()
         }
     }
+
+    /// Java `FetchRequest.Builder.forConsumer`.
+    ///
+    /// Oldest allowed version is 4 (Java `ApiKeys.FETCH.oldestVersion()`
+    /// on Kafka 4.0, matching this crate's spoken floor). Latest is
+    /// `max_version`. ReplicaId is [`CONSUMER_REPLICA_ID`]. ReplicaEpoch
+    /// is `-1`. Isolation defaults to READ_UNCOMMITTED (`0`) and MaxBytes
+    /// defaults to [`DEFAULT_RESPONSE_MAX_BYTES`]; pass those on
+    /// [`encode_fetch_request`] separately. MaxWaitMs, MinBytes, and Topics
+    /// are the caller's values. Replica epoch lives on Java `ReplicaState`
+    /// (v15+ tagged field 1); consumers omit that field. This helper still
+    /// returns the Java constructor value so callers can keep it next to
+    /// replica id. Encode still writes ReplicaId independently of this
+    /// Builder range. This crate speaks 4–17. This is not
+    /// [`Self::forgotten_from_removed`] / [`Self::topics_from_fetch_data`] /
+    /// replicaId encode / ShareFetch `forConsumer`.
+    #[must_use]
+    pub const fn for_consumer(max_version: i16) -> (i16, i16, i32, i64) {
+        (4, max_version, CONSUMER_REPLICA_ID, -1)
+    }
 }
 
 fn add_to_forgotten_topic_map<'a, I>(
@@ -2770,6 +2790,113 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn fetch_request_for_consumer_matches_java() {
+        // Java 4.0 FetchRequest.Builder.forConsumer: oldest allowed
+        // version is ApiKeys.FETCH.oldestVersion() (4 on Kafka 4.0);
+        // latest is maxVersion; ReplicaId is CONSUMER_REPLICA_ID;
+        // ReplicaEpoch is -1. Isolation defaults to READ_UNCOMMITTED
+        // (0) and MaxBytes to DEFAULT_RESPONSE_MAX_BYTES. Official Java
+        // FetchRequest.Builder.forConsumer. MaxWaitMs, MinBytes, and
+        // Topics are the caller's values. Replica epoch lives on Java
+        // ReplicaState (v15+ tagged field 1); consumers omit that field.
+        // Encode still writes ReplicaId independently. This crate speaks
+        // 4-17. This is not forgotten_from_removed /
+        // topics_from_fetch_data / replicaId encode / ShareFetch
+        // forConsumer.
+        let (oldest, latest, replica_id, replica_epoch) = FetchRequest::for_consumer(17);
+        assert_eq!(oldest, 4);
+        assert_eq!(latest, 17);
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+        assert_eq!(replica_epoch, -1);
+        assert_eq!(
+            FetchRequest::for_consumer(4),
+            (4, 4, CONSUMER_REPLICA_ID, -1)
+        );
+        assert!(is_consumer(replica_id));
+        assert!(!is_from_follower(replica_id));
+        let topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        leftover_for_consumer(oldest, replica_id, &topics);
+        leftover_for_consumer(oldest, replica_id, &[]);
+        leftover_for_consumer(12, replica_id, &topics);
+        leftover_for_consumer(12, replica_id, &[]);
+        leftover_for_consumer(latest, replica_id, &topics);
+        leftover_for_consumer(latest, replica_id, &[]);
+    }
+
+    fn leftover_for_consumer(version: i16, replica_id: i32, topics: &[FetchTopic]) {
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            topics,
+            None,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (
+            isolation,
+            max_bytes,
+            decoded,
+            rack,
+            session,
+            forgotten,
+            got_wait,
+            got_min,
+            got_replica,
+        ) = decode_fetch_request(&mut cur, version).unwrap();
+        assert_eq!(got_replica, replica_id);
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        assert_eq!(got_wait, max_wait_ms);
+        assert_eq!(got_min, min_bytes);
+        assert_eq!(decoded.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got = decoded.first().expect("one topic");
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+            assert_eq!(got.partitions.len(), topic.partitions.len());
+            assert_eq!(
+                got.partitions.first().map(|p| p.partition),
+                topic.partitions.first().map(|p| p.partition)
+            );
+        }
+        assert!(forgotten.is_empty());
+        if version >= 7 {
+            assert_eq!(session, FetchMetadata::LEGACY);
+        }
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} Builder.forConsumer {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]

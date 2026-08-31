@@ -1430,6 +1430,10 @@
 //! `FetchRequest.Builder.build` Topics from fetchData (consecutive same
 //! name share one topic; first topic id is kept; intervening names stay
 //! split; encode still writes the caller's Topics as-is).
+//! [`protocol::fetch::FetchRequest::for_consumer`] is Java
+//! `FetchRequest.Builder.forConsumer` (oldest allowed version 4; latest
+//! is the argument; ReplicaId [`protocol::fetch::CONSUMER_REPLICA_ID`];
+//! ReplicaEpoch `-1`).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
