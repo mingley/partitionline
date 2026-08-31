@@ -1232,6 +1232,11 @@
 //! [`protocol::buf::entries_with_prefix_matching`] are Java
 //! `Utils.entriesWithPrefix` (two-argument form strips the prefix and omits
 //! keys equal to it).
+//! [`protocol::buf::parse_map`] / [`protocol::buf::mk_string`] are Java
+//! `Utils.parseMap` / `mkString` (empty is an empty map; trailing empty
+//! elements are discarded; later `=` stays in the value; duplicate keys
+//! last-win; a missing `=` is [`Error::protocol`]; empty `mkString` is
+//! begin then end).
 //! [`protocol::buf::is_equal_constant_time`] is Java
 //! `Utils.isEqualConstantTime` (`None` is null; both null is true; empty
 //! `second` returns whether `first` is empty; otherwise every element of

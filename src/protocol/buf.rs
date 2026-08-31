@@ -11,6 +11,7 @@
 //! `Utils.to32BitField` / `from32BitField`. [`is_blank`] / [`replace_suffix`]
 //! are Java `Utils.isBlank` / `replaceSuffix`. [`entries_with_prefix`] /
 //! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
+//! [`parse_map`] / [`mk_string`] are Java `Utils.parseMap` / `mkString`.
 //! [`is_equal_constant_time`] is Java `Utils.isEqualConstantTime`.
 //! [`require`] / [`require_message`] are Java `Utils.require`.
 //! [`min`] / [`max`] / [`min_i16`] are Java `Utils.min(long, long...)` /
@@ -243,6 +244,69 @@ pub fn entries_with_prefix_matching<V: Clone>(
         result.extend([(out_key, value.clone())]);
     }
     result
+}
+
+/// Java `Utils.parseMap`.
+///
+/// Empty `map_str` is an empty map (the split is skipped). Element split is
+/// Java `String.split` limit `0` (trailing empty strings discarded). Each
+/// element is split on `key_value_separator` with limit `2` (later
+/// separators stay in the value). Duplicate keys last-win (`HashMap.put`).
+/// A missing key-value separator is Java `ArrayIndexOutOfBoundsException`
+/// ([`Error::protocol`] `Index 1 out of bounds for length 1`). Separators
+/// are literal substrings (Java `String.split` regex; `,` and `=` match
+/// Java). Empty separators are [`Error::protocol`].
+pub fn parse_map(
+    map_str: &str,
+    key_value_separator: &str,
+    element_separator: &str,
+) -> Result<HashMap<String, String>> {
+    if key_value_separator.is_empty() || element_separator.is_empty() {
+        return Err(Error::protocol("empty separator"));
+    }
+    let mut map = HashMap::new();
+    if map_str.is_empty() {
+        return Ok(map);
+    }
+    let mut parts: Vec<&str> = map_str.split(element_separator).collect();
+    while parts.last() == Some(&"") {
+        let _dropped = parts.pop();
+    }
+    for attrval in parts {
+        match attrval.split_once(key_value_separator) {
+            Some((key, value)) => {
+                let _prev = map.insert(key.to_string(), value.to_string());
+            }
+            None => {
+                return Err(Error::protocol("Index 1 out of bounds for length 1"));
+            }
+        }
+    }
+    Ok(map)
+}
+
+/// Java `Utils.mkString`.
+///
+/// Empty input is `begin` then `end` with nothing in between. Entry order
+/// is the iterator order (Java follows the map; tests use `LinkedHashMap`).
+#[must_use]
+pub fn mk_string<K, V, I>(
+    map: I,
+    begin: &str,
+    end: &str,
+    key_value_separator: &str,
+    element_separator: &str,
+) -> String
+where
+    K: std::fmt::Display,
+    V: std::fmt::Display,
+    I: IntoIterator<Item = (K, V)>,
+{
+    let parts: Vec<String> = map
+        .into_iter()
+        .map(|(key, value)| format!("{key}{key_value_separator}{value}"))
+        .collect();
+    format!("{begin}{}{end}", parts.join(element_separator))
 }
 
 /// Java `Utils.isEqualConstantTime`.
@@ -1322,6 +1386,85 @@ mod tests {
         let empty_prefix = entries_with_prefix(&map, "");
         assert_eq!(empty_prefix.len(), 4);
         assert_eq!(empty_prefix.get("foo.bar"), Some(&1));
+    }
+
+    #[test]
+    fn parse_map_matches_java_utils() {
+        assert!(parse_map("", "=", ",").unwrap().is_empty());
+        assert!(parse_map(",", "=", ",").unwrap().is_empty());
+        assert!(parse_map(",,", "=", ",").unwrap().is_empty());
+
+        let map1 = parse_map("k1=v1,k2=v2,k3=v3", "=", ",").unwrap();
+        assert_eq!(
+            map1,
+            HashMap::from([
+                ("k1".into(), "v1".into()),
+                ("k2".into(), "v2".into()),
+                ("k3".into(), "v3".into()),
+            ])
+        );
+
+        let map3 = parse_map("k4=v4,k5=v5=vv5=vvv5", "=", ",").unwrap();
+        assert_eq!(
+            map3,
+            HashMap::from([
+                ("k4".into(), "v4".into()),
+                ("k5".into(), "v5=vv5=vvv5".into()),
+            ])
+        );
+
+        let last_wins = parse_map("k=1,k=2", "=", ",").unwrap();
+        assert_eq!(last_wins, HashMap::from([("k".into(), "2".into())]));
+
+        let trailing = parse_map("k1=v1,", "=", ",").unwrap();
+        assert_eq!(trailing, HashMap::from([("k1".into(), "v1".into())]));
+
+        let empty_key = parse_map("=v", "=", ",").unwrap();
+        assert_eq!(empty_key, HashMap::from([(String::new(), "v".into())]));
+        let empty_value = parse_map("k=", "=", ",").unwrap();
+        assert_eq!(empty_value, HashMap::from([("k".into(), String::new())]));
+
+        let missing = parse_map("k1", "=", ",").unwrap_err().to_string();
+        assert!(
+            missing.contains("Index 1 out of bounds for length 1"),
+            "{missing}"
+        );
+        let leading = parse_map(",k=v", "=", ",").unwrap_err().to_string();
+        assert!(
+            leading.contains("Index 1 out of bounds for length 1"),
+            "{leading}"
+        );
+        let middle = parse_map("k1=v1,,k2=v2", "=", ",").unwrap_err().to_string();
+        assert!(
+            middle.contains("Index 1 out of bounds for length 1"),
+            "{middle}"
+        );
+
+        let empty_kv = parse_map("k=v", "", ",").unwrap_err().to_string();
+        assert!(empty_kv.contains("empty separator"), "{empty_kv}");
+        let empty_el = parse_map("k=v", "=", "").unwrap_err().to_string();
+        assert!(empty_el.contains("empty separator"), "{empty_el}");
+
+        assert_eq!(
+            mk_string(
+                [("key1", "val1"), ("key2", "val2"), ("key3", "val3")],
+                "__begin__",
+                "__end__",
+                "=",
+                ",",
+            ),
+            "__begin__key1=val1,key2=val2,key3=val3__end__"
+        );
+        assert_eq!(
+            mk_string(
+                std::iter::empty::<(&str, &str)>(),
+                "__begin__",
+                "__end__",
+                "=",
+                ",",
+            ),
+            "__begin____end__"
+        );
     }
 
     #[test]
