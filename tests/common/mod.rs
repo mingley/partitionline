@@ -5285,6 +5285,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         sf.as_bytes(),
+                                        0,
                                     )
                                     .unwrap();
                                 }
@@ -5295,6 +5296,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         58,
                                         Some("bad scram first"),
                                         &[],
+                                        0,
                                     )
                                     .unwrap();
                                 }
@@ -5311,6 +5313,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         0,
                                         None,
                                         fin.as_bytes(),
+                                        0,
                                     )
                                     .unwrap();
                                 }
@@ -5321,6 +5324,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                         58,
                                         Some("bad scram proof"),
                                         &[],
+                                        0,
                                     )
                                     .unwrap();
                                 }
@@ -5339,6 +5343,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad oauth token") },
                         &[],
+                        0,
                     )
                     .unwrap();
                 } else {
@@ -5354,6 +5359,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         if ok { 0 } else { 58 },
                         if ok { None } else { Some("bad credentials") },
                         &[],
+                        0,
                     )
                     .unwrap();
                 }

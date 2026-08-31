@@ -300,7 +300,9 @@
 //! `SaslAuthenticateRequest.getErrorResponse` (empty AuthBytes; the
 //! request bytes are not copied; SessionLifetimeMs is `0`; the Java
 //! `throttleTimeMs` argument is unused; `ErrorMessage` stays the JSON
-//! default, null)),
+//! default, null); v1+ round-trips SessionLifetimeMs; below v1 decode
+//! fills `0` and encode omits the field even when the body has a
+//! non-zero value),
 //! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
 //! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
 //! [`protocol::scram::to_bytes`] / [`protocol::scram::normalize`] are Java
