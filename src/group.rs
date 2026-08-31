@@ -1798,7 +1798,7 @@ impl ConsumerGroup {
             timeout,
         )
         .await?;
-        let (err, results) = decode_leave_group_response_version(&mut body.clone(), version)?;
+        let (err, results, ..) = decode_leave_group_response_version(&mut body.clone(), version)?;
         if err != 0 {
             return Err(Error::broker(err, "LeaveGroup"));
         }

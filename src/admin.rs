@@ -9267,7 +9267,8 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, results) = decode_leave_group_response_version(&mut body.clone(), version)?;
+            let (err, results, ..) =
+                decode_leave_group_response_version(&mut body.clone(), version)?;
             if error::coordinator_retriable(err) {
                 self.group_coord = None;
                 let _ = self.conns.remove(&node);

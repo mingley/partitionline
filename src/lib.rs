@@ -293,9 +293,12 @@
 //! `JoinGroupRequest.Builder.build` (a present `group.instance.id`
 //! below v5 is `UnsupportedVersionException`; encode still omits)),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::group::encode_leave_group_response_version`] still writes `0`;
 //! [`protocol::group::LeaveGroupRequest::error_response`] is Java
 //! `LeaveGroupRequest.getErrorResponse` (empty Members; request members are
-//! not copied);
+//! not copied; v1+ writes the `throttleTimeMs` argument; below v1 omits it);
 //! [`protocol::group::LeaveGroupRequest::members`] is Java
 //! `LeaveGroupRequest.members` (v0–v2 singleton `member_id`; v3+ Members);
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
