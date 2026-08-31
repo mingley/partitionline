@@ -1587,8 +1587,11 @@ pub fn decode_metadata_request<B: Buf>(
 
 /// Decode Metadata: every topic (Name and/or TopicId) plus flags.
 ///
-/// The last flag is `IncludeClusterAuthorizedOperations` (JSON `8-10`;
-/// `false` outside that range).
+/// AllowAutoTopicCreation is JSON `4+` (JSON default `true`). Below v4
+/// the field is omitted and decode fills `true`. Official Java
+/// `MetadataRequestData.allowAutoTopicCreation`. The last flag is
+/// `IncludeClusterAuthorizedOperations` (JSON `8-10`; `false` outside
+/// that range).
 pub fn decode_metadata_request_topics<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1617,7 +1620,7 @@ pub fn decode_metadata_request_topics<B: Buf>(
         buf::need(buf, 1)?;
         buf.get_u8() != 0
     } else {
-        false
+        true
     };
     let include_cluster_authorized = if (8..=10).contains(&version) {
         buf::need(buf, 1)?;
@@ -4887,6 +4890,68 @@ mod tests {
         assert!(
             !MetadataResponse::has_reliable_leader_epochs(7),
             "v7 leader epochs are on the wire but must not be retained by the client"
+        );
+    }
+
+    #[test]
+    fn metadata_request_allow_auto_topic_creation_matches_java() {
+        // Kafka 4.0.0 MetadataRequest.json AllowAutoTopicCreation is
+        // versions 4+ (BOOL after Topics; JSON default true). Official
+        // Java MetadataRequestData.allowAutoTopicCreation /
+        // MetadataRequest.Builder.allTopics. Encode omits the field
+        // below v4 (Java Builder.build rejects false below v4). Decode
+        // previously filled false. This crate speaks 1-13. This is not
+        // IncludeTopicAuthorizedOperations /
+        // IncludeClusterAuthorizedOperations / is_all_topics.
+        leftover_metadata_allow_auto_topic_creation(1, true);
+        leftover_metadata_allow_auto_topic_creation(3, true);
+        leftover_metadata_allow_auto_topic_creation(4, true);
+        leftover_metadata_allow_auto_topic_creation(4, false);
+        leftover_metadata_allow_auto_topic_creation(8, true);
+        leftover_metadata_allow_auto_topic_creation(13, true);
+        leftover_metadata_allow_auto_topic_creation(13, false);
+
+        let mut v3 = BytesMut::new();
+        encode_metadata_request(&mut v3, 3, None, true).unwrap();
+        let mut v4_true = BytesMut::new();
+        encode_metadata_request(&mut v4_true, 4, None, true).unwrap();
+        assert_ne!(
+            &v3[..],
+            &v4_true[..],
+            "v4 writes AllowAutoTopicCreation after Topics"
+        );
+        let mut v4_false = BytesMut::new();
+        encode_metadata_request(&mut v4_false, 4, None, false).unwrap();
+        assert_ne!(
+            &v4_true[..],
+            &v4_false[..],
+            "v4 AllowAutoTopicCreation is not always the JSON default true"
+        );
+        let mut v1 = BytesMut::new();
+        encode_metadata_request(&mut v1, 1, None, true).unwrap();
+        assert_eq!(
+            &v1[..],
+            &v3[..],
+            "v1 and v3 both omit AllowAutoTopicCreation"
+        );
+    }
+
+    fn leftover_metadata_allow_auto_topic_creation(version: i16, allow_auto: bool) {
+        let mut buf = BytesMut::new();
+        encode_metadata_request(&mut buf, version, None, allow_auto).unwrap();
+        let mut cur = buf.as_ref();
+        let (topics, allow, include_topic, include_cluster) =
+            decode_metadata_request_topics(&mut cur, version).unwrap();
+        assert!(topics.is_none(), "all-topics is a null Topics array");
+        let expected = if version >= 4 { allow_auto } else { true };
+        assert_eq!(allow, expected);
+        assert!(!include_topic);
+        assert!(!include_cluster);
+        let empty = if allow_auto { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Metadata v{version} AllowAutoTopicCreation {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

@@ -75,7 +75,10 @@
 //! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
 //! and IncludeClusterAuthorizedOperations; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];
-//! v12+ TopicId on [`Admin::describe_topics_by_id`]).
+//! v12+ TopicId on [`Admin::describe_topics_by_id`];
+//! request AllowAutoTopicCreation is JSON `4+` (decode fills `true` below v4;
+//! encode writes the flag on v4+; JSON default `true`; official Java
+//! `MetadataRequestData.allowAutoTopicCreation`)).
 //! [`protocol::api::MetadataResponse::NO_CONTROLLER_ID`] /
 //! [`protocol::api::MetadataResponse::NO_LEADER_ID`] /
 //! [`protocol::api::MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] /
