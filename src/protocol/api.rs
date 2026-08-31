@@ -1772,6 +1772,26 @@ impl ProduceRequest {
                 .is_some_and(RecordBatch::is_transactional)
         })
     }
+
+    /// Java `ProduceRequest.partitionSizes`.
+    ///
+    /// Each `(topic, partition)` maps to the encoded size of that
+    /// partition's records (`RecordBatch::size_in_bytes`). A later
+    /// partition with the same pair adds (Java `Map.compute` sums). Java
+    /// `int` overflow wraps.
+    pub fn partition_sizes(topics: &[ProduceTopicData]) -> Result<HashMap<(String, i32), i32>> {
+        let mut sizes: HashMap<(String, i32), i32> = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let size = partition.records.size_in_bytes()?;
+                let _size = sizes
+                    .entry((topic.topic.clone(), partition.index))
+                    .and_modify(|prev| *prev = prev.wrapping_add(size))
+                    .or_insert(size);
+            }
+        }
+        Ok(sizes)
+    }
 }
 
 /// Java `ProduceResponse` helpers.
@@ -2188,6 +2208,87 @@ mod tests {
             &[][..],
             std::slice::from_ref(&tx)
         ]));
+    }
+
+    #[test]
+    fn produce_partition_sizes_matches_java() {
+        // Java ProduceRequest.partitionSizes: HashMap.compute sums
+        // records.sizeInBytes for the same (topic, partition). Empty
+        // Topics is empty. Duplicate pairs add (Java int wrap).
+        assert!(ProduceRequest::partition_sizes(&[]).unwrap().is_empty());
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let one_size = batch.size_in_bytes().unwrap();
+        let one = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![
+                ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                },
+                ProducePartitionData {
+                    index: 3,
+                    records: batch.clone(),
+                },
+            ],
+        }];
+        assert_eq!(
+            ProduceRequest::partition_sizes(&one).unwrap(),
+            HashMap::from([(("t".into(), 0), one_size), (("t".into(), 3), one_size)])
+        );
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch.clone(),
+                    },
+                ],
+            },
+        ];
+        assert_eq!(
+            ProduceRequest::partition_sizes(&dup).unwrap(),
+            HashMap::from([
+                (("a".into(), 0), one_size.wrapping_add(one_size)),
+                (("a".into(), 1), one_size),
+            ])
+        );
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, 3, None, 1, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 partitionSizes").unwrap();
+        assert_eq!(
+            ProduceRequest::partition_sizes(&decoded).unwrap(),
+            ProduceRequest::partition_sizes(&dup).unwrap()
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 9, None, 1, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 9).unwrap().3;
+        leftover_empty(&cur, "Produce v9 partitionSizes").unwrap();
+        assert_eq!(
+            ProduceRequest::partition_sizes(&decoded).unwrap(),
+            ProduceRequest::partition_sizes(&dup).unwrap()
+        );
     }
 
     #[test]

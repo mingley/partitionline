@@ -29,6 +29,9 @@
 //! [`protocol::api::ProduceRequest::has_transactional_records`] is Java
 //! `RequestUtils.hasTransactionalRecords` (first batch of each partition
 //! only).
+//! [`protocol::api::ProduceRequest::partition_sizes`] is Java
+//! `ProduceRequest.partitionSizes` (`(topic, partition)` to encoded
+//! records size; a later pair adds).
 //! InitProducerId is v0–v5 (v2+ flexible; v3+ KIP-360 ProducerId;
 //! first init [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`], epoch-bump resume sends the last
