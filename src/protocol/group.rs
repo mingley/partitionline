@@ -1695,6 +1695,26 @@ impl HeartbeatResponse {
     }
 }
 
+/// Java `HeartbeatRequest` helpers.
+pub struct HeartbeatRequest;
+
+impl HeartbeatRequest {
+    /// Java `HeartbeatRequest.Builder.build`.
+    ///
+    /// A present `group.instance.id` below v3 is
+    /// `UnsupportedVersionException` (Java `!= null`, so empty is still
+    /// present). Encode still omits the field on those versions; this is
+    /// the Builder check.
+    pub fn build(version: i16, group_instance_id: Option<&str>) -> Result<()> {
+        if group_instance_id.is_some() && version < 3 {
+            return Err(Error::Unsupported(format!(
+                "The broker heartbeat protocol version {version} does not support usage of config group.instance.id."
+            )));
+        }
+        Ok(())
+    }
+}
+
 /// Encode Heartbeat v0–v4.
 ///
 /// Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "4+"`.
@@ -8227,6 +8247,63 @@ mod tests {
             &v3[..],
             "Heartbeat v4 response must include tagged fields"
         );
+    }
+
+    #[test]
+    fn heartbeat_request_build_matches_java() {
+        HeartbeatRequest::build(2, None).unwrap();
+        HeartbeatRequest::build(3, None).unwrap();
+        HeartbeatRequest::build(3, Some("i")).unwrap();
+        HeartbeatRequest::build(3, Some("")).unwrap();
+        HeartbeatRequest::build(4, Some("i")).unwrap();
+        let v2 = HeartbeatRequest::build(2, Some("i")).unwrap_err();
+        assert!(
+            matches!(v2, Error::Unsupported(_)),
+            "v2 with group.instance.id is Java UnsupportedVersionException, got {v2}"
+        );
+        assert!(
+            v2.to_string()
+                .contains("does not support usage of config group.instance.id"),
+            "got {v2}"
+        );
+        let empty = HeartbeatRequest::build(0, Some("")).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "empty group.instance.id is still present (Java != null), got {empty}"
+        );
+        encode_heartbeat_request(&mut BytesMut::new(), 0, "g", 7, "m1", Some("ignored-on-v0"))
+            .unwrap();
+        assert!(
+            HeartbeatRequest::build(0, Some("ignored-on-v0")).is_err(),
+            "encode omits group.instance.id below v3; Builder.build rejects it"
+        );
+
+        for version in [3_i16, 4] {
+            HeartbeatRequest::build(version, Some("i")).unwrap();
+            let mut buf = BytesMut::new();
+            encode_heartbeat_request(&mut buf, version, "g", 7, "m1", Some("i")).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, gen, mid) = decode_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+            assert!(
+                !cur.has_remaining(),
+                "Heartbeat v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [0_i16, 2, 3, 4] {
+            HeartbeatRequest::build(version, None).unwrap();
+            let mut buf = BytesMut::new();
+            encode_heartbeat_request(&mut buf, version, "g", 7, "m1", None).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, gen, mid) = decode_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+            assert!(
+                !cur.has_remaining(),
+                "Heartbeat v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     fn sync_req(assignments: &[(String, Vec<u8>)]) -> SyncGroupRequest<'_> {

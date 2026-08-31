@@ -195,6 +195,9 @@
 //! (empty Topics; request partitions are not copied). Throttle is the
 //! JSON default (`0`)),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
+//! [`protocol::group::HeartbeatRequest::build`] is Java
+//! `HeartbeatRequest.Builder.build` (a present `group.instance.id`
+//! below v3 is `UnsupportedVersionException`; encode still omits);
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
