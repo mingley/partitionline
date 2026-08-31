@@ -12052,6 +12052,7 @@ mod tests {
                 vec![AlterReplicaLogDirsResponsePartition::new(0, 0)],
             )]);
         assert_eq!(altered.results()[0].topic_name(), "t");
+        assert_eq!(altered.throttle_time_ms(), 0);
         assert_eq!(altered.results()[0].partitions()[0].partition_index(), 0);
         assert_eq!(altered.results()[0].partitions()[0].error_code(), 0);
         assert_eq!(alter_replica_partition_error(altered.results(), "t", 0), 0);

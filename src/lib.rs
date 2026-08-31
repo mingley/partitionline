@@ -677,7 +677,7 @@
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`),
-//! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible;
+//! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
 //! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::AlterReplicaLogDirsResponse::error_counts`] is Java

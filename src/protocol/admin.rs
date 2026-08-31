@@ -13326,6 +13326,8 @@ impl AlterReplicaLogDirsResponseTopic {
 /// Partitions of {PartitionIndex, ErrorCode}}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlterReplicaLogDirsResponse {
+    /// AlterReplicaLogDirs `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Per-item results.
     pub results: Vec<AlterReplicaLogDirsResponseTopic>,
 }
@@ -13333,7 +13335,16 @@ pub struct AlterReplicaLogDirsResponse {
 impl AlterReplicaLogDirsResponse {
     /// Construct [`Self`].
     pub fn new(results: Vec<AlterReplicaLogDirsResponseTopic>) -> Self {
-        Self { results }
+        Self {
+            throttle_time_ms: 0,
+            results,
+        }
+    }
+
+    /// AlterReplicaLogDirs `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Java `AlterReplicaLogDirsResponse.shouldClientThrottle`.
@@ -13501,13 +13512,17 @@ pub fn decode_alter_replica_log_dirs_request<B: Buf>(
 }
 
 /// Encode an AlterReplicaLogDirs response (v1–2).
+///
+/// ThrottleTimeMs is JSON `0+` (from [`AlterReplicaLogDirsResponse::throttle_time_ms`];
+/// JSON default `0`). KIP-219 only changes
+/// [`AlterReplicaLogDirsResponse::should_client_throttle`] (v1+).
 pub fn encode_alter_replica_log_dirs_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &AlterReplicaLogDirsResponse,
 ) -> crate::error::Result<()> {
     let flexible = alter_replica_log_dirs_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(resp.results.len()))?;
     for topic in &resp.results {
         buf::put_string(buf, flexible, Some(&topic.topic_name))?;
@@ -13530,12 +13545,14 @@ pub fn encode_alter_replica_log_dirs_response(
 }
 
 /// Decode an AlterReplicaLogDirs response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire for spoken v1–v2).
 pub fn decode_alter_replica_log_dirs_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<AlterReplicaLogDirsResponse> {
     let flexible = alter_replica_log_dirs_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
@@ -13564,7 +13581,10 @@ pub fn decode_alter_replica_log_dirs_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(AlterReplicaLogDirsResponse { results })
+    Ok(AlterReplicaLogDirsResponse {
+        throttle_time_ms,
+        results,
+    })
 }
 
 /// One topic in a DescribeLogDirs (api 35) request.
@@ -26242,6 +26262,55 @@ mod tests {
         assert_eq!(
             with_nested.error_counts(),
             HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+    }
+
+    #[test]
+    fn alter_replica_log_dirs_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AlterReplicaLogDirsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v1–v2). Kafka 4.0 removed v0.
+        // Official Java AlterReplicaLogDirsRequest.getErrorResponse /
+        // AlterReplicaLogDirsResponse.throttleTimeMs set / read it.
+        // Encode writes AlterReplicaLogDirsResponse.throttle_time_ms
+        // (JSON default 0; AlterReplicaLogDirsResponse::new fills 0).
+        // KIP-219 only changes shouldClientThrottle (v1+). This crate
+        // speaks 1–2. This is not AssignReplicasToDirs ThrottleTimeMs.
+        let zero = AlterReplicaLogDirsResponse::new(vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [1, 2] {
+            let mut buf = BytesMut::new();
+            encode_alter_replica_log_dirs_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_alter_replica_log_dirs_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "AlterReplicaLogDirs v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v1 = BytesMut::new();
+        encode_alter_replica_log_dirs_response(&mut with_v1, 1, &with).unwrap();
+        let mut zero_v1 = BytesMut::new();
+        encode_alter_replica_log_dirs_response(&mut zero_v1, 1, &zero).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &zero_v1[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v2 = BytesMut::new();
+        encode_alter_replica_log_dirs_response(&mut with_v2, 2, &with).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &with_v2[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "AlterReplicaLogDirsResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
