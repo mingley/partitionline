@@ -148,8 +148,12 @@
 //! below v7 is `UnsupportedVersionException`; encode still omits)),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
-//! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
-//! (`None` Topics is every committed partition; `Some` empty is not);
+//! `OffsetFetchRequest.isAllPartitions` (`None` Topics is every committed
+//! partition; `Some` empty is not);
+//! [`protocol::group::OffsetFetchRequest::is_all_partitions_for_group`] is Java
+//! `OffsetFetchRequest.isAllPartitionsForGroup` (first matching GroupId;
+//! missing group is [`Error::protocol`]; `None` Topics is every committed
+//! partition);
 //! [`protocol::group::OffsetFetchRequest::group_ids_to_partitions`] is Java
 //! `OffsetFetchRequest.groupIdsToPartitions` (group id to
 //! `(topic, partition)` list; `None` Topics is `None`; a later group

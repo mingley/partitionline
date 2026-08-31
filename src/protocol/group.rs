@@ -2690,7 +2690,8 @@ pub struct FetchedOffsetTopic {
 /// v1–v7 encode a single group as GroupId + Topics. v9 MemberId /
 /// MemberEpoch are null / `-1` for classic admin fetches.
 /// [`Self::is_all_partitions`] is Java `OffsetFetchRequest.isAllPartitions`
-/// / `isAllPartitionsForGroup` (`topics == null`, not empty).
+/// (`topics == null`, not empty). [`OffsetFetchRequest::is_all_partitions_for_group`]
+/// is Java `isAllPartitionsForGroup` (first matching GroupId).
 /// [`Self::error_result`] is Java `OffsetFetchRequest.getErrorResponse` one
 /// group on v8+ (empty Topics; request partitions are not copied).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2718,12 +2719,13 @@ impl OffsetFetchGroup {
         }
     }
 
-    /// Java `OffsetFetchRequest.isAllPartitions` /
-    /// `isAllPartitionsForGroup`.
+    /// Java `OffsetFetchRequest.isAllPartitions` (`data.topics() == null`)
+    /// and the per-group check inside `isAllPartitionsForGroup`.
     ///
     /// `None` Topics is every committed partition (v2+). `Some` empty is
     /// not all partitions (empty classic INT32 `0` / compact `0x01`, not
-    /// null).
+    /// null). Named lookup with a missing group is
+    /// [`OffsetFetchRequest::is_all_partitions_for_group`].
     #[must_use]
     pub fn is_all_partitions(&self) -> bool {
         self.topics.is_none()
@@ -2823,6 +2825,30 @@ impl OffsetFetchRequest {
             };
             vec![OffsetFetchGroup::new(group_id, topics)]
         }
+    }
+
+    /// Java `OffsetFetchRequest.isAllPartitionsForGroup`.
+    ///
+    /// First matching `GroupId` (Java `stream.filter` then `List.get(0)`).
+    /// A missing group is [`Error::protocol`] (Java
+    /// `IndexOutOfBoundsException`). Duplicate ids keep the first.
+    /// `None` Topics is every committed partition. `Some` empty is not.
+    /// Looks at `groups` as-is (the v8+ Groups field) and does not apply
+    /// [`Self::groups`]. Distinct from [`OffsetFetchGroup::is_all_partitions`],
+    /// which is the per-group `topics == null` check with no lookup.
+    pub fn is_all_partitions_for_group(
+        groups: &[OffsetFetchGroup],
+        group_id: &str,
+    ) -> Result<bool> {
+        groups
+            .iter()
+            .find(|group| group.group_id == group_id)
+            .map(OffsetFetchGroup::is_all_partitions)
+            .ok_or_else(|| {
+                Error::protocol(format!(
+                    "no group named {group_id} in OffsetFetchRequest groups"
+                ))
+            })
     }
 
     /// Java `OffsetFetchRequest.partitions`.
@@ -8195,6 +8221,96 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "OffsetFetch v{version} groups singleton leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn offset_fetch_request_is_all_partitions_for_group_matches_java() {
+        // Java OffsetFetchRequest.isAllPartitionsForGroup: first matching
+        // GroupId (stream.filter then List.get(0)). Missing group is
+        // IndexOutOfBoundsException. Duplicate ids keep the first.
+        // None Topics is every committed partition.
+        let missing = OffsetFetchRequest::is_all_partitions_for_group(&[], "g").unwrap_err();
+        assert!(
+            missing.to_string().contains("no group named g"),
+            "empty Groups is Java IndexOutOfBoundsException, got {missing}"
+        );
+        let named = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        let all = OffsetFetchGroup::new("g", None);
+        let other = OffsetFetchGroup::new("h", None);
+        assert!(!OffsetFetchRequest::is_all_partitions_for_group(
+            std::slice::from_ref(&named),
+            "g"
+        )
+        .unwrap());
+        assert!(
+            OffsetFetchRequest::is_all_partitions_for_group(std::slice::from_ref(&all), "g")
+                .unwrap()
+        );
+        assert!(OffsetFetchRequest::is_all_partitions_for_group(
+            &[named.clone(), other.clone()],
+            "h"
+        )
+        .unwrap());
+        assert!(
+            !OffsetFetchRequest::is_all_partitions_for_group(&[named.clone(), all.clone()], "g")
+                .unwrap(),
+            "duplicate GroupId keeps the first (Some Topics, not later None)"
+        );
+        let empty_topics = OffsetFetchGroup::new("g", Some(Vec::new()));
+        assert!(
+            !OffsetFetchRequest::is_all_partitions_for_group(
+                std::slice::from_ref(&empty_topics),
+                "g"
+            )
+            .unwrap(),
+            "Some empty is not all partitions"
+        );
+        let unknown =
+            OffsetFetchRequest::is_all_partitions_for_group(std::slice::from_ref(&named), "nope")
+                .unwrap_err();
+        assert!(
+            unknown.to_string().contains("no group named nope"),
+            "got {unknown}"
+        );
+
+        for version in [8_i16, 9] {
+            let groups = [named.clone(), other.clone()];
+            assert!(!OffsetFetchRequest::is_all_partitions_for_group(&groups, "g").unwrap());
+            assert!(OffsetFetchRequest::is_all_partitions_for_group(&groups, "h").unwrap());
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_request(&mut buf, version, &groups, false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert_eq!(
+                OffsetFetchRequest::is_all_partitions_for_group(&decoded, "g").unwrap(),
+                OffsetFetchRequest::is_all_partitions_for_group(&groups, "g").unwrap()
+            );
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} isAllPartitionsForGroup leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [8_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_request(&mut buf, version, &[], false).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert!(decoded.is_empty());
+            let empty_err =
+                OffsetFetchRequest::is_all_partitions_for_group(&decoded, "g").unwrap_err();
+            assert!(
+                empty_err.to_string().contains("no group named g"),
+                "got {empty_err}"
+            );
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} isAllPartitionsForGroup empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
