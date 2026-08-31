@@ -243,6 +243,10 @@
 //! [`protocol::group::LeaveGroupResponse::error`] is Java
 //! `LeaveGroupResponse.error` (top-level when not `NONE`, else first
 //! member-level non-`NONE`);
+//! [`protocol::group::LeaveGroupResponse::for_version`] is Java
+//! `LeaveGroupResponse(LeaveGroupResponseData, short)` (v3+ identity;
+//! below v3 a non-`NONE` top-level drops members; `NONE` requires one
+//! member and copies that `errorCode`);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate;

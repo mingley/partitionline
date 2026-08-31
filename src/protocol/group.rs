@@ -2059,6 +2059,35 @@ impl LeaveGroupResponse {
         }
         0
     }
+
+    /// Java `LeaveGroupResponse(LeaveGroupResponseData, short)`.
+    ///
+    /// v3+ keeps `error_code` and `members`. Below v3, a non-`NONE`
+    /// top-level code drops members and keeps that code. `NONE` at the
+    /// top requires exactly one member (`UnsupportedVersionException`
+    /// otherwise) and copies that member's `errorCode` onto the
+    /// top-level; members are dropped. Throttle is the JSON default
+    /// (`0`) on v1+ (Java `new LeaveGroupResponseData()` does not copy
+    /// throttle).
+    pub fn for_version(
+        version: i16,
+        error_code: i16,
+        members: &[LeaveGroupMemberResult],
+    ) -> Result<(i16, Vec<LeaveGroupMemberResult>)> {
+        if version >= 3 {
+            return Ok((error_code, members.to_vec()));
+        }
+        if error_code != 0 {
+            return Ok((error_code, Vec::new()));
+        }
+        match members {
+            [member] => Ok((member.error_code, Vec::new())),
+            _ => Err(Error::Unsupported(format!(
+                "LeaveGroup response version {version} can only contain one member, got {} members.",
+                members.len()
+            ))),
+        }
+    }
 }
 
 /// One partition in OffsetCommit v2–v9 / OffsetFetch v5.
@@ -8788,6 +8817,115 @@ mod tests {
             LeaveGroupResponse::error(crate::error::NOT_COORDINATOR, &members),
             crate::error::NOT_COORDINATOR
         );
+    }
+
+    #[test]
+    fn leave_group_response_for_version_matches_java() {
+        let members = [
+            LeaveGroupMemberResult {
+                member_id: "ok".into(),
+                group_instance_id: None,
+                error_code: 0,
+            },
+            LeaveGroupMemberResult {
+                member_id: "unknown".into(),
+                group_instance_id: Some("i1".into()),
+                error_code: crate::error::UNKNOWN_MEMBER_ID,
+            },
+        ];
+        assert_eq!(
+            LeaveGroupResponse::for_version(3, crate::error::NOT_COORDINATOR, &members).unwrap(),
+            (crate::error::NOT_COORDINATOR, members.to_vec())
+        );
+        assert_eq!(
+            LeaveGroupResponse::for_version(5, 0, &members).unwrap(),
+            (0, members.to_vec())
+        );
+        assert_eq!(
+            LeaveGroupResponse::for_version(2, crate::error::NOT_COORDINATOR, &members).unwrap(),
+            (crate::error::NOT_COORDINATOR, Vec::new())
+        );
+        let one = LeaveGroupMemberResult {
+            member_id: "unknown".into(),
+            group_instance_id: Some("i1".into()),
+            error_code: crate::error::UNKNOWN_MEMBER_ID,
+        };
+        assert_eq!(
+            LeaveGroupResponse::for_version(0, 0, std::slice::from_ref(&one)).unwrap(),
+            (crate::error::UNKNOWN_MEMBER_ID, Vec::new())
+        );
+        assert_eq!(
+            LeaveGroupResponse::for_version(3, 0, std::slice::from_ref(&one)).unwrap(),
+            (0, vec![one.clone()])
+        );
+        let empty = LeaveGroupResponse::for_version(1, 0, &[]).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "v1 NONE with no members is Java UnsupportedVersionException, got {empty}"
+        );
+        assert!(
+            empty
+                .to_string()
+                .contains("can only contain one member, got 0 members"),
+            "got {empty}"
+        );
+        let two = LeaveGroupResponse::for_version(2, 0, &members).unwrap_err();
+        assert!(
+            matches!(two, Error::Unsupported(_)),
+            "v2 NONE with two members is Java UnsupportedVersionException, got {two}"
+        );
+        assert!(
+            two.to_string()
+                .contains("can only contain one member, got 2 members"),
+            "got {two}"
+        );
+        let (error_code, rewritten) = LeaveGroupResponse::for_version(3, 0, &[]).unwrap();
+        assert_eq!(error_code, 0);
+        assert!(rewritten.is_empty(), "v3 NONE with no members is identity");
+
+        for version in [0_i16, 1, 3, 5] {
+            let (error_code, rewritten) =
+                LeaveGroupResponse::for_version(version, crate::error::NOT_COORDINATOR, &members)
+                    .unwrap();
+            let mut buf = BytesMut::new();
+            encode_leave_group_response_version(&mut buf, version, error_code, &rewritten).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded_err, decoded_members) =
+                decode_leave_group_response_version(&mut cur, version).unwrap();
+            assert_eq!(decoded_err, crate::error::NOT_COORDINATOR);
+            if version >= 3 {
+                assert_eq!(decoded_members, members);
+            } else {
+                assert!(
+                    decoded_members.is_empty(),
+                    "v{version} members must be dropped"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} (data, version) leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in [0_i16, 1, 3, 5] {
+            let (error_code, rewritten) =
+                LeaveGroupResponse::for_version(version, crate::error::NOT_COORDINATOR, &[])
+                    .unwrap();
+            assert_eq!(error_code, crate::error::NOT_COORDINATOR);
+            assert!(rewritten.is_empty());
+            let mut buf = BytesMut::new();
+            encode_leave_group_response_version(&mut buf, version, error_code, &rewritten).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded_err, decoded_members) =
+                decode_leave_group_response_version(&mut cur, version).unwrap();
+            assert_eq!(decoded_err, crate::error::NOT_COORDINATOR);
+            assert!(decoded_members.is_empty());
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} (data, version) empty leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
