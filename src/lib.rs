@@ -1437,6 +1437,10 @@
 //! [`protocol::fetch::FetchRequest::for_replica`] is Java
 //! `FetchRequest.Builder.forReplica` (oldest and latest are both the
 //! allowed version; ReplicaId and ReplicaEpoch are the arguments).
+//! [`protocol::fetch::FetchRequest::simple_build`] is Java
+//! `FetchRequest.SimpleBuilder.build` (untagged ReplicaId must be `< 0`;
+//! below v15 copy ReplicaState.ReplicaId into ReplicaId and reset
+//! ReplicaState).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
