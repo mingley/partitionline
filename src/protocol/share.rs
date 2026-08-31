@@ -245,7 +245,8 @@ impl ShareFetchRequest {
     /// list. Empty is empty Topics. Topic name is not used (Java
     /// `TopicIdPartition.topicId` / `partition` only). GroupId,
     /// MemberId, ShareSessionEpoch, MaxWaitMs / MinBytes / MaxBytes,
-    /// and ForgottenTopicsData stay with the encode caller.
+    /// MaxRecords / BatchSize, and ForgottenTopicsData stay with the
+    /// encode caller.
     /// [`Self::update_forgotten_data`] is the forget-list half.
     /// Encode writes each partition's `partition_max_bytes` on v0.
     /// Distinct from [`ShareAcknowledgeRequest::for_consumer`], which
@@ -889,7 +890,9 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 /// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
 /// 4.1 JSON (`validVersions: "1"` — v0 removed). This crate speaks 0–1.
 /// v1 adds MaxRecords / BatchSize after MaxBytes and omits
-/// PartitionMaxBytes (v0 only). v0 PartitionMaxBytes is each partition's
+/// PartitionMaxBytes (v0 only). [`encode_share_fetch_request`] still
+/// writes BatchSize as MaxRecords ([`encode_share_fetch_request_with_batch_size`]
+/// writes a distinct value). v0 PartitionMaxBytes is each partition's
 /// [`ShareFetchPartition::partition_max_bytes`] (Java
 /// `Builder.forConsumer` `fetchSize`, not request-level MaxBytes).
 /// ForgottenTopicsData stays empty ([`encode_share_fetch_request_with_forgotten`]
@@ -925,7 +928,10 @@ pub fn encode_share_fetch_request(
 ///
 /// ForgottenTopicsData is JSON `0+` (on the wire for every spoken
 /// version). [`encode_share_fetch_request`] still writes empty.
-/// Duplicate partition indexes are kept.
+/// Duplicate partition indexes are kept. v1 BatchSize stays equal to
+/// MaxRecords on this helper
+/// ([`encode_share_fetch_request_with_batch_size`] writes a distinct
+/// value).
 #[expect(
     clippy::too_many_arguments,
     reason = "ShareFetch ForgottenTopicsData is encoded with the rest of the v0–v1 body"
@@ -943,6 +949,83 @@ pub fn encode_share_fetch_request_with_forgotten(
     topics: &[ShareFetchTopic],
     forgotten: &[ShareForgottenTopic],
 ) -> crate::error::Result<()> {
+    encode_share_fetch_request_fields(
+        buf,
+        version,
+        group_id,
+        member_id,
+        share_session_epoch,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        max_records,
+        topics,
+        forgotten,
+        max_records,
+    )
+}
+
+/// Encode ShareFetch v0–v1 with BatchSize.
+///
+/// BatchSize is JSON `1+` (INT32 after MaxRecords). Kafka 4.1.0 JSON has
+/// no default; generated Java int32 default is `0`. Official Java
+/// `ShareFetchRequest.Builder.forConsumer` takes `maxRecords` and
+/// `batchSize` as separate arguments. [`encode_share_fetch_request`]
+/// still writes BatchSize as MaxRecords. v0 omits the field even when
+/// the body is non-zero; decode fills `0`. ForgottenTopicsData stays
+/// empty on this helper. This is not MaxRecords, not MaxBytes, not v0
+/// PartitionMaxBytes, and not response AcquisitionLockTimeoutMs.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch BatchSize is encoded with the rest of the v0–v1 body"
+)]
+pub fn encode_share_fetch_request_with_batch_size(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    topics: &[ShareFetchTopic],
+    batch_size: i32,
+) -> crate::error::Result<()> {
+    encode_share_fetch_request_fields(
+        buf,
+        version,
+        group_id,
+        member_id,
+        share_session_epoch,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        max_records,
+        topics,
+        &[],
+        batch_size,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch request body fields are a single wire encode"
+)]
+fn encode_share_fetch_request_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
+    batch_size: i32,
+) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
@@ -952,7 +1035,7 @@ pub fn encode_share_fetch_request_with_forgotten(
     buf.put_i32(max_bytes);
     if version >= 1 {
         buf.put_i32(max_records);
-        buf.put_i32(max_records);
+        buf.put_i32(batch_size);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -990,15 +1073,17 @@ pub fn encode_share_fetch_request_with_forgotten(
 }
 
 /// Decode a ShareFetch request (`version` 0–1):
-/// `(group_id, member_id, epoch, max_records, topics, forgotten)`.
+/// `(group_id, member_id, epoch, max_records, topics, forgotten,
+/// batch_size)`.
 ///
 /// `max_records` is the v1 MaxRecords field; v0 omits it and decode
-/// fills `0`. `partition_max_bytes` is the v0 PartitionMaxBytes field;
+/// fills `0`. `batch_size` is the v1 BatchSize field; v0 omits it and
+/// decode fills `0`. `partition_max_bytes` is the v0 PartitionMaxBytes field;
 /// v1 omits it and decode fills `0`. ForgottenTopicsData is JSON `0+`
 /// (on the wire for every spoken version).
 #[expect(
     clippy::type_complexity,
-    reason = "ShareFetch request decode returns group, member, epoch, max records, topics, and forgotten together"
+    reason = "ShareFetch request decode returns group, member, epoch, max records, topics, forgotten, and batch size together"
 )]
 pub fn decode_share_fetch_request<B: Buf>(
     buf: &mut B,
@@ -1010,6 +1095,7 @@ pub fn decode_share_fetch_request<B: Buf>(
     i32,
     Vec<ShareFetchTopic>,
     Vec<ShareForgottenTopic>,
+    i32,
 )> {
     let flexible = share_fetch_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1018,12 +1104,10 @@ pub fn decode_share_fetch_request<B: Buf>(
     let _max_wait = buf::get_i32(buf)?;
     let _min_bytes = buf::get_i32(buf)?;
     let _max_bytes = buf::get_i32(buf)?;
-    let max_records = if version >= 1 {
-        let max_records = buf::get_i32(buf)?;
-        let _batch = buf::get_i32(buf)?;
-        max_records
+    let (max_records, batch_size) = if version >= 1 {
+        (buf::get_i32(buf)?, buf::get_i32(buf)?)
     } else {
-        0
+        (0, 0)
     };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -1079,6 +1163,7 @@ pub fn decode_share_fetch_request<B: Buf>(
         max_records,
         topics,
         forgotten_out,
+        batch_size,
     ))
 }
 
@@ -4499,7 +4584,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., got) = decode_share_fetch_request(&mut cur, version).unwrap();
+            let (.., got, _) = decode_share_fetch_request(&mut cur, version).unwrap();
             assert_eq!(got.as_slice(), forgotten.as_slice());
             assert!(
                 cur.is_empty(),
@@ -4559,6 +4644,158 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 ForgottenTopicsData share TopicId layout; v1 still adds MaxRecords / BatchSize"
+        );
+    }
+
+    #[test]
+    fn share_fetch_request_batch_size_matches_java() {
+        // Kafka 4.1 ShareFetchRequest.json BatchSize is versions 1+
+        // (INT32 after MaxRecords). Kafka 4.1.0 JSON has no default;
+        // generated Java int32 default is 0. Official Java
+        // ShareFetchRequest.Builder.forConsumer takes maxRecords and
+        // batchSize as separate arguments. encode_share_fetch_request
+        // still writes BatchSize as MaxRecords. v0 omits even when the
+        // body is non-zero and decode fills 0. This crate speaks 0–1.
+        // This is not MaxRecords / MaxBytes / PartitionMaxBytes /
+        // AcquisitionLockTimeoutMs.
+        let topics = vec![ShareFetchTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchPartition {
+                partition: 0,
+                partition_max_bytes: 0,
+                acknowledgements: vec![],
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request_with_batch_size(
+                &mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &topics, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, mid, epoch, max_records, got, forgotten, batch_size) =
+                decode_share_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(gid.as_str(), "sg");
+            assert_eq!(mid.as_str(), "m1");
+            assert_eq!(epoch, 0);
+            assert!(forgotten.is_empty());
+            assert_eq!(got, topics);
+            if version >= 1 {
+                assert_eq!(max_records, 16);
+                assert_eq!(batch_size, 3_600_000);
+            } else {
+                assert_eq!(max_records, 0, "v0 omits MaxRecords");
+                assert_eq!(
+                    batch_size, 0,
+                    "ShareFetch v{version} omits BatchSize even when the body has a non-zero value"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "ShareFetch request v{version} BatchSize leftover-empty"
+            );
+        }
+
+        let mut v0_with = BytesMut::new();
+        encode_share_fetch_request_with_batch_size(
+            &mut v0_with,
+            0,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_share_fetch_request_with_batch_size(
+            &mut v0_zero,
+            0,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            0,
+        )
+        .unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 omits BatchSize even when the body has a non-zero value"
+        );
+        let mut conv_v0 = BytesMut::new();
+        encode_share_fetch_request(&mut conv_v0, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics)
+            .unwrap();
+        assert_eq!(
+            &conv_v0[..],
+            &v0_zero[..],
+            "encode_share_fetch_request v0 has no BatchSize"
+        );
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_request_with_batch_size(
+            &mut with, 1, "sg", "m1", 0, 10, 1, 1024, 16, &topics, 3_600_000,
+        )
+        .unwrap();
+        let mut as_max = BytesMut::new();
+        encode_share_fetch_request_with_batch_size(
+            &mut as_max,
+            1,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            16,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &as_max[..],
+            "v1 BatchSize is not always copied from MaxRecords"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_request(&mut conv, 1, "sg", "m1", 0, 10, 1, 1024, 16, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &as_max[..],
+            "encode_share_fetch_request still writes BatchSize as MaxRecords"
+        );
+        let mut forgotten_copy = BytesMut::new();
+        encode_share_fetch_request_with_forgotten(
+            &mut forgotten_copy,
+            1,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            &[],
+        )
+        .unwrap();
+        assert_eq!(
+            &forgotten_copy[..],
+            &as_max[..],
+            "encode_share_fetch_request_with_forgotten still writes BatchSize as MaxRecords"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds MaxRecords and BatchSize after MaxBytes"
         );
     }
 

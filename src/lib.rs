@@ -437,7 +437,12 @@
 //! [`DescribedShareGroup::new`]);
 //! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
 //! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
-//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs
+//! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize JSON `1+`
+//! after MaxRecords;
+//! [`protocol::share::encode_share_fetch_request_with_batch_size`]
+//! round-trips a distinct value; [`protocol::share::encode_share_fetch_request`]
+//! still writes BatchSize as MaxRecords; v0 omits even when non-zero and decode fills 0;
+//! AcquisitionLockTimeoutMs
 //! JSON `1+` after ErrorMessage;
 //! [`protocol::share::encode_share_fetch_response_with_acquisition_lock_timeout`]
 //! round-trips a non-zero value; [`protocol::share::encode_share_fetch_response`]
