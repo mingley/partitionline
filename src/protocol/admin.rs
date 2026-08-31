@@ -10265,15 +10265,32 @@ pub fn decode_delete_groups_request<B: Buf>(buf: &mut B, version: i16) -> Result
     Ok(group_ids)
 }
 
-/// Encode a DeleteGroups response (v0–2). ThrottleTimeMs is present on
-/// every spoken version.
+/// Encode a DeleteGroups response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_delete_groups_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[DeletableGroupResult],
 ) -> crate::error::Result<()> {
+    encode_delete_groups_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode DeleteGroups v0–v2 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v1 are classic. v2 is flexible. Kafka 4.0 `validVersions` is
+/// `0-2`. This crate speaks 0–2. v3+ is not spoken. There is no
+/// top-level ErrorCode.
+pub fn encode_delete_groups_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[DeletableGroupResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_groups_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf::put_string(buf, flexible, Some(&r.group_id))?;
@@ -10289,12 +10306,15 @@ pub fn encode_delete_groups_response(
 }
 
 /// Decode a DeleteGroups response.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
 pub fn decode_delete_groups_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DeletableGroupResult>> {
+) -> Result<(Vec<DeletableGroupResult>, i32)> {
     let flexible = delete_groups_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
@@ -10311,7 +10331,7 @@ pub fn decode_delete_groups_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(results)
+    Ok((results, throttle_time_ms))
 }
 
 /// One assigned topic in ShareGroupDescribe (api 77) Assignment.
@@ -25365,6 +25385,65 @@ mod tests {
     }
 
     #[test]
+    fn delete_groups_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DeleteGroupsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v2; first field). Official
+        // Java DeleteGroupsRequest.getErrorResponse /
+        // DeleteGroupsResponse.throttleTimeMs set / read it.
+        // encode_delete_groups_response still writes the JSON default
+        // 0. KIP-219 only changes shouldClientThrottle (v1+).
+        // Empty-Results v0 == v1 (classic); v2 is flexible. There is no
+        // top-level ErrorCode. This crate speaks 0–2. This is not
+        // DescribeCluster ThrottleTimeMs.
+        let results: Vec<DeletableGroupResult> = vec![];
+        for version in [0, 1, 2] {
+            let mut buf = BytesMut::new();
+            encode_delete_groups_response_with_throttle(&mut buf, version, &results, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_delete_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DeleteGroups v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_delete_groups_response_with_throttle(&mut with, 0, &results, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_delete_groups_response_with_throttle(&mut zero, 0, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_groups_response(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_delete_groups_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_delete_groups_response_with_throttle(&mut v1_with, 1, &results, 3_600_000).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Results ThrottleTimeMs bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_delete_groups_response_with_throttle(&mut v2_with, 2, &results, 3_600_000).unwrap();
+        assert_ne!(
+            &v1_with[..],
+            &v2_with[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+    }
+
+    #[test]
     fn delete_groups_v2_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes
         // the request; broker encodes the response). Apache JSON api 42
@@ -25455,7 +25534,7 @@ mod tests {
         buf.clear();
         encode_delete_groups_response(&mut buf, 2, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap(), resp);
+        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap().0, resp);
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 response must be leftover-empty"
@@ -25515,7 +25594,7 @@ mod tests {
             "leftover-empty fixture is shorter than DescribeProducers bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap(), resp);
+        assert_eq!(decode_delete_groups_response(&mut cur, 2).unwrap().0, resp);
         assert!(
             !cur.has_remaining(),
             "DeleteGroups v2 ErrorCode body must be leftover-empty"

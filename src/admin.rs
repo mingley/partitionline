@@ -11224,7 +11224,7 @@ impl Admin {
             )
             .await
         }?;
-        let results = decode_delete_groups_response(&mut body.clone(), version)?;
+        let (results, ..) = decode_delete_groups_response(&mut body.clone(), version)?;
         let mut by_id: HashMap<String, VecDeque<DeletableGroupResult>> = HashMap::new();
         for g in results {
             by_id.entry(g.group_id.clone()).or_default().push_back(g);

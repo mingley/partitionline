@@ -634,7 +634,8 @@
 //! `ListGroupsRequest.Builder.build` (a non-empty StatesFilter below v4,
 //! or a non-empty TypesFilter below v5, is `UnsupportedVersionException`;
 //! encode still omits)),
-//! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
+//! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
+//! FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::DeleteGroupsResponse::error_counts`] is Java
@@ -645,7 +646,8 @@
 //! id is [`Error::protocol`]);
 //! [`protocol::admin::DeleteGroupsRequest::error_result_collection`] is Java
 //! `DeleteGroupsRequest.getErrorResultCollection` (each id through
-//! [`DeletableGroupResult::new`])),
+//! [`DeletableGroupResult::new`]);
+//! [`protocol::admin::encode_delete_groups_response`] still writes `0`),
 //! DescribeClientQuotas / AlterClientQuotas v0–v1 (v1 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_EXACT`] /
 //! [`protocol::admin::DescribeClientQuotasRequest::MATCH_TYPE_DEFAULT`] /
@@ -1945,7 +1947,9 @@
 //! [`Admin::delete_groups_timeout`] / [`Admin::delete_consumer_groups_timeout`] /
 //! [`Admin::delete_share_groups_timeout`] are Java
 //! `DeleteConsumerGroupsOptions` / `DeleteShareGroupsOptions.timeoutMs`
-//! (RPC deadline; DeleteGroups has no TimeoutMs).
+//! (RPC deadline; DeleteGroups has no TimeoutMs). ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::encode_delete_groups_response`] still writes `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`Admin::describe_share_groups`] is Java `describeShareGroups`
 //! (ShareGroupDescribe v0–v1; FindCoordinator v4+ CoordinatorKeys of N).
 //! [`ShareGroupMember`] getters match Java `ShareMemberDescription`.
