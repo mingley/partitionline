@@ -1434,6 +1434,9 @@
 //! `FetchRequest.Builder.forConsumer` (oldest allowed version 4; latest
 //! is the argument; ReplicaId [`protocol::fetch::CONSUMER_REPLICA_ID`];
 //! ReplicaEpoch `-1`).
+//! [`protocol::fetch::FetchRequest::for_replica`] is Java
+//! `FetchRequest.Builder.forReplica` (oldest and latest are both the
+//! allowed version; ReplicaId and ReplicaEpoch are the arguments).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
