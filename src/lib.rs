@@ -235,6 +235,8 @@
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;
 //! v3+ round-trips GroupInstanceId; below v3 encode omits it even when
 //! the body has an instance id and decode fills `None`;
+//! v5+ round-trips ProtocolType / ProtocolName; below v5 encode omits
+//! them even when the body has values and decode fills `None`;
 //! [`protocol::group::SyncGroupRequest::are_mandatory_protocol_type_and_name_present`] is Java
 //! `SyncGroupRequest.areMandatoryProtocolTypeAndNamePresent` (v5+ both ProtocolType and
 //! ProtocolName present; empty string is present; below v5 always true);
