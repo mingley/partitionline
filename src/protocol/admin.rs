@@ -5571,11 +5571,25 @@ pub fn decode_alter_user_scram_credentials_request<B: Buf>(
 }
 
 /// Encode an AlterUserScramCredentials response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on spoken v0 (JSON `0+`).
 pub fn encode_alter_user_scram_credentials_response(
     buf: &mut BytesMut,
     results: &[AlterUserScramCredentialsResult],
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    encode_alter_user_scram_credentials_response_with_throttle(buf, results, 0)
+}
+
+/// Encode AlterUserScramCredentials v0 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on spoken v0. Kafka 4.0
+/// `validVersions` is `"0"`. This crate speaks 0. v1+ is not spoken.
+pub fn encode_alter_user_scram_credentials_response_with_throttle(
+    buf: &mut BytesMut,
+    results: &[AlterUserScramCredentialsResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(results.len()))?;
     for r in results {
         buf::put_compact_string(buf, Some(&r.user))?;
@@ -5588,10 +5602,13 @@ pub fn encode_alter_user_scram_credentials_response(
 }
 
 /// Decode an AlterUserScramCredentials response.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
 pub fn decode_alter_user_scram_credentials_response<B: Buf>(
     buf: &mut B,
-) -> Result<Vec<AlterUserScramCredentialsResult>> {
-    let _th = buf::get_i32(buf)?;
+) -> Result<(Vec<AlterUserScramCredentialsResult>, i32)> {
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
@@ -5606,7 +5623,7 @@ pub fn decode_alter_user_scram_credentials_response<B: Buf>(
         });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(results)
+    Ok((results, throttle_time_ms))
 }
 
 /// One SCRAM mechanism + iteration count (DescribeUserScramCredentials v0).
@@ -21097,6 +21114,50 @@ mod tests {
     }
 
     #[test]
+    fn alter_user_scram_credentials_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AlterUserScramCredentialsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v0; first field). Official Java
+        // AlterUserScramCredentialsResponse.throttleTimeMs /
+        // maybeSetThrottleTimeMs set / read it.
+        // AlterUserScramCredentialsRequest.getErrorResponse leaves
+        // ThrottleTimeMs at the JSON default (does not set the
+        // argument). encode_alter_user_scram_credentials_response still
+        // writes 0. There is no top-level ErrorCode. Empty-Results only
+        // one version. This crate speaks v0 only. This is not
+        // UpdateFeatures ThrottleTimeMs.
+        let results: Vec<AlterUserScramCredentialsResult> = vec![];
+        let mut buf = BytesMut::new();
+        encode_alter_user_scram_credentials_response_with_throttle(&mut buf, &results, 3_600_000)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_alter_user_scram_credentials_response(&mut cur).unwrap();
+        assert_eq!(decoded, results);
+        assert_eq!(throttle, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "AlterUserScramCredentials v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with = BytesMut::new();
+        encode_alter_user_scram_credentials_response_with_throttle(&mut with, &results, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_alter_user_scram_credentials_response_with_throttle(&mut zero, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_alter_user_scram_credentials_response(&mut conv, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_alter_user_scram_credentials_response still writes ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn alter_user_scram_credentials_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 51 v0 is
@@ -21175,10 +21236,8 @@ mod tests {
         buf.clear();
         encode_alter_user_scram_credentials_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
-            resp
-        );
+        let (decoded, ..) = decode_alter_user_scram_credentials_response(&mut cur).unwrap();
+        assert_eq!(decoded, resp);
         assert!(
             !cur.has_remaining(),
             "AlterUserScramCredentials v0 response must be leftover-empty"
@@ -21232,10 +21291,8 @@ mod tests {
         buf.clear();
         encode_alter_user_scram_credentials_response(&mut buf, &results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
-            results
-        );
+        let (decoded, ..) = decode_alter_user_scram_credentials_response(&mut cur).unwrap();
+        assert_eq!(decoded, results);
         assert!(
             !cur.has_remaining(),
             "AlterUserScramCredentials getErrorResponse leftover-empty; leftover {} bytes",
@@ -21271,10 +21328,8 @@ mod tests {
             "v0 41 is the first result ErrorCode after throttle, results len, and User"
         );
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_alter_user_scram_credentials_response(&mut cur).unwrap(),
-            resp
-        );
+        let (decoded, ..) = decode_alter_user_scram_credentials_response(&mut cur).unwrap();
+        assert_eq!(decoded, resp);
         assert!(
             !cur.has_remaining(),
             "AlterUserScramCredentials v0 NOT_CONTROLLER must be leftover-empty"

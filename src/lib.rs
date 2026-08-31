@@ -2078,7 +2078,8 @@
 //! [`protocol::admin::AlterUserScramCredentialsResponse::error_counts`] /
 //! [`protocol::admin::AlterUserScramCredentialsResponse::should_client_throttle`]
 //! are Java `AlterUserScramCredentialsResponse.errorCounts` (per-user codes,
-//! including `NONE`) / `shouldClientThrottle` (always).
+//! including `NONE`) / `shouldClientThrottle` (always). ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::encode_alter_user_scram_credentials_response`] still writes `0`.
 //! [`Admin::alter_user_scram_credentials_timeout`] /
 //! [`Admin::describe_user_scram_credentials_timeout`] are Java
 //! `AlterUserScramCredentialsOptions` /

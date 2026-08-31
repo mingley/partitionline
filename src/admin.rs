@@ -5267,7 +5267,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_alter_user_scram_credentials_response(&mut body.clone())?;
+            let (results, ..) = decode_alter_user_scram_credentials_response(&mut body.clone())?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
