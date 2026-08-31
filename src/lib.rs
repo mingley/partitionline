@@ -901,6 +901,8 @@
 //! [`protocol::admin::CreateDelegationTokenResponse::error_counts`] is Java
 //! `CreateDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::CreateDelegationTokenResponse::has_error`] is Java
+//! `CreateDelegationTokenResponse.hasError` (`error() != NONE`);
 //! [`CreateDelegationTokenResponse::error`] /
 //! [`CreateDelegationTokenResponse::prepare_response`] are Java
 //! `CreateDelegationTokenRequest.getErrorResponse` /

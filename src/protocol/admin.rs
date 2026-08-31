@@ -15381,6 +15381,18 @@ impl CreateDelegationTokenResponse {
         HashMap::from([(self.error_code, 1)])
     }
 
+    /// Java `CreateDelegationTokenResponse.hasError`.
+    ///
+    /// `error() != NONE`. Java `error()` is `Errors.forCode` only
+    /// (identity on i16; not mapped). Crate [`Self::error`] stays
+    /// `CreateDelegationTokenRequest.getErrorResponse`. This is not
+    /// [`Self::error_counts`] / [`Self::prepare_response`] /
+    /// DescribeDelegationToken `hasError`.
+    #[must_use]
+    pub const fn has_error(&self) -> bool {
+        self.error_code != 0
+    }
+
     /// Java `CreateDelegationTokenResponse.prepareResponse` (version,
     /// throttle, error, owner, requester).
     ///
@@ -31336,6 +31348,68 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn create_delegation_token_response_has_error_matches_java() {
+        // Java 4.0 CreateDelegationTokenResponse.hasError is
+        // error() != Errors.NONE. Official Java
+        // CreateDelegationTokenResponse.hasError. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). Crate
+        // error() stays getErrorResponse. This crate speaks 1-3. This
+        // is not errorCounts / prepareResponse / getErrorResponse /
+        // DescribeDelegationToken hasError / RenewDelegationToken
+        // hasError / ExpireDelegationToken hasError.
+        let none = CreateDelegationTokenResponse::new(
+            0,
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xab, 0xcd],
+        );
+        assert!(!none.has_error(), "NONE is not hasError");
+        let full = CreateDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_NOT_FOUND,
+            "User",
+            "alice",
+            "User",
+            "bob",
+            1,
+            2,
+            3,
+            "tid",
+            vec![0xab, 0xcd],
+        );
+        assert!(full.has_error());
+        for version in 1..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_create_delegation_token_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_create_delegation_token_response(&mut cur, version).unwrap();
+            assert!(
+                decoded.has_error(),
+                "CreateDelegationToken v{version} hasError must follow the decoded ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "CreateDelegationToken v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut none_buf = BytesMut::new();
+        encode_create_delegation_token_response(&mut none_buf, 1, &none).unwrap();
+        let mut err_buf = BytesMut::new();
+        encode_create_delegation_token_response(&mut err_buf, 1, &full).unwrap();
+        assert_ne!(
+            &none_buf[..],
+            &err_buf[..],
+            "v1 ErrorCode is not always NONE"
+        );
     }
 
     #[test]
