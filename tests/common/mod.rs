@@ -5737,6 +5737,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .iter()
                         .map(|(id, md)| JoinMember {
                             member_id: id.clone(),
+                            group_instance_id: None,
                             metadata: md.clone(),
                         })
                         .collect();

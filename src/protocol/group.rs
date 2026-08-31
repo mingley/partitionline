@@ -1406,6 +1406,8 @@ pub fn decode_join_group_request_protocols<B: Buf>(
 pub struct JoinMember {
     /// Member id.
     pub member_id: String,
+    /// Group instance id (JSON `5+`; default null).
+    pub group_instance_id: Option<String>,
     /// Subscription metadata bytes.
     pub metadata: Vec<u8>,
 }
@@ -1482,7 +1484,8 @@ pub fn encode_join_group_response_with_protocol_type(
 ///
 /// ThrottleTimeMs is JSON `2+`: written on every spoken version (this
 /// crate does not speak v0–v1). v2–v5 are classic. v6–v9 are flexible.
-/// v5 GroupInstanceId is on members. v7 ProtocolType / nullable
+/// v5 GroupInstanceId is on members (`JoinMember.group_instance_id`;
+/// below v5 omitted even when Some; decode fills `None`). v7 ProtocolType / nullable
 /// ProtocolName. v8 is the same layout as v7 (Reason is on the request).
 /// v9 SkipAssignment. Kafka 4.0 `validVersions` is `2-9` (v0–v1
 /// removed). This crate speaks 2–9. v0–v1 and v10+ are not spoken.
@@ -1556,7 +1559,7 @@ fn encode_join_group_response_fields(
     for m in members {
         buf::put_string(buf, flexible, Some(&m.member_id))?;
         if version >= 5 {
-            buf::put_string(buf, flexible, None)?;
+            buf::put_string(buf, flexible, m.group_instance_id.as_deref())?;
         }
         buf::put_bytes(buf, flexible, Some(&m.metadata))?;
         if flexible {
@@ -1613,15 +1616,18 @@ pub fn decode_join_group_response<B: Buf>(
     let mut members = Vec::with_capacity(n);
     for _ in 0..n {
         let mid = buf::get_string(buf, flexible)?.unwrap_or_default();
-        if version >= 5 {
-            let _inst = buf::get_string(buf, flexible)?;
-        }
+        let group_instance_id = if version >= 5 {
+            buf::get_string(buf, flexible)?
+        } else {
+            None
+        };
         let metadata = buf::get_bytes(buf, flexible)?.unwrap_or_default();
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
         members.push(JoinMember {
             member_id: mid,
+            group_instance_id,
             metadata,
         });
     }
@@ -7112,6 +7118,7 @@ mod tests {
 
         let members = [JoinMember {
             member_id: "m1".into(),
+            group_instance_id: None,
             metadata: vec![1, 2, 3],
         }];
         v2.clear();
@@ -7183,6 +7190,7 @@ mod tests {
 
         let members = [JoinMember {
             member_id: "m1".into(),
+            group_instance_id: None,
             metadata: vec![1, 2, 3],
         }];
         let mut resp = BytesMut::new();
@@ -8214,6 +8222,160 @@ mod tests {
             &empty_buf[..],
             &none[..],
             "empty response ProtocolType is still present (Java != null)"
+        );
+    }
+
+    #[test]
+    fn join_group_response_member_group_instance_id_matches_java() {
+        // Kafka 4.0.0 JoinGroupResponse.json member GroupInstanceId is
+        // versions 5+ (nullable STRING after member MemberId / before
+        // Metadata; default null). Official Java
+        // JoinGroupResponseData.JoinGroupResponseMember.groupInstanceId.
+        // Encode previously always wrote null. Decode previously discarded
+        // it. Kafka 4.0 validVersions is 2-9 (v0–v1 removed). This crate
+        // speaks 2–9. This is not JoinGroup request GroupInstanceId /
+        // SyncGroup GroupInstanceId / Heartbeat GroupInstanceId /
+        // OffsetCommit GroupInstanceId / LeaveGroup GroupInstanceId.
+        let with_member = [JoinMember {
+            member_id: "m1".into(),
+            group_instance_id: Some("i".into()),
+            metadata: vec![1, 2, 3],
+        }];
+        let none_member = [JoinMember {
+            member_id: "m1".into(),
+            group_instance_id: None,
+            metadata: vec![1, 2, 3],
+        }];
+        for version in [5_i16, 6, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response(&mut buf, version, 0, 7, "range", "l", "m1", &with_member)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, gen, proto, leader, mid, skip, got, ..) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(
+                (
+                    err,
+                    gen,
+                    proto.as_str(),
+                    leader.as_str(),
+                    mid.as_str(),
+                    skip
+                ),
+                (0, 7, "range", "l", "m1", false)
+            );
+            let member = got.first().expect("one member");
+            assert_eq!(member.member_id, "m1");
+            assert_eq!(member.group_instance_id.as_deref(), Some("i"));
+            assert_eq!(member.metadata, vec![1, 2, 3]);
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} member GroupInstanceId leftover-empty"
+            );
+        }
+
+        for version in [2_i16, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response(&mut buf, version, 0, 7, "range", "l", "m1", &with_member)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., got, _, _) = decode_join_group_response(&mut cur, version).unwrap();
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} member GroupInstanceId leftover-empty"
+            );
+            let member = got.first().expect("one member");
+            assert_eq!(
+                member.group_instance_id, None,
+                "JoinGroup v{version} omits member GroupInstanceId even when the body has an instance id"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_response(&mut with, 5, 0, 7, "range", "l", "m1", &with_member).unwrap();
+        let mut none = BytesMut::new();
+        encode_join_group_response(&mut none, 5, 0, 7, "range", "l", "m1", &none_member).unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v5 member GroupInstanceId is not always the JSON default null"
+        );
+        let mut conv = BytesMut::new();
+        encode_join_group_response(&mut conv, 5, 0, 7, "range", "l", "m1", &none_member).unwrap();
+        assert_eq!(
+            &conv[..],
+            &none[..],
+            "encode_join_group_response still writes null member GroupInstanceId when the body is None"
+        );
+        assert_eq!(
+            with.get(32..35),
+            Some([0, 1, b'i'].as_slice()),
+            "v5 classic member GroupInstanceId follows member MemberId STRING m1"
+        );
+
+        let mut v2_with = BytesMut::new();
+        encode_join_group_response(&mut v2_with, 2, 0, 7, "range", "l", "m1", &with_member)
+            .unwrap();
+        let mut v2_none = BytesMut::new();
+        encode_join_group_response(&mut v2_none, 2, 0, 7, "range", "l", "m1", &none_member)
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v2_none[..],
+            "v2 encode omits member GroupInstanceId even when the body has an instance id"
+        );
+        let mut v4_with = BytesMut::new();
+        encode_join_group_response(&mut v4_with, 4, 0, 7, "range", "l", "m1", &with_member)
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v4_with[..],
+            "member GroupInstanceId bodies: v2 == v4"
+        );
+        assert_ne!(
+            &v4_with[..],
+            &with[..],
+            "v5 adds member GroupInstanceId after member MemberId"
+        );
+
+        let mut v6 = BytesMut::new();
+        encode_join_group_response(&mut v6, 6, 0, 7, "range", "l", "m1", &with_member).unwrap();
+        assert_ne!(
+            &with[..],
+            &v6[..],
+            "v6 adds compact strings and tagged fields"
+        );
+        let mut v7 = BytesMut::new();
+        encode_join_group_response(&mut v7, 7, 0, 7, "range", "l", "m1", &with_member).unwrap();
+        assert_ne!(&v6[..], &v7[..], "v7 adds response ProtocolType");
+        let mut v8 = BytesMut::new();
+        encode_join_group_response(&mut v8, 8, 0, 7, "range", "l", "m1", &with_member).unwrap();
+        assert_eq!(&v7[..], &v8[..], "member GroupInstanceId bodies: v7 == v8");
+        let mut v9 = BytesMut::new();
+        encode_join_group_response(&mut v9, 9, 0, 7, "range", "l", "m1", &with_member).unwrap();
+        assert_ne!(&v8[..], &v9[..], "v9 adds SkipAssignment");
+
+        let empty_member = [JoinMember {
+            member_id: "m1".into(),
+            group_instance_id: Some(String::new()),
+            metadata: vec![1, 2, 3],
+        }];
+        let mut empty = BytesMut::new();
+        encode_join_group_response(&mut empty, 5, 0, 7, "range", "l", "m1", &empty_member).unwrap();
+        let mut cur = empty.as_ref();
+        let (.., got, _, _) = decode_join_group_response(&mut cur, 5).unwrap();
+        assert_eq!(
+            got.first().and_then(|m| m.group_instance_id.as_deref()),
+            Some("")
+        );
+        assert!(
+            cur.is_empty(),
+            "JoinGroup v5 empty member GroupInstanceId leftover-empty"
+        );
+        assert_ne!(
+            &empty[..],
+            &none[..],
+            "empty member GroupInstanceId is still present (Java != null)"
         );
     }
 

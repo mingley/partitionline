@@ -299,6 +299,13 @@
 //! `max.poll.interval.ms`);
 //! request ProtocolType is JSON `0+` (decode returns it last; encode already
 //! takes `protocol_type`; official Java `JoinGroupRequestData.protocolType`);
+//! response member GroupInstanceId is JSON `5+` (nullable STRING after member
+//! MemberId; encode previously always wrote null; decode discarded; below v5
+//! encode omits it even when the body has an instance id and decode fills
+//! `None`; official Java `JoinGroupResponseData.JoinGroupResponseMember.groupInstanceId`;
+//! not JoinGroup request GroupInstanceId / SyncGroup GroupInstanceId /
+//! Heartbeat GroupInstanceId / OffsetCommit GroupInstanceId /
+//! LeaveGroup GroupInstanceId);
 //! Protocols of N via [`ConsumerGroup::join_with_assignors`];
 //! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java
 //! `ConsumerProtocol.PROTOCOL_TYPE`;
