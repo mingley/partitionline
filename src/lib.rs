@@ -1003,6 +1003,9 @@
 //! AddPartitionsToTxn ProducerEpoch / WriteTxnMarkers ProducerEpoch / ProducerId);
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::AddOffsetsToTxnResponse::error_counts`] is Java
+//! `AddOffsetsToTxnResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`protocol::txn::encode_add_offsets_to_txn_response`] still writes `0`), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
 //! ThrottleTimeMs is JSON `0+`;
