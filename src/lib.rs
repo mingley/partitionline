@@ -894,7 +894,10 @@
 //! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::ExpireDelegationTokenResponse::error_counts`] is Java
 //! `ExpireDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`)),
+//! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::ExpireDelegationTokenRequest::error_response`] is Java
+//! `ExpireDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON
+//! default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::DescribeDelegationTokenResponse::should_client_throttle`] is Java
 //! `DescribeDelegationTokenResponse.shouldClientThrottle` (v1+);

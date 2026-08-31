@@ -15785,6 +15785,23 @@ impl ExpireDelegationTokenRequest {
     pub fn expiry_time_period_ms(&self) -> i64 {
         self.expiry_time_period_ms
     }
+
+    /// Java `ExpireDelegationTokenRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. `ExpiryTimestampMs` stays the JSON
+    /// default (`0`). Request HMAC / ExpiryTimePeriodMs are not copied.
+    /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`ExpireDelegationTokenResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// ErrorCode is the first field; throttle is last. Java `error()` is
+    /// `Errors.forCode` only (identity on i16; not mapped). This is not
+    /// [`ExpireDelegationTokenResponse::error_counts`] /
+    /// RenewDelegationToken `getErrorResponse` / CreateDelegationToken
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ExpireDelegationTokenResponse {
+        ExpireDelegationTokenResponse::new(error_code, 0)
+    }
 }
 
 /// ExpireDelegationToken (api 40) v1–v2 response body.
@@ -31624,6 +31641,81 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn expire_delegation_token_request_error_response_matches_java() {
+        // Java 4.0 ExpireDelegationTokenRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // ExpiryTimestampMs stays the JSON default (0). Request HMAC /
+        // ExpiryTimePeriodMs are not copied. Official Java
+        // ExpireDelegationTokenRequest.getErrorResponse. Official Java
+        // sets throttleTimeMs from the argument;
+        // ExpireDelegationTokenResponse::new fills 0. ErrorCode is first
+        // (bytes 0-1); throttle is last. Java error() is Errors.forCode
+        // only (identity on i16; not mapped). This crate speaks 1-2.
+        // This is not errorCounts / RenewDelegationToken
+        // getErrorResponse / CreateDelegationToken getErrorResponse /
+        // DescribeDelegationToken getErrorResponse.
+        let req = ExpireDelegationTokenRequest::new(vec![0xaa], -1);
+        assert!(
+            !req.hmac().is_empty(),
+            "fixture request must have HMAC so we can prove it is not copied"
+        );
+        assert_eq!(
+            ExpireDelegationTokenRequest::error_response(0),
+            ExpireDelegationTokenResponse::new(0, 0)
+        );
+        let err = ExpireDelegationTokenRequest::error_response(
+            crate::error::DELEGATION_TOKEN_OWNER_MISMATCH,
+        );
+        assert_eq!(
+            err,
+            ExpireDelegationTokenResponse::new(crate::error::DELEGATION_TOKEN_OWNER_MISMATCH, 0)
+        );
+        assert_eq!(
+            err.expiry_timestamp_ms, 0,
+            "getErrorResponse must not invent ExpiryTimestampMs"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "ExpireDelegationTokenResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut v1_buf = BytesMut::new();
+        encode_expire_delegation_token_response(&mut v1_buf, 1, &err).unwrap();
+        let mut v2_buf = BytesMut::new();
+        encode_expire_delegation_token_response(&mut v2_buf, 2, &err).unwrap();
+        assert_ne!(&v1_buf[..], &v2_buf[..], "v2 adds tagged fields");
+        for version in 1..=2_i16 {
+            let mut resp = BytesMut::new();
+            encode_expire_delegation_token_response(&mut resp, version, &err).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_expire_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "ExpireDelegationToken v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_expire_delegation_token_response(&mut with_buf, 1, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_expire_delegation_token_response(&mut zero_buf, 1, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_expire_delegation_token_response(&mut conv, 1, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
+        );
     }
 
     #[test]
