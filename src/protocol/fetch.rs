@@ -295,6 +295,29 @@ impl FetchRequest {
         }
         to_forget
     }
+
+    /// Java `FetchRequest.getErrorResponse`.
+    ///
+    /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
+    /// Responses is empty (top-level error only; unlike `error_result`,
+    /// which still keeps a topic with empty partitions). Throttle is the
+    /// JSON default (`0`). Encode still writes top-level `ErrorCode` `0`
+    /// and `SessionId` [`FetchMetadata::INVALID_SESSION_ID`].
+    #[must_use]
+    pub fn error_response(
+        version: i16,
+        topics: &[FetchTopic],
+        error_code: i16,
+    ) -> Vec<FetchedTopic> {
+        if version < 13 {
+            topics
+                .iter()
+                .map(|topic| topic.error_result(version, error_code))
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 /// One partition in a Fetch response.
@@ -1627,6 +1650,84 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn fetch_request_error_response_matches_java() {
+        // Java FetchRequest.getErrorResponse: below v13 each topic is
+        // FetchResponse.partitionResponse per partition. v13+ Responses
+        // is empty (top-level error only). FetchTopic.error_result still
+        // keeps a topic with empty partitions on v13+.
+        let topic = FetchTopic {
+            topic: "t".into(),
+            topic_id: [1u8; 16],
+            partitions: vec![
+                FetchPartition {
+                    partition: 0,
+                    current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    fetch_offset: 0,
+                    last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    partition_max_bytes: 1,
+                },
+                FetchPartition {
+                    partition: 3,
+                    current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    fetch_offset: 1,
+                    last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                    partition_max_bytes: 1,
+                },
+            ],
+        };
+        let err = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        let v12 = FetchRequest::error_response(12, std::slice::from_ref(&topic), err);
+        assert_eq!(v12.len(), 1);
+        let v12_topic = v12.first().expect("v12 topic");
+        assert_eq!(v12_topic.topic, "t");
+        assert_eq!(v12_topic.topic_id, [1u8; 16]);
+        assert_eq!(v12_topic.partitions.len(), 2);
+        let first = v12_topic.partitions.first().expect("v12 partition");
+        assert_eq!(first.partition, 0);
+        assert_eq!(first.error_code, err);
+        let v13 = FetchRequest::error_response(13, std::slice::from_ref(&topic), err);
+        assert!(
+            v13.is_empty(),
+            "v13+ getErrorResponse Responses is empty, got {v13:?}"
+        );
+        let shell = topic.error_result(13, err);
+        assert_eq!(shell.topic, "t");
+        assert!(shell.partitions.is_empty());
+
+        for version in [11_i16, 12] {
+            let responses =
+                FetchRequest::error_response(version, std::slice::from_ref(&topic), err);
+            assert_eq!(responses.len(), 1);
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &responses).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.len(), 1);
+            assert_eq!(decoded.first().map(|t| t.partitions.len()), Some(2));
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Request.getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [13_i16, 17] {
+            let responses =
+                FetchRequest::error_response(version, std::slice::from_ref(&topic), err);
+            assert!(responses.is_empty());
+            let mut buf = BytesMut::new();
+            encode_fetch_response(&mut buf, version, &responses).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, _endpoints) = decode_fetch_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Request.getErrorResponse empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
