@@ -126,6 +126,23 @@ pub fn decode_sasl_handshake_response<B: Buf>(
     Ok((error_code, mechs))
 }
 
+/// Java `SaslHandshakeRequest` helpers.
+pub struct SaslHandshakeRequest;
+
+impl SaslHandshakeRequest {
+    /// Java `SaslHandshakeRequest.getErrorResponse`.
+    ///
+    /// Mechanisms stay empty (the requested mechanism is not copied). v0
+    /// and v1 bodies match (`flexibleVersions: "none"`).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+    ) -> crate::error::Result<()> {
+        encode_sasl_handshake_response(buf, version, error_code, &[])
+    }
+}
+
 /// Encode SaslAuthenticate v0–v2 with the SASL client bytes.
 ///
 /// Kafka 4.0 JSON: `validVersions: "0-2"`, `flexibleVersions: "2+"`.
@@ -485,6 +502,45 @@ mod tests {
         let (c, m) = decode_sasl_handshake_response(&mut &resp[..], 1).unwrap();
         assert_eq!(c, 0);
         assert_eq!(m, vec!["PLAIN".to_string()]);
+    }
+
+    #[test]
+    fn sasl_handshake_error_response_matches_java() {
+        // Java SaslHandshakeRequest.getErrorResponse: ErrorCode only.
+        // Mechanisms stay empty (the requested mechanism is not copied).
+        // v0 and v1 response bodies match (never flexible).
+        for version in [0_i16, 1] {
+            let mut expected = BytesMut::new();
+            encode_sasl_handshake_response(&mut expected, version, 16, &[]).unwrap();
+            let mut got = BytesMut::new();
+            SaslHandshakeRequest::error_response(&mut got, version, 16).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "SaslHandshake v{version} getErrorResponse must match empty-Mechanisms encode"
+            );
+            let mut cur = &got[..];
+            let (err, mechs) = decode_sasl_handshake_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert!(mechs.is_empty(), "v{version} Mechanisms must be empty");
+            assert!(
+                cur.is_empty(),
+                "SaslHandshake v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut v0 = BytesMut::new();
+        SaslHandshakeRequest::error_response(&mut v0, 0, 16).unwrap();
+        let mut v1 = BytesMut::new();
+        SaslHandshakeRequest::error_response(&mut v1, 1, 16).unwrap();
+        assert_eq!(&v0[..], &v1[..], "v0 and v1 getErrorResponse bodies match");
+        let mut with_plain = BytesMut::new();
+        encode_sasl_handshake_response(&mut with_plain, 1, 16, &["PLAIN"]).unwrap();
+        assert_ne!(
+            &v1[..],
+            &with_plain[..],
+            "getErrorResponse must not copy the requested mechanism"
+        );
     }
 
     #[test]

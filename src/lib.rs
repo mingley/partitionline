@@ -192,7 +192,9 @@
 //! member-level non-`NONE`);
 //! [`LEAVE_GROUP_REASON_CLOSED`] on leave / close, [`LEAVE_GROUP_REASON_UNSUBSCRIBED`]
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
-//! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate),
+//! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate;
+//! [`protocol::sasl::SaslHandshakeRequest::error_response`] is Java
+//! `SaslHandshakeRequest.getErrorResponse` (empty Mechanisms)),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible),
 //! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
 //! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
