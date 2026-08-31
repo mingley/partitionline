@@ -301,6 +301,11 @@
 //! v7+ round-trips ProtocolType; below v7 encode omits it even when
 //! the body has a value and decode fills `None`;
 //! [`protocol::group::encode_join_group_response`] still writes null;
+//! ThrottleTimeMs is JSON `2+` on spoken v2–v9;
+//! [`protocol::group::encode_join_group_response_with_throttle`];
+//! encode previously always wrote `0` and decode discarded; convenience
+//! encode still writes `0`; official Java `getErrorResponse` sets
+//! `throttleTimeMs` from the argument;
 //! [`protocol::group::JoinGroupRequest::error_response`] is Java
 //! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];

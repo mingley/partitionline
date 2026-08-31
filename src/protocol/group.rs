@@ -1025,7 +1025,9 @@ impl JoinGroupRequest<'_> {
     /// [`Self::UNKNOWN_PROTOCOL_NAME`] (encode writes null on v7+). Leader
     /// and member id are [`Self::UNKNOWN_MEMBER_ID`]. Members is empty.
     /// ProtocolType stays the JSON default (`null`) on v7+. Throttle is
-    /// the JSON default (`0`).
+    /// the JSON default (`0`); official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument. Crate convenience encode
+    /// still writes `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -1415,7 +1417,8 @@ pub fn encode_join_group_response(
 /// Below v7 ProtocolType is omitted even when the body has a value.
 /// Decode fills `None`. Empty string is still present (Java `!= null`).
 /// [`encode_join_group_response`] still writes null. ProtocolName empty
-/// still becomes null on v7+. Throttle is `0`.
+/// still becomes null on v7+. ThrottleTimeMs is the JSON default (`0`)
+/// (JSON `2+`).
 #[expect(
     clippy::too_many_arguments,
     reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType"
@@ -1431,8 +1434,78 @@ pub fn encode_join_group_response_with_protocol_type(
     members: &[JoinMember],
     protocol_type: Option<&str>,
 ) -> crate::error::Result<()> {
+    encode_join_group_response_fields(
+        buf,
+        version,
+        error_code,
+        generation_id,
+        protocol_name,
+        leader,
+        member_id,
+        members,
+        protocol_type,
+        0,
+    )
+}
+
+/// Encode JoinGroup v2–v9 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `2+`: written on every spoken version (this
+/// crate does not speak v0–v1). v2–v5 are classic. v6–v9 are flexible.
+/// v5 GroupInstanceId is on members. v7 ProtocolType / nullable
+/// ProtocolName. v8 is the same layout as v7 (Reason is on the request).
+/// v9 SkipAssignment. Kafka 4.0 `validVersions` is `2-9` (v0–v1
+/// removed). This crate speaks 2–9. v0–v1 and v10+ are not spoken.
+/// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+/// argument. ProtocolType stays the JSON default (`null`). Top-level
+/// ErrorCode is at bytes 4–5.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "JoinGroup response fields match the Apache JSON layout plus ThrottleTimeMs"
+)]
+pub fn encode_join_group_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    generation_id: i32,
+    protocol_name: &str,
+    leader: &str,
+    member_id: &str,
+    members: &[JoinMember],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    encode_join_group_response_fields(
+        buf,
+        version,
+        error_code,
+        generation_id,
+        protocol_name,
+        leader,
+        member_id,
+        members,
+        None,
+        throttle_time_ms,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "JoinGroup response fields match the Apache JSON layout plus ProtocolType and ThrottleTimeMs"
+)]
+fn encode_join_group_response_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    generation_id: i32,
+    protocol_name: &str,
+    leader: &str,
+    member_id: &str,
+    members: &[JoinMember],
+    protocol_type: Option<&str>,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = join_group_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf.put_i32(generation_id);
     if version >= 7 {
@@ -1466,12 +1539,14 @@ pub fn encode_join_group_response_with_protocol_type(
     Ok(())
 }
 
-/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members, protocol_type)`.
+/// Decode JoinGroup: `(error, generation, protocol, leader, member_id, skip_assignment, members, protocol_type, throttle_time_ms)`.
 ///
-/// Below v7 ProtocolType is omitted; decode fills `None`.
+/// Below v7 ProtocolType is omitted; decode fills `None`. ThrottleTimeMs
+/// is JSON `2+` (always on the wire for spoken versions). Top-level
+/// ErrorCode is at bytes 4–5.
 #[expect(
     clippy::type_complexity,
-    reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members, protocol type"
+    reason = "JoinGroup response is error, generation, protocol, leader, member, skip, members, protocol type, throttle"
 )]
 pub fn decode_join_group_response<B: Buf>(
     buf: &mut B,
@@ -1485,9 +1560,10 @@ pub fn decode_join_group_response<B: Buf>(
     bool,
     Vec<JoinMember>,
     Option<String>,
+    i32,
 )> {
     let flexible = join_group_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error = buf::get_i16(buf)?;
     let generation = buf::get_i32(buf)?;
     let protocol_type = if version >= 7 {
@@ -1531,6 +1607,7 @@ pub fn decode_join_group_response<B: Buf>(
         skip_assignment,
         members,
         protocol_type,
+        throttle_time_ms,
     ))
 }
 
@@ -7291,6 +7368,194 @@ mod tests {
     }
 
     #[test]
+    fn join_group_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 JoinGroupResponse.json ThrottleTimeMs is versions
+        // 2+ (INT32 on spoken v2–v9; first field; ignorable). Official
+        // Java JoinGroupRequest.getErrorResponse /
+        // JoinGroupResponse.throttleTimeMs set / read it.
+        // encode_join_group_response still writes the JSON default 0.
+        // KIP-219 only changes shouldClientThrottle (v3+). Empty-Members
+        // v2 == v3 == v4 == v5 (classic; GroupInstanceId is on members);
+        // v6 is compact; v7 == v8 (ProtocolType / nullable ProtocolName;
+        // Reason is on the request); v9 adds SkipAssignment. Top-level
+        // ErrorCode is at bytes 4–5. This crate speaks 2–9. This is not
+        // FindCoordinator / OffsetDelete ThrottleTimeMs.
+        let members: &[JoinMember] = &[];
+        for version in [2, 3, 4, 5, 6, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_response_with_throttle(
+                &mut buf, version, 0, 0, "", "", "", members, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, gen, protocol, leader, member, skip, got, ptype, throttle) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 0);
+            assert_eq!(gen, 0);
+            assert_eq!(protocol, "");
+            assert_eq!(leader, "");
+            assert_eq!(member, "");
+            assert!(!skip);
+            assert!(got.is_empty());
+            assert_eq!(ptype, None);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut with, 2, 0, 0, "", "", "", members, 3_600_000,
+        )
+        .unwrap();
+        let mut zero = BytesMut::new();
+        encode_join_group_response_with_throttle(&mut zero, 2, 0, 0, "", "", "", members, 0)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v2 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_join_group_response(&mut conv, 2, 0, 0, "", "", "", members).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_join_group_response still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[4..6],
+            &[0, 0],
+            "v2 top-level ErrorCode is at bytes 4-5"
+        );
+
+        let mut v3_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v3_with,
+            3,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v4_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v4_with,
+            4,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v5_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v5_with,
+            5,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v3_with[..],
+            "empty-Members ThrottleTimeMs bodies: v2 == v3"
+        );
+        assert_eq!(
+            &v3_with[..],
+            &v4_with[..],
+            "empty-Members ThrottleTimeMs bodies: v3 == v4"
+        );
+        assert_eq!(
+            &v4_with[..],
+            &v5_with[..],
+            "empty-Members ThrottleTimeMs bodies: v4 == v5"
+        );
+        let mut v6_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v6_with,
+            6,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(&v5_with[..], &v6_with[..], "v6 adds compact tagged fields");
+        let mut v7_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v7_with,
+            7,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &v6_with[..],
+            &v7_with[..],
+            "v7 adds ProtocolType after GenerationId"
+        );
+        let mut v8_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v8_with,
+            8,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &v7_with[..],
+            &v8_with[..],
+            "empty-Members ThrottleTimeMs bodies: v7 == v8"
+        );
+        let mut v9_with = BytesMut::new();
+        encode_join_group_response_with_throttle(
+            &mut v9_with,
+            9,
+            0,
+            0,
+            "",
+            "",
+            "",
+            members,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &v9_with[..],
+            "v9 adds SkipAssignment after Leader"
+        );
+    }
+
+    #[test]
     fn join_group_v6_response_matches_compact_layout() {
         // Throttle 0, error 0, generation 7, compact "range", compact "l",
         // compact "m1", empty members, tagged.
@@ -7558,7 +7823,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (err, gen, proto, leader, mid, skip, members, ptype) =
+            let (err, gen, proto, leader, mid, skip, members, ptype, ..) =
                 decode_join_group_response(&mut cur, version).unwrap();
             assert_eq!(err, 0);
             assert_eq!(gen, 7);
@@ -7589,8 +7854,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (_, _, _, _, _, _, _, ptype) =
-                decode_join_group_response(&mut cur, version).unwrap();
+            let (.., ptype, _) = decode_join_group_response(&mut cur, version).unwrap();
             assert!(
                 cur.is_empty(),
                 "JoinGroup v{version} response ProtocolType leftover-empty"
@@ -7690,7 +7954,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = empty_buf.as_ref();
-        let (_, _, _, _, _, _, _, ptype) = decode_join_group_response(&mut cur, 7).unwrap();
+        let (.., ptype, _) = decode_join_group_response(&mut cur, 7).unwrap();
         assert_eq!(ptype.as_deref(), Some(""));
         assert!(
             cur.is_empty(),
