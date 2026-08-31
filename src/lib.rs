@@ -505,6 +505,11 @@
 //! [`protocol::admin::ShareGroupDescribeRequest::error_described_group_list`] is Java
 //! `ShareGroupDescribeRequest.getErrorDescribedGroupList` (each id through
 //! [`DescribedShareGroup::new`]);
+//! [`protocol::admin::ShareGroupDescribeRequest::error_response`] is Java
+//! `ShareGroupDescribeRequest.getErrorResponse` (copies group ids through
+//! [`protocol::admin::ShareGroupDescribeRequest::error_described_group_list`];
+//! ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience encode writes
+//! `0`);
 //! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
 //! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize JSON `1+`

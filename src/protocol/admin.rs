@@ -10863,7 +10863,9 @@ impl ShareGroupDescribeRequest {
     /// Each group is [`DescribedShareGroup::new`] (GroupId + ErrorCode).
     /// JSON defaults match: `ErrorMessage` null, empty state / assignor
     /// strings, epoch `0`, empty Members, and
-    /// [`AUTHORIZED_OPERATIONS_OMITTED`].
+    /// [`AUTHORIZED_OPERATIONS_OMITTED`]. This is not
+    /// [`Self::error_response`] / ConsumerGroupDescribe
+    /// `getErrorDescribedGroupList`.
     #[must_use]
     pub fn error_described_group_list<I>(group_ids: I, error_code: i16) -> Vec<DescribedShareGroup>
     where
@@ -10874,6 +10876,39 @@ impl ShareGroupDescribeRequest {
             .into_iter()
             .map(|id| DescribedShareGroup::new(id, error_code))
             .collect()
+    }
+
+    /// Java `ShareGroupDescribeRequest.getErrorResponse`.
+    ///
+    /// Groups copy ids through [`Self::error_described_group_list`].
+    /// `ErrorMessage` stays the JSON default (`null`); official Java
+    /// `getErrorResponse` does not set it (4.1
+    /// `getErrorDescribedGroupList` sets English `Errors.message`).
+    /// Request `IncludeAuthorizedOperations` is not copied.
+    /// ThrottleTimeMs is JSON `0+` (written on every spoken version
+    /// from `throttle_time_ms`). Convenience encode still writes `0`.
+    /// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+    /// argument. This is not [`Self::error_described_group_list`] /
+    /// [`ShareGroupDescribeResponse::error_counts`] /
+    /// ConsumerGroupDescribe `getErrorResponse` / DescribeGroups
+    /// `getErrorResponse`.
+    pub fn error_response<I>(
+        buf: &mut BytesMut,
+        version: i16,
+        group_ids: I,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        encode_share_group_describe_response_with_throttle(
+            buf,
+            version,
+            &Self::error_described_group_list(group_ids, error_code),
+            throttle_time_ms,
+        )
     }
 }
 
@@ -27420,6 +27455,91 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareGroupDescribe response matches v0"
+        );
+    }
+
+    #[test]
+    fn share_group_describe_request_error_response_matches_java() {
+        // Java 4.0 ShareGroupDescribeRequest.getErrorResponse:
+        // setThrottleTimeMs, then for each request groupId add a
+        // DescribedGroup with GroupId + ErrorCode. ErrorMessage stays
+        // the JSON default (null). IncludeAuthorizedOperations is not
+        // copied. Official Java ShareGroupDescribeRequest.getErrorResponse
+        // (same on 4.1.0). Official Java sets throttleTimeMs from the
+        // argument; convenience encode still writes 0. v0 == v1 bodies
+        // (same fields). This crate speaks 0-1. First-group ErrorCode
+        // is at bytes 5-6. This is not errorCounts /
+        // getErrorDescribedGroupList / ConsumerGroupDescribe
+        // getErrorResponse / DescribeGroups getErrorResponse.
+        let err = crate::error::INVALID_REQUEST;
+        let empty =
+            ShareGroupDescribeRequest::error_described_group_list(Vec::<String>::new(), err);
+        assert!(empty.is_empty(), "empty request copies no groups");
+        let one = ShareGroupDescribeRequest::error_described_group_list(["g"], err);
+        let two = ShareGroupDescribeRequest::error_described_group_list(["g", "g2"], err);
+        let mut v0 = BytesMut::new();
+        let mut v1 = BytesMut::new();
+        for version in 0..=1_i16 {
+            for groups in [&empty, &one, &two] {
+                let ids: Vec<String> = groups.iter().map(|g| g.group_id.clone()).collect();
+                let mut buf = BytesMut::new();
+                ShareGroupDescribeRequest::error_response(&mut buf, version, ids, err, 0).unwrap();
+                let mut expected = BytesMut::new();
+                encode_share_group_describe_response(&mut expected, version, groups).unwrap();
+                assert_eq!(
+                    &buf[..],
+                    &expected[..],
+                    "ShareGroupDescribe v{version} getErrorResponse must match convenience encode"
+                );
+                let mut cur = buf.as_ref();
+                let (decoded, throttle) =
+                    decode_share_group_describe_response(&mut cur, version).unwrap();
+                assert_eq!(decoded, *groups);
+                assert_eq!(throttle, 0);
+                assert!(
+                    cur.is_empty(),
+                    "ShareGroupDescribe v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                    cur.len()
+                );
+            }
+            let mut buf = BytesMut::new();
+            ShareGroupDescribeRequest::error_response(&mut buf, version, ["g"], err, 0).unwrap();
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+            if version == 1 {
+                v1.extend_from_slice(&buf);
+            }
+            assert_eq!(
+                &buf[5..7],
+                err.to_be_bytes(),
+                "ShareGroupDescribe v{version} first-group ErrorCode is at bytes 5-6"
+            );
+        }
+        assert_eq!(&v0[..], &v1[..], "getErrorResponse v0 and v1 bodies match");
+        let mut with = BytesMut::new();
+        ShareGroupDescribeRequest::error_response(&mut with, 0, ["g"], err, 3_600_000).unwrap();
+        let mut expected_with = BytesMut::new();
+        encode_share_group_describe_response_with_throttle(&mut expected_with, 0, &one, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &expected_with[..],
+            "getErrorResponse must write the throttleTimeMs argument"
+        );
+        let mut zero = BytesMut::new();
+        ShareGroupDescribeRequest::error_response(&mut zero, 0, ["g"], err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_group_describe_response(&mut conv, 0, &one).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "error_response convenience encode still writes ThrottleTimeMs 0"
         );
     }
 
