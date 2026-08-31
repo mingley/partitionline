@@ -11369,7 +11369,7 @@ impl Admin {
             )
             .await
         }?;
-        let results = decode_describe_share_group_offsets_response(&mut body.clone())?;
+        let (results, ..) = decode_describe_share_group_offsets_response(&mut body.clone())?;
         let mut by_id: HashMap<String, VecDeque<DescribedShareGroupOffsets>> = HashMap::new();
         for g in results {
             by_id.entry(g.group_id.clone()).or_default().push_back(g);

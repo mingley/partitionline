@@ -10831,11 +10831,26 @@ pub fn decode_describe_share_group_offsets_request<B: Buf>(
 }
 
 /// Encode a DescribeShareGroupOffsets response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) (JSON `0+`). This crate
+/// speaks v0 only.
 pub fn encode_describe_share_group_offsets_response(
     buf: &mut BytesMut,
     groups: &[DescribedShareGroupOffsets],
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    encode_describe_share_group_offsets_response_with_throttle(buf, groups, 0)
+}
+
+/// Encode DescribeShareGroupOffsets v0 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`. Kafka 4.1 `validVersions` is `"0"`.
+/// Official trunk v1 adds `Lag` (KIP-1226); this crate does not speak it.
+pub fn encode_describe_share_group_offsets_response_with_throttle(
+    buf: &mut BytesMut,
+    groups: &[DescribedShareGroupOffsets],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
         buf::put_compact_string(buf, Some(&g.group_id))?;
@@ -10863,10 +10878,13 @@ pub fn encode_describe_share_group_offsets_response(
 }
 
 /// Decode a DescribeShareGroupOffsets response.
+///
+/// Returns `(groups, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_describe_share_group_offsets_response<B: Buf>(
     buf: &mut B,
-) -> Result<Vec<DescribedShareGroupOffsets>> {
-    let _th = buf::get_i32(buf)?;
+) -> Result<(Vec<DescribedShareGroupOffsets>, i32)> {
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
@@ -10911,7 +10929,7 @@ pub fn decode_describe_share_group_offsets_response<B: Buf>(
         });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(groups)
+    Ok((groups, throttle_time_ms))
 }
 
 /// One requested partition in AlterShareGroupOffsets (api 91).
@@ -24488,7 +24506,9 @@ mod tests {
         encode_describe_share_group_offsets_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_share_group_offsets_response(&mut cur).unwrap(),
+            decode_describe_share_group_offsets_response(&mut cur)
+                .unwrap()
+                .0,
             resp
         );
         assert!(
@@ -24548,12 +24568,60 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_share_group_offsets_response(&mut cur).unwrap(),
+            decode_describe_share_group_offsets_response(&mut cur)
+                .unwrap()
+                .0,
             resp
         );
         assert!(
             !cur.has_remaining(),
             "DescribeShareGroupOffsets v0 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_response_throttle_time_ms_matches_java() {
+        // Kafka 4.1.0 DescribeShareGroupOffsetsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0). Official Java
+        // DescribeShareGroupOffsetsRequest.getErrorResponse /
+        // DescribeShareGroupOffsetsResponse.throttleTimeMs set / read it
+        // (the (throttleTimeMs, groupIds, exception) constructor calls
+        // setThrottleTimeMs). encode_describe_share_group_offsets_response
+        // still writes the JSON default 0. This crate speaks v0 only
+        // (v1 Lag is not spoken). This is not AlterShareGroupOffsets /
+        // DeleteShareGroupOffsets ThrottleTimeMs.
+        let groups = vec![DescribedShareGroupOffsets::new(
+            "g",
+            crate::error::NOT_COORDINATOR,
+        )];
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut buf, &groups, 3_600_000)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded, groups);
+        assert_eq!(throttle, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut with, &groups, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut zero, &groups, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut conv, &groups).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_share_group_offsets_response still writes ThrottleTimeMs 0"
         );
     }
 
