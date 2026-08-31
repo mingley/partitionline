@@ -30,9 +30,10 @@ impl InitProducerIdRequest {
     /// Java `InitProducerIdRequest.getErrorResponse`.
     ///
     /// Producer id / epoch are [`RecordBatch::NO_PRODUCER_ID`] /
-    /// [`RecordBatch::NO_PRODUCER_EPOCH`]. Java sets throttle to `0` even
-    /// when the `throttleTimeMs` argument is non-zero. Encode writes throttle
-    /// `0` on v1+ (v0 has no throttle field).
+    /// [`RecordBatch::NO_PRODUCER_EPOCH`]. ThrottleTimeMs stays the JSON
+    /// default (`0`); official Java `getErrorResponse` sets
+    /// `throttleTimeMs` to `0` even when the argument is non-zero. Crate
+    /// convenience encode still writes `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
@@ -127,26 +128,31 @@ pub fn decode_init_producer_id_request<B: Buf>(
     ))
 }
 
-/// Decode InitProducerId: `(error_code, producer_id, producer_epoch)`.
+/// Decode InitProducerId: `(error_code, producer_id, producer_epoch, throttle_time_ms)`.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn decode_init_producer_id_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, i64, i16)> {
+) -> Result<(i16, i64, i16, i32)> {
     let flexible = init_producer_id_flexible(version)?;
-    let _throttle = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let producer_id = buf::get_i64(buf)?;
     let producer_epoch = buf::get_i16(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error_code, producer_id, producer_epoch))
+    Ok((error_code, producer_id, producer_epoch, throttle_time_ms))
 }
 
-/// Encode InitProducerId. Throttle is `0` on v1+.
+/// Encode InitProducerId. Throttle is the JSON default (`0`).
 ///
-/// Java `InitProducerIdRequest.getErrorResponse` writes
-/// [`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`].
+/// ThrottleTimeMs is JSON `0+` on every spoken version. Java
+/// `InitProducerIdRequest.getErrorResponse` writes
+/// [`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`]
+/// and throttle `0`.
 pub fn encode_init_producer_id_response(
     buf: &mut BytesMut,
     version: i16,
@@ -154,10 +160,40 @@ pub fn encode_init_producer_id_response(
     producer_id: i64,
     producer_epoch: i16,
 ) -> crate::error::Result<()> {
+    encode_init_producer_id_response_with_throttle(
+        buf,
+        version,
+        error_code,
+        producer_id,
+        producer_epoch,
+        0,
+    )
+}
+
+/// Encode InitProducerId v0–v5 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v1 are classic. v2–v5 are flexible. v3 and v4 match v2 (KIP-360
+/// ProducerId is on the request; v4 is PRODUCER_FENCED). v5 is
+/// TRANSACTION_ABORTABLE (KIP-890; same layout as v2). Kafka 4.0
+/// `validVersions` is `0-5`. This crate speaks 0–5. v6+ is not spoken.
+/// Official Java `InitProducerIdResponse.throttleTimeMs` /
+/// `InitProducerIdResponseData.throttleTimeMs`. Java
+/// `getErrorResponse` sets `throttleTimeMs` to `0` even when the
+/// argument is non-zero ([`encode_init_producer_id_response`] still
+/// writes `0`). KIP-219 only changes `shouldClientThrottle` (v1+).
+/// Top-level ErrorCode is at bytes 4–5. This is not EndTxn /
+/// AddOffsetsToTxn / Produce ThrottleTimeMs.
+pub fn encode_init_producer_id_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    producer_id: i64,
+    producer_epoch: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = init_producer_id_flexible(version)?;
-    if version >= 1 {
-        buf.put_i32(0);
-    }
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf.put_i64(producer_id);
     buf.put_i16(producer_epoch);
@@ -195,7 +231,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_init_producer_id_response(&mut resp, 1, 0, 1234, 7).unwrap();
         let mut cur = &resp[..];
-        let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, 1).unwrap();
+        let (err, pid, epoch, ..) = decode_init_producer_id_response(&mut cur, 1).unwrap();
         assert_eq!(err, 0);
         assert_eq!(pid, 1234);
         assert_eq!(epoch, 7);
@@ -228,7 +264,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_init_producer_id_response(&mut resp, 2, 0, 1234, 7).unwrap();
         let mut cur = &resp[..];
-        let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, 2).unwrap();
+        let (err, pid, epoch, ..) = decode_init_producer_id_response(&mut cur, 2).unwrap();
         assert_eq!(err, 0);
         assert_eq!(pid, 1234);
         assert_eq!(epoch, 7);
@@ -256,7 +292,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_init_producer_id_response(&mut resp, 5, 0, 1234, 7).unwrap();
         let mut cur = &resp[..];
-        let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, 5).unwrap();
+        let (err, pid, epoch, ..) = decode_init_producer_id_response(&mut cur, 5).unwrap();
         assert_eq!(err, 0);
         assert_eq!(pid, 1234);
         assert_eq!(epoch, 7);
@@ -347,6 +383,107 @@ mod tests {
     }
 
     #[test]
+    fn init_producer_id_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 InitProducerIdResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v5; first field). Encode
+        // previously always wrote 0 on v1+ and omitted the field on v0;
+        // decode discarded it. Official Java
+        // InitProducerIdResponse.throttleTimeMs /
+        // InitProducerIdResponseData.throttleTimeMs. Java
+        // getErrorResponse sets throttleTimeMs to 0 even when the
+        // argument is non-zero. encode_init_producer_id_response still
+        // writes the JSON default 0. KIP-219 only changes
+        // shouldClientThrottle (v1+). Empty-error v0 == v1 (classic);
+        // v2, v3, v4, and v5 bodies match (flexible). Top-level
+        // ErrorCode is at bytes 4–5. Kafka 4.0 validVersions is 0-5.
+        // This crate speaks 0–5. This is not EndTxn ThrottleTimeMs /
+        // AddOffsetsToTxn ThrottleTimeMs / Produce ThrottleTimeMs.
+        for version in [0_i16, 1, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_init_producer_id_response_with_throttle(
+                &mut buf, version, 0, 1234, 7, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, pid, epoch, throttle) =
+                decode_init_producer_id_response(&mut cur, version).unwrap();
+            assert_eq!(err, 0);
+            assert_eq!(pid, 1234);
+            assert_eq!(epoch, 7);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "InitProducerId v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut with, 0, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut zero, 0, 0, 1234, 7, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            with.get(0..4),
+            Some(3_600_000i32.to_be_bytes().as_slice()),
+            "classic ThrottleTimeMs is the first INT32"
+        );
+        assert_eq!(
+            zero.get(0..4),
+            Some([0, 0, 0, 0].as_slice()),
+            "encode_init_producer_id_response_with_throttle 0 is four zero bytes"
+        );
+        let mut conv = BytesMut::new();
+        encode_init_producer_id_response(&mut conv, 0, 0, 1234, 7).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_init_producer_id_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut v1_with, 1, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-error ThrottleTimeMs bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut v2_with, 2, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        let mut v3_with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut v3_with, 3, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        let mut v4_with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut v4_with, 4, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        let mut v5_with = BytesMut::new();
+        encode_init_producer_id_response_with_throttle(&mut v5_with, 5, 0, 1234, 7, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-error ThrottleTimeMs bodies: v2 == v3"
+        );
+        assert_eq!(
+            &v3_with[..],
+            &v4_with[..],
+            "empty-error ThrottleTimeMs bodies: v3 == v4"
+        );
+        assert_eq!(
+            &v4_with[..],
+            &v5_with[..],
+            "empty-error ThrottleTimeMs bodies: v4 == v5"
+        );
+    }
+
+    #[test]
     fn init_producer_id_builder_matches_java() {
         assert!(!InitProducerIdResponse::should_client_throttle(0));
         assert!(InitProducerIdResponse::should_client_throttle(1));
@@ -406,7 +543,7 @@ mod tests {
             RecordBatch::NO_PRODUCER_EPOCH,
         )
         .unwrap();
-        let (err, pid, epoch) = decode_init_producer_id_response(&mut &resp[..], 1).unwrap();
+        let (err, pid, epoch, ..) = decode_init_producer_id_response(&mut &resp[..], 1).unwrap();
         assert_eq!(err, 58);
         assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
         assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
@@ -437,10 +574,12 @@ mod tests {
                 "InitProducerId v{version} getErrorResponse must match sentinel encode"
             );
             let mut cur = &got[..];
-            let (err, pid, epoch) = decode_init_producer_id_response(&mut cur, version).unwrap();
+            let (err, pid, epoch, throttle) =
+                decode_init_producer_id_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
             assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            assert_eq!(throttle, 0);
             assert!(
                 cur.is_empty(),
                 "InitProducerId v{version} getErrorResponse leftover-empty; leftover {} bytes",
@@ -451,7 +590,11 @@ mod tests {
         InitProducerIdRequest::error_response(&mut v0, 0, 16).unwrap();
         let mut v1 = BytesMut::new();
         InitProducerIdRequest::error_response(&mut v1, 1, 16).unwrap();
-        assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
+        assert_eq!(
+            &v0[..],
+            &v1[..],
+            "empty-error ThrottleTimeMs bodies: v0 == v1"
+        );
         let mut v2 = BytesMut::new();
         InitProducerIdRequest::error_response(&mut v2, 2, 16).unwrap();
         assert_ne!(&v1[..], &v2[..], "v2+ getErrorResponse is flexible");

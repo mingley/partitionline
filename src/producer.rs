@@ -1042,7 +1042,7 @@ impl Producer {
                 (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),
             )
             .await?;
-            let (err, pid, epoch) =
+            let (err, pid, epoch, ..) =
                 decode_init_producer_id_response(&mut body.clone(), ipid_version)?;
             if err != 0 {
                 return Err(Error::broker(err, "InitProducerId"));
@@ -2057,7 +2057,8 @@ async fn bump_producer_epoch(shared: &Shared) -> Result<()> {
         |body| Ok(decode_init_producer_id_response(&mut { body }, version)?.0),
     )
     .await?;
-    let (err, new_pid, new_epoch) = decode_init_producer_id_response(&mut body.clone(), version)?;
+    let (err, new_pid, new_epoch, ..) =
+        decode_init_producer_id_response(&mut body.clone(), version)?;
     if err != 0 {
         return Err(Error::broker(err, "InitProducerId"));
     }

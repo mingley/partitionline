@@ -54,6 +54,13 @@
 //! transactional id.
 //! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
 //! `InitProducerIdResponse.shouldClientThrottle` (v1+).
+//! ThrottleTimeMs is JSON `0+`
+//! ([`protocol::idem::encode_init_producer_id_response_with_throttle`];
+//! encode previously always wrote `0` on v1+ and omitted the field on v0;
+//! decode discarded it; convenience encode still writes `0`; official Java
+//! `InitProducerIdResponse.throttleTimeMs` /
+//! `InitProducerIdResponseData.throttleTimeMs`; Java `getErrorResponse`
+//! sets `throttleTimeMs` to `0` even when the argument is non-zero).
 //! Metadata negotiates v1–v13 (v9+ flexible; v8–v10 ClusterAuthorizedOperations
 //! and IncludeClusterAuthorizedOperations; v13 top-level ErrorCode;
 //! v8+ IncludeTopicAuthorizedOperations on [`Admin::describe_topics_by_id_with`];

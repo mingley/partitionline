@@ -5873,7 +5873,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let (err, producer_id, epoch) =
+            let (err, producer_id, epoch, ..) =
                 decode_init_producer_id_response(&mut body.clone(), version)?;
             if err == 0 {
                 return Ok((producer_id, epoch));
