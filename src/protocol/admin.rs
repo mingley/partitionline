@@ -11333,6 +11333,34 @@ impl DescribeShareGroupOffsetsResponse {
     }
 }
 
+/// Java `DescribeShareGroupOffsetsRequest` helpers.
+pub struct DescribeShareGroupOffsetsRequest;
+
+impl DescribeShareGroupOffsetsRequest {
+    /// Java `DescribeShareGroupOffsetsRequest.getErrorResponse`.
+    ///
+    /// Copies group ids. Topics stay empty. Group-level `ErrorCode` is
+    /// the argument. `ErrorMessage` stays the JSON default (`null`).
+    /// Official Java sets `exception.getMessage()`, except
+    /// `UNKNOWN_SERVER_ERROR` which uses the English `Errors.message`.
+    /// Request Topics are not copied. ThrottleTimeMs is JSON `0+`
+    /// (JSON default `0`; convenience encode writes `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument. This
+    /// is not [`DescribeShareGroupOffsetsResponse::error_counts`] /
+    /// `getErrorDescribedGroup` / ListTransactions `getErrorResponse`.
+    #[must_use]
+    pub fn error_response<I>(group_ids: I, error_code: i16) -> Vec<DescribedShareGroupOffsets>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        group_ids
+            .into_iter()
+            .map(|id| DescribedShareGroupOffsets::new(id, error_code))
+            .collect()
+    }
+}
+
 /// DescribeShareGroupOffsets v0 (flexible from v0; KIP-932).
 ///
 /// Official Apache JSON (`apiKey: 90`, request `listeners: ["broker"]`,
@@ -27306,6 +27334,105 @@ mod tests {
             cur.is_empty(),
             "DescribeShareGroupOffsets v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_request_error_response_matches_java() {
+        // Java 4.1.0 DescribeShareGroupOffsetsRequest.getErrorResponse:
+        // new DescribeShareGroupOffsetsResponse(throttleTimeMs,
+        // groupIds(), e). Copies group ids. Topics stay empty.
+        // Group-level ErrorCode is Errors.forException. ErrorMessage is
+        // exception.getMessage() except UNKNOWN_SERVER_ERROR (English
+        // Errors.message); this crate fills the JSON default null.
+        // Request Topics are not copied. Official Java
+        // DescribeShareGroupOffsetsRequest.getErrorResponse (4.1.0;
+        // 4.0.0 404 as the current name). Official Java sets
+        // throttleTimeMs from the argument; convenience encode writes
+        // 0. Java getErrorDescribedGroup / hasGroupError / groupError
+        // are not mapped. This crate speaks 0. Group-level ErrorCode
+        // is per-group at bytes 8-9 on leftover-empty empty-Topics
+        // fixture "g". This is not errorCounts / ListTransactions
+        // getErrorResponse / AlterShareGroupOffsets getErrorResponse.
+        let err = crate::error::INVALID_REQUEST;
+        let empty = DescribeShareGroupOffsetsRequest::error_response(Vec::<String>::new(), err);
+        assert!(empty.is_empty(), "empty request copies no groups");
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut buf, &empty).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded, empty);
+        assert_eq!(throttle, 0);
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let one = DescribeShareGroupOffsetsRequest::error_response(["g"], err);
+        assert_eq!(one, vec![DescribedShareGroupOffsets::new("g", err)]);
+        assert!(
+            one.first().is_some_and(|g| g.topics.is_empty()),
+            "getErrorResponse must not invent Topics"
+        );
+        assert_eq!(
+            one.first().and_then(|g| g.error_message.as_ref()),
+            None,
+            "getErrorResponse must not invent ErrorMessage"
+        );
+        buf.clear();
+        encode_describe_share_group_offsets_response(&mut buf, &one).unwrap();
+        assert_eq!(
+            &buf[8..10],
+            err.to_be_bytes(),
+            "DescribeShareGroupOffsets v0 group-level ErrorCode is at bytes 8-9"
+        );
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded, one);
+        assert_eq!(throttle, 0);
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let two = DescribeShareGroupOffsetsRequest::error_response(["g", "g2"], err);
+        assert_eq!(
+            two,
+            vec![
+                DescribedShareGroupOffsets::new("g", err),
+                DescribedShareGroupOffsets::new("g2", err),
+            ]
+        );
+        buf.clear();
+        encode_describe_share_group_offsets_response(&mut buf, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(throttle, 0);
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let mut with = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut with, &one, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_share_group_offsets_response_with_throttle(&mut zero, &one, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut conv, &one).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "error_response convenience encode still writes ThrottleTimeMs 0"
         );
     }
 

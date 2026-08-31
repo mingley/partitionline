@@ -2283,6 +2283,10 @@
 //! `DescribeShareGroupOffsetsResponse.errorCounts` (group-level non-`NONE`
 //! last-wins on `groupId`, plus every partition code including `NONE`;
 //! there is no top-level `errorCode`);
+//! [`protocol::admin::DescribeShareGroupOffsetsRequest::error_response`] is Java
+//! `DescribeShareGroupOffsetsRequest.getErrorResponse` (copies group ids;
+//! empty Topics; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`;
+//! convenience encode writes `0`);
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;
