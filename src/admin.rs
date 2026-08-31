@@ -12867,6 +12867,7 @@ mod tests {
         assert!(telemetry.delta_temporality());
         assert_eq!(telemetry.requested_metrics(), &["m".to_string()]);
         assert_eq!(PushTelemetryResponse::new(0).error_code(), 0);
+        assert_eq!(PushTelemetryResponse::new(0).throttle_time_ms(), 0);
         let push =
             PushTelemetryRequest::new(Uuid::from_bytes([0x11; 16]), 1, false, 0, b"m".to_vec());
         assert_eq!(push.client_instance_id(), Uuid::from_bytes([0x11; 16]));
