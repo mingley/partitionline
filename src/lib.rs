@@ -438,6 +438,10 @@
 //! empty). `ErrorMessage` stays the JSON default (null); official Java
 //! also sets the English `Errors.message` string. Throttle is the JSON
 //! default (`0`);
+//! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
+//! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
+//! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
+//! empty input is empty `Entries`, not null; throttle unused);
 //! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
 //! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`)),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes),
@@ -1643,7 +1647,12 @@
 //! [`Error::protocol`]).
 //! [`protocol::admin::DescribeClientQuotasResponse::error`] is Java
 //! `DescribeClientQuotasRequest.getErrorResponse` (`Entries` null, not
-//! empty). [`ClientQuotaAlteration::error_result`] /
+//! empty).
+//! [`protocol::admin::DescribeClientQuotasResponse::from_quota_entities`] is Java
+//! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
+//! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
+//! empty input is empty `Entries`, not null; throttle unused).
+//! [`ClientQuotaAlteration::error_result`] /
 //! [`ClientQuotaAlterationResult::error`] /
 //! [`ClientQuotaAlterationResult::error_results`] are Java
 //! `AlterClientQuotasRequest.getErrorResponse` (one entry / Entries).

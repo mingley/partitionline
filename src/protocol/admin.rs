@@ -5622,6 +5622,8 @@ impl ClientQuotaEntry {
 ///
 /// [`Self::error`] is Java `DescribeClientQuotasRequest.getErrorResponse`
 /// (`Entries` null, not empty).
+/// [`Self::from_quota_entities`] is Java
+/// `DescribeClientQuotasResponse.fromQuotaEntities`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DescribeClientQuotasResponse {
     /// Kafka error code (`0` is success).
@@ -5645,6 +5647,44 @@ impl DescribeClientQuotasResponse {
             error_code,
             error_message: None,
             entries: None,
+        }
+    }
+
+    /// Java `DescribeClientQuotasResponse.fromQuotaEntities`.
+    ///
+    /// Each outer item is one Java `ClientQuotaEntity` (type/name map
+    /// entries) plus that entity's values. Entity pairs and values keep
+    /// caller order (Java `HashMap` iteration is unspecified). Duplicate
+    /// type keys and value keys are kept (`ArrayList.add`). `ErrorCode`
+    /// is `0`. `ErrorMessage` is null. Empty input is empty `Entries`,
+    /// not null (contrast [`Self::error`]). Throttle is unused in this
+    /// helper (crate encode writes `0`).
+    #[must_use]
+    pub fn from_quota_entities<'a, I, E, V>(entities: I) -> Self
+    where
+        I: IntoIterator<Item = (E, V)>,
+        E: IntoIterator<Item = (&'a str, Option<&'a str>)>,
+        V: IntoIterator<Item = (&'a str, f64)>,
+    {
+        let entries = entities
+            .into_iter()
+            .map(|(entity, values)| ClientQuotaEntry {
+                entity: entity
+                    .into_iter()
+                    .map(|(entity_type, name)| {
+                        ClientQuotaEntity::new(entity_type, name.map(str::to_string))
+                    })
+                    .collect(),
+                values: values
+                    .into_iter()
+                    .map(|(key, value)| ClientQuotaValue::new(key, value))
+                    .collect(),
+            })
+            .collect();
+        Self {
+            error_code: 0,
+            error_message: None,
+            entries: Some(entries),
         }
     }
 
@@ -19869,6 +19909,106 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "DescribeClientQuotas v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn describe_client_quotas_from_quota_entities_matches_java() {
+        // Java DescribeClientQuotasResponse.fromQuotaEntities: iterate
+        // entities, copy ClientQuotaEntity.entries and values into
+        // EntryData lists, ErrorCode 0, ErrorMessage null. Empty map is
+        // empty Entries, not null. throttleTimeMs unused.
+        let empty = DescribeClientQuotasResponse::from_quota_entities(std::iter::empty::<(
+            Vec<(&str, Option<&str>)>,
+            Vec<(&str, f64)>,
+        )>());
+        assert_eq!(empty.error_code(), 0);
+        assert!(empty.error_message().is_none());
+        assert_eq!(empty.entries(), Some(&[] as &[ClientQuotaEntry]));
+        let none_entries = DescribeClientQuotasResponse::error(0);
+        assert!(none_entries.entries().is_none());
+        assert_ne!(
+            empty, none_entries,
+            "fromQuotaEntities empty Entries must not be null"
+        );
+
+        let alice = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("alice".into()));
+        let app = ClientQuotaEntity::new(ClientQuotaEntity::CLIENT_ID, Some("app".into()));
+        let bob = ClientQuotaEntity::new(ClientQuotaEntity::USER, Some("bob".into()));
+        let default_user = ClientQuotaEntity::new(ClientQuotaEntity::USER, None);
+        let ip = ClientQuotaEntity::new(ClientQuotaEntity::IP, Some("127.0.0.1".into()));
+        let producer = ClientQuotaValue::new("producer_byte_rate", 1024.0);
+        let consumer = ClientQuotaValue::new("consumer_byte_rate", 2048.0);
+        let duplicate = ClientQuotaValue::new("producer_byte_rate", 4096.0);
+        let resp = DescribeClientQuotasResponse::from_quota_entities([
+            (
+                vec![
+                    (ClientQuotaEntity::USER, Some("alice")),
+                    (ClientQuotaEntity::CLIENT_ID, Some("app")),
+                    (ClientQuotaEntity::USER, Some("bob")),
+                ],
+                vec![
+                    ("producer_byte_rate", 1024.0),
+                    ("consumer_byte_rate", 2048.0),
+                    ("producer_byte_rate", 4096.0),
+                ],
+            ),
+            (
+                vec![(ClientQuotaEntity::USER, None)],
+                Vec::<(&str, f64)>::new(),
+            ),
+            (
+                vec![(ClientQuotaEntity::IP, Some("127.0.0.1"))],
+                vec![("producer_byte_rate", 1024.0)],
+            ),
+        ]);
+        assert_eq!(
+            resp,
+            DescribeClientQuotasResponse {
+                error_code: 0,
+                error_message: None,
+                entries: Some(vec![
+                    ClientQuotaEntry::new(
+                        vec![alice, app, bob],
+                        vec![producer.clone(), consumer, duplicate],
+                    ),
+                    ClientQuotaEntry::new(vec![default_user], Vec::new()),
+                    ClientQuotaEntry::new(vec![ip], vec![producer]),
+                ]),
+            }
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_describe_client_quotas_response(&mut buf, version, &resp).unwrap();
+            let mut empty_buf = BytesMut::new();
+            encode_describe_client_quotas_response(&mut empty_buf, version, &empty).unwrap();
+            let mut none_buf = BytesMut::new();
+            encode_describe_client_quotas_response(&mut none_buf, version, &none_entries).unwrap();
+            assert_ne!(
+                &empty_buf[..],
+                &none_buf[..],
+                "DescribeClientQuotas v{version} empty Entries must not match null"
+            );
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_describe_client_quotas_response(&mut cur, version).unwrap(),
+                resp
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeClientQuotas v{version} fromQuotaEntities leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            let mut cur = empty_buf.as_ref();
+            assert_eq!(
+                decode_describe_client_quotas_response(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "DescribeClientQuotas v{version} fromQuotaEntities empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
