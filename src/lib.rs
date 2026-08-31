@@ -2320,6 +2320,9 @@
 //! `DescribeShareGroupOffsetsRequest.getErrorResponse` (copies group ids;
 //! empty Topics; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`;
 //! convenience encode writes `0`);
+//! [`protocol::admin::DescribeShareGroupOffsetsRequest::error_described_group`] is Java
+//! `DescribeShareGroupOffsetsRequest.getErrorDescribedGroup` (one GroupId +
+//! ErrorCode; empty Topics; ErrorMessage JSON-null);
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;

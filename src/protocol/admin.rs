@@ -11368,8 +11368,9 @@ impl DescribeShareGroupOffsetsResponse {
     /// `NONE` does not put, so an earlier non-`NONE` still counts).
     /// Partition-level codes are ignored. A missing `groupId` is
     /// `false`. Java `groupError` returns `Throwable` (not mapped).
-    /// Java `getErrorDescribedGroup` is not mapped. This is not
-    /// [`Self::error_counts`] / getErrorResponse.
+    /// Java `getErrorDescribedGroup` is
+    /// [`DescribeShareGroupOffsetsRequest::error_described_group`].
+    /// This is not [`Self::error_counts`] / getErrorResponse.
     #[must_use]
     pub fn has_group_error(groups: &[DescribedShareGroupOffsets], group_id: &str) -> bool {
         groups
@@ -11393,7 +11394,8 @@ impl DescribeShareGroupOffsetsRequest {
     /// `getErrorResponse` sets `throttleTimeMs` from the argument. This
     /// is not [`DescribeShareGroupOffsetsResponse::error_counts`] /
     /// [`DescribeShareGroupOffsetsResponse::has_group_error`] /
-    /// `getErrorDescribedGroup` / ListTransactions `getErrorResponse`.
+    /// [`Self::error_described_group`] / ListTransactions
+    /// `getErrorResponse`.
     #[must_use]
     pub fn error_response<I>(group_ids: I, error_code: i16) -> Vec<DescribedShareGroupOffsets>
     where
@@ -11404,6 +11406,23 @@ impl DescribeShareGroupOffsetsRequest {
             .into_iter()
             .map(|id| DescribedShareGroupOffsets::new(id, error_code))
             .collect()
+    }
+
+    /// Java `DescribeShareGroupOffsetsRequest.getErrorDescribedGroup`.
+    ///
+    /// One group: GroupId + ErrorCode. Topics stay empty.
+    /// `ErrorMessage` stays the JSON default (`null`). Official Java
+    /// sets `error.message()` (English `Errors.message`). This is not
+    /// [`Self::error_response`] /
+    /// [`DescribeShareGroupOffsetsResponse::has_group_error`] /
+    /// DescribeGroups / ConsumerGroupDescribe / ShareGroupDescribe
+    /// `getErrorDescribedGroupList`.
+    #[must_use]
+    pub fn error_described_group(
+        group_id: impl Into<String>,
+        error_code: i16,
+    ) -> DescribedShareGroupOffsets {
+        DescribedShareGroupOffsets::new(group_id, error_code)
     }
 }
 
@@ -27606,9 +27625,9 @@ mod tests {
         // codes are ignored. Official Java
         // DescribeShareGroupOffsetsResponse.hasGroupError (4.1.0;
         // 4.0.0 404 as the current name). Java groupError returns
-        // Throwable (not mapped). Java getErrorDescribedGroup is not
-        // mapped. This crate speaks 0. This is not errorCounts /
-        // getErrorResponse / AlterShareGroupOffsets /
+        // Throwable (not mapped). Java getErrorDescribedGroup is
+        // Request.error_described_group. This crate speaks 0. This is
+        // not errorCounts / getErrorResponse / AlterShareGroupOffsets /
         // DeleteShareGroupOffsets.
         assert!(
             !DescribeShareGroupOffsetsResponse::has_group_error(&[], "g"),
@@ -27717,8 +27736,8 @@ mod tests {
         // DescribeShareGroupOffsetsRequest.getErrorResponse (4.1.0;
         // 4.0.0 404 as the current name). Official Java sets
         // throttleTimeMs from the argument; convenience encode writes
-        // 0. Java getErrorDescribedGroup / groupError (Throwable) are
-        // not mapped. hasGroupError is mapped separately. This crate
+        // 0. Java groupError (Throwable) is not mapped.
+        // getErrorDescribedGroup is mapped separately. This crate
         // speaks 0. Group-level ErrorCode
         // is per-group at bytes 8-9 on leftover-empty empty-Topics
         // fixture "g". This is not errorCounts / ListTransactions
@@ -27802,6 +27821,60 @@ mod tests {
             &conv[..],
             &zero[..],
             "error_response convenience encode still writes ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn describe_share_group_offsets_request_error_described_group_matches_java() {
+        // Java 4.1.0 DescribeShareGroupOffsetsRequest.getErrorDescribedGroup:
+        // new DescribeShareGroupOffsetsResponseGroup().setGroupId
+        // .setErrorCode(error.code()).setErrorMessage(error.message()).
+        // Topics stay empty (JSON default). This crate fills ErrorMessage
+        // as the JSON default null, not the English Errors.message.
+        // Official Java
+        // DescribeShareGroupOffsetsRequest.getErrorDescribedGroup
+        // (4.1.0; 4.0.0 404 as the current name). This crate speaks 0.
+        // This is not getErrorResponse / hasGroupError /
+        // DescribeGroups getErrorDescribedGroupList /
+        // ConsumerGroupDescribe getErrorDescribedGroupList /
+        // ShareGroupDescribe getErrorDescribedGroupList.
+        let err = crate::error::COORDINATOR_LOAD_IN_PROGRESS;
+        let one = DescribeShareGroupOffsetsRequest::error_described_group("g", err);
+        assert_eq!(one, DescribedShareGroupOffsets::new("g", err));
+        assert!(
+            one.topics.is_empty(),
+            "getErrorDescribedGroup must not invent Topics"
+        );
+        assert_eq!(
+            one.error_message.as_ref(),
+            None,
+            "getErrorDescribedGroup must not invent ErrorMessage"
+        );
+        let mut buf = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut buf, std::slice::from_ref(&one)).unwrap();
+        assert_eq!(
+            &buf[8..10],
+            err.to_be_bytes(),
+            "DescribeShareGroupOffsets v0 group-level ErrorCode is at bytes 8-9"
+        );
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(decoded.as_slice(), std::slice::from_ref(&one));
+        assert_eq!(throttle, 0);
+        assert!(
+            DescribeShareGroupOffsetsResponse::has_group_error(&decoded, "g"),
+            "getErrorDescribedGroup non-NONE must be hasGroupError"
+        );
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 getErrorDescribedGroup leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let none = DescribeShareGroupOffsetsRequest::error_described_group("ok", 0);
+        assert_eq!(none, DescribedShareGroupOffsets::new("ok", 0));
+        assert!(
+            !DescribeShareGroupOffsetsResponse::has_group_error(std::slice::from_ref(&none), "ok"),
+            "getErrorDescribedGroup NONE is not hasGroupError"
         );
     }
 
