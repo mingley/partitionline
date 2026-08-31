@@ -220,6 +220,21 @@ impl FetchTopic {
     }
 }
 
+/// One forgotten topic in a Fetch request (session increment).
+///
+/// Java `FetchRequestData.ForgottenTopic`. Encode still writes an empty
+/// ForgottenTopicsData array; this type is the in-memory list
+/// [`FetchRequest::forgotten_topics`] reads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForgottenTopic {
+    /// Topic name (v4–v12). Empty at v13+ (topic id on the wire).
+    pub topic: String,
+    /// Topic id (v13+). Zeros when the request uses a name.
+    pub topic_id: [u8; 16],
+    /// Partitions to forget.
+    pub partitions: Vec<i32>,
+}
+
 /// Java `FetchRequest` helpers.
 pub struct FetchRequest;
 
@@ -252,6 +267,33 @@ impl FetchRequest {
             }
         }
         fetch_data
+    }
+
+    /// Java `FetchRequest.forgottenTopics`.
+    ///
+    /// v4–v12 use each topic's name. v13+ looks up `topic_id` in
+    /// `topic_names` (`None` when missing; Java still inserts that
+    /// `TopicIdPartition`). Duplicate partitions are kept (`ArrayList`;
+    /// unlike [`Self::fetch_data`]). Encode still writes an empty
+    /// ForgottenTopicsData array.
+    #[must_use]
+    pub fn forgotten_topics(
+        version: i16,
+        forgotten: &[ForgottenTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> Vec<([u8; 16], Option<String>, i32)> {
+        let mut to_forget = Vec::new();
+        for topic in forgotten {
+            let name = if version < 13 {
+                Some(topic.topic.clone())
+            } else {
+                topic_names.get(&topic.topic_id).cloned()
+            };
+            for partition in &topic.partitions {
+                to_forget.push((topic.topic_id, name.clone(), *partition));
+            }
+        }
+        to_forget
     }
 }
 
@@ -1498,6 +1540,96 @@ mod tests {
                 .map(|p| p.fetch_offset),
             Some(10)
         );
+    }
+
+    #[test]
+    fn fetch_request_forgotten_topics_matches_java() {
+        // Java FetchRequest.forgottenTopics: v4–v12 use topic(). v13+
+        // looks up topicId in topicNames and still inserts when the name
+        // is null. ArrayList keeps duplicate partitions.
+        let zeros = [0u8; 16];
+        let named = vec![
+            ForgottenTopic {
+                topic: "t".into(),
+                topic_id: zeros,
+                partitions: vec![0, 1],
+            },
+            ForgottenTopic {
+                topic: "t".into(),
+                topic_id: zeros,
+                partitions: vec![0],
+            },
+        ];
+        let empty_names = HashMap::new();
+        assert!(FetchRequest::forgotten_topics(12, &[], &empty_names).is_empty());
+        let v12 = FetchRequest::forgotten_topics(12, &named, &empty_names);
+        assert_eq!(
+            v12,
+            vec![
+                (zeros, Some("t".into()), 0),
+                (zeros, Some("t".into()), 1),
+                (zeros, Some("t".into()), 0),
+            ]
+        );
+        let topic_id = [1u8; 16];
+        let id_topics = vec![ForgottenTopic {
+            topic: String::new(),
+            topic_id,
+            partitions: vec![0, 1],
+        }];
+        let unresolved = FetchRequest::forgotten_topics(13, &id_topics, &empty_names);
+        assert_eq!(
+            unresolved,
+            vec![(topic_id, None, 0), (topic_id, None, 1)],
+            "v13 missing name is still inserted"
+        );
+        let names = HashMap::from([(topic_id, "resolved".into())]);
+        let v13 = FetchRequest::forgotten_topics(13, &id_topics, &names);
+        assert_eq!(
+            v13,
+            vec![
+                (topic_id, Some("resolved".into()), 0),
+                (topic_id, Some("resolved".into()), 1),
+            ]
+        );
+
+        let fetch = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: zeros,
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 10,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        for version in [11_i16, 12] {
+            let forgotten = FetchRequest::forgotten_topics(version, &named, &empty_names);
+            assert_eq!(forgotten.len(), 3);
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} forgottenTopics leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [11_i16, 13] {
+            let forgotten = FetchRequest::forgotten_topics(version, &[], &empty_names);
+            assert!(forgotten.is_empty());
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

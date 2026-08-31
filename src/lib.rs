@@ -801,6 +801,10 @@
 //! `FetchRequest.fetchData` (v4–v12 use the topic name; v13+ looks up
 //! `topic_id` and keeps a missing name as `None`; a later partition
 //! overwrites).
+//! [`protocol::fetch::FetchRequest::forgotten_topics`] is Java
+//! `FetchRequest.forgottenTopics` (v4–v12 use the topic name; v13+ looks
+//! up `topic_id` and keeps a missing name as `None`; duplicates are kept;
+//! encode still writes empty ForgottenTopicsData).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
