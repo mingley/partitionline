@@ -593,6 +593,10 @@
 //! [`protocol::txn::TxnOffsetCommitResponse::errors`] is Java
 //! `TxnOffsetCommitResponse.errors` (`(topic, partition)` codes; a later
 //! partition overwrites);
+//! [`protocol::txn::TxnOffsetCommitResponse::from_errors`] is Java
+//! `TxnOffsetCommitResponse` constructor from an errors map (group by
+//! topic name; a later entry for the same topic appends; first-seen
+//! topic order);
 //! [`protocol::txn::TxnOffsetCommitResponse::merge`] is Java
 //! `TxnOffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are

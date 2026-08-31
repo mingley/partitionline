@@ -742,6 +742,45 @@ impl TxnOffsetCommitResponse {
         error_map
     }
 
+    /// Java `TxnOffsetCommitResponse(int, Map)`.
+    ///
+    /// Groups `(topic, partition, error)` by name. A later entry for the
+    /// same topic appends (Java `HashMap.getOrDefault` then
+    /// `partitions().add`). Topic order is first-seen (Java
+    /// `HashMap.values` order is unspecified). The Java map key is
+    /// `TopicPartition`; grouping uses only the name. Duplicate
+    /// partitions for the same pair are kept (`ArrayList`). Throttle is
+    /// not part of this helper (crate encode writes the JSON default
+    /// `0`).
+    #[must_use]
+    pub fn from_errors<'a, I>(response_data: I) -> Vec<TxnOffsetCommitResponseTopic>
+    where
+        I: IntoIterator<Item = (&'a str, i32, i16)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<TxnOffsetCommitResponsePartition>> = HashMap::new();
+        for (topic, partition, error_code) in response_data {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(TxnOffsetCommitResponsePartition {
+                    partition,
+                    error_code,
+                });
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| TxnOffsetCommitResponseTopic { topic, partitions })
+            })
+            .collect()
+    }
+
     /// Java `TxnOffsetCommitResponse.Builder.merge`.
     ///
     /// If `current` has no topics, the result is `new_topics`. Otherwise
@@ -1759,6 +1798,82 @@ mod tests {
         assert!(
             cur.is_empty(),
             "TxnOffsetCommit v3 errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn txn_offset_commit_response_from_errors_matches_java() {
+        // Java TxnOffsetCommitResponse(int, Map): HashMap.getOrDefault by
+        // topic name, then partitions().add. Empty map is empty. A later
+        // entry for the same name appends even when another topic sits
+        // between. Duplicate partitions for the same pair are kept
+        // (ArrayList).
+        assert!(
+            TxnOffsetCommitResponse::from_errors(std::iter::empty::<(&str, i32, i16)>()).is_empty()
+        );
+        let grouped = TxnOffsetCommitResponse::from_errors([
+            ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ("a", 1, 0i16),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                TxnOffsetCommitResponseTopic {
+                    topic: "a".into(),
+                    partitions: vec![
+                        TxnOffsetCommitResponsePartition::error(
+                            0,
+                            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                        ),
+                        TxnOffsetCommitResponsePartition::error(1, 0),
+                    ],
+                },
+                TxnOffsetCommitResponseTopic {
+                    topic: "b".into(),
+                    partitions: vec![TxnOffsetCommitResponsePartition::error(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    )],
+                },
+            ]
+        );
+        let dup = TxnOffsetCommitResponse::from_errors([
+            ("t", 0, 0i16),
+            ("t", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+        ]);
+        assert_eq!(
+            dup,
+            vec![TxnOffsetCommitResponseTopic {
+                topic: "t".into(),
+                partitions: vec![
+                    TxnOffsetCommitResponsePartition::error(0, 0),
+                    TxnOffsetCommitResponsePartition::error(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    ),
+                ],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_topics_response(&mut buf, 0, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v0 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_txn_offset_commit_topics_response(&mut buf, 3, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 from_errors leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
