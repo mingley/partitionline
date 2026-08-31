@@ -934,6 +934,12 @@ pub struct JoinGroupRequest<'a> {
     pub group_id: &'a str,
     /// Session timeout.
     pub session_timeout_ms: i32,
+    /// Rebalance timeout (JSON `1+`).
+    ///
+    /// Spoken v2–v9 always write the field. Official Java
+    /// `JoinGroupRequestData.rebalanceTimeoutMs`. Classic Java
+    /// `ClassicKafkaConsumer` sends `max.poll.interval.ms`.
+    pub rebalance_timeout_ms: i32,
     /// Member id ([`Self::UNKNOWN_MEMBER_ID`] on first join).
     pub member_id: &'a str,
     /// Kafka `group.instance.id`.
@@ -1232,6 +1238,8 @@ pub struct JoinGroupProtocolsRequest<'a> {
     pub group_id: &'a str,
     /// Session timeout.
     pub session_timeout_ms: i32,
+    /// Rebalance timeout (JSON `1+`). Spoken v2–v9 always write the field.
+    pub rebalance_timeout_ms: i32,
     /// Member id ([`JoinGroupRequest::UNKNOWN_MEMBER_ID`] on first join).
     pub member_id: &'a str,
     /// Kafka `group.instance.id`.
@@ -1262,6 +1270,7 @@ pub fn encode_join_group_request(
         &JoinGroupProtocolsRequest {
             group_id: req.group_id,
             session_timeout_ms: req.session_timeout_ms,
+            rebalance_timeout_ms: req.rebalance_timeout_ms,
             member_id: req.member_id,
             group_instance_id: req.group_instance_id,
             protocol_type: req.protocol_type,
@@ -1280,7 +1289,7 @@ pub fn encode_join_group_protocols_request(
     let flexible = join_group_flexible(version)?;
     buf::put_string(buf, flexible, Some(req.group_id))?;
     buf.put_i32(req.session_timeout_ms);
-    buf.put_i32(req.session_timeout_ms); // rebalance timeout
+    buf.put_i32(req.rebalance_timeout_ms);
     buf::put_string(buf, flexible, Some(req.member_id))?;
     if version >= 5 {
         buf::put_string(buf, flexible, req.group_instance_id)?;
@@ -1327,11 +1336,14 @@ pub fn decode_join_group_request<B: Buf>(
 /// Decode JoinGroup Protocols of N (v2–v9).
 ///
 /// Returns `(group_id, member_id, instance_id, protocols, reason,
-/// session_timeout_ms)`. SessionTimeoutMs is JSON `0+` (INT32 after
-/// GroupId; official Java `JoinGroupRequestData.sessionTimeoutMs`).
+/// session_timeout_ms, rebalance_timeout_ms)`. SessionTimeoutMs is JSON
+/// `0+` (INT32 after GroupId; official Java
+/// `JoinGroupRequestData.sessionTimeoutMs`). RebalanceTimeoutMs is JSON
+/// `1+` (INT32 after SessionTimeoutMs; spoken v2–v9 always on the wire;
+/// official Java `JoinGroupRequestData.rebalanceTimeoutMs`).
 #[expect(
     clippy::type_complexity,
-    reason = "decoded JoinGroup is group, member, instance, protocols, reason, and session timeout together"
+    reason = "decoded JoinGroup is group, member, instance, protocols, reason, session timeout, and rebalance timeout together"
 )]
 pub fn decode_join_group_request_protocols<B: Buf>(
     buf: &mut B,
@@ -1343,11 +1355,12 @@ pub fn decode_join_group_request_protocols<B: Buf>(
     Vec<JoinGroupProtocolOwned>,
     Option<String>,
     i32,
+    i32,
 )> {
     let flexible = join_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let session_timeout_ms = buf::get_i32(buf)?;
-    let _rebalance = buf::get_i32(buf)?;
+    let rebalance_timeout_ms = buf::get_i32(buf)?;
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let instance = if version >= 5 {
         buf::get_string(buf, flexible)?
@@ -1380,6 +1393,7 @@ pub fn decode_join_group_request_protocols<B: Buf>(
         protocols,
         reason,
         session_timeout_ms,
+        rebalance_timeout_ms,
     ))
 }
 
@@ -6987,6 +7001,7 @@ mod tests {
             &JoinGroupRequest {
                 group_id: "g",
                 session_timeout_ms: 10_000,
+                rebalance_timeout_ms: 10_000,
                 member_id: "m1",
                 group_instance_id: Some("worker-1"),
                 protocol_type: "consumer",
@@ -7010,6 +7025,7 @@ mod tests {
         JoinGroupRequest {
             group_id: "g",
             session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 10_000,
             member_id: "m1",
             group_instance_id: None,
             protocol_type: "consumer",
@@ -7034,6 +7050,7 @@ mod tests {
         let req = JoinGroupRequest {
             group_id: "g",
             session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 10_000,
             member_id: "m1",
             group_instance_id: Some("ignored-on-v2"),
             protocol_type: "consumer",
@@ -7261,6 +7278,7 @@ mod tests {
         let ignored = JoinGroupRequest {
             group_id: "g",
             session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 10_000,
             member_id: "m1",
             group_instance_id: Some("ignored-on-v2"),
             protocol_type: "consumer",
@@ -7279,6 +7297,7 @@ mod tests {
             let req = JoinGroupRequest {
                 group_id: "g",
                 session_timeout_ms: 10_000,
+                rebalance_timeout_ms: 10_000,
                 member_id: "m1",
                 group_instance_id: Some("i"),
                 protocol_type: "consumer",
@@ -7339,6 +7358,7 @@ mod tests {
         let req = JoinGroupProtocolsRequest {
             group_id: "g",
             session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 10_000,
             member_id: "m1",
             group_instance_id: None,
             protocol_type: "consumer",
@@ -7371,6 +7391,7 @@ mod tests {
             &JoinGroupProtocolsRequest {
                 group_id: "g",
                 session_timeout_ms: 10_000,
+                rebalance_timeout_ms: 10_000,
                 member_id: "m1",
                 group_instance_id: None,
                 protocol_type: "consumer",
@@ -7415,6 +7436,7 @@ mod tests {
         let req = JoinGroupRequest {
             group_id: "g",
             session_timeout_ms: 3_600_000,
+            rebalance_timeout_ms: 3_600_000,
             member_id: "m1",
             group_instance_id: None,
             protocol_type: "consumer",
@@ -7426,7 +7448,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_join_group_request(&mut buf, version, &req).unwrap();
             let mut cur = buf.as_ref();
-            let (gid, member, instance, got, reason, session_timeout_ms) =
+            let (gid, member, instance, got, reason, session_timeout_ms, ..) =
                 decode_join_group_request_protocols(&mut cur, version).unwrap();
             assert_eq!(gid, "g");
             assert_eq!(member, "m1");
@@ -7452,8 +7474,63 @@ mod tests {
             "v2 SessionTimeoutMs is not always 10000"
         );
         let mut cur = ten.as_ref();
-        let (.., session_timeout_ms) = decode_join_group_request_protocols(&mut cur, 2).unwrap();
+        let (.., session_timeout_ms, _) = decode_join_group_request_protocols(&mut cur, 2).unwrap();
         assert_eq!(session_timeout_ms, 10_000);
+    }
+
+    #[test]
+    fn join_group_request_rebalance_timeout_ms_matches_java() {
+        // Kafka 4.0 JoinGroupRequest.json RebalanceTimeoutMs is versions 1+
+        // (INT32 after SessionTimeoutMs; default -1; ignorable). Spoken v2–v9
+        // always write the field. Official Java JoinGroupRequestData.rebalanceTimeoutMs
+        // reads it. Encode previously copied session_timeout_ms; decode discarded
+        // it. Classic Java ClassicKafkaConsumer sends max.poll.interval.ms.
+        // This crate speaks 2–9. This is not SessionTimeoutMs / ProtocolType.
+        let meta = [1u8, 2, 3];
+        let req = JoinGroupRequest {
+            group_id: "g",
+            session_timeout_ms: 10_000,
+            rebalance_timeout_ms: 300_000,
+            member_id: "m1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            metadata: &meta,
+            reason: None,
+        };
+        for version in [2_i16, 5, 6, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, member, instance, got, reason, session_timeout_ms, rebalance_timeout_ms) =
+                decode_join_group_request_protocols(&mut cur, version).unwrap();
+            assert_eq!(gid, "g");
+            assert_eq!(member, "m1");
+            assert_eq!(got.len(), 1);
+            assert_eq!(reason, None);
+            assert_eq!(session_timeout_ms, 10_000);
+            assert_eq!(rebalance_timeout_ms, 300_000);
+            if version >= 5 {
+                assert_eq!(instance, None);
+            }
+            assert!(
+                cur.is_empty(),
+                "JoinGroup request v{version} RebalanceTimeoutMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_request(&mut with, 2, &req).unwrap();
+        let mut copied = BytesMut::new();
+        encode_join_group_request(&mut copied, 2, &join_req(&meta)).unwrap();
+        assert_ne!(
+            &with[..],
+            &copied[..],
+            "v2 RebalanceTimeoutMs is not always SessionTimeoutMs"
+        );
+        let mut cur = copied.as_ref();
+        let (.., rebalance_timeout_ms) = decode_join_group_request_protocols(&mut cur, 2).unwrap();
+        assert_eq!(rebalance_timeout_ms, 10_000);
     }
 
     #[test]

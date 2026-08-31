@@ -11,7 +11,8 @@ use tokio::sync::watch;
 
 use crate::config::{AutoOffsetReset, IsolationLevel};
 use crate::consumer::{
-    Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata, TopicPartition,
+    duration_millis_i32, Consumer, ConsumerConfig, ConsumerRecords, OffsetAndMetadata,
+    TopicPartition,
 };
 use crate::error::{self, Error, Result};
 use crate::net::BrokerConn;
@@ -1864,6 +1865,11 @@ impl ConsumerGroup {
                         &JoinGroupProtocolsRequest {
                             group_id: &self.group_id,
                             session_timeout_ms: self.cfg.session_timeout_ms,
+                            rebalance_timeout_ms: if self.cfg.max_poll_interval.is_zero() {
+                                i32::MAX
+                            } else {
+                                duration_millis_i32(self.cfg.max_poll_interval)
+                            },
                             member_id: &self.member_id,
                             group_instance_id: self.cfg.group_instance_id.as_deref(),
                             protocol_type: ConsumerProtocol::PROTOCOL_TYPE,
