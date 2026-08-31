@@ -610,6 +610,25 @@ pub struct TxnOffsetCommitRequest;
 impl TxnOffsetCommitRequest {
     /// Java `TxnOffsetCommitRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
     pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 4;
+
+    /// Java `TxnOffsetCommitRequest.offsets`.
+    ///
+    /// Each `(topic, partition)` maps to that [`TxnOffsetPartition`]
+    /// (Java `CommittedOffset`). A later partition overwrites an earlier
+    /// one for the same pair (Java `HashMap.put`).
+    #[must_use]
+    pub fn offsets(topics: &[TxnOffsetTopic]) -> HashMap<(String, i32), TxnOffsetPartition> {
+        let mut offset_map = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let _prev = offset_map.insert(
+                    (topic.topic.clone(), partition.partition),
+                    partition.clone(),
+                );
+            }
+        }
+        offset_map
+    }
 }
 
 /// Java `TxnOffsetCommitResponse` helpers.
@@ -2456,6 +2475,93 @@ mod tests {
                 0
             );
         }
+    }
+
+    #[test]
+    fn txn_offset_commit_offsets_matches_java() {
+        // Java TxnOffsetCommitRequest.offsets: each (topic, partition) maps
+        // to that CommittedOffset. Later partitions overwrite the same pair
+        // (HashMap.put).
+        assert!(TxnOffsetCommitRequest::offsets(&[]).is_empty());
+        let p0 = TxnOffsetPartition::new(0, 10, 1, "m0");
+        let p3 = TxnOffsetPartition::new(3, 20, 2, "m3");
+        let one = vec![TxnOffsetTopic {
+            topic: "t".into(),
+            partitions: vec![p0.clone(), p3.clone()],
+        }];
+        assert_eq!(
+            TxnOffsetCommitRequest::offsets(&one),
+            HashMap::from([(("t".into(), 0), p0), (("t".into(), 3), p3)])
+        );
+        let first = TxnOffsetPartition::new(0, 1, RecordBatch::NO_PARTITION_LEADER_EPOCH, "");
+        let second = TxnOffsetPartition::new(0, 2, 4, "eos");
+        let other = TxnOffsetPartition::new(1, 3, 5, "b");
+        let two = vec![
+            TxnOffsetTopic {
+                topic: "a".into(),
+                partitions: vec![first],
+            },
+            TxnOffsetTopic {
+                topic: "a".into(),
+                partitions: vec![second.clone()],
+            },
+            TxnOffsetTopic {
+                topic: "b".into(),
+                partitions: vec![other.clone()],
+            },
+        ];
+        assert_eq!(
+            TxnOffsetCommitRequest::offsets(&two),
+            HashMap::from([(("a".into(), 0), second), (("b".into(), 1), other),])
+        );
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &two,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_request(&mut cur, 2).unwrap().3;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            TxnOffsetCommitRequest::offsets(&decoded),
+            TxnOffsetCommitRequest::offsets(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "TxnOffsetCommit v2 offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            3,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &two,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_request(&mut cur, 3).unwrap().3;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            TxnOffsetCommitRequest::offsets(&decoded),
+            TxnOffsetCommitRequest::offsets(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "TxnOffsetCommit v3 offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]
