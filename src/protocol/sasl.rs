@@ -1,6 +1,7 @@
 //! SaslHandshake (api 17, v0–v1) and SaslAuthenticate (api 36, v0–v2),
 //! plus PLAIN / SCRAM / OAUTHBEARER helpers.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -140,6 +141,21 @@ impl SaslHandshakeRequest {
         error_code: i16,
     ) -> crate::error::Result<()> {
         encode_sasl_handshake_response(buf, version, error_code, &[])
+    }
+}
+
+/// Java `SaslHandshakeResponse` helpers.
+pub struct SaslHandshakeResponse;
+
+impl SaslHandshakeResponse {
+    /// Java `SaslHandshakeResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Mechanisms are not counted. This is
+    /// not SaslAuthenticate `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
     }
 }
 
@@ -503,6 +519,8 @@ pub async fn authenticate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+
     use bytes::Buf;
 
     #[test]
@@ -566,6 +584,47 @@ mod tests {
             &with_plain[..],
             "getErrorResponse must not copy the requested mechanism"
         );
+    }
+
+    #[test]
+    fn sasl_handshake_response_error_counts_matches_java() {
+        // Java SaslHandshakeResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java SaslHandshakeResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not mapped).
+        // Mechanisms are not counted. This is not SaslAuthenticate
+        // errorCounts / enabledMechanisms.
+        assert_eq!(
+            SaslHandshakeResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            SaslHandshakeResponse::error_counts(crate::error::UNSUPPORTED_SASL_MECHANISM),
+            HashMap::from([(crate::error::UNSUPPORTED_SASL_MECHANISM, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_sasl_handshake_response(
+                &mut resp,
+                version,
+                crate::error::UNSUPPORTED_SASL_MECHANISM,
+                &["PLAIN"],
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_sasl_handshake_response(&mut cur, version).unwrap();
+            assert_eq!(
+                SaslHandshakeResponse::error_counts(err),
+                HashMap::from([(crate::error::UNSUPPORTED_SASL_MECHANISM, 1)]),
+                "SaslHandshake v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "SaslHandshake v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

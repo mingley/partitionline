@@ -395,7 +395,10 @@
 //! on unsubscribe, [`LEAVE_GROUP_REASON_POLL_TIMEOUT`] on `max.poll.interval.ms`),
 //! SaslHandshake v0–v1 (never flexible; v1 enables SaslAuthenticate;
 //! [`protocol::sasl::SaslHandshakeRequest::error_response`] is Java
-//! `SaslHandshakeRequest.getErrorResponse` (empty Mechanisms)),
+//! `SaslHandshakeRequest.getErrorResponse` (empty Mechanisms);
+//! [`protocol::sasl::SaslHandshakeResponse::error_counts`] is Java
+//! `SaslHandshakeResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! SaslAuthenticate v0–v2 (v1 SessionLifetimeMs; v2 flexible;
 //! [`protocol::sasl::SaslAuthenticateRequest::error_response`] is Java
 //! `SaslAuthenticateRequest.getErrorResponse` (empty AuthBytes; the
