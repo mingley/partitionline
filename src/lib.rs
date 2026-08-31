@@ -859,6 +859,8 @@
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::GetTelemetrySubscriptionsResponse::has_error`] is Java
+//! `GetTelemetrySubscriptionsResponse.hasError` (`error() != NONE`);
 //! [`protocol::admin::GetTelemetrySubscriptionsRequest::error_response`] is Java
 //! `GetTelemetrySubscriptionsRequest.getErrorResponse` (JSON defaults for
 //! ClientInstanceId / subscription fields; ThrottleTimeMs JSON `0+`;

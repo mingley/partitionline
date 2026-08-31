@@ -13268,6 +13268,16 @@ impl GetTelemetrySubscriptionsResponse {
         HashMap::from([(self.error_code, 1)])
     }
 
+    /// Java `GetTelemetrySubscriptionsResponse.hasError`.
+    ///
+    /// `error() != NONE`. Java `error()` is `Errors.forCode` only
+    /// (identity on i16; not mapped). This is not [`Self::error_counts`]
+    /// / getErrorResponse / PushTelemetry `hasError`.
+    #[must_use]
+    pub const fn has_error(&self) -> bool {
+        self.error_code != 0
+    }
+
     /// Subscription generation.
     #[must_use]
     pub fn subscription_id(&self) -> i32 {
@@ -29639,6 +29649,65 @@ mod tests {
             cur.is_empty(),
             "GetTelemetrySubscriptions v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_response_has_error_matches_java() {
+        // Java 4.0 GetTelemetrySubscriptionsResponse.hasError is
+        // error() != Errors.NONE. Official Java
+        // GetTelemetrySubscriptionsResponse.hasError. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). This crate
+        // speaks 0. This is not errorCounts / getErrorResponse /
+        // PushTelemetry hasError / CreateDelegationToken hasError.
+        let none = GetTelemetrySubscriptionsResponse::new(
+            0,
+            [0x22; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        assert!(!none.has_error(), "NONE is not hasError");
+        let full = GetTelemetrySubscriptionsResponse::new(
+            crate::error::INVALID_RECORD,
+            [0x22; 16],
+            1,
+            vec![1],
+            1000,
+            100,
+            true,
+            vec!["m".into()],
+        );
+        assert!(full.has_error());
+        let mut resp = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut resp, &full).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_get_telemetry_subscriptions_response(&mut cur).unwrap();
+        assert!(
+            decoded.has_error(),
+            "GetTelemetrySubscriptions v0 hasError must follow the decoded ErrorCode"
+        );
+        assert!(
+            cur.is_empty(),
+            "GetTelemetrySubscriptions v0 hasError leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut none_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut none_buf, &none).unwrap();
+        let mut err_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut err_buf, &full).unwrap();
+        assert_ne!(
+            &none_buf[..],
+            &err_buf[..],
+            "v0 ErrorCode is not always NONE"
+        );
+        assert_eq!(
+            &err_buf[4..6],
+            crate::error::INVALID_RECORD.to_be_bytes(),
+            "GetTelemetrySubscriptions v0 ErrorCode is at bytes 4-5"
         );
     }
 
