@@ -1631,7 +1631,8 @@
 //! sets the English `Errors.message` string.
 //! [`protocol::admin::ListPartitionReassignmentsResponse::should_client_throttle`]
 //! is Java `ListPartitionReassignmentsResponse.shouldClientThrottle`
-//! (always).
+//! (always). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::ListPartitionReassignmentsResponse::new`] fills `0`.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].
 //! [`Admin::incremental_alter_configs_for`] is Java

@@ -4652,9 +4652,14 @@ impl OngoingTopicReassignment {
 /// ListPartitionReassignments v0 response (top-level error after throttle).
 ///
 /// [`Self::error`] is Java `ListPartitionReassignmentsRequest.getErrorResponse`
-/// (`ErrorMessage` stays the JSON default, null).
+/// (`ErrorMessage` stays the JSON default, null). ThrottleTimeMs is JSON
+/// `0+` ([`Self::throttle_time_ms`]; [`Self::new`] / [`Self::error`] fill
+/// `0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListPartitionReassignmentsResponse {
+    /// ListPartitionReassignments `ThrottleTimeMs` (JSON `0+`). First
+    /// field. JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -4664,24 +4669,47 @@ pub struct ListPartitionReassignmentsResponse {
 }
 
 impl ListPartitionReassignmentsResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(
+        error_code: i16,
+        error_message: Option<String>,
+        topics: Vec<OngoingTopicReassignment>,
+    ) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            error_message,
+            topics,
+        }
+    }
+
     /// Java `ListPartitionReassignmentsRequest.getErrorResponse`.
     ///
     /// Copies each request topic through [`ListReassignmentTopic::error_result`].
     /// Null request Topics becomes an empty Topics list. `ErrorMessage` is
     /// the JSON default (null); official Java also sets the English
-    /// `Errors.message` string. Throttle on the response is the JSON
-    /// default (`0`).
+    /// `Errors.message` string. Throttle is the JSON default (`0`) from
+    /// [`Self::new`]; official Java also sets `throttleTimeMs` from the
+    /// argument. [`encode_list_partition_reassignments_response`] writes
+    /// `resp.throttle_time_ms`.
     #[must_use]
     pub fn error(error_code: i16, topics: Option<&[ListReassignmentTopic]>) -> Self {
-        Self {
+        Self::new(
             error_code,
-            error_message: None,
-            topics: topics
+            None,
+            topics
                 .unwrap_or(&[])
                 .iter()
                 .map(ListReassignmentTopic::error_result)
                 .collect(),
-        }
+        )
+    }
+
+    /// ListPartitionReassignments `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -4771,7 +4799,7 @@ pub fn encode_list_partition_reassignments_response(
     buf: &mut BytesMut,
     resp: &ListPartitionReassignmentsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
@@ -4795,7 +4823,7 @@ pub fn encode_list_partition_reassignments_response(
 pub fn decode_list_partition_reassignments_response<B: Buf>(
     buf: &mut B,
 ) -> Result<ListPartitionReassignmentsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -4822,6 +4850,7 @@ pub fn decode_list_partition_reassignments_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(ListPartitionReassignmentsResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         topics,
@@ -20334,6 +20363,53 @@ mod tests {
     }
 
     #[test]
+    fn list_partition_reassignments_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ListPartitionReassignmentsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0; first field). Official
+        // Java ListPartitionReassignmentsRequest.getErrorResponse /
+        // ListPartitionReassignmentsResponse.throttleTimeMs set / read it.
+        // Encode writes ListPartitionReassignmentsResponse.throttle_time_ms
+        // (JSON default 0; ListPartitionReassignmentsResponse::new /
+        // ListPartitionReassignmentsResponse::error fill 0).
+        // shouldClientThrottle is always true (not KIP-219 v1+). This
+        // crate speaks v0 only. Empty-topics only one version. This is
+        // not AlterPartitionReassignments ThrottleTimeMs.
+        let zero = ListPartitionReassignmentsResponse::new(0, None, vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_list_partition_reassignments_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_list_partition_reassignments_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "ListPartitionReassignments v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_list_partition_reassignments_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_list_partition_reassignments_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "ListPartitionReassignmentsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let err = ListPartitionReassignmentsResponse::error(crate::error::NOT_CONTROLLER, None);
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "ListPartitionReassignmentsResponse::error still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn list_partition_reassignments_v0_roundtrip_is_leftover_empty() {
         assert!(ListPartitionReassignmentsResponse::should_client_throttle(
             0
@@ -20361,10 +20437,10 @@ mod tests {
             "ListPartitionReassignments v0 null-topics request must be leftover-empty"
         );
 
-        let resp = ListPartitionReassignmentsResponse {
-            error_code: 0,
-            error_message: None,
-            topics: vec![OngoingTopicReassignment {
+        let resp = ListPartitionReassignmentsResponse::new(
+            0,
+            None,
+            vec![OngoingTopicReassignment {
                 name: "t".into(),
                 partitions: vec![OngoingPartitionReassignment {
                     partition_index: 0,
@@ -20373,7 +20449,7 @@ mod tests {
                     removing_replicas: vec![1],
                 }],
             }],
-        };
+        );
         buf.clear();
         encode_list_partition_reassignments_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
@@ -20445,11 +20521,11 @@ mod tests {
         // Official v0 body: throttle_time_ms INT32, then error_code INT16.
         // That is the same field order as AlterPartitionReassignments v0,
         // verified from the Apache JSON (not copied from Alter).
-        let resp = ListPartitionReassignmentsResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            error_message: Some("Not controller".into()),
-            topics: Vec::new(),
-        };
+        let resp = ListPartitionReassignmentsResponse::new(
+            crate::error::NOT_CONTROLLER,
+            Some("Not controller".into()),
+            Vec::new(),
+        );
         let mut buf = BytesMut::new();
         encode_list_partition_reassignments_response(&mut buf, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();

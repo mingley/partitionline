@@ -4155,11 +4155,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     // 41 only. Do not invent a replica list on the wrong node.
                     encode_list_partition_reassignments_response(
                         &mut body,
-                        &ListPartitionReassignmentsResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                            topics: Vec::new(),
-                        },
+                        &ListPartitionReassignmentsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4192,11 +4192,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         .collect();
                     encode_list_partition_reassignments_response(
                         &mut body,
-                        &ListPartitionReassignmentsResponse {
-                            error_code: 0,
-                            error_message: None,
-                            topics: listed,
-                        },
+                        &ListPartitionReassignmentsResponse::new(0, None, listed),
                     )
                     .unwrap();
                 }
