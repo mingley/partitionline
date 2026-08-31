@@ -840,6 +840,8 @@
 //! [`protocol::acl::DescribeAclsResponse::acls_resources`] /
 //! [`protocol::acl::DescribeAclsResponse::acl_bindings`] are Java
 //! `aclsResources` / `aclBindings` (group by [`ResourcePattern`]);
+//! DescribeAcls ThrottleTimeMs is JSON `0+`;
+//! [`protocol::acl::encode_describe_acls_response`] still writes `0`;
 //! [`protocol::acl::DeleteAclsResponse::matching_acl`] /
 //! [`protocol::acl::DeleteAclsResponse::acl_binding`] are Java
 //! `matchingAcl` / `aclBinding` ([`protocol::acl::DeleteAclsMatchingAcl`];

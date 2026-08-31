@@ -1892,21 +1892,40 @@ pub fn decode_describe_acls_request<B: Buf>(buf: &mut B, version: i16) -> Result
 
 /// Encode DescribeAcls with matching bindings.
 ///
-/// Java `DescribeAclsResponse.aclsResources` groups bindings that share
-/// a [`ResourcePattern`] (one resource, several ACEs). Java
-/// `DescribeAclsResponse.validate` rejects non-LITERAL pattern types
-/// on v0 (`UnsupportedVersionException`) and UNKNOWN resource / pattern /
-/// operation / permission (`Contain UNKNOWN elements`).
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). Top-level ErrorCode is `0`; ErrorMessage is the JSON
+/// default (null). Java `DescribeAclsResponse.aclsResources` groups
+/// bindings that share a [`ResourcePattern`] (one resource, several
+/// ACEs). Java `DescribeAclsResponse.validate` rejects non-LITERAL
+/// pattern types on v0 (`UnsupportedVersionException`) and UNKNOWN
+/// resource / pattern / operation / permission (`Contain UNKNOWN
+/// elements`).
 pub fn encode_describe_acls_response(
     buf: &mut BytesMut,
     version: i16,
     acls: &[AclBinding],
 ) -> Result<()> {
+    encode_describe_acls_response_with_throttle(buf, version, acls, 0)
+}
+
+/// Encode DescribeAcls v0–v3 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v1 are classic. v2–v3 are flexible. v1 adds PatternType on each
+/// resource. v3 is the same layout (user resource type). Kafka 4.0
+/// `validVersions` is `1-3` (v0 removed). This crate speaks 0–3. v4+
+/// is not spoken. Top-level ErrorCode is at bytes 4–5.
+pub fn encode_describe_acls_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    acls: &[AclBinding],
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = acl_api_flexible(version)?;
     reject_v0_non_literal_acl_patterns(version, acls.iter())?;
     reject_describe_acls_response_unknown_elements(acls)?;
     let resources = DescribeAclsResponse::acls_resources(acls);
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(0);
     buf::put_string(buf, flexible, None)?;
     buf::put_array_len(buf, flexible, Some(resources.len()))?;
@@ -1938,11 +1957,16 @@ pub fn encode_describe_acls_response(
 
 /// Decode DescribeAcls bindings. Top-level error returns an empty list.
 ///
-/// Flattens grouped resources with [`DescribeAclsResponse::acl_bindings`]
+/// Returns `(bindings, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). Top-level ErrorCode is at bytes 4–5. Flattens
+/// grouped resources with [`DescribeAclsResponse::acl_bindings`]
 /// (Java `DescribeAclsResponse.aclBindings`).
-pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Result<Vec<AclBinding>> {
+pub fn decode_describe_acls_response<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<AclBinding>, i32)> {
     let flexible = acl_api_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
     let _msg = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
@@ -1986,9 +2010,12 @@ pub fn decode_describe_acls_response<B: Buf>(buf: &mut B, version: i16) -> Resul
         buf::skip_tagged_fields(buf)?;
     }
     if err != 0 {
-        return Ok(Vec::new());
+        return Ok((Vec::new(), throttle_time_ms));
     }
-    Ok(DescribeAclsResponse::acl_bindings(&resources))
+    Ok((
+        DescribeAclsResponse::acl_bindings(&resources),
+        throttle_time_ms,
+    ))
 }
 
 fn put_acl_filter_fields(
@@ -2483,7 +2510,7 @@ mod tests {
             encode_describe_acls_response(&mut resp, version, std::slice::from_ref(&acl)).unwrap();
             let mut cur = &resp[..];
             assert_eq!(
-                decode_describe_acls_response(&mut cur, version).unwrap(),
+                decode_describe_acls_response(&mut cur, version).unwrap().0,
                 vec![acl.clone()]
             );
             assert!(
@@ -2526,6 +2553,69 @@ mod tests {
     }
 
     #[test]
+    fn describe_acls_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeAclsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v3; first field). Official
+        // Java DescribeAclsRequest.getErrorResponse /
+        // DescribeAclsResponse.throttleTimeMs set / read it.
+        // encode_describe_acls_response still writes the JSON default 0.
+        // KIP-219 only changes shouldClientThrottle (v1+). Empty-Resources
+        // v0 == v1 (classic; PatternType is on each resource); v2 == v3
+        // (flexible; user resource type is the same layout). Top-level
+        // ErrorCode is at bytes 4–5. This crate speaks 0–3. This is not
+        // CreateAcls ThrottleTimeMs.
+        let acls: Vec<AclBinding> = vec![];
+        for version in [0, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_describe_acls_response_with_throttle(&mut buf, version, &acls, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_describe_acls_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut with, 0, &acls, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut zero, 0, &acls, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_acls_response(&mut conv, 0, &acls).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_acls_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut v1_with, 1, &acls, 3_600_000).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Resources ThrottleTimeMs bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut v2_with, 2, &acls, 3_600_000).unwrap();
+        assert_ne!(&v1_with[..], &v2_with[..], "v2 adds compact tagged fields");
+        let mut v3_with = BytesMut::new();
+        encode_describe_acls_response_with_throttle(&mut v3_with, 3, &acls, 3_600_000).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-Resources ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
     fn describe_acls_response_groups_bindings_like_java() {
         let alice = AclBinding::allow_topic("t", "User:alice");
         let bob = AclBinding::allow_topic("t", "User:bob");
@@ -2558,7 +2648,7 @@ mod tests {
             encode_describe_acls_response(&mut buf, version, &acls).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_describe_acls_response(&mut cur, version).unwrap(),
+                decode_describe_acls_response(&mut cur, version).unwrap().0,
                 acls.to_vec()
             );
             assert!(

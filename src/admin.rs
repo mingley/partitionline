@@ -6306,7 +6306,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_describe_acls_response(&mut body.clone(), version)
+        let (acls, ..) = decode_describe_acls_response(&mut body.clone(), version)?;
+        Ok(acls)
     }
 
     /// Describe every ACL (Java `describeAcls(AclBindingFilter.ANY)`).
