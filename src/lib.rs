@@ -734,6 +734,10 @@
 //! `ProduceResponse.shouldClientThrottle` (v6+).
 //! [`protocol::api::ProduceResponse::error_counts`] is Java
 //! `ProduceResponse.errorCounts` (partition-level codes, including `NONE`).
+//! [`protocol::api::ProduceResponse::to_data`] is Java
+//! `ProduceResponse.toData` Responses (group by name in first-seen order;
+//! a later partition for the same topic appends, including after another
+//! topic; duplicates are kept).
 //! Produce decode below v5 fills
 //! that sentinel; Java `PartitionResponse(Errors)` writes it for
 //! `baseOffset` / `logStartOffset`. Omitted Produce v10+ CurrentLeader fills

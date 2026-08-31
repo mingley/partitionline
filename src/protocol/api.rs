@@ -1857,6 +1857,31 @@ impl ProduceResponse {
         }
         counts
     }
+
+    /// Java `ProduceResponse.toData` Responses grouping.
+    ///
+    /// Groups flat partition bodies by name. A later entry for the same
+    /// topic appends (Java `find` then `partitionResponses().add`),
+    /// including when another topic sits in between. Duplicate partitions
+    /// for the same pair are kept (`ArrayList`). Topic order is first-seen.
+    /// Official Java also copies `errorMessage`, `recordErrors`, and
+    /// `lastOffset`; this crate does not store those (encode writes JSON
+    /// defaults). Throttle and NodeEndpoints stay with crate encode (`0` /
+    /// empty).
+    #[must_use]
+    pub fn to_data(
+        partitions: &[ProducePartitionResponse],
+    ) -> Vec<(String, Vec<ProducePartitionResponse>)> {
+        let mut topics = Vec::<(String, Vec<ProducePartitionResponse>)>::new();
+        for partition in partitions {
+            if let Some((_, parts)) = topics.iter_mut().find(|(name, _)| name == &partition.topic) {
+                parts.push(partition.clone());
+            } else {
+                topics.push((partition.topic.clone(), vec![partition.clone()]));
+            }
+        }
+        topics
+    }
 }
 
 /// `true` when Produce `version` is flexible (v9+).
@@ -2330,6 +2355,69 @@ mod tests {
             ProduceRequest::partition_sizes(&decoded).unwrap(),
             ProduceRequest::partition_sizes(&dup).unwrap()
         );
+    }
+
+    #[test]
+    fn produce_response_to_data_matches_java() {
+        // Java ProduceResponse.toData: find(topic) first-wins, then
+        // partitionResponses().add. Intervening topics still merge.
+        // ArrayList keeps duplicate partitions.
+        assert!(ProduceResponse::to_data(&[]).is_empty());
+        let a0 = ProducePartitionResponse::partition_response("a", 0, 0);
+        let b0 =
+            ProducePartitionResponse::partition_response("b", 0, crate::error::CORRUPT_MESSAGE);
+        let a1 = ProducePartitionResponse::partition_response(
+            "a",
+            1,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        );
+        let a0_dup = ProducePartitionResponse::partition_response("a", 0, 0);
+        let grouped =
+            ProduceResponse::to_data(&[a0.clone(), b0.clone(), a1.clone(), a0_dup.clone()]);
+        assert_eq!(grouped.len(), 2);
+        assert_eq!(grouped[0].0, "a");
+        assert_eq!(grouped[0].1, vec![a0.clone(), a1.clone(), a0_dup.clone()]);
+        assert_eq!(grouped[1].0, "b");
+        assert_eq!(grouped[1].1, vec![b0.clone()]);
+
+        let parts = [a0.clone(), b0.clone(), a1.clone(), a0_dup.clone()];
+        for version in [3_i16, 9] {
+            let grouped = ProduceResponse::to_data(&parts);
+            assert_eq!(grouped.len(), 2);
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, &parts).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(ProduceResponse::to_data(&decoded).len(), 2);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "Produce v3 toData leftover-empty",
+                    9 => "Produce v9 toData leftover-empty",
+                    _ => "Produce toData leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 9] {
+            assert!(ProduceResponse::to_data(&[]).is_empty());
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, &[]).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(endpoints.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "Produce v3 toData empty leftover-empty",
+                    9 => "Produce v9 toData empty leftover-empty",
+                    _ => "Produce toData empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
     }
 
     #[test]
