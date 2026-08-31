@@ -120,6 +120,10 @@
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
 //! [`protocol::group::OffsetCommitResponse::error_counts`] is Java
 //! `OffsetCommitResponse.errorCounts` (partition-level codes, including `NONE`);
+//! [`protocol::group::OffsetCommitResponse::from_errors`] is Java
+//! `OffsetCommitResponse` constructor from an errors map (group by
+//! topic name; a later entry for the same topic appends; first-seen
+//! topic order);
 //! [`protocol::group::OffsetCommitResponse::merge`] is Java
 //! `OffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are

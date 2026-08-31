@@ -2759,6 +2759,45 @@ impl OffsetCommitResponse {
         counts
     }
 
+    /// Java `OffsetCommitResponse(int, Map)`.
+    ///
+    /// Groups `(topic, partition, error)` by name. A later entry for the
+    /// same topic appends (Java `HashMap.getOrDefault` then
+    /// `partitions().add`). Topic order is first-seen (Java
+    /// `HashMap.values` order is unspecified). The Java map key is
+    /// `TopicPartition`; grouping uses only the name. Duplicate
+    /// partitions for the same pair are kept (`ArrayList`). Throttle is
+    /// not part of this helper (crate encode writes the JSON default
+    /// `0` on v3+; v2 has no throttle field).
+    #[must_use]
+    pub fn from_errors<'a, I>(response_data: I) -> Vec<OffsetCommitResponseTopic>
+    where
+        I: IntoIterator<Item = (&'a str, i32, i16)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<OffsetCommitResponsePartition>> = HashMap::new();
+        for (topic, partition, error_code) in response_data {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(OffsetCommitResponsePartition {
+                    partition,
+                    error_code,
+                });
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| OffsetCommitResponseTopic { topic, partitions })
+            })
+            .collect()
+    }
+
     /// Java `OffsetCommitResponse.Builder.merge`.
     ///
     /// If `current` has no topics, the result is `new_topics`. Otherwise
@@ -4057,6 +4096,79 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn offset_commit_response_from_errors_matches_java() {
+        // Java OffsetCommitResponse(int, Map): HashMap.getOrDefault by
+        // topic name, then partitions().add. Empty map is empty. A later
+        // entry for the same name appends even when another topic sits
+        // between. Duplicate partitions for the same pair are kept
+        // (ArrayList).
+        assert!(
+            OffsetCommitResponse::from_errors(std::iter::empty::<(&str, i32, i16)>()).is_empty()
+        );
+        let grouped = OffsetCommitResponse::from_errors([
+            ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ("a", 1, 0i16),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                OffsetCommitResponseTopic {
+                    topic: "a".into(),
+                    partitions: vec![
+                        OffsetCommitResponsePartition::error(
+                            0,
+                            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                        ),
+                        OffsetCommitResponsePartition::error(1, 0),
+                    ],
+                },
+                OffsetCommitResponseTopic {
+                    topic: "b".into(),
+                    partitions: vec![OffsetCommitResponsePartition::error(
+                        0,
+                        crate::error::NOT_LEADER_OR_FOLLOWER,
+                    )],
+                },
+            ]
+        );
+        let dup = OffsetCommitResponse::from_errors([
+            ("t", 0, 0i16),
+            ("t", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+        ]);
+        assert_eq!(
+            dup,
+            vec![OffsetCommitResponseTopic {
+                topic: "t".into(),
+                partitions: vec![
+                    OffsetCommitResponsePartition::error(0, 0),
+                    OffsetCommitResponsePartition::error(0, crate::error::NOT_LEADER_OR_FOLLOWER),
+                ],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_commit_topics_response(&mut buf, 2, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v2 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_commit_topics_response(&mut buf, 8, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v8 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
