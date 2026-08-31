@@ -1,9 +1,11 @@
 //! Cluster metadata: brokers and per-partition leaders.
 
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use crate::error::{Error, Result};
-use crate::protocol::api::MetadataResponse;
+use crate::protocol::api::{MetadataResponse, NodeEndpoint};
+use crate::protocol::records::RecordBatch;
 
 /// Snapshot of brokers and partition leaders from Metadata.
 #[derive(Debug, Clone, Default)]
@@ -16,17 +18,23 @@ pub(crate) struct Cluster {
     pub(crate) leader_epochs: HashMap<String, Vec<i32>>,
     /// Metadata `controller_id`, or `None` until the first Metadata response.
     pub(crate) controller_id: Option<i32>,
+    /// When each topic's leaders were last applied from Metadata.
+    topic_fetched_at: HashMap<String, Instant>,
 }
 
 impl Cluster {
     /// Merge a Metadata response into this snapshot.
-    pub(crate) fn apply(&mut self, md: &MetadataResponse) {
+    ///
+    /// `version` is the negotiated Metadata api version. Leader epochs are
+    /// retained only when [`MetadataResponse::has_reliable_leader_epochs`].
+    pub(crate) fn apply(&mut self, md: &MetadataResponse, version: i16) {
         self.controller_id = (md.controller_id >= 0).then_some(md.controller_id);
         for b in &md.brokers {
             let _prev = self
                 .brokers
                 .insert(b.node_id, format!("{}:{}", b.host, b.port));
         }
+        let retain_epochs = MetadataResponse::has_reliable_leader_epochs(version);
         for t in &md.topics {
             let Some(name) = t.name.as_ref() else {
                 continue;
@@ -47,8 +55,8 @@ impl Cluster {
                 Ok(n) => n,
                 Err(_) => continue,
             };
-            let mut leaders = vec![-1; len];
-            let mut epochs = vec![-1; len];
+            let mut leaders = vec![MetadataResponse::NO_LEADER_ID; len];
+            let mut epochs = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; len];
             for p in &t.partitions {
                 if p.error_code != 0 {
                     continue;
@@ -60,11 +68,16 @@ impl Cluster {
                     *slot = p.leader_id;
                 }
                 if let Some(slot) = epochs.get_mut(idx) {
-                    *slot = p.leader_epoch;
+                    *slot = if retain_epochs {
+                        p.leader_epoch
+                    } else {
+                        RecordBatch::NO_PARTITION_LEADER_EPOCH
+                    };
                 }
             }
             let _prev = self.leaders.insert(name.clone(), leaders);
             let _prev = self.leader_epochs.insert(name.clone(), epochs);
+            let _prev = self.topic_fetched_at.insert(name.clone(), Instant::now());
         }
     }
 
@@ -72,6 +85,19 @@ impl Cluster {
     pub(crate) fn invalidate_topic(&mut self, topic: &str) {
         let _removed = self.leaders.remove(topic);
         let _removed = self.leader_epochs.remove(topic);
+        let _removed = self.topic_fetched_at.remove(topic);
+    }
+
+    /// True when `topic` has Metadata newer than `max_age`.
+    ///
+    /// A zero `max_age` is always stale (refresh on every lookup).
+    pub(crate) fn topic_fresh(&self, topic: &str, max_age: Duration) -> bool {
+        if max_age.is_zero() {
+            return false;
+        }
+        self.topic_fetched_at
+            .get(topic)
+            .is_some_and(|at| at.elapsed() < max_age)
     }
 
     /// Drop the cached controller so the next admin RPC refetches Metadata.
@@ -91,16 +117,17 @@ impl Cluster {
         Ok(node)
     }
 
-    /// Last Metadata `leader_epoch` for `topic`/`partition`, or `-1`.
+    /// Last Metadata `leader_epoch` for `topic`/`partition`, or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub(crate) fn leader_epoch(&self, topic: &str, partition: i32) -> i32 {
         let Ok(idx) = usize::try_from(partition) else {
-            return -1;
+            return RecordBatch::NO_PARTITION_LEADER_EPOCH;
         };
         self.leader_epochs
             .get(topic)
             .and_then(|v| v.get(idx))
             .copied()
-            .unwrap_or(-1)
+            .unwrap_or(RecordBatch::NO_PARTITION_LEADER_EPOCH)
     }
 
     pub(crate) fn set_leader_epoch(&mut self, topic: &str, partition: i32, epoch: i32) {
@@ -109,18 +136,70 @@ impl Cluster {
         };
         if let Some(v) = self.leader_epochs.get_mut(topic) {
             if v.len() <= idx {
-                v.resize(idx.saturating_add(1), -1);
+                v.resize(
+                    idx.saturating_add(1),
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                );
             }
             if let Some(slot) = v.get_mut(idx) {
                 *slot = epoch;
             }
             return;
         }
-        let mut v = vec![-1; idx.saturating_add(1)];
+        let mut v = vec![RecordBatch::NO_PARTITION_LEADER_EPOCH; idx.saturating_add(1)];
         if let Some(slot) = v.get_mut(idx) {
             *slot = epoch;
         }
         let _prev = self.leader_epochs.insert(topic.to_string(), v);
+    }
+
+    /// Insert Produce v10+ / Fetch v16+ NodeEndpoints into the broker map.
+    ///
+    /// Call this before [`Self::apply_current_leader`] so an unknown
+    /// CurrentLeader id can patch the partition cache (KIP-951).
+    pub(crate) fn apply_node_endpoints(&mut self, endpoints: &[NodeEndpoint]) {
+        for e in endpoints {
+            if e.node_id < 0 || e.host.is_empty() || e.port <= 0 {
+                continue;
+            }
+            let _prev = self
+                .brokers
+                .insert(e.node_id, format!("{}:{}", e.host, e.port));
+        }
+    }
+
+    /// Apply Produce v10+ / Fetch v12+ CurrentLeader when `leader_id` is a
+    /// known broker.
+    ///
+    /// Unknown brokers need [`Self::apply_node_endpoints`] first. Returns
+    /// `true` when the partition leader cache was updated.
+    pub(crate) fn apply_current_leader(
+        &mut self,
+        topic: &str,
+        partition: i32,
+        leader_id: i32,
+        leader_epoch: i32,
+    ) -> bool {
+        if leader_id < 0 || !self.brokers.contains_key(&leader_id) {
+            return false;
+        }
+        let Ok(idx) = usize::try_from(partition) else {
+            return false;
+        };
+        {
+            let leaders = self.leaders.entry(topic.to_string()).or_default();
+            if leaders.len() <= idx {
+                leaders.resize(idx.saturating_add(1), MetadataResponse::NO_LEADER_ID);
+            }
+            if let Some(slot) = leaders.get_mut(idx) {
+                *slot = leader_id;
+            }
+        }
+        self.set_leader_epoch(topic, partition, leader_epoch);
+        let _prev = self
+            .topic_fetched_at
+            .insert(topic.to_string(), Instant::now());
+        true
     }
 
     /// Partition count from the last Metadata that listed `topic`.
@@ -170,18 +249,22 @@ mod tests {
     fn apply_stores_controller_id() {
         let mut cluster = Cluster::default();
         assert!(cluster.controller().is_err());
-        cluster.apply(&MetadataResponse {
-            throttle_time_ms: 0,
-            brokers: vec![Broker {
-                node_id: 2,
-                host: "127.0.0.1".into(),
-                port: 9092,
-                rack: None,
-            }],
-            cluster_id: Some("mock".into()),
-            controller_id: 2,
-            topics: Vec::new(),
-        });
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 2,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 2,
+                topics: Vec::new(),
+                error_code: 0,
+            },
+            13,
+        );
         assert_eq!(cluster.controller().unwrap(), 2);
         cluster.invalidate_controller();
         assert!(cluster.controller().is_err());
@@ -195,5 +278,262 @@ mod tests {
             error::error_name(error::NOT_CONTROLLER),
             Some("NOT_CONTROLLER")
         );
+    }
+
+    #[test]
+    fn topic_fresh_respects_max_age() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+        use std::time::Duration;
+
+        let mut cluster = Cluster::default();
+        assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 0,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                error_code: 0,
+            },
+            13,
+        );
+        assert!(cluster.topic_fresh("t", Duration::from_secs(5)));
+        assert!(
+            !cluster.topic_fresh("t", Duration::ZERO),
+            "zero max.age must refresh every lookup"
+        );
+        cluster.invalidate_topic("t");
+        assert!(!cluster.topic_fresh("t", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn apply_current_leader_updates_known_broker() {
+        use crate::protocol::api::{NodeEndpoint, PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![
+                    Broker {
+                        node_id: 1,
+                        host: "127.0.0.1".into(),
+                        port: 9092,
+                        rack: None,
+                    },
+                    Broker {
+                        node_id: 2,
+                        host: "127.0.0.1".into(),
+                        port: 9093,
+                        rack: None,
+                    },
+                ],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 0,
+                        leader_id: 1,
+                        leader_epoch: 0,
+                        replica_nodes: vec![1, 2],
+                        isr_nodes: vec![1, 2],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                error_code: 0,
+            },
+            13,
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 1);
+        assert_eq!(cluster.leader_epoch("t", 0), 0);
+        assert!(cluster.apply_current_leader("t", 0, 2, 7));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        assert_eq!(cluster.leader_epoch("t", 0), 7);
+        assert!(
+            !cluster.apply_current_leader("t", 0, 99, 8),
+            "unknown broker must not patch without NodeEndpoints"
+        );
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 2);
+        cluster.apply_node_endpoints(&[NodeEndpoint {
+            node_id: 99,
+            host: "127.0.0.1".into(),
+            port: 9094,
+            rack: None,
+        }]);
+        assert!(cluster.apply_current_leader("t", 0, 99, 8));
+        assert_eq!(
+            cluster.leader("t", 0).unwrap(),
+            (99, "127.0.0.1:9094".into())
+        );
+        assert_eq!(cluster.leader_epoch("t", 0), 8);
+        assert!(!cluster.apply_current_leader("t", 0, MetadataResponse::NO_LEADER_ID, 8));
+        assert_eq!(cluster.leader("t", 0).unwrap().0, 99);
+    }
+
+    #[test]
+    fn apply_drops_unreliable_leader_epochs() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let md = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("mock".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("t".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 7,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            error_code: 0,
+        };
+        let mut cluster = Cluster::default();
+        cluster.apply(&md, 8);
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            "Metadata versions before 9 must not retain leader epochs"
+        );
+        cluster.apply(&md, 9);
+        assert_eq!(cluster.leader_epoch("t", 0), 7);
+        cluster.apply(&md, 8);
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            "a later Metadata version before 9 must drop previously cached epochs"
+        );
+    }
+
+    #[test]
+    fn apply_fills_sparse_partition_holes_with_sentinels() {
+        use crate::protocol::api::{PartitionMetadata, TopicMetadata};
+
+        let mut cluster = Cluster::default();
+        cluster.apply(
+            &MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: vec![Broker {
+                    node_id: 1,
+                    host: "127.0.0.1".into(),
+                    port: 9092,
+                    rack: None,
+                }],
+                cluster_id: Some("mock".into()),
+                controller_id: 1,
+                topics: vec![TopicMetadata {
+                    error_code: 0,
+                    name: Some("t".into()),
+                    topic_id: [0u8; 16],
+                    is_internal: false,
+                    partitions: vec![PartitionMetadata {
+                        error_code: 0,
+                        partition_index: 2,
+                        leader_id: 1,
+                        leader_epoch: 4,
+                        replica_nodes: vec![1],
+                        isr_nodes: vec![1],
+                        offline_replicas: Vec::new(),
+                    }],
+                    topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                }],
+                error_code: 0,
+            },
+            13,
+        );
+        let leaders = cluster.leaders.get("t").expect("topic leaders");
+        assert_eq!(
+            leaders.first().copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(
+            leaders.get(1).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(leaders.get(2).copied(), Some(1));
+        assert_eq!(
+            cluster.leader_epoch("t", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            cluster.leader_epoch("t", 1),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("t", 2), 4);
+        assert_eq!(
+            cluster.leader_epoch("missing", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(cluster.leader("t", 0).is_err());
+        assert_eq!(cluster.leader("t", 2).unwrap().0, 1);
+
+        assert!(cluster.apply_current_leader("t", 5, 1, 9));
+        let leaders = cluster.leaders.get("t").expect("resized leaders");
+        assert_eq!(
+            leaders.get(3).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(
+            leaders.get(4).copied(),
+            Some(MetadataResponse::NO_LEADER_ID)
+        );
+        assert_eq!(leaders.get(5).copied(), Some(1));
+        assert_eq!(
+            cluster.leader_epoch("t", 3),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(
+            cluster.leader_epoch("t", 4),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("t", 5), 9);
+
+        cluster.set_leader_epoch("u", 1, 2);
+        assert_eq!(
+            cluster.leader_epoch("u", 0),
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(cluster.leader_epoch("u", 1), 2);
     }
 }

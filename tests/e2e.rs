@@ -9,7 +9,9 @@
 
 mod common;
 
-use partitionline::{ConsumerConfig, ConsumerGroup, ProduceRecord, Producer, ProducerConfig};
+use partitionline::{
+    ConsumerConfig, ConsumerGroup, ProduceRecord, Producer, ProducerConfig, TopicPartition,
+};
 use std::time::Duration;
 
 #[tokio::test]
@@ -41,7 +43,7 @@ async fn produce_fetch_classic_join_same_payload() {
         !group.member_id().is_empty(),
         "classic join must assign a member id"
     );
-    assert_eq!(group.assignment(), vec![("t".to_string(), 0)]);
+    assert_eq!(group.assignment(), vec![TopicPartition::new("t", 0)]);
 
     let recs = group.poll().await.unwrap();
     assert_eq!(recs.len(), 1, "fetched record count");

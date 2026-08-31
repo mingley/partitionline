@@ -1,49 +1,129 @@
-//! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0.
-
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0–v1.
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
-use crate::error::Result;
+use crate::error::{Error, Result};
 
+/// Topic UUID plus partition indexes in a KIP-848 assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicPartitions {
+    /// Topic id (UUID).
     pub topic_id: [u8; 16],
+    /// Assigned partition indexes.
     pub partitions: Vec<i32>,
 }
 
+/// ConsumerGroupHeartbeat request (join, heartbeat, or leave).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupHeartbeatRequest {
+    /// Group id.
     pub group_id: String,
+    /// Member id (`""` on v0 join; client-generated on v1, KIP-1082).
     pub member_id: String,
+    /// Member epoch ([`Self::JOIN_GROUP_MEMBER_EPOCH`] join,
+    /// [`Self::LEAVE_GROUP_MEMBER_EPOCH`] /
+    /// [`Self::LEAVE_GROUP_STATIC_MEMBER_EPOCH`] leave, otherwise heartbeat).
     pub member_epoch: i32,
+    /// Kafka `group.instance.id`.
+    pub instance_id: Option<String>,
+    /// Kafka `client.rack`.
+    pub rack_id: Option<String>,
+    /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
+    /// Subscribed topic regex (`None` means unchanged). v1+ (KIP-848).
+    pub subscribed_topic_regex: Option<String>,
+    /// Owned partitions (`None` means unchanged).
     pub topic_partitions: Option<Vec<TopicPartitions>>,
 }
 
+impl ConsumerGroupHeartbeatRequest {
+    /// Java `ConsumerGroupHeartbeatRequest.LEAVE_GROUP_MEMBER_EPOCH`.
+    ///
+    /// Dynamic members send this on leave.
+    pub const LEAVE_GROUP_MEMBER_EPOCH: i32 = -1;
+    /// Java `ConsumerGroupHeartbeatRequest.LEAVE_GROUP_STATIC_MEMBER_EPOCH`.
+    ///
+    /// Static members (`group.instance.id` present) send this on leave.
+    pub const LEAVE_GROUP_STATIC_MEMBER_EPOCH: i32 = -2;
+    /// Java `ConsumerGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
+    pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
+    /// Java `ConsumerGroupHeartbeatRequest.CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`.
+    ///
+    /// ConsumerGroupHeartbeat v1+ (KIP-1082): the client generates MemberId.
+    pub const CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION: i16 = 1;
+    /// Java `ConsumerGroupHeartbeatRequest.REGEX_RESOLUTION_NOT_SUPPORTED_MSG`.
+    ///
+    /// `Builder.build` rejects SubscribedTopicRegex on v0.
+    pub const REGEX_RESOLUTION_NOT_SUPPORTED_MSG: &'static str = "The cluster does not support regular expressions resolution on ConsumerGroupHeartbeat API version 0. It must be upgraded to use ConsumerGroupHeartbeat API version >= 1 to allow to subscribe to a SubscriptionPattern.";
+
+    /// Java `ConsumerMembershipManager.leaveGroupEpoch`.
+    ///
+    /// `Some` (including empty) is a static member (`Optional.isPresent`).
+    #[must_use]
+    pub const fn leave_group_epoch(group_instance_id: Option<&str>) -> i32 {
+        match group_instance_id {
+            Some(_) => Self::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            None => Self::LEAVE_GROUP_MEMBER_EPOCH,
+        }
+    }
+}
+
+/// ConsumerGroupHeartbeat response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConsumerGroupHeartbeatResponse {
+    /// ConsumerGroupHeartbeat `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Broker error message.
     pub error_message: Option<String>,
+    /// Assigned member id.
     pub member_id: Option<String>,
+    /// Current member epoch.
     pub member_epoch: i32,
+    /// Next heartbeat interval.
     pub heartbeat_interval_ms: i32,
+    /// New assignment, or `None` when unchanged.
     pub assignment: Option<Vec<TopicPartitions>>,
 }
 
+/// Check that ConsumerGroupHeartbeat `version` is spoken (0–1).
+///
+/// Flexible from v0. v1 adds SubscribedTopicRegex (KIP-848) and requires
+/// the consumer to generate its own MemberId (KIP-1082). Kafka 4.0
+/// `validVersions` is `0-1`. This crate speaks 0–1. v2+ is not spoken.
+/// v1 response matches v0 (`INVALID_REGULAR_EXPRESSION` is v1+).
+fn consumer_group_heartbeat_spoken(version: i16) -> Result<i16> {
+    match version {
+        0..=1 => Ok(version),
+        other => Err(Error::protocol(format!(
+            "ConsumerGroupHeartbeat version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode a flexible v0–v1 ConsumerGroupHeartbeat request.
+///
+/// Java `ConsumerGroupHeartbeatRequest.Builder.build` rejects
+/// SubscribedTopicRegex on v0
+/// ([`ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG`]).
 pub fn encode_consumer_group_heartbeat_request(
     buf: &mut BytesMut,
+    version: i16,
     req: &ConsumerGroupHeartbeatRequest,
 ) -> crate::error::Result<()> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
+    if version == 0 && req.subscribed_topic_regex.is_some() {
+        return Err(Error::Unsupported(
+            ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG.into(),
+        ));
+    }
     buf::put_compact_string(buf, Some(&req.group_id))?;
     buf::put_compact_string(buf, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
-    buf::put_compact_string(buf, None)?; // instance_id
-    buf::put_compact_string(buf, None)?; // rack_id
+    buf::put_compact_string(buf, req.instance_id.as_deref())?;
+    buf::put_compact_string(buf, req.rack_id.as_deref())?;
     buf.put_i32(45_000); // rebalance_timeout_ms
     match &req.subscribed_topic_names {
         None => buf::put_array_len(buf, true, None)?,
@@ -54,20 +134,26 @@ pub fn encode_consumer_group_heartbeat_request(
             }
         }
     }
+    if version >= 1 {
+        buf::put_compact_string(buf, req.subscribed_topic_regex.as_deref())?;
+    }
     buf::put_compact_string(buf, None)?; // server_assignor
     encode_topic_partitions(buf, req.topic_partitions.as_deref())?;
     buf::put_empty_tagged_fields(buf);
     Ok(())
 }
 
+/// Decode a flexible v0–v1 ConsumerGroupHeartbeat request.
 pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ConsumerGroupHeartbeatRequest> {
+    let _ = consumer_group_heartbeat_spoken(version)?;
     let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_id = buf::get_compact_string(buf)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
-    let _instance = buf::get_compact_string(buf)?;
-    let _rack = buf::get_compact_string(buf)?;
+    let instance_id = buf::get_compact_string(buf)?;
+    let rack_id = buf::get_compact_string(buf)?;
     let _rebalance = buf::get_i32(buf)?;
     let subscribed_topic_names = {
         let n = buf::get_array_len(buf, true)?;
@@ -82,6 +168,11 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
             }
         }
     };
+    let subscribed_topic_regex = if version >= 1 {
+        buf::get_compact_string(buf)?
+    } else {
+        None
+    };
     let _assignor = buf::get_compact_string(buf)?;
     let topic_partitions = decode_topic_partitions(buf)?;
     buf::skip_tagged_fields(buf)?;
@@ -89,16 +180,25 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
         group_id,
         member_id,
         member_epoch,
+        instance_id,
+        rack_id,
         subscribed_topic_names,
+        subscribed_topic_regex,
         topic_partitions,
     })
 }
 
+/// Encode a flexible v0–v1 ConsumerGroupHeartbeat response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`ConsumerGroupHeartbeatResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_consumer_group_heartbeat_response(
     buf: &mut BytesMut,
+    version: i16,
     resp: &ConsumerGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    let _ = consumer_group_heartbeat_spoken(version)?;
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_compact_string(buf, resp.member_id.as_deref())?;
@@ -116,10 +216,15 @@ pub fn encode_consumer_group_heartbeat_response(
     Ok(())
 }
 
+/// Decode a flexible v0–v1 ConsumerGroupHeartbeat response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     buf: &mut B,
+    version: i16,
 ) -> Result<ConsumerGroupHeartbeatResponse> {
-    let _th = buf::get_i32(buf)?;
+    let _ = consumer_group_heartbeat_spoken(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let member_id = buf::get_compact_string(buf)?;
@@ -135,6 +240,7 @@ pub fn decode_consumer_group_heartbeat_response<B: Buf>(
     };
     buf::skip_tagged_fields(buf)?;
     Ok(ConsumerGroupHeartbeatResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         member_id,
@@ -190,25 +296,34 @@ fn decode_topic_partitions<B: Buf>(buf: &mut B) -> Result<Option<Vec<TopicPartit
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytes::Buf;
+
+    fn join_req() -> ConsumerGroupHeartbeatRequest {
+        ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: String::new(),
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            instance_id: Some("worker-1".into()),
+            rack_id: Some("az1".into()),
+            subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
+            topic_partitions: None,
+        }
+    }
 
     #[test]
     fn consumer_group_heartbeat_v0_roundtrip_join() {
-        let req = ConsumerGroupHeartbeatRequest {
-            group_id: "g".into(),
-            member_id: String::new(),
-            member_epoch: 0,
-            subscribed_topic_names: Some(vec!["t".into()]),
-            topic_partitions: None,
-        };
+        let req = join_req();
         let mut buf = BytesMut::new();
-        encode_consumer_group_heartbeat_request(&mut buf, &req).unwrap();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
         assert_eq!(
-            decode_consumer_group_heartbeat_request(&mut &buf[..]).unwrap(),
+            decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap(),
             req
         );
 
         let topic_id = [7u8; 16];
         let resp = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             member_id: Some("m1".into()),
@@ -220,9 +335,9 @@ mod tests {
             }]),
         };
         buf.clear();
-        encode_consumer_group_heartbeat_response(&mut buf, &resp).unwrap();
+        encode_consumer_group_heartbeat_response(&mut buf, 0, &resp).unwrap();
         assert_eq!(
-            decode_consumer_group_heartbeat_response(&mut &buf[..]).unwrap(),
+            decode_consumer_group_heartbeat_response(&mut &buf[..], 0).unwrap(),
             resp
         );
     }
@@ -232,14 +347,264 @@ mod tests {
         let req = ConsumerGroupHeartbeatRequest {
             group_id: "g".into(),
             member_id: "m1".into(),
-            member_epoch: -1,
+            member_epoch: ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
+            instance_id: None,
+            rack_id: None,
             subscribed_topic_names: None,
+            subscribed_topic_regex: None,
             topic_partitions: None,
         };
         let mut buf = BytesMut::new();
-        encode_consumer_group_heartbeat_request(&mut buf, &req).unwrap();
-        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..]).unwrap();
-        assert_eq!(decoded.member_epoch, -1);
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap();
+        assert_eq!(
+            decoded.member_epoch,
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH
+        );
         assert_eq!(decoded.member_id, "m1");
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_static_leave_has_epoch_minus_two() {
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: "m1".into(),
+            member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("worker-1")),
+            instance_id: Some("worker-1".into()),
+            rack_id: None,
+            subscribed_topic_names: None,
+            subscribed_topic_regex: None,
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        let decoded = decode_consumer_group_heartbeat_request(&mut &buf[..], 0).unwrap();
+        assert_eq!(
+            decoded.member_epoch,
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH
+        );
+        assert_eq!(decoded.instance_id.as_deref(), Some("worker-1"));
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_matches_java() {
+        assert_eq!(ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH, -1);
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            -2
+        );
+        assert_eq!(ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH, 0);
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION,
+            1
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(None),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("worker-1")),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH
+        );
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("")),
+            ConsumerGroupHeartbeatRequest::LEAVE_GROUP_STATIC_MEMBER_EPOCH,
+            "Java Optional.isPresent is true for empty group.instance.id"
+        );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v1_compact_layout_matches_independent_encode() {
+        // group "g", empty member, epoch 0, null instance/rack, timeout
+        // 45000, topics ["t"], null regex, null assignor, null partitions,
+        // empty tagged. Compact string length is n+1.
+        const REQ_V0: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x00, 0x00, 0x00,
+        ];
+        const REQ_V1: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x00, 0x00, 0x00, 0x00,
+        ];
+        const REQ_V1_REGEX: &[u8] = &[
+            0x02, 0x67, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaf, 0xc8, 0x02,
+            0x02, 0x74, 0x04, 0x74, 0x2e, 0x2a, 0x00, 0x00, 0x00,
+        ];
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: String::new(),
+            member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            instance_id: None,
+            rack_id: None,
+            subscribed_topic_names: Some(vec!["t".into()]),
+            subscribed_topic_regex: None,
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 0, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V0);
+        buf.clear();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        assert_eq!(&buf[..], REQ_V1);
+        let mut with_regex = req.clone();
+        with_regex.subscribed_topic_regex = Some("t.*".into());
+        buf.clear();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &with_regex).unwrap();
+        assert_eq!(&buf[..], REQ_V1_REGEX);
+        assert_eq!(
+            decode_consumer_group_heartbeat_request(&mut &buf[..], 1).unwrap(),
+            with_regex
+        );
+        let err = encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 0, &with_regex)
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "regex on v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string()
+                .contains(ConsumerGroupHeartbeatRequest::REGEX_RESOLUTION_NOT_SUPPORTED_MSG),
+            "got {err}"
+        );
+        assert!(
+            encode_consumer_group_heartbeat_request(&mut BytesMut::new(), 2, &req).is_err(),
+            "ConsumerGroupHeartbeat v2+ is not spoken"
+        );
+        buf.clear();
+        encode_consumer_group_heartbeat_response(
+            &mut buf,
+            1,
+            &ConsumerGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: 0,
+                error_message: None,
+                member_id: Some("m1".into()),
+                member_epoch: 1,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap();
+        let mut v0 = BytesMut::new();
+        encode_consumer_group_heartbeat_response(
+            &mut v0,
+            0,
+            &ConsumerGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: 0,
+                error_message: None,
+                member_id: Some("m1".into()),
+                member_epoch: 1,
+                heartbeat_interval_ms: 5000,
+                assignment: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(&buf[..], &v0[..], "v1 response layout matches v0");
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_v1_roundtrip_is_leftover_empty() {
+        let req = ConsumerGroupHeartbeatRequest {
+            group_id: "g".into(),
+            member_id: "m1".into(),
+            member_epoch: 1,
+            instance_id: None,
+            rack_id: None,
+            subscribed_topic_names: None,
+            subscribed_topic_regex: Some("t.*".into()),
+            topic_partitions: None,
+        };
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut buf, 1, &req).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_heartbeat_request(&mut cur, 1).unwrap(),
+            req
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupHeartbeat v1 request must be leftover-empty"
+        );
+
+        let resp = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        buf.clear();
+        encode_consumer_group_heartbeat_response(&mut buf, 1, &resp).unwrap();
+        let mut cur = &buf[..];
+        assert_eq!(
+            decode_consumer_group_heartbeat_response(&mut cur, 1).unwrap(),
+            resp
+        );
+        assert!(
+            !cur.has_remaining(),
+            "ConsumerGroupHeartbeat v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ConsumerGroupHeartbeatResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on every spoken version). Official Java
+        // ConsumerGroupHeartbeatRequest.getErrorResponse /
+        // ConsumerGroupHeartbeatResponse.throttleTimeMs set / read it.
+        // Encode writes ConsumerGroupHeartbeatResponse.throttle_time_ms
+        // (JSON default 0). v0 and v1 response bodies match. This is not
+        // ShareGroupHeartbeat ThrottleTimeMs.
+        let zero = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        let with = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 3_600_000,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_heartbeat_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_consumer_group_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ConsumerGroupHeartbeat v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_buf = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut with_buf, 0, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut zero_buf, 0, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut v1_with, 1, &with).unwrap();
+        assert_eq!(
+            &with_buf[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); ConsumerGroupHeartbeat response matches v0"
+        );
     }
 }

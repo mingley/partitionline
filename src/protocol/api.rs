@@ -1,47 +1,360 @@
-#![expect(
-    missing_docs,
-    reason = "wire types follow the Kafka spec field-for-field; public so integration tests can drive the mock broker"
-)]
+//! ApiVersions, Metadata, and Produce codecs.
 
-use bytes::{Buf, BufMut, BytesMut};
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::time::Duration;
 
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+
+use super::api_keys::{pick_version, API_VERSIONS};
 use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
+use crate::net::BrokerConn;
 
+/// One key in an ApiVersions response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiVersion {
+    /// Kafka api key.
     pub api_key: i16,
+    /// Lowest version the broker speaks.
     pub min_version: i16,
+    /// Highest version the broker speaks.
     pub max_version: i16,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApiVersionsResponse {
-    pub error_code: i16,
-    pub api_keys: Vec<ApiVersion>,
-    pub throttle_time_ms: i32,
+impl ApiVersion {
+    /// Java `ApiVersionsResponseData.ApiVersion.apiKey`.
+    #[must_use]
+    pub fn api_key(&self) -> i16 {
+        self.api_key
+    }
+
+    /// Java `ApiVersionsResponseData.ApiVersion.minVersion`.
+    #[must_use]
+    pub fn min_version(&self) -> i16 {
+        self.min_version
+    }
+
+    /// Java `ApiVersionsResponseData.ApiVersion.maxVersion`.
+    #[must_use]
+    pub fn max_version(&self) -> i16 {
+        self.max_version
+    }
 }
 
+/// One broker-supported feature in ApiVersions v3+ tagged field 0 (KIP-482).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportedFeatureKey {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Lowest version the broker supports.
+    pub min_version: i16,
+    /// Highest version the broker supports.
+    pub max_version: i16,
+}
+
+impl SupportedFeatureKey {
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.minVersion`.
+    #[must_use]
+    pub fn min_version(&self) -> i16 {
+        self.min_version
+    }
+
+    /// Java `ApiVersionsResponseData.SupportedFeatureKey.maxVersion`.
+    #[must_use]
+    pub fn max_version(&self) -> i16 {
+        self.max_version
+    }
+}
+
+/// One finalized feature in ApiVersions v3+ tagged field 2 (KIP-482).
+///
+/// Wire order is `max_version_level` then `min_version_level`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FinalizedFeatureKey {
+    /// Feature name (for example `metadata.version`).
+    pub name: String,
+    /// Highest finalized version.
+    pub max_version_level: i16,
+    /// Lowest finalized version.
+    pub min_version_level: i16,
+}
+
+impl FinalizedFeatureKey {
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.name`.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.maxVersionLevel`.
+    #[must_use]
+    pub fn max_version_level(&self) -> i16 {
+        self.max_version_level
+    }
+
+    /// Java `ApiVersionsResponseData.FinalizedFeatureKey.minVersionLevel`.
+    #[must_use]
+    pub fn min_version_level(&self) -> i16 {
+        self.min_version_level
+    }
+}
+
+/// ApiVersions response body.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ApiVersionsResponse {
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// Supported api keys.
+    pub api_keys: Vec<ApiVersion>,
+    /// Throttle time (v1+).
+    pub throttle_time_ms: i32,
+    /// Supported features (v3+ tagged field 0). Empty when omitted.
+    pub supported_features: Vec<SupportedFeatureKey>,
+    /// Finalized-features epoch (v3+ tagged field 1). `None` when omitted or `-1`.
+    pub finalized_features_epoch: Option<i64>,
+    /// Finalized features (v3+ tagged field 2). Empty when omitted.
+    pub finalized_features: Vec<FinalizedFeatureKey>,
+    /// ZooKeeper migration ready (v3+ tagged field 3, KIP-866).
+    pub zk_migration_ready: bool,
+}
+
+impl ApiVersionsResponse {
+    /// Java `ApiVersionsResponse.UNKNOWN_FINALIZED_FEATURES_EPOCH`.
+    pub const UNKNOWN_FINALIZED_FEATURES_EPOCH: i64 = -1;
+
+    /// Java `ApiVersionsResponse.apiVersion` (`None` when the key is absent).
+    #[must_use]
+    pub fn api_version(&self, api_key: i16) -> Option<&ApiVersion> {
+        self.api_keys.iter().find(|k| k.api_key == api_key)
+    }
+
+    /// Java `ApiVersionsResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 2
+    }
+
+    /// Java `ApiVersionsResponse.zkMigrationReady`.
+    #[must_use]
+    pub fn zk_migration_ready(&self) -> bool {
+        self.zk_migration_ready
+    }
+
+    /// Java `ApiVersionsResponse.intersect`.
+    ///
+    /// `None` for either side is Java `null` (`Optional.empty`). Overlapping
+    /// ranges return the common min/max. No overlap is `None`. Different
+    /// api keys are Java `IllegalArgumentException`.
+    pub fn intersect(
+        this_version: Option<&ApiVersion>,
+        other: Option<&ApiVersion>,
+    ) -> Result<Option<ApiVersion>> {
+        let (Some(this_version), Some(other)) = (this_version, other) else {
+            return Ok(None);
+        };
+        if this_version.api_key() != other.api_key() {
+            return Err(Error::protocol(format!(
+                "thisVersion.apiKey: {} must be equal to other.apiKey: {}",
+                this_version.api_key(),
+                other.api_key()
+            )));
+        }
+        let min_version = this_version.min_version().max(other.min_version());
+        let max_version = this_version.max_version().min(other.max_version());
+        if min_version > max_version {
+            Ok(None)
+        } else {
+            Ok(Some(ApiVersion {
+                api_key: this_version.api_key(),
+                min_version,
+                max_version,
+            }))
+        }
+    }
+
+    /// Java `ApiVersionsResponse.createFinalizedFeatureKeys`.
+    ///
+    /// Last-wins on feature name (Java `HashMap.put`). Order is first-seen
+    /// (Java `HashMap.entrySet` order is unspecified). Level `0` is omitted
+    /// (`if (versionLevel != 0)`). Surviving names copy that level onto
+    /// both `min_version_level` and `max_version_level`. Encode still writes
+    /// FinalizedFeatures as-is.
+    #[must_use]
+    pub fn create_finalized_feature_keys<'a, I>(finalized_features: I) -> Vec<FinalizedFeatureKey>
+    where
+        I: IntoIterator<Item = (&'a str, i16)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut levels: HashMap<String, i16> = HashMap::new();
+        for (name, level) in finalized_features {
+            match levels.entry(name.to_string()) {
+                std::collections::hash_map::Entry::Vacant(slot) => {
+                    order.push(slot.key().clone());
+                    let _inserted = slot.insert(level);
+                }
+                std::collections::hash_map::Entry::Occupied(mut slot) => {
+                    let _prev = slot.insert(level);
+                }
+            }
+        }
+        order
+            .into_iter()
+            .filter_map(|name| {
+                let level = levels.remove(&name)?;
+                (level != 0).then_some(FinalizedFeatureKey {
+                    name,
+                    max_version_level: level,
+                    min_version_level: level,
+                })
+            })
+            .collect()
+    }
+
+    /// Java `ApiVersionsResponse.maybeFilterSupportedFeatureKeys`.
+    ///
+    /// When `alter_feature_level_0` is true, omit features whose
+    /// `min_version` is `0` (KAFKA-17492: older clients cannot
+    /// deserialize min 0; Java Builder sets this for ApiVersions before
+    /// v4). Other features are copied as-is. Names are not uniqued (Java
+    /// `Features.features()` is already a unique Map). Encode already
+    /// applies the equivalent filter (`version >= 4 || min_version != 0`).
+    #[must_use]
+    pub fn maybe_filter_supported_feature_keys(
+        supported_features: &[SupportedFeatureKey],
+        alter_feature_level_0: bool,
+    ) -> Vec<SupportedFeatureKey> {
+        supported_features
+            .iter()
+            .filter(|feature| !(alter_feature_level_0 && feature.min_version == 0))
+            .cloned()
+            .collect()
+    }
+}
+
+/// Java `ApiVersionsRequest` helpers.
+pub struct ApiVersionsRequest;
+
+impl ApiVersionsRequest {
+    /// Java `ApiVersionsRequest.isValid`.
+    ///
+    /// v3+ requires ClientSoftwareName and ClientSoftwareVersion to start and
+    /// end with an ASCII alphanumeric, with interior `-` and `.` allowed.
+    /// Empty is invalid. Below v3 this is always true. Encode does not reject
+    /// invalid names; Java Builder does not either.
+    #[must_use]
+    pub fn is_valid(version: i16, software_name: &str, software_version: &str) -> bool {
+        version < 3
+            || (client_software_name_or_version_ok(software_name)
+                && client_software_name_or_version_ok(software_version))
+    }
+
+    /// Java `ApiVersionsRequest.getErrorResponse`.
+    ///
+    /// `UNSUPPORTED_VERSION` (35) fills ApiKeys with Java
+    /// `ApiVersionsResponse.toApiVersion(API_VERSIONS)` (this crate /
+    /// Kafka 4.0: min 0, max 4). Any other error, including `NONE`,
+    /// leaves ApiKeys empty. SupportedFeatures / FinalizedFeatures /
+    /// ZkMigrationReady stay at JSON defaults (omitted / empty /
+    /// false). Throttle is the JSON default (`0`); crate encode omits
+    /// the field on v0. Encode still writes the caller's `api_keys`
+    /// as-is.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ApiVersionsResponse {
+        ApiVersionsResponse {
+            error_code,
+            api_keys: if error_code == crate::error::UNSUPPORTED_VERSION {
+                vec![ApiVersion {
+                    api_key: API_VERSIONS,
+                    min_version: 0,
+                    max_version: 4,
+                }]
+            } else {
+                Vec::new()
+            },
+            ..Default::default()
+        }
+    }
+}
+
+/// Java `ApiVersionsRequest` `SOFTWARE_NAME_VERSION_PATTERN`.
+fn client_software_name_or_version_ok(s: &str) -> bool {
+    let mut chars = s.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphanumeric() {
+        return false;
+    }
+    let Some(last) = chars.next_back() else {
+        return true;
+    };
+    last.is_ascii_alphanumeric() && chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
+}
+
+/// `true` when ApiVersions `version` is flexible (v3+).
+///
+/// Official Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "3+"`.
+/// v0–v2 are classic (empty request). v3–v4 send ClientSoftwareName /
+/// ClientSoftwareVersion. v4 allows SupportedFeatures.MinVersion 0
+/// (KAFKA-17011). v5+ is not spoken.
+fn api_versions_flexible(version: i16) -> Result<bool> {
+    match version {
+        0..=2 => Ok(false),
+        3..=4 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "ApiVersions version {other} is not implemented"
+        ))),
+    }
+}
+
+/// Encode ApiVersions v0–v4.
+///
+/// Kafka 4.0 JSON: `validVersions: "0-4"`, `flexibleVersions: "3+"`.
+/// v0–v2 are empty. v3 and v4 request match (ClientSoftwareName /
+/// ClientSoftwareVersion). v4 lets the broker return features with
+/// MinVersion 0 (KAFKA-17011). This crate speaks 0–4. v5+ is not spoken.
 pub fn encode_api_versions_request(
     buf: &mut BytesMut,
     version: i16,
     software_name: &str,
     software_version: &str,
 ) -> crate::error::Result<()> {
+    let flexible = api_versions_flexible(version)?;
     if version >= 3 {
-        buf::put_compact_string(buf, Some(software_name))?;
-        buf::put_compact_string(buf, Some(software_version))?;
+        buf::put_string(buf, flexible, Some(software_name))?;
+        buf::put_string(buf, flexible, Some(software_version))?;
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
+/// Decode ApiVersions v0–v4: `(software_name, software_version)`.
+/// Empty on v0–v2.
+pub fn decode_api_versions_request<B: Buf>(buf: &mut B, version: i16) -> Result<(String, String)> {
+    let flexible = api_versions_flexible(version)?;
+    if version >= 3 {
+        let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+        let software_version = buf::get_string(buf, flexible)?.unwrap_or_default();
+        buf::skip_tagged_fields(buf)?;
+        return Ok((name, software_version));
+    }
+    Ok((String::new(), String::new()))
+}
+
+/// Decode ApiVersions v0–v4 (classic v0–2, flexible v3–v4).
 pub fn decode_api_versions_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ApiVersionsResponse> {
-    let flexible = version >= 3;
+    let flexible = api_versions_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut api_keys = Vec::with_capacity(count);
@@ -59,22 +372,106 @@ pub fn decode_api_versions_response<B: Buf>(
         });
     }
     let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
+    let tagged = if flexible {
+        decode_api_versions_tagged_fields(buf)?
+    } else {
+        ApiVersionsTaggedFields {
+            supported: Vec::new(),
+            epoch: None,
+            finalized: Vec::new(),
+            zk_migration_ready: false,
+        }
+    };
     Ok(ApiVersionsResponse {
         error_code,
         api_keys,
         throttle_time_ms,
+        supported_features: tagged.supported,
+        finalized_features_epoch: tagged.epoch,
+        finalized_features: tagged.finalized,
+        zk_migration_ready: tagged.zk_migration_ready,
     })
 }
 
+/// Parse an ApiVersions body, falling back to v0 when the sent version does
+/// not leftover-empty (KIP-511: brokers 2.4+ answer an unsupported request
+/// with a v0 UNSUPPORTED_VERSION body).
+pub fn decode_api_versions_handshake(bytes: &[u8], version: i16) -> Result<ApiVersionsResponse> {
+    let mut cur = bytes;
+    if let Ok(resp) = decode_api_versions_response(&mut cur, version) {
+        if !cur.has_remaining() {
+            return Ok(resp);
+        }
+    }
+    if version != 0 {
+        let mut cur = bytes;
+        if let Ok(resp) = decode_api_versions_response(&mut cur, 0) {
+            if !cur.has_remaining() {
+                return Ok(resp);
+            }
+        }
+    }
+    let mut cur = bytes;
+    decode_api_versions_response(&mut cur, version)
+}
+
+/// Send ApiVersions at client max (v4) and retry once on
+/// `UNSUPPORTED_VERSION` (KIP-511).
+///
+/// Brokers older than v4 respond with a v0 body listing the supported
+/// ApiVersions range. The client then re-issues at
+/// `pick_version(broker_min, broker_max, 0, 4)`.
+pub async fn negotiate_api_versions(
+    conn: &mut BrokerConn,
+    request_timeout: Duration,
+) -> Result<ApiVersionsResponse> {
+    const SENT: i16 = 4;
+    let body = conn
+        .roundtrip(
+            API_VERSIONS,
+            SENT,
+            |buf| encode_api_versions_request(buf, SENT, "partitionline", "0.1.0"),
+            request_timeout,
+        )
+        .await?;
+    let resp = decode_api_versions_handshake(body.as_ref(), SENT)?;
+    if resp.error_code == 0 {
+        return Ok(resp);
+    }
+    if resp.error_code != crate::error::UNSUPPORTED_VERSION {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    let retry = resp
+        .api_version(API_VERSIONS)
+        .and_then(|v| pick_version(v.min_version, v.max_version, 0, SENT))
+        .unwrap_or(0);
+    if retry == SENT {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    let body = conn
+        .roundtrip(
+            API_VERSIONS,
+            retry,
+            |buf| encode_api_versions_request(buf, retry, "partitionline", "0.1.0"),
+            request_timeout,
+        )
+        .await?;
+    let resp = decode_api_versions_handshake(body.as_ref(), retry)?;
+    if resp.error_code != 0 {
+        return Err(Error::broker(resp.error_code, "ApiVersions"));
+    }
+    Ok(resp)
+}
+
+/// Encode ApiVersions v0–v4 (used by the mock broker).
+///
+/// v0–v3 omit SupportedFeatures with MinVersion 0 (KAFKA-17011 / KAFKA-17492).
 pub fn encode_api_versions_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ApiVersionsResponse,
 ) -> crate::error::Result<()> {
-    let flexible = version >= 3;
+    let flexible = api_versions_flexible(version)?;
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.api_keys.len()))?;
     for api in &resp.api_keys {
@@ -89,63 +486,1007 @@ pub fn encode_api_versions_response(
         buf.put_i32(resp.throttle_time_ms);
     }
     if flexible {
+        encode_api_versions_tagged_fields(buf, version, resp)?;
+    }
+    Ok(())
+}
+
+struct ApiVersionsTaggedFields {
+    supported: Vec<SupportedFeatureKey>,
+    epoch: Option<i64>,
+    finalized: Vec<FinalizedFeatureKey>,
+    zk_migration_ready: bool,
+}
+
+fn leftover_empty<B: Buf>(buf: &B, what: &'static str) -> Result<()> {
+    if buf.has_remaining() {
+        Err(Error::protocol(format!("{what} leftover")))
+    } else {
+        Ok(())
+    }
+}
+
+fn encode_supported_feature_keys(features: &[SupportedFeatureKey]) -> Result<Bytes> {
+    let mut buf = BytesMut::new();
+    buf::put_array_len(&mut buf, true, Some(features.len()))?;
+    for f in features {
+        buf::put_compact_string(&mut buf, Some(&f.name))?;
+        buf.put_i16(f.min_version);
+        buf.put_i16(f.max_version);
+        buf::put_empty_tagged_fields(&mut buf);
+    }
+    Ok(buf.freeze())
+}
+
+fn decode_supported_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<SupportedFeatureKey>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let min_version = buf::get_i16(buf)?;
+        let max_version = buf::get_i16(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        out.push(SupportedFeatureKey {
+            name,
+            min_version,
+            max_version,
+        });
+    }
+    Ok(out)
+}
+
+fn encode_finalized_feature_keys(features: &[FinalizedFeatureKey]) -> Result<Bytes> {
+    let mut buf = BytesMut::new();
+    buf::put_array_len(&mut buf, true, Some(features.len()))?;
+    for f in features {
+        buf::put_compact_string(&mut buf, Some(&f.name))?;
+        buf.put_i16(f.max_version_level);
+        buf.put_i16(f.min_version_level);
+        buf::put_empty_tagged_fields(&mut buf);
+    }
+    Ok(buf.freeze())
+}
+
+fn decode_finalized_feature_keys<B: Buf>(buf: &mut B) -> Result<Vec<FinalizedFeatureKey>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let name = buf::get_compact_string(buf)?.unwrap_or_default();
+        let max_version_level = buf::get_i16(buf)?;
+        let min_version_level = buf::get_i16(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        out.push(FinalizedFeatureKey {
+            name,
+            max_version_level,
+            min_version_level,
+        });
+    }
+    Ok(out)
+}
+
+fn encode_api_versions_tagged_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ApiVersionsResponse,
+) -> Result<()> {
+    let mut tags: Vec<(u32, Bytes)> = Vec::new();
+    let supported: Vec<SupportedFeatureKey> = resp
+        .supported_features
+        .iter()
+        .filter(|f| version >= 4 || f.min_version != 0)
+        .cloned()
+        .collect();
+    if !supported.is_empty() {
+        tags.push((0, encode_supported_feature_keys(&supported)?));
+    }
+    if let Some(epoch) = resp.finalized_features_epoch {
+        if epoch >= 0 {
+            let mut b = BytesMut::new();
+            b.put_i64(epoch);
+            tags.push((1, b.freeze()));
+        }
+    }
+    if !resp.finalized_features.is_empty() {
+        tags.push((2, encode_finalized_feature_keys(&resp.finalized_features)?));
+    }
+    if resp.zk_migration_ready {
+        tags.push((3, Bytes::from_static(&[1])));
+    }
+    buf::put_tagged_fields(buf, &tags)
+}
+
+fn decode_api_versions_tagged_fields<B: Buf>(buf: &mut B) -> Result<ApiVersionsTaggedFields> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut supported = Vec::new();
+    let mut epoch = None;
+    let mut finalized = Vec::new();
+    let mut zk = false;
+    for (tag, value) in tags {
+        match tag {
+            0 => {
+                let mut cur = value.as_ref();
+                supported = decode_supported_feature_keys(&mut cur)?;
+                leftover_empty(&cur, "supported_features")?;
+            }
+            1 => {
+                let mut cur = value.as_ref();
+                let v = buf::get_i64(&mut cur)?;
+                leftover_empty(&cur, "finalized_features_epoch")?;
+                epoch = (v != ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH && v >= 0)
+                    .then_some(v);
+            }
+            2 => {
+                let mut cur = value.as_ref();
+                finalized = decode_finalized_feature_keys(&mut cur)?;
+                leftover_empty(&cur, "finalized_features")?;
+            }
+            3 => {
+                let mut cur = value.as_ref();
+                zk = buf::get_bool(&mut cur)?;
+                leftover_empty(&cur, "zk_migration_ready")?;
+            }
+            _ => {}
+        }
+    }
+    Ok(ApiVersionsTaggedFields {
+        supported,
+        epoch,
+        finalized,
+        zk_migration_ready: zk,
+    })
+}
+
+/// Java `Node.toString`: `{host}:{port} (id: {id} rack: {rack|null} isFenced: {bool})`.
+pub(crate) fn format_java_node(
+    f: &mut fmt::Formatter<'_>,
+    host: &str,
+    port: i32,
+    id: i32,
+    rack: Option<&str>,
+    is_fenced: bool,
+) -> fmt::Result {
+    write!(
+        f,
+        "{}:{} (id: {} rack: {} isFenced: {})",
+        host,
+        port,
+        id,
+        rack.unwrap_or("null"),
+        is_fenced
+    )
+}
+
+/// One broker in a Metadata response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Broker {
+    /// Broker id.
+    pub node_id: i32,
+    /// Hostname or IP.
+    pub host: String,
+    /// Port.
+    pub port: i32,
+    /// Rack id (v1+).
+    pub rack: Option<String>,
+}
+
+impl Broker {
+    /// Construct [`Self`] (Java `Node(id, host, port, rack)`).
+    pub fn new(node_id: i32, host: impl Into<String>, port: i32, rack: Option<String>) -> Self {
+        Self {
+            node_id,
+            host: host.into(),
+            port,
+            rack,
+        }
+    }
+
+    /// Java `Node.id`.
+    #[must_use]
+    pub fn id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `Node.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `Node.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+
+    /// Java `Node.rack`.
+    #[must_use]
+    pub fn rack(&self) -> Option<&str> {
+        self.rack.as_deref()
+    }
+
+    /// Java `Node.hasRack`.
+    #[must_use]
+    pub fn has_rack(&self) -> bool {
+        self.rack.is_some()
+    }
+
+    /// Java `Node.isFenced`. Metadata brokers are never fenced.
+    #[must_use]
+    pub fn is_fenced(&self) -> bool {
+        false
+    }
+
+    /// Java `Node.idString` (`Integer.toString(id)`).
+    #[must_use]
+    pub fn id_string(&self) -> String {
+        self.node_id.to_string()
+    }
+
+    /// Java `Node.isEmpty` (empty host or negative port).
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.host.is_empty() || self.port < 0
+    }
+
+    /// Java `Node.noNode` (`id` `-1`, empty host, port `-1`).
+    #[must_use]
+    pub fn no_node() -> Self {
+        Self::new(-1, "", -1, None)
+    }
+}
+
+impl fmt::Display for Broker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_java_node(
+            f,
+            self.host.as_str(),
+            self.port,
+            self.node_id,
+            self.rack.as_deref(),
+            false,
+        )
+    }
+}
+
+/// Produce v10+ / Fetch v16+ `NodeEndpoint` (KIP-951).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeEndpoint {
+    /// Broker id.
+    pub node_id: i32,
+    /// Hostname or IP.
+    pub host: String,
+    /// Port.
+    pub port: i32,
+    /// Rack id, or `None`.
+    pub rack: Option<String>,
+}
+
+impl NodeEndpoint {
+    /// Construct [`Self`] (Java `Node(id, host, port, rack)`).
+    pub fn new(node_id: i32, host: impl Into<String>, port: i32, rack: Option<String>) -> Self {
+        Self {
+            node_id,
+            host: host.into(),
+            port,
+            rack,
+        }
+    }
+
+    /// Java `Node.id`.
+    #[must_use]
+    pub fn id(&self) -> i32 {
+        self.node_id
+    }
+
+    /// Java `Node.host`.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        self.host.as_str()
+    }
+
+    /// Java `Node.port`.
+    #[must_use]
+    pub fn port(&self) -> i32 {
+        self.port
+    }
+
+    /// Java `Node.rack`.
+    #[must_use]
+    pub fn rack(&self) -> Option<&str> {
+        self.rack.as_deref()
+    }
+
+    /// Java `Node.hasRack`.
+    #[must_use]
+    pub fn has_rack(&self) -> bool {
+        self.rack.is_some()
+    }
+
+    /// Java `Node.isFenced`. NodeEndpoints are never fenced.
+    #[must_use]
+    pub fn is_fenced(&self) -> bool {
+        false
+    }
+
+    /// Java `Node.idString` (`Integer.toString(id)`).
+    #[must_use]
+    pub fn id_string(&self) -> String {
+        self.node_id.to_string()
+    }
+
+    /// Java `Node.isEmpty` (empty host or negative port).
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.host.is_empty() || self.port < 0
+    }
+
+    /// Java `Node.noNode` (`id` `-1`, empty host, port `-1`).
+    #[must_use]
+    pub fn no_node() -> Self {
+        Self::new(-1, "", -1, None)
+    }
+}
+
+impl fmt::Display for NodeEndpoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_java_node(
+            f,
+            self.host.as_str(),
+            self.port,
+            self.node_id,
+            self.rack.as_deref(),
+            false,
+        )
+    }
+}
+
+impl From<Broker> for NodeEndpoint {
+    fn from(b: Broker) -> Self {
+        Self {
+            node_id: b.node_id,
+            host: b.host,
+            port: b.port,
+            rack: b.rack,
+        }
+    }
+}
+
+impl From<NodeEndpoint> for Broker {
+    fn from(e: NodeEndpoint) -> Self {
+        Self {
+            node_id: e.node_id,
+            host: e.host,
+            port: e.port,
+            rack: e.rack,
+        }
+    }
+}
+
+/// Compact array of NodeEndpoint (nested tagged fields).
+///
+/// ShareFetch / ShareAcknowledge write this array untagged (JSON `0+`).
+/// Produce / Fetch wrap it in tagged field 0.
+pub(crate) fn put_compact_node_endpoints(
+    buf: &mut BytesMut,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    buf::put_array_len(buf, true, Some(endpoints.len()))?;
+    for e in endpoints {
+        buf.put_i32(e.node_id);
+        buf::put_string(buf, true, Some(e.host.as_str()))?;
+        buf.put_i32(e.port);
+        buf::put_string(buf, true, e.rack.as_deref())?;
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Broker {
-    pub node_id: i32,
-    pub host: String,
-    pub port: i32,
-    pub rack: Option<String>,
+/// Decode a compact NodeEndpoint array. Nested tagged fields are skipped.
+pub(crate) fn get_compact_node_endpoints<B: Buf>(buf: &mut B) -> Result<Vec<NodeEndpoint>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    let mut out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_string(buf, true)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_string(buf, true)?;
+        buf::skip_tagged_fields(buf)?;
+        out.push(NodeEndpoint {
+            node_id,
+            host,
+            port,
+            rack,
+        });
+    }
+    Ok(out)
 }
 
+/// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
+pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes> {
+    let mut inner = BytesMut::new();
+    put_compact_node_endpoints(&mut inner, endpoints)?;
+    Ok(inner.freeze())
+}
+
+/// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
+pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> {
+    let mut cur = value.as_ref();
+    let out = get_compact_node_endpoints(&mut cur)?;
+    leftover_empty(&cur, "NodeEndpoints")?;
+    Ok(out)
+}
+
+pub(crate) fn encode_top_level_node_endpoints(
+    buf: &mut BytesMut,
+    include: bool,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    if include && !endpoints.is_empty() {
+        buf::put_tagged_fields(buf, &[(0, encode_node_endpoints(endpoints)?)])
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
+}
+
+pub(crate) fn decode_top_level_node_endpoints<B: Buf>(
+    buf: &mut B,
+    include: bool,
+) -> Result<Vec<NodeEndpoint>> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut endpoints = Vec::new();
+    for (tag, value) in tags {
+        if include && tag == 0 {
+            endpoints = decode_node_endpoints(&value)?;
+        }
+    }
+    Ok(endpoints)
+}
+
+/// One partition in a Metadata response.
+///
+/// [`Self::without_leader_epoch`] is Java
+/// `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartitionMetadata {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Partition index.
     pub partition_index: i32,
+    /// Leader broker id, or [`MetadataResponse::NO_LEADER_ID`].
     pub leader_id: i32,
+    /// Leader epoch (v7+), or [`RecordBatch::NO_PARTITION_LEADER_EPOCH`].
     pub leader_epoch: i32,
+    /// Replica broker ids.
     pub replica_nodes: Vec<i32>,
+    /// In-sync replica broker ids.
     pub isr_nodes: Vec<i32>,
+    /// Offline replica broker ids (v5+). Java `offlineReplicas`.
+    pub offline_replicas: Vec<i32>,
 }
 
+impl PartitionMetadata {
+    /// Java `MetadataResponse.PartitionMetadata.withoutLeaderEpoch`.
+    ///
+    /// Sets [`Self::leader_epoch`] to [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
+    /// (Java `Optional.empty`).
+    #[must_use]
+    pub fn without_leader_epoch(&self) -> Self {
+        Self {
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            ..self.clone()
+        }
+    }
+}
+
+/// One topic in a Metadata response.
+///
+/// [`Self::error`] is Java `MetadataRequest.getErrorResponse` one topic
+/// (empty Name when the request Name is null, `isInternal` false, empty
+/// partitions, JSON default `AUTHORIZED_OPERATIONS_OMITTED`).
+/// [`Display`] is Java `MetadataResponse.TopicMetadata.toString`. Nested
+/// `PartitionMetadata.toString` uses this topic's name (`null` when
+/// [`Self::name`] is `None`) so the crate type does not store a
+/// `TopicPartition`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopicMetadata {
+    /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// Topic name.
     pub name: Option<String>,
+    /// Topic id (v10+), or zeros.
     pub topic_id: [u8; 16],
+    /// Internal topic (v1+).
     pub is_internal: bool,
+    /// Partitions.
     pub partitions: Vec<PartitionMetadata>,
+    /// Topic authorized operations (v8+).
+    /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`] when omitted.
+    pub topic_authorized_operations: i32,
 }
 
+impl TopicMetadata {
+    /// Java `MetadataRequest.getErrorResponse` one topic.
+    ///
+    /// Name is empty when the request Name is null (Java: the response does
+    /// not allow null). `isInternal` is false, partitions are empty, and
+    /// `topicAuthorizedOperations` is the JSON default
+    /// [`MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED`].
+    #[must_use]
+    pub fn error(error_code: i16, name: Option<&str>, topic_id: [u8; 16]) -> Self {
+        Self {
+            error_code,
+            name: Some(name.map(str::to_owned).unwrap_or_default()),
+            topic_id,
+            is_internal: false,
+            partitions: Vec::new(),
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        }
+    }
+}
+
+fn write_java_uuid_bytes(f: &mut fmt::Formatter<'_>, bytes: &[u8; 16]) -> fmt::Result {
+    f.write_str(&base64::Engine::encode(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+        bytes.as_slice(),
+    ))
+}
+
+fn write_java_optional_i32(f: &mut fmt::Formatter<'_>, value: Option<i32>) -> fmt::Result {
+    match value {
+        None => f.write_str("Optional.empty"),
+        Some(n) => write!(f, "Optional[{n}]"),
+    }
+}
+
+fn write_java_int_csv(f: &mut fmt::Formatter<'_>, ids: &[i32]) -> fmt::Result {
+    for (i, id) in ids.iter().enumerate() {
+        if i > 0 {
+            f.write_str(",")?;
+        }
+        write!(f, "{id}")?;
+    }
+    Ok(())
+}
+
+fn write_java_partition_metadata(
+    f: &mut fmt::Formatter<'_>,
+    topic: Option<&str>,
+    p: &PartitionMetadata,
+) -> fmt::Result {
+    f.write_str("PartitionMetadata(error=")?;
+    f.write_str(crate::error::for_code(p.error_code))?;
+    f.write_str(", partition=")?;
+    match topic {
+        Some(name) => write!(f, "{name}-{}", p.partition_index)?,
+        None => write!(f, "null-{}", p.partition_index)?,
+    }
+    f.write_str(", leader=")?;
+    write_java_optional_i32(f, (p.leader_id >= 0).then_some(p.leader_id))?;
+    f.write_str(", leaderEpoch=")?;
+    write_java_optional_i32(
+        f,
+        (p.leader_epoch != RecordBatch::NO_PARTITION_LEADER_EPOCH).then_some(p.leader_epoch),
+    )?;
+    f.write_str(", replicas=")?;
+    write_java_int_csv(f, &p.replica_nodes)?;
+    f.write_str(", isr=")?;
+    write_java_int_csv(f, &p.isr_nodes)?;
+    f.write_str(", offlineReplicas=")?;
+    write_java_int_csv(f, &p.offline_replicas)?;
+    f.write_str(")")
+}
+
+impl fmt::Display for TopicMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("TopicMetadata{error=")?;
+        f.write_str(crate::error::for_code(self.error_code))?;
+        f.write_str(", topic='")?;
+        match self.name.as_deref() {
+            Some(name) => f.write_str(name)?,
+            None => f.write_str("null")?,
+        }
+        f.write_str("', topicId='")?;
+        write_java_uuid_bytes(f, &self.topic_id)?;
+        write!(f, "', isInternal={}, partitionMetadata=[", self.is_internal)?;
+        for (i, p) in self.partitions.iter().enumerate() {
+            if i > 0 {
+                f.write_str(", ")?;
+            }
+            write_java_partition_metadata(f, self.name.as_deref(), p)?;
+        }
+        write!(
+            f,
+            "], authorizedOperations={}}}",
+            self.topic_authorized_operations
+        )
+    }
+}
+
+/// Metadata response body.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetadataResponse {
+    /// Throttle time (v3+).
     pub throttle_time_ms: i32,
+    /// Brokers in the cluster.
     pub brokers: Vec<Broker>,
+    /// Cluster id (v2+).
     pub cluster_id: Option<String>,
+    /// Controller broker id (v1+), or [`Self::NO_CONTROLLER_ID`].
     pub controller_id: i32,
+    /// Topics.
     pub topics: Vec<TopicMetadata>,
+    /// Top-level error (v13+). `0` on v1–v12.
+    pub error_code: i16,
 }
 
+impl MetadataResponse {
+    /// Java `MetadataResponse.NO_CONTROLLER_ID`.
+    pub const NO_CONTROLLER_ID: i32 = -1;
+    /// Java `MetadataResponse.NO_LEADER_ID`.
+    pub const NO_LEADER_ID: i32 = -1;
+    /// Java `MetadataResponse.AUTHORIZED_OPERATIONS_OMITTED`.
+    pub const AUTHORIZED_OPERATIONS_OMITTED: i32 = i32::MIN;
+
+    /// Java `MetadataResponse.hasReliableLeaderEpochs(short)` (private static).
+    /// Public instance `hasReliableLeaderEpochs()` is this check at parse time.
+    ///
+    /// Prior to Metadata v9 (Kafka 2.4), brokers do not propagate leader epoch
+    /// accurately while a reassignment is in progress. Clients must not retain
+    /// those epochs for Fetch, ListOffsets, or OffsetsForLeaderEpoch.
+    #[must_use]
+    pub const fn has_reliable_leader_epochs(version: i16) -> bool {
+        version >= 9
+    }
+
+    /// Java `MetadataResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 6
+    }
+
+    /// Java `MetadataResponse.errors`.
+    ///
+    /// Topics whose `errorCode` is not `NONE`. Values are Kafka error codes.
+    /// Any topic with `name` `None` is Java `IllegalStateException`
+    /// (`Use errorsByTopicId() when managing topic using topic id`); use
+    /// [`Self::errors_by_topic_id`].
+    pub fn errors(&self) -> Result<HashMap<String, i16>> {
+        let mut errors = HashMap::new();
+        for topic in &self.topics {
+            let Some(name) = topic.name.as_ref() else {
+                return Err(Error::protocol(
+                    "Use errorsByTopicId() when managing topic using topic id",
+                ));
+            };
+            if topic.error_code != 0 {
+                let _prev = errors.insert(name.clone(), topic.error_code);
+            }
+        }
+        Ok(errors)
+    }
+
+    /// Java `MetadataResponse.errorsByTopicId`.
+    ///
+    /// Topics whose `errorCode` is not `NONE`, keyed by topic id. Any zero
+    /// topic id is Java `IllegalStateException`
+    /// (`Use errors() when managing topic using topic name`); use
+    /// [`Self::errors`].
+    pub fn errors_by_topic_id(&self) -> Result<HashMap<[u8; 16], i16>> {
+        let mut errors = HashMap::new();
+        for topic in &self.topics {
+            if topic.topic_id == [0u8; 16] {
+                return Err(Error::protocol(
+                    "Use errors() when managing topic using topic name",
+                ));
+            }
+            if topic.error_code != 0 {
+                let _prev = errors.insert(topic.topic_id, topic.error_code);
+            }
+        }
+        Ok(errors)
+    }
+
+    /// Java `MetadataResponse.topicsByError`.
+    ///
+    /// Topic names whose `errorCode` matches. Skips `name` `None` (Java
+    /// `HashSet` can hold `null`).
+    #[must_use]
+    pub fn topics_by_error(&self, error_code: i16) -> HashSet<String> {
+        self.topics
+            .iter()
+            .filter(|topic| topic.error_code == error_code)
+            .filter_map(|topic| topic.name.clone())
+            .collect()
+    }
+
+    /// Java `MetadataResponse.errorCounts`.
+    ///
+    /// Counts topic-level and partition-level error codes (including `NONE`).
+    /// Does not include the v13+ top-level [`Self::error_code`].
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+            let count = counts.entry(topic.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+
+    /// Java `MetadataResponse.topicAuthorizedOperations`.
+    ///
+    /// First topic whose `name` matches; `None` when no such topic.
+    #[must_use]
+    pub fn topic_authorized_operations(&self, topic_name: &str) -> Option<i32> {
+        self.topics
+            .iter()
+            .find(|topic| topic.name.as_deref() == Some(topic_name))
+            .map(|topic| topic.topic_authorized_operations)
+    }
+
+    /// Java `MetadataResponse.brokersById`.
+    #[must_use]
+    pub fn brokers_by_id(&self) -> HashMap<i32, Broker> {
+        self.brokers
+            .iter()
+            .map(|broker| (broker.node_id, broker.clone()))
+            .collect()
+    }
+
+    /// Fail when the v13+ top-level ErrorCode is non-zero.
+    pub(crate) fn check(&self) -> Result<()> {
+        if self.error_code == 0 {
+            Ok(())
+        } else {
+            Err(Error::broker(self.error_code, "Metadata"))
+        }
+    }
+}
+
+/// One topic in a Metadata request (v10+ TopicId + nullable Name).
+///
+/// Java `describeTopics(Collection<String>)` sends [`Self::by_name`]
+/// (Name set, TopicId zero). Java `describeTopics(TopicCollection.ofTopicIds)`
+/// sends [`Self::by_id`] (Name null, TopicId set).
+/// [`Self::convert_from_names`] / [`Self::convert_from_ids`] are Java
+/// `MetadataRequest.convertToMetadataRequestTopic` /
+/// `convertTopicIdsToMetadataRequestTopic`.
+/// [`Self::error_result`] is Java `MetadataRequest.getErrorResponse` one
+/// topic.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetadataRequestTopic {
+    /// Topic name, or `None` when describing by TopicId.
+    pub name: Option<String>,
+    /// Topic UUID (v10+). Zero when describing by name.
+    pub topic_id: [u8; 16],
+}
+
+impl MetadataRequestTopic {
+    /// Name-based Metadata topic (TopicId zero).
+    #[must_use]
+    pub fn by_name(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            topic_id: [0; 16],
+        }
+    }
+
+    /// Id-based Metadata topic (Name null). Requires Metadata v12+
+    /// (Java `MetadataRequest.Builder`; v10 and v11 must not send TopicId
+    /// or a null Name).
+    #[must_use]
+    pub fn by_id(topic_id: [u8; 16]) -> Self {
+        Self {
+            name: None,
+            topic_id,
+        }
+    }
+
+    /// Java `MetadataRequest.convertToMetadataRequestTopic`.
+    #[must_use]
+    pub fn convert_from_names<I>(names: I) -> Vec<Self>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        names.into_iter().map(Self::by_name).collect()
+    }
+
+    /// Java `MetadataRequest.convertTopicIdsToMetadataRequestTopic`.
+    #[must_use]
+    pub fn convert_from_ids(ids: impl IntoIterator<Item = [u8; 16]>) -> Vec<Self> {
+        ids.into_iter().map(Self::by_id).collect()
+    }
+
+    /// Java `MetadataRequest.getErrorResponse` one topic.
+    ///
+    /// Throttle on the response is the JSON default (`0`). Top-level
+    /// `ErrorCode` (Metadata v13) is the same `error_code`.
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> TopicMetadata {
+        TopicMetadata::error(error_code, self.name.as_deref(), self.topic_id)
+    }
+}
+
+/// Java `MetadataRequest` helpers.
+pub struct MetadataRequest;
+
+impl MetadataRequest {
+    /// Java `MetadataRequest.isAllTopics`.
+    ///
+    /// Null Topics is all topics. An empty Topics list is all topics only on
+    /// Metadata v0 (this crate does not speak v0; encode rejects versions
+    /// older than 1).
+    #[must_use]
+    pub const fn is_all_topics(version: i16, topics: Option<&[MetadataRequestTopic]>) -> bool {
+        match topics {
+            None => true,
+            Some(topics) => topics.is_empty() && version == 0,
+        }
+    }
+
+    /// Java `MetadataRequest.topicIds`.
+    ///
+    /// Empty when [`Self::is_all_topics`] or below Metadata v10. Otherwise
+    /// each request topic's TopicId (zeros when describing by name).
+    #[must_use]
+    pub fn topic_ids(version: i16, topics: Option<&[MetadataRequestTopic]>) -> Vec<[u8; 16]> {
+        if Self::is_all_topics(version, topics) || version < 10 {
+            Vec::new()
+        } else {
+            topics
+                .unwrap_or(&[])
+                .iter()
+                .map(|topic| topic.topic_id)
+                .collect()
+        }
+    }
+
+    /// Java `MetadataRequest.topics`.
+    ///
+    /// `None` when [`Self::is_all_topics`]. Otherwise each topic Name (`None`
+    /// when describing by TopicId).
+    #[must_use]
+    pub fn topics(
+        version: i16,
+        topics: Option<&[MetadataRequestTopic]>,
+    ) -> Option<Vec<Option<&str>>> {
+        if Self::is_all_topics(version, topics) {
+            None
+        } else {
+            Some(
+                topics
+                    .unwrap_or(&[])
+                    .iter()
+                    .map(|topic| topic.name.as_deref())
+                    .collect(),
+            )
+        }
+    }
+
+    /// Java `MetadataRequest.getErrorResponse`.
+    ///
+    /// Null Topics is empty Topics (not all-topics). Each request topic is
+    /// [`MetadataRequestTopic::error_result`] (null Name becomes empty;
+    /// duplicate names are kept). Brokers / ClusterId stay empty;
+    /// ControllerId is [`MetadataResponse::NO_CONTROLLER_ID`]. Top-level
+    /// ErrorCode (Metadata v13) is the same `error_code`. Throttle is the
+    /// JSON default (`0`). Distinct from [`MetadataRequestTopic::error_result`],
+    /// which is one topic. Java constructs
+    /// `new MetadataResponse(data, true)`, so `hasReliableLeaderEpochs` is
+    /// true even below Metadata v9; this crate does not store that flag on
+    /// the body ([`MetadataResponse::has_reliable_leader_epochs`] is the
+    /// request version).
+    #[must_use]
+    pub fn error_response(
+        topics: Option<&[MetadataRequestTopic]>,
+        error_code: i16,
+    ) -> MetadataResponse {
+        MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: topics
+                .unwrap_or(&[])
+                .iter()
+                .map(|topic| topic.error_result(error_code))
+                .collect(),
+            error_code,
+        }
+    }
+}
+
+/// Encode Metadata. `topics = None` asks for all topics.
+///
+/// `IncludeTopicAuthorizedOperations` is false (Java default). Use
+/// [`encode_metadata_request_with`] for `DescribeTopicsOptions`.
 pub fn encode_metadata_request(
     buf: &mut BytesMut,
     version: i16,
     topics: Option<&[String]>,
     allow_auto: bool,
 ) -> crate::error::Result<()> {
+    encode_metadata_request_with(buf, version, topics, allow_auto, false)
+}
+
+/// Encode Metadata with `IncludeTopicAuthorizedOperations` (v8+).
+///
+/// Below v8 the flag is omitted. Cluster authorized operations stay
+/// unset (`false` on v8–v10). Name-based: v10+ sends TopicId zero.
+/// For TopicId describes, use [`encode_metadata_request_topics`].
+pub fn encode_metadata_request_with(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[String]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    let owned = topics.map(|names| MetadataRequestTopic::convert_from_names(names.iter().cloned()));
+    encode_metadata_request_topics(
+        buf,
+        version,
+        owned.as_deref(),
+        allow_auto,
+        include_topic_authorized_operations,
+    )
+}
+
+/// Encode Metadata Topics of Name and/or TopicId (v10+).
+///
+/// Java `describeTopics(TopicCollection.ofTopicIds)` sends Name null
+/// and TopicId set. `topics = None` asks for all topics.
+///
+/// Java `MetadataRequest.Builder.build` rejects versions older than 1,
+/// `allowAutoTopicCreation` false below v4, and a null Name or non-zero
+/// TopicId below v12.
+pub fn encode_metadata_request_topics(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: Option<&[MetadataRequestTopic]>,
+    allow_auto: bool,
+    include_topic_authorized_operations: bool,
+) -> crate::error::Result<()> {
+    if version < 1 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 1 are not supported.".into(),
+        ));
+    }
+    if !allow_auto && version < 4 {
+        return Err(Error::Unsupported(
+            "MetadataRequest versions older than 4 don't support the allowAutoTopicCreation field"
+                .into(),
+        ));
+    }
+    if let Some(topics) = topics {
+        for t in topics {
+            if t.name.is_none() && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support null topic names."
+                )));
+            }
+            if t.topic_id != [0; 16] && version < 12 {
+                return Err(Error::Unsupported(format!(
+                    "MetadataRequest version {version} does not support non-zero topic IDs."
+                )));
+            }
+        }
+    }
     let flexible = version >= 9;
     match topics {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(topics) => {
             buf::put_array_len(buf, flexible, Some(topics.len()))?;
-            for name in topics {
+            for t in topics {
                 if version >= 10 {
-                    buf.extend_from_slice(&[0u8; 16]);
+                    buf.extend_from_slice(&t.topic_id);
                 }
-                buf::put_string(buf, flexible, Some(name))?;
+                buf::put_string(buf, flexible, t.name.as_deref())?;
                 if flexible {
                     buf::put_empty_tagged_fields(buf);
                 }
@@ -159,12 +1500,74 @@ pub fn encode_metadata_request(
         buf.put_u8(0);
     }
     if version >= 8 {
-        buf.put_u8(0);
+        buf.put_u8(u8::from(include_topic_authorized_operations));
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
+}
+
+/// Decode Metadata request: topic names (`None` is all topics),
+/// `allow.auto.create.topics`, and `IncludeTopicAuthorizedOperations`.
+///
+/// v10+ Topics entries with a null Name are skipped (id-based describes).
+/// See [`decode_metadata_request_topics`] for every Topics entry.
+pub fn decode_metadata_request<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Option<Vec<String>>, bool, bool)> {
+    let (topics, allow_auto, include_topic_authorized) =
+        decode_metadata_request_topics(buf, version)?;
+    let names = topics.map(|ts| ts.into_iter().filter_map(|t| t.name).collect());
+    Ok((names, allow_auto, include_topic_authorized))
+}
+
+/// Decode Metadata: every topic (Name and/or TopicId) plus flags.
+pub fn decode_metadata_request_topics<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Option<Vec<MetadataRequestTopic>>, bool, bool)> {
+    let flexible = version >= 9;
+    let topics = match buf::get_array_len(buf, flexible)? {
+        None => None,
+        Some(n) => {
+            let mut topics = Vec::with_capacity(n);
+            for _ in 0..n {
+                let topic_id = if version >= 10 {
+                    buf::get_uuid(buf)?
+                } else {
+                    [0; 16]
+                };
+                let name = buf::get_string(buf, flexible)?;
+                if flexible {
+                    buf::skip_tagged_fields(buf)?;
+                }
+                topics.push(MetadataRequestTopic { name, topic_id });
+            }
+            Some(topics)
+        }
+    };
+    let allow_auto = if version >= 4 {
+        buf::need(buf, 1)?;
+        buf.get_u8() != 0
+    } else {
+        false
+    };
+    if (8..=10).contains(&version) {
+        buf::need(buf, 1)?;
+        let _include_cluster = buf.get_u8();
+    }
+    let include_topic_authorized = if version >= 8 {
+        buf::need(buf, 1)?;
+        buf.get_u8() != 0
+    } else {
+        false
+    };
+    if flexible {
+        buf::skip_tagged_fields(buf)?;
+    }
+    Ok((topics, allow_auto, include_topic_authorized))
 }
 
 fn get_int32_array<B: Buf>(buf: &mut B, flexible: bool) -> Result<Vec<i32>> {
@@ -184,6 +1587,7 @@ fn put_int32_array(buf: &mut BytesMut, flexible: bool, items: &[i32]) -> crate::
     Ok(())
 }
 
+/// Decode Metadata.
 pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {
     let flexible = version >= 9;
     let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
@@ -214,7 +1618,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
     } else {
         None
     };
-    let controller_id = if version >= 1 { buf::get_i32(buf)? } else { -1 };
+    let controller_id = if version >= 1 {
+        buf::get_i32(buf)?
+    } else {
+        MetadataResponse::NO_CONTROLLER_ID
+    };
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(topic_count);
     for _ in 0..topic_count {
@@ -236,12 +1644,18 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             let error_code = buf::get_i16(buf)?;
             let partition_index = buf::get_i32(buf)?;
             let leader_id = buf::get_i32(buf)?;
-            let leader_epoch = if version >= 7 { buf::get_i32(buf)? } else { -1 };
+            let leader_epoch = if version >= 7 {
+                buf::get_i32(buf)?
+            } else {
+                RecordBatch::NO_PARTITION_LEADER_EPOCH
+            };
             let replica_nodes = get_int32_array(buf, flexible)?;
             let isr_nodes = get_int32_array(buf, flexible)?;
-            if version >= 5 {
-                let _offline = get_int32_array(buf, flexible)?;
-            }
+            let offline_replicas = if version >= 5 {
+                get_int32_array(buf, flexible)?
+            } else {
+                Vec::new()
+            };
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
@@ -252,11 +1666,14 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
                 leader_epoch,
                 replica_nodes,
                 isr_nodes,
+                offline_replicas,
             });
         }
-        if version >= 8 {
-            let _authorized = buf::get_i32(buf)?;
-        }
+        let topic_authorized_operations = if version >= 8 {
+            buf::get_i32(buf)?
+        } else {
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
@@ -266,14 +1683,13 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
             topic_id,
             is_internal,
             partitions,
+            topic_authorized_operations,
         });
     }
     if (8..=10).contains(&version) {
         let _cluster_authorized = buf::get_i32(buf)?;
     }
-    if version >= 13 {
-        let _top_error = buf::get_i16(buf)?;
-    }
+    let error_code = if version >= 13 { buf::get_i16(buf)? } else { 0 };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
@@ -283,9 +1699,11 @@ pub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<Met
         cluster_id,
         controller_id,
         topics,
+        error_code,
     })
 }
 
+/// Encode Metadata (used by the mock broker).
 pub fn encode_metadata_response(
     buf: &mut BytesMut,
     version: i16,
@@ -334,24 +1752,24 @@ pub fn encode_metadata_response(
             put_int32_array(buf, flexible, &p.replica_nodes)?;
             put_int32_array(buf, flexible, &p.isr_nodes)?;
             if version >= 5 {
-                put_int32_array(buf, flexible, &[])?;
+                put_int32_array(buf, flexible, &p.offline_replicas)?;
             }
             if flexible {
                 buf::put_empty_tagged_fields(buf);
             }
         }
         if version >= 8 {
-            buf.put_i32(-2147483648);
+            buf.put_i32(t.topic_authorized_operations);
         }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
     }
     if (8..=10).contains(&version) {
-        buf.put_i32(-2147483648);
+        buf.put_i32(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED);
     }
     if version >= 13 {
-        buf.put_i16(0);
+        buf.put_i16(resp.error_code);
     }
     if flexible {
         buf::put_empty_tagged_fields(buf);
@@ -359,28 +1777,414 @@ pub fn encode_metadata_response(
     Ok(())
 }
 
+/// One topic in a Produce request.
+///
+/// [`Self::error_result`] is Java `ProduceRequest.getErrorResponse` one topic.
 #[derive(Debug, Clone)]
 pub struct ProduceTopicData {
+    /// Topic name.
     pub topic: String,
+    /// Partition batches.
     pub partitions: Vec<ProducePartitionData>,
 }
 
+impl ProduceTopicData {
+    /// Java `ProduceRequest.getErrorResponse` one topic.
+    ///
+    /// Maps each request partition through
+    /// [`ProducePartitionResponse::partition_response`]. Java returns null
+    /// when `acks` is 0 (whole request). `recordErrors` is the empty array
+    /// and `errorMessage` is null (JSON defaults). Throttle on the
+    /// response is the JSON default (`0`).
+    #[must_use]
+    pub fn error_result(&self, error_code: i16) -> Vec<ProducePartitionResponse> {
+        self.partitions
+            .iter()
+            .map(|p| {
+                ProducePartitionResponse::partition_response(
+                    self.topic.clone(),
+                    p.index,
+                    error_code,
+                )
+            })
+            .collect()
+    }
+}
+
+/// One partition in a Produce request.
 #[derive(Debug, Clone)]
 pub struct ProducePartitionData {
+    /// Partition index.
     pub index: i32,
+    /// Record batch to produce.
     pub records: RecordBatch,
 }
 
+/// One record that caused a Produce batch to be dropped (KIP-467).
+///
+/// Java `ProduceResponse.RecordError`. [`Display`] is Java
+/// `RecordError.toString` (`message=null` when [`Self::message`] is `None`;
+/// otherwise the text is single-quoted). Duplicate `batchIndex` values are
+/// kept (`ArrayList`).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProducePartitionResponse {
-    pub topic: String,
-    pub partition: i32,
-    pub error_code: i16,
-    pub base_offset: i64,
-    pub log_append_time_ms: i64,
-    pub log_start_offset: i64,
+pub struct ProduceRecordError {
+    /// Batch index of the rejected record (Java `RecordError.batchIndex`).
+    pub batch_index: i32,
+    /// Per-record error text (Java `RecordError.message`; `None` is null).
+    pub message: Option<String>,
 }
 
+impl ProduceRecordError {
+    /// Java `ProduceResponse.RecordError(int, String)`.
+    ///
+    /// `None` is Java `null`. The one-argument Java constructor is this
+    /// with `message` `None`.
+    #[must_use]
+    pub fn new(batch_index: i32, message: Option<String>) -> Self {
+        Self {
+            batch_index,
+            message,
+        }
+    }
+
+    /// Java `RecordError.batchIndex`.
+    #[must_use]
+    pub fn batch_index(&self) -> i32 {
+        self.batch_index
+    }
+
+    /// Java `RecordError.message` (`None` is Java `null`).
+    #[must_use]
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
+    }
+}
+
+impl fmt::Display for ProduceRecordError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("RecordError(batchIndex=")?;
+        write!(f, "{}", self.batch_index)?;
+        f.write_str(", message=")?;
+        match self.message.as_deref() {
+            None => f.write_str("null")?,
+            Some(message) => {
+                f.write_str("'")?;
+                f.write_str(message)?;
+                f.write_str("'")?;
+            }
+        }
+        f.write_str(")")
+    }
+}
+
+/// One partition in a Produce response.
+///
+/// [`Self::INVALID_OFFSET`] is Java `ProduceResponse.INVALID_OFFSET`.
+/// [`Self::partition_response`] is Java `ProduceResponse.PartitionResponse(Errors)`
+/// (`baseOffset` / `logStartOffset` [`Self::INVALID_OFFSET`], `logAppendTime`
+/// [`RecordBatch::NO_TIMESTAMP`], empty `recordErrors`, null `errorMessage`).
+/// Decode below v2 fills [`RecordBatch::NO_TIMESTAMP`]; decode below v5 fills
+/// [`Self::INVALID_OFFSET`]. Decode below v8 fills empty `recordErrors` and
+/// null `errorMessage`. Omitted v10+ CurrentLeader fills
+/// [`MetadataResponse::NO_LEADER_ID`] /
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] (JSON defaults).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProducePartitionResponse {
+    /// Topic name.
+    pub topic: String,
+    /// Partition index.
+    pub partition: i32,
+    /// Kafka error code (`0` is success).
+    pub error_code: i16,
+    /// First offset assigned to the batch, or [`Self::INVALID_OFFSET`].
+    pub base_offset: i64,
+    /// Log append time, or [`RecordBatch::NO_TIMESTAMP`].
+    pub log_append_time_ms: i64,
+    /// Log start offset, or [`Self::INVALID_OFFSET`] when omitted below v5.
+    pub log_start_offset: i64,
+    /// Produce v10+ CurrentLeader `LeaderId`, or
+    /// [`MetadataResponse::NO_LEADER_ID`] when omitted (JSON default).
+    pub current_leader_id: i32,
+    /// Produce v10+ CurrentLeader `LeaderEpoch`, or
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] when omitted (JSON default).
+    pub current_leader_epoch: i32,
+    /// Produce v8+ `RecordErrors` (Java `PartitionResponse.recordErrors`).
+    /// Empty below v8 and when the broker sends none. Duplicates are kept.
+    pub record_errors: Vec<ProduceRecordError>,
+    /// Produce v8+ `ErrorMessage` (Java `PartitionResponse.errorMessage`).
+    /// `None` is Java `null` (JSON default; omitted below v8).
+    pub error_message: Option<String>,
+}
+
+impl ProducePartitionResponse {
+    /// Java `ProduceResponse.INVALID_OFFSET`.
+    pub const INVALID_OFFSET: i64 = -1;
+
+    /// Java `ProduceResponse.PartitionResponse(Errors)`.
+    ///
+    /// Sets [`Self::INVALID_OFFSET`] for `baseOffset` / `logStartOffset` and
+    /// [`RecordBatch::NO_TIMESTAMP`] for `logAppendTime`. CurrentLeader is
+    /// the Apache JSON default ([`MetadataResponse::NO_LEADER_ID`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). `recordErrors` is empty
+    /// and `errorMessage` is null. Java `PartitionResponse` has no topic
+    /// name; this type does, so callers pass it.
+    #[must_use]
+    pub fn partition_response(topic: impl Into<String>, partition: i32, error_code: i16) -> Self {
+        Self {
+            topic: topic.into(),
+            partition,
+            error_code,
+            base_offset: Self::INVALID_OFFSET,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: Self::INVALID_OFFSET,
+            current_leader_id: MetadataResponse::NO_LEADER_ID,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            record_errors: Vec::new(),
+            error_message: None,
+        }
+    }
+}
+
+/// Java `ProduceRequest` version helpers (KIP-890 transaction V2).
+pub struct ProduceRequest;
+
+impl ProduceRequest {
+    /// Java `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`.
+    pub const LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2: i16 = 11;
+
+    /// Java `ProduceRequest.isTransactionV2Requested`.
+    #[must_use]
+    pub const fn is_transaction_v2_requested(version: i16) -> bool {
+        version > Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2
+    }
+
+    /// Java `RequestUtils.hasTransactionalRecords`.
+    ///
+    /// True when the first batch of any partition is transactional. Later
+    /// batches in the same partition are not inspected (Java `RequestUtils.flag`).
+    #[must_use]
+    pub fn has_transactional_records<I, B>(partitions: I) -> bool
+    where
+        I: IntoIterator<Item = B>,
+        B: AsRef<[RecordBatch]>,
+    {
+        partitions.into_iter().any(|part| {
+            part.as_ref()
+                .first()
+                .is_some_and(RecordBatch::is_transactional)
+        })
+    }
+
+    /// Java `ProduceRequest.partitionSizes`.
+    ///
+    /// Each `(topic, partition)` maps to the encoded size of that
+    /// partition's records (`RecordBatch::size_in_bytes`). A later
+    /// partition with the same pair adds (Java `Map.compute` sums). Java
+    /// `int` overflow wraps.
+    pub fn partition_sizes(topics: &[ProduceTopicData]) -> Result<HashMap<(String, i32), i32>> {
+        let mut sizes: HashMap<(String, i32), i32> = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let size = partition.records.size_in_bytes()?;
+                let _size = sizes
+                    .entry((topic.topic.clone(), partition.index))
+                    .and_modify(|prev| *prev = prev.wrapping_add(size))
+                    .or_insert(size);
+            }
+        }
+        Ok(sizes)
+    }
+
+    /// Java `ProduceRequest.getErrorResponse`.
+    ///
+    /// `acks` `0` is `None` (Java returns null). Otherwise one
+    /// [`ProducePartitionResponse::partition_response`] per unique
+    /// `(topic, partition)` in `topics` (`partitionSizes` HashMap keys;
+    /// a later duplicate pair is omitted). Contrast
+    /// [`ProduceTopicData::error_result`], which keeps every request
+    /// partition. Order is first-seen (Java `HashMap.forEach` order is
+    /// unspecified). Official Java also copies `ApiError.message` onto
+    /// `ErrorMessage`; this helper leaves `errorMessage` null and
+    /// `recordErrors` empty. Official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument. Convenience encode still
+    /// writes `0`.
+    #[must_use]
+    pub fn error_response(
+        acks: i16,
+        topics: &[ProduceTopicData],
+        error_code: i16,
+    ) -> Option<Vec<ProducePartitionResponse>> {
+        if acks == 0 {
+            return None;
+        }
+        let mut order: Vec<(String, i32)> = Vec::new();
+        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let key = (topic.topic.clone(), partition.index);
+                if !seen.insert(key.clone()) {
+                    continue;
+                }
+                order.push(key);
+            }
+        }
+        Some(
+            order
+                .into_iter()
+                .map(|(topic, partition)| {
+                    ProducePartitionResponse::partition_response(topic, partition, error_code)
+                })
+                .collect(),
+        )
+    }
+
+    /// Java `ProduceRequest.errorCounts(Throwable)`.
+    ///
+    /// Singleton map of `error_code` to the number of unique
+    /// `(topic, partition)` keys in `partitionSizes` (a later duplicate
+    /// pair is one key; Java `int` wrap). Empty Topics is
+    /// `{error_code: 0}`, not an empty map. Distinct from
+    /// [`Self::error_response`], which is `None` when `acks` is `0`; this
+    /// count does not look at acks. Distinct from
+    /// [`ProduceResponse::error_counts`], which counts partition error
+    /// codes on a response.
+    #[must_use]
+    pub fn error_counts(topics: &[ProduceTopicData], error_code: i16) -> HashMap<i16, i32> {
+        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        let mut n = 0i32;
+        for topic in topics {
+            for partition in &topic.partitions {
+                if seen.insert((topic.topic.clone(), partition.index)) {
+                    n = n.wrapping_add(1);
+                }
+            }
+        }
+        HashMap::from([(error_code, n)])
+    }
+}
+
+/// Java `ProduceResponse` helpers.
+pub struct ProduceResponse;
+
+impl ProduceResponse {
+    /// Java `ProduceResponse.shouldClientThrottle`.
+    #[must_use]
+    pub const fn should_client_throttle(version: i16) -> bool {
+        version >= 6
+    }
+
+    /// Java `ProduceResponse.errorCounts`.
+    ///
+    /// Counts partition-level error codes (including `NONE`).
+    #[must_use]
+    pub fn error_counts(partitions: &[ProducePartitionResponse]) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        for partition in partitions {
+            let count = counts.entry(partition.error_code).or_insert(0);
+            *count += 1;
+        }
+        counts
+    }
+
+    /// Java `ProduceResponse.toData` Responses grouping.
+    ///
+    /// Groups flat partition bodies by name. A later entry for the same
+    /// topic appends (Java `find` then `partitionResponses().add`),
+    /// including when another topic sits in between. Duplicate partitions
+    /// for the same pair are kept (`ArrayList`). Topic order is first-seen.
+    /// `errorMessage` and `recordErrors` on each body are cloned with the
+    /// partition (Java copies them in `toData`). Java `lastOffset` is not
+    /// a ProduceResponse field and is not stored. ThrottleTimeMs is crate
+    /// encode ([`encode_produce_response_with_throttle`]; convenience
+    /// encode still writes `0`). NodeEndpoints stay with crate encode
+    /// (empty unless [`encode_produce_response_with_endpoints`]).
+    #[must_use]
+    pub fn to_data(
+        partitions: &[ProducePartitionResponse],
+    ) -> Vec<(String, Vec<ProducePartitionResponse>)> {
+        let mut topics = Vec::<(String, Vec<ProducePartitionResponse>)>::new();
+        for partition in partitions {
+            if let Some((_, parts)) = topics.iter_mut().find(|(name, _)| name == &partition.topic) {
+                parts.push(partition.clone());
+            } else {
+                topics.push((partition.topic.clone(), vec![partition.clone()]));
+            }
+        }
+        topics
+    }
+}
+
+/// `true` when Produce `version` is flexible (v9+).
+///
+/// v3–v8 are classic. v9–v12 are compact arrays/strings/bytes plus tagged
+/// fields (Apache JSON `flexibleVersions: "9+"`). v10+ adds partition
+/// CurrentLeader tagged field 0 and top-level NodeEndpoints tagged field 0
+/// (KIP-951). v11 is TRANSACTION_ABORTABLE
+/// (same layout as v10). v12 is the same layout (KIP-890 Part 2
+/// transaction V2: Produce also does AddPartitionsToTxn). Kafka 4.0
+/// removed v0–v2. This crate speaks 3–12. v13+ (topic IDs) are not spoken.
+fn produce_flexible(version: i16) -> Result<bool> {
+    match version {
+        3..=8 => Ok(false),
+        9..=12 => Ok(true),
+        other => Err(Error::protocol(format!(
+            "Produce version {other} is not implemented"
+        ))),
+    }
+}
+
+fn encode_current_leader(leader_id: i32, leader_epoch: i32) -> Bytes {
+    let mut inner = BytesMut::new();
+    inner.put_i32(leader_id);
+    inner.put_i32(leader_epoch);
+    buf::put_empty_tagged_fields(&mut inner);
+    inner.freeze()
+}
+
+fn decode_current_leader(value: &Bytes) -> Result<(i32, i32)> {
+    let mut cur = value.as_ref();
+    let leader_id = buf::get_i32(&mut cur)?;
+    let leader_epoch = buf::get_i32(&mut cur)?;
+    buf::skip_tagged_fields(&mut cur)?;
+    leftover_empty(&cur, "CurrentLeader")?;
+    Ok((leader_id, leader_epoch))
+}
+
+fn encode_produce_partition_tags(
+    buf: &mut BytesMut,
+    version: i16,
+    current_leader_id: i32,
+    current_leader_epoch: i32,
+) -> Result<()> {
+    if version >= 10 && current_leader_id >= 0 {
+        buf::put_tagged_fields(
+            buf,
+            &[(
+                0,
+                encode_current_leader(current_leader_id, current_leader_epoch),
+            )],
+        )
+    } else {
+        buf::put_empty_tagged_fields(buf);
+        Ok(())
+    }
+}
+
+fn decode_produce_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<(i32, i32)> {
+    let tags = buf::get_tagged_fields(buf)?;
+    let mut current_leader_id = MetadataResponse::NO_LEADER_ID;
+    let mut current_leader_epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+    if version >= 10 {
+        for (tag, value) in tags {
+            if tag == 0 {
+                (current_leader_id, current_leader_epoch) = decode_current_leader(&value)?;
+            }
+        }
+    }
+    Ok((current_leader_id, current_leader_epoch))
+}
+
+/// Encode Produce v3–v8 (classic) or v9–v12 (flexible).
 pub fn encode_produce_request(
     buf: &mut BytesMut,
     version: i16,
@@ -389,7 +2193,7 @@ pub fn encode_produce_request(
     timeout_ms: i32,
     topics: &[ProduceTopicData],
 ) -> Result<()> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     if version >= 3 {
         buf::put_string(buf, flexible, transactional_id)?;
     }
@@ -428,11 +2232,12 @@ pub fn encode_produce_request(
     Ok(())
 }
 
+/// Decode Produce: `(transactional_id, acks, timeout_ms, topics)`.
 pub fn decode_produce_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(Option<String>, i16, i32, Vec<ProduceTopicData>)> {
-    let flexible = version >= 9;
+    let flexible = produce_flexible(version)?;
     let transactional_id = if version >= 3 {
         buf::get_string(buf, flexible)?
     } else {
@@ -476,12 +2281,93 @@ pub fn decode_produce_request<B: Buf>(
     Ok((transactional_id, acks, timeout_ms, topics))
 }
 
+/// Produce v8+ `RecordErrors` (`BatchIndexAndErrorMessage`). Flexible
+/// versions write empty tagged fields on each nested struct.
+fn encode_produce_record_errors(
+    buf: &mut BytesMut,
+    flexible: bool,
+    errors: &[ProduceRecordError],
+) -> Result<()> {
+    buf::put_array_len(buf, flexible, Some(errors.len()))?;
+    for err in errors {
+        buf.put_i32(err.batch_index);
+        buf::put_string(buf, flexible, err.message.as_deref())?;
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
+    Ok(())
+}
+
+fn decode_produce_record_errors<B: Buf>(
+    buf: &mut B,
+    flexible: bool,
+) -> Result<Vec<ProduceRecordError>> {
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut errors = Vec::with_capacity(n);
+    for _ in 0..n {
+        let batch_index = buf::get_i32(buf)?;
+        let message = buf::get_string(buf, flexible)?;
+        if flexible {
+            buf::skip_tagged_fields(buf)?;
+        }
+        errors.push(ProduceRecordError {
+            batch_index,
+            message,
+        });
+    }
+    Ok(errors)
+}
+
+/// Encode Produce: one response per partition (mock broker).
+///
+/// ThrottleTimeMs is the JSON default (`0`) on v1+ (JSON `1+`).
 pub fn encode_produce_response(
     buf: &mut BytesMut,
     version: i16,
     parts: &[ProducePartitionResponse],
 ) -> crate::error::Result<()> {
-    let flexible = version >= 9;
+    encode_produce_response_with_endpoints(buf, version, parts, &[])
+}
+
+/// Encode Produce v3–v12 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `1+`: written after Responses on every spoken
+/// version (this crate speaks 3–12). v3–v8 are classic. v9–v12 are
+/// flexible. Kafka 4.0 `validVersions` is `3-12`. v13+ is not spoken.
+/// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+/// argument. Convenience encode still writes `0`. There is no top-level
+/// ErrorCode. NodeEndpoints stay empty (use
+/// [`encode_produce_response_with_endpoints`]).
+pub fn encode_produce_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    encode_produce_response_fields(buf, version, parts, &[], throttle_time_ms)
+}
+
+/// Encode Produce plus top-level NodeEndpoints (v10+ tagged field 0).
+///
+/// ThrottleTimeMs is the JSON default (`0`).
+pub fn encode_produce_response_with_endpoints(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+) -> crate::error::Result<()> {
+    encode_produce_response_fields(buf, version, parts, endpoints, 0)
+}
+
+fn encode_produce_response_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    let flexible = produce_flexible(version)?;
     // Group by topic, preserving first-seen order.
     let mut order: Vec<String> = Vec::new();
     for p in parts {
@@ -510,11 +2396,16 @@ pub fn encode_produce_response(
                 buf.put_i64(p.log_start_offset);
             }
             if version >= 8 {
-                buf::put_array_len(buf, flexible, Some(0))?;
-                buf::put_string(buf, flexible, None)?;
+                encode_produce_record_errors(buf, flexible, &p.record_errors)?;
+                buf::put_string(buf, flexible, p.error_message.as_deref())?;
             }
             if flexible {
-                buf::put_empty_tagged_fields(buf);
+                encode_produce_partition_tags(
+                    buf,
+                    version,
+                    p.current_leader_id,
+                    p.current_leader_epoch,
+                )?;
             }
         }
         if flexible {
@@ -522,19 +2413,27 @@ pub fn encode_produce_response(
         }
     }
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     if flexible {
-        buf::put_empty_tagged_fields(buf);
+        encode_top_level_node_endpoints(buf, version >= 10, endpoints)?;
     }
     Ok(())
 }
 
+/// Decode Produce into per-partition results, v10+ NodeEndpoints, and
+/// ThrottleTimeMs.
+///
+/// Returns `(partitions, node_endpoints, throttle_time_ms)`.
+/// ThrottleTimeMs is JSON `1+`; this crate speaks 3–12 so the field is
+/// always on the wire. Versions below 2 fill [`RecordBatch::NO_TIMESTAMP`].
+/// Versions below 5 fill [`ProducePartitionResponse::INVALID_OFFSET`] for
+/// log start.
 pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<ProducePartitionResponse>> {
-    let flexible = version >= 9;
+) -> Result<(Vec<ProducePartitionResponse>, Vec<NodeEndpoint>, i32)> {
+    let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::new();
     for _ in 0..topic_count {
@@ -549,22 +2448,32 @@ pub fn decode_produce_response<B: Buf>(
             let partition = buf::get_i32(buf)?;
             let error_code = buf::get_i16(buf)?;
             let base_offset = buf::get_i64(buf)?;
-            let log_append_time_ms = if version >= 2 { buf::get_i64(buf)? } else { -1 };
-            let log_start_offset = if version >= 5 { buf::get_i64(buf)? } else { -1 };
-            if version >= 8 {
-                let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-                for _ in 0..n {
-                    let _idx = buf::get_i32(buf)?;
-                    let _msg = buf::get_string(buf, flexible)?;
-                    if flexible {
-                        buf::skip_tagged_fields(buf)?;
-                    }
-                }
-                let _err_msg = buf::get_string(buf, flexible)?;
-            }
-            if flexible {
-                buf::skip_tagged_fields(buf)?;
-            }
+            let log_append_time_ms = if version >= 2 {
+                buf::get_i64(buf)?
+            } else {
+                RecordBatch::NO_TIMESTAMP
+            };
+            let log_start_offset = if version >= 5 {
+                buf::get_i64(buf)?
+            } else {
+                ProducePartitionResponse::INVALID_OFFSET
+            };
+            let (record_errors, error_message) = if version >= 8 {
+                (
+                    decode_produce_record_errors(buf, flexible)?,
+                    buf::get_string(buf, flexible)?,
+                )
+            } else {
+                (Vec::new(), None)
+            };
+            let (current_leader_id, current_leader_epoch) = if flexible {
+                decode_produce_partition_tags(buf, version)?
+            } else {
+                (
+                    MetadataResponse::NO_LEADER_ID,
+                    RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                )
+            };
             out.push(ProducePartitionResponse {
                 topic: topic.clone(),
                 partition,
@@ -572,19 +2481,23 @@ pub fn decode_produce_response<B: Buf>(
                 base_offset,
                 log_append_time_ms,
                 log_start_offset,
+                current_leader_id,
+                current_leader_epoch,
+                record_errors,
+                error_message,
             });
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
     }
-    if version >= 1 {
-        let _throttle = buf::get_i32(buf)?;
-    }
-    if flexible {
-        buf::skip_tagged_fields(buf)?;
-    }
-    Ok(out)
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
+    let endpoints = if flexible {
+        decode_top_level_node_endpoints(buf, version >= 10)?
+    } else {
+        Vec::new()
+    };
+    Ok((out, endpoints, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -592,6 +2505,727 @@ mod tests {
     use super::*;
     use crate::protocol::records::Record;
     use bytes::Bytes;
+    use std::collections::{HashMap, HashSet};
+
+    #[test]
+    fn produce_transaction_v2_version_cap_matches_java() {
+        assert_eq!(
+            ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
+            11
+        );
+        assert!(!ProduceRequest::is_transaction_v2_requested(11));
+        assert!(ProduceRequest::is_transaction_v2_requested(12));
+        assert!(!ProduceRequest::is_transaction_v2_requested(10));
+        assert!(!ProduceResponse::should_client_throttle(5));
+        assert!(ProduceResponse::should_client_throttle(6));
+        assert!(ProduceResponse::error_counts(&[]).is_empty());
+        let counts = ProduceResponse::error_counts(&[
+            ProducePartitionResponse::partition_response("t", 0, 0),
+            ProducePartitionResponse::partition_response(
+                "t",
+                1,
+                crate::error::NOT_LEADER_OR_FOLLOWER,
+            ),
+            ProducePartitionResponse::partition_response("t", 2, 0),
+            ProducePartitionResponse::partition_response(
+                "u",
+                0,
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            ),
+        ]);
+        assert_eq!(
+            counts,
+            HashMap::from([
+                (0, 2),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+    }
+
+    #[test]
+    fn has_transactional_records_matches_java_request_utils() {
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let plain = RecordBatch::from_records(vec![rec.clone()]);
+        let tx = RecordBatch::from_records(vec![rec]).with_transactional(true);
+        assert!(!ProduceRequest::has_transactional_records(
+            std::iter::empty::<&[RecordBatch]>()
+        ));
+        assert!(!ProduceRequest::has_transactional_records([&[][..]]));
+        assert!(!ProduceRequest::has_transactional_records([
+            std::slice::from_ref(&plain)
+        ]));
+        assert!(ProduceRequest::has_transactional_records([
+            std::slice::from_ref(&tx)
+        ]));
+        let later_tx = [plain.clone(), tx.clone()];
+        assert!(
+            !ProduceRequest::has_transactional_records([&later_tx[..]]),
+            "Java inspects only the first batch of each partition"
+        );
+        let first_tx = [tx.clone(), plain.clone()];
+        assert!(ProduceRequest::has_transactional_records([&first_tx[..]]));
+        assert!(ProduceRequest::has_transactional_records([
+            &[][..],
+            std::slice::from_ref(&tx)
+        ]));
+    }
+
+    #[test]
+    fn produce_partition_sizes_matches_java() {
+        // Java ProduceRequest.partitionSizes: HashMap.compute sums
+        // records.sizeInBytes for the same (topic, partition). Empty
+        // Topics is empty. Duplicate pairs add (Java int wrap).
+        assert!(ProduceRequest::partition_sizes(&[]).unwrap().is_empty());
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let one_size = batch.size_in_bytes().unwrap();
+        let one = [ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![
+                ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                },
+                ProducePartitionData {
+                    index: 3,
+                    records: batch.clone(),
+                },
+            ],
+        }];
+        assert_eq!(
+            ProduceRequest::partition_sizes(&one).unwrap(),
+            HashMap::from([(("t".into(), 0), one_size), (("t".into(), 3), one_size)])
+        );
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch.clone(),
+                    },
+                ],
+            },
+        ];
+        assert_eq!(
+            ProduceRequest::partition_sizes(&dup).unwrap(),
+            HashMap::from([
+                (("a".into(), 0), one_size.wrapping_add(one_size)),
+                (("a".into(), 1), one_size),
+            ])
+        );
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, 3, None, 1, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 partitionSizes").unwrap();
+        assert_eq!(
+            ProduceRequest::partition_sizes(&decoded).unwrap(),
+            ProduceRequest::partition_sizes(&dup).unwrap()
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 9, None, 1, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 9).unwrap().3;
+        leftover_empty(&cur, "Produce v9 partitionSizes").unwrap();
+        assert_eq!(
+            ProduceRequest::partition_sizes(&decoded).unwrap(),
+            ProduceRequest::partition_sizes(&dup).unwrap()
+        );
+    }
+
+    #[test]
+    fn produce_response_to_data_matches_java() {
+        // Java ProduceResponse.toData: find(topic) first-wins, then
+        // partitionResponses().add. Intervening topics still merge.
+        // ArrayList keeps duplicate partitions.
+        assert!(ProduceResponse::to_data(&[]).is_empty());
+        let a0 = ProducePartitionResponse::partition_response("a", 0, 0);
+        let b0 =
+            ProducePartitionResponse::partition_response("b", 0, crate::error::CORRUPT_MESSAGE);
+        let a1 = ProducePartitionResponse::partition_response(
+            "a",
+            1,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        );
+        let a0_dup = ProducePartitionResponse::partition_response("a", 0, 0);
+        let grouped =
+            ProduceResponse::to_data(&[a0.clone(), b0.clone(), a1.clone(), a0_dup.clone()]);
+        assert_eq!(grouped.len(), 2);
+        assert_eq!(grouped[0].0, "a");
+        assert_eq!(grouped[0].1, vec![a0.clone(), a1.clone(), a0_dup.clone()]);
+        assert_eq!(grouped[1].0, "b");
+        assert_eq!(grouped[1].1, vec![b0.clone()]);
+
+        let parts = [a0.clone(), b0.clone(), a1.clone(), a0_dup.clone()];
+        for version in [3_i16, 9] {
+            let grouped = ProduceResponse::to_data(&parts);
+            assert_eq!(grouped.len(), 2);
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, &parts).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(ProduceResponse::to_data(&decoded).len(), 2);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "Produce v3 toData leftover-empty",
+                    9 => "Produce v9 toData leftover-empty",
+                    _ => "Produce toData leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 9] {
+            assert!(ProduceResponse::to_data(&[]).is_empty());
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, &[]).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(endpoints.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "Produce v3 toData empty leftover-empty",
+                    9 => "Produce v9 toData empty leftover-empty",
+                    _ => "Produce toData empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn produce_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ProduceResponse.json ThrottleTimeMs is versions 1+
+        // (INT32 after Responses; ignorable). Crate speaks 3–12 so the
+        // field is on the wire for every spoken version. Official Java
+        // ProduceRequest.getErrorResponse sets throttleTimeMs from the
+        // argument. encode_produce_response still writes 0.
+        // Empty-Responses v3 == v4 == v5 == v6 == v7 == v8 (classic;
+        // LogAppendTimeMs / LogStartOffset / RecordErrors are on
+        // partitions); v9 == v10 == v11 == v12 (compact; NodeEndpoints
+        // tagged field 0 is omitted when empty). There is no top-level
+        // ErrorCode. This crate speaks 3–12. This is not Fetch /
+        // Metadata / OffsetForLeaderEpoch ThrottleTimeMs.
+        let parts: Vec<ProducePartitionResponse> = vec![];
+        for version in 3..=12 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, throttle) =
+                decode_produce_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, parts);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "Produce v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut with, 3, &parts, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_produce_response_with_throttle(&mut zero, 3, &parts, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v3 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_produce_response(&mut conv, 3, &parts).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_produce_response still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[..4],
+            &[0, 0, 0, 0],
+            "empty-Responses ThrottleTimeMs comes after the topic array"
+        );
+
+        let mut v8_with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut v8_with, 8, &parts, 3_600_000).unwrap();
+        for version in 4..=8 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            assert_eq!(
+                &with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v3 == v{version}"
+            );
+        }
+        let mut v9_with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut v9_with, 9, &parts, 3_600_000).unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &v9_with[..],
+            "v9 adds compact tagged fields after ThrottleTimeMs"
+        );
+        for version in 10..=12 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            assert_eq!(
+                &v9_with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v9 == v{version}"
+            );
+        }
+    }
+
+    #[test]
+    fn produce_error_response_matches_java() {
+        // Java ProduceRequest.getErrorResponse: acks 0 is null;
+        // otherwise partitionSizes keys (unique TP) through
+        // PartitionResponse(Errors).
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch,
+                    },
+                ],
+            },
+        ];
+        assert!(
+            ProduceRequest::error_response(0, &dup, crate::error::CORRUPT_MESSAGE).is_none(),
+            "acks 0 is Java null"
+        );
+        assert!(ProduceRequest::error_response(0, &[], 0).is_none());
+        let empty = ProduceRequest::error_response(1, &[], crate::error::CORRUPT_MESSAGE)
+            .expect("acks 1 empty is empty Topics");
+        assert!(empty.is_empty());
+        let parts =
+            ProduceRequest::error_response(1, &dup, crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+                .expect("acks 1");
+        assert_eq!(
+            parts,
+            vec![
+                ProducePartitionResponse::partition_response(
+                    "a",
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+                ProducePartitionResponse::partition_response(
+                    "a",
+                    1,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+            ]
+        );
+        assert_eq!(
+            parts.len(),
+            2,
+            "duplicate (topic, partition) is one partitionSizes key"
+        );
+        let per_request: Vec<_> = dup.iter().flat_map(|t| t.error_result(0)).collect();
+        assert_eq!(per_request.len(), 3, "error_result keeps every partition");
+        leftover_empty_produce_error_response(3, &parts, &empty);
+        leftover_empty_produce_error_response(9, &parts, &empty);
+    }
+
+    #[test]
+    fn produce_request_error_counts_matches_java() {
+        // Java ProduceRequest.errorCounts(Throwable): singleton map of
+        // Errors.forException to partitionSizes().size() (unique TP keys).
+        // Empty Topics is {error: 0}, not empty. acks is not consulted
+        // (unlike getErrorResponse).
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch,
+                    },
+                ],
+            },
+        ];
+        assert_eq!(
+            ProduceRequest::error_counts(&[], crate::error::CORRUPT_MESSAGE),
+            HashMap::from([(crate::error::CORRUPT_MESSAGE, 0)]),
+            "empty Topics is a singleton 0, not an empty map"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashMap::from([(crate::error::UNKNOWN_TOPIC_OR_PARTITION, 2)]),
+            "duplicate (topic, partition) is one partitionSizes key"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+                .get(&crate::error::CORRUPT_MESSAGE)
+                .copied(),
+            Some(2),
+            "acks is not consulted; getErrorResponse would be None for acks 0"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, 0),
+            HashMap::from([(0, 2)]),
+            "NONE is still a map key"
+        );
+        assert!(
+            ProduceResponse::error_counts(&[]).is_empty(),
+            "response errorCounts on empty is empty, unlike request errorCounts"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, 3, None, 0, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 Request.errorCounts").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 9, None, 0, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 9).unwrap().3;
+        leftover_empty(&cur, "Produce v9 Request.errorCounts").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 3, None, 1, 1000, &[]).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 Request.errorCounts empty").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            HashMap::from([(crate::error::CORRUPT_MESSAGE, 0)])
+        );
+    }
+
+    fn leftover_empty_produce_error_response(
+        version: i16,
+        parts: &[ProducePartitionResponse],
+        empty: &[ProducePartitionResponse],
+    ) {
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, version, parts).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, parts);
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 getErrorResponse from partitionSizes",
+                9 => "Produce v9 getErrorResponse from partitionSizes",
+                _ => "Produce getErrorResponse from partitionSizes",
+            },
+        )
+        .unwrap();
+        buf.clear();
+        encode_produce_response(&mut buf, version, empty).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, empty);
+        leftover_empty(
+            &cur,
+            match version {
+                3 => "Produce v3 getErrorResponse from partitionSizes empty",
+                9 => "Produce v9 getErrorResponse from partitionSizes empty",
+                _ => "Produce getErrorResponse from partitionSizes empty",
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn produce_partition_response_matches_java() {
+        assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
+        assert_eq!(RecordBatch::NO_TIMESTAMP, -1);
+        assert_eq!(MetadataResponse::NO_LEADER_ID, -1);
+        assert_eq!(RecordBatch::NO_PARTITION_LEADER_EPOCH, -1);
+        let none = ProducePartitionResponse::partition_response("t", 0, 0);
+        assert_eq!(none.topic, "t");
+        assert_eq!(none.partition, 0);
+        assert_eq!(none.error_code, 0);
+        assert_eq!(none.base_offset, ProducePartitionResponse::INVALID_OFFSET);
+        assert_eq!(none.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            none.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        assert_eq!(none.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            none.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(none.record_errors.is_empty());
+        assert!(none.error_message.is_none());
+        let unknown = ProducePartitionResponse::partition_response(
+            "missing",
+            3,
+            crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        );
+        assert_eq!(unknown.topic, "missing");
+        assert_eq!(unknown.partition, 3);
+        assert_eq!(unknown.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            unknown.base_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        assert_eq!(unknown.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            unknown.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET
+        );
+        let topic = ProduceTopicData {
+            topic: "t".into(),
+            partitions: vec![
+                ProducePartitionData {
+                    index: 0,
+                    records: RecordBatch::from_records(vec![]),
+                },
+                ProducePartitionData {
+                    index: 3,
+                    records: RecordBatch::from_records(vec![]),
+                },
+            ],
+        };
+        let result = topic.error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            result,
+            vec![
+                ProducePartitionResponse::partition_response(
+                    "t",
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+                ProducePartitionResponse::partition_response(
+                    "t",
+                    3,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                ),
+            ]
+        );
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 8, &result).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, 8).unwrap();
+        assert!(endpoints.is_empty());
+        assert_eq!(decoded, result);
+        leftover_empty(&cur, "Produce getErrorResponse v8").unwrap();
+    }
+
+    #[test]
+    fn produce_v3_omitted_log_start_is_invalid_offset() {
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 7,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: 99,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+            record_errors: Vec::new(),
+            error_message: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 3, &parts).unwrap();
+        let mut cur = &buf[..];
+        let (got, endpoints, ..) = decode_produce_response(&mut cur, 3).unwrap();
+        assert!(endpoints.is_empty());
+        assert!(cur.is_empty());
+        let part = got.first().expect("one partition");
+        assert_eq!(part.base_offset, 7);
+        assert_eq!(part.log_append_time_ms, RecordBatch::NO_TIMESTAMP);
+        assert_eq!(
+            part.log_start_offset,
+            ProducePartitionResponse::INVALID_OFFSET,
+            "Produce v3 omits LogStartOffset; decode fills INVALID_OFFSET"
+        );
+        assert_eq!(ProducePartitionResponse::INVALID_OFFSET, -1);
+        assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            part.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert!(
+            part.record_errors.is_empty(),
+            "Produce v3 omits RecordErrors; decode fills empty"
+        );
+        assert!(
+            part.error_message.is_none(),
+            "Produce v3 omits ErrorMessage; decode fills null"
+        );
+    }
+
+    #[test]
+    fn produce_record_error_matches_java() {
+        assert_eq!(
+            ProduceRecordError::new(1, None).to_string(),
+            "RecordError(batchIndex=1, message=null)"
+        );
+        assert_eq!(
+            ProduceRecordError::new(0, Some(String::new())).to_string(),
+            "RecordError(batchIndex=0, message='')"
+        );
+        let quoted = ProduceRecordError::new(4, Some("oops".into()));
+        assert_eq!(quoted.batch_index(), 4);
+        assert_eq!(quoted.message(), Some("oops"));
+        assert_eq!(
+            quoted.to_string(),
+            "RecordError(batchIndex=4, message='oops')"
+        );
+
+        let empty = ProducePartitionResponse::partition_response("t", 0, 8);
+        assert!(empty.record_errors.is_empty());
+        assert!(empty.error_message.is_none());
+        for version in [8, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&empty)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&empty));
+            leftover_empty(
+                &cur,
+                if version == 8 {
+                    "Produce v8 RecordErrors empty leftover-empty"
+                } else {
+                    "Produce v9 RecordErrors empty leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        let mut with_errors =
+            ProducePartitionResponse::partition_response("t", 1, crate::error::INVALID_RECORD);
+        with_errors.record_errors = vec![
+            ProduceRecordError::new(0, None),
+            ProduceRecordError::new(0, Some("dup".into())),
+            ProduceRecordError::new(2, Some("bad".into())),
+        ];
+        with_errors.error_message = Some("batch dropped".into());
+        for version in [8, 9] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&with_errors));
+            leftover_empty(
+                &cur,
+                if version == 8 {
+                    "Produce v8 RecordErrors leftover-empty"
+                } else {
+                    "Produce v9 RecordErrors leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        with_errors.current_leader_id = 2;
+        with_errors.current_leader_epoch = 7;
+        for version in [10, 12] {
+            let mut buf = BytesMut::new();
+            encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
+            assert!(endpoints.is_empty());
+            assert_eq!(decoded, std::slice::from_ref(&with_errors));
+            leftover_empty(
+                &cur,
+                if version == 10 {
+                    "Produce v10 RecordErrors CurrentLeader leftover-empty"
+                } else {
+                    "Produce v12 RecordErrors CurrentLeader leftover-empty"
+                },
+            )
+            .unwrap();
+        }
+
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 3, std::slice::from_ref(&with_errors)).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, ..) = decode_produce_response(&mut cur, 3).unwrap();
+        leftover_empty(&cur, "Produce v3 RecordErrors leftover-empty").unwrap();
+        let part = decoded.first().expect("one partition");
+        assert!(
+            part.record_errors.is_empty(),
+            "Produce v3 omits RecordErrors even when the body has them"
+        );
+        assert!(part.error_message.is_none());
+        assert_eq!(part.current_leader_id, MetadataResponse::NO_LEADER_ID);
+        assert_eq!(
+            part.current_leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+    }
 
     #[test]
     fn api_versions_v3_roundtrip() {
@@ -615,11 +3249,545 @@ mod tests {
                 },
             ],
             throttle_time_ms: 0,
+            ..Default::default()
         };
         let mut buf = BytesMut::new();
         encode_api_versions_response(&mut buf, 3, &resp).unwrap();
-        let decoded = decode_api_versions_response(&mut &buf[..], 3).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
         assert_eq!(decoded, resp);
+        assert!(
+            !cur.has_remaining(),
+            "ApiVersions v3 empty features must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn api_versions_v3_empty_features_is_zero_tagged_fields() {
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: Vec::new(),
+            throttle_time_ms: 0,
+            ..Default::default()
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 3, &resp).unwrap();
+        assert_eq!(&buf[..], &[0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        let mut cur = &buf[..];
+        assert_eq!(decode_api_versions_response(&mut cur, 3).unwrap(), resp);
+        assert!(!cur.has_remaining());
+    }
+
+    #[test]
+    fn api_versions_v3_features_roundtrip_is_leftover_empty() {
+        // KIP-482: tag 0 supported (name, min, max), tag 1 epoch INT64,
+        // tag 2 finalized (name, max, min). Empty tags omitted.
+        const BODY: &[u8] = &[
+            0x00, 0x00, 0x02, 0x00, 0x12, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x17, 0x02, 0x11, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x2e,
+            0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x01, 0x00, 0x14, 0x00, 0x01, 0x08,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x17, 0x02, 0x11, 0x6d, 0x65,
+            0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x2e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+            0x00, 0x14, 0x00, 0x01, 0x00,
+        ];
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            }],
+            finalized_features_epoch: Some(1),
+            finalized_features: vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }],
+            zk_migration_ready: false,
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 3, &resp).unwrap();
+        assert_eq!(&buf[..], BODY);
+        let mut cur = &buf[..];
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(
+            !cur.has_remaining(),
+            "ApiVersions v3 features must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn api_versions_response_helpers_match_java() {
+        assert_eq!(ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH, -1);
+        assert!(!ApiVersionsResponse::should_client_throttle(1));
+        assert!(ApiVersionsResponse::should_client_throttle(2));
+        let resp = ApiVersionsResponse {
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            zk_migration_ready: true,
+            ..Default::default()
+        };
+        assert_eq!(resp.api_version(18).map(|v| v.max_version), Some(4));
+        assert!(resp.api_version(1).is_none());
+        assert!(resp.zk_migration_ready());
+        let produce = ApiVersion {
+            api_key: 0,
+            min_version: 0,
+            max_version: 12,
+        };
+        assert_eq!(produce.api_key(), 0);
+        assert_eq!(produce.min_version(), 0);
+        assert_eq!(produce.max_version(), 12);
+        let overlap = ApiVersion {
+            api_key: 0,
+            min_version: 3,
+            max_version: 9,
+        };
+        let got = ApiVersionsResponse::intersect(Some(&produce), Some(&overlap))
+            .expect("same api key")
+            .expect("overlap");
+        assert_eq!(got.api_key(), 0);
+        assert_eq!(got.min_version(), 3);
+        assert_eq!(got.max_version(), 9);
+        let disjoint = ApiVersion {
+            api_key: 0,
+            min_version: 13,
+            max_version: 15,
+        };
+        assert_eq!(
+            ApiVersionsResponse::intersect(Some(&produce), Some(&disjoint)).expect("same api key"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(None, Some(&produce)).expect("null"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(Some(&produce), None).expect("null"),
+            None
+        );
+        assert_eq!(
+            ApiVersionsResponse::intersect(None, None).expect("null"),
+            None
+        );
+        let fetch = ApiVersion {
+            api_key: 1,
+            min_version: 0,
+            max_version: 17,
+        };
+        let err = ApiVersionsResponse::intersect(Some(&produce), Some(&fetch)).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("thisVersion.apiKey: 0 must be equal to other.apiKey: 1"));
+        let supported = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        assert_eq!(supported.name(), "metadata.version");
+        assert_eq!(supported.min_version(), 1);
+        assert_eq!(supported.max_version(), 20);
+        let finalized = FinalizedFeatureKey {
+            name: "metadata.version".into(),
+            max_version_level: 20,
+            min_version_level: 1,
+        };
+        assert_eq!(finalized.name(), "metadata.version");
+        assert_eq!(finalized.max_version_level(), 20);
+        assert_eq!(finalized.min_version_level(), 1);
+    }
+
+    #[test]
+    fn api_versions_request_is_valid_matches_java() {
+        assert!(ApiVersionsRequest::is_valid(2, "", ""));
+        assert!(ApiVersionsRequest::is_valid(2, "-invalid", "x."));
+        assert!(ApiVersionsRequest::is_valid(
+            3,
+            crate::CLIENT_NAME,
+            crate::CLIENT_VERSION
+        ));
+        assert!(ApiVersionsRequest::is_valid(4, "a", "1"));
+        assert!(ApiVersionsRequest::is_valid(3, "a-b.c", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "partitionline", ""));
+        assert!(!ApiVersionsRequest::is_valid(3, "-x", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x-", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, ".x", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x.", "0.1.0"));
+        assert!(!ApiVersionsRequest::is_valid(3, "x_y", "0.1.0"));
+    }
+
+    #[test]
+    fn api_versions_request_error_response_matches_java() {
+        // Java ApiVersionsRequest.getErrorResponse: UNSUPPORTED_VERSION
+        // fills ApiKeys with toApiVersion(API_VERSIONS). Any other error
+        // leaves ApiKeys empty. Encode still writes the caller's
+        // api_keys as-is. Throttle is the JSON default (0).
+        let none = ApiVersionsRequest::error_response(0);
+        assert_eq!(none.error_code, 0);
+        assert!(none.api_keys.is_empty());
+        assert_eq!(none.throttle_time_ms, 0);
+        assert!(none.supported_features.is_empty());
+        assert!(none.finalized_features.is_empty());
+        assert!(none.finalized_features_epoch.is_none());
+        assert!(!none.zk_migration_ready);
+
+        let other = ApiVersionsRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(other.error_code, crate::error::INVALID_REQUEST);
+        assert!(other.api_keys.is_empty());
+
+        let unsupported = ApiVersionsRequest::error_response(crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(unsupported.error_code, crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(
+            unsupported.api_keys,
+            [ApiVersion {
+                api_key: API_VERSIONS,
+                min_version: 0,
+                max_version: 4,
+            }]
+        );
+        assert_eq!(
+            unsupported.api_version(API_VERSIONS).map(|v| v.max_version),
+            Some(4)
+        );
+
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &unsupported).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, crate::error::UNSUPPORTED_VERSION);
+            assert_eq!(decoded.api_keys, unsupported.api_keys);
+            leftover_empty(
+                &cur,
+                match version {
+                    0 => "ApiVersions v0 Request.getErrorResponse leftover-empty",
+                    1 => "ApiVersions v1 Request.getErrorResponse leftover-empty",
+                    3 => "ApiVersions v3 Request.getErrorResponse leftover-empty",
+                    _ => "ApiVersions v4 Request.getErrorResponse leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [0_i16, 1, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &none).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, 0);
+            assert!(decoded.api_keys.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    0 => "ApiVersions v0 Request.getErrorResponse empty leftover-empty",
+                    1 => "ApiVersions v1 Request.getErrorResponse empty leftover-empty",
+                    3 => "ApiVersions v3 Request.getErrorResponse empty leftover-empty",
+                    _ => "ApiVersions v4 Request.getErrorResponse empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn api_versions_create_finalized_feature_keys_matches_java() {
+        // Java createFinalizedFeatureKeys: HashMap.put last-wins, then
+        // skip versionLevel 0. Surviving names copy the same level onto
+        // min and max. Encode still writes FinalizedFeatures as-is.
+        let empty =
+            ApiVersionsResponse::create_finalized_feature_keys(std::iter::empty::<(&str, i16)>());
+        assert!(empty.is_empty());
+        assert!(ApiVersionsResponse::create_finalized_feature_keys([("f", 0)]).is_empty());
+
+        let skipped = ApiVersionsResponse::create_finalized_feature_keys([("f", 5), ("f", 0)]);
+        assert!(skipped.is_empty(), "last-wins then skip");
+
+        let kept = ApiVersionsResponse::create_finalized_feature_keys([("f", 0), ("f", 5)]);
+        assert_eq!(
+            kept,
+            [FinalizedFeatureKey {
+                name: "f".into(),
+                max_version_level: 5,
+                min_version_level: 5,
+            }]
+        );
+
+        let keys = ApiVersionsResponse::create_finalized_feature_keys([
+            ("b", 2),
+            ("a", 0),
+            ("c", 3),
+            ("b", 7),
+        ]);
+        assert_eq!(
+            keys,
+            [
+                FinalizedFeatureKey {
+                    name: "b".into(),
+                    max_version_level: 7,
+                    min_version_level: 7,
+                },
+                FinalizedFeatureKey {
+                    name: "c".into(),
+                    max_version_level: 3,
+                    min_version_level: 3,
+                },
+            ],
+            "first-seen order; skip 0"
+        );
+
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                finalized_features: keys.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.finalized_features, keys);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 createFinalizedFeatureKeys leftover-empty",
+                    _ => "ApiVersions v4 createFinalizedFeatureKeys leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                finalized_features: empty.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(decoded.finalized_features.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 createFinalizedFeatureKeys empty leftover-empty",
+                    _ => "ApiVersions v4 createFinalizedFeatureKeys empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn api_versions_maybe_filter_supported_feature_keys_matches_java() {
+        // Java maybeFilterSupportedFeatureKeys: alterFeatureLevel0 omits
+        // minVersion 0 (KAFKA-17492). Names are not uniqued. Encode already
+        // applies the equivalent filter on v3, so leftover-empty encodes
+        // the helper output (not the unfiltered slice).
+        let kraft = SupportedFeatureKey {
+            name: "kraft.version".into(),
+            min_version: 0,
+            max_version: 1,
+        };
+        let meta = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        assert!(ApiVersionsResponse::maybe_filter_supported_feature_keys(&[], true).is_empty());
+        assert!(ApiVersionsResponse::maybe_filter_supported_feature_keys(&[], false).is_empty());
+
+        let filtered = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), kraft.clone()],
+            true,
+        );
+        assert_eq!(filtered.as_slice(), std::slice::from_ref(&meta));
+
+        let kept = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), kraft.clone()],
+            false,
+        );
+        assert_eq!(kept, [meta.clone(), kraft.clone()]);
+
+        let skipped = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            std::slice::from_ref(&kraft),
+            true,
+        );
+        assert!(skipped.is_empty());
+
+        let dup = ApiVersionsResponse::maybe_filter_supported_feature_keys(
+            &[meta.clone(), meta.clone()],
+            true,
+        );
+        assert_eq!(dup.len(), 2, "names are not uniqued");
+
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse {
+                supported_features: filtered.clone(),
+                ..Default::default()
+            };
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.supported_features, filtered);
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 maybeFilterSupportedFeatureKeys leftover-empty",
+                    _ => "ApiVersions v4 maybeFilterSupportedFeatureKeys leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+        for version in [3_i16, 4] {
+            let resp = ApiVersionsResponse::default();
+            let mut buf = BytesMut::new();
+            encode_api_versions_response(&mut buf, version, &resp).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert!(decoded.supported_features.is_empty());
+            leftover_empty(
+                &cur,
+                match version {
+                    3 => "ApiVersions v3 maybeFilterSupportedFeatureKeys empty leftover-empty",
+                    _ => "ApiVersions v4 maybeFilterSupportedFeatureKeys empty leftover-empty",
+                },
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn api_versions_v3_matches_v4_and_does_not_speak_v5() {
+        // Official Kafka 4.0 JSON: validVersions 0-4, flexibleVersions 3+.
+        // v3 and v4 request match. v4 response includes SupportedFeatures
+        // with MinVersion 0 (KAFKA-17011); v3 omits them. This crate
+        // speaks 0–4. v5+ is not spoken.
+        let mut v3 = BytesMut::new();
+        encode_api_versions_request(&mut v3, 3, "partitionline", "0.1.0").unwrap();
+        let mut v4 = BytesMut::new();
+        encode_api_versions_request(&mut v4, 4, "partitionline", "0.1.0").unwrap();
+        assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
+        let mut v0 = BytesMut::new();
+        encode_api_versions_request(&mut v0, 0, "partitionline", "0.1.0").unwrap();
+        assert!(v0.is_empty(), "v0–v2 request is empty");
+        encode_api_versions_request(&mut v0, 2, "partitionline", "0.1.0").unwrap();
+        assert!(v0.is_empty(), "v2 request is empty");
+        let mut empty: &[u8] = &[];
+        assert_eq!(
+            decode_api_versions_request(&mut empty, 0).unwrap(),
+            (String::new(), String::new())
+        );
+        let mut empty: &[u8] = &[];
+        assert_eq!(
+            decode_api_versions_request(&mut empty, 2).unwrap(),
+            (String::new(), String::new())
+        );
+        let mut cur = v3.as_ref();
+        assert_eq!(
+            decode_api_versions_request(&mut cur, 3).unwrap(),
+            ("partitionline".into(), "0.1.0".into())
+        );
+        assert!(!cur.has_remaining(), "v3 request leftover-empty");
+        let mut cur = v4.as_ref();
+        assert_eq!(
+            decode_api_versions_request(&mut cur, 4).unwrap(),
+            ("partitionline".into(), "0.1.0".into())
+        );
+        assert!(!cur.has_remaining(), "v4 request leftover-empty");
+        let err = encode_api_versions_request(&mut BytesMut::new(), 5, "partitionline", "0.1.0")
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 is not spoken, got {err}"
+        );
+        let mut empty: &[u8] = &[];
+        let err = decode_api_versions_request(&mut empty, 5).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 decode is not spoken, got {err}"
+        );
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 3, 0, 4), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 4, 0, 4), Some(4));
+        assert_eq!(crate::protocol::api_keys::pick_version(5, 5, 0, 4), None);
+
+        let kraft = SupportedFeatureKey {
+            name: "kraft.version".into(),
+            min_version: 0,
+            max_version: 1,
+        };
+        let meta = SupportedFeatureKey {
+            name: "metadata.version".into(),
+            min_version: 1,
+            max_version: 20,
+        };
+        let resp = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![meta.clone(), kraft.clone()],
+            finalized_features_epoch: None,
+            finalized_features: Vec::new(),
+            zk_migration_ready: false,
+        };
+        v3.clear();
+        encode_api_versions_response(&mut v3, 3, &resp).unwrap();
+        v4.clear();
+        encode_api_versions_response(&mut v4, 4, &resp).unwrap();
+        assert_ne!(
+            v3.as_ref(),
+            v4.as_ref(),
+            "v3 omits SupportedFeatures with MinVersion 0"
+        );
+        let mut cur = v3.as_ref();
+        let decoded = decode_api_versions_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded.supported_features, vec![meta.clone()]);
+        assert!(!cur.has_remaining(), "v3 response leftover-empty");
+        let mut cur = v4.as_ref();
+        let decoded = decode_api_versions_response(&mut cur, 4).unwrap();
+        assert_eq!(decoded.supported_features, vec![meta, kraft]);
+        assert!(!cur.has_remaining(), "v4 response leftover-empty");
+        v3.clear();
+        let err = encode_api_versions_response(&mut v3, 5, &resp).unwrap_err();
+        assert!(
+            err.to_string().contains("not implemented"),
+            "v5 response is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn api_versions_kip511_v0_unsupported_body_parses_when_sent_v4() {
+        // Brokers 2.4+ answer an unsupported ApiVersions version with a
+        // v0 body (KIP-511). Java ApiVersionsResponse.parse falls back
+        // to v0 when the sent version does not leftover-empty.
+        let resp = ApiVersionsResponse {
+            error_code: crate::error::UNSUPPORTED_VERSION,
+            api_keys: vec![ApiVersion {
+                api_key: API_VERSIONS,
+                min_version: 0,
+                max_version: 3,
+            }],
+            ..Default::default()
+        };
+        let mut buf = BytesMut::new();
+        encode_api_versions_response(&mut buf, 0, &resp).unwrap();
+        let decoded = decode_api_versions_handshake(&buf, 4).unwrap();
+        assert_eq!(decoded.error_code, crate::error::UNSUPPORTED_VERSION);
+        assert_eq!(decoded.api_keys, resp.api_keys);
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 3, 0, 4), Some(3));
+        assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 4), Some(0));
     }
 
     #[test]
@@ -646,7 +3814,7 @@ mod tests {
     }
 
     #[test]
-    fn produce_v9_roundtrip() {
+    fn produce_v9_roundtrip_is_leftover_empty() {
         let rec = Record {
             offset: 0,
             timestamp: 42,
@@ -663,7 +3831,8 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_produce_request(&mut buf, 9, None, 1, 1500, &topics).unwrap();
-        let (txn, acks, timeout, decoded) = decode_produce_request(&mut &buf[..], 9).unwrap();
+        let mut cur = &buf[..];
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 9).unwrap();
         assert_eq!(txn, None);
         assert_eq!(acks, 1);
         assert_eq!(timeout, 1500);
@@ -672,11 +3841,216 @@ mod tests {
             decoded[0].partitions[0].records.records[0].value.as_deref(),
             Some(&b"hi"[..])
         );
+        assert!(
+            cur.is_empty(),
+            "Produce v9 request must consume compact tagged fields"
+        );
+
+        buf.clear();
+        encode_produce_request(&mut buf, 12, None, 1, 1500, &topics).unwrap();
+        let mut cur = &buf[..];
+        let (txn, acks, timeout, decoded) = decode_produce_request(&mut cur, 12).unwrap();
+        assert_eq!(txn, None);
+        assert_eq!(acks, 1);
+        assert_eq!(timeout, 1500);
+        assert_eq!(decoded[0].topic, "t");
+        assert!(
+            cur.is_empty(),
+            "Produce v12 request must consume compact tagged fields"
+        );
 
         let mut txn_buf = BytesMut::new();
         encode_produce_request(&mut txn_buf, 8, Some("tx-1"), 1, 1500, &topics).unwrap();
-        let (txn, _, _, _) = decode_produce_request(&mut &txn_buf[..], 8).unwrap();
+        let mut cur = &txn_buf[..];
+        let (txn, _, _, _) = decode_produce_request(&mut cur, 8).unwrap();
         assert_eq!(txn.as_deref(), Some("tx-1"));
+        assert!(
+            cur.is_empty(),
+            "Produce v8 request leftover {} bytes",
+            cur.len()
+        );
+
+        buf.clear();
+        assert!(
+            encode_produce_request(&mut buf, 13, None, 1, 1500, &topics).is_err(),
+            "Produce v13+ (topic IDs) is not spoken"
+        );
+    }
+
+    #[test]
+    fn produce_v9_response_matches_compact_layout() {
+        // Compact Topics {Name "t", compact Partitions {0, error 0,
+        // base 0, logAppend -1, logStart 0, empty RecordErrors, null
+        // ErrorMessage, tagged}, tagged}, throttle 0, tagged.
+        const RESP: &[u8] = &[
+            0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00,
+        ];
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: 0,
+            current_leader_id: -1,
+            current_leader_epoch: -1,
+            record_errors: Vec::new(),
+            error_message: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 9, &parts).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 9).unwrap();
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
+        assert!(
+            cur.is_empty(),
+            "Produce v9 response must consume compact tagged fields"
+        );
+
+        buf.clear();
+        encode_produce_response(&mut buf, 12, &parts).unwrap();
+        assert_eq!(
+            &buf[..],
+            RESP,
+            "Produce v12 with omitted CurrentLeader matches v9 bytes"
+        );
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 12).unwrap();
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
+        assert!(
+            cur.is_empty(),
+            "Produce v12 empty CurrentLeader must consume compact tagged fields"
+        );
+    }
+
+    #[test]
+    fn produce_v11_current_leader_tagged_is_leftover_empty() {
+        // Same as v9 compact response except partition tagged field 0:
+        // LeaderId 2, LeaderEpoch 7, empty nested tagged fields (9 bytes).
+        const RESP: &[u8] = &[
+            0x02, 0x02, 0x74, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x09, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 0,
+            base_offset: 0,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: 0,
+            current_leader_id: 2,
+            current_leader_epoch: 7,
+            record_errors: Vec::new(),
+            error_message: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response(&mut buf, 11, &parts).unwrap();
+        assert_eq!(&buf[..], RESP);
+        let mut cur = &buf[..];
+        let got = decode_produce_response(&mut cur, 11).unwrap();
+        assert_eq!(got.0, parts);
+        assert!(got.1.is_empty());
+        assert!(
+            cur.is_empty(),
+            "Produce v11 CurrentLeader must consume nested tagged fields"
+        );
+        buf.clear();
+        encode_produce_response(&mut buf, 10, &parts).unwrap();
+        assert_eq!(&buf[..], RESP, "Produce v10 CurrentLeader matches v11");
+        buf.clear();
+        encode_produce_response(&mut buf, 12, &parts).unwrap();
+        assert_eq!(&buf[..], RESP, "Produce v12 CurrentLeader matches v11");
+        buf.clear();
+        assert!(
+            encode_produce_response(&mut buf, 13, &parts).is_err(),
+            "Produce v13+ (topic IDs) is not spoken"
+        );
+    }
+
+    #[test]
+    fn produce_v10_node_endpoints_tagged_is_leftover_empty() {
+        let parts = [ProducePartitionResponse {
+            topic: "t".into(),
+            partition: 0,
+            error_code: 6,
+            base_offset: ProducePartitionResponse::INVALID_OFFSET,
+            log_append_time_ms: RecordBatch::NO_TIMESTAMP,
+            log_start_offset: 0,
+            current_leader_id: 3,
+            current_leader_epoch: 1,
+            record_errors: Vec::new(),
+            error_message: None,
+        }];
+        let endpoints = [NodeEndpoint {
+            node_id: 3,
+            host: "h".into(),
+            port: 1,
+            rack: None,
+        }];
+        let mut buf = BytesMut::new();
+        encode_produce_response_with_endpoints(&mut buf, 10, &parts, &endpoints).unwrap();
+        let mut cur = &buf[..];
+        let (got, eps, ..) = decode_produce_response(&mut cur, 10).unwrap();
+        assert_eq!(got[0].current_leader_id, 3);
+        assert_eq!(eps, endpoints);
+        assert!(
+            cur.is_empty(),
+            "Produce NodeEndpoints tagged field 0 must consume nested tagged fields"
+        );
+        let mut omitted = BytesMut::new();
+        encode_produce_response(&mut omitted, 10, &parts).unwrap();
+        assert_ne!(
+            &buf[..],
+            &omitted[..],
+            "NodeEndpoints tagged field 0 must not equal empty tags"
+        );
+        let mut v9 = BytesMut::new();
+        encode_produce_response_with_endpoints(&mut v9, 9, &parts, &endpoints).unwrap();
+        let mut empty = BytesMut::new();
+        encode_produce_response(&mut empty, 9, &parts).unwrap();
+        assert_eq!(&v9[..], &empty[..], "Produce v9 must omit NodeEndpoints");
+    }
+
+    #[test]
+    fn metadata_broker_and_node_endpoint_match_java_node() {
+        let broker = Broker::new(1, "127.0.0.1", 9092, Some("r".into()));
+        assert_eq!(broker.id(), 1);
+        assert_eq!(broker.id_string(), "1");
+        assert_eq!(broker.host(), "127.0.0.1");
+        assert_eq!(broker.port(), 9092);
+        assert_eq!(broker.rack(), Some("r"));
+        assert!(broker.has_rack());
+        assert!(!broker.is_fenced());
+        assert!(!broker.is_empty());
+        assert_eq!(
+            broker.to_string(),
+            "127.0.0.1:9092 (id: 1 rack: r isFenced: false)"
+        );
+        let endpoint = NodeEndpoint::from(broker.clone());
+        assert_eq!(endpoint.id(), 1);
+        assert_eq!(endpoint.host(), "127.0.0.1");
+        assert_eq!(endpoint.port(), 9092);
+        assert_eq!(endpoint.rack(), Some("r"));
+        assert!(endpoint.has_rack());
+        assert!(!endpoint.is_fenced());
+        assert_eq!(endpoint.to_string(), broker.to_string());
+        assert_eq!(Broker::from(endpoint.clone()), broker);
+        let empty = Broker::no_node();
+        assert_eq!(empty.id(), -1);
+        assert!(empty.is_empty());
+        assert_eq!(empty.id_string(), "-1");
+        assert_eq!(empty.to_string(), ":-1 (id: -1 rack: null isFenced: false)");
+        let empty_ep = NodeEndpoint::no_node();
+        assert!(empty_ep.is_empty());
+        assert_eq!(empty_ep.to_string(), empty.to_string());
     }
 
     #[test]
@@ -703,12 +4077,633 @@ mod tests {
                     leader_epoch: 3,
                     replica_nodes: vec![1],
                     isr_nodes: vec![1],
+                    offline_replicas: vec![2],
                 }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
             }],
+            error_code: 0,
         };
         let mut buf = BytesMut::new();
         encode_metadata_response(&mut buf, 12, &resp).unwrap();
-        let decoded = decode_metadata_response(&mut &buf[..], 12).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_metadata_response(&mut cur, 12).unwrap();
         assert_eq!(decoded, resp);
+        leftover_empty(&cur, "Metadata v12").unwrap();
+
+        let mut v13 = BytesMut::new();
+        encode_metadata_response(&mut v13, 13, &resp).unwrap();
+        let mut cur = &v13[..];
+        let decoded = decode_metadata_response(&mut cur, 13).unwrap();
+        assert_eq!(decoded, resp);
+        leftover_empty(&cur, "Metadata v13").unwrap();
+        assert_ne!(
+            &buf[..],
+            &v13[..],
+            "Metadata v13 must write top-level ErrorCode before tagged fields"
+        );
+    }
+
+    #[test]
+    fn metadata_v13_top_error_fails_check() {
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        };
+        assert_eq!(resp.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        assert_eq!(MetadataResponse::NO_CONTROLLER_ID, -1);
+        assert_eq!(MetadataResponse::NO_LEADER_ID, -1);
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 13, &resp).unwrap();
+        let decoded = decode_metadata_response(&mut &buf[..], 13).unwrap();
+        assert_eq!(decoded.error_code, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            decoded.check().unwrap_err().broker_code(),
+            Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+    }
+
+    #[test]
+    fn metadata_has_reliable_leader_epochs_matches_java() {
+        assert!(!MetadataResponse::has_reliable_leader_epochs(8));
+        assert!(MetadataResponse::has_reliable_leader_epochs(9));
+        assert!(MetadataResponse::has_reliable_leader_epochs(13));
+        assert_eq!(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED, i32::MIN);
+        assert_eq!(
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            crate::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert!(!MetadataResponse::should_client_throttle(5));
+        assert!(MetadataResponse::should_client_throttle(6));
+        let with_epoch = PartitionMetadata {
+            error_code: 0,
+            partition_index: 1,
+            leader_id: 2,
+            leader_epoch: 8,
+            replica_nodes: vec![2, 3],
+            isr_nodes: vec![2],
+            offline_replicas: vec![3],
+        };
+        let stripped = with_epoch.without_leader_epoch();
+        assert_eq!(
+            stripped.leader_epoch,
+            RecordBatch::NO_PARTITION_LEADER_EPOCH
+        );
+        assert_eq!(stripped.error_code, with_epoch.error_code);
+        assert_eq!(stripped.partition_index, with_epoch.partition_index);
+        assert_eq!(stripped.leader_id, with_epoch.leader_id);
+        assert_eq!(stripped.replica_nodes, with_epoch.replica_nodes);
+        assert_eq!(stripped.isr_nodes, with_epoch.isr_nodes);
+        assert_eq!(stripped.offline_replicas, with_epoch.offline_replicas);
+        assert_eq!(with_epoch.leader_epoch, 8);
+        let topic = TopicMetadata {
+            error_code: 0,
+            name: Some("t".into()),
+            topic_id: [0; 16],
+            is_internal: false,
+            partitions: vec![with_epoch.clone()],
+            topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+        };
+        assert_eq!(
+            topic.to_string(),
+            "TopicMetadata{error=NONE, topic='t', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=false, partitionMetadata=[PartitionMetadata(error=NONE, partition=t-1, leader=Optional[2], leaderEpoch=Optional[8], replicas=2,3, isr=2, offlineReplicas=3)], authorizedOperations=-2147483648}"
+        );
+        let empty = TopicMetadata::error(0, None, [0; 16]);
+        assert_eq!(
+            empty.to_string(),
+            "TopicMetadata{error=NONE, topic='', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=false, partitionMetadata=[], authorizedOperations=-2147483648}"
+        );
+        let unnamed = TopicMetadata {
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+            name: None,
+            topic_id: [0; 16],
+            is_internal: true,
+            partitions: vec![PartitionMetadata {
+                error_code: 0,
+                partition_index: 0,
+                leader_id: MetadataResponse::NO_LEADER_ID,
+                leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                replica_nodes: Vec::new(),
+                isr_nodes: Vec::new(),
+                offline_replicas: Vec::new(),
+            }],
+            topic_authorized_operations: 0,
+        };
+        assert_eq!(
+            unnamed.to_string(),
+            "TopicMetadata{error=UNKNOWN_TOPIC_OR_PARTITION, topic='null', topicId='AAAAAAAAAAAAAAAAAAAAAA', isInternal=true, partitionMetadata=[PartitionMetadata(error=NONE, partition=null-0, leader=Optional.empty, leaderEpoch=Optional.empty, replicas=, isr=, offlineReplicas=)], authorizedOperations=0}"
+        );
+    }
+
+    #[test]
+    fn metadata_response_errors_matches_java() {
+        fn topic(error_code: i16, name: Option<&str>, topic_id: [u8; 16]) -> TopicMetadata {
+            TopicMetadata {
+                error_code,
+                name: name.map(str::to_owned),
+                topic_id,
+                is_internal: false,
+                partitions: Vec::new(),
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }
+        }
+        fn resp(topics: Vec<TopicMetadata>) -> MetadataResponse {
+            MetadataResponse {
+                throttle_time_ms: 0,
+                brokers: Vec::new(),
+                cluster_id: None,
+                controller_id: MetadataResponse::NO_CONTROLLER_ID,
+                topics,
+                error_code: 0,
+            }
+        }
+
+        let named = resp(vec![
+            topic(0, Some("ok"), [0; 16]),
+            topic(
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                Some("missing"),
+                [0; 16],
+            ),
+            topic(
+                crate::error::TOPIC_AUTHORIZATION_FAILED,
+                Some("denied"),
+                [0; 16],
+            ),
+            topic(crate::error::INVALID_TOPIC_EXCEPTION, Some("bad"), [0; 16]),
+        ]);
+        assert_eq!(
+            named.errors().unwrap(),
+            HashMap::from([
+                (
+                    "missing".to_owned(),
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION
+                ),
+                (
+                    "denied".to_owned(),
+                    crate::error::TOPIC_AUTHORIZATION_FAILED
+                ),
+                ("bad".to_owned(), crate::error::INVALID_TOPIC_EXCEPTION),
+            ])
+        );
+        assert_eq!(
+            named.topics_by_error(crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashSet::from(["missing".to_owned()])
+        );
+        assert_eq!(named.topics_by_error(0), HashSet::from(["ok".to_owned()]));
+        assert!(named
+            .topics_by_error(crate::error::UNKNOWN_TOPIC_ID)
+            .is_empty());
+        let err = named.errors_by_topic_id().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errors() when managing topic using topic name"),
+            "got {err}"
+        );
+
+        let by_id = resp(vec![
+            topic(0, None, [1; 16]),
+            topic(crate::error::UNKNOWN_TOPIC_ID, None, [2; 16]),
+            topic(
+                crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                Some("named"),
+                [3; 16],
+            ),
+        ]);
+        assert_eq!(
+            by_id.errors_by_topic_id().unwrap(),
+            HashMap::from([
+                ([2; 16], crate::error::UNKNOWN_TOPIC_ID),
+                ([3; 16], crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            ])
+        );
+        assert_eq!(
+            by_id.topics_by_error(crate::error::UNKNOWN_TOPIC_ID),
+            HashSet::new()
+        );
+        assert_eq!(
+            by_id.topics_by_error(crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashSet::from(["named".to_owned()])
+        );
+        let err = by_id.errors().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errorsByTopicId() when managing topic using topic id"),
+            "got {err}"
+        );
+
+        let mixed_null_name = resp(vec![
+            topic(crate::error::UNKNOWN_TOPIC_OR_PARTITION, Some("t"), [1; 16]),
+            topic(0, None, [2; 16]),
+        ]);
+        let err = mixed_null_name.errors().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errorsByTopicId() when managing topic using topic id"),
+            "got {err}"
+        );
+
+        let mixed_zero_id = resp(vec![
+            topic(crate::error::UNKNOWN_TOPIC_ID, Some("t"), [1; 16]),
+            topic(0, Some("ok"), [0; 16]),
+        ]);
+        let err = mixed_zero_id.errors_by_topic_id().unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Use errors() when managing topic using topic name"),
+            "got {err}"
+        );
+
+        let empty = resp(Vec::new());
+        assert!(empty.errors().unwrap().is_empty());
+        assert!(empty.errors_by_topic_id().unwrap().is_empty());
+        assert!(empty.topics_by_error(0).is_empty());
+        assert!(empty.error_counts().is_empty());
+        assert!(empty.topic_authorized_operations("t").is_none());
+    }
+
+    #[test]
+    fn metadata_response_error_counts_matches_java() {
+        fn topic(
+            error_code: i16,
+            name: Option<&str>,
+            partitions: Vec<i16>,
+            authorized: i32,
+        ) -> TopicMetadata {
+            TopicMetadata {
+                error_code,
+                name: name.map(str::to_owned),
+                topic_id: [0; 16],
+                is_internal: false,
+                partitions: partitions
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, error_code)| PartitionMetadata {
+                        error_code,
+                        partition_index: i32::try_from(i).unwrap_or(i32::MAX),
+                        leader_id: MetadataResponse::NO_LEADER_ID,
+                        leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                        replica_nodes: Vec::new(),
+                        isr_nodes: Vec::new(),
+                        offline_replicas: Vec::new(),
+                    })
+                    .collect(),
+                topic_authorized_operations: authorized,
+            }
+        }
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: vec![
+                topic(
+                    0,
+                    Some("ok"),
+                    vec![0, crate::error::NOT_LEADER_OR_FOLLOWER],
+                    1,
+                ),
+                topic(
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    Some("missing"),
+                    Vec::new(),
+                    MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+                ),
+                topic(0, None, vec![0], 7),
+            ],
+            error_code: crate::error::TOPIC_AUTHORIZATION_FAILED,
+        };
+        assert_eq!(
+            resp.error_counts(),
+            HashMap::from([
+                (0, 4),
+                (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+        assert_eq!(resp.topic_authorized_operations("ok"), Some(1));
+        assert_eq!(
+            resp.topic_authorized_operations("missing"),
+            Some(MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED)
+        );
+        assert!(resp.topic_authorized_operations("nope").is_none());
+        assert!(resp.topic_authorized_operations("").is_none());
+    }
+
+    #[test]
+    fn metadata_response_brokers_by_id_matches_java() {
+        let a = Broker::new(1, "127.0.0.1", 9092, Some("r".into()));
+        let b = Broker::new(3, "10.0.0.3", 9093, None);
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![a.clone(), b.clone()],
+            cluster_id: None,
+            controller_id: 1,
+            topics: Vec::new(),
+            error_code: 0,
+        };
+        assert_eq!(resp.brokers_by_id(), HashMap::from([(1, a), (3, b)]));
+        let empty = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: Vec::new(),
+            error_code: 0,
+        };
+        assert!(empty.brokers_by_id().is_empty());
+    }
+
+    #[test]
+    fn metadata_v7_decodes_leader_epoch_and_omitted_authorized_ops() {
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: vec![Broker {
+                node_id: 1,
+                host: "127.0.0.1".into(),
+                port: 9092,
+                rack: None,
+            }],
+            cluster_id: Some("cid".into()),
+            controller_id: 1,
+            topics: vec![TopicMetadata {
+                error_code: 0,
+                name: Some("orders".into()),
+                topic_id: [0u8; 16],
+                is_internal: false,
+                partitions: vec![PartitionMetadata {
+                    error_code: 0,
+                    partition_index: 0,
+                    leader_id: 1,
+                    leader_epoch: 3,
+                    replica_nodes: vec![1],
+                    isr_nodes: vec![1],
+                    offline_replicas: Vec::new(),
+                }],
+                topic_authorized_operations: MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED,
+            }],
+            error_code: 0,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 7, &resp).unwrap();
+        let mut cur = &buf[..];
+        let decoded = decode_metadata_response(&mut cur, 7).unwrap();
+        leftover_empty(&cur, "Metadata v7").unwrap();
+        assert_eq!(decoded, resp);
+        assert_eq!(decoded.topics[0].partitions[0].leader_epoch, 3);
+        assert_eq!(
+            decoded.topics[0].topic_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        assert!(
+            !MetadataResponse::has_reliable_leader_epochs(7),
+            "v7 leader epochs are on the wire but must not be retained by the client"
+        );
+    }
+
+    #[test]
+    fn metadata_request_roundtrips_topics_and_allow_auto() {
+        let topics = ["orders".to_string(), "payments".to_string()];
+        let mut buf = BytesMut::new();
+        encode_metadata_request(&mut buf, 12, Some(&topics), true).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &buf[..], 12).unwrap();
+        assert_eq!(got.as_deref(), Some(topics.as_slice()));
+        assert!(allow);
+        assert!(
+            !include_topic,
+            "encode_metadata_request must leave IncludeTopicAuthorizedOperations unset"
+        );
+
+        let mut all = BytesMut::new();
+        encode_metadata_request(&mut all, 12, None, false).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &all[..], 12).unwrap();
+        assert!(got.is_none());
+        assert!(!allow);
+        assert!(!include_topic);
+
+        let mut with = BytesMut::new();
+        encode_metadata_request_with(&mut with, 12, Some(&topics), false, true).unwrap();
+        let (got, allow, include_topic) = decode_metadata_request(&mut &with[..], 12).unwrap();
+        assert_eq!(got.as_deref(), Some(topics.as_slice()));
+        assert!(!allow);
+        assert!(include_topic);
+        assert_ne!(
+            &buf[..],
+            &with[..],
+            "IncludeTopicAuthorizedOperations true must not match the default request"
+        );
+    }
+
+    #[test]
+    fn metadata_v12_topic_id_request_is_compact() {
+        // Compact Topics[1] { TopicId "t" padded, Name null, tagged }
+        // + AllowAutoTopicCreation false + IncludeTopicAuthorizedOperations
+        // false + tagged. v12 is not in 8..=10, so no cluster-auth byte.
+        const V12_ID: &[u8] = &[
+            0x02, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let topics = [MetadataRequestTopic::by_id(id)];
+        let mut buf = BytesMut::new();
+        encode_metadata_request_topics(&mut buf, 12, Some(&topics), false, false).unwrap();
+        assert_eq!(&buf[..], V12_ID);
+        let mut cur = &buf[..];
+        let (got, allow, include_topic) = decode_metadata_request_topics(&mut cur, 12).unwrap();
+        leftover_empty(&cur, "Metadata v12 TopicId request leftover").unwrap();
+        let got = got.expect("Topics array");
+        assert_eq!(got.as_slice(), topics.as_slice());
+        assert!(!allow);
+        assert!(!include_topic);
+        let mut cur = &buf[..];
+        let (names_only, _, _) = decode_metadata_request(&mut cur, 12).unwrap();
+        leftover_empty(&cur, "Metadata v12 TopicId names-only leftover").unwrap();
+        assert_eq!(
+            names_only.as_deref(),
+            Some(&[][..]),
+            "name-only decode skips null-Name TopicId describes"
+        );
+    }
+
+    #[test]
+    fn metadata_builder_matches_java() {
+        let names = ["t".to_string()];
+        let err = encode_metadata_request(&mut BytesMut::new(), 0, Some(&names), true).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "v0 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("older than 1"), "got {err}");
+        encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), true).unwrap();
+        let err =
+            encode_metadata_request(&mut BytesMut::new(), 3, Some(&names), false).unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "allowAutoTopicCreation false below v4 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(
+            err.to_string().contains("allowAutoTopicCreation"),
+            "got {err}"
+        );
+        encode_metadata_request(&mut BytesMut::new(), 4, Some(&names), false).unwrap();
+
+        let mut id = [0u8; 16];
+        id[0] = 1;
+        let by_id = [MetadataRequestTopic::by_id(id)];
+        let err =
+            encode_metadata_request_topics(&mut BytesMut::new(), 11, Some(&by_id), false, false)
+                .unwrap_err();
+        assert!(
+            matches!(err, Error::Unsupported(_)),
+            "null Name below v12 is Java UnsupportedVersionException, got {err}"
+        );
+        assert!(err.to_string().contains("null topic names"), "got {err}");
+        encode_metadata_request_topics(&mut BytesMut::new(), 12, Some(&by_id), false, false)
+            .unwrap();
+        assert_eq!(
+            MetadataRequestTopic::convert_from_names(["t"]),
+            vec![MetadataRequestTopic::by_name("t")]
+        );
+        assert_eq!(
+            MetadataRequestTopic::convert_from_ids([id]),
+            vec![MetadataRequestTopic::by_id(id)]
+        );
+        assert!(MetadataRequest::is_all_topics(12, None));
+        assert!(MetadataRequest::is_all_topics(0, Some(&[])));
+        assert!(!MetadataRequest::is_all_topics(1, Some(&[])));
+        let named = [MetadataRequestTopic::by_name("t")];
+        assert!(!MetadataRequest::is_all_topics(12, Some(&named)));
+        assert!(MetadataRequest::topic_ids(12, None).is_empty());
+        assert!(MetadataRequest::topic_ids(0, Some(&[])).is_empty());
+        assert!(MetadataRequest::topic_ids(9, Some(&named)).is_empty());
+        assert_eq!(
+            MetadataRequest::topic_ids(10, Some(&named)),
+            vec![[0u8; 16]]
+        );
+        assert_eq!(MetadataRequest::topic_ids(12, Some(&by_id)), vec![id]);
+        assert_eq!(MetadataRequest::topics(12, None), None);
+        assert_eq!(MetadataRequest::topics(0, Some(&[])), None);
+        assert_eq!(MetadataRequest::topics(1, Some(&[])), Some(Vec::new()));
+        assert_eq!(
+            MetadataRequest::topics(12, Some(&named)),
+            Some(vec![Some("t")])
+        );
+        assert_eq!(MetadataRequest::topics(12, Some(&by_id)), Some(vec![None]));
+        let named_err = MetadataRequestTopic::by_name("t")
+            .error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            named_err,
+            TopicMetadata::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, Some("t"), [0; 16])
+        );
+        assert!(!named_err.is_internal);
+        assert!(named_err.partitions.is_empty());
+        assert_eq!(
+            named_err.topic_authorized_operations,
+            MetadataResponse::AUTHORIZED_OPERATIONS_OMITTED
+        );
+        let id_err =
+            MetadataRequestTopic::by_id(id).error_result(crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        assert_eq!(
+            id_err,
+            TopicMetadata::error(crate::error::UNKNOWN_TOPIC_OR_PARTITION, None, id)
+        );
+        assert_eq!(id_err.name.as_deref(), Some(""));
+        let resp = MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: vec![named_err, id_err],
+            error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+        };
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, 13, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, 13).unwrap();
+        leftover_empty(&cur, "Metadata getErrorResponse v13").unwrap();
+        assert_eq!(decoded, resp);
+        let named_id = [MetadataRequestTopic {
+            name: Some("t".into()),
+            topic_id: id,
+        }];
+        let err =
+            encode_metadata_request_topics(&mut BytesMut::new(), 11, Some(&named_id), true, false)
+                .unwrap_err();
+        assert!(err.to_string().contains("non-zero topic IDs"), "got {err}");
+    }
+
+    #[test]
+    fn metadata_request_error_response_matches_java() {
+        // Java MetadataRequest.getErrorResponse: null Topics is empty
+        // Topics (not all-topics). Each topic is error_result (null Name
+        // becomes empty; duplicates are kept). Brokers stay empty.
+        // Top-level ErrorCode is the same code. Throttle is the JSON
+        // default (0). Java new MetadataResponse(data, true) forces
+        // hasReliableLeaderEpochs true even below v9.
+        let code = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        let none = MetadataRequest::error_response(None, code);
+        assert_eq!(none.error_code, code);
+        assert_eq!(none.throttle_time_ms, 0);
+        assert!(none.brokers.is_empty());
+        assert!(none.cluster_id.is_none());
+        assert_eq!(none.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        assert!(none.topics.is_empty());
+
+        let empty_list = MetadataRequest::error_response(Some(&[]), code);
+        assert_eq!(empty_list, none);
+
+        let mut id = [0u8; 16];
+        id[0] = 1;
+        let named = MetadataRequestTopic::by_name("orders");
+        let by_id = MetadataRequestTopic::by_id(id);
+        let dup = MetadataRequestTopic::by_name("orders");
+        let topics = [named.clone(), by_id.clone(), dup];
+        let grouped = MetadataRequest::error_response(Some(topics.as_slice()), code);
+        assert_eq!(grouped.error_code, code);
+        assert!(grouped.brokers.is_empty());
+        assert_eq!(grouped.topics.len(), 3);
+        assert_eq!(grouped.topics[0], named.error_result(code));
+        assert_eq!(grouped.topics[1].name.as_deref(), Some(""));
+        assert_eq!(grouped.topics[1].topic_id, id);
+        assert_eq!(grouped.topics[2].name.as_deref(), Some("orders"));
+        leftover_metadata_error_response(1, Some(std::slice::from_ref(&named)));
+        leftover_metadata_error_response(1, None);
+        leftover_metadata_error_response(9, Some(std::slice::from_ref(&named)));
+        leftover_metadata_error_response(9, Some(&[]));
+        leftover_metadata_error_response(13, Some(topics.as_slice()));
+        leftover_metadata_error_response(13, None);
+    }
+
+    fn leftover_metadata_error_response(version: i16, topics: Option<&[MetadataRequestTopic]>) {
+        let resp =
+            MetadataRequest::error_response(topics, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, version, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match (version, topics.filter(|t| !t.is_empty()).is_none()) {
+                (1, false) => "Metadata v1 Request.getErrorResponse leftover-empty",
+                (1, true) => "Metadata v1 Request.getErrorResponse empty leftover-empty",
+                (9, false) => "Metadata v9 Request.getErrorResponse leftover-empty",
+                (9, true) => "Metadata v9 Request.getErrorResponse empty leftover-empty",
+                (13, false) => "Metadata v13 Request.getErrorResponse leftover-empty",
+                _ => "Metadata v13 Request.getErrorResponse empty leftover-empty",
+            },
+        )
+        .unwrap();
+        assert_eq!(decoded.topics, resp.topics);
+        assert!(decoded.brokers.is_empty());
+        assert_eq!(decoded.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        if version >= 13 {
+            assert_eq!(decoded.error_code, resp.error_code);
+        } else {
+            assert_eq!(decoded.error_code, 0);
+        }
     }
 }
