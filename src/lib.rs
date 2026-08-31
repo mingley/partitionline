@@ -700,6 +700,10 @@
 //! `FetchResponse.partitionResponse`.
 //! [`protocol::fetch::FetchTopic::error_result`] is Java
 //! `FetchRequest.getErrorResponse` (one topic; v13 and later omit partitions).
+//! [`protocol::fetch::FetchRequest::fetch_data`] is Java
+//! `FetchRequest.fetchData` (v4–v12 use the topic name; v13+ looks up
+//! `topic_id` and keeps a missing name as `None`; a later partition
+//! overwrites).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /

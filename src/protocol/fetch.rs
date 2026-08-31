@@ -220,6 +220,41 @@ impl FetchTopic {
     }
 }
 
+/// Java `FetchRequest` helpers.
+pub struct FetchRequest;
+
+impl FetchRequest {
+    /// Java `FetchRequest.fetchData`.
+    ///
+    /// v4–v12 use each topic's name. v13+ looks up `topic_id` in
+    /// `topic_names` (`None` when missing; Java still inserts that
+    /// `TopicIdPartition`). A later partition overwrites the same
+    /// `(topic_id, name, partition)` (Java `LinkedHashMap.put`).
+    /// `logStartOffset` stays [`INVALID_LOG_START_OFFSET`] (crate encode).
+    #[must_use]
+    pub fn fetch_data(
+        version: i16,
+        topics: &[FetchTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> HashMap<([u8; 16], Option<String>, i32), FetchPartition> {
+        let mut fetch_data = HashMap::new();
+        for topic in topics {
+            let name = if version < 13 {
+                Some(topic.topic.clone())
+            } else {
+                topic_names.get(&topic.topic_id).cloned()
+            };
+            for partition in &topic.partitions {
+                let _prev = fetch_data.insert(
+                    (topic.topic_id, name.clone(), partition.partition),
+                    partition.clone(),
+                );
+            }
+        }
+        fetch_data
+    }
+}
+
 /// One partition in a Fetch response.
 ///
 /// [`Self::INVALID_HIGH_WATERMARK`] / [`Self::INVALID_LAST_STABLE_OFFSET`] /
@@ -1357,6 +1392,111 @@ mod tests {
                 .and_then(|topic| topic.partitions.first())
                 .map(|part| part.partition),
             Some(3)
+        );
+    }
+
+    #[test]
+    fn fetch_request_fetch_data_matches_java() {
+        // Java FetchRequest.fetchData: v4–v12 use topic(). v13+ looks up
+        // topicId in topicNames and still inserts when the name is null.
+        // LinkedHashMap.put overwrites the same TopicIdPartition.
+        fn part(partition: i32, fetch_offset: i64) -> FetchPartition {
+            FetchPartition {
+                partition,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }
+        }
+        let p0 = part(0, 10);
+        let p1 = part(1, 20);
+        let overwrite = part(0, 99);
+        let zeros = [0u8; 16];
+        let named = vec![
+            FetchTopic {
+                topic: "t".into(),
+                topic_id: zeros,
+                partitions: vec![p0.clone(), p1.clone()],
+            },
+            FetchTopic {
+                topic: "t".into(),
+                topic_id: zeros,
+                partitions: vec![overwrite.clone()],
+            },
+        ];
+        let empty_names = HashMap::new();
+        assert!(FetchRequest::fetch_data(12, &[], &empty_names).is_empty());
+        let v12 = FetchRequest::fetch_data(12, &named, &empty_names);
+        assert_eq!(v12.len(), 2);
+        assert_eq!(
+            v12.get(&(zeros, Some("t".into()), 0))
+                .map(|p| p.fetch_offset),
+            Some(99)
+        );
+        assert_eq!(
+            v12.get(&(zeros, Some("t".into()), 1))
+                .map(|p| p.fetch_offset),
+            Some(20)
+        );
+        let topic_id = [1u8; 16];
+        let id_topics = vec![FetchTopic {
+            topic: String::new(),
+            topic_id,
+            partitions: vec![p0.clone(), p1.clone()],
+        }];
+        let unresolved = FetchRequest::fetch_data(13, &id_topics, &empty_names);
+        assert_eq!(unresolved.len(), 2, "v13 missing name is still inserted");
+        assert_eq!(
+            unresolved.get(&(topic_id, None, 0)).map(|p| p.fetch_offset),
+            Some(10)
+        );
+        let names = HashMap::from([(topic_id, "resolved".into())]);
+        let v13 = FetchRequest::fetch_data(13, &id_topics, &names);
+        assert_eq!(v13.len(), 2);
+        assert_eq!(
+            v13.get(&(topic_id, Some("resolved".into()), 0))
+                .map(|p| p.partition),
+            Some(0)
+        );
+        assert_eq!(
+            v13.get(&(topic_id, Some("resolved".into()), 1))
+                .map(|p| p.partition),
+            Some(1)
+        );
+        let mut buf = BytesMut::new();
+        encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &named, None).unwrap();
+        let mut cur = buf.as_ref();
+        let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, 11).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v11 fetchData leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let decoded_map = FetchRequest::fetch_data(11, &decoded, &empty_names);
+        assert_eq!(decoded_map.len(), 2);
+        assert_eq!(
+            decoded_map
+                .get(&(zeros, Some("t".into()), 0))
+                .map(|p| p.fetch_offset),
+            Some(99)
+        );
+        buf.clear();
+        encode_fetch_request(&mut buf, 13, 10, 1, 1024, 0, &id_topics, None).unwrap();
+        let mut cur = buf.as_ref();
+        let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, 13).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v13 fetchData leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let decoded_map = FetchRequest::fetch_data(13, &decoded, &names);
+        assert_eq!(decoded_map.len(), 2);
+        assert_eq!(
+            decoded_map
+                .get(&(topic_id, Some("resolved".into()), 0))
+                .map(|p| p.fetch_offset),
+            Some(10)
         );
     }
 
