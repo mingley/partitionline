@@ -9273,19 +9273,23 @@ impl ListGroupsRequest {
     /// Java `ListGroupsRequest.getErrorResponse`.
     ///
     /// Groups is empty (request StatesFilter / TypesFilter are not copied).
-    /// Throttle is the JSON default (`0`) on v1+.
+    /// ThrottleTimeMs is written on v1+ from `throttle_time_ms`. Below v1
+    /// the field is omitted even when that value is non-zero (Java only
+    /// calls `setThrottleTimeMs` when `version() >= 1`). Decode fills `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
         error_code: i16,
+        throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        encode_list_groups_response(
+        encode_list_groups_response_with_throttle(
             buf,
             version,
             &ListGroupsResponse {
                 error_code,
                 groups: Vec::new(),
             },
+            throttle_time_ms,
         )
     }
 
@@ -9374,14 +9378,30 @@ pub fn decode_list_groups_request<B: Buf>(
 }
 
 /// Encode a ListGroups response (v0–5).
+///
+/// Throttle is the JSON default (`0`) on v1+.
 pub fn encode_list_groups_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ListGroupsResponse,
 ) -> crate::error::Result<()> {
+    encode_list_groups_response_with_throttle(buf, version, resp, 0)
+}
+
+/// Encode ListGroups v0–v5 with ThrottleTimeMs.
+///
+/// Below v1 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v3+ is flexible. v4 writes GroupState. v5
+/// writes GroupType.
+pub fn encode_list_groups_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    resp: &ListGroupsResponse,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = list_groups_flexible(version)?;
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, flexible, Some(resp.groups.len()))?;
@@ -9406,16 +9426,15 @@ pub fn encode_list_groups_response(
 
 /// Decode a ListGroups response.
 ///
-/// v0 has no throttle. v0–v3 fill `group_state` = `""`. v0–v4 fill
-/// `group_type` = `""`.
+/// Returns `(response, throttle_time_ms)`. v0 has no throttle; decode
+/// fills `0`. v0–v3 fill `group_state` = `""`. v0–v4 fill `group_type`
+/// = `""`.
 pub fn decode_list_groups_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<ListGroupsResponse> {
+) -> Result<(ListGroupsResponse, i32)> {
     let flexible = list_groups_flexible(version)?;
-    if version >= 1 {
-        let _th = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
@@ -9445,7 +9464,7 @@ pub fn decode_list_groups_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(ListGroupsResponse { error_code, groups })
+    Ok((ListGroupsResponse { error_code, groups }, throttle_time_ms))
 }
 
 /// One deletion result in DeleteGroups (api 42).
@@ -22855,14 +22874,14 @@ mod tests {
             )
             .unwrap();
             let mut got = BytesMut::new();
-            ListGroupsRequest::error_response(&mut got, version, 16).unwrap();
+            ListGroupsRequest::error_response(&mut got, version, 16, 0).unwrap();
             assert_eq!(
                 &got[..],
                 &expected[..],
                 "ListGroups v{version} getErrorResponse must match empty-Groups encode"
             );
             let mut cur = &got[..];
-            let decoded = decode_list_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_list_groups_response(&mut cur, version).unwrap();
             assert_eq!(decoded.error_code, 16);
             assert!(decoded.groups.is_empty(), "v{version} Groups must be empty");
             assert!(
@@ -22872,9 +22891,9 @@ mod tests {
             );
         }
         let mut v0 = BytesMut::new();
-        ListGroupsRequest::error_response(&mut v0, 0, 16).unwrap();
+        ListGroupsRequest::error_response(&mut v0, 0, 16, 0).unwrap();
         let mut v1 = BytesMut::new();
-        ListGroupsRequest::error_response(&mut v1, 1, 16).unwrap();
+        ListGroupsRequest::error_response(&mut v1, 1, 16, 0).unwrap();
         assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
         let mut with_group = BytesMut::new();
         encode_list_groups_response(
@@ -22887,12 +22906,103 @@ mod tests {
         )
         .unwrap();
         let mut empty = BytesMut::new();
-        ListGroupsRequest::error_response(&mut empty, 5, 16).unwrap();
+        ListGroupsRequest::error_response(&mut empty, 5, 16, 0).unwrap();
         assert_ne!(
             &empty[..],
             &with_group[..],
             "getErrorResponse must not copy a request group listing"
         );
+    }
+
+    #[test]
+    fn list_groups_throttle_time_ms_matches_java() {
+        for version in [1_i16, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            ListGroupsRequest::error_response(&mut buf, version, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_list_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded.error_code, 16);
+            assert!(decoded.groups.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ListGroups v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        ListGroupsRequest::error_response(&mut buf, 0, 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_list_groups_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded.error_code, 16);
+        assert!(decoded.groups.is_empty());
+        assert!(
+            cur.is_empty(),
+            "ListGroups v0 ThrottleTimeMs leftover-empty"
+        );
+        assert_eq!(
+            throttle, 0,
+            "ListGroups v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let empty = ListGroupsResponse {
+            error_code: 16,
+            groups: Vec::new(),
+        };
+        let mut with = BytesMut::new();
+        encode_list_groups_response_with_throttle(&mut with, 1, &empty, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_list_groups_response_with_throttle(&mut zero, 1, &empty, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_list_groups_response(&mut conv, 1, &empty).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_list_groups_response still writes ThrottleTimeMs 0"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_list_groups_response_with_throttle(&mut v0_with, 0, &empty, 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_list_groups_response_with_throttle(&mut v0_zero, 0, &empty, 0).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds ThrottleTimeMs before ErrorCode"
+        );
+
+        for version in [0_i16, 1, 3, 5] {
+            let mut expected = BytesMut::new();
+            encode_list_groups_response_with_throttle(&mut expected, version, &empty, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            ListGroupsRequest::error_response(&mut got, version, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "ListGroups v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_list_groups_response(&mut cur, version).unwrap();
+            if version >= 1 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "ListGroups v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]
@@ -23052,7 +23162,7 @@ mod tests {
         buf.clear();
         encode_list_groups_response(&mut buf, 5, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap(), resp);
+        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap().0, resp);
         assert!(
             !cur.has_remaining(),
             "ListGroups v5 response must be leftover-empty"
@@ -23107,7 +23217,7 @@ mod tests {
             "v5 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap(), resp);
+        assert_eq!(decode_list_groups_response(&mut cur, 5).unwrap().0, resp);
         assert!(
             !cur.has_remaining(),
             "ListGroups v5 ErrorCode body must be leftover-empty"

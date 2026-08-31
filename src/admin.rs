@@ -8734,7 +8734,7 @@ impl Admin {
                 timeout,
             )
             .await?;
-        let resp = decode_list_groups_response(&mut body.clone(), version)?;
+        let (resp, ..) = decode_list_groups_response(&mut body.clone(), version)?;
         if resp.error_code != 0 {
             return Err(Error::broker(resp.error_code, "ListGroups"));
         }

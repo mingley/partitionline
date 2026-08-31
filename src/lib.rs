@@ -553,7 +553,10 @@
 //! `ListGroupsResponse.shouldClientThrottle` (v2+);
 //! [`protocol::admin::ListGroupsRequest::error_response`] is Java
 //! `ListGroupsRequest.getErrorResponse` (empty Groups; request filters are
-//! not copied);
+//! not copied; v1+ writes the `throttleTimeMs` argument; below v1 omits it);
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::admin::encode_list_groups_response`] still writes `0`;
 //! [`protocol::admin::ListGroupsRequest::build`] is Java
 //! `ListGroupsRequest.Builder.build` (a non-empty StatesFilter below v4,
 //! or a non-empty TypesFilter below v5, is `UnsupportedVersionException`;
