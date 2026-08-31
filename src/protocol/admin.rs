@@ -13497,6 +13497,20 @@ impl AssignReplicasToDirsRequest {
     pub fn directories(&self) -> &[AssignReplicasToDirsDirectory] {
         &self.directories
     }
+
+    /// Java `AssignReplicasToDirsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Directories stay empty (JSON
+    /// default). Request BrokerId / BrokerEpoch / Directories are not
+    /// copied. ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`AssignReplicasToDirsResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument. This
+    /// is not [`AssignReplicasToDirsResponse::error_counts`] /
+    /// PushTelemetry `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> AssignReplicasToDirsResponse {
+        AssignReplicasToDirsResponse::new(error_code, Vec::new())
+    }
 }
 
 /// One partition in an AssignReplicasToDirs (api 73) response.
@@ -28893,6 +28907,83 @@ mod tests {
         assert_eq!(
             with_nested.error_counts(),
             HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_request_error_response_matches_java() {
+        // Java 4.0 AssignReplicasToDirsRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // Directories stay empty. Request BrokerId / BrokerEpoch /
+        // Directories are not copied. Official Java
+        // AssignReplicasToDirsRequest.getErrorResponse. Official Java
+        // sets throttleTimeMs from the argument;
+        // AssignReplicasToDirsResponse::new fills 0. This crate speaks
+        // 0. This is not errorCounts / PushTelemetry getErrorResponse /
+        // GetTelemetrySubscriptions getErrorResponse.
+        let req = AssignReplicasToDirsRequest::new(
+            7,
+            -1,
+            vec![AssignReplicasToDirsDirectory::new(
+                [0x11; 16],
+                vec![AssignReplicasToDirsTopic::new(
+                    [0x22; 16],
+                    vec![AssignReplicasToDirsPartition::new(0)],
+                )],
+            )],
+        );
+        assert!(
+            !req.directories().is_empty(),
+            "fixture request must have Directories so we can prove they are not copied"
+        );
+        assert_eq!(
+            AssignReplicasToDirsRequest::error_response(0),
+            AssignReplicasToDirsResponse::new(0, Vec::new())
+        );
+        let err =
+            AssignReplicasToDirsRequest::error_response(crate::error::CLUSTER_AUTHORIZATION_FAILED);
+        assert_eq!(
+            err,
+            AssignReplicasToDirsResponse::new(
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                Vec::new()
+            )
+        );
+        assert!(
+            err.directories.is_empty(),
+            "getErrorResponse must not copy Directories"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "AssignReplicasToDirsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut resp, &err).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_assign_replicas_to_dirs_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "AssignReplicasToDirs v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 

@@ -839,7 +839,10 @@
 //! [`protocol::admin::PushTelemetryRequest::error_response`] is Java
 //! `PushTelemetryRequest.getErrorResponse` (ThrottleTimeMs JSON `0+`;
 //! convenience fills `0`)),
-//! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`),
+//! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
+//! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
 //! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);
@@ -2428,7 +2431,10 @@
 //! AssignReplicasToDirs has no TimeoutMs; caps `NOT_CONTROLLER`).
 //! [`AssignReplicasToDirsResponse::error_counts`] is Java
 //! `AssignReplicasToDirsResponse.errorCounts` (top-level code only,
-//! including `NONE`; nested partition codes are not counted).
+//! including `NONE`; nested partition codes are not counted);
+//! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
+//! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`).
 //! [`Admin::alter_replica_log_dirs_timeout`] is Java
 //! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
 //! AlterReplicaLogDirs has no TimeoutMs).
