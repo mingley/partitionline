@@ -440,7 +440,11 @@
 //! `ListGroupsResponse.shouldClientThrottle` (v2+);
 //! [`protocol::admin::ListGroupsRequest::error_response`] is Java
 //! `ListGroupsRequest.getErrorResponse` (empty Groups; request filters are
-//! not copied)),
+//! not copied);
+//! [`protocol::admin::ListGroupsRequest::build`] is Java
+//! `ListGroupsRequest.Builder.build` (a non-empty StatesFilter below v4,
+//! or a non-empty TypesFilter below v5, is `UnsupportedVersionException`;
+//! encode still omits)),
 //! DeleteGroups v0–v2 (v0–v1 classic; v2 flexible; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DeleteGroupsResponse::should_client_throttle`] is Java
 //! `DeleteGroupsResponse.shouldClientThrottle` (v1+);

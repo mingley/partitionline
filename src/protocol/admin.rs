@@ -9129,6 +9129,26 @@ impl ListGroupsRequest {
             },
         )
     }
+
+    /// Java `ListGroupsRequest.Builder.build`.
+    ///
+    /// A non-empty StatesFilter below v4, or a non-empty TypesFilter below
+    /// v5, is `UnsupportedVersionException` (Java `!isEmpty()` on the
+    /// list, so a list of empty strings is still present). Encode still
+    /// omits those fields on those versions; this is the Builder check.
+    pub fn build(version: i16, states_filter: &[String], types_filter: &[String]) -> Result<()> {
+        if !states_filter.is_empty() && version < 4 {
+            return Err(Error::Unsupported(format!(
+                "The broker only supports ListGroups v{version}, but we need v4 or newer to request groups by states."
+            )));
+        }
+        if !types_filter.is_empty() && version < 5 {
+            return Err(Error::Unsupported(format!(
+                "The broker only supports ListGroups v{version}, but we need v5 or newer to request groups by type."
+            )));
+        }
+        Ok(())
+    }
 }
 
 /// Encode a ListGroups request (v0–5).
@@ -22345,6 +22365,79 @@ mod tests {
         assert_eq!(crate::protocol::api_keys::pick_version(0, 4, 0, 5), Some(4));
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 5), Some(0));
         assert_eq!(crate::protocol::api_keys::pick_version(6, 6, 0, 5), None);
+    }
+
+    #[test]
+    fn list_groups_request_build_matches_java() {
+        let empty: [String; 0] = [];
+        let states = vec!["Stable".to_string()];
+        let types = vec!["classic".to_string()];
+        ListGroupsRequest::build(3, &empty, &empty).unwrap();
+        ListGroupsRequest::build(4, &states, &empty).unwrap();
+        ListGroupsRequest::build(4, &empty, &empty).unwrap();
+        ListGroupsRequest::build(5, &states, &types).unwrap();
+        ListGroupsRequest::build(5, &empty, &empty).unwrap();
+        let v3_states = ListGroupsRequest::build(3, &states, &empty).unwrap_err();
+        assert!(
+            matches!(v3_states, Error::Unsupported(_)),
+            "v3 with StatesFilter is Java UnsupportedVersionException, got {v3_states}"
+        );
+        assert!(
+            v3_states
+                .to_string()
+                .contains("need v4 or newer to request groups by states"),
+            "got {v3_states}"
+        );
+        let v4_types = ListGroupsRequest::build(4, &empty, &types).unwrap_err();
+        assert!(
+            matches!(v4_types, Error::Unsupported(_)),
+            "v4 with TypesFilter is Java UnsupportedVersionException, got {v4_types}"
+        );
+        assert!(
+            v4_types
+                .to_string()
+                .contains("need v5 or newer to request groups by type"),
+            "got {v4_types}"
+        );
+        let blank = vec![String::new()];
+        let empty_str = ListGroupsRequest::build(3, &blank, &empty).unwrap_err();
+        assert!(
+            matches!(empty_str, Error::Unsupported(_)),
+            "a list of empty strings is still present (Java !isEmpty()), got {empty_str}"
+        );
+        encode_list_groups_request(&mut BytesMut::new(), 0, &states, &types).unwrap();
+        assert!(
+            ListGroupsRequest::build(0, &states, &types).is_err(),
+            "encode omits StatesFilter below v4 and TypesFilter below v5; Builder.build rejects them"
+        );
+
+        for version in [4_i16, 5] {
+            ListGroupsRequest::build(version, &states, &empty).unwrap();
+            let mut buf = BytesMut::new();
+            encode_list_groups_request(&mut buf, version, &states, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            let (got_s, got_t) = decode_list_groups_request(&mut cur, version).unwrap();
+            assert_eq!(got_s, states);
+            assert!(got_t.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "ListGroups v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [0_i16, 3, 4, 5] {
+            ListGroupsRequest::build(version, &empty, &empty).unwrap();
+            let mut buf = BytesMut::new();
+            encode_list_groups_request(&mut buf, version, &empty, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            let (got_s, got_t) = decode_list_groups_request(&mut cur, version).unwrap();
+            assert!(got_s.is_empty() && got_t.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "ListGroups v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
