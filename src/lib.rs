@@ -284,9 +284,11 @@
 //! SessionTimeoutMs is JSON `0+` (decode returns it; encode already takes
 //! `session_timeout_ms`);
 //! RebalanceTimeoutMs is JSON `1+` (spoken v2–v9 always on the wire; decode
-//! returns it last; encode writes `rebalance_timeout_ms`; official Java
+//! returns it; encode writes `rebalance_timeout_ms`; official Java
 //! `JoinGroupRequestData.rebalanceTimeoutMs`; classic consumer sends
 //! `max.poll.interval.ms`);
+//! request ProtocolType is JSON `0+` (decode returns it last; encode already
+//! takes `protocol_type`; official Java `JoinGroupRequestData.protocolType`);
 //! Protocols of N via [`ConsumerGroup::join_with_assignors`];
 //! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java
 //! `ConsumerProtocol.PROTOCOL_TYPE`;
