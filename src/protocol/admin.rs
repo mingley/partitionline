@@ -15307,6 +15307,18 @@ impl RenewDelegationTokenResponse {
         version >= 1
     }
 
+    /// Java `RenewDelegationTokenResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `errorCounts(error())` / `Collections.singletonMap`). Expiry
+    /// is not counted. Java `error()` is `Errors.forCode` only
+    /// (identity on i16; not mapped). This is not Create / Expire /
+    /// DescribeDelegationToken `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -29826,6 +29838,47 @@ mod tests {
             zero.throttle_time_ms, 0,
             "RenewDelegationTokenResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn renew_delegation_token_response_error_counts_matches_java() {
+        // Java RenewDelegationTokenResponse.errorCounts:
+        // errorCounts(error()), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java RenewDelegationTokenResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not
+        // mapped). Expiry is not counted. This is not
+        // CreateDelegationToken errorCounts / ExpireDelegationToken
+        // errorCounts / DescribeDelegationToken errorCounts.
+        assert_eq!(
+            RenewDelegationTokenResponse::new(0, 1_700_000_000_000).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = RenewDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_EXPIRED,
+            1_700_000_000_000,
+        );
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::DELEGATION_TOKEN_EXPIRED, 1)])
+        );
+        for version in 1..=2_i16 {
+            let mut resp = BytesMut::new();
+            encode_renew_delegation_token_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_renew_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::DELEGATION_TOKEN_EXPIRED, 1)]),
+                "RenewDelegationToken v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "RenewDelegationToken v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
