@@ -485,8 +485,10 @@
 //! [`protocol::share::ShareAcknowledgeResponsePartition::partition_response`] is Java
 //! `ShareAcknowledgeResponse.partitionResponse` (`PartitionIndex` and `ErrorCode`).
 //! Official Java leaves ErrorMessage and CurrentLeader at JSON defaults
-//! (null / 0/0). Crate encode writes ErrorMessage null, CurrentLeader id 0
-//! epoch 0. [`protocol::share::encode_share_acknowledge_topics_response_with_endpoints`]
+//! (null / 0/0). Crate encode writes ErrorMessage null, CurrentLeader from
+//! the partition fields (JSON default 0/0). partition CurrentLeader is
+//! JSON `0+` (untagged nested `LeaderIdAndEpoch`; not Fetch v12+ tagged
+//! field 1). [`protocol::share::encode_share_acknowledge_topics_response_with_endpoints`]
 //! round-trips NodeEndpoints (JSON `0+` untagged compact array;
 //! [`protocol::share::encode_share_acknowledge_topics_response`] still
 //! writes empty; v0 and v1 bodies match; not Fetch v16 tagged field 0).
