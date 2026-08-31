@@ -12,6 +12,9 @@
 //! are Java `Utils.isBlank` / `replaceSuffix`. [`entries_with_prefix`] /
 //! [`entries_with_prefix_matching`] are Java `Utils.entriesWithPrefix`.
 //! [`parse_map`] / [`mk_string`] are Java `Utils.parseMap` / `mkString`.
+//! [`union`] / [`intersection`] / [`diff`] are Java `Utils.union` /
+//! `intersection` / `diff` (empty union is empty; intersection of first
+//! only is a copy; a later disjoint set makes intersection empty).
 //! [`is_equal_constant_time`] is Java `Utils.isEqualConstantTime`.
 //! [`require`] / [`require_message`] are Java `Utils.require`.
 //! [`min`] / [`max`] / [`min_i16`] are Java `Utils.min(long, long...)` /
@@ -33,6 +36,7 @@
 //! `need N bytes`).
 
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -307,6 +311,63 @@ where
         .map(|(key, value)| format!("{key}{key_value_separator}{value}"))
         .collect();
     format!("{begin}{}{end}", parts.join(element_separator))
+}
+
+/// Java `Utils.union`.
+///
+/// `addAll` each set into a fresh `HashSet` (Java `constructor.get()` then
+/// `addAll`; this crate always uses `HashSet`). No sets is empty. A later
+/// overlapping element is already in the result (`Set.add` uniqueness).
+#[must_use]
+pub fn union<T, S, I>(sets: I) -> HashSet<T>
+where
+    T: Eq + Hash,
+    S: IntoIterator<Item = T>,
+    I: IntoIterator<Item = S>,
+{
+    let mut result = HashSet::new();
+    for set in sets {
+        result.extend(set);
+    }
+    result
+}
+
+/// Java `Utils.intersection`.
+///
+/// Copies `first`, then `retainAll` each later set. No later sets is a copy
+/// of `first`. A later disjoint set makes the result empty. Java's
+/// constructor `Supplier` is not mapped (`HashSet`).
+#[must_use]
+pub fn intersection<T, F, S, I>(first: F, rest: I) -> HashSet<T>
+where
+    T: Eq + Hash,
+    F: IntoIterator<Item = T>,
+    S: IntoIterator<Item = T>,
+    I: IntoIterator<Item = S>,
+{
+    let mut result: HashSet<T> = first.into_iter().collect();
+    for set in rest {
+        let other: HashSet<T> = set.into_iter().collect();
+        result.retain(|item| other.contains(item));
+    }
+    result
+}
+
+/// Java `Utils.diff`.
+///
+/// Copies `left`, then `removeAll` `right`. Java's constructor `Supplier`
+/// is not mapped (`HashSet`).
+#[must_use]
+pub fn diff<T, L, R>(left: L, right: R) -> HashSet<T>
+where
+    T: Eq + Hash,
+    L: IntoIterator<Item = T>,
+    R: IntoIterator<Item = T>,
+{
+    let mut result: HashSet<T> = left.into_iter().collect();
+    let right: HashSet<T> = right.into_iter().collect();
+    result.retain(|item| !right.contains(item));
+    result
 }
 
 /// Java `Utils.isEqualConstantTime`.
@@ -1386,6 +1447,65 @@ mod tests {
         let empty_prefix = entries_with_prefix(&map, "");
         assert_eq!(empty_prefix.len(), 4);
         assert_eq!(empty_prefix.get("foo.bar"), Some(&1));
+    }
+
+    #[test]
+    fn union_intersection_diff_matches_java_utils() {
+        let one = HashSet::from(["a", "b", "c"]);
+        let another = HashSet::from(["c", "d", "e"]);
+        let two = HashSet::from(["c", "d", "e"]);
+        let three = HashSet::from(["b", "c", "d"]);
+        let four = HashSet::from(["x", "y", "z"]);
+
+        assert_eq!(
+            union([one.clone(), another.clone()]),
+            HashSet::from(["a", "b", "c", "d", "e"]),
+            "Utils.union of two sets"
+        );
+        assert_eq!(
+            union([one.clone()]),
+            HashSet::from(["a", "b", "c"]),
+            "Utils.union of one set"
+        );
+        assert_eq!(
+            union([one.clone(), two.clone(), three.clone(), four.clone()]),
+            HashSet::from(["a", "b", "c", "d", "e", "x", "y", "z"]),
+            "Utils.union of many sets"
+        );
+        assert!(
+            union(Vec::<HashSet<&str>>::new()).is_empty(),
+            "Utils.union of none is empty"
+        );
+
+        assert_eq!(
+            intersection(one.clone(), [another.clone()]),
+            HashSet::from(["c"]),
+            "Utils.intersection of two sets"
+        );
+        assert_eq!(
+            intersection(one.clone(), Vec::<HashSet<&str>>::new()),
+            HashSet::from(["a", "b", "c"]),
+            "Utils.intersection of first only is a copy"
+        );
+        assert_eq!(
+            intersection(one.clone(), [two.clone(), three.clone()]),
+            HashSet::from(["c"]),
+            "Utils.intersection of many sets"
+        );
+        assert!(
+            intersection(one.clone(), [two.clone(), three.clone(), four.clone()]).is_empty(),
+            "Utils.intersection of disjoint later set is empty"
+        );
+        assert!(
+            intersection(HashSet::<&str>::new(), [another.clone()]).is_empty(),
+            "Utils.intersection of empty first is empty"
+        );
+
+        assert_eq!(
+            diff(one, another),
+            HashSet::from(["a", "b"]),
+            "Utils.diff is left minus right"
+        );
     }
 
     #[test]

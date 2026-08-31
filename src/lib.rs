@@ -1239,6 +1239,10 @@
 //! elements are discarded; later `=` stays in the value; duplicate keys
 //! last-win; a missing `=` is [`Error::protocol`]; empty `mkString` is
 //! begin then end).
+//! [`protocol::buf::union`] / [`protocol::buf::intersection`] /
+//! [`protocol::buf::diff`] are Java `Utils.union` / `intersection` / `diff`
+//! (empty union is empty; intersection of first only is a copy; a later
+//! disjoint set makes intersection empty; diff is left minus right).
 //! [`protocol::buf::is_equal_constant_time`] is Java
 //! `Utils.isEqualConstantTime` (`None` is null; both null is true; empty
 //! `second` returns whether `first` is empty; otherwise every element of
