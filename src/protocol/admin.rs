@@ -6797,13 +6797,30 @@ pub fn decode_alter_client_quotas_request<B: Buf>(
 }
 
 /// Encode an AlterClientQuotas response (v0–1).
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_alter_client_quotas_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[ClientQuotaAlterationResult],
 ) -> crate::error::Result<()> {
+    encode_alter_client_quotas_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode AlterClientQuotas v0–v1 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version. v0 is
+/// classic. v1 is flexible. Kafka 4.0 `validVersions` is `0-1`. This
+/// crate speaks 0–1. v2+ is not spoken. There is no top-level ErrorCode.
+pub fn encode_alter_client_quotas_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[ClientQuotaAlterationResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = alter_client_quotas_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
@@ -6827,12 +6844,15 @@ pub fn encode_alter_client_quotas_response(
 }
 
 /// Decode an AlterClientQuotas response.
+///
+/// Returns `(entries, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
 pub fn decode_alter_client_quotas_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<ClientQuotaAlterationResult>> {
+) -> Result<(Vec<ClientQuotaAlterationResult>, i32)> {
     let flexible = alter_client_quotas_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut results = Vec::with_capacity(n);
     for _ in 0..n {
@@ -6860,7 +6880,7 @@ pub fn decode_alter_client_quotas_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(results)
+    Ok((results, throttle_time_ms))
 }
 
 /// `true` when DescribeClientQuotas `version` is flexible.
@@ -17038,7 +17058,9 @@ mod tests {
             encode_alter_client_quotas_response(&mut buf, version, &results).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_alter_client_quotas_response(&mut cur, version).unwrap(),
+                decode_alter_client_quotas_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 results
             );
             assert!(
@@ -17050,7 +17072,9 @@ mod tests {
             encode_alter_client_quotas_response(&mut buf, version, &empty).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_alter_client_quotas_response(&mut cur, version).unwrap(),
+                decode_alter_client_quotas_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 empty
             );
             assert!(
@@ -21366,6 +21390,65 @@ mod tests {
     }
 
     #[test]
+    fn alter_client_quotas_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AlterClientQuotasResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v0–v1; first field). Official
+        // Java AlterClientQuotasResponse constructor / throttleTimeMs /
+        // maybeSetThrottleTimeMs set / read it.
+        // AlterClientQuotasRequest.getErrorResponse sets throttleTimeMs
+        // from the argument. fromQuotaEntities also sets it; crate
+        // from_quota_entities leaves throttle unused.
+        // encode_alter_client_quotas_response still writes 0. Empty-Entries
+        // v0 != v1 (classic vs compact+tagged). There is no top-level
+        // ErrorCode. This crate speaks 0–1. This is not
+        // DescribeUserScramCredentials ThrottleTimeMs.
+        let results: Vec<ClientQuotaAlterationResult> = vec![];
+        for version in [0, 1] {
+            let mut buf = BytesMut::new();
+            encode_alter_client_quotas_response_with_throttle(
+                &mut buf, version, &results, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_alter_client_quotas_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "AlterClientQuotas v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_alter_client_quotas_response_with_throttle(&mut with, 0, &results, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_alter_client_quotas_response_with_throttle(&mut zero, 0, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_alter_client_quotas_response(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_alter_client_quotas_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_alter_client_quotas_response_with_throttle(&mut v1_with, 1, &results, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v1 adds compact arrays/strings plus tagged fields"
+        );
+    }
+
+    #[test]
     fn alter_client_quotas_v1_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 49
@@ -21439,7 +21522,7 @@ mod tests {
         encode_alter_client_quotas_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             resp
         );
         assert!(
@@ -21491,7 +21574,7 @@ mod tests {
         encode_alter_client_quotas_response(&mut buf, 1, &results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             results
         );
         assert!(
@@ -21503,7 +21586,7 @@ mod tests {
         encode_alter_client_quotas_response(&mut buf, 0, &results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 0).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 0).unwrap().0,
             results
         );
         assert!(
@@ -21515,7 +21598,7 @@ mod tests {
         encode_alter_client_quotas_response(&mut buf, 1, &empty).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             empty
         );
         assert!(
@@ -21528,7 +21611,7 @@ mod tests {
             .unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             vec![default_err]
         );
         assert!(
@@ -21540,7 +21623,7 @@ mod tests {
         encode_alter_client_quotas_response(&mut buf, 1, std::slice::from_ref(&multi_err)).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             vec![multi_err]
         );
         assert!(
@@ -21580,7 +21663,7 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 1).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 1).unwrap().0,
             resp
         );
         assert!(
@@ -21635,7 +21718,7 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_alter_client_quotas_response(&mut cur, 0).unwrap(),
+            decode_alter_client_quotas_response(&mut cur, 0).unwrap().0,
             resp
         );
         assert!(!cur.has_remaining());

@@ -667,9 +667,11 @@
 //! empty input is empty `Entries`, not null; throttle unused);
 //! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
 //! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`);
+//! ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AlterClientQuotasResponse::from_quota_entities`] is Java
 //! `AlterClientQuotasResponse.fromQuotaEntities` (type/name pairs plus
-//! [`ApiError`] into `Entries`; `ErrorMessage` is copied; throttle unused);
+//! [`ApiError`] into `Entries`; `ErrorMessage` is copied; throttle unused;
+//! [`protocol::admin::encode_alter_client_quotas_response`] still writes `0`;
 //! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored)),
@@ -2060,7 +2062,9 @@
 //! [`ClientQuotaAlterationResult::error_results`] are Java
 //! `AlterClientQuotasRequest.getErrorResponse` (one entry / Entries).
 //! `ErrorMessage` stays the JSON default (null); official Java also
-//! sets the English `Errors.message` string.
+//! sets the English `Errors.message` string. ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::encode_alter_client_quotas_response`] still writes `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
 //! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`).
 //! [`protocol::admin::AlterClientQuotasResponse::from_quota_entities`] is Java
