@@ -326,9 +326,9 @@ impl CreatableTopic {
     /// Sets `Name` and `ErrorCode`. TopicId stays zero. v5+
     /// `NumPartitions` / `ReplicationFactor` stay `-1`; Configs stay
     /// empty. `ErrorMessage` is the JSON default (null); official Java
-    /// also sets the English `Errors.message` string. Throttle on the
-    /// response is the JSON default (`0`) from v2 (v0–v1 have no
-    /// throttle field).
+    /// also sets the English `Errors.message` string. ThrottleTimeMs is
+    /// a top-level field ([`CreateTopicsRequest::error_response`]); below
+    /// v2 it is omitted even when that value is non-zero.
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> TopicResult {
         TopicResult::error(error_code, Some(self.name.as_str()), [0; 16])
@@ -361,6 +361,28 @@ impl CreateTopicsRequest {
             .iter()
             .map(|topic| topic.error_result(error_code))
             .collect()
+    }
+
+    /// Java `CreateTopicsRequest.getErrorResponse`.
+    ///
+    /// Copies each topic name through [`CreatableTopic::error_result`].
+    /// `ErrorMessage` stays the JSON default (null); official Java also
+    /// sets the English `Errors.message` string. ThrottleTimeMs is
+    /// written on v2+ from `throttle_time_ms`. Below v2 the field is
+    /// omitted even when that value is non-zero (Java only calls
+    /// `setThrottleTimeMs` when `version() >= 2`). Decode fills `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[CreatableTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results: Vec<TopicResult> = topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect();
+        encode_create_topics_response_with_throttle(buf, version, &results, throttle_time_ms)
     }
 }
 
@@ -1191,14 +1213,31 @@ pub fn decode_create_topics_request<B: Buf>(
 }
 
 /// Encode a CreateTopics response.
+///
+/// Throttle is the JSON default (`0`) on v2+.
 pub fn encode_create_topics_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    encode_create_topics_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode CreateTopics v0–v7 with ThrottleTimeMs.
+///
+/// Below v2 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v5+ is flexible. v7 writes TopicId. Kafka
+/// 4.0 `validVersions` is `2-7` (v0–v1 removed); this crate still
+/// speaks 0–7.
+pub fn encode_create_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[TopicResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = create_topics_flexible(version)?;
     if version >= 2 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -1232,14 +1271,17 @@ pub fn encode_create_topics_response(
 }
 
 /// Decode a CreateTopics response.
+///
+/// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
+/// omitted; decode fills `0`. v0 fills `ErrorMessage` `None`. Below v5
+/// NumPartitions / ReplicationFactor are `-1` and Configs empty. Below
+/// v7 TopicId is zeros.
 pub fn decode_create_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<TopicResult>> {
+) -> Result<(Vec<TopicResult>, i32)> {
     let flexible = create_topics_flexible(version)?;
-    if version >= 2 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1293,7 +1335,7 @@ pub fn decode_create_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// `true` when DeleteTopics `version` is flexible.
@@ -16730,7 +16772,7 @@ mod tests {
         buf.clear();
         encode_create_topics_response(&mut buf, 3, &results).unwrap();
         assert_eq!(
-            decode_create_topics_response(&mut &buf[..], 3).unwrap(),
+            decode_create_topics_response(&mut &buf[..], 3).unwrap().0,
             results
         );
     }
@@ -16748,7 +16790,10 @@ mod tests {
             "throttle + topic-array length must not look like error 41"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_create_topics_response(&mut cur, 4).unwrap(), results);
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 4).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "CreateTopics v4 NOT_CONTROLLER must be leftover-empty"
@@ -16808,7 +16853,10 @@ mod tests {
         buf.clear();
         encode_create_topics_response(&mut buf, 5, &results).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_create_topics_response(&mut cur, 5).unwrap(), results);
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 5).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "CreateTopics v5 response must be leftover-empty"
@@ -16881,8 +16929,8 @@ mod tests {
         encode_create_topics_response(&mut buf, 5, &err_results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_create_topics_response(&mut cur, 5).unwrap(),
-            err_results
+            decode_create_topics_response(&mut cur, 5).unwrap().0,
+            err_results,
         );
         assert!(
             !cur.has_remaining(),
@@ -16893,8 +16941,8 @@ mod tests {
         encode_create_topics_response(&mut buf, 4, &err_results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_create_topics_response(&mut cur, 4).unwrap(),
-            err_results
+            decode_create_topics_response(&mut cur, 4).unwrap().0,
+            err_results,
         );
         assert!(
             !cur.has_remaining(),
@@ -16905,8 +16953,8 @@ mod tests {
         encode_create_topics_response(&mut buf, 7, &err_results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_create_topics_response(&mut cur, 7).unwrap(),
-            err_results
+            decode_create_topics_response(&mut cur, 7).unwrap().0,
+            err_results,
         );
         assert!(
             !cur.has_remaining(),
@@ -16916,7 +16964,10 @@ mod tests {
         buf.clear();
         encode_create_topics_response(&mut buf, 5, &two_err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(decode_create_topics_response(&mut cur, 5).unwrap(), two_err);
+        assert_eq!(
+            decode_create_topics_response(&mut cur, 5).unwrap().0,
+            two_err
+        );
         assert!(
             !cur.has_remaining(),
             "CreateTopics two-topic getErrorResponse leftover-empty; leftover {} bytes",
@@ -16927,8 +16978,8 @@ mod tests {
         encode_create_topics_response(&mut buf, 5, &empty_err).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_create_topics_response(&mut cur, 5).unwrap(),
-            empty_err
+            decode_create_topics_response(&mut cur, 5).unwrap().0,
+            empty_err,
         );
         assert!(
             !cur.has_remaining(),
@@ -17114,7 +17165,7 @@ mod tests {
             "CreateTopics v7 response must include TopicId"
         );
         let mut cur = &v7[..];
-        let got = decode_create_topics_response(&mut cur, 7).unwrap();
+        let (got, ..) = decode_create_topics_response(&mut cur, 7).unwrap();
         assert_eq!(got, results);
         assert_eq!(got[0].name(), "t");
         assert_eq!(got[0].error_code(), 0);
@@ -17130,6 +17181,102 @@ mod tests {
         let mut v6 = BytesMut::new();
         encode_create_topics_response(&mut v6, 6, &results).unwrap();
         assert_eq!(&v5[..], &v6[..], "CreateTopics v6 response matches v5");
+    }
+
+    #[test]
+    fn create_topics_throttle_time_ms_matches_java() {
+        let topics = [CreatableTopic {
+            name: "t".into(),
+            num_partitions: 1,
+            replication_factor: 1,
+            assignments: Vec::new(),
+            configs: Vec::new(),
+        }];
+        let err: Vec<TopicResult> = topics.iter().map(|topic| topic.error_result(16)).collect();
+        for version in [2_i16, 3, 4, 5, 6, 7] {
+            let mut buf = BytesMut::new();
+            CreateTopicsRequest::error_response(&mut buf, version, &topics, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(decoded.iter().all(|r| r.error_message.is_none()));
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "CreateTopics v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            CreateTopicsRequest::error_response(&mut buf, version, &topics, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "CreateTopics v{version} ThrottleTimeMs leftover-empty"
+            );
+            assert_eq!(
+                throttle, 0,
+                "CreateTopics v{version} omits ThrottleTimeMs even when the body has a non-zero value"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_create_topics_response_with_throttle(&mut with, 2, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_create_topics_response_with_throttle(&mut zero, 2, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v2 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_create_topics_response(&mut conv, 2, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_create_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_create_topics_response_with_throttle(&mut v1_with, 1, &err, 3_600_000).unwrap();
+        let mut v1_zero = BytesMut::new();
+        encode_create_topics_response_with_throttle(&mut v1_zero, 1, &err, 0).unwrap();
+        assert_eq!(
+            &v1_with[..],
+            &v1_zero[..],
+            "v1 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v1_with[..],
+            &with[..],
+            "v2 adds ThrottleTimeMs; do not confuse with v5 flexible or v7 TopicId"
+        );
+
+        for version in [0_i16, 1, 2, 5, 7] {
+            let mut expected = BytesMut::new();
+            encode_create_topics_response_with_throttle(&mut expected, version, &err, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            CreateTopicsRequest::error_response(&mut got, version, &topics, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "CreateTopics v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_create_topics_response(&mut cur, version).unwrap();
+            if version >= 2 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "CreateTopics v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]

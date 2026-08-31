@@ -501,7 +501,14 @@
 //! `CreateTopicsRequest.getErrorResponse` (one topic / Topics). v5+
 //! NumPartitions / ReplicationFactor stay `-1`, Configs empty, TopicId
 //! zero. `ErrorMessage` stays the JSON default (null); official Java
-//! also sets the English `Errors.message` string),
+//! also sets the English `Errors.message` string;
+//! [`protocol::admin::CreateTopicsRequest::error_response`] is Java
+//! `CreateTopicsRequest.getErrorResponse` (copies names; `ErrorMessage`
+//! stays JSON-null; v2+ writes the `throttleTimeMs` argument; below v2
+//! omits it);
+//! v2+ round-trips ThrottleTimeMs; below v2 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::admin::encode_create_topics_response`] still writes `0`),
 //! DeleteTopics v0–v6 (v4+ flexible; v5 ErrorMessage; v6 TopicId, `delete_topics_by_id`;
 //! [`protocol::admin::DeleteTopicsResponse::should_client_throttle`] is Java
 //! `DeleteTopicsResponse.shouldClientThrottle` (v2+);
