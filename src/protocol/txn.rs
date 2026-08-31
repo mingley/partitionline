@@ -891,6 +891,31 @@ impl TxnOffsetCommitRequest {
             })
             .collect()
     }
+
+    /// Java `TxnOffsetCommitRequest.Builder.build`.
+    ///
+    /// `groupMetadataSet` below v3 is `UnsupportedVersionException`.
+    /// Encode still rejects that case; this is the Builder check.
+    /// `!isTransactionV2Enabled` caps the returned version at
+    /// [`Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]. This crate
+    /// speaks 0–5. This is not [`Self::offsets`] / [`Self::from_offsets`]
+    /// / getErrorResponse / [`TxnOffsetCommitMember::group_metadata_set`].
+    pub fn build(
+        version: i16,
+        group_metadata_set: bool,
+        is_transaction_v2_enabled: bool,
+    ) -> Result<i16> {
+        if version < 3 && group_metadata_set {
+            return Err(Error::Unsupported(format!(
+                "Broker doesn't support group metadata commit API on version {version}, minimum supported request version is 3 which requires brokers to be on version 2.5 or above."
+            )));
+        }
+        if is_transaction_v2_enabled {
+            Ok(version)
+        } else {
+            Ok(version.min(Self::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2))
+        }
+    }
 }
 
 /// Java `TxnOffsetCommitResponse` helpers.
@@ -3699,6 +3724,114 @@ mod tests {
             &topics,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn txn_offset_commit_request_build_matches_java() {
+        // Java 4.0 TxnOffsetCommitRequest.Builder.build: groupMetadataSet
+        // below v3 is UnsupportedVersionException; !isTransactionV2Enabled
+        // caps the version at LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2.
+        // Official Java TxnOffsetCommitRequest.Builder.build. Encode
+        // still rejects group metadata below v3. This crate speaks 0-5.
+        // This is not offsets / from_offsets / getErrorResponse /
+        // groupMetadataSet.
+        let v2 = TxnOffsetCommitRequest::build(2, true, true).unwrap_err();
+        assert!(
+            matches!(v2, Error::Unsupported(_)),
+            "v2 groupMetadataSet is Java UnsupportedVersionException, got {v2}"
+        );
+        assert!(
+            v2.to_string()
+                .contains("doesn't support group metadata commit API on version 2"),
+            "got {v2}"
+        );
+        assert_eq!(
+            TxnOffsetCommitRequest::build(2, true, false)
+                .unwrap_err()
+                .to_string(),
+            v2.to_string(),
+            "groupMetadataSet is checked before the V2 cap"
+        );
+        assert_eq!(TxnOffsetCommitRequest::build(2, false, true).unwrap(), 2);
+        assert_eq!(TxnOffsetCommitRequest::build(2, false, false).unwrap(), 2);
+        assert_eq!(TxnOffsetCommitRequest::build(3, true, true).unwrap(), 3);
+        assert_eq!(TxnOffsetCommitRequest::build(3, true, false).unwrap(), 3);
+        assert_eq!(TxnOffsetCommitRequest::build(4, false, false).unwrap(), 4);
+        assert_eq!(TxnOffsetCommitRequest::build(5, true, true).unwrap(), 5);
+        assert_eq!(
+            TxnOffsetCommitRequest::build(5, false, false).unwrap(),
+            TxnOffsetCommitRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2,
+            "v5 without transaction V2 is capped at 4"
+        );
+        let member = TxnOffsetCommitMember {
+            generation_id: 7,
+            member_id: "m".into(),
+            group_instance_id: None,
+        };
+        let encode_err = encode_txn_offset_commit_request(
+            &mut BytesMut::new(),
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &member,
+            &[],
+        )
+        .unwrap_err();
+        assert!(
+            matches!(encode_err, Error::Unsupported(_)),
+            "encode rejects group metadata below v3, got {encode_err}"
+        );
+        assert!(
+            TxnOffsetCommitRequest::build(2, member.group_metadata_set(), true).is_err(),
+            "encode rejects group metadata below v3; Builder.build rejects it too"
+        );
+
+        for version in 0..=5_i16 {
+            let built = TxnOffsetCommitRequest::build(version, false, true).unwrap();
+            assert_eq!(built, version);
+            let mut buf = BytesMut::new();
+            encode_txn_offset_commit_request(
+                &mut buf,
+                built,
+                "tx",
+                "g",
+                9,
+                1,
+                &TxnOffsetCommitMember::unknown(),
+                &[],
+            )
+            .unwrap();
+            let mut cur = &buf[..];
+            let _decoded = decode_txn_offset_commit_request(&mut cur, built).unwrap();
+            assert!(
+                cur.is_empty(),
+                "TxnOffsetCommit v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let capped = TxnOffsetCommitRequest::build(5, false, false).unwrap();
+        assert_eq!(capped, 4);
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            capped,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &[],
+        )
+        .unwrap();
+        let mut cur = &buf[..];
+        let _decoded = decode_txn_offset_commit_request(&mut cur, capped).unwrap();
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v{capped} Builder.build empty leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]
