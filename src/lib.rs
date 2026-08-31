@@ -406,7 +406,10 @@
 //! `throttleTimeMs` argument is unused; `ErrorMessage` stays the JSON
 //! default, null); v1+ round-trips SessionLifetimeMs; below v1 decode
 //! fills `0` and encode omits the field even when the body has a
-//! non-zero value),
+//! non-zero value;
+//! [`protocol::sasl::SaslAuthenticateResponse::error_counts`] is Java
+//! `SaslAuthenticateResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! [`protocol::scram::sasl_name`] / [`protocol::scram::username`] /
 //! [`protocol::scram::xor`] / [`protocol::scram::auth_message`] /
 //! [`protocol::scram::to_bytes`] / [`protocol::scram::normalize`] are Java

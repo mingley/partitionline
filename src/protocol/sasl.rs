@@ -252,6 +252,22 @@ impl SaslAuthenticateRequest {
     }
 }
 
+/// Java `SaslAuthenticateResponse` helpers.
+pub struct SaslAuthenticateResponse;
+
+impl SaslAuthenticateResponse {
+    /// Java `SaslAuthenticateResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). AuthBytes / ErrorMessage /
+    /// SessionLifetimeMs are not counted. This is not SaslHandshake
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
+}
+
 /// RFC 4616 PLAIN: `NUL authcid NUL passwd`.
 pub fn plain_auth_bytes(user: &str, pass: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(user.len() + pass.len() + 2);
@@ -699,6 +715,50 @@ mod tests {
             &with_bytes[..],
             "getErrorResponse must not copy the request AuthBytes"
         );
+    }
+
+    #[test]
+    fn sasl_authenticate_response_error_counts_matches_java() {
+        // Java SaslAuthenticateResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java SaslAuthenticateResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not mapped).
+        // AuthBytes / ErrorMessage / SessionLifetimeMs are not counted.
+        // This is not SaslHandshake errorCounts / errorMessage /
+        // sessionLifetimeMs / saslAuthBytes.
+        assert_eq!(
+            SaslAuthenticateResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            SaslAuthenticateResponse::error_counts(crate::error::SASL_AUTHENTICATION_FAILED),
+            HashMap::from([(crate::error::SASL_AUTHENTICATION_FAILED, 1)])
+        );
+        for version in 0..=2_i16 {
+            let mut resp = BytesMut::new();
+            encode_sasl_authenticate_response(
+                &mut resp,
+                version,
+                crate::error::SASL_AUTHENTICATION_FAILED,
+                None,
+                b"token",
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_sasl_authenticate_response(&mut cur, version).unwrap();
+            assert_eq!(
+                SaslAuthenticateResponse::error_counts(err),
+                HashMap::from([(crate::error::SASL_AUTHENTICATION_FAILED, 1)]),
+                "SaslAuthenticate v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "SaslAuthenticate v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
