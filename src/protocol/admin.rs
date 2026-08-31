@@ -8710,6 +8710,31 @@ impl DescribeGroupsRequest {
             .map(|id| DescribedGroup::new(id, error_code))
             .collect()
     }
+
+    /// Java `DescribeGroupsRequest.getErrorResponse`.
+    ///
+    /// Groups copy ids through [`Self::error_described_group_list`].
+    /// ThrottleTimeMs is written on v1+ from `throttle_time_ms`. Below v1
+    /// the field is omitted even when that value is non-zero (Java only
+    /// calls `setThrottleTimeMs` when `version() >= 1`). Decode fills `0`.
+    pub fn error_response<I>(
+        buf: &mut BytesMut,
+        version: i16,
+        group_ids: I,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        encode_describe_groups_response_with_throttle(
+            buf,
+            version,
+            &Self::error_described_group_list(group_ids, error_code),
+            throttle_time_ms,
+        )
+    }
 }
 
 /// `true` when DescribeGroups `version` is flexible.
@@ -8846,14 +8871,29 @@ fn decode_described_group_member<B: Buf>(
 }
 
 /// Encode a DescribeGroups response (v0–6).
+///
+/// Throttle is the JSON default (`0`) on v1+.
 pub fn encode_describe_groups_response(
     buf: &mut BytesMut,
     version: i16,
     groups: &[DescribedGroup],
 ) -> crate::error::Result<()> {
+    encode_describe_groups_response_with_throttle(buf, version, groups, 0)
+}
+
+/// Encode DescribeGroups v0–v6 with ThrottleTimeMs.
+///
+/// Below v1 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v5+ is flexible. v6 writes ErrorMessage.
+pub fn encode_describe_groups_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[DescribedGroup],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = describe_groups_flexible(version)?;
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(groups.len()))?;
     for g in groups {
@@ -8884,17 +8924,16 @@ pub fn encode_describe_groups_response(
 
 /// Decode a DescribeGroups response.
 ///
-/// v0 has no throttle. v0–v2 fill `authorized_operations` =
+/// Returns `(groups, throttle_time_ms)`. v0 has no throttle; decode fills
+/// `0`. v0–v2 fill `authorized_operations` =
 /// [`AUTHORIZED_OPERATIONS_OMITTED`]. v0–v5 fill `error_message` =
 /// `None`. v0–v3 fill each member `group_instance_id` = `None`.
 pub fn decode_describe_groups_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DescribedGroup>> {
+) -> Result<(Vec<DescribedGroup>, i32)> {
     let flexible = describe_groups_flexible(version)?;
-    if version >= 1 {
-        let _th = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
@@ -8935,7 +8974,7 @@ pub fn decode_describe_groups_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(groups)
+    Ok((groups, throttle_time_ms))
 }
 
 /// Java `org.apache.kafka.common.GroupType` (ListGroups TypesFilter).
@@ -22558,7 +22597,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_describe_groups_response(&mut buf, 3, &resp).unwrap();
         let mut cur = &buf[..];
-        let got = decode_describe_groups_response(&mut cur, 3).unwrap();
+        let (got, ..) = decode_describe_groups_response(&mut cur, 3).unwrap();
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v3 response leftover-empty"
@@ -22574,7 +22613,7 @@ mod tests {
         buf.clear();
         encode_describe_groups_response(&mut buf, 4, &resp).unwrap();
         let mut cur = &buf[..];
-        let got = decode_describe_groups_response(&mut cur, 4).unwrap();
+        let (got, ..) = decode_describe_groups_response(&mut cur, 4).unwrap();
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v4 response leftover-empty"
@@ -22617,7 +22656,10 @@ mod tests {
         buf.clear();
         encode_describe_groups_response(&mut buf, 6, &resp).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_describe_groups_response(&mut cur, 6).unwrap(), resp);
+        assert_eq!(
+            decode_describe_groups_response(&mut cur, 6).unwrap().0,
+            resp
+        );
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v6 response must be leftover-empty"
@@ -22668,11 +22710,100 @@ mod tests {
             "v6 ErrorCode is not at DescribeProducers first-partition bytes 12-13"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_describe_groups_response(&mut cur, 6).unwrap(), resp);
+        assert_eq!(
+            decode_describe_groups_response(&mut cur, 6).unwrap().0,
+            resp
+        );
         assert!(
             !cur.has_remaining(),
             "DescribeGroups v6 ErrorCode body must be leftover-empty"
         );
+    }
+
+    #[test]
+    fn describe_groups_throttle_time_ms_matches_java() {
+        let err = DescribeGroupsRequest::error_described_group_list(["g"], 16);
+        for version in [1_i16, 2, 4, 5, 6] {
+            let mut buf = BytesMut::new();
+            DescribeGroupsRequest::error_response(&mut buf, version, ["g"], 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_describe_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeGroups v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        DescribeGroupsRequest::error_response(&mut buf, 0, ["g"], 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_groups_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "DescribeGroups v0 ThrottleTimeMs leftover-empty"
+        );
+        assert_eq!(
+            throttle, 0,
+            "DescribeGroups v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_describe_groups_response_with_throttle(&mut with, 1, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_groups_response_with_throttle(&mut zero, 1, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_groups_response(&mut conv, 1, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_groups_response still writes ThrottleTimeMs 0"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_describe_groups_response_with_throttle(&mut v0_with, 0, &err, 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_describe_groups_response_with_throttle(&mut v0_zero, 0, &err, 0).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds ThrottleTimeMs before Groups"
+        );
+
+        for version in [0_i16, 1, 4, 6] {
+            let mut expected = BytesMut::new();
+            encode_describe_groups_response_with_throttle(&mut expected, version, &err, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            DescribeGroupsRequest::error_response(&mut got, version, ["g"], 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "DescribeGroups v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_describe_groups_response(&mut cur, version).unwrap();
+            if version >= 1 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "DescribeGroups v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]

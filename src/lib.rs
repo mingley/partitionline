@@ -539,6 +539,13 @@
 //! [`protocol::admin::DescribeGroupsRequest::error_described_group_list`] is Java
 //! `DescribeGroupsRequest.getErrorDescribedGroupList` (each id through
 //! [`DescribedGroup::new`]);
+//! [`protocol::admin::DescribeGroupsRequest::error_response`] is Java
+//! `DescribeGroupsRequest.getErrorResponse` (each id through
+//! [`DescribedGroup::new`]; v1+ writes the `throttleTimeMs` argument;
+//! below v1 omits it);
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::admin::encode_describe_groups_response`] still writes `0`;
 //! [`protocol::admin::DescribeGroupsResponse::error_counts`] is Java
 //! `DescribeGroupsResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
