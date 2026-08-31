@@ -1292,6 +1292,38 @@ impl MetadataRequest {
             )
         }
     }
+
+    /// Java `MetadataRequest.getErrorResponse`.
+    ///
+    /// Null Topics is empty Topics (not all-topics). Each request topic is
+    /// [`MetadataRequestTopic::error_result`] (null Name becomes empty;
+    /// duplicate names are kept). Brokers / ClusterId stay empty;
+    /// ControllerId is [`MetadataResponse::NO_CONTROLLER_ID`]. Top-level
+    /// ErrorCode (Metadata v13) is the same `error_code`. Throttle is the
+    /// JSON default (`0`). Distinct from [`MetadataRequestTopic::error_result`],
+    /// which is one topic. Java constructs
+    /// `new MetadataResponse(data, true)`, so `hasReliableLeaderEpochs` is
+    /// true even below Metadata v9; this crate does not store that flag on
+    /// the body ([`MetadataResponse::has_reliable_leader_epochs`] is the
+    /// request version).
+    #[must_use]
+    pub fn error_response(
+        topics: Option<&[MetadataRequestTopic]>,
+        error_code: i16,
+    ) -> MetadataResponse {
+        MetadataResponse {
+            throttle_time_ms: 0,
+            brokers: Vec::new(),
+            cluster_id: None,
+            controller_id: MetadataResponse::NO_CONTROLLER_ID,
+            topics: topics
+                .unwrap_or(&[])
+                .iter()
+                .map(|topic| topic.error_result(error_code))
+                .collect(),
+            error_code,
+        }
+    }
 }
 
 /// Encode Metadata. `topics = None` asks for all topics.
@@ -4017,5 +4049,76 @@ mod tests {
             encode_metadata_request_topics(&mut BytesMut::new(), 11, Some(&named_id), true, false)
                 .unwrap_err();
         assert!(err.to_string().contains("non-zero topic IDs"), "got {err}");
+    }
+
+    #[test]
+    fn metadata_request_error_response_matches_java() {
+        // Java MetadataRequest.getErrorResponse: null Topics is empty
+        // Topics (not all-topics). Each topic is error_result (null Name
+        // becomes empty; duplicates are kept). Brokers stay empty.
+        // Top-level ErrorCode is the same code. Throttle is the JSON
+        // default (0). Java new MetadataResponse(data, true) forces
+        // hasReliableLeaderEpochs true even below v9.
+        let code = crate::error::UNKNOWN_TOPIC_OR_PARTITION;
+        let none = MetadataRequest::error_response(None, code);
+        assert_eq!(none.error_code, code);
+        assert_eq!(none.throttle_time_ms, 0);
+        assert!(none.brokers.is_empty());
+        assert!(none.cluster_id.is_none());
+        assert_eq!(none.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        assert!(none.topics.is_empty());
+
+        let empty_list = MetadataRequest::error_response(Some(&[]), code);
+        assert_eq!(empty_list, none);
+
+        let mut id = [0u8; 16];
+        id[0] = 1;
+        let named = MetadataRequestTopic::by_name("orders");
+        let by_id = MetadataRequestTopic::by_id(id);
+        let dup = MetadataRequestTopic::by_name("orders");
+        let topics = [named.clone(), by_id.clone(), dup];
+        let grouped = MetadataRequest::error_response(Some(topics.as_slice()), code);
+        assert_eq!(grouped.error_code, code);
+        assert!(grouped.brokers.is_empty());
+        assert_eq!(grouped.topics.len(), 3);
+        assert_eq!(grouped.topics[0], named.error_result(code));
+        assert_eq!(grouped.topics[1].name.as_deref(), Some(""));
+        assert_eq!(grouped.topics[1].topic_id, id);
+        assert_eq!(grouped.topics[2].name.as_deref(), Some("orders"));
+        leftover_metadata_error_response(1, Some(std::slice::from_ref(&named)));
+        leftover_metadata_error_response(1, None);
+        leftover_metadata_error_response(9, Some(std::slice::from_ref(&named)));
+        leftover_metadata_error_response(9, Some(&[]));
+        leftover_metadata_error_response(13, Some(topics.as_slice()));
+        leftover_metadata_error_response(13, None);
+    }
+
+    fn leftover_metadata_error_response(version: i16, topics: Option<&[MetadataRequestTopic]>) {
+        let resp =
+            MetadataRequest::error_response(topics, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let mut buf = BytesMut::new();
+        encode_metadata_response(&mut buf, version, &resp).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_metadata_response(&mut cur, version).unwrap();
+        leftover_empty(
+            &cur,
+            match (version, topics.filter(|t| !t.is_empty()).is_none()) {
+                (1, false) => "Metadata v1 Request.getErrorResponse leftover-empty",
+                (1, true) => "Metadata v1 Request.getErrorResponse empty leftover-empty",
+                (9, false) => "Metadata v9 Request.getErrorResponse leftover-empty",
+                (9, true) => "Metadata v9 Request.getErrorResponse empty leftover-empty",
+                (13, false) => "Metadata v13 Request.getErrorResponse leftover-empty",
+                _ => "Metadata v13 Request.getErrorResponse empty leftover-empty",
+            },
+        )
+        .unwrap();
+        assert_eq!(decoded.topics, resp.topics);
+        assert!(decoded.brokers.is_empty());
+        assert_eq!(decoded.controller_id, MetadataResponse::NO_CONTROLLER_ID);
+        if version >= 13 {
+            assert_eq!(decoded.error_code, resp.error_code);
+        } else {
+            assert_eq!(decoded.error_code, 0);
+        }
     }
 }

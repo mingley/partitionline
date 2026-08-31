@@ -93,8 +93,12 @@
 //! `MetadataRequest.convertToMetadataRequestTopic` /
 //! `convertTopicIdsToMetadataRequestTopic`.
 //! [`protocol::api::TopicMetadata::error`] /
-//! [`protocol::api::MetadataRequestTopic::error_result`] are Java
-//! `MetadataRequest.getErrorResponse` (one topic).
+//! [`protocol::api::MetadataRequestTopic::error_result`] /
+//! [`protocol::api::MetadataRequest::error_response`] are Java
+//! `MetadataRequest.getErrorResponse` (one topic / request: null Topics is
+//! empty Topics, not all-topics; duplicate names are kept; Brokers stay
+//! empty; top-level ErrorCode is the same code; Java
+//! `hasReliableLeaderEpochs` is `true` even below Metadata v9).
 //! Name-based [`Admin::describe_topics`] uses DescribeTopicPartitions (api 75).
 //! Groups and transactions negotiate FindCoordinator v1–v6 (v3+ flexible;
 //! v4+ KIP-699 CoordinatorKeys; v5 TRANSACTION_ABORTABLE; v6 share groups).
