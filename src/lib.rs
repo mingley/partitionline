@@ -138,6 +138,12 @@
 //! non-default value; v5+ omits the field even when the body is non-default
 //! and decode fills [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId;
+//! Request GenerationIdOrMemberEpoch is JSON `1+` (decode returns it last;
+//! encode already takes `generation_id`; official Java
+//! `OffsetCommitRequestData.generationIdOrMemberEpoch` /
+//! `OffsetCommitRequest.DEFAULT_GENERATION_ID`; not SyncGroup GenerationId /
+//! Heartbeat GenerationId / JoinGroup response GenerationId /
+//! TxnOffsetCommit GenerationId);
 //! v7+ round-trips GroupInstanceId; below v7 encode omits it even when
 //! the body has an instance id and decode fills `None`;
 //! v3+ round-trips ThrottleTimeMs; below v3 encode omits it even when

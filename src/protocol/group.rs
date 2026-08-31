@@ -3624,7 +3624,9 @@ impl OffsetCommitResponse {
 /// [`DEFAULT_RETENTION_TIME`]. v6 CommittedLeaderEpoch. v7
 /// GroupInstanceId. Below v7 GroupInstanceId is omitted even when the
 /// body has an instance id; decode fills `None`. v8 flexible. v9 matches
-/// v8. This crate speaks 2–9. v0–v1 and v10+ are not spoken.
+/// v8. GenerationIdOrMemberEpoch is JSON `1+` (INT32 after GroupId;
+/// decode returns it last; JSON default `-1`). This crate speaks 2–9.
+/// v0–v1 and v10+ are not spoken.
 #[expect(
     clippy::too_many_arguments,
     reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
@@ -3680,23 +3682,25 @@ pub fn encode_offset_commit_request(
 }
 
 /// Decode OffsetCommit: `(group_id, member_id, topics, retention_time_ms,
-/// group_instance_id)`.
+/// group_instance_id, generation_id)`.
 ///
-/// Decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
-/// omitted `CommittedLeaderEpoch`. RetentionTimeMs is omitted outside
-/// v2–v4; decode fills [`DEFAULT_RETENTION_TIME`]. Below v7
-/// GroupInstanceId is omitted; decode fills `None`.
+/// GenerationIdOrMemberEpoch is JSON `1+` (always on the wire for spoken
+/// versions; last). Decode below v6 fills
+/// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for omitted
+/// `CommittedLeaderEpoch`. RetentionTimeMs is omitted outside v2–v4;
+/// decode fills [`DEFAULT_RETENTION_TIME`]. Below v7 GroupInstanceId is
+/// omitted; decode fills `None`.
 #[expect(
     clippy::type_complexity,
-    reason = "OffsetCommit decode returns group, member, topics, retention, and instance together"
+    reason = "OffsetCommit decode returns group, member, topics, retention, instance, and generation together"
 )]
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, Vec<OffsetTopic>, i64, Option<String>)> {
+) -> Result<(String, String, Vec<OffsetTopic>, i64, Option<String>, i32)> {
     let flexible = offset_commit_flexible(version)?;
     let group = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _gen = buf::get_i32(buf)?;
+    let generation_id = buf::get_i32(buf)?;
     let member = buf::get_string(buf, flexible)?.unwrap_or_default();
     let inst = if version >= 7 {
         buf::get_string(buf, flexible)?
@@ -3741,7 +3745,14 @@ pub fn decode_offset_commit_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group, member, topics, retention_time_ms, inst))
+    Ok((
+        group,
+        member,
+        topics,
+        retention_time_ms,
+        inst,
+        generation_id,
+    ))
 }
 
 /// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
@@ -8487,7 +8498,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (gid, mid, got, retention, inst) =
+            let (gid, mid, got, retention, inst, ..) =
                 decode_offset_commit_request(&mut cur, version).unwrap();
             assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
             assert_eq!(got[0].partitions[0].offset, 3);
@@ -8512,7 +8523,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        let (_, _, _, _, inst, ..) = decode_offset_commit_request(&mut cur, 2).unwrap();
         assert!(
             cur.is_empty(),
             "OffsetCommit v2 GroupInstanceId leftover-empty"
@@ -8535,7 +8546,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        let (_, _, _, _, inst, ..) = decode_offset_commit_request(&mut cur, 6).unwrap();
         assert!(
             cur.is_empty(),
             "OffsetCommit v6 GroupInstanceId leftover-empty"
@@ -8622,7 +8633,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = empty.as_ref();
-        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 7).unwrap();
+        let (_, _, _, _, inst, ..) = decode_offset_commit_request(&mut cur, 7).unwrap();
         assert_eq!(inst.as_deref(), Some(""));
         assert!(
             cur.is_empty(),
@@ -8632,6 +8643,116 @@ mod tests {
             &empty[..],
             &none[..],
             "empty GroupInstanceId is still present (Java != null)"
+        );
+    }
+
+    #[test]
+    fn offset_commit_generation_id_or_member_epoch_matches_java() {
+        // Kafka 4.0.0 OffsetCommitRequest.json GenerationIdOrMemberEpoch is
+        // versions 1+ (INT32 after GroupId / before MemberId; default -1).
+        // Official Java OffsetCommitRequestData.generationIdOrMemberEpoch /
+        // OffsetCommitRequest.DEFAULT_GENERATION_ID. Encode already writes
+        // generation_id. Decode previously discarded it. Kafka 4.0
+        // validVersions is 2-9 (v0–v1 removed). This crate speaks 2–9.
+        // This is not SyncGroup GenerationId / Heartbeat GenerationId /
+        // JoinGroup response GenerationId / TxnOffsetCommit GenerationId /
+        // GroupInstanceId.
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 3,
+                leader_epoch: 4,
+                metadata: String::new(),
+            }],
+        }];
+        for version in [2_i16, 3, 4, 5, 6, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, 3_600_000, &topics)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, mid, got, .., gen) = decode_offset_commit_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+            assert_eq!(got[0].partitions[0].offset, 3);
+            assert_eq!(gen, 7);
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} GenerationIdOrMemberEpoch leftover-empty"
+            );
+        }
+
+        let mut seven = BytesMut::new();
+        encode_offset_commit_request(&mut seven, 2, "g", 7, "m1", None, 3_600_000, &topics)
+            .unwrap();
+        let mut one = BytesMut::new();
+        encode_offset_commit_request(&mut one, 2, "g", 1, "m1", None, 3_600_000, &topics).unwrap();
+        assert_ne!(
+            &seven[..],
+            &one[..],
+            "v2 GenerationIdOrMemberEpoch is not always the JSON default -1"
+        );
+        let mut cur = seven.as_ref();
+        let (.., gen) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        assert_eq!(gen, 7);
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v2 GenerationIdOrMemberEpoch leftover-empty"
+        );
+        let mut cur = one.as_ref();
+        let (.., gen) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        assert_eq!(gen, 1);
+        assert_eq!(
+            seven.get(3..7),
+            Some([0, 0, 0, 7].as_slice()),
+            "v2 classic GenerationIdOrMemberEpoch follows GroupId STRING g"
+        );
+
+        let mut default = BytesMut::new();
+        encode_offset_commit_request(
+            &mut default,
+            2,
+            "g",
+            DEFAULT_GENERATION_ID,
+            "m1",
+            None,
+            3_600_000,
+            &topics,
+        )
+        .unwrap();
+        assert_ne!(
+            &seven[..],
+            &default[..],
+            "generation 7 is not OffsetCommitRequest.DEFAULT_GENERATION_ID"
+        );
+        let mut cur = default.as_ref();
+        let (.., gen) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        assert_eq!(gen, DEFAULT_GENERATION_ID);
+
+        let mut v3 = BytesMut::new();
+        encode_offset_commit_request(&mut v3, 3, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        assert_eq!(
+            &seven[..],
+            &v3[..],
+            "GenerationIdOrMemberEpoch bodies: v2 == v3"
+        );
+        let mut v4 = BytesMut::new();
+        encode_offset_commit_request(&mut v4, 4, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        assert_eq!(
+            &v3[..],
+            &v4[..],
+            "GenerationIdOrMemberEpoch bodies: v3 == v4"
+        );
+        let mut v5 = BytesMut::new();
+        encode_offset_commit_request(&mut v5, 5, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        assert_ne!(&v4[..], &v5[..], "v5 omits RetentionTimeMs");
+        let mut v8 = BytesMut::new();
+        encode_offset_commit_request(&mut v8, 8, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        let mut v9 = BytesMut::new();
+        encode_offset_commit_request(&mut v9, 9, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        assert_eq!(
+            &v8[..],
+            &v9[..],
+            "GenerationIdOrMemberEpoch bodies: v8 == v9"
         );
     }
 
