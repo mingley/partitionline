@@ -708,7 +708,7 @@
 //! owner and requester; timestamps `-1`; empty TokenId / Hmac).
 //! TokenRequester fields are v3+; encode writes
 //! [`CreateDelegationTokenResponse::throttle_time_ms`]; `::new` fills `0`),
-//! RenewDelegationToken v1–v2 (v1 classic; v2 flexible;
+//! RenewDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::RenewDelegationTokenResponse::should_client_throttle`] is Java
 //! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+)),
 //! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible;
