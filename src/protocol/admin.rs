@@ -13217,6 +13217,21 @@ impl PushTelemetryRequest {
     pub fn metrics(&self) -> &[u8] {
         &self.metrics
     }
+
+    /// Java `PushTelemetryRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. Request ClientInstanceId /
+    /// SubscriptionId / terminating / compression / metrics are not
+    /// copied. ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`PushTelemetryResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` delegates to `errorResponse` and sets
+    /// `throttleTimeMs` from the argument. This is not
+    /// [`PushTelemetryResponse::error_counts`] /
+    /// GetTelemetrySubscriptions `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> PushTelemetryResponse {
+        PushTelemetryResponse::new(error_code)
+    }
 }
 
 /// PushTelemetry (api 72) v0 response body.
@@ -28453,6 +28468,56 @@ mod tests {
             cur.is_empty(),
             "PushTelemetry v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn push_telemetry_request_error_response_matches_java() {
+        // Java 4.0 PushTelemetryRequest.getErrorResponse delegates to
+        // errorResponse(throttleTimeMs, Errors.forException(e)):
+        // setErrorCode / setThrottleTimeMs. Request ClientInstanceId /
+        // SubscriptionId / terminating / compression / metrics are not
+        // copied. Official Java PushTelemetryRequest.getErrorResponse.
+        // Official Java sets throttleTimeMs from the argument;
+        // PushTelemetryResponse::new fills 0. This crate speaks 0. This
+        // is not errorCounts / GetTelemetrySubscriptions getErrorResponse
+        // / ListConfigResources getErrorResponse.
+        let err = PushTelemetryRequest::error_response(crate::error::THROTTLING_QUOTA_EXCEEDED);
+        assert_eq!(
+            err,
+            PushTelemetryResponse::new(crate::error::THROTTLING_QUOTA_EXCEEDED)
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "PushTelemetryResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_push_telemetry_response(&mut resp, &err).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_push_telemetry_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "PushTelemetry v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_push_telemetry_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_push_telemetry_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_push_telemetry_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 
