@@ -1414,6 +1414,27 @@ impl DeleteTopicsRequest {
                 .collect()
         }
     }
+
+    /// Java `DeleteTopicsRequest.topics`.
+    ///
+    /// v6+ is `topics` as-is (including empty; TopicId kept). Below v6 Java
+    /// reads TopicNames, not Topics: each Name becomes a `DeleteTopicState`
+    /// with TopicId zeros (JSON default). Id-only (null Name) entries below
+    /// v6 are dropped, unlike v6+ which keeps them. A named entry's TopicId
+    /// is zeroed below v6 even when the input had one. Distinct from
+    /// [`Self::topic_names`], which returns names, and [`Self::topic_ids`],
+    /// which is empty below v6 rather than a filtered state list.
+    #[must_use]
+    pub fn topics(version: i16, topics: &[DeleteTopicState]) -> Vec<DeleteTopicState> {
+        if version >= 6 {
+            topics.to_vec()
+        } else {
+            topics
+                .iter()
+                .filter_map(|topic| topic.name.as_deref().map(DeleteTopicState::by_name))
+                .collect()
+        }
+    }
 }
 
 /// DeleteTopics v0–6 (classic through v3; flexible from v4).
@@ -17049,6 +17070,135 @@ mod tests {
             vec![Some("t")]
         );
         assert!(DeleteTopicsRequest::topic_names(6, &[]).is_empty());
+    }
+
+    #[test]
+    fn delete_topics_request_topics_matches_java() {
+        // Java DeleteTopicsRequest.topics: v6+ is data.topics() as-is.
+        // Below v6 is TopicNames mapped to DeleteTopicState.setName
+        // (TopicId zeros). Id-only (null Name) entries below v6 are
+        // dropped. Empty is empty (not a singleton).
+        assert!(DeleteTopicsRequest::topics(6, &[]).is_empty());
+        assert!(DeleteTopicsRequest::topics(5, &[]).is_empty());
+
+        let mut id = [0u8; 16];
+        id[0] = b't';
+        let by_id = DeleteTopicState::by_id(id);
+        let by_name = DeleteTopicState::by_name("t");
+        let named_with_id = DeleteTopicState {
+            name: Some("n".into()),
+            topic_id: id,
+        };
+
+        assert_eq!(
+            DeleteTopicsRequest::topics(6, std::slice::from_ref(&by_id)),
+            vec![by_id.clone()]
+        );
+        assert!(DeleteTopicsRequest::topics(5, std::slice::from_ref(&by_id)).is_empty());
+        assert!(DeleteTopicsRequest::topic_names(5, std::slice::from_ref(&by_id)).is_empty());
+        assert_eq!(
+            DeleteTopicsRequest::topics(6, std::slice::from_ref(&named_with_id)),
+            vec![named_with_id.clone()]
+        );
+        assert_eq!(
+            DeleteTopicsRequest::topics(5, std::slice::from_ref(&named_with_id)),
+            vec![DeleteTopicState::by_name("n")]
+        );
+
+        let mixed = vec![
+            by_name.clone(),
+            by_id.clone(),
+            named_with_id.clone(),
+            by_name.clone(),
+        ];
+        assert_eq!(DeleteTopicsRequest::topics(6, &mixed), mixed);
+        let v5 = DeleteTopicsRequest::topics(5, &mixed);
+        assert_eq!(
+            v5,
+            vec![
+                DeleteTopicState::by_name("t"),
+                DeleteTopicState::by_name("n"),
+                DeleteTopicState::by_name("t"),
+            ]
+        );
+        assert_eq!(
+            v5.get(1).map(|topic| topic.topic_id),
+            Some([0u8; 16]),
+            "below v6 TopicId is zeros even when the named input had one"
+        );
+        assert_eq!(DeleteTopicsRequest::topic_names(5, &mixed).len(), 3);
+        assert!(DeleteTopicsRequest::topic_ids(5, &mixed).is_empty());
+
+        for version in [5_i16, 6] {
+            let grouped = DeleteTopicsRequest::topics(version, std::slice::from_ref(&by_name));
+            assert_eq!(grouped, vec![by_name.clone()]);
+            let mut buf = BytesMut::new();
+            encode_delete_topics_states_request(
+                &mut buf,
+                version,
+                std::slice::from_ref(&by_name),
+                5_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, timeout) =
+                decode_delete_topics_states_request(&mut cur, version).unwrap();
+            assert_eq!(timeout, 5_000);
+            assert_eq!(decoded, vec![by_name.clone()]);
+            assert!(
+                !cur.has_remaining(),
+                "DeleteTopics v{version} topics leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [5_i16, 6] {
+            let grouped = DeleteTopicsRequest::topics(version, &[]);
+            assert!(grouped.is_empty());
+            let mut buf = BytesMut::new();
+            encode_delete_topics_states_request(&mut buf, version, &[], 5_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, timeout) =
+                decode_delete_topics_states_request(&mut cur, version).unwrap();
+            assert_eq!(timeout, 5_000);
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "DeleteTopics v{version} topics empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        let grouped = DeleteTopicsRequest::topics(5, std::slice::from_ref(&by_id));
+        assert!(grouped.is_empty());
+        let mut buf = BytesMut::new();
+        encode_delete_topics_states_request(&mut buf, 5, std::slice::from_ref(&by_id), 5_000)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, timeout) = decode_delete_topics_states_request(&mut cur, 5).unwrap();
+        assert_eq!(timeout, 5_000);
+        assert_eq!(
+            decoded,
+            vec![DeleteTopicState {
+                name: None,
+                topic_id: [0; 16]
+            }],
+            "encode still writes a null-Name TopicNames entry below v6"
+        );
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v5 topics id leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        let mut v6_id = BytesMut::new();
+        encode_delete_topics_states_request(&mut v6_id, 6, std::slice::from_ref(&by_id), 5_000)
+            .unwrap();
+        let mut cur = v6_id.as_ref();
+        let (decoded, _) = decode_delete_topics_states_request(&mut cur, 6).unwrap();
+        assert_eq!(decoded, vec![by_id]);
+        assert!(
+            !cur.has_remaining(),
+            "DeleteTopics v6 topics id leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]

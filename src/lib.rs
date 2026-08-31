@@ -421,10 +421,13 @@
 //! [`protocol::admin::DeleteTopicState::error_result`] are Java
 //! `DeleteTopicsRequest.getErrorResponse` (one topic);
 //! [`protocol::admin::DeleteTopicsRequest::topic_ids`] /
-//! [`protocol::admin::DeleteTopicsRequest::topic_names`] are Java
-//! `DeleteTopicsRequest.topicIds` / `topicNames` (topic IDs empty below v6;
-//! v6+ names include null when deleting by TopicId; below v6 id-only
-//! entries are omitted)),
+//! [`protocol::admin::DeleteTopicsRequest::topic_names`] /
+//! [`protocol::admin::DeleteTopicsRequest::topics`] are Java
+//! `DeleteTopicsRequest.topicIds` / `topicNames` / `topics` (topic IDs empty
+//! below v6; v6+ names include null when deleting by TopicId; below v6
+//! id-only entries are omitted from `topicNames`; `topics` below v6 keeps
+//! named entries with TopicId zeros and drops id-only; v6+ `topics` is
+//! as-is)),
 //! DescribeGroups v0–v6 (v3 IncludeAuthorizedOperations; v4 GroupInstanceId; v5 flexible; v6 ErrorMessage; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_STATE`] /
 //! [`protocol::admin::DescribeGroupsResponse::UNKNOWN_PROTOCOL_TYPE`] /
