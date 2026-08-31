@@ -2468,18 +2468,30 @@ impl OffsetFetchRequest {
     ) -> HashMap<String, Option<Vec<(String, i32)>>> {
         let mut group_ids_to_partitions = HashMap::new();
         for group in groups {
-            let tp_list = group.topics.as_ref().map(|topics| {
-                let mut partitions = Vec::new();
-                for topic in topics {
-                    for &partition in &topic.partitions {
-                        partitions.push((topic.topic.clone(), partition));
-                    }
-                }
-                partitions
-            });
+            let tp_list = group.topics.as_deref().map(Self::topic_partitions);
             let _prev = group_ids_to_partitions.insert(group.group_id.clone(), tp_list);
         }
         group_ids_to_partitions
+    }
+
+    /// Java `OffsetFetchRequest.partitions`.
+    ///
+    /// `None` Topics is `None` (every committed partition). Otherwise each
+    /// `(topic, partition)` in request order. Duplicate pairs are kept
+    /// (Java `ArrayList`).
+    #[must_use]
+    pub fn partitions(topics: Option<&[OffsetFetchTopic]>) -> Option<Vec<(String, i32)>> {
+        topics.map(Self::topic_partitions)
+    }
+
+    fn topic_partitions(topics: &[OffsetFetchTopic]) -> Vec<(String, i32)> {
+        let mut partitions = Vec::new();
+        for topic in topics {
+            for &partition in &topic.partitions {
+                partitions.push((topic.topic.clone(), partition));
+            }
+        }
+        partitions
     }
 }
 
@@ -6442,6 +6454,74 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v9 groupIdsToPartitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_partitions_matches_java() {
+        // Java OffsetFetchRequest.partitions: null Topics is null. Otherwise
+        // each (topic, partition) in request order. Duplicate pairs are
+        // kept (ArrayList).
+        assert_eq!(OffsetFetchRequest::partitions(None), None);
+        assert_eq!(OffsetFetchRequest::partitions(Some(&[])), Some(Vec::new()));
+        let one = offset_fetch_one_topic();
+        assert_eq!(
+            OffsetFetchRequest::partitions(Some(&one)),
+            Some(vec![("t".into(), 0)])
+        );
+        let two = [
+            OffsetFetchTopic {
+                topic: "a".into(),
+                partitions: vec![0, 1],
+            },
+            OffsetFetchTopic {
+                topic: "b".into(),
+                partitions: vec![2],
+            },
+        ];
+        assert_eq!(
+            OffsetFetchRequest::partitions(Some(&two)),
+            Some(vec![("a".into(), 0), ("a".into(), 1), ("b".into(), 2),])
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_request(&mut buf, 2, "g", None, -1, false, Some(&two)).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, decoded, stable) = decode_offset_fetch_request(&mut cur, 2).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded.as_deref(), Some(two.as_slice()));
+        assert_eq!(
+            OffsetFetchRequest::partitions(decoded.as_deref()),
+            OffsetFetchRequest::partitions(Some(&two))
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v2 partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_request(&mut buf, 7, "g", None, -1, false, Some(&two)).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, decoded, stable) = decode_offset_fetch_request(&mut cur, 7).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded.as_deref(), Some(two.as_slice()));
+        assert_eq!(
+            OffsetFetchRequest::partitions(decoded.as_deref()),
+            OffsetFetchRequest::partitions(Some(&two))
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v7 partitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_request(&mut buf, 2, "g", None, -1, false, None).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, decoded, _stable) = decode_offset_fetch_request(&mut cur, 2).unwrap();
+        assert_eq!(OffsetFetchRequest::partitions(decoded.as_deref()), None);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v2 null partitions leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

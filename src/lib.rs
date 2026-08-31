@@ -138,6 +138,9 @@
 //! `OffsetFetchRequest.groupIdsToPartitions` (group id to
 //! `(topic, partition)` list; `None` Topics is `None`; a later group
 //! overwrites);
+//! [`protocol::group::OffsetFetchRequest::partitions`] is Java
+//! `OffsetFetchRequest.partitions` (`None` Topics is `None`; otherwise
+//! each `(topic, partition)` in request order);
 //! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
 //! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
