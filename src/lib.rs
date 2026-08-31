@@ -300,6 +300,9 @@
 //! `ShareFetchResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`). Crate decode currently fails
 //! on a non-zero top-level code and does not return it;
+//! [`protocol::share::ShareFetchResponse::response_data`] is Java
+//! `ShareFetchResponse.responseData` (looks up `topic_id`; skips a missing
+//! name; a later partition overwrites);
 //! [`protocol::share::ShareFetchedPartition::records_size`] is Java
 //! `ShareFetchResponse.recordsSize` (`0` when records are empty)),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;

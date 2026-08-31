@@ -208,6 +208,32 @@ impl ShareFetchResponse {
         }
         counts
     }
+
+    /// Java `ShareFetchResponse.responseData`.
+    ///
+    /// Looks up each topic id in `topic_names` and skips a topic whose
+    /// id is missing (Java `name != null`). Keys are
+    /// `(topic_id, name, partition)` (Java `TopicIdPartition`). A later
+    /// partition overwrites the same triple (Java `LinkedHashMap.put`).
+    #[must_use]
+    pub fn response_data(
+        topics: &[ShareFetchedTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> HashMap<([u8; 16], String, i32), ShareFetchedPartition> {
+        let mut response_data = HashMap::new();
+        for topic in topics {
+            let Some(name) = topic_names.get(&topic.topic_id) else {
+                continue;
+            };
+            for partition in &topic.partitions {
+                let _prev = response_data.insert(
+                    (topic.topic_id, name.clone(), partition.partition),
+                    partition.clone(),
+                );
+            }
+        }
+        response_data
+    }
 }
 
 /// One partition in a ShareAcknowledge response.
@@ -1726,5 +1752,59 @@ mod tests {
             }],
         );
         assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_TOPIC_ID, 2)]));
+    }
+
+    #[test]
+    fn share_fetch_response_response_data_matches_java() {
+        // Java ShareFetchResponse.responseData: look up topicId in
+        // topicNames and skip a missing name (name != null). Keys are
+        // TopicIdPartition (topic_id, name, partition). LinkedHashMap.put
+        // overwrites the same triple.
+        let topic_id = [1u8; 16];
+        let unknown_id = [2u8; 16];
+        let p0 = ShareFetchedPartition::partition_response(0, 0);
+        let p1 = ShareFetchedPartition::partition_response(1, crate::error::UNKNOWN_TOPIC_ID);
+        let overwrite =
+            ShareFetchedPartition::partition_response(0, crate::error::NOT_LEADER_OR_FOLLOWER);
+        let topics = vec![
+            ShareFetchedTopic {
+                topic_id,
+                partitions: vec![p0.clone(), p1.clone()],
+            },
+            ShareFetchedTopic {
+                topic_id,
+                partitions: vec![overwrite.clone()],
+            },
+            ShareFetchedTopic {
+                topic_id: unknown_id,
+                partitions: vec![ShareFetchedPartition::partition_response(0, 0)],
+            },
+        ];
+        assert!(ShareFetchResponse::response_data(&[], &HashMap::new()).is_empty());
+        assert!(ShareFetchResponse::response_data(&topics, &HashMap::new()).is_empty());
+        let names = HashMap::from([(topic_id, "t".into())]);
+        assert_eq!(
+            ShareFetchResponse::response_data(&topics, &names),
+            HashMap::from([
+                ((topic_id, "t".into(), 0), overwrite.clone()),
+                ((topic_id, "t".into(), 1), p1.clone()),
+            ])
+        );
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response(&mut buf, version, &topics).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, topics);
+            assert_eq!(
+                ShareFetchResponse::response_data(&decoded, &names),
+                ShareFetchResponse::response_data(&topics, &names)
+            );
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} responseData leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 }
