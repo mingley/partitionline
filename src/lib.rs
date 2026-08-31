@@ -842,6 +842,10 @@
 //! replaced (group by name; first topic id for a name is kept; later
 //! partitions append; replaced only on v13+; encode still writes empty
 //! ForgottenTopicsData).
+//! [`protocol::fetch::FetchRequest::topics_from_fetch_data`] is Java
+//! `FetchRequest.Builder.build` Topics from fetchData (consecutive same
+//! name share one topic; first topic id is kept; intervening names stay
+//! split; encode still writes the caller's Topics as-is).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /

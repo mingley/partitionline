@@ -359,6 +359,38 @@ impl FetchRequest {
             .collect()
     }
 
+    /// Java `FetchRequest.Builder.build` Topics from fetchData.
+    ///
+    /// Consecutive entries with the same topic name share one `FetchTopic`
+    /// (first topic id is kept; later partitions append, duplicates kept).
+    /// An intervening different name starts a new topic, even when a later
+    /// entry repeats an earlier name (unlike [`FetchResponse::to_message`]
+    /// matching by id, and unlike [`Self::forgotten_from_removed`], which
+    /// merges by name across the whole list). Encode still writes the
+    /// caller's Topics list as-is.
+    #[must_use]
+    pub fn topics_from_fetch_data<'a, I>(entries: I) -> Vec<FetchTopic>
+    where
+        I: IntoIterator<Item = (&'a str, [u8; 16], FetchPartition)>,
+    {
+        let mut topics = Vec::<FetchTopic>::new();
+        for (name, topic_id, partition) in entries {
+            match topics.last_mut() {
+                Some(topic) if topic.topic == name => {
+                    topic.partitions.push(partition);
+                }
+                _ => {
+                    topics.push(FetchTopic {
+                        topic: name.to_string(),
+                        topic_id,
+                        partitions: vec![partition],
+                    });
+                }
+            }
+        }
+        topics
+    }
+
     /// Java `FetchRequest.getErrorResponse`.
     ///
     /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
@@ -1905,6 +1937,119 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Builder.build forgotten empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn fetch_request_topics_from_fetch_data_matches_java() {
+        // Java FetchRequest.Builder.build Topics: consecutive same topic()
+        // share one FetchTopic (first topicId kept). An intervening name
+        // starts a new topic even when a later entry repeats an earlier
+        // name. Encode still writes the caller's Topics as-is.
+        assert!(FetchRequest::topics_from_fetch_data(std::iter::empty::<(
+            &str,
+            [u8; 16],
+            FetchPartition,
+        )>())
+        .is_empty());
+
+        let id_a = [1u8; 16];
+        let id_a2 = [9u8; 16];
+        let id_b = [2u8; 16];
+        let p0 = FetchPartition {
+            partition: 0,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            fetch_offset: 10,
+            last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            partition_max_bytes: 1024,
+        };
+        let p1 = FetchPartition {
+            partition: 1,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            fetch_offset: 11,
+            last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            partition_max_bytes: 1024,
+        };
+        let p2 = FetchPartition {
+            partition: 2,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            fetch_offset: 12,
+            last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            partition_max_bytes: 1024,
+        };
+        let p0_dup = FetchPartition {
+            partition: 0,
+            current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            fetch_offset: 99,
+            last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            partition_max_bytes: 1,
+        };
+
+        let consecutive = FetchRequest::topics_from_fetch_data([
+            ("a", id_a, p0.clone()),
+            ("a", id_a2, p1.clone()),
+            ("a", id_a, p0_dup.clone()),
+        ]);
+        assert_eq!(consecutive.len(), 1);
+        let only = consecutive.first().expect("one topic");
+        assert_eq!(only.topic, "a");
+        assert_eq!(
+            only.topic_id, id_a,
+            "first topicId for a consecutive name is kept"
+        );
+        assert_eq!(only.partitions.len(), 3, "duplicate partitions are kept");
+        assert_eq!(
+            only.partitions
+                .iter()
+                .map(|part| part.partition)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 0]
+        );
+
+        let split = FetchRequest::topics_from_fetch_data([
+            ("a", id_a, p0.clone()),
+            ("b", id_b, p1.clone()),
+            ("a", id_a, p2.clone()),
+        ]);
+        assert_eq!(
+            split.len(),
+            3,
+            "intervening name stays split (unlike forgotten_from_removed)"
+        );
+        assert_eq!(split.first().map(|topic| topic.topic.as_str()), Some("a"));
+        assert_eq!(split.get(1).map(|topic| topic.topic.as_str()), Some("b"));
+        assert_eq!(split.get(2).map(|topic| topic.topic.as_str()), Some("a"));
+        assert_eq!(split.first().map(|topic| topic.partitions.len()), Some(1));
+
+        for version in [12_i16, 13] {
+            let grouped = FetchRequest::topics_from_fetch_data([("a", id_a, p0.clone())]);
+            assert_eq!(grouped.len(), 1);
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &grouped, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Builder.build Topics leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [12_i16, 17] {
+            let grouped = FetchRequest::topics_from_fetch_data(std::iter::empty::<(
+                &str,
+                [u8; 16],
+                FetchPartition,
+            )>());
+            assert!(grouped.is_empty());
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &grouped, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} Builder.build Topics empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
