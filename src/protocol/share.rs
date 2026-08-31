@@ -1543,7 +1543,9 @@ pub fn encode_share_acknowledge_response(
 /// bodies.
 ///
 /// ThrottleTimeMs is JSON `0+` ([`encode_share_acknowledge_topics_response_with_throttle`];
-/// this helper still writes `0`). Top-level ErrorMessage is null.
+/// this helper still writes `0`). Top-level ErrorMessage is JSON `0+`
+/// ([`encode_share_acknowledge_topics_response_with_error_message`]; this
+/// helper still writes null).
 /// Each partition is PartitionIndex and ErrorCode; ErrorMessage is taken
 /// from the partition fields (JSON default null) and CurrentLeader is
 /// taken from the partition fields (JSON default id 0 epoch 0).
@@ -1577,7 +1579,9 @@ pub fn encode_share_acknowledge_topics_response(
 /// Partition ErrorMessage is JSON `0+` (nullable compact STRING from each
 /// partition, not the top-level ErrorMessage). ThrottleTimeMs is JSON `0+`
 /// ([`encode_share_acknowledge_topics_response_with_throttle`]; this
-/// helper still writes `0`).
+/// helper still writes `0`). Top-level ErrorMessage is JSON `0+`
+/// ([`encode_share_acknowledge_topics_response_with_error_message`]; this
+/// helper still writes null).
 pub fn encode_share_acknowledge_topics_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
@@ -1585,7 +1589,9 @@ pub fn encode_share_acknowledge_topics_response_with_endpoints(
     topics: &[ShareAcknowledgeResponseTopic],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
-    encode_share_acknowledge_topics_response_full(buf, version, error_code, topics, endpoints, 0)
+    encode_share_acknowledge_topics_response_full(
+        buf, version, error_code, topics, endpoints, 0, None,
+    )
 }
 
 /// Encode ShareAcknowledge v0–v1 with ThrottleTimeMs.
@@ -1611,6 +1617,34 @@ pub fn encode_share_acknowledge_topics_response_with_throttle(
         topics,
         &[],
         throttle_time_ms,
+        None,
+    )
+}
+
+/// Encode ShareAcknowledge v0–v1 with top-level ErrorMessage.
+///
+/// ErrorMessage is JSON `0+` (nullable compact STRING on every spoken
+/// version). JSON default is null. [`encode_share_acknowledge_topics_response`]
+/// still writes null. ThrottleTimeMs stays `0` and NodeEndpoints stay
+/// empty. v0 and v1 bodies match. This is not partition ErrorMessage and
+/// not ShareFetch top-level ErrorMessage (ShareFetch v1 still adds
+/// AcquisitionLockTimeoutMs). Official Java `of` / `toMessage` /
+/// `getErrorResponse` leave it at JSON null.
+pub fn encode_share_acknowledge_topics_response_with_error_message(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+    error_message: Option<&str>,
+) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_response_full(
+        buf,
+        version,
+        error_code,
+        topics,
+        &[],
+        0,
+        error_message,
     )
 }
 
@@ -1621,11 +1655,12 @@ fn encode_share_acknowledge_topics_response_full(
     topics: &[ShareAcknowledgeResponseTopic],
     endpoints: &[NodeEndpoint],
     throttle_time_ms: i32,
+    error_message: Option<&str>,
 ) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
-    buf::put_string(buf, flexible, None)?;
+    buf::put_string(buf, flexible, error_message)?;
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf.extend_from_slice(&t.topic_id);
@@ -1661,14 +1696,18 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
 }
 
 /// Decode a ShareAcknowledge response (`version` 0–1):
-/// `(error_code, topics, node_endpoints, throttle_time_ms)`.
+/// `(error_code, topics, node_endpoints, throttle_time_ms, error_message)`.
 ///
 /// Does not fail on a non-zero top-level or partition ErrorCode; callers
 /// decide. ThrottleTimeMs is JSON `0+` (always on the wire). Top-level
-/// ErrorMessage is not stored. Partition ErrorMessage is JSON `0+`
-/// (nullable compact STRING). CurrentLeader is JSON `0+` (untagged nested
-/// `LeaderIdAndEpoch`). NodeEndpoints is JSON `0+` (untagged
-/// compact array).
+/// ErrorMessage is JSON `0+` (nullable compact STRING). Partition
+/// ErrorMessage is JSON `0+` (nullable compact STRING). CurrentLeader is
+/// JSON `0+` (untagged nested `LeaderIdAndEpoch`). NodeEndpoints is JSON
+/// `0+` (untagged compact array).
+#[expect(
+    clippy::type_complexity,
+    reason = "ShareAcknowledge response decode returns error, topics, node endpoints, throttle, and top-level ErrorMessage together"
+)]
 pub fn decode_share_acknowledge_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
@@ -1677,11 +1716,12 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
     Vec<ShareAcknowledgeResponseTopic>,
     Vec<NodeEndpoint>,
     i32,
+    Option<String>,
 )> {
     let flexible = share_acknowledge_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
-    let _msg = buf::get_string(buf, flexible)?;
+    let error_message = buf::get_string(buf, flexible)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1716,7 +1756,13 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error_code, topics, endpoints, throttle_time_ms))
+    Ok((
+        error_code,
+        topics,
+        endpoints,
+        throttle_time_ms,
+        error_message,
+    ))
 }
 
 #[cfg(test)]
@@ -3318,7 +3364,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (top, got, endpoints, throttle) =
+            let (top, got, endpoints, throttle, ..) =
                 decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
             assert_eq!(top, 0);
             assert_eq!(got, topics);
@@ -3386,6 +3432,136 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareAcknowledge has no AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_acknowledge_response_top_level_error_message_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareAcknowledgeResponse.json top-level
+        // ErrorMessage is versions 0+ (nullable compact STRING on every
+        // spoken version). Official Java ShareAcknowledgeResponse.of /
+        // toMessage / ShareAcknowledgeRequest.getErrorResponse leave it at
+        // JSON null. Apache ShareAcknowledgeResponse.java has no
+        // errorMessage helper. encode_share_acknowledge_topics_response
+        // still writes null. v0 and v1 bodies match. This is not partition
+        // ErrorMessage and not ShareFetch top-level ErrorMessage
+        // (ShareFetch v1 still adds AcquisitionLockTimeoutMs).
+        let topics = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        let with_part = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: Some("e".into()),
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response_with_error_message(
+                &mut buf,
+                version,
+                0,
+                &topics,
+                Some("e"),
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (top, got, endpoints, throttle, msg) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(got, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 0);
+            assert_eq!(msg.as_deref(), Some("e"));
+            assert!(
+                cur.is_empty(),
+                "ShareAcknowledge v{version} top-level ErrorMessage leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_error_message(
+            &mut with,
+            0,
+            0,
+            &topics,
+            Some("e"),
+        )
+        .unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_error_message(
+            &mut empty, 0, 0, &topics, None,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareAcknowledge top-level ErrorMessage is not always null"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut conv, 0, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_share_acknowledge_topics_response still writes top-level ErrorMessage null"
+        );
+
+        let mut part_msg = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut part_msg, 0, 0, &with_part).unwrap();
+        assert_ne!(
+            &with[..],
+            &part_msg[..],
+            "top-level ErrorMessage is not partition ErrorMessage"
+        );
+
+        let mut empty_present = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_error_message(
+            &mut empty_present,
+            0,
+            0,
+            &topics,
+            Some(""),
+        )
+        .unwrap();
+        assert_ne!(
+            &empty_present[..],
+            &empty[..],
+            "empty-but-present top-level ErrorMessage is not JSON null"
+        );
+        let mut cur = empty_present.as_ref();
+        let (top, got, .., msg) = decode_share_acknowledge_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(top, 0);
+        assert_eq!(got, topics);
+        assert_eq!(msg.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "ShareAcknowledge v0 top-level ErrorMessage leftover-empty"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_acknowledge_topics_response_with_error_message(
+            &mut v1_with,
+            1,
+            0,
+            &topics,
+            Some("e"),
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 top-level ErrorMessage layout match; ShareAcknowledge has no AcquisitionLockTimeoutMs"
         );
     }
 

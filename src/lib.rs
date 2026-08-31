@@ -519,6 +519,11 @@
 //! the top-level ErrorCode (empty Responses);
 //! [`protocol::share::encode_share_acknowledge_response`] still writes
 //! ThrottleTimeMs `0`;
+//! top-level ErrorMessage is JSON `0+` (nullable compact STRING; not
+//! partition ErrorMessage); v0 and v1 bodies match;
+//! [`protocol::share::encode_share_acknowledge_topics_response_with_error_message`]
+//! writes it; [`protocol::share::encode_share_acknowledge_topics_response`]
+//! still writes null;
 //! [`protocol::share::ShareAcknowledgeResponse::error_counts`] is Java
 //! `ShareAcknowledgeResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`);
