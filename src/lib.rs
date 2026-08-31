@@ -528,6 +528,12 @@
 //! [`protocol::txn::AddPartitionsToTxnResponse::error_counts`] is Java
 //! `AddPartitionsToTxnResponse.errorCounts` for v0–v3 (partition-level codes,
 //! including `NONE`);
+//! [`protocol::txn::AddPartitionsToTxnResponse::errors`] /
+//! [`protocol::txn::AddPartitionsToTxnResponse::errors_for_transaction`] are
+//! Java `AddPartitionsToTxnResponse.errors` /
+//! `errorsForTransaction` (v0–v3 key
+//! [`protocol::txn::AddPartitionsToTxnResponse::V3_AND_BELOW_TXN_ID`]; a later
+//! partition overwrites);
 //! [`protocol::txn::TxnPartitionsTopic::error_result`] /
 //! [`protocol::txn::TxnPartitionsTopic::error_results`] /
 //! [`protocol::txn::AddPartitionsToTxnPartitionResult::error`] are Java

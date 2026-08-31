@@ -257,6 +257,12 @@ impl AddPartitionsToTxnRequest {
 pub struct AddPartitionsToTxnResponse;
 
 impl AddPartitionsToTxnResponse {
+    /// Java `AddPartitionsToTxnResponse.V3_AND_BELOW_TXN_ID`.
+    ///
+    /// Key for [`Self::errors`] when the response is v0–v3
+    /// (`resultsByTopicV3AndBelow`).
+    pub const V3_AND_BELOW_TXN_ID: &'static str = "";
+
     /// Java `AddPartitionsToTxnResponse.shouldClientThrottle`.
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
@@ -278,6 +284,47 @@ impl AddPartitionsToTxnResponse {
             }
         }
         counts
+    }
+
+    /// Java `AddPartitionsToTxnResponse.errorsForTransaction`.
+    ///
+    /// Each `(topic, partition)` maps to that partition's error code
+    /// (including `NONE`). A later partition overwrites an earlier one
+    /// for the same pair (Java `HashMap.put`).
+    #[must_use]
+    pub fn errors_for_transaction(
+        topics: &[AddPartitionsToTxnTopicResult],
+    ) -> HashMap<(String, i32), i16> {
+        let mut topic_results = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let _prev = topic_results.insert(
+                    (topic.topic.clone(), partition.partition),
+                    partition.error_code,
+                );
+            }
+        }
+        topic_results
+    }
+
+    /// Java `AddPartitionsToTxnResponse.errors` for v0–v3
+    /// (`resultsByTopicV3AndBelow`).
+    ///
+    /// Empty Topics is an empty map. Otherwise the only key is
+    /// [`Self::V3_AND_BELOW_TXN_ID`]. v4+ `resultsByTransaction` is not
+    /// spoken.
+    #[must_use]
+    pub fn errors(
+        topics: &[AddPartitionsToTxnTopicResult],
+    ) -> HashMap<String, HashMap<(String, i32), i16>> {
+        let mut errors_map = HashMap::new();
+        if !topics.is_empty() {
+            let _prev = errors_map.insert(
+                Self::V3_AND_BELOW_TXN_ID.to_string(),
+                Self::errors_for_transaction(topics),
+            );
+        }
+        errors_map
     }
 }
 
@@ -2050,6 +2097,103 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn add_partitions_to_txn_response_errors_matches_java() {
+        // Java AddPartitionsToTxnResponse.errors for v0–v3: empty
+        // resultsByTopicV3AndBelow is an empty map. Otherwise the only
+        // key is V3_AND_BELOW_TXN_ID (""). errorsForTransaction flattens
+        // (topic, partition) codes; a later partition overwrites
+        // (HashMap.put). v4+ resultsByTransaction is not spoken.
+        assert_eq!(AddPartitionsToTxnResponse::V3_AND_BELOW_TXN_ID, "");
+        assert!(AddPartitionsToTxnResponse::errors(&[]).is_empty());
+        assert!(AddPartitionsToTxnResponse::errors_for_transaction(&[]).is_empty());
+        let one = vec![AddPartitionsToTxnTopicResult {
+            topic: "t".into(),
+            partitions: vec![
+                AddPartitionsToTxnPartitionResult::error(0, 0),
+                AddPartitionsToTxnPartitionResult::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ],
+        }];
+        let one_inner = HashMap::from([
+            (("t".into(), 0), 0),
+            (("t".into(), 1), crate::error::NOT_LEADER_OR_FOLLOWER),
+        ]);
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors_for_transaction(&one),
+            one_inner
+        );
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors(&one),
+            HashMap::from([(
+                AddPartitionsToTxnResponse::V3_AND_BELOW_TXN_ID.to_string(),
+                one_inner
+            )])
+        );
+        let two = vec![
+            AddPartitionsToTxnTopicResult {
+                topic: "a".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            AddPartitionsToTxnTopicResult {
+                topic: "a".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(
+                    0,
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                )],
+            },
+            AddPartitionsToTxnTopicResult {
+                topic: "b".into(),
+                partitions: vec![AddPartitionsToTxnPartitionResult::error(3, 0)],
+            },
+        ];
+        let two_inner = HashMap::from([
+            (("a".into(), 0), crate::error::NOT_LEADER_OR_FOLLOWER),
+            (("b".into(), 3), 0),
+        ]);
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors_for_transaction(&two),
+            two_inner
+        );
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors(&two),
+            HashMap::from([(
+                AddPartitionsToTxnResponse::V3_AND_BELOW_TXN_ID.to_string(),
+                two_inner.clone()
+            )])
+        );
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_topics_response(&mut buf, 0, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors(&decoded),
+            AddPartitionsToTxnResponse::errors(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v0 errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_add_partitions_to_txn_topics_response(&mut buf, 3, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            AddPartitionsToTxnResponse::errors(&decoded),
+            AddPartitionsToTxnResponse::errors(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "AddPartitionsToTxn v3 errors leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
