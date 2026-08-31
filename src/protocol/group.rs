@@ -1015,6 +1015,21 @@ impl JoinGroupRequest<'_> {
             &[],
         )
     }
+
+    /// Java `JoinGroupRequest.Builder.build`.
+    ///
+    /// A present `group.instance.id` below v5 is
+    /// `UnsupportedVersionException` (Java `!= null`, so empty is still
+    /// present). Encode still omits the field on those versions; this is
+    /// the Builder check. This crate speaks JoinGroup v2–v9.
+    pub fn build(version: i16, group_instance_id: Option<&str>) -> Result<()> {
+        if group_instance_id.is_some() && version < 5 {
+            return Err(Error::Unsupported(format!(
+                "The broker join group protocol version {version} does not support usage of config group.instance.id."
+            )));
+        }
+        Ok(())
+    }
 }
 
 /// Java `org.apache.kafka.common.internals.Topic`.
@@ -6393,6 +6408,90 @@ mod tests {
             encode_join_group_request(&mut BytesMut::new(), 10, &join_req(&[1, 2, 3])).is_err(),
             "JoinGroup v10+ is not spoken"
         );
+    }
+
+    #[test]
+    fn join_group_request_build_matches_java() {
+        JoinGroupRequest::build(4, None).unwrap();
+        JoinGroupRequest::build(5, None).unwrap();
+        JoinGroupRequest::build(5, Some("i")).unwrap();
+        JoinGroupRequest::build(5, Some("")).unwrap();
+        JoinGroupRequest::build(9, Some("i")).unwrap();
+        let v4 = JoinGroupRequest::build(4, Some("i")).unwrap_err();
+        assert!(
+            matches!(v4, Error::Unsupported(_)),
+            "v4 with group.instance.id is Java UnsupportedVersionException, got {v4}"
+        );
+        assert!(
+            v4.to_string()
+                .contains("does not support usage of config group.instance.id"),
+            "got {v4}"
+        );
+        let empty = JoinGroupRequest::build(2, Some("")).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "empty group.instance.id is still present (Java != null), got {empty}"
+        );
+        let ignored = JoinGroupRequest {
+            group_id: "g",
+            session_timeout_ms: 10_000,
+            member_id: "m1",
+            group_instance_id: Some("ignored-on-v2"),
+            protocol_type: "consumer",
+            protocol_name: "range",
+            metadata: &[1, 2, 3],
+            reason: None,
+        };
+        encode_join_group_request(&mut BytesMut::new(), 2, &ignored).unwrap();
+        assert!(
+            JoinGroupRequest::build(2, Some("ignored-on-v2")).is_err(),
+            "encode omits group.instance.id below v5; Builder.build rejects it"
+        );
+
+        for version in [5_i16, 6] {
+            JoinGroupRequest::build(version, Some("i")).unwrap();
+            let req = JoinGroupRequest {
+                group_id: "g",
+                session_timeout_ms: 10_000,
+                member_id: "m1",
+                group_instance_id: Some("i"),
+                protocol_type: "consumer",
+                protocol_name: "range",
+                metadata: &[1, 2, 3],
+                reason: None,
+            };
+            let mut buf = BytesMut::new();
+            encode_join_group_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, member, instance, meta, reason) =
+                decode_join_group_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
+            assert_eq!(instance.as_deref(), Some("i"));
+            assert_eq!(meta, vec![1, 2, 3]);
+            assert_eq!(reason, None);
+            assert!(
+                !cur.has_remaining(),
+                "JoinGroup v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [2_i16, 4, 5, 9] {
+            JoinGroupRequest::build(version, None).unwrap();
+            let mut buf = BytesMut::new();
+            encode_join_group_request(&mut buf, version, &join_req(&[1, 2, 3])).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, member, instance, meta, reason) =
+                decode_join_group_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), member.as_str()), ("g", "m1"));
+            assert_eq!(instance, None);
+            assert_eq!(meta, vec![1, 2, 3]);
+            assert_eq!(reason, None);
+            assert!(
+                !cur.has_remaining(),
+                "JoinGroup v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

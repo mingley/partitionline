@@ -240,7 +240,10 @@
 //! [`protocol::group::JoinGroupRequest::error_response`] is Java
 //! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];
-//! empty members; ProtocolName null on v7+)),
+//! empty members; ProtocolName null on v7+);
+//! [`protocol::group::JoinGroupRequest::build`] is Java
+//! `JoinGroupRequest.Builder.build` (a present `group.instance.id`
+//! below v5 is `UnsupportedVersionException`; encode still omits)),
 //! LeaveGroup v0–v5 (v3 Members / GroupInstanceId; v4 flexible; v5 Reason;
 //! [`protocol::group::LeaveGroupRequest::error_response`] is Java
 //! `LeaveGroupRequest.getErrorResponse` (empty Members; request members are
@@ -1930,14 +1933,15 @@
 //! [`protocol::group::Topic::has_collision`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id`] /
 //! [`protocol::group::JoinGroupRequest::requires_known_member_id_for`] /
-//! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] are Java
+//! [`protocol::group::JoinGroupRequest::supports_skipping_assignment`] /
+//! [`protocol::group::JoinGroupRequest::build`] are Java
 //! `JoinGroupRequest.UNKNOWN_MEMBER_ID` / `UNKNOWN_GENERATION_ID` /
 //! `UNKNOWN_PROTOCOL_NAME` / `getErrorResponse` / `maybeTruncateReason` / `joinReason` /
 //! `validateGroupInstanceId` / `Topic.validate` /
 //! `Topic.isValid` / `Topic.isInternal` / `Topic.hasCollisionChars` /
 //! `Topic.unifyCollisionChars` / `Topic.hasCollision` /
 //! `requiresKnownMemberId` / `requiresKnownMemberId(JoinGroupRequestData, short)` /
-//! `supportsSkippingAssignment`. Classic JoinGroup two-steps on
+//! `supportsSkippingAssignment` / `Builder.build`. Classic JoinGroup two-steps on
 //! `MEMBER_ID_REQUIRED` when that request-aware check is true (KIP-394;
 //! JoinGroup v4+ without `group.instance.id`). JoinGroup v2–v3 and static
 //! members join in one RPC. JoinGroup v7+ encodes empty ProtocolName as null
