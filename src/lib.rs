@@ -170,6 +170,8 @@
 //! [`protocol::group::SyncGroupRequest::error_response`] is Java
 //! `SyncGroupRequest.getErrorResponse` (empty assignment; ProtocolType /
 //! ProtocolName JSON default (null) on v5+);
+//! [`protocol::group::SyncGroupRequest::group_assignments`] is Java
+//! `SyncGroupRequest.groupAssignments` (a later member overwrites);
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;

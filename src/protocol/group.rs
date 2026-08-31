@@ -1496,6 +1496,19 @@ impl SyncGroupRequest<'_> {
     ) -> crate::error::Result<()> {
         encode_sync_group_response(buf, version, error_code, &[])
     }
+
+    /// Java `SyncGroupRequest.groupAssignments`.
+    ///
+    /// Member id to assignment bytes. A later assignment for the same
+    /// member overwrites (Java `HashMap.put`).
+    #[must_use]
+    pub fn group_assignments(assignments: &[(String, Vec<u8>)]) -> HashMap<String, Vec<u8>> {
+        let mut map = HashMap::with_capacity(assignments.len());
+        for (member_id, assignment) in assignments {
+            let _prev = map.insert(member_id.clone(), assignment.clone());
+        }
+        map
+    }
 }
 
 /// Java `SyncGroupResponse` helpers.
@@ -3917,6 +3930,56 @@ mod tests {
             )
         );
         assert!(!SyncGroupRequest::are_mandatory_protocol_type_and_name_present(5, None, None));
+    }
+
+    #[test]
+    fn sync_group_request_group_assignments_matches_java() {
+        // Java SyncGroupRequest.groupAssignments: HashMap.put of
+        // memberId → assignment bytes. A later member overwrites.
+        assert!(SyncGroupRequest::group_assignments(&[]).is_empty());
+        let one = vec![("m1".into(), vec![1, 2, 3])];
+        assert_eq!(
+            SyncGroupRequest::group_assignments(&one),
+            HashMap::from([("m1".into(), vec![1, 2, 3])])
+        );
+        let overwrite = vec![
+            ("m1".into(), vec![1]),
+            ("m2".into(), vec![9]),
+            ("m1".into(), vec![7, 8]),
+        ];
+        assert_eq!(
+            SyncGroupRequest::group_assignments(&overwrite),
+            HashMap::from([("m1".into(), vec![7, 8]), ("m2".into(), vec![9])])
+        );
+        let two = vec![("a".into(), vec![1]), ("b".into(), vec![2, 3])];
+        let mut buf = BytesMut::new();
+        encode_sync_group_request(&mut buf, 0, &sync_req(&two)).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, _mid, decoded) = decode_sync_group_request(&mut cur, 0).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            SyncGroupRequest::group_assignments(&decoded),
+            HashMap::from([("a".into(), vec![1]), ("b".into(), vec![2, 3])])
+        );
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v0 groupAssignments leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_sync_group_request(&mut buf, 5, &sync_req(&two)).unwrap();
+        let mut cur = buf.as_ref();
+        let (_gid, _mid, decoded) = decode_sync_group_request(&mut cur, 5).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            SyncGroupRequest::group_assignments(&decoded),
+            SyncGroupRequest::group_assignments(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "SyncGroup v5 groupAssignments leftover-empty; leftover {} bytes",
+            cur.len()
+        );
     }
 
     #[test]
