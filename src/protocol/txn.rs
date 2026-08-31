@@ -738,6 +738,41 @@ impl TxnOffsetCommitRequest {
         }
         offset_map
     }
+
+    /// Java `TxnOffsetCommitRequest.getTopics`.
+    ///
+    /// Groups `(topic, CommittedOffset body)` by name. A later entry
+    /// for the same topic appends (Java `HashMap.getOrDefault` then
+    /// `partitions.add`). Topic order is first-seen (Java
+    /// `HashMap.entrySet` order is unspecified). The Java map key is
+    /// `TopicPartition`; grouping uses only the name. The partition
+    /// index on the body is kept as-is. Duplicate partitions for the
+    /// same pair are kept (`ArrayList`).
+    #[must_use]
+    pub fn from_offsets<'a, I>(pending_txn_offset_commits: I) -> Vec<TxnOffsetTopic>
+    where
+        I: IntoIterator<Item = (&'a str, TxnOffsetPartition)>,
+    {
+        let mut order: Vec<String> = Vec::new();
+        let mut by_topic: HashMap<String, Vec<TxnOffsetPartition>> = HashMap::new();
+        for (topic, partition) in pending_txn_offset_commits {
+            by_topic
+                .entry(topic.to_string())
+                .or_insert_with(|| {
+                    order.push(topic.to_string());
+                    Vec::new()
+                })
+                .push(partition);
+        }
+        order
+            .into_iter()
+            .filter_map(|topic| {
+                by_topic
+                    .remove(&topic)
+                    .map(|partitions| TxnOffsetTopic { topic, partitions })
+            })
+            .collect()
+    }
 }
 
 /// Java `TxnOffsetCommitResponse` helpers.
@@ -3419,6 +3454,91 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "TxnOffsetCommit v3 offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+    }
+
+    #[test]
+    fn txn_offset_commit_from_offsets_matches_java() {
+        // Java TxnOffsetCommitRequest.getTopics: HashMap.getOrDefault by
+        // topic name, then partitions.add. Empty map is empty. A later
+        // entry for the same name appends even when another topic sits
+        // between. Duplicate partitions for the same pair are kept
+        // (ArrayList).
+        assert!(TxnOffsetCommitRequest::from_offsets(
+            std::iter::empty::<(&str, TxnOffsetPartition)>()
+        )
+        .is_empty());
+        let a0 = TxnOffsetPartition::new(0, 10, 1, "m0");
+        let a1 = TxnOffsetPartition::new(1, 11, 2, "m1");
+        let b0 = TxnOffsetPartition::new(0, 20, RecordBatch::NO_PARTITION_LEADER_EPOCH, "");
+        let grouped = TxnOffsetCommitRequest::from_offsets([
+            ("a", a0.clone()),
+            ("b", b0.clone()),
+            ("a", a1.clone()),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                TxnOffsetTopic {
+                    topic: "a".into(),
+                    partitions: vec![a0, a1],
+                },
+                TxnOffsetTopic {
+                    topic: "b".into(),
+                    partitions: vec![b0],
+                },
+            ]
+        );
+        let first = TxnOffsetPartition::new(0, 1, RecordBatch::NO_PARTITION_LEADER_EPOCH, "");
+        let second = TxnOffsetPartition::new(0, 2, 4, "eos");
+        let dup =
+            TxnOffsetCommitRequest::from_offsets([("t", first.clone()), ("t", second.clone())]);
+        assert_eq!(
+            dup,
+            vec![TxnOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![first, second],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            2,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &grouped,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_request(&mut cur, 2).unwrap().3;
+        assert_eq!(decoded, grouped);
+        assert!(
+            !cur.has_remaining(),
+            "TxnOffsetCommit v2 from_offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_txn_offset_commit_request(
+            &mut buf,
+            3,
+            "tx",
+            "g",
+            9,
+            1,
+            &TxnOffsetCommitMember::unknown(),
+            &grouped,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_request(&mut cur, 3).unwrap().3;
+        assert_eq!(decoded, grouped);
+        assert!(
+            !cur.has_remaining(),
+            "TxnOffsetCommit v3 from_offsets leftover-empty; leftover {} bytes",
             cur.remaining()
         );
     }

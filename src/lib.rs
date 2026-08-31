@@ -623,7 +623,11 @@
 //! `TxnOffsetCommitRequest.CommittedOffset`;
 //! [`protocol::txn::TxnOffsetCommitRequest::offsets`] is Java
 //! `TxnOffsetCommitRequest.offsets` (`(topic, partition)` to
-//! [`protocol::txn::TxnOffsetPartition`]; a later partition overwrites)).
+//! [`protocol::txn::TxnOffsetPartition`]; a later partition overwrites);
+//! [`protocol::txn::TxnOffsetCommitRequest::from_offsets`] is Java
+//! `TxnOffsetCommitRequest.getTopics` (group by name; a later entry for
+//! the same topic appends; first-seen topic order; duplicate pairs
+//! kept)).
 //! [`Producer::metrics`] is a snapshot of queued / acked / error counts
 //! plus produce-ack latency min/mean/max and p50/p99 (last 1024 samples),
 //! with per-topic rows on [`ProducerMetrics::topics`].
