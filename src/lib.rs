@@ -534,7 +534,10 @@
 //! `AddPartitionsToTxnRequest.getErrorResponse` / `errorResponseForTopics`
 //! (one topic / Topics / partition body). Nested body is PartitionIndex
 //! and PartitionErrorCode (`ResultsByTopicV3AndBelow`). Throttle is the
-//! JSON default (`0`)), AddOffsetsToTxn v0–v4
+//! JSON default (`0`);
+//! [`protocol::txn::AddPartitionsToTxnRequest::partitions`] is Java
+//! `AddPartitionsToTxnRequest.getPartitions` (each `(topic, partition)`
+//! in request order)), AddOffsetsToTxn v0–v4
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE;
 //! [`protocol::txn::AddOffsetsToTxnResponse::should_client_throttle`] is Java
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+)), EndTxn v0–v5

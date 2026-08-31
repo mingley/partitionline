@@ -233,6 +233,26 @@ fn add_partitions_to_txn_flexible(version: i16) -> Result<bool> {
     }
 }
 
+/// Java `AddPartitionsToTxnRequest` helpers.
+pub struct AddPartitionsToTxnRequest;
+
+impl AddPartitionsToTxnRequest {
+    /// Java `AddPartitionsToTxnRequest.getPartitions`.
+    ///
+    /// Each `(topic, partition)` in request order. Duplicate pairs are
+    /// kept (Java `ArrayList`).
+    #[must_use]
+    pub fn partitions(topics: &[TxnPartitionsTopic]) -> Vec<(String, i32)> {
+        let mut partitions = Vec::new();
+        for topic in topics {
+            for &partition in &topic.partitions {
+                partitions.push((topic.topic.clone(), partition));
+            }
+        }
+        partitions
+    }
+}
+
 /// Java `AddPartitionsToTxnResponse` helpers.
 pub struct AddPartitionsToTxnResponse;
 
@@ -2740,6 +2760,64 @@ mod tests {
                 0
             );
         }
+    }
+
+    #[test]
+    fn add_partitions_to_txn_partitions_matches_java() {
+        // Java AddPartitionsToTxnRequest.getPartitions: each (topic,
+        // partition) in request order. Duplicate pairs are kept
+        // (ArrayList).
+        assert!(AddPartitionsToTxnRequest::partitions(&[]).is_empty());
+        let one = vec![TxnPartitionsTopic {
+            topic: "t".into(),
+            partitions: vec![0, 3],
+        }];
+        assert_eq!(
+            AddPartitionsToTxnRequest::partitions(&one),
+            vec![("t".into(), 0), ("t".into(), 3)]
+        );
+        let two = vec![
+            TxnPartitionsTopic {
+                topic: "a".into(),
+                partitions: vec![0, 0],
+            },
+            TxnPartitionsTopic {
+                topic: "b".into(),
+                partitions: vec![1],
+            },
+        ];
+        assert_eq!(
+            AddPartitionsToTxnRequest::partitions(&two),
+            vec![("a".into(), 0), ("a".into(), 0), ("b".into(), 1),]
+        );
+        let mut buf = BytesMut::new();
+        encode_add_partitions_to_txn_request(&mut buf, 0, "tx", 9, 1, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_request(&mut cur, 0).unwrap().3;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            AddPartitionsToTxnRequest::partitions(&decoded),
+            AddPartitionsToTxnRequest::partitions(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AddPartitionsToTxn v0 getPartitions leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_add_partitions_to_txn_request(&mut buf, 3, "tx", 9, 1, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_add_partitions_to_txn_request(&mut cur, 3).unwrap().3;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            AddPartitionsToTxnRequest::partitions(&decoded),
+            AddPartitionsToTxnRequest::partitions(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "AddPartitionsToTxn v3 getPartitions leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]
