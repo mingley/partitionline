@@ -2349,6 +2349,9 @@ fn incremental_alter_configs_flexible(version: i16) -> Result<bool> {
 }
 
 /// Java `IncrementalAlterConfigsResponse` helpers.
+///
+/// [`Self::from_errors`] is Java `IncrementalAlterConfigsResponse`
+/// constructed from a result map.
 pub struct IncrementalAlterConfigsResponse;
 
 impl IncrementalAlterConfigsResponse {
@@ -2369,6 +2372,32 @@ impl IncrementalAlterConfigsResponse {
             *count += 1;
         }
         counts
+    }
+
+    /// Java `IncrementalAlterConfigsResponse` constructor from a result map.
+    ///
+    /// Each item is one `ConfigResource` (type id + name) plus
+    /// `ApiError`. Order is iterator order (Java `HashMap.forEach` order
+    /// is unspecified). Duplicate type/name pairs are kept
+    /// (`ArrayList.add`). `ErrorCode` / `ErrorMessage` come from
+    /// [`ApiError::error`] / [`ApiError::message`] (the message is
+    /// copied; contrast [`AlterConfigsResourceResult::error`], which
+    /// leaves `ErrorMessage` null). Inverse of [`Self::from_response_data`].
+    /// Throttle is unused in this helper (crate encode writes `0`).
+    #[must_use]
+    pub fn from_errors<'a, I>(results: I) -> Vec<AlterConfigsResourceResult>
+    where
+        I: IntoIterator<Item = (i8, &'a str, ApiError)>,
+    {
+        results
+            .into_iter()
+            .map(|(resource_type, name, error)| AlterConfigsResourceResult {
+                error_code: error.error(),
+                error_message: error.message().map(str::to_string),
+                resource_type,
+                name: name.to_string(),
+            })
+            .collect()
     }
 }
 
@@ -15148,6 +15177,91 @@ mod tests {
             counts,
             HashMap::from([(0, 2), (crate::error::TOPIC_AUTHORIZATION_FAILED, 1),])
         );
+    }
+
+    #[test]
+    fn incremental_alter_configs_from_errors_matches_java() {
+        // Java IncrementalAlterConfigsResponse(int, Map): forEach
+        // ConfigResource + ApiError into AlterConfigsResourceResponse.
+        // throttleTimeMs unused.
+        let empty = IncrementalAlterConfigsResponse::from_errors(std::iter::empty::<(
+            i8,
+            &str,
+            crate::error::ApiError,
+        )>());
+        assert!(empty.is_empty());
+
+        let denied = crate::error::ApiError::from_code(
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+            Some("no".into()),
+        );
+        let none = crate::error::ApiError::NONE;
+        let invalid = crate::error::ApiError::from_code(crate::error::INVALID_CONFIG, None);
+        let results = IncrementalAlterConfigsResponse::from_errors([
+            (RESOURCE_TOPIC, "t", denied),
+            (RESOURCE_BROKER, "1", none),
+            (RESOURCE_TOPIC, "t", invalid),
+        ]);
+        assert_eq!(
+            results,
+            vec![
+                AlterConfigsResourceResult {
+                    error_code: crate::error::TOPIC_AUTHORIZATION_FAILED,
+                    error_message: Some("no".into()),
+                    resource_type: RESOURCE_TOPIC,
+                    name: "t".into(),
+                },
+                AlterConfigsResourceResult {
+                    error_code: 0,
+                    error_message: None,
+                    resource_type: RESOURCE_BROKER,
+                    name: "1".into(),
+                },
+                AlterConfigsResourceResult {
+                    error_code: crate::error::INVALID_CONFIG,
+                    error_message: None,
+                    resource_type: RESOURCE_TOPIC,
+                    name: "t".into(),
+                },
+            ]
+        );
+        let via_error = AlterConfigsResourceResult::error(
+            RESOURCE_TOPIC,
+            "t",
+            crate::error::TOPIC_AUTHORIZATION_FAILED,
+        );
+        assert!(via_error.error_message().is_none());
+        assert_ne!(
+            results.first().expect("denied"),
+            &via_error,
+            "from_errors copies ApiError.message; getErrorResponse leaves it null"
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_incremental_alter_configs_resource_results(&mut buf, version, &results).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap(),
+                results
+            );
+            assert!(
+                !cur.has_remaining(),
+                "IncrementalAlterConfigs v{version} from_errors leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+            buf.clear();
+            encode_incremental_alter_configs_resource_results(&mut buf, version, &empty).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(
+                decode_incremental_alter_configs_resource_results(&mut cur, version).unwrap(),
+                empty
+            );
+            assert!(
+                !cur.has_remaining(),
+                "IncrementalAlterConfigs v{version} from_errors empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

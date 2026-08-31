@@ -515,7 +515,11 @@
 //! `IncrementalAlterConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
 //! [`protocol::admin::IncrementalAlterConfigsResponse::from_response_data`] is Java
 //! `IncrementalAlterConfigsResponse.fromResponseData` (ConfigResource to
-//! [`ApiError`]; unknown resource types are UNKNOWN)),
+//! [`ApiError`]; unknown resource types are UNKNOWN);
+//! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
+//! `IncrementalAlterConfigsResponse` constructed from a result map (type
+//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
+//! throttle unused)),
 //! AlterConfigs v0–v2 (v2 flexible; Resources of N;
 //! [`protocol::admin::AlterConfigsResponse::should_client_throttle`] is Java
 //! `AlterConfigsResponse.shouldClientThrottle` (v1+);
@@ -1285,6 +1289,10 @@
 //! Responses). `ErrorMessage` stays the JSON default (null); official
 //! Java also sets the English `Errors.message` string. Official Java
 //! does not set `ThrottleTimeMs` (JSON default `0`).
+//! [`protocol::admin::IncrementalAlterConfigsResponse::from_errors`] is Java
+//! `IncrementalAlterConfigsResponse` constructed from a result map (type
+//! id + name plus [`ApiError`] into Responses; `ErrorMessage` is copied;
+//! throttle unused).
 //! [`AlterConfig::append`] / [`AlterConfig::subtract`] are Java
 //! `AlterConfigOp.OpType.APPEND` / `SUBTRACT` (LIST configs).
 //! [`AlterConfig::from_entry`] is Java `AlterConfigOp(ConfigEntry, OpType)`
