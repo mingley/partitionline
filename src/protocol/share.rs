@@ -333,6 +333,35 @@ impl ShareAcknowledgeResponse {
         }
         counts
     }
+
+    /// Java `ShareAcknowledgeResponse.toMessage` Responses grouping.
+    ///
+    /// `entries` are `(topic_id, partition)` plus a body. Java
+    /// `setPartitionIndex` copies the key partition onto each body.
+    /// Topics are grouped by id in first-seen order (Java
+    /// `LinkedHashMap`). A later entry for an already-seen topic is
+    /// appended, including when another topic sits in between. Throttle,
+    /// top-level error, and NodeEndpoints stay with crate encode (`0` /
+    /// empty).
+    #[must_use]
+    pub fn to_message(
+        entries: &[([u8; 16], i32, ShareAcknowledgeResponsePartition)],
+    ) -> Vec<ShareAcknowledgeResponseTopic> {
+        let mut topics: Vec<ShareAcknowledgeResponseTopic> = Vec::new();
+        for (topic_id, partition, body) in entries {
+            let mut body = body.clone();
+            body.partition = *partition;
+            if let Some(topic) = topics.iter_mut().find(|topic| topic.topic_id == *topic_id) {
+                topic.partitions.push(body);
+            } else {
+                topics.push(ShareAcknowledgeResponseTopic {
+                    topic_id: *topic_id,
+                    partitions: vec![body],
+                });
+            }
+        }
+        topics
+    }
 }
 
 /// `true` when ShareGroupHeartbeat `version` is flexible.
@@ -1747,6 +1776,75 @@ mod tests {
             }],
         );
         assert_eq!(same, HashMap::from([(crate::error::UNKNOWN_TOPIC_ID, 2)]));
+    }
+
+    #[test]
+    fn share_acknowledge_response_to_message_matches_java() {
+        // Java ShareAcknowledgeResponse.toMessage: LinkedHashMap by
+        // topicId, first-seen order, setPartitionIndex from the key.
+        // Non-adjacent same topicId still merges.
+        assert!(ShareAcknowledgeResponse::to_message(&[]).is_empty());
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let body0 = ShareAcknowledgeResponsePartition::partition_response(99, 0);
+        let body1 = ShareAcknowledgeResponsePartition::partition_response(
+            1,
+            crate::error::UNKNOWN_TOPIC_ID,
+        );
+        let body2 = ShareAcknowledgeResponsePartition::partition_response(2, 0);
+        let grouped = ShareAcknowledgeResponse::to_message(&[
+            (a, 0, body0.clone()),
+            (b, 1, body1),
+            (a, 3, body2),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                ShareAcknowledgeResponseTopic {
+                    topic_id: a,
+                    partitions: vec![
+                        ShareAcknowledgeResponsePartition {
+                            partition: 0,
+                            error_code: 0,
+                        },
+                        ShareAcknowledgeResponsePartition {
+                            partition: 3,
+                            error_code: 0,
+                        },
+                    ],
+                },
+                ShareAcknowledgeResponseTopic {
+                    topic_id: b,
+                    partitions: vec![ShareAcknowledgeResponsePartition {
+                        partition: 1,
+                        error_code: crate::error::UNKNOWN_TOPIC_ID,
+                    }],
+                },
+            ]
+        );
+        assert_eq!(
+            grouped
+                .first()
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.partition),
+            Some(0),
+            "setPartitionIndex copies the key partition onto the body"
+        );
+        assert_eq!(body0.partition, 99);
+        for version in [0i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response(&mut buf, version, 0, &grouped).unwrap();
+            let mut cur = buf.as_ref();
+            let (top, decoded) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(decoded, grouped);
+            assert!(
+                !cur.has_remaining(),
+                "ShareAcknowledge v{version} toMessage leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

@@ -323,7 +323,10 @@
 //! ErrorCode (empty Responses);
 //! [`protocol::share::ShareAcknowledgeResponse::error_counts`] is Java
 //! `ShareAcknowledgeResponse.errorCounts` (top-level `errorCode` plus each
-//! partition-level code, including `NONE`)),
+//! partition-level code, including `NONE`);
+//! [`protocol::share::ShareAcknowledgeResponse::to_message`] is Java
+//! `ShareAcknowledgeResponse.toMessage` Responses (group by `topic_id` in
+//! first-seen order; key partition overwrites the body)),
 //! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::ConsumerGroupDescribeRequest::error_described_group_list`] is Java
 //! `ConsumerGroupDescribeRequest.getErrorDescribedGroupList` (each id through
