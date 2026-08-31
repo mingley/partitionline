@@ -254,10 +254,13 @@ impl FetchTopic {
 
 /// One forgotten topic in a Fetch request (session increment).
 ///
-/// Java `FetchRequestData.ForgottenTopic`. Encode still writes an empty
-/// ForgottenTopicsData array; this type is the in-memory list
-/// [`FetchRequest::forgotten_topics`] reads and
-/// [`FetchRequest::forgotten_from_removed`] builds from removed+replaced.
+/// Java `FetchRequestData.ForgottenTopic`. [`encode_fetch_request_with_forgotten`]
+/// writes this list on v7+. Below v7 ForgottenTopicsData is omitted even
+/// when the list is non-empty; decode fills empty.
+/// [`encode_fetch_request`] / [`encode_fetch_request_with_session`] still
+/// write an empty array. [`FetchRequest::forgotten_topics`] reads this
+/// list and [`FetchRequest::forgotten_from_removed`] builds it from
+/// removed+replaced.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgottenTopic {
     /// Topic name (v4–v12). Empty at v13+ (topic id on the wire).
@@ -307,8 +310,9 @@ impl FetchRequest {
     /// v4–v12 use each topic's name. v13+ looks up `topic_id` in
     /// `topic_names` (`None` when missing; Java still inserts that
     /// `TopicIdPartition`). Duplicate partitions are kept (`ArrayList`;
-    /// unlike [`Self::fetch_data`]). Encode still writes an empty
-    /// ForgottenTopicsData array.
+    /// unlike [`Self::fetch_data`]). [`encode_fetch_request_with_forgotten`]
+    /// writes ForgottenTopicsData on v7+; [`encode_fetch_request`] still
+    /// writes an empty array.
     #[must_use]
     pub fn forgotten_topics(
         version: i16,
@@ -337,8 +341,9 @@ impl FetchRequest {
     /// later partitions for that name append (`ArrayList`, duplicates
     /// kept). `replaced` is included only on v13+ (a same-name topic-id
     /// replacement is not forgotten below v13, so the newly added fetch
-    /// partition is not removed). Encode still writes an empty
-    /// ForgottenTopicsData array. Distinct from [`Self::forgotten_topics`],
+    /// partition is not removed). [`encode_fetch_request_with_forgotten`]
+    /// writes ForgottenTopicsData on v7+; [`encode_fetch_request`] still
+    /// writes an empty array. Distinct from [`Self::forgotten_topics`],
     /// which reads an already-built list and looks up names by id at v13+.
     #[must_use]
     pub fn forgotten_from_removed<'a, R, S>(
@@ -740,6 +745,43 @@ pub fn encode_fetch_request_with_session(
     rack_id: Option<&str>,
     session: FetchMetadata,
 ) -> crate::error::Result<()> {
+    encode_fetch_request_with_forgotten(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        session,
+        &[],
+    )
+}
+
+/// Encode Fetch v4–v17 with [`FetchMetadata`] and ForgottenTopicsData.
+///
+/// SessionId / SessionEpoch / ForgottenTopicsData are v7+. Below v7 they
+/// are omitted even when `session` is not [`FetchMetadata::LEGACY`] or
+/// `forgotten` is non-empty. Decode fills [`FetchMetadata::LEGACY`] and
+/// an empty forgotten list. v13+ ForgottenTopics use TopicId. Kafka 4.0
+/// `validVersions` is `4-17`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, and forgotten together"
+)]
+pub fn encode_fetch_request_with_forgotten(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+    forgotten: &[ForgottenTopic],
+) -> crate::error::Result<()> {
     let flexible = fetch_flexible(version)?;
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
@@ -783,7 +825,17 @@ pub fn encode_fetch_request_with_session(
         }
     }
     if version >= 7 {
-        buf::put_array_len(buf, flexible, Some(0))?; // forgotten
+        buf::put_array_len(buf, flexible, Some(forgotten.len()))?;
+        for t in forgotten {
+            put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
+            buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+            for p in &t.partitions {
+                buf.put_i32(*p);
+            }
+            if flexible {
+                buf::put_empty_tagged_fields(buf);
+            }
+        }
     }
     if version >= 11 {
         // Fetch v11 RackId is STRING, not nullable (Apache JSON / kafka-protocol
@@ -941,17 +993,29 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
     ))
 }
 
-/// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session)`.
+/// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session, forgotten)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
 /// SessionEpoch / ForgottenTopicsData are v7+. Below v7 SessionId /
-/// SessionEpoch are omitted; decode fills [`FetchMetadata::LEGACY`].
-/// LogStartOffset is v5+. RackId is v11+; below v11 decode fills empty.
+/// SessionEpoch are omitted; decode fills [`FetchMetadata::LEGACY`] and
+/// an empty forgotten list. LogStartOffset is v5+. RackId is v11+; below
+/// v11 decode fills empty.
+#[expect(
+    clippy::type_complexity,
+    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, and forgotten together"
+)]
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i8, i32, Vec<FetchTopic>, String, FetchMetadata)> {
+) -> Result<(
+    i8,
+    i32,
+    Vec<FetchTopic>,
+    String,
+    FetchMetadata,
+    Vec<ForgottenTopic>,
+)> {
     let flexible = fetch_flexible(version)?;
     if version <= 14 {
         let _replica = buf::get_i32(buf)?;
@@ -1008,21 +1072,25 @@ pub fn decode_fetch_request<B: Buf>(
             partitions,
         });
     }
+    let mut forgotten_out = Vec::new();
     if version >= 7 {
-        let forgotten = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-        for _ in 0..forgotten {
-            if version >= 13 {
-                let _id = buf::get_uuid(buf)?;
-            } else {
-                let _t = buf::get_string(buf, flexible)?;
-            }
+        let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        forgotten_out.reserve(n);
+        for _ in 0..n {
+            let (topic, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
             let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
-                let _p = buf::get_i32(buf)?;
+                partitions.push(buf::get_i32(buf)?);
             }
             if flexible {
                 buf::skip_tagged_fields(buf)?;
             }
+            forgotten_out.push(ForgottenTopic {
+                topic,
+                topic_id,
+                partitions,
+            });
         }
     }
     let rack = if version >= 11 {
@@ -1033,7 +1101,7 @@ pub fn decode_fetch_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((isolation, max_bytes, topics, rack, session))
+    Ok((isolation, max_bytes, topics, rack, session, forgotten_out))
 }
 
 /// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
@@ -2633,7 +2701,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., got) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_, _, _, _, got, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(got, session);
             assert!(
                 cur.is_empty(),
@@ -2648,7 +2716,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (.., got) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_, _, _, _, got, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(
                 got,
                 FetchMetadata::LEGACY,
@@ -2722,6 +2790,213 @@ mod tests {
             &v6_with[..],
             &with[..],
             "v7 adds SessionId / SessionEpoch / ForgottenTopicsData"
+        );
+    }
+
+    #[test]
+    fn fetch_request_forgotten_matches_java() {
+        let topics: Vec<FetchTopic> = Vec::new();
+        let named = [ForgottenTopic {
+            topic: "u".into(),
+            topic_id: [0; 16],
+            partitions: vec![1, 1],
+        }];
+        let by_id = [ForgottenTopic {
+            topic: String::new(),
+            topic_id: [7u8; 16],
+            partitions: vec![1, 1],
+        }];
+        for version in [7_i16, 8, 11, 12] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_forgotten(
+                &mut buf,
+                version,
+                10,
+                1,
+                1024,
+                0,
+                &topics,
+                None,
+                FetchMetadata::LEGACY,
+                &named,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., forgotten) = decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(forgotten.as_slice(), named.as_slice());
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} ForgottenTopicsData leftover-empty"
+            );
+        }
+        for version in [13_i16, 15, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_forgotten(
+                &mut buf,
+                version,
+                10,
+                1,
+                1024,
+                0,
+                &topics,
+                None,
+                FetchMetadata::LEGACY,
+                &by_id,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., forgotten) = decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(forgotten.as_slice(), by_id.as_slice());
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} ForgottenTopicsData leftover-empty"
+            );
+        }
+
+        for version in [4_i16, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_forgotten(
+                &mut buf,
+                version,
+                10,
+                1,
+                1024,
+                0,
+                &topics,
+                None,
+                FetchMetadata::LEGACY,
+                &named,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., forgotten) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                forgotten.is_empty(),
+                "Fetch v{version} omits ForgottenTopicsData even when the body is non-empty"
+            );
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} ForgottenTopicsData leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_fetch_request_with_forgotten(
+            &mut with,
+            7,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+            &named,
+        )
+        .unwrap();
+        let mut empty = BytesMut::new();
+        encode_fetch_request_with_session(
+            &mut empty,
+            7,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "v7 ForgottenTopicsData is not always empty"
+        );
+        let mut conv = BytesMut::new();
+        encode_fetch_request(&mut conv, 7, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_fetch_request still writes empty ForgottenTopicsData"
+        );
+
+        let mut v6_with = BytesMut::new();
+        encode_fetch_request_with_forgotten(
+            &mut v6_with,
+            6,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+            &named,
+        )
+        .unwrap();
+        let mut v6_empty = BytesMut::new();
+        encode_fetch_request(&mut v6_empty, 6, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &v6_with[..],
+            &v6_empty[..],
+            "v6 encode omits ForgottenTopicsData even when the body is non-empty"
+        );
+        let mut v8_with = BytesMut::new();
+        encode_fetch_request_with_forgotten(
+            &mut v8_with,
+            8,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+            &named,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v8_with[..],
+            "v7 and v8 both write ForgottenTopicsData; do not confuse with v12 flexible or v13 TopicId"
+        );
+        assert_ne!(
+            &v6_with[..],
+            &with[..],
+            "v7 adds SessionId / SessionEpoch / ForgottenTopicsData"
+        );
+        let mut v12_with = BytesMut::new();
+        encode_fetch_request_with_forgotten(
+            &mut v12_with,
+            12,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+            &named,
+        )
+        .unwrap();
+        let mut v13_with = BytesMut::new();
+        encode_fetch_request_with_forgotten(
+            &mut v13_with,
+            13,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+            &named,
+        )
+        .unwrap();
+        assert_ne!(
+            &v12_with[..],
+            &v13_with[..],
+            "v13 ForgottenTopics use TopicId instead of Name"
         );
     }
 

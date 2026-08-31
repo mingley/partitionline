@@ -968,7 +968,12 @@
 //! non-LEGACY session on v7+; below v7 encode omits SessionId / SessionEpoch
 //! even when the body is non-LEGACY and decode fills
 //! [`protocol::fetch::FetchMetadata::LEGACY`];
-//! [`protocol::fetch::encode_fetch_request`] still writes LEGACY;
+//! [`protocol::fetch::encode_fetch_request`] still writes LEGACY and empty
+//! ForgottenTopicsData;
+//! [`protocol::fetch::encode_fetch_request_with_forgotten`] round-trips
+//! ForgottenTopicsData on v7+ (including duplicate partition indexes);
+//! below v7 encode omits it even when the body is non-empty and decode
+//! fills empty; v13+ uses TopicId;
 //! request LogStartOffset is v5+;
 //! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
 //! v11+; response LogStartOffset is v5+; below those versions encode omits
@@ -996,11 +1001,15 @@
 //! [`protocol::fetch::FetchRequest::forgotten_topics`] is Java
 //! `FetchRequest.forgottenTopics` (v4–v12 use the topic name; v13+ looks
 //! up `topic_id` and keeps a missing name as `None`; duplicates are kept;
-//! encode still writes empty ForgottenTopicsData).
+//! [`protocol::fetch::encode_fetch_request_with_forgotten`] writes the list
+//! on v7+; [`protocol::fetch::encode_fetch_request`] still writes empty
+//! ForgottenTopicsData).
 //! [`protocol::fetch::FetchRequest::forgotten_from_removed`] is Java
 //! `FetchRequest.Builder.build` ForgottenTopicsData from removed and
 //! replaced (group by name; first topic id for a name is kept; later
-//! partitions append; replaced only on v13+; encode still writes empty
+//! partitions append; replaced only on v13+;
+//! [`protocol::fetch::encode_fetch_request_with_forgotten`] writes the list
+//! on v7+; [`protocol::fetch::encode_fetch_request`] still writes empty
 //! ForgottenTopicsData).
 //! [`protocol::fetch::FetchRequest::topics_from_fetch_data`] is Java
 //! `FetchRequest.Builder.build` Topics from fetchData (consecutive same
