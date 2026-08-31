@@ -2509,7 +2509,8 @@ impl OffsetFetchResponse {
     /// missing (Java `null`). Duplicate group ids keep the last match
     /// (Java `HashMap.put`). v1–v7 ignore `group_id` and return `Some` of
     /// the top-level code (including `NONE`). v1 synthesizes that code as
-    /// in [`Self::error_counts`].
+    /// in [`Self::error_counts`]. Distinct from [`Self::error`], which is
+    /// always `None` on v8+.
     #[must_use]
     pub fn group_level_error(
         version: i16,
@@ -2521,6 +2522,24 @@ impl OffsetFetchResponse {
                 .iter()
                 .rfind(|group| group.group_id == group_id)
                 .map(|group| group.error_code)
+        } else {
+            Some(offset_fetch_v0_to_v7_error(version, groups))
+        }
+    }
+
+    /// Java `OffsetFetchResponse.error`.
+    ///
+    /// v8+ is `None` even when groups have errors (Java the wrapper
+    /// `error` field is null; `groupLevelErrors` is the map). Distinct
+    /// from [`Self::group_level_error`], which looks up a named group on
+    /// v8+. v2–v7 are `Some` of the top-level `errorCode` (including
+    /// `NONE`). v1 synthesizes the first non-partition error as in
+    /// [`Self::error_counts`]. Java `hasError()` is not mapped: it NPEs
+    /// on v8+ (`error != Errors.NONE` when `error` is null).
+    #[must_use]
+    pub fn error(version: i16, groups: &[OffsetFetchGroupResult]) -> Option<i16> {
+        if version >= 8 {
+            None
         } else {
             Some(offset_fetch_v0_to_v7_error(version, groups))
         }
@@ -5262,6 +5281,120 @@ mod tests {
             OffsetFetchResponse::group_level_error(8, &dup, "g"),
             Some(crate::error::NOT_COORDINATOR)
         );
+    }
+
+    #[test]
+    fn offset_fetch_response_error_matches_java() {
+        // Java OffsetFetchResponse.error: v8+ the wrapper error field is
+        // null even when groups have errors. Distinct from groupLevelError,
+        // which looks up a named group. v2–v7 are the top-level errorCode.
+        // v1 synthesizes the first non-partition error. Java hasError() is
+        // not mapped (NPE on v8+).
+        assert_eq!(OffsetFetchResponse::error(8, &[]), None);
+        assert_eq!(OffsetFetchResponse::error(7, &[]), Some(0));
+        assert_eq!(OffsetFetchResponse::error(1, &[]), Some(0));
+
+        let groups = [
+            OffsetFetchGroupResult {
+                group_id: "ok".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::error(0, 0)],
+                }],
+                error_code: 0,
+            },
+            OffsetFetchGroupResult::error("missing", crate::error::NOT_COORDINATOR),
+        ];
+        assert_eq!(OffsetFetchResponse::error(8, &groups), None);
+        assert_eq!(
+            OffsetFetchResponse::group_level_error(8, &groups, "missing"),
+            Some(crate::error::NOT_COORDINATOR),
+            "groupLevelError still sees the group on v8+"
+        );
+
+        let v7 = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::error(0, 0)],
+            }],
+            error_code: crate::error::NOT_COORDINATOR,
+        }];
+        assert_eq!(
+            OffsetFetchResponse::error(7, &v7),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        assert_eq!(OffsetFetchResponse::error(8, &v7), None);
+
+        let v1_partition = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::unknown_partition(0)],
+            }],
+            error_code: 0,
+        }];
+        assert_eq!(OffsetFetchResponse::error(1, &v1_partition), Some(0));
+
+        let v1_coord = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![FetchedOffset::error(0, crate::error::NOT_COORDINATOR)],
+            }],
+            error_code: 0,
+        }];
+        assert_eq!(
+            OffsetFetchResponse::error(1, &v1_coord),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+
+        for (version, groups, what) in [
+            (
+                8_i16,
+                groups.as_slice(),
+                "OffsetFetch v8 Response.error leftover-empty",
+            ),
+            (
+                7,
+                v7.as_slice(),
+                "OffsetFetch v7 Response.error leftover-empty",
+            ),
+            (
+                1,
+                v1_coord.as_slice(),
+                "OffsetFetch v1 Response.error leftover-empty",
+            ),
+        ] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, groups).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert_eq!(
+                OffsetFetchResponse::error(version, &decoded),
+                OffsetFetchResponse::error(version, groups)
+            );
+            assert!(
+                !cur.has_remaining(),
+                "{what}; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [1_i16, 7, 8] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &[]).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert_eq!(
+                OffsetFetchResponse::error(version, &decoded),
+                OffsetFetchResponse::error(version, &[])
+            );
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Response.error empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]

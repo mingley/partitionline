@@ -187,10 +187,12 @@
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
 //! partitions; including `NONE`);
 //! [`protocol::group::OffsetFetchResponse::group_has_error`] /
-//! [`protocol::group::OffsetFetchResponse::group_level_error`] are Java
-//! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
-//! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
-//! `group_id` and use the top-level code, including `NONE`);
+//! [`protocol::group::OffsetFetchResponse::group_level_error`] /
+//! [`protocol::group::OffsetFetchResponse::error`] are Java
+//! `OffsetFetchResponse.groupHasError` / `groupLevelError` / `error`
+//! (v8+ named group's `errorCode`; missing group is false / `None`;
+//! v1–v7 ignore `group_id` and use the top-level code, including `NONE`;
+//! `error` is always `None` on v8+ even when groups have errors);
 //! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
@@ -1049,10 +1051,12 @@
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
 //! partitions; including `NONE`).
 //! [`protocol::group::OffsetFetchResponse::group_has_error`] /
-//! [`protocol::group::OffsetFetchResponse::group_level_error`] are Java
-//! `OffsetFetchResponse.groupHasError` / `groupLevelError` (v8+ named
-//! group's `errorCode`; missing group is false / `None`; v1–v7 ignore
-//! `group_id` and use the top-level code, including `NONE`).
+//! [`protocol::group::OffsetFetchResponse::group_level_error`] /
+//! [`protocol::group::OffsetFetchResponse::error`] are Java
+//! `OffsetFetchResponse.groupHasError` / `groupLevelError` / `error`
+//! (v8+ named group's `errorCode`; missing group is false / `None`;
+//! v1–v7 ignore `group_id` and use the top-level code, including `NONE`;
+//! `error` is always `None` on v8+ even when groups have errors);
 //! [`protocol::group::OffsetFetchResponse::partition_data_map`] is Java
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
