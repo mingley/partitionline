@@ -110,7 +110,8 @@ pub struct ConsumerConfig {
     pub max_partition_fetch_bytes: i32,
     /// Kafka `isolation.level`.
     pub isolation_level: crate::IsolationLevel,
-    /// Client rack for fetch-from-follower (KIP-392). Empty means leader only.
+    /// Kafka `client.rack`. Fetch-from-follower (KIP-392) and group heartbeats
+    /// (ConsumerGroupHeartbeat / ShareGroupHeartbeat RackId). Empty means leader only.
     pub rack: Option<String>,
     /// Kafka `group.instance.id`. Static membership for classic and KIP-848 groups.
     pub group_instance_id: Option<String>,

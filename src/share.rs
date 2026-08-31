@@ -767,6 +767,7 @@ impl ShareGroup {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
             member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: Some(self.topics.clone()),
         };
         let body = self
@@ -1381,6 +1382,7 @@ impl ShareGroup {
             group_id: self.group_id.clone(),
             member_id: self.member_id.clone(),
             member_epoch: ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
+            rack_id: self.cfg.rack.clone(),
             subscribed_topic_names: None,
         };
         let body = coord_roundtrip(
@@ -1458,6 +1460,7 @@ impl ShareGroup {
                             group_id: group_id.clone(),
                             member_id: member_id.clone(),
                             member_epoch: epoch,
+                            rack_id: cfg.rack.clone(),
                             subscribed_topic_names: None,
                         };
                         let res = c

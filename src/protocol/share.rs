@@ -46,6 +46,11 @@ pub struct ShareGroupHeartbeatRequest {
     /// Member epoch ([`Self::JOIN_GROUP_MEMBER_EPOCH`] join,
     /// [`Self::LEAVE_GROUP_MEMBER_EPOCH`] leave, otherwise heartbeat).
     pub member_epoch: i32,
+    /// Kafka `client.rack` (JSON `0+`).
+    ///
+    /// `None` if not provided or unchanged since the last heartbeat (JSON
+    /// default null). Official Java `ShareGroupHeartbeatRequestData.rackId`.
+    pub rack_id: Option<String>,
     /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
 }
@@ -678,6 +683,9 @@ fn share_group_heartbeat_flexible(version: i16) -> Result<bool> {
 }
 
 /// Encode a flexible ShareGroupHeartbeat request (v0–v1). Same fields.
+///
+/// RackId is JSON `0+` (from [`ShareGroupHeartbeatRequest::rack_id`]; JSON
+/// default null).
 pub fn encode_share_group_heartbeat_request(
     buf: &mut BytesMut,
     version: i16,
@@ -687,7 +695,7 @@ pub fn encode_share_group_heartbeat_request(
     buf::put_string(buf, flexible, Some(&req.group_id))?;
     buf::put_string(buf, flexible, Some(&req.member_id))?;
     buf.put_i32(req.member_epoch);
-    buf::put_string(buf, flexible, None)?;
+    buf::put_string(buf, flexible, req.rack_id.as_deref())?;
     match &req.subscribed_topic_names {
         None => buf::put_array_len(buf, flexible, None)?,
         Some(names) => {
@@ -712,7 +720,7 @@ pub fn decode_share_group_heartbeat_request<B: Buf>(
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_epoch = buf::get_i32(buf)?;
-    let _rack = buf::get_string(buf, flexible)?;
+    let rack_id = buf::get_string(buf, flexible)?;
     let subscribed_topic_names = {
         let n = buf::get_array_len(buf, flexible)?;
         match n {
@@ -733,6 +741,7 @@ pub fn decode_share_group_heartbeat_request<B: Buf>(
         group_id,
         member_id,
         member_epoch,
+        rack_id,
         subscribed_topic_names,
     })
 }
@@ -2004,6 +2013,7 @@ mod tests {
             group_id: "sg".into(),
             member_id: "m1".into(),
             member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: None,
             subscribed_topic_names: Some(vec!["t".into()]),
         };
         let mut buf = BytesMut::new();
@@ -2043,6 +2053,7 @@ mod tests {
             group_id: "sg".into(),
             member_id: "m1".into(),
             member_epoch: ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
+            rack_id: None,
             subscribed_topic_names: None,
         };
         buf.clear();
@@ -2066,6 +2077,7 @@ mod tests {
             group_id: "sg".into(),
             member_id: "m1".into(),
             member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: None,
             subscribed_topic_names: Some(vec!["t".into()]),
         };
         let mut v0 = BytesMut::new();
@@ -2122,6 +2134,62 @@ mod tests {
         assert!(
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn share_group_heartbeat_request_rack_id_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareGroupHeartbeatRequest.json RackId is versions
+        // 0+ (nullable STRING after MemberEpoch; default null). Official Java
+        // ShareGroupHeartbeatRequestData.rackId reads it. Encode previously
+        // always wrote null; decode discarded it. JSON default null means not
+        // provided or unchanged since the last heartbeat. This crate speaks
+        // 0–1. This is not Fetch RackId / ConsumerGroupHeartbeat RackId.
+        let req = ShareGroupHeartbeatRequest {
+            group_id: "sg".into(),
+            member_id: "m1".into(),
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: Some("az-east".into()),
+            subscribed_topic_names: Some(vec!["t".into()]),
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_heartbeat_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_share_group_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!(got.rack_id.as_deref(), Some("az-east"));
+            assert_eq!(got, req);
+            assert!(
+                cur.is_empty(),
+                "ShareGroupHeartbeat request v{version} RackId leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_group_heartbeat_request(&mut with, 0, &req).unwrap();
+        let none = ShareGroupHeartbeatRequest {
+            group_id: "sg".into(),
+            member_id: "m1".into(),
+            member_epoch: ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
+            rack_id: None,
+            subscribed_topic_names: Some(vec!["t".into()]),
+        };
+        let mut omitted = BytesMut::new();
+        encode_share_group_heartbeat_request(&mut omitted, 0, &none).unwrap();
+        assert_ne!(
+            &with[..],
+            &omitted[..],
+            "v0 RackId is not always the JSON default null"
+        );
+        let got = decode_share_group_heartbeat_request(&mut omitted.as_ref(), 0).unwrap();
+        assert_eq!(got.rack_id, None);
+
+        let mut v1_with = BytesMut::new();
+        encode_share_group_heartbeat_request(&mut v1_with, 1, &req).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write RackId (JSON 0+)"
         );
     }
 

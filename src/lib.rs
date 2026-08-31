@@ -439,6 +439,7 @@
 //! and regex-on-v0 (`leave_group_epoch` is Java `ConsumerMembershipManager.leaveGroupEpoch`;
 //! static members send `-2`)),
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
+//! request RackId is JSON `0+` (nullable compact STRING after MemberEpoch; JSON default null);
 //! ThrottleTimeMs is JSON `0+`;
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
