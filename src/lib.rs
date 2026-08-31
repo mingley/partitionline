@@ -430,6 +430,7 @@
 //! not Fetch v12+ tagged field 1);
 //! partition ErrorMessage is JSON `0+` (nullable compact STRING; not the
 //! top-level ErrorMessage);
+//! partition AcknowledgeErrorCode is JSON `0+` (not fetch `ErrorCode`);
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! / [`ShareRequestMetadata::next_epoch`]; `nextEpoch` wraps `i32::MAX` to `1`.
@@ -439,8 +440,9 @@
 //! Records and acquired ranges stay empty. Official Java leaves ErrorMessage,
 //! AcknowledgeErrorCode, AcknowledgeErrorMessage, CurrentLeader, and Records
 //! at JSON defaults (null / 0 / 0/0 / null). Crate encode writes ErrorMessage
-//! from the partition fields (JSON default null), AcknowledgeErrorCode 0,
-//! AcknowledgeErrorMessage null, CurrentLeader from the partition fields
+//! from the partition fields (JSON default null), AcknowledgeErrorCode from
+//! the partition fields (JSON default 0), AcknowledgeErrorMessage null,
+//! CurrentLeader from the partition fields
 //! (JSON default 0/0), empty Records, empty AcquiredRecords.
 //! [`protocol::share::encode_share_fetch_response_with_endpoints`]
 //! round-trips NodeEndpoints (JSON `0+` untagged compact array;
