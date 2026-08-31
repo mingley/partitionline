@@ -1195,6 +1195,11 @@
 //! on ShareFetch / ShareAcknowledge).
 //! OffsetForLeaderEpoch negotiates v0–v4 (v2 CurrentLeaderEpoch;
 //! decode below v2 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
+//! v2+ round-trips ThrottleTimeMs; below v2 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::epoch::encode_offset_for_leader_epoch_topics_response_with_throttle`];
+//! encode previously always wrote `0` on v2+ and decode discarded;
+//! convenience encode still writes `0`;
 //! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
 //! [`protocol::epoch::supports_topic_permission`] is Java
 //! `OffsetsForLeaderEpochRequest.supportsTopicPermission` (v3+ uses topic
@@ -1208,7 +1213,8 @@
 //! [`protocol::epoch::EpochEndOffset::error`] /
 //! [`protocol::epoch::OffsetForLeaderTopic::error_result`] are Java
 //! `OffsetsForLeaderEpochRequest.getErrorResponse` (partition body /
-//! one topic; throttle stays JSON default `0`).
+//! one topic; throttle stays JSON default `0`; official Java does not
+//! set `throttleTimeMs` from the argument).
 //! [`ConsumerConfig::max_bytes`] sets
 //! both `fetch.max.bytes` and `max.partition.fetch.bytes`;
 //! [`ConsumerConfig::fetch_max_bytes`] /

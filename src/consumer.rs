@@ -1919,7 +1919,7 @@ impl Consumer {
                     Err(e) => return Err(e),
                 };
                 match decode_offset_for_leader_epoch_topics_response(&mut body.clone(), version) {
-                    Ok(got) => {
+                    Ok((got, ..)) => {
                         let more = self.apply_epoch_end_offsets(&parts, &got)?;
                         if !more.is_empty() {
                             let _ = self.conns.remove(&node);

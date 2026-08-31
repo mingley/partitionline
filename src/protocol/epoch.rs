@@ -352,15 +352,34 @@ pub fn encode_offset_for_leader_epoch_response(
 
 /// Encode OffsetForLeaderEpoch with one or more topic results.
 ///
-/// Throttle is `0` on v2+. `leader_epoch` is written on v1+.
+/// ThrottleTimeMs is the JSON default (`0`) on v2+ (JSON `2+`).
+/// `leader_epoch` is written on v1+.
 pub fn encode_offset_for_leader_epoch_topics_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[OffsetForLeaderTopicResult],
 ) -> crate::error::Result<()> {
+    encode_offset_for_leader_epoch_topics_response_with_throttle(buf, version, topics, 0)
+}
+
+/// Encode OffsetForLeaderEpoch v0–v4 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `2+`: written on v2–v4. Below v2 it is omitted
+/// even when the body has a non-zero value; decode fills `0`. v0–v3 are
+/// classic. v4 is flexible. v1 adds LeaderEpoch on partitions. v3 ReplicaId
+/// is on the request. Kafka 4.0 `validVersions` is `2-4` (v0–v1 removed).
+/// This crate speaks 0–4. v5+ is not spoken. Official Java
+/// `getErrorResponse` does not set `throttleTimeMs` (JSON default `0`).
+/// There is no top-level ErrorCode.
+pub fn encode_offset_for_leader_epoch_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetForLeaderTopicResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 2 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -396,7 +415,7 @@ pub fn decode_offset_for_leader_epoch_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i16, i32, i64)> {
-    let topics = decode_offset_for_leader_epoch_topics_response(buf, version)?;
+    let (topics, ..) = decode_offset_for_leader_epoch_topics_response(buf, version)?;
     let t = topics
         .first()
         .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Topics is empty"))?;
@@ -408,14 +427,15 @@ pub fn decode_offset_for_leader_epoch_response<B: Buf>(
 }
 
 /// Decode OffsetForLeaderEpoch Topics of N (v0–v4).
+///
+/// Returns `(topics, throttle_time_ms)`. Below v2 ThrottleTimeMs is
+/// omitted; decode fills `0`. There is no top-level ErrorCode.
 pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<OffsetForLeaderTopicResult>> {
+) -> Result<(Vec<OffsetForLeaderTopicResult>, i32)> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
-    if version >= 2 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -449,7 +469,7 @@ pub fn decode_offset_for_leader_epoch_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?; // top-level
     }
-    Ok(topics)
+    Ok((topics, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -497,7 +517,7 @@ mod tests {
         encode_offset_for_leader_epoch_topics_response(&mut buf, 4, std::slice::from_ref(&result))
             .unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_for_leader_epoch_topics_response(&mut cur, 4).unwrap();
+        let (decoded, ..) = decode_offset_for_leader_epoch_topics_response(&mut cur, 4).unwrap();
         assert_eq!(decoded, vec![result]);
         assert!(
             cur.is_empty(),
@@ -650,6 +670,124 @@ mod tests {
     }
 
     #[test]
+    fn offset_for_leader_epoch_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 OffsetForLeaderEpochResponse.json ThrottleTimeMs is
+        // versions 2+ (INT32 on spoken v2–v4; first field; ignorable).
+        // Official Java OffsetsForLeaderEpochRequest.getErrorResponse does
+        // not set throttleTimeMs (JSON default 0).
+        // encode_offset_for_leader_epoch_topics_response still writes 0
+        // on v2+. Below v2 encode omits ThrottleTimeMs even when the body
+        // is non-zero and decode fills 0. Empty-Topics v0 == v1 (classic;
+        // LeaderEpoch is on partitions); v2 == v3 (ReplicaId is on the
+        // request); v4 is compact. There is no top-level ErrorCode. This
+        // crate speaks 0–4. This is not OffsetDelete / JoinGroup /
+        // Fetch ThrottleTimeMs.
+        let topics: Vec<OffsetForLeaderTopicResult> = vec![];
+        for version in [0, 1, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_response_with_throttle(
+                &mut buf, version, &topics, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_offset_for_leader_epoch_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, topics);
+            if version >= 2 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(
+                    throttle, 0,
+                    "OffsetForLeaderEpoch v{version} omits ThrottleTimeMs even when the body has a non-zero value"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "OffsetForLeaderEpoch v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut v0_with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(
+            &mut v0_with,
+            0,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(&mut v0_zero, 0, &topics, 0)
+            .unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(
+            &mut v1_with,
+            1,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v1_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v0 == v1"
+        );
+
+        let mut with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(
+            &mut with, 2, &topics, 3_600_000,
+        )
+        .unwrap();
+        let mut zero = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(&mut zero, 2, &topics, 0)
+            .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v2 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response(&mut conv, 2, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_offset_for_leader_epoch_topics_response still writes ThrottleTimeMs 0"
+        );
+        assert_ne!(
+            &v1_with[..],
+            &with[..],
+            "v2 adds ThrottleTimeMs before Topics"
+        );
+
+        let mut v3_with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(
+            &mut v3_with,
+            3,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v3_with[..],
+            "empty-Topics ThrottleTimeMs bodies: v2 == v3"
+        );
+        let mut v4_with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_response_with_throttle(
+            &mut v4_with,
+            4,
+            &topics,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(&v3_with[..], &v4_with[..], "v4 adds compact tagged fields");
+    }
+
+    #[test]
     fn offset_for_leader_epoch_v1_response_has_epoch_not_throttle() {
         // Official: v1 added LeaderEpoch on the partition; v2 added
         // ThrottleTimeMs. v1 body is topics then {error, partition,
@@ -731,7 +869,9 @@ mod tests {
         assert_eq!(&buf[..], RESP_V4);
         let mut cur = &buf[..];
         assert_eq!(
-            decode_offset_for_leader_epoch_topics_response(&mut cur, 4).unwrap(),
+            decode_offset_for_leader_epoch_topics_response(&mut cur, 4)
+                .unwrap()
+                .0,
             resp
         );
         assert!(
