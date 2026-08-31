@@ -1758,6 +1758,7 @@ impl ConsumerGroup {
                 ),
                 instance_id: self.cfg.group_instance_id.clone(),
                 rack_id: self.cfg.rack.clone(),
+                rebalance_timeout_ms: ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                 subscribed_topic_names: None,
                 subscribed_topic_regex: None,
                 topic_partitions: None,
@@ -2001,6 +2002,11 @@ impl ConsumerGroup {
             member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: self.cfg.group_instance_id.clone(),
             rack_id: self.cfg.rack.clone(),
+            rebalance_timeout_ms: if self.cfg.max_poll_interval.is_zero() {
+                i32::MAX
+            } else {
+                duration_millis_i32(self.cfg.max_poll_interval)
+            },
             subscribed_topic_names: Some(self.topics.clone()),
             subscribed_topic_regex: None,
             topic_partitions: None,
@@ -2187,6 +2193,8 @@ impl ConsumerGroup {
                             member_epoch: epoch,
                             instance_id: cfg.group_instance_id.clone(),
                             rack_id: cfg.rack.clone(),
+                            rebalance_timeout_ms:
+                                ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                             subscribed_topic_names: None,
                             subscribed_topic_regex: None,
                             topic_partitions,
@@ -2359,6 +2367,8 @@ async fn leave_if_max_poll(
                     ),
                     instance_id: cfg.group_instance_id.clone(),
                     rack_id: cfg.rack.clone(),
+                    rebalance_timeout_ms:
+                        ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
                     subscribed_topic_names: None,
                     subscribed_topic_regex: None,
                     topic_partitions: None,

@@ -135,8 +135,10 @@ pub struct ConsumerConfig {
     /// Kafka `max.poll.interval.ms`. Zero means no limit. Default 5 minutes.
     ///
     /// Classic JoinGroup `RebalanceTimeoutMs` is this interval (Java
-    /// `ClassicKafkaConsumer` / `max.poll.interval.ms`). Zero sends
-    /// [`i32::MAX`]. The next [`crate::ConsumerGroup::poll`] errors with
+    /// `ClassicKafkaConsumer` / `max.poll.interval.ms`). KIP-848
+    /// ConsumerGroupHeartbeat join sends the same value; later heartbeats
+    /// send [`crate::protocol::cgheartbeat::ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS`].
+    /// Zero sends [`i32::MAX`]. The next [`crate::ConsumerGroup::poll`] errors with
     /// [`crate::Error::MaxPollInterval`] if exceeded. The heartbeat thread
     /// also leaves the group (classic `LeaveGroup` or KIP-848 epoch `-1`).
     pub max_poll_interval: Duration,

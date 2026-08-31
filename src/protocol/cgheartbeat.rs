@@ -29,6 +29,12 @@ pub struct ConsumerGroupHeartbeatRequest {
     pub instance_id: Option<String>,
     /// Kafka `client.rack`.
     pub rack_id: Option<String>,
+    /// Rebalance timeout (JSON `0+`).
+    ///
+    /// `-1` if unchanged since the last heartbeat (JSON default). Official
+    /// Java `ConsumerGroupHeartbeatRequestData.rebalanceTimeoutMs`. Join
+    /// sends `max.poll.interval.ms`.
+    pub rebalance_timeout_ms: i32,
     /// Subscribed topic names (`None` means unchanged).
     pub subscribed_topic_names: Option<Vec<String>>,
     /// Subscribed topic regex (`None` means unchanged). v1+ (KIP-848).
@@ -48,6 +54,9 @@ impl ConsumerGroupHeartbeatRequest {
     pub const LEAVE_GROUP_STATIC_MEMBER_EPOCH: i32 = -2;
     /// Java `ConsumerGroupHeartbeatRequest.JOIN_GROUP_MEMBER_EPOCH`.
     pub const JOIN_GROUP_MEMBER_EPOCH: i32 = 0;
+    /// JSON default for [`Self::rebalance_timeout_ms`]: unchanged since the
+    /// last heartbeat.
+    pub const UNCHANGED_REBALANCE_TIMEOUT_MS: i32 = -1;
     /// Java `ConsumerGroupHeartbeatRequest.CONSUMER_GENERATED_MEMBER_ID_REQUIRED_VERSION`.
     ///
     /// ConsumerGroupHeartbeat v1+ (KIP-1082): the client generates MemberId.
@@ -124,7 +133,7 @@ pub fn encode_consumer_group_heartbeat_request(
     buf.put_i32(req.member_epoch);
     buf::put_compact_string(buf, req.instance_id.as_deref())?;
     buf::put_compact_string(buf, req.rack_id.as_deref())?;
-    buf.put_i32(45_000); // rebalance_timeout_ms
+    buf.put_i32(req.rebalance_timeout_ms);
     match &req.subscribed_topic_names {
         None => buf::put_array_len(buf, true, None)?,
         Some(names) => {
@@ -154,7 +163,7 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
     let member_epoch = buf::get_i32(buf)?;
     let instance_id = buf::get_compact_string(buf)?;
     let rack_id = buf::get_compact_string(buf)?;
-    let _rebalance = buf::get_i32(buf)?;
+    let rebalance_timeout_ms = buf::get_i32(buf)?;
     let subscribed_topic_names = {
         let n = buf::get_array_len(buf, true)?;
         match n {
@@ -182,6 +191,7 @@ pub fn decode_consumer_group_heartbeat_request<B: Buf>(
         member_epoch,
         instance_id,
         rack_id,
+        rebalance_timeout_ms,
         subscribed_topic_names,
         subscribed_topic_regex,
         topic_partitions,
@@ -305,6 +315,7 @@ mod tests {
             member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: Some("worker-1".into()),
             rack_id: Some("az1".into()),
+            rebalance_timeout_ms: 45_000,
             subscribed_topic_names: Some(vec!["t".into()]),
             subscribed_topic_regex: None,
             topic_partitions: None,
@@ -350,6 +361,7 @@ mod tests {
             member_epoch: ConsumerGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH,
             instance_id: None,
             rack_id: None,
+            rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: None,
             topic_partitions: None,
@@ -372,6 +384,7 @@ mod tests {
             member_epoch: ConsumerGroupHeartbeatRequest::leave_group_epoch(Some("worker-1")),
             instance_id: Some("worker-1".into()),
             rack_id: None,
+            rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: None,
             topic_partitions: None,
@@ -436,6 +449,7 @@ mod tests {
             member_epoch: ConsumerGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH,
             instance_id: None,
             rack_id: None,
+            rebalance_timeout_ms: 45_000,
             subscribed_topic_names: Some(vec!["t".into()]),
             subscribed_topic_regex: None,
             topic_partitions: None,
@@ -511,6 +525,7 @@ mod tests {
             member_epoch: 1,
             instance_id: None,
             rack_id: None,
+            rebalance_timeout_ms: 45_000,
             subscribed_topic_names: None,
             subscribed_topic_regex: Some("t.*".into()),
             topic_partitions: None,
@@ -546,6 +561,53 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "ConsumerGroupHeartbeat v1 response must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_rebalance_timeout_ms_matches_java() {
+        // Kafka 4.0 ConsumerGroupHeartbeatRequest.json RebalanceTimeoutMs is
+        // versions 0+ (INT32 after RackId; default -1). Official Java
+        // ConsumerGroupHeartbeatRequestData.rebalanceTimeoutMs reads it.
+        // Encode previously hardcoded 45000; decode discarded it. JSON
+        // default -1 means unchanged since the last heartbeat. This crate
+        // speaks 0–1. This is not ServerAssignor / RackId / JoinGroup
+        // RebalanceTimeoutMs.
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS,
+            -1
+        );
+        let mut req = join_req();
+        req.rebalance_timeout_ms = 300_000;
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_heartbeat_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_consumer_group_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!(got.rebalance_timeout_ms, 300_000);
+            assert_eq!(got, req);
+            assert!(
+                cur.is_empty(),
+                "ConsumerGroupHeartbeat request v{version} RebalanceTimeoutMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut with, 0, &req).unwrap();
+        let mut unchanged = join_req();
+        unchanged.rebalance_timeout_ms =
+            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS;
+        let mut minus_one = BytesMut::new();
+        encode_consumer_group_heartbeat_request(&mut minus_one, 0, &unchanged).unwrap();
+        assert_ne!(
+            &with[..],
+            &minus_one[..],
+            "v0 RebalanceTimeoutMs is not always UNCHANGED"
+        );
+        let got = decode_consumer_group_heartbeat_request(&mut minus_one.as_ref(), 0).unwrap();
+        assert_eq!(
+            got.rebalance_timeout_ms,
+            ConsumerGroupHeartbeatRequest::UNCHANGED_REBALANCE_TIMEOUT_MS
         );
     }
 
