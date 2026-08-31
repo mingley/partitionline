@@ -243,12 +243,16 @@
 //! the body has an instance id and decode fills `None`;
 //! v5+ round-trips ProtocolType / ProtocolName; below v5 encode omits
 //! them even when the body has values and decode fills `None`;
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::group::encode_sync_group_response`] still writes ThrottleTimeMs `0` and null ProtocolType / ProtocolName;
 //! [`protocol::group::SyncGroupRequest::are_mandatory_protocol_type_and_name_present`] is Java
 //! `SyncGroupRequest.areMandatoryProtocolTypeAndNamePresent` (v5+ both ProtocolType and
 //! ProtocolName present; empty string is present; below v5 always true);
 //! [`protocol::group::SyncGroupRequest::error_response`] is Java
 //! `SyncGroupRequest.getErrorResponse` (empty assignment; ProtocolType /
-//! ProtocolName JSON default (null) on v5+);
+//! ProtocolName JSON default (null) on v5+; v1+ writes the `throttleTimeMs`
+//! argument; below v1 omits it);
 //! [`protocol::group::SyncGroupRequest::group_assignments`] is Java
 //! `SyncGroupRequest.groupAssignments` (a later member overwrites);
 //! [`protocol::group::SyncGroupRequest::build`] is Java
@@ -256,7 +260,6 @@
 //! below v3 is `UnsupportedVersionException`; encode still omits);
 //! v5+ response round-trips ProtocolType / ProtocolName; below v5 encode
 //! omits them even when the body has values and decode fills `None`;
-//! [`protocol::group::encode_sync_group_response`] still writes null;
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;

@@ -1520,13 +1520,16 @@ impl SyncGroupRequest<'_> {
     /// Java `SyncGroupRequest.getErrorResponse`.
     ///
     /// Assignment is empty. ProtocolType / ProtocolName stay the JSON default
-    /// (null) on v5+. Throttle is the JSON default (`0`) on v1+.
+    /// (null) on v5+. ThrottleTimeMs is written on v1+ from `throttle_time_ms`.
+    /// Below v1 the field is omitted even when that value is non-zero. Decode
+    /// fills `0`.
     pub fn error_response(
         buf: &mut BytesMut,
         version: i16,
         error_code: i16,
+        throttle_time_ms: i32,
     ) -> crate::error::Result<()> {
-        encode_sync_group_response(buf, version, error_code, &[])
+        encode_sync_group_response_with_throttle(buf, version, error_code, &[], throttle_time_ms)
     }
 
     /// Java `SyncGroupRequest.groupAssignments`.
@@ -1666,13 +1669,36 @@ pub fn encode_sync_group_response(
     error_code: i16,
     assignment: &[u8],
 ) -> crate::error::Result<()> {
-    encode_sync_group_response_with_protocol(buf, version, error_code, assignment, None, None)
+    encode_sync_group_response_with_throttle(buf, version, error_code, assignment, 0)
+}
+
+/// Encode SyncGroup v0–v5 with ThrottleTimeMs.
+///
+/// Below v1 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. ProtocolType / ProtocolName stay the JSON
+/// default (`null`) on v5+. v4+ is flexible.
+pub fn encode_sync_group_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    assignment: &[u8],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    write_sync_group_response(
+        buf,
+        version,
+        error_code,
+        assignment,
+        None,
+        None,
+        throttle_time_ms,
+    )
 }
 
 /// Encode SyncGroup v0–v5 with ProtocolType / ProtocolName.
 ///
 /// Below v5 those fields are omitted even when the body has values.
-/// Decode fills `None`. v5 is flexible.
+/// Decode fills `None`. Throttle is `0` on v1+. v5 is flexible.
 pub fn encode_sync_group_response_with_protocol(
     buf: &mut BytesMut,
     version: i16,
@@ -1681,9 +1707,29 @@ pub fn encode_sync_group_response_with_protocol(
     protocol_type: Option<&str>,
     protocol_name: Option<&str>,
 ) -> crate::error::Result<()> {
+    write_sync_group_response(
+        buf,
+        version,
+        error_code,
+        assignment,
+        protocol_type,
+        protocol_name,
+        0,
+    )
+}
+
+fn write_sync_group_response(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    assignment: &[u8],
+    protocol_type: Option<&str>,
+    protocol_name: Option<&str>,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = sync_group_flexible(version)?;
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf.put_i16(error_code);
     if version >= 5 {
@@ -1697,22 +1743,20 @@ pub fn encode_sync_group_response_with_protocol(
     Ok(())
 }
 
-/// Decode SyncGroup: `(error_code, assignment, protocol_type, protocol_name)`.
+/// Decode SyncGroup: `(error_code, assignment, protocol_type, protocol_name, throttle_time_ms)`.
 ///
-/// Throttle is v1+. Below v5 ProtocolType / ProtocolName are omitted;
-/// decode fills `None`.
+/// Below v1 ThrottleTimeMs is omitted; decode fills `0`. Below v5
+/// ProtocolType / ProtocolName are omitted; decode fills `None`.
 #[expect(
     clippy::type_complexity,
-    reason = "SyncGroup decode returns error, assignment, protocol type, and protocol name together"
+    reason = "SyncGroup decode returns error, assignment, protocol type, protocol name, and throttle together"
 )]
 pub fn decode_sync_group_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i16, Vec<u8>, Option<String>, Option<String>)> {
+) -> Result<(i16, Vec<u8>, Option<String>, Option<String>, i32)> {
     let flexible = sync_group_flexible(version)?;
-    if version >= 1 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let error = buf::get_i16(buf)?;
     let (ptype, pname) = if version >= 5 {
         (buf::get_string(buf, true)?, buf::get_string(buf, true)?)
@@ -1723,7 +1767,7 @@ pub fn decode_sync_group_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((error, assignment, ptype, pname))
+    Ok((error, assignment, ptype, pname, throttle_time_ms))
 }
 
 /// `true` when Heartbeat `version` is flexible (v4+).
@@ -10152,7 +10196,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let (err, asg, ptype, pname) = decode_sync_group_response(&mut cur, 5).unwrap();
+        let (err, asg, ptype, pname, ..) = decode_sync_group_response(&mut cur, 5).unwrap();
         assert_eq!(err, 0);
         assert_eq!(asg, assignment);
         assert_eq!(ptype.as_deref(), Some("consumer"));
@@ -10173,7 +10217,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let (_, asg, ptype, pname) = decode_sync_group_response(&mut cur, 4).unwrap();
+        let (_, asg, ptype, pname, ..) = decode_sync_group_response(&mut cur, 4).unwrap();
         assert_eq!(asg, assignment);
         assert!(
             cur.is_empty(),
@@ -10196,7 +10240,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, ptype, pname) = decode_sync_group_response(&mut cur, 0).unwrap();
+        let (_, _, ptype, pname, ..) = decode_sync_group_response(&mut cur, 0).unwrap();
         assert!(
             cur.is_empty(),
             "SyncGroup v0 response ProtocolType leftover-empty"
@@ -10266,7 +10310,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = empty_buf.as_ref();
-        let (_, _, ptype, pname) = decode_sync_group_response(&mut cur, 5).unwrap();
+        let (_, _, ptype, pname, ..) = decode_sync_group_response(&mut cur, 5).unwrap();
         assert_eq!(ptype.as_deref(), Some(""));
         assert_eq!(pname.as_deref(), Some(""));
         assert!(
@@ -10354,16 +10398,104 @@ mod tests {
     }
 
     #[test]
+    fn sync_group_throttle_time_ms_matches_java() {
+        for version in [1_i16, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_sync_group_response_with_throttle(&mut buf, version, 16, &[], 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, asg, ptype, pname, throttle) =
+                decode_sync_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert!(asg.is_empty());
+            assert_eq!((ptype, pname), (None, None));
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "SyncGroup v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        encode_sync_group_response_with_throttle(&mut buf, 0, 16, &[], 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (err, _, _, _, throttle) = decode_sync_group_response(&mut cur, 0).unwrap();
+        assert_eq!(err, 16);
+        assert!(cur.is_empty(), "SyncGroup v0 ThrottleTimeMs leftover-empty");
+        assert_eq!(
+            throttle, 0,
+            "SyncGroup v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_sync_group_response_with_throttle(&mut with, 1, 16, &[], 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_sync_group_response_with_throttle(&mut zero, 1, 16, &[], 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_sync_group_response(&mut conv, 1, 16, &[]).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_sync_group_response still writes ThrottleTimeMs 0"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_sync_group_response_with_throttle(&mut v0_with, 0, 16, &[], 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_sync_group_response_with_throttle(&mut v0_zero, 0, 16, &[], 0).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds ThrottleTimeMs before ErrorCode"
+        );
+
+        for version in [0_i16, 1, 4, 5] {
+            let mut expected = BytesMut::new();
+            encode_sync_group_response_with_throttle(&mut expected, version, 16, &[], 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            SyncGroupRequest::error_response(&mut got, version, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "SyncGroup v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (err, asg, _, _, throttle) = decode_sync_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert!(asg.is_empty(), "v{version} assignment must be empty");
+            if version >= 1 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "SyncGroup v{version} getErrorResponse leftover-empty"
+            );
+        }
+    }
+
+    #[test]
     fn sync_group_error_response_matches_java() {
         // Java SyncGroupRequest.getErrorResponse: empty assignment, throttle
-        // JSON default 0 on v1+. ProtocolType / ProtocolName stay JSON default
-        // (null) on v5+.
+        // from the argument (0 here is the JSON default) on v1+. ProtocolType /
+        // ProtocolName stay JSON default (null) on v5+.
         const V5: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x01, 0x00];
         for version in [0_i16, 1, 4, 5] {
             let mut expected = BytesMut::new();
             encode_sync_group_response(&mut expected, version, 16, &[]).unwrap();
             let mut got = BytesMut::new();
-            SyncGroupRequest::error_response(&mut got, version, 16).unwrap();
+            SyncGroupRequest::error_response(&mut got, version, 16, 0).unwrap();
             assert_eq!(
                 &got[..],
                 &expected[..],
@@ -10383,18 +10515,18 @@ mod tests {
             );
         }
         let mut v4 = BytesMut::new();
-        SyncGroupRequest::error_response(&mut v4, 4, 16).unwrap();
+        SyncGroupRequest::error_response(&mut v4, 4, 16, 0).unwrap();
         let mut v5 = BytesMut::new();
-        SyncGroupRequest::error_response(&mut v5, 5, 16).unwrap();
+        SyncGroupRequest::error_response(&mut v5, 5, 16, 0).unwrap();
         assert_ne!(
             &v4[..],
             &v5[..],
             "v5 getErrorResponse ProtocolType / ProtocolName are null"
         );
         let mut v0 = BytesMut::new();
-        SyncGroupRequest::error_response(&mut v0, 0, 16).unwrap();
+        SyncGroupRequest::error_response(&mut v0, 0, 16, 0).unwrap();
         let mut v1 = BytesMut::new();
-        SyncGroupRequest::error_response(&mut v1, 1, 16).unwrap();
+        SyncGroupRequest::error_response(&mut v1, 1, 16, 0).unwrap();
         assert_ne!(&v0[..], &v1[..], "v1+ getErrorResponse includes throttle");
     }
 
