@@ -735,7 +735,7 @@
 //! ThrottleTimeMs is JSON `0+` (on the wire for every spoken version,
 //! including v0); round-trips a non-zero value;
 //! [`protocol::admin::encode_describe_configs_response`] still writes `0`),
-//! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
+//! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
 //! [`protocol::admin::CreatePartitionsResponse::error_counts`] is Java
@@ -744,7 +744,8 @@
 //! [`protocol::admin::CreatePartitionsTopic::error_results`] are Java
 //! `CreatePartitionsRequest.getErrorResponse` (one topic / Results).
 //! `ErrorMessage` stays the JSON default (null); official Java also
-//! sets the English `Errors.message` string),
+//! sets the English `Errors.message` string;
+//! [`protocol::admin::encode_create_partitions_response`] still writes `0`),
 //! IncrementalAlterConfigs v0–v1 (v1 flexible; Resources of N;
 //! [`protocol::admin::IncrementalAlterConfigsResponse::should_client_throttle`] is Java
 //! `IncrementalAlterConfigsResponse.shouldClientThrottle` (v0+);

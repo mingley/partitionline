@@ -2171,7 +2171,9 @@ impl CreatePartitionsTopic {
     /// Sets `Name` and `ErrorCode`. `ErrorMessage` is the JSON default
     /// (null); official Java also sets the English `Errors.message`
     /// string. Request count and assignments are not copied. Throttle
-    /// on the response is the JSON default (`0`).
+    /// is the JSON default (`0`); [`encode_create_partitions_response`]
+    /// still writes `0`. Official Java `getErrorResponse` also sets
+    /// `throttleTimeMs` from the argument.
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> TopicResult {
         TopicResult::error(error_code, Some(self.name.as_str()), [0; 16])
@@ -2273,13 +2275,31 @@ pub fn decode_create_partitions_request<B: Buf>(
 }
 
 /// Encode a CreatePartitions response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_create_partitions_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    encode_create_partitions_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode CreatePartitions v0–v3 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v1 are classic. v2–v3 are flexible. v3 is the same layout
+/// (KIP-599). Kafka 4.0 `validVersions` is `0-3`. This crate speaks
+/// 0–3. v4+ is not spoken.
+pub fn encode_create_partitions_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[TopicResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = create_partitions_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf::put_string(buf, flexible, Some(&r.name))?;
@@ -2296,12 +2316,15 @@ pub fn encode_create_partitions_response(
 }
 
 /// Decode a CreatePartitions response.
+///
+/// Returns `(topics, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_create_partitions_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<TopicResult>> {
+) -> Result<(Vec<TopicResult>, i32)> {
     let flexible = create_partitions_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -2316,7 +2339,7 @@ pub fn decode_create_partitions_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// One incremental config change (`AlterConfigOp`).
@@ -18202,6 +18225,75 @@ mod tests {
     }
 
     #[test]
+    fn create_partitions_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 CreatePartitionsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0–v3; first field). Official
+        // Java CreatePartitionsRequest.getErrorResponse /
+        // CreatePartitionsResponse.throttleTimeMs set / read it.
+        // encode_create_partitions_response still writes the JSON
+        // default 0. KIP-219 only changes shouldClientThrottle (v1+).
+        // Empty-Results v0 == v1 (classic); v2 == v3 (flexible, KIP-599
+        // same layout). This crate speaks 0–3. This is not
+        // DescribeDelegationToken ThrottleTimeMs.
+        let results: Vec<TopicResult> = vec![];
+        for version in [0, 1, 2, 3] {
+            let mut buf = BytesMut::new();
+            encode_create_partitions_response_with_throttle(&mut buf, version, &results, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_create_partitions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, results);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "CreatePartitions v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut with, 0, &results, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut zero, 0, &results, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_create_partitions_response(&mut conv, 0, &results).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_create_partitions_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut v1_with, 1, &results, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-Results ThrottleTimeMs bodies: v0 == v1"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut v2_with, 2, &results, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &v1_with[..],
+            &v2_with[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_create_partitions_response_with_throttle(&mut v3_with, 3, &results, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v3_with[..],
+            "empty-Results ThrottleTimeMs bodies: v2 == v3"
+        );
+    }
+
+    #[test]
     fn create_partitions_not_controller_is_not_at_byte_four() {
         let results = vec![TopicResult::new("t", crate::error::NOT_CONTROLLER, None)];
         let mut buf = BytesMut::new();
@@ -18214,10 +18306,8 @@ mod tests {
             "throttle + topic-array length must not look like error 41"
         );
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 1).unwrap(),
-            results
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 1).unwrap();
+        assert_eq!(got, results);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v1 NOT_CONTROLLER must be leftover-empty"
@@ -18286,10 +18376,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 2, &results).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 2).unwrap(),
-            results
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 2).unwrap();
+        assert_eq!(got, results);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v2 response must be leftover-empty"
@@ -18346,10 +18434,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 2, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 2).unwrap(),
-            err_results
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 2).unwrap();
+        assert_eq!(got, err_results);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v2 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18358,10 +18444,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 1, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 1).unwrap(),
-            err_results
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 1).unwrap();
+        assert_eq!(got, err_results);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v1 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18370,10 +18454,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 0, &err_results).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 0).unwrap(),
-            err_results
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 0).unwrap();
+        assert_eq!(got, err_results);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions v0 getErrorResponse leftover-empty; leftover {} bytes",
@@ -18382,10 +18464,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 2, &two_err).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 2).unwrap(),
-            two_err
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 2).unwrap();
+        assert_eq!(got, two_err);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions two-topic getErrorResponse leftover-empty; leftover {} bytes",
@@ -18394,10 +18474,8 @@ mod tests {
         buf.clear();
         encode_create_partitions_response(&mut buf, 2, &empty).unwrap();
         let mut cur = buf.as_ref();
-        assert_eq!(
-            decode_create_partitions_response(&mut cur, 2).unwrap(),
-            empty
-        );
+        let (got, ..) = decode_create_partitions_response(&mut cur, 2).unwrap();
+        assert_eq!(got, empty);
         assert!(
             !cur.has_remaining(),
             "CreatePartitions empty getErrorResponse leftover-empty; leftover {} bytes",
@@ -18453,7 +18531,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_create_partitions_response(&mut buf, version, &results).unwrap();
             let mut cur = &buf[..];
-            let got = decode_create_partitions_response(&mut cur, version).unwrap();
+            let (got, ..) = decode_create_partitions_response(&mut cur, version).unwrap();
             assert_eq!(got, results);
             assert!(
                 !cur.has_remaining(),
