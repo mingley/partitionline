@@ -226,9 +226,32 @@ pub fn encode_offset_for_leader_epoch_topics_request(
     version: i16,
     topics: &[OffsetForLeaderTopic],
 ) -> crate::error::Result<()> {
+    encode_offset_for_leader_epoch_topics_request_with_replica_id(
+        buf,
+        version,
+        topics,
+        CONSUMER_REPLICA_ID,
+    )
+}
+
+/// Encode OffsetForLeaderEpoch with ReplicaId.
+///
+/// ReplicaId is JSON `3+` (INT32 first field; default `-2`). Official Java
+/// `OffsetsForLeaderEpochRequest.replicaId()` /
+/// `OffsetForLeaderEpochRequestData.replicaId`. Below v3 the field is
+/// omitted even when `replica_id` is not [`DEBUGGING_REPLICA_ID`]. Decode
+/// fills [`DEBUGGING_REPLICA_ID`]. [`encode_offset_for_leader_epoch_topics_request`]
+/// still writes [`CONSUMER_REPLICA_ID`] on v3+. This is not Fetch ReplicaId
+/// / ListOffsets ReplicaId.
+pub fn encode_offset_for_leader_epoch_topics_request_with_replica_id(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetForLeaderTopic],
+    replica_id: i32,
+) -> crate::error::Result<()> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
     if version >= 3 {
-        buf.put_i32(CONSUMER_REPLICA_ID);
+        buf.put_i32(replica_id);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -264,7 +287,7 @@ pub fn decode_offset_for_leader_epoch_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, i32, i32, i32)> {
-    let topics = decode_offset_for_leader_epoch_topics_request(buf, version)?;
+    let (topics, ..) = decode_offset_for_leader_epoch_topics_request(buf, version)?;
     let t = topics
         .first()
         .ok_or_else(|| Error::protocol("OffsetForLeaderEpoch Topics is empty".to_string()))?;
@@ -281,14 +304,20 @@ pub fn decode_offset_for_leader_epoch_request<B: Buf>(
 }
 
 /// Decode OffsetForLeaderEpoch Topics of N (v0–v4).
+///
+/// Returns `(topics, replica_id)`. ReplicaId is JSON `3+` (INT32 first
+/// field; official Java `OffsetsForLeaderEpochRequest.replicaId()`). Below
+/// v3 decode fills [`DEBUGGING_REPLICA_ID`] (JSON default `-2`).
 pub fn decode_offset_for_leader_epoch_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<OffsetForLeaderTopic>> {
+) -> Result<(Vec<OffsetForLeaderTopic>, i32)> {
     let flexible = offset_for_leader_epoch_flexible(version)?;
-    if version >= 3 {
-        let _replica = buf::get_i32(buf)?;
-    }
+    let replica_id = if version >= 3 {
+        buf::get_i32(buf)?
+    } else {
+        DEBUGGING_REPLICA_ID
+    };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -320,7 +349,7 @@ pub fn decode_offset_for_leader_epoch_topics_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?; // top-level
     }
-    Ok(topics)
+    Ok((topics, replica_id))
 }
 
 /// Encode a single-topic, single-partition OffsetForLeaderEpoch response.
@@ -565,6 +594,66 @@ mod tests {
         assert!(!supports_topic_permission(2));
         assert!(supports_topic_permission(3));
         assert!(supports_topic_permission(4));
+    }
+
+    #[test]
+    fn offset_for_leader_epoch_request_replica_id_matches_java() {
+        // Kafka 4.0 OffsetForLeaderEpochRequest.json ReplicaId is versions
+        // 3+ (INT32 first field; default -2; ignorable). Official Java
+        // OffsetsForLeaderEpochRequest.replicaId() /
+        // OffsetForLeaderEpochRequestData.replicaId read it. Encode
+        // previously always wrote CONSUMER_REPLICA_ID on v3+; decode
+        // discarded it. Below v3 encode omits even when non-default;
+        // decode fills DEBUGGING_REPLICA_ID. This crate speaks 0–4. This
+        // is not Fetch ReplicaId / ListOffsets ReplicaId.
+        let topics = [OffsetForLeaderTopic::new(
+            "t",
+            vec![OffsetForLeaderPartition::new(0, 3, 3)],
+        )];
+        for version in [0_i16, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_offset_for_leader_epoch_topics_request_with_replica_id(
+                &mut buf, version, &topics, 7,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., replica_id) =
+                decode_offset_for_leader_epoch_topics_request(&mut cur, version).unwrap();
+            if version >= 3 {
+                assert_eq!(replica_id, 7);
+            } else {
+                assert_eq!(replica_id, DEBUGGING_REPLICA_ID);
+            }
+            assert!(
+                cur.is_empty(),
+                "OffsetForLeaderEpoch request v{version} ReplicaId leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request_with_replica_id(&mut with, 3, &topics, 7)
+            .unwrap();
+        let mut consumer = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request(&mut consumer, 3, &topics).unwrap();
+        assert_ne!(
+            &with[..],
+            &consumer[..],
+            "v3 ReplicaId is not always CONSUMER_REPLICA_ID"
+        );
+        let (.., replica_id) =
+            decode_offset_for_leader_epoch_topics_request(&mut consumer.as_ref(), 3).unwrap();
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+
+        let mut v2_with = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request_with_replica_id(&mut v2_with, 2, &topics, 7)
+            .unwrap();
+        let mut v2_consumer = BytesMut::new();
+        encode_offset_for_leader_epoch_topics_request(&mut v2_consumer, 2, &topics).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v2_consumer[..],
+            "v2 omits ReplicaId even when the body is non-default"
+        );
     }
 
     #[test]
@@ -835,7 +924,9 @@ mod tests {
         assert_eq!(&buf[..], REQ_V4);
         let mut cur = &buf[..];
         assert_eq!(
-            decode_offset_for_leader_epoch_topics_request(&mut cur, 4).unwrap(),
+            decode_offset_for_leader_epoch_topics_request(&mut cur, 4)
+                .unwrap()
+                .0,
             topics
         );
         assert!(
@@ -852,7 +943,9 @@ mod tests {
         assert_eq!(&buf[..], REQ_V4_TWO_TOPICS);
         let mut cur = &buf[..];
         assert_eq!(
-            decode_offset_for_leader_epoch_topics_request(&mut cur, 4).unwrap(),
+            decode_offset_for_leader_epoch_topics_request(&mut cur, 4)
+                .unwrap()
+                .0,
             two
         );
         assert!(!cur.has_remaining(), "Topics of 2 must be leftover-empty");

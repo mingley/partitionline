@@ -5192,7 +5192,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             OFFSET_FOR_LEADER_EPOCH => {
-                let topics =
+                let (topics, ..) =
                     decode_offset_for_leader_epoch_topics_request(&mut frame, header.api_version)
                         .unwrap();
                 let mut st = state.lock();

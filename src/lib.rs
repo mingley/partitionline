@@ -1260,7 +1260,13 @@
 //! [`protocol::epoch::encode_offset_for_leader_epoch_topics_response_with_throttle`];
 //! encode previously always wrote `0` on v2+ and decode discarded;
 //! convenience encode still writes `0`;
-//! v3 ReplicaId; v4 flexible; Topics/Partitions of N). v5+ is not spoken.
+//! v3 ReplicaId is JSON `3+` (decode returns it last;
+//! [`protocol::epoch::encode_offset_for_leader_epoch_topics_request_with_replica_id`];
+//! convenience encode still writes [`protocol::epoch::CONSUMER_REPLICA_ID`];
+//! below v3 omit even when non-default and decode fills
+//! [`protocol::epoch::DEBUGGING_REPLICA_ID`]; official Java
+//! `OffsetsForLeaderEpochRequest.replicaId()`);
+//! v4 flexible; Topics/Partitions of N). v5+ is not spoken.
 //! [`protocol::epoch::supports_topic_permission`] is Java
 //! `OffsetsForLeaderEpochRequest.supportsTopicPermission` (v3+ uses topic
 //! Describe instead of Cluster permission).
