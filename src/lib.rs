@@ -54,6 +54,9 @@
 //! transactional id.
 //! [`protocol::idem::InitProducerIdResponse::should_client_throttle`] is Java
 //! `InitProducerIdResponse.shouldClientThrottle` (v1+).
+//! [`protocol::idem::InitProducerIdResponse::error_counts`] is Java
+//! `InitProducerIdResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`).
 //! ThrottleTimeMs is JSON `0+`
 //! ([`protocol::idem::encode_init_producer_id_response_with_throttle`];
 //! encode previously always wrote `0` on v1+ and omitted the field on v0;

@@ -1,5 +1,7 @@
 //! InitProducerId (api key 22). v0–v1 classic; v2–v5 flexible.
 
+use std::collections::HashMap;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -57,6 +59,16 @@ impl InitProducerIdResponse {
     #[must_use]
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
+    }
+
+    /// Java `InitProducerIdResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). This is not EndTxn / AddOffsetsToTxn /
+    /// Heartbeat `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
     }
 }
 
@@ -207,6 +219,7 @@ pub fn encode_init_producer_id_response_with_throttle(
 mod tests {
     use super::*;
     use crate::error::Error;
+    use std::collections::HashMap;
 
     #[test]
     fn init_producer_id_v1_roundtrip() {
@@ -598,5 +611,46 @@ mod tests {
         let mut v2 = BytesMut::new();
         InitProducerIdRequest::error_response(&mut v2, 2, 16).unwrap();
         assert_ne!(&v1[..], &v2[..], "v2+ getErrorResponse is flexible");
+    }
+
+    #[test]
+    fn init_producer_id_response_error_counts_matches_java() {
+        // Java InitProducerIdResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java InitProducerIdResponse.errorCounts.
+        // This is not InitProducerIdResponse.error / EndTxn errorCounts /
+        // AddOffsetsToTxn errorCounts / Heartbeat errorCounts.
+        assert_eq!(
+            InitProducerIdResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            InitProducerIdResponse::error_counts(crate::error::NOT_COORDINATOR),
+            HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
+        );
+        for version in 0..=5_i16 {
+            let mut resp = BytesMut::new();
+            encode_init_producer_id_response(
+                &mut resp,
+                version,
+                crate::error::NOT_COORDINATOR,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_init_producer_id_response(&mut cur, version).unwrap();
+            assert_eq!(
+                InitProducerIdResponse::error_counts(err),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "InitProducerId v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "InitProducerId v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 }
