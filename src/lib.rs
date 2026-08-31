@@ -825,8 +825,10 @@
 //! [`AclCreationResult::error`] / [`AclCreationResult::error_results`] are Java
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
-//! official Java also sets the English `Errors.message` string. Throttle
-//! is the JSON default (`0`). Java `CreateAclsRequest.validate` rejects
+//! official Java also sets the English `Errors.message` string. ThrottleTimeMs
+//! is JSON `0+`;
+//! [`protocol::acl::encode_create_acls_response`] still writes `0`;
+//! Java `CreateAclsRequest.validate` rejects
 //! UNKNOWN resource / pattern / operation / permission;
 //! `DescribeAclsRequest.normalizeAndValidate` /
 //! `DeleteAclsRequest.normalizeAndValidate` do the same on filters
