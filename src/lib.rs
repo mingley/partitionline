@@ -420,6 +420,9 @@
 //! [`protocol::admin::ShareGroupDescribeResponse::error_counts`] is Java
 //! `ShareGroupDescribeResponse.errorCounts` (per-group codes, including `NONE`)),
 //! ShareFetch v0–v1 (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize / AcquisitionLockTimeoutMs;
+//! ForgottenTopicsData is JSON `0+`;
+//! [`protocol::share::encode_share_fetch_request_with_forgotten`] round-trips
+//! the list; [`protocol::share::encode_share_fetch_request`] still writes empty;
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! / [`ShareRequestMetadata::next_epoch`]; `nextEpoch` wraps `i32::MAX` to `1`.
@@ -442,13 +445,18 @@
 //! name; a later partition overwrites);
 //! [`protocol::share::ShareFetchRequest::forgotten_topics`] is Java
 //! `ShareFetchRequest.forgottenTopics` (looks up `topic_id` and keeps a
-//! missing name as `None`; duplicates are kept; encode still writes empty
+//! missing name as `None`; duplicates are kept;
+//! [`protocol::share::encode_share_fetch_request_with_forgotten`] writes
+//! the list, including duplicate partition indexes;
+//! [`protocol::share::encode_share_fetch_request`] still writes empty
 //! ForgottenTopicsData);
 //! [`protocol::share::ShareFetchRequest::update_forgotten_data`] is Java
 //! `ShareFetchRequest.Builder.updateForgottenData` (group by topic id;
 //! first-seen id order; later partitions append; grouped entries are
 //! appended to the existing list, including a second entry for the same
-//! id; encode still writes empty ForgottenTopicsData);
+//! id; [`protocol::share::encode_share_fetch_request_with_forgotten`]
+//! writes the list; [`protocol::share::encode_share_fetch_request`] still
+//! writes empty ForgottenTopicsData);
 //! [`protocol::share::ShareFetchRequest::share_fetch_data`] is Java
 //! `ShareFetchRequest.shareFetchData` (looks up `topic_id` and keeps a
 //! missing name as `None`; values are `PartitionMaxBytes`; a later

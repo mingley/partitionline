@@ -115,9 +115,10 @@ pub struct ShareFetchTopic {
 
 /// One forgotten topic in a ShareFetch request (session increment).
 ///
-/// Java `ShareFetchRequestData.ForgottenTopic`. Encode still writes an
-/// empty ForgottenTopicsData array; this type is the in-memory list
-/// [`ShareFetchRequest::forgotten_topics`] reads and
+/// Java `ShareFetchRequestData.ForgottenTopic`.
+/// [`encode_share_fetch_request_with_forgotten`] writes this list;
+/// [`encode_share_fetch_request`] still writes empty. This type is also
+/// the in-memory list [`ShareFetchRequest::forgotten_topics`] reads and
 /// [`ShareFetchRequest::update_forgotten_data`] builds from a forget
 /// list.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,8 +137,9 @@ impl ShareFetchRequest {
     ///
     /// Looks up each topic id in `topic_names` (`None` when missing; Java
     /// still inserts that `TopicIdPartition`). Duplicate partitions are
-    /// kept (`ArrayList`). Encode still writes an empty ForgottenTopicsData
-    /// array. Unlike [`ShareFetchResponse::response_data`], a missing name
+    /// kept (`ArrayList`). [`encode_share_fetch_request_with_forgotten`]
+    /// writes the list; [`encode_share_fetch_request`] still writes empty.
+    /// Unlike [`ShareFetchResponse::response_data`], a missing name
     /// is not skipped.
     #[must_use]
     pub fn forgotten_topics(
@@ -160,8 +162,9 @@ impl ShareFetchRequest {
     /// order — `HashMap.forEach` order is unspecified). Partitions for
     /// the same id append (`ArrayList`, duplicates kept). The grouped
     /// entries are **appended** to `forgotten` (a second call with the
-    /// same id is another list entry, not a merge). Encode still writes
-    /// an empty ForgottenTopicsData array. Distinct from
+    /// same id is another list entry, not a merge).
+    /// [`encode_share_fetch_request_with_forgotten`] writes the list;
+    /// [`encode_share_fetch_request`] still writes empty. Distinct from
     /// [`Self::forgotten_topics`], which flattens an already-built list
     /// and looks up names, and from
     /// [`crate::protocol::fetch::FetchRequest::forgotten_from_removed`],
@@ -810,7 +813,8 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 /// PartitionMaxBytes (v0 only). v0 PartitionMaxBytes is each partition's
 /// [`ShareFetchPartition::partition_max_bytes`] (Java
 /// `Builder.forConsumer` `fetchSize`, not request-level MaxBytes).
-/// v2+ is not spoken.
+/// ForgottenTopicsData stays empty ([`encode_share_fetch_request_with_forgotten`]
+/// writes a non-empty list). v2+ is not spoken.
 pub fn encode_share_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -822,6 +826,43 @@ pub fn encode_share_fetch_request(
     max_bytes: i32,
     max_records: i32,
     topics: &[ShareFetchTopic],
+) -> crate::error::Result<()> {
+    encode_share_fetch_request_with_forgotten(
+        buf,
+        version,
+        group_id,
+        member_id,
+        share_session_epoch,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        max_records,
+        topics,
+        &[],
+    )
+}
+
+/// Encode ShareFetch plus ForgottenTopicsData.
+///
+/// ForgottenTopicsData is JSON `0+` (on the wire for every spoken
+/// version). [`encode_share_fetch_request`] still writes empty.
+/// Duplicate partition indexes are kept.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch ForgottenTopicsData is encoded with the rest of the v0–v1 body"
+)]
+pub fn encode_share_fetch_request_with_forgotten(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
     buf::put_string(buf, flexible, Some(group_id))?;
@@ -852,23 +893,45 @@ pub fn encode_share_fetch_request(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_array_len(buf, flexible, Some(0))?;
+    buf::put_array_len(buf, flexible, Some(forgotten.len()))?;
+    for t in forgotten {
+        buf.extend_from_slice(&t.topic_id);
+        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
+        for p in &t.partitions {
+            buf.put_i32(*p);
+        }
+        if flexible {
+            buf::put_empty_tagged_fields(buf);
+        }
+    }
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode a ShareFetch request (`version` 0–1).
+/// Decode a ShareFetch request (`version` 0–1):
+/// `(group_id, member_id, epoch, max_records, topics, forgotten)`.
 ///
-/// Returns `(group_id, member_id, epoch, max_records, topics)`.
 /// `max_records` is the v1 MaxRecords field; v0 omits it and decode
 /// fills `0`. `partition_max_bytes` is the v0 PartitionMaxBytes field;
-/// v1 omits it and decode fills `0`.
+/// v1 omits it and decode fills `0`. ForgottenTopicsData is JSON `0+`
+/// (on the wire for every spoken version).
+#[expect(
+    clippy::type_complexity,
+    reason = "ShareFetch request decode returns group, member, epoch, max records, topics, and forgotten together"
+)]
 pub fn decode_share_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, i32, i32, Vec<ShareFetchTopic>)> {
+) -> Result<(
+    String,
+    String,
+    i32,
+    i32,
+    Vec<ShareFetchTopic>,
+    Vec<ShareForgottenTopic>,
+)> {
     let flexible = share_fetch_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -910,21 +973,34 @@ pub fn decode_share_fetch_request<B: Buf>(
             partitions,
         });
     }
-    let forgotten = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    for _ in 0..forgotten {
-        let _id = buf::get_uuid(buf)?;
+    let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    let mut forgotten_out = Vec::with_capacity(n);
+    for _ in 0..n {
+        let topic_id = buf::get_uuid(buf)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        let mut partitions = Vec::with_capacity(pn);
         for _ in 0..pn {
-            let _p = buf::get_i32(buf)?;
+            partitions.push(buf::get_i32(buf)?);
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
+        forgotten_out.push(ShareForgottenTopic {
+            topic_id,
+            partitions,
+        });
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, epoch, max_records, topics))
+    Ok((
+        group_id,
+        member_id,
+        epoch,
+        max_records,
+        topics,
+        forgotten_out,
+    ))
 }
 
 fn encode_leader(buf: &mut BytesMut, leader_id: i32, leader_epoch: i32) {
@@ -1590,7 +1666,8 @@ mod tests {
         encode_share_fetch_request(&mut buf, 1, "sg", "m1", 0, 10, 1, 1024, 16, &req_topics)
             .unwrap();
         let mut cur = &buf[..];
-        let (gid, mid, epoch, max_records, got) = decode_share_fetch_request(&mut cur, 1).unwrap();
+        let (gid, mid, epoch, max_records, got, ..) =
+            decode_share_fetch_request(&mut cur, 1).unwrap();
         assert_eq!(
             (gid.as_str(), mid.as_str(), epoch, max_records),
             ("sg", "m1", 0, 16)
@@ -1783,7 +1860,8 @@ mod tests {
             "v0 PartitionMaxBytes and v1 MaxRecords/BatchSize differ on the wire"
         );
         let mut cur = v0.as_ref();
-        let (gid, mid, epoch, max_records, got) = decode_share_fetch_request(&mut cur, 0).unwrap();
+        let (gid, mid, epoch, max_records, got, ..) =
+            decode_share_fetch_request(&mut cur, 0).unwrap();
         assert_eq!(
             (gid.as_str(), mid.as_str(), epoch, max_records),
             ("sg", "m1", 0, 0),
@@ -2372,7 +2450,7 @@ mod tests {
             encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_gid, _mid, _epoch, _max, _decoded) =
+            let (_gid, _mid, _epoch, _max, _decoded, ..) =
                 decode_share_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
@@ -2387,7 +2465,7 @@ mod tests {
             encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_gid, _mid, _epoch, _max, _decoded) =
+            let (_gid, _mid, _epoch, _max, _decoded, ..) =
                 decode_share_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
@@ -2398,11 +2476,92 @@ mod tests {
     }
 
     #[test]
+    fn share_fetch_request_forgotten_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareFetchRequest.json ForgottenTopicsData is
+        // versions 0+ (always on the wire for spoken v0–v1). TopicId UUID
+        // then compact []int32 Partitions plus nested tagged fields.
+        // encode_share_fetch_request still writes empty.
+        let topics: Vec<ShareFetchTopic> = Vec::new();
+        let forgotten = [ShareForgottenTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![1, 1],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request_with_forgotten(
+                &mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &topics, &forgotten,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., got) = decode_share_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(got.as_slice(), forgotten.as_slice());
+            assert!(
+                cur.is_empty(),
+                "ShareFetch v{version} ForgottenTopicsData leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_request_with_forgotten(
+            &mut with, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics, &forgotten,
+        )
+        .unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_fetch_request_with_forgotten(
+            &mut empty,
+            0,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            &[],
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareFetch ForgottenTopicsData is not always empty"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_request(&mut conv, 0, "sg", "m1", 0, 10, 1, 1024, 16, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_share_fetch_request still writes empty ForgottenTopicsData"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_request_with_forgotten(
+            &mut v1_with,
+            1,
+            "sg",
+            "m1",
+            0,
+            10,
+            1,
+            1024,
+            16,
+            &topics,
+            &forgotten,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 ForgottenTopicsData share TopicId layout; v1 still adds MaxRecords / BatchSize"
+        );
+    }
+
+    #[test]
     fn share_fetch_request_update_forgotten_data_matches_java() {
         // Java ShareFetchRequest.Builder.updateForgottenData: HashMap by
         // topic id; partitions append (duplicates kept). Grouped entries
         // are appended to ForgottenTopicsData (same id is a second list
-        // entry, not a merge). Encode still writes empty ForgottenTopicsData.
+        // entry, not a merge). encode_share_fetch_request still writes empty.
         let none: Vec<([u8; 16], i32)> = Vec::new();
         assert!(ShareFetchRequest::update_forgotten_data(&[], none.clone()).is_empty());
 
@@ -2463,7 +2622,7 @@ mod tests {
             encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_gid, _mid, _epoch, _max, _decoded) =
+            let (_gid, _mid, _epoch, _max, _decoded, ..) =
                 decode_share_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
@@ -2478,7 +2637,7 @@ mod tests {
             encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_gid, _mid, _epoch, _max, _decoded) =
+            let (_gid, _mid, _epoch, _max, _decoded, ..) =
                 decode_share_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
@@ -2632,7 +2791,7 @@ mod tests {
         encode_share_fetch_request(&mut buf, version, "g", "m", 1, 10, 1, 1024, 16, topics)
             .unwrap();
         let mut cur = buf.as_ref();
-        let (gid, mid, epoch, _max, decoded) =
+        let (gid, mid, epoch, _max, decoded, ..) =
             decode_share_fetch_request(&mut cur, version).unwrap();
         assert_eq!(gid, "g");
         assert_eq!(mid, "m");
@@ -2734,7 +2893,7 @@ mod tests {
         encode_share_fetch_request(&mut buf, version, "g", "m", 1, 10, 1, 1024, 16, topics)
             .unwrap();
         let mut cur = buf.as_ref();
-        let (_gid, _mid, _epoch, _max, decoded) =
+        let (_gid, _mid, _epoch, _max, decoded, ..) =
             decode_share_fetch_request(&mut cur, version).unwrap();
         let names = HashMap::new();
         let _got = ShareFetchRequest::share_fetch_data(&decoded, &names);

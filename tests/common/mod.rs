@@ -5465,7 +5465,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
             }
             SHARE_FETCH => {
                 let version = header.api_version;
-                let (_gid, member_id, epoch, max_records, topics) =
+                let (_gid, member_id, epoch, max_records, topics, ..) =
                     decode_share_fetch_request(&mut frame, version).unwrap();
                 let mut st = state.lock();
                 st.last_share_fetch_version = Some(version);
