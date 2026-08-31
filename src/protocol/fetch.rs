@@ -403,9 +403,11 @@ impl FetchRequest {
     ///
     /// Below v13 each request topic is [`FetchTopic::error_result`]. v13+
     /// Responses is empty (top-level error only; unlike `error_result`,
-    /// which still keeps a topic with empty partitions). Throttle is the
-    /// JSON default (`0`). [`encode_fetch_response`] writes top-level
-    /// `ErrorCode` `0` and `SessionId` [`FetchMetadata::INVALID_SESSION_ID`].
+    /// which still keeps a topic with empty partitions). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// Convenience encode still writes `0`. [`encode_fetch_response`]
+    /// writes top-level `ErrorCode` `0` and `SessionId`
+    /// [`FetchMetadata::INVALID_SESSION_ID`].
     /// Those fields are v7+; below v7 encode omits them even when the body
     /// is non-zero and decode fills `0`.
     #[must_use]
@@ -1179,6 +1181,7 @@ pub fn decode_fetch_request<B: Buf>(
 
 /// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
 ///
+/// ThrottleTimeMs is the JSON default (`0`) on v1+ (JSON `1+`).
 /// Top-level ErrorCode is `0` and SessionId is
 /// [`FetchMetadata::INVALID_SESSION_ID`]. Those fields are v7+; below v7
 /// they are omitted. LogStartOffset is v5+. PreferredReadReplica is v11+.
@@ -1204,11 +1207,38 @@ pub fn encode_fetch_response(
     )
 }
 
+/// Encode Fetch v4–v17 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `1+`: written first on every spoken version
+/// (this crate speaks 4–17). v4–v11 are classic. v12–v17 are flexible.
+/// Kafka 4.0 `validVersions` is `4-17`. v18+ is not spoken. Official Java
+/// `getErrorResponse` sets `throttleTimeMs` from the argument. Convenience
+/// encode still writes `0`. Top-level ErrorCode is at bytes 4–5 on v7+.
+/// ErrorCode / SessionId stay `0` / [`FetchMetadata::INVALID_SESSION_ID`]
+/// (use [`encode_fetch_response_with_endpoints`]).
+pub fn encode_fetch_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+    throttle_time_ms: i32,
+) -> Result<()> {
+    encode_fetch_response_fields(
+        buf,
+        version,
+        topics,
+        0,
+        FetchMetadata::INVALID_SESSION_ID,
+        &[],
+        throttle_time_ms,
+    )
+}
+
 /// Encode Fetch plus top-level ErrorCode, SessionId, and NodeEndpoints
 /// (v16+ tagged field 0).
 ///
 /// ErrorCode and SessionId are v7+. Below v7 they are omitted even when
-/// the body is non-zero; decode fills `0`.
+/// the body is non-zero; decode fills `0`. ThrottleTimeMs is the JSON
+/// default (`0`).
 pub fn encode_fetch_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
@@ -1217,8 +1247,20 @@ pub fn encode_fetch_response_with_endpoints(
     session_id: i32,
     endpoints: &[super::api::NodeEndpoint],
 ) -> Result<()> {
+    encode_fetch_response_fields(buf, version, topics, error_code, session_id, endpoints, 0)
+}
+
+fn encode_fetch_response_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[FetchedTopic],
+    error_code: i16,
+    session_id: i32,
+    endpoints: &[super::api::NodeEndpoint],
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = fetch_flexible(version)?;
-    buf.put_i32(0); // throttle
+    buf.put_i32(throttle_time_ms);
     if version >= 7 {
         buf.put_i16(error_code);
         buf.put_i32(session_id);
@@ -1278,21 +1320,33 @@ pub fn encode_fetch_response_with_endpoints(
 }
 
 /// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response:
-/// `(topics, node_endpoints, error_code, session_id)`.
+/// `(topics, node_endpoints, error_code, session_id, throttle_time_ms)`.
 ///
-/// Below v7 ErrorCode and SessionId are omitted; decode fills `0`.
+/// ThrottleTimeMs is JSON `1+`; this crate speaks 4–17 so the field is
+/// always on the wire. Below v7 ErrorCode and SessionId are omitted;
+/// decode fills `0`.
 /// LogStartOffset is v5+; PreferredReadReplica is v11+; below those
 /// versions decode fills [`FetchedPartition::INVALID_LOG_START_OFFSET`] /
 /// [`FetchedPartition::INVALID_PREFERRED_REPLICA_ID`]. SnapshotId tagged
 /// field 2 is v12+; below v12 decode fills
 /// [`EpochEndOffset::UNDEFINED_EPOCH_OFFSET`] /
 /// [`EpochEndOffset::UNDEFINED_EPOCH`].
+#[expect(
+    clippy::type_complexity,
+    reason = "Fetch response decode returns topics, endpoints, error, session, and throttle together"
+)]
 pub fn decode_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<FetchedTopic>, Vec<super::api::NodeEndpoint>, i16, i32)> {
+) -> Result<(
+    Vec<FetchedTopic>,
+    Vec<super::api::NodeEndpoint>,
+    i16,
+    i32,
+    i32,
+)> {
     let flexible = fetch_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = if version >= 7 { buf::get_i16(buf)? } else { 0 };
     let session_id = if version >= 7 {
         buf::get_i32(buf)?
@@ -1391,7 +1445,7 @@ pub fn decode_fetch_response<B: Buf>(
     } else {
         Vec::new()
     };
-    Ok((topics, endpoints, error_code, session_id))
+    Ok((topics, endpoints, error_code, session_id, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -2400,7 +2454,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, _endpoints, error_code, session) =
+            let (decoded, _endpoints, error_code, session, ..) =
                 decode_fetch_response(&mut cur, version).unwrap();
             assert_eq!(decoded.len(), 1);
             assert_eq!(decoded.first().map(|t| t.partitions.len()), Some(2));
@@ -2427,7 +2481,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, _endpoints, error_code, session) =
+            let (decoded, _endpoints, error_code, session, ..) =
                 decode_fetch_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert_eq!(error_code, err);
@@ -2449,7 +2503,7 @@ mod tests {
             encode_fetch_response_with_endpoints(&mut buf, version, &[], err, session, &[])
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints, error_code, session_id) =
+            let (decoded, endpoints, error_code, session_id, ..) =
                 decode_fetch_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert!(endpoints.is_empty());
@@ -2461,7 +2515,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_response_with_endpoints(&mut buf, 4, &[], err, session, &[]).unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, error_code, session_id) = decode_fetch_response(&mut cur, 4).unwrap();
+        let (_, _, error_code, session_id, ..) = decode_fetch_response(&mut cur, 4).unwrap();
         assert!(cur.is_empty(), "Fetch v4 ErrorCode leftover-empty");
         assert_eq!(
             error_code, 0,
@@ -2519,6 +2573,104 @@ mod tests {
             &with[..],
             "v7 adds ErrorCode and SessionId after ThrottleTimeMs"
         );
+    }
+
+    #[test]
+    fn fetch_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 FetchResponse.json ThrottleTimeMs is versions 1+
+        // (INT32 first field; ignorable). Crate speaks 4–17 so the field
+        // is on the wire for every spoken version. Official Java
+        // FetchRequest.getErrorResponse sets throttleTimeMs from the
+        // argument. encode_fetch_response still writes 0.
+        // Empty-Responses v4 == v5 == v6 (classic; ErrorCode / SessionId
+        // are v7+; LogStartOffset / PreferredReadReplica are on
+        // partitions); v7 == v8 == v9 == v10 == v11 (ErrorCode / SessionId
+        // after throttle); v12 == v13 == v14 == v15 == v16 == v17
+        // (compact; NodeEndpoints tagged field 0 is omitted when empty).
+        // Top-level ErrorCode is at bytes 4–5 on v7+. This crate speaks
+        // 4–17. This is not Produce / Metadata / OffsetForLeaderEpoch
+        // ThrottleTimeMs.
+        let topics: Vec<FetchedTopic> = vec![];
+        for version in 4..=17 {
+            let mut buf = BytesMut::new();
+            encode_fetch_response_with_throttle(&mut buf, version, &topics, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, error_code, session_id, throttle) =
+                decode_fetch_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!(error_code, 0);
+            assert_eq!(session_id, FetchMetadata::INVALID_SESSION_ID);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut with, 4, &topics, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut zero, 4, &topics, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v4 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_fetch_response(&mut conv, 4, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_fetch_response still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[..4],
+            &3_600_000i32.to_be_bytes(),
+            "empty-Responses ThrottleTimeMs is the first field"
+        );
+
+        for version in 5..=6 {
+            let mut buf = BytesMut::new();
+            encode_fetch_response_with_throttle(&mut buf, version, &topics, 3_600_000).unwrap();
+            assert_eq!(
+                &with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v4 == v{version}"
+            );
+        }
+        let mut v7_with = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut v7_with, 7, &topics, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &v7_with[..],
+            "v7 adds ErrorCode and SessionId after ThrottleTimeMs"
+        );
+        for version in 8..=11 {
+            let mut buf = BytesMut::new();
+            encode_fetch_response_with_throttle(&mut buf, version, &topics, 3_600_000).unwrap();
+            assert_eq!(
+                &v7_with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v7 == v{version}"
+            );
+        }
+        let mut v12_with = BytesMut::new();
+        encode_fetch_response_with_throttle(&mut v12_with, 12, &topics, 3_600_000).unwrap();
+        assert_ne!(
+            &v7_with[..],
+            &v12_with[..],
+            "v12 adds compact tagged fields after Responses"
+        );
+        for version in 13..=17 {
+            let mut buf = BytesMut::new();
+            encode_fetch_response_with_throttle(&mut buf, version, &topics, 3_600_000).unwrap();
+            assert_eq!(
+                &v12_with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v12 == v{version}"
+            );
+        }
     }
 
     #[test]
@@ -2685,7 +2837,7 @@ mod tests {
             "v4 encode omits LogStartOffset and PreferredReadReplica even when the body has values"
         );
         let mut cur = v4_resp.as_ref();
-        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 4).unwrap();
+        let (decoded, ..) = decode_fetch_response(&mut cur, 4).unwrap();
         assert_eq!(
             decoded[0].partitions[0].log_start_offset,
             FetchedPartition::INVALID_LOG_START_OFFSET
@@ -2699,7 +2851,7 @@ mod tests {
         let mut v5_resp = BytesMut::new();
         encode_fetch_response(&mut v5_resp, 5, &with).unwrap();
         let mut cur = v5_resp.as_ref();
-        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 5).unwrap();
+        let (decoded, ..) = decode_fetch_response(&mut cur, 5).unwrap();
         assert_eq!(decoded[0].partitions[0].log_start_offset, 5);
         assert_eq!(
             decoded[0].partitions[0].preferred_read_replica,
@@ -2729,7 +2881,7 @@ mod tests {
         let mut v11_resp = BytesMut::new();
         encode_fetch_response(&mut v11_resp, 11, &with).unwrap();
         let mut cur = v11_resp.as_ref();
-        let (decoded, _, _, _) = decode_fetch_response(&mut cur, 11).unwrap();
+        let (decoded, ..) = decode_fetch_response(&mut cur, 11).unwrap();
         assert_eq!(decoded[0].partitions[0].log_start_offset, 5);
         assert_eq!(decoded[0].partitions[0].preferred_read_replica, 3);
         assert!(

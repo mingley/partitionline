@@ -1095,6 +1095,8 @@
 //! [`protocol::fetch::FetchRequest::error_response`] is Java
 //! `FetchRequest.getErrorResponse` (below v13 each topic through
 //! [`protocol::fetch::FetchTopic::error_result`]; v13+ Responses is empty;
+//! official Java sets `throttleTimeMs` from the argument; convenience
+//! encode still writes `0`;
 //! [`protocol::fetch::encode_fetch_response`] writes top-level `ErrorCode` 0 /
 //! `SessionId` 0; v7+ round-trips those fields; below v7 encode omits them
 //! even when the body is non-zero and decode fills `0`).
@@ -1136,6 +1138,11 @@
 //! `FetchResponse.recordsSize` (`0` when records are empty);
 //! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java
 //! `FetchResponse.shouldClientThrottle` (v8+).
+//! ThrottleTimeMs is JSON `1+` first field
+//! ([`protocol::fetch::encode_fetch_response_with_throttle`];
+//! encode previously always wrote `0` and decode discarded; convenience
+//! encode still writes `0`; official Java `getErrorResponse` sets
+//! `throttleTimeMs` from the argument).
 //! [`protocol::fetch::FetchResponse::topic_ids`] is Java
 //! `FetchResponse.topicIds` (skips zeros).
 //! [`protocol::fetch::FetchResponse::response_data`] is Java
