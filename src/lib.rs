@@ -281,6 +281,8 @@
 //! [`protocol::group::SyncGroupResponse::should_client_throttle`] is Java
 //! `SyncGroupResponse.shouldClientThrottle` (v2+)),
 //! JoinGroup v2–v9 (v5 GroupInstanceId; v6+ flexible; v8 Reason; v9 SkipAssignment;
+//! SessionTimeoutMs is JSON `0+` (decode returns it; encode already takes
+//! `session_timeout_ms`);
 //! Protocols of N via [`ConsumerGroup::join_with_assignors`];
 //! [`protocol::group::ConsumerProtocol::PROTOCOL_TYPE`] is Java
 //! `ConsumerProtocol.PROTOCOL_TYPE`;

@@ -1315,7 +1315,7 @@ pub fn decode_join_group_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(String, String, Option<String>, Vec<u8>, Option<String>)> {
-    let (group_id, member_id, instance, protocols, reason) =
+    let (group_id, member_id, instance, protocols, reason, ..) =
         decode_join_group_request_protocols(buf, version)?;
     let metadata = protocols
         .first()
@@ -1325,9 +1325,13 @@ pub fn decode_join_group_request<B: Buf>(
 }
 
 /// Decode JoinGroup Protocols of N (v2–v9).
+///
+/// Returns `(group_id, member_id, instance_id, protocols, reason,
+/// session_timeout_ms)`. SessionTimeoutMs is JSON `0+` (INT32 after
+/// GroupId; official Java `JoinGroupRequestData.sessionTimeoutMs`).
 #[expect(
     clippy::type_complexity,
-    reason = "decoded JoinGroup is group, member, instance, protocols, reason"
+    reason = "decoded JoinGroup is group, member, instance, protocols, reason, and session timeout together"
 )]
 pub fn decode_join_group_request_protocols<B: Buf>(
     buf: &mut B,
@@ -1338,10 +1342,11 @@ pub fn decode_join_group_request_protocols<B: Buf>(
     Option<String>,
     Vec<JoinGroupProtocolOwned>,
     Option<String>,
+    i32,
 )> {
     let flexible = join_group_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
-    let _session = buf::get_i32(buf)?;
+    let session_timeout_ms = buf::get_i32(buf)?;
     let _rebalance = buf::get_i32(buf)?;
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let instance = if version >= 5 {
@@ -1368,7 +1373,14 @@ pub fn decode_join_group_request_protocols<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, instance, protocols, reason))
+    Ok((
+        group_id,
+        member_id,
+        instance,
+        protocols,
+        reason,
+        session_timeout_ms,
+    ))
 }
 
 /// One member in a JoinGroup response (leader sees all).
@@ -7337,7 +7349,7 @@ mod tests {
         encode_join_group_protocols_request(&mut buf, 6, &req).unwrap();
         assert_eq!(&buf[..], REQ);
         let mut cur = &buf[..];
-        let (gid, member, instance, got, reason) =
+        let (gid, member, instance, got, reason, ..) =
             decode_join_group_request_protocols(&mut cur, 6).unwrap();
         assert_eq!(gid, "g");
         assert_eq!(member, "m1");
@@ -7390,6 +7402,58 @@ mod tests {
         let mut v6 = BytesMut::new();
         encode_join_group_request(&mut v6, 6, &join_req(&[1, 2, 3])).unwrap();
         assert_ne!(&buf[..], &v6[..], "JoinGroup v8 must include Reason");
+    }
+
+    #[test]
+    fn join_group_request_session_timeout_ms_matches_java() {
+        // Kafka 4.0 JoinGroupRequest.json SessionTimeoutMs is versions 0+
+        // (INT32 after GroupId). Official Java JoinGroupRequestData.sessionTimeoutMs
+        // reads it. Encode already takes session_timeout_ms; decode previously
+        // discarded it. This crate speaks 2–9. This is not RebalanceTimeoutMs
+        // / ProtocolType.
+        let meta = [1u8, 2, 3];
+        let req = JoinGroupRequest {
+            group_id: "g",
+            session_timeout_ms: 3_600_000,
+            member_id: "m1",
+            group_instance_id: None,
+            protocol_type: "consumer",
+            protocol_name: "range",
+            metadata: &meta,
+            reason: None,
+        };
+        for version in [2_i16, 5, 6, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_join_group_request(&mut buf, version, &req).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, member, instance, got, reason, session_timeout_ms) =
+                decode_join_group_request_protocols(&mut cur, version).unwrap();
+            assert_eq!(gid, "g");
+            assert_eq!(member, "m1");
+            assert_eq!(got.len(), 1);
+            assert_eq!(reason, None);
+            assert_eq!(session_timeout_ms, 3_600_000);
+            if version >= 5 {
+                assert_eq!(instance, None);
+            }
+            assert!(
+                cur.is_empty(),
+                "JoinGroup request v{version} SessionTimeoutMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_join_group_request(&mut with, 2, &req).unwrap();
+        let mut ten = BytesMut::new();
+        encode_join_group_request(&mut ten, 2, &join_req(&meta)).unwrap();
+        assert_ne!(
+            &with[..],
+            &ten[..],
+            "v2 SessionTimeoutMs is not always 10000"
+        );
+        let mut cur = ten.as_ref();
+        let (.., session_timeout_ms) = decode_join_group_request_protocols(&mut cur, 2).unwrap();
+        assert_eq!(session_timeout_ms, 10_000);
     }
 
     #[test]

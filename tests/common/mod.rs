@@ -5667,7 +5667,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             JOIN_GROUP => {
-                let (gid, member_id, instance, protocols, reason) =
+                let (gid, member_id, instance, protocols, reason, ..) =
                     decode_join_group_request_protocols(&mut frame, header.api_version).unwrap();
                 let protocol_name = protocols
                     .first()
