@@ -1468,13 +1468,37 @@ pub fn encode_share_acknowledge_topics(
 }
 
 /// Top-level ShareFetch error (session not found / bad epoch).
+///
+/// ThrottleTimeMs is the JSON default (`0`). Official Java
+/// `ShareFetchRequest.getErrorResponse` sets `throttleTimeMs` from the
+/// argument via `ShareFetchResponse.of`. AcquisitionLockTimeoutMs stays
+/// `0` on this path (Java `of` last argument), not the success-path
+/// 15000.
 pub fn encode_share_fetch_error(
     buf: &mut BytesMut,
     version: i16,
     error_code: i16,
 ) -> crate::error::Result<()> {
+    encode_share_fetch_error_with_throttle(buf, version, error_code, 0)
+}
+
+/// Encode a top-level ShareFetch error with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+` (first field). Official Java
+/// `ShareFetchRequest.getErrorResponse` / `ShareFetchResponse.of` sets it.
+/// Convenience encode still writes `0`. Empty Responses and NodeEndpoints.
+/// ErrorMessage stays null. v1 AcquisitionLockTimeoutMs stays `0` (Java
+/// `of` last argument), not 15000. Decode currently fails on a non-zero
+/// top-level ErrorCode. This is not
+/// [`encode_share_fetch_response_with_throttle`].
+pub fn encode_share_fetch_error_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, None)?;
     if version >= 1 {
@@ -2181,6 +2205,91 @@ mod tests {
         let _th = crate::protocol::buf::get_i32(&mut cur).unwrap();
         let err = crate::protocol::buf::get_i16(&mut cur).unwrap();
         assert_eq!(err, crate::error::INVALID_SHARE_SESSION_EPOCH);
+    }
+
+    #[test]
+    fn share_fetch_error_throttle_time_ms_matches_java() {
+        // Kafka 4.1 ShareFetchRequest.getErrorResponse calls
+        // ShareFetchResponse.of(error, throttleTimeMs, empty map, empty
+        // endpoints, 0). ThrottleTimeMs is JSON 0+ INT32 first field.
+        // encode_share_fetch_error still writes 0. v1
+        // AcquisitionLockTimeoutMs stays 0 on this path (Java of last
+        // argument), not the success-path 15000. Decode currently fails
+        // on a non-zero top-level ErrorCode. Empty-Responses v0 != v1
+        // (AcquisitionLockTimeoutMs). Top-level ErrorCode is at bytes
+        // 4–5. This crate speaks 0–1. This is not ShareFetch
+        // success-path / ShareAcknowledge / Fetch ThrottleTimeMs.
+        let err = crate::error::INVALID_SHARE_SESSION_EPOCH;
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_error_with_throttle(&mut buf, version, err, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            assert_eq!(crate::protocol::buf::get_i32(&mut cur).unwrap(), 3_600_000);
+            assert_eq!(crate::protocol::buf::get_i16(&mut cur).unwrap(), err);
+            assert_eq!(
+                crate::protocol::buf::get_string(&mut cur, true).unwrap(),
+                None
+            );
+            if version >= 1 {
+                assert_eq!(
+                    crate::protocol::buf::get_i32(&mut cur).unwrap(),
+                    0,
+                    "ShareFetch error v1 AcquisitionLockTimeoutMs stays 0"
+                );
+            }
+            assert_eq!(
+                crate::protocol::buf::get_array_len(&mut cur, true)
+                    .unwrap()
+                    .unwrap_or(0),
+                0
+            );
+            assert_eq!(
+                crate::protocol::buf::get_array_len(&mut cur, true)
+                    .unwrap()
+                    .unwrap_or(0),
+                0
+            );
+            crate::protocol::buf::skip_tagged_fields(&mut cur).unwrap();
+            assert!(
+                cur.is_empty(),
+                "ShareFetch error v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_error_with_throttle(&mut with, 0, err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_share_fetch_error_with_throttle(&mut zero, 0, err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 error ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_error(&mut conv, 0, err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_share_fetch_error still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[..4],
+            &3_600_000i32.to_be_bytes(),
+            "ShareFetch error ThrottleTimeMs is the first field"
+        );
+        assert_eq!(
+            &with[4..6],
+            &err.to_be_bytes(),
+            "ShareFetch error ErrorCode is at bytes 4–5"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_error_with_throttle(&mut v1_with, 1, err, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v1 error adds AcquisitionLockTimeoutMs 0 after ErrorMessage"
+        );
     }
 
     #[test]
