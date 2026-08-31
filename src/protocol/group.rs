@@ -3305,6 +3305,27 @@ impl OffsetCommitRequest {
         }
         Ok(())
     }
+
+    /// Java `OffsetCommitRequest.getErrorResponse`.
+    ///
+    /// Topics copy names and partition indexes with `error_code` (Java
+    /// `getErrorResponse(data, error)`). ThrottleTimeMs is written on v3+
+    /// from `throttle_time_ms`. Below v3 the field is omitted even when
+    /// that value is non-zero. Decode fills `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[OffsetTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        encode_offset_commit_topics_response_with_throttle(
+            buf,
+            version,
+            &OffsetTopic::error_results(topics, error_code),
+            throttle_time_ms,
+        )
+    }
 }
 
 /// Java `OffsetCommitResponse` helpers.
@@ -3551,9 +3572,23 @@ pub fn encode_offset_commit_topics_response(
     version: i16,
     topics: &[OffsetCommitResponseTopic],
 ) -> crate::error::Result<()> {
+    encode_offset_commit_topics_response_with_throttle(buf, version, topics, 0)
+}
+
+/// Encode OffsetCommit v2–v9 with ThrottleTimeMs.
+///
+/// Below v3 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. Nested body is PartitionIndex + ErrorCode.
+/// v8+ is flexible.
+pub fn encode_offset_commit_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[OffsetCommitResponseTopic],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
     if version >= 3 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -3579,7 +3614,7 @@ pub fn encode_offset_commit_topics_response(
 /// Decode OffsetCommit: first non-zero partition error, or `0`.
 /// Throttle is v3+.
 pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {
-    let topics = decode_offset_commit_topics_response(buf, version)?;
+    let (topics, ..) = decode_offset_commit_topics_response(buf, version)?;
     let mut first_err = 0i16;
     for t in &topics {
         for p in &t.partitions {
@@ -3591,15 +3626,15 @@ pub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Resul
     Ok(first_err)
 }
 
-/// Decode OffsetCommit: every response topic.
+/// Decode OffsetCommit: `(topics, throttle_time_ms)`.
+///
+/// Below v3 ThrottleTimeMs is omitted; decode fills `0`.
 pub fn decode_offset_commit_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<OffsetCommitResponseTopic>> {
+) -> Result<(Vec<OffsetCommitResponseTopic>, i32)> {
     let flexible = offset_commit_flexible(version)?;
-    if version >= 3 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -3625,7 +3660,7 @@ pub fn decode_offset_commit_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(topics)
+    Ok((topics, throttle_time_ms))
 }
 
 /// `true` when OffsetFetch `version` is flexible (v6+).
@@ -4821,7 +4856,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_commit_topics_response(&mut buf, 2, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -4831,7 +4866,7 @@ mod tests {
         buf.clear();
         encode_offset_commit_topics_response(&mut buf, 8, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -4879,7 +4914,7 @@ mod tests {
             let mut got = BytesMut::new();
             encode_offset_commit_topics_response(&mut got, version, &merged_same).unwrap();
             let mut cur = &got[..];
-            let decoded = decode_offset_commit_topics_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, version).unwrap();
             assert_eq!(decoded, merged_same, "v{version} same-topic merge decode");
             assert!(
                 cur.is_empty(),
@@ -4893,7 +4928,7 @@ mod tests {
         let mut got = BytesMut::new();
         encode_offset_commit_topics_response(&mut got, 8, &merged_new).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, merged_new);
         assert!(
             cur.is_empty(),
@@ -4906,7 +4941,7 @@ mod tests {
         got.clear();
         encode_offset_commit_topics_response(&mut got, 2, &from_empty).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, current);
         assert!(
             cur.is_empty(),
@@ -4919,7 +4954,7 @@ mod tests {
         got.clear();
         encode_offset_commit_topics_response(&mut got, 3, &empty_both).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_offset_commit_topics_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 3).unwrap();
         assert!(decoded.is_empty());
         assert!(
             cur.is_empty(),
@@ -4953,7 +4988,7 @@ mod tests {
         got.clear();
         encode_offset_commit_topics_response(&mut got, 8, &grouped).unwrap();
         let mut cur = &got[..];
-        let decoded = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_commit_topics_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -7951,7 +7986,9 @@ mod tests {
             encode_offset_commit_topics_response(&mut buf, version, &err).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_offset_commit_topics_response(&mut cur, version).unwrap(),
+                decode_offset_commit_topics_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 err
             );
             assert!(
@@ -7971,7 +8008,9 @@ mod tests {
             encode_offset_commit_topics_response(&mut buf, version, &empty).unwrap();
             let mut cur = buf.as_ref();
             assert_eq!(
-                decode_offset_commit_topics_response(&mut cur, version).unwrap(),
+                decode_offset_commit_topics_response(&mut cur, version)
+                    .unwrap()
+                    .0,
                 empty
             );
             assert!(
@@ -7982,6 +8021,109 @@ mod tests {
             assert_eq!(
                 decode_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
                 0
+            );
+        }
+    }
+
+    #[test]
+    fn offset_commit_throttle_time_ms_matches_java() {
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition::new(0, 1)],
+        }];
+        let err = OffsetTopic::error_results(&topics, 16);
+        for version in [3_i16, 4, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            OffsetCommitRequest::error_response(&mut buf, version, &topics, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_offset_commit_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert_eq!(
+                decode_offset_commit_response(&mut buf.as_ref(), version).unwrap(),
+                16
+            );
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        OffsetCommitRequest::error_response(&mut buf, 2, &topics, 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_offset_commit_topics_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v2 ThrottleTimeMs leftover-empty"
+        );
+        assert_eq!(
+            throttle, 0,
+            "OffsetCommit v2 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut with, 3, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut zero, 3, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v3 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_commit_topics_response(&mut conv, 3, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_offset_commit_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut v2_with, 2, &err, 3_600_000)
+            .unwrap();
+        let mut v2_zero = BytesMut::new();
+        encode_offset_commit_topics_response_with_throttle(&mut v2_zero, 2, &err, 0).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v2_zero[..],
+            "v2 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v2_with[..],
+            &with[..],
+            "v3 adds ThrottleTimeMs before Topics"
+        );
+
+        for version in [2_i16, 3, 8, 9] {
+            let mut expected = BytesMut::new();
+            encode_offset_commit_topics_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            OffsetCommitRequest::error_response(&mut got, version, &topics, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "OffsetCommit v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (decoded, throttle) =
+                decode_offset_commit_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            if version >= 3 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} getErrorResponse leftover-empty"
             );
         }
     }

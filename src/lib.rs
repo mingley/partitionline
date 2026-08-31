@@ -130,6 +130,9 @@
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId;
 //! v7+ round-trips GroupInstanceId; below v7 encode omits it even when
 //! the body has an instance id and decode fills `None`;
+//! v3+ round-trips ThrottleTimeMs; below v3 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::group::encode_offset_commit_topics_response`] still writes `0`;
 //! v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
@@ -147,8 +150,10 @@
 //! [`protocol::group::OffsetTopic::error_results`] /
 //! [`protocol::group::OffsetCommitResponsePartition::error`] are Java
 //! `OffsetCommitRequest.getErrorResponse` (one topic / Topics / partition
-//! body). Nested body is PartitionIndex + ErrorCode. Throttle is the JSON
-//! default (`0`);
+//! body). Nested body is PartitionIndex + ErrorCode;
+//! [`protocol::group::OffsetCommitRequest::error_response`] is Java
+//! `OffsetCommitRequest.getErrorResponse` (v3+ writes the `throttleTimeMs`
+//! argument; below v3 omits it);
 //! [`protocol::group::OffsetCommitRequest::offsets`] is Java
 //! `OffsetCommitRequest.offsets` (`(topic, partition)` to committed offset;
 //! a later partition overwrites);
