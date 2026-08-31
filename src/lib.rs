@@ -21,7 +21,11 @@
 //! throughput path (see `examples/bench_produce.rs`).
 //! The producer negotiates Produce v3–v12 (v3–v8 classic; v9+ flexible;
 //! v10+ KIP-951 CurrentLeader / NodeEndpoints; v11 TRANSACTION_ABORTABLE; v12 KIP-890
-//! Part 2 transaction V2, skipping AddPartitionsToTxn). v13+ (topic IDs)
+//! Part 2 transaction V2, skipping AddPartitionsToTxn). ThrottleTimeMs is JSON `1+` after Responses
+//! ([`protocol::api::encode_produce_response_with_throttle`];
+//! encode previously always wrote `0` and decode discarded; convenience
+//! encode still writes `0`; official Java `getErrorResponse` sets
+//! `throttleTimeMs` from the argument). v13+ (topic IDs)
 //! is not spoken. [`protocol::api::ProduceRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`]
 //! / [`protocol::api::ProduceRequest::is_transaction_v2_requested`] are Java
 //! `ProduceRequest.LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2` /
@@ -34,7 +38,8 @@
 //! records size; a later pair adds).
 //! [`protocol::api::ProduceRequest::error_response`] is Java
 //! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
-//! `partitionSizes` keys otherwise).
+//! `partitionSizes` keys otherwise; official Java sets `throttleTimeMs`
+//! from the argument; convenience encode still writes `0`).
 //! [`protocol::api::ProduceRequest::error_counts`] is Java
 //! `ProduceRequest.errorCounts(Throwable)` (unique `partitionSizes` keys;
 //! empty is `{error: 0}`, not an empty map; does not look at `acks`).
@@ -980,7 +985,8 @@
 //! `ProduceRequest.getErrorResponse` (one topic).
 //! [`protocol::api::ProduceRequest::error_response`] is Java
 //! `ProduceRequest.getErrorResponse` (`acks` `0` is `None`; unique
-//! `partitionSizes` keys otherwise).
+//! `partitionSizes` keys otherwise; official Java sets `throttleTimeMs`
+//! from the argument; convenience encode still writes `0`).
 //! [`protocol::api::ProduceRequest::error_counts`] is Java
 //! `ProduceRequest.errorCounts(Throwable)` (unique `partitionSizes` keys;
 //! empty is `{error: 0}`, not an empty map; does not look at `acks`).

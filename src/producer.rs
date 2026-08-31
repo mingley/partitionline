@@ -2708,7 +2708,7 @@ impl Worker {
             }
         };
         let mut body = body;
-        let (responses, endpoints) = match decode_produce_response(&mut body, version) {
+        let (responses, endpoints, ..) = match decode_produce_response(&mut body, version) {
             Ok(r) => r,
             Err(e) => {
                 fail_groups(&self.shared, inf.groups, clone_err(&e));

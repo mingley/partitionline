@@ -2005,7 +2005,9 @@ impl ProduceRequest {
     /// partition. Order is first-seen (Java `HashMap.forEach` order is
     /// unspecified). Official Java also copies `ApiError.message` onto
     /// `ErrorMessage`; this helper leaves `errorMessage` null and
-    /// `recordErrors` empty. Throttle is unused (crate encode writes `0`).
+    /// `recordErrors` empty. Official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument. Convenience encode still
+    /// writes `0`.
     #[must_use]
     pub fn error_response(
         acks: i16,
@@ -2092,8 +2094,10 @@ impl ProduceResponse {
     /// for the same pair are kept (`ArrayList`). Topic order is first-seen.
     /// `errorMessage` and `recordErrors` on each body are cloned with the
     /// partition (Java copies them in `toData`). Java `lastOffset` is not
-    /// a ProduceResponse field and is not stored. Throttle and
-    /// NodeEndpoints stay with crate encode (`0` / empty).
+    /// a ProduceResponse field and is not stored. ThrottleTimeMs is crate
+    /// encode ([`encode_produce_response_with_throttle`]; convenience
+    /// encode still writes `0`). NodeEndpoints stay with crate encode
+    /// (empty unless [`encode_produce_response_with_endpoints`]).
     #[must_use]
     pub fn to_data(
         partitions: &[ProducePartitionResponse],
@@ -2316,6 +2320,8 @@ fn decode_produce_record_errors<B: Buf>(
 }
 
 /// Encode Produce: one response per partition (mock broker).
+///
+/// ThrottleTimeMs is the JSON default (`0`) on v1+ (JSON `1+`).
 pub fn encode_produce_response(
     buf: &mut BytesMut,
     version: i16,
@@ -2324,12 +2330,42 @@ pub fn encode_produce_response(
     encode_produce_response_with_endpoints(buf, version, parts, &[])
 }
 
+/// Encode Produce v3–v12 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `1+`: written after Responses on every spoken
+/// version (this crate speaks 3–12). v3–v8 are classic. v9–v12 are
+/// flexible. Kafka 4.0 `validVersions` is `3-12`. v13+ is not spoken.
+/// Official Java `getErrorResponse` sets `throttleTimeMs` from the
+/// argument. Convenience encode still writes `0`. There is no top-level
+/// ErrorCode. NodeEndpoints stay empty (use
+/// [`encode_produce_response_with_endpoints`]).
+pub fn encode_produce_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    encode_produce_response_fields(buf, version, parts, &[], throttle_time_ms)
+}
+
 /// Encode Produce plus top-level NodeEndpoints (v10+ tagged field 0).
+///
+/// ThrottleTimeMs is the JSON default (`0`).
 pub fn encode_produce_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
     parts: &[ProducePartitionResponse],
     endpoints: &[NodeEndpoint],
+) -> crate::error::Result<()> {
+    encode_produce_response_fields(buf, version, parts, endpoints, 0)
+}
+
+fn encode_produce_response_fields(
+    buf: &mut BytesMut,
+    version: i16,
+    parts: &[ProducePartitionResponse],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = produce_flexible(version)?;
     // Group by topic, preserving first-seen order.
@@ -2377,7 +2413,7 @@ pub fn encode_produce_response_with_endpoints(
         }
     }
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     if flexible {
         encode_top_level_node_endpoints(buf, version >= 10, endpoints)?;
@@ -2385,14 +2421,18 @@ pub fn encode_produce_response_with_endpoints(
     Ok(())
 }
 
-/// Decode Produce into per-partition results and v10+ NodeEndpoints.
+/// Decode Produce into per-partition results, v10+ NodeEndpoints, and
+/// ThrottleTimeMs.
 ///
-/// Versions below 2 fill [`RecordBatch::NO_TIMESTAMP`]. Versions below 5
-/// fill [`ProducePartitionResponse::INVALID_OFFSET`] for log start.
+/// Returns `(partitions, node_endpoints, throttle_time_ms)`.
+/// ThrottleTimeMs is JSON `1+`; this crate speaks 3–12 so the field is
+/// always on the wire. Versions below 2 fill [`RecordBatch::NO_TIMESTAMP`].
+/// Versions below 5 fill [`ProducePartitionResponse::INVALID_OFFSET`] for
+/// log start.
 pub fn decode_produce_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(Vec<ProducePartitionResponse>, Vec<NodeEndpoint>)> {
+) -> Result<(Vec<ProducePartitionResponse>, Vec<NodeEndpoint>, i32)> {
     let flexible = produce_flexible(version)?;
     let topic_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::new();
@@ -2451,15 +2491,13 @@ pub fn decode_produce_response<B: Buf>(
             buf::skip_tagged_fields(buf)?;
         }
     }
-    if version >= 1 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let endpoints = if flexible {
         decode_top_level_node_endpoints(buf, version >= 10)?
     } else {
         Vec::new()
     };
-    Ok((out, endpoints))
+    Ok((out, endpoints, throttle_time_ms))
 }
 
 #[cfg(test)]
@@ -2650,7 +2688,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_produce_response(&mut buf, version, &parts).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
             assert!(endpoints.is_empty());
             assert_eq!(ProduceResponse::to_data(&decoded).len(), 2);
             leftover_empty(
@@ -2668,7 +2706,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_produce_response(&mut buf, version, &[]).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert!(endpoints.is_empty());
             leftover_empty(
@@ -2680,6 +2718,86 @@ mod tests {
                 },
             )
             .unwrap();
+        }
+    }
+
+    #[test]
+    fn produce_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ProduceResponse.json ThrottleTimeMs is versions 1+
+        // (INT32 after Responses; ignorable). Crate speaks 3–12 so the
+        // field is on the wire for every spoken version. Official Java
+        // ProduceRequest.getErrorResponse sets throttleTimeMs from the
+        // argument. encode_produce_response still writes 0.
+        // Empty-Responses v3 == v4 == v5 == v6 == v7 == v8 (classic;
+        // LogAppendTimeMs / LogStartOffset / RecordErrors are on
+        // partitions); v9 == v10 == v11 == v12 (compact; NodeEndpoints
+        // tagged field 0 is omitted when empty). There is no top-level
+        // ErrorCode. This crate speaks 3–12. This is not Fetch /
+        // Metadata / OffsetForLeaderEpoch ThrottleTimeMs.
+        let parts: Vec<ProducePartitionResponse> = vec![];
+        for version in 3..=12 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, endpoints, throttle) =
+                decode_produce_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, parts);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "Produce v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut with, 3, &parts, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_produce_response_with_throttle(&mut zero, 3, &parts, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v3 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_produce_response(&mut conv, 3, &parts).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_produce_response still writes ThrottleTimeMs 0"
+        );
+        assert_eq!(
+            &with[..4],
+            &[0, 0, 0, 0],
+            "empty-Responses ThrottleTimeMs comes after the topic array"
+        );
+
+        let mut v8_with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut v8_with, 8, &parts, 3_600_000).unwrap();
+        for version in 4..=8 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            assert_eq!(
+                &with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v3 == v{version}"
+            );
+        }
+        let mut v9_with = BytesMut::new();
+        encode_produce_response_with_throttle(&mut v9_with, 9, &parts, 3_600_000).unwrap();
+        assert_ne!(
+            &v8_with[..],
+            &v9_with[..],
+            "v9 adds compact tagged fields after ThrottleTimeMs"
+        );
+        for version in 10..=12 {
+            let mut buf = BytesMut::new();
+            encode_produce_response_with_throttle(&mut buf, version, &parts, 3_600_000).unwrap();
+            assert_eq!(
+                &v9_with[..],
+                &buf[..],
+                "empty-Responses ThrottleTimeMs bodies: v9 == v{version}"
+            );
         }
     }
 
@@ -2855,7 +2973,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, version, parts).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
         assert!(endpoints.is_empty());
         assert_eq!(decoded, parts);
         leftover_empty(
@@ -2870,7 +2988,7 @@ mod tests {
         buf.clear();
         encode_produce_response(&mut buf, version, empty).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
         assert!(endpoints.is_empty());
         assert_eq!(decoded, empty);
         leftover_empty(
@@ -2956,7 +3074,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 8, &result).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, endpoints) = decode_produce_response(&mut cur, 8).unwrap();
+        let (decoded, endpoints, ..) = decode_produce_response(&mut cur, 8).unwrap();
         assert!(endpoints.is_empty());
         assert_eq!(decoded, result);
         leftover_empty(&cur, "Produce getErrorResponse v8").unwrap();
@@ -2979,7 +3097,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 3, &parts).unwrap();
         let mut cur = &buf[..];
-        let (got, endpoints) = decode_produce_response(&mut cur, 3).unwrap();
+        let (got, endpoints, ..) = decode_produce_response(&mut cur, 3).unwrap();
         assert!(endpoints.is_empty());
         assert!(cur.is_empty());
         let part = got.first().expect("one partition");
@@ -3031,7 +3149,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_produce_response(&mut buf, version, std::slice::from_ref(&empty)).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
             assert!(endpoints.is_empty());
             assert_eq!(decoded, std::slice::from_ref(&empty));
             leftover_empty(
@@ -3057,7 +3175,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
             assert!(endpoints.is_empty());
             assert_eq!(decoded, std::slice::from_ref(&with_errors));
             leftover_empty(
@@ -3077,7 +3195,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_produce_response(&mut buf, version, std::slice::from_ref(&with_errors)).unwrap();
             let mut cur = buf.as_ref();
-            let (decoded, endpoints) = decode_produce_response(&mut cur, version).unwrap();
+            let (decoded, endpoints, ..) = decode_produce_response(&mut cur, version).unwrap();
             assert!(endpoints.is_empty());
             assert_eq!(decoded, std::slice::from_ref(&with_errors));
             leftover_empty(
@@ -3094,7 +3212,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_produce_response(&mut buf, 3, std::slice::from_ref(&with_errors)).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded, _) = decode_produce_response(&mut cur, 3).unwrap();
+        let (decoded, ..) = decode_produce_response(&mut cur, 3).unwrap();
         leftover_empty(&cur, "Produce v3 RecordErrors leftover-empty").unwrap();
         let part = decoded.first().expect("one partition");
         assert!(
@@ -3880,7 +3998,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_produce_response_with_endpoints(&mut buf, 10, &parts, &endpoints).unwrap();
         let mut cur = &buf[..];
-        let (got, eps) = decode_produce_response(&mut cur, 10).unwrap();
+        let (got, eps, ..) = decode_produce_response(&mut cur, 10).unwrap();
         assert_eq!(got[0].current_leader_id, 3);
         assert_eq!(eps, endpoints);
         assert!(
