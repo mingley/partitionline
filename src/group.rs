@@ -33,7 +33,7 @@ use crate::protocol::group::{
     encode_tp_assignment, ConsumerProtocol, ConsumerProtocolSubscription, FetchedOffsetTopic,
     JoinGroupProtocol, JoinGroupProtocolsRequest, JoinGroupRequest, JoinGroupResponse,
     LeaveGroupMember, OffsetFetchTopic, OffsetPartition, OffsetTopic, SyncGroupRequest, Topic,
-    COORDINATOR_GROUP,
+    COORDINATOR_GROUP, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::sasl;
 
@@ -1463,6 +1463,7 @@ impl ConsumerGroup {
                     self.generation_id,
                     &self.member_id,
                     self.cfg.group_instance_id.as_deref(),
+                    DEFAULT_RETENTION_TIME,
                     &topics,
                 )
             },

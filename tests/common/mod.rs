@@ -5856,7 +5856,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_leave_group_response_version(&mut body, version, 0, &results).unwrap();
             }
             OFFSET_COMMIT => {
-                let (gid, _m, topics) =
+                let (gid, _m, topics, _retention) =
                     decode_offset_commit_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.offset_commit_calls = st.offset_commit_calls.saturating_add(1);

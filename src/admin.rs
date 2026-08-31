@@ -93,7 +93,7 @@ use crate::protocol::group::{
     encode_find_coordinator_request_typed, encode_leave_group_request_members,
     encode_offset_commit_request, encode_offset_delete_request, encode_offset_fetch_groups_request,
     encode_offset_fetch_request, LeaveGroupMember, OffsetDeleteTopic, OffsetFetchGroup,
-    COORDINATOR_GROUP, COORDINATOR_TRANSACTION,
+    COORDINATOR_GROUP, COORDINATOR_TRANSACTION, DEFAULT_RETENTION_TIME,
 };
 use crate::protocol::idem::{decode_init_producer_id_response, encode_init_producer_id_request};
 use crate::protocol::offsets::{
@@ -8314,7 +8314,16 @@ impl Admin {
                     OFFSET_COMMIT,
                     version,
                     |buf| {
-                        encode_offset_commit_request(buf, version, &group_id, -1, "", None, &topics)
+                        encode_offset_commit_request(
+                            buf,
+                            version,
+                            &group_id,
+                            -1,
+                            "",
+                            None,
+                            DEFAULT_RETENTION_TIME,
+                            &topics,
+                        )
                     },
                     timeout,
                 )

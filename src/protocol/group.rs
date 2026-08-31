@@ -3267,9 +3267,15 @@ impl OffsetCommitResponse {
 /// Encode OffsetCommit v2–v9.
 ///
 /// Kafka 4.0 JSON: `validVersions: "2-9"`, `flexibleVersions: "8+"`.
-/// v2–v4 send [`DEFAULT_RETENTION_TIME`] after MemberId. v5 omits retention.
-/// v6 CommittedLeaderEpoch. v7 GroupInstanceId. v8 flexible. v9 matches
-/// v8. This crate speaks 2–9. v0–v1 and v10+ are not spoken.
+/// v2–v4 send `retention_time_ms` after MemberId. v5 omits retention even
+/// when the body has a non-default value; decode fills
+/// [`DEFAULT_RETENTION_TIME`]. v6 CommittedLeaderEpoch. v7
+/// GroupInstanceId. v8 flexible. v9 matches v8. This crate speaks 2–9.
+/// v0–v1 and v10+ are not spoken.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
+)]
 pub fn encode_offset_commit_request(
     buf: &mut BytesMut,
     version: i16,
@@ -3277,6 +3283,7 @@ pub fn encode_offset_commit_request(
     generation_id: i32,
     member_id: &str,
     group_instance_id: Option<&str>,
+    retention_time_ms: i64,
     topics: &[OffsetTopic],
 ) -> crate::error::Result<()> {
     let flexible = offset_commit_flexible(version)?;
@@ -3287,7 +3294,7 @@ pub fn encode_offset_commit_request(
         buf::put_string(buf, flexible, group_instance_id)?;
     }
     if (2..=4).contains(&version) {
-        buf.put_i64(DEFAULT_RETENTION_TIME);
+        buf.put_i64(retention_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -3319,14 +3326,15 @@ pub fn encode_offset_commit_request(
     Ok(())
 }
 
-/// Decode OffsetCommit: `(group_id, member_id, topics)`.
+/// Decode OffsetCommit: `(group_id, member_id, topics, retention_time_ms)`.
 ///
 /// Decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
-/// omitted `CommittedLeaderEpoch`.
+/// omitted `CommittedLeaderEpoch`. RetentionTimeMs is omitted outside
+/// v2–v4; decode fills [`DEFAULT_RETENTION_TIME`].
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, Vec<OffsetTopic>)> {
+) -> Result<(String, String, Vec<OffsetTopic>, i64)> {
     let flexible = offset_commit_flexible(version)?;
     let group = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
@@ -3334,9 +3342,11 @@ pub fn decode_offset_commit_request<B: Buf>(
     if version >= 7 {
         let _inst = buf::get_string(buf, flexible)?;
     }
-    if (2..=4).contains(&version) {
-        let _retention = buf::get_i64(buf)?;
-    }
+    let retention_time_ms = if (2..=4).contains(&version) {
+        buf::get_i64(buf)?
+    } else {
+        DEFAULT_RETENTION_TIME
+    };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -3370,7 +3380,7 @@ pub fn decode_offset_commit_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group, member, topics))
+    Ok((group, member, topics, retention_time_ms))
 }
 
 /// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
@@ -7148,17 +7158,48 @@ mod tests {
             }],
         }];
         let mut v2 = BytesMut::new();
-        encode_offset_commit_request(&mut v2, 2, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v2,
+            2,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         let mut v3 = BytesMut::new();
-        encode_offset_commit_request(&mut v3, 3, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v3,
+            3,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         let mut v4 = BytesMut::new();
-        encode_offset_commit_request(&mut v4, 4, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v4,
+            4,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_eq!(&v2[..], REQ);
         assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
         assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
         let mut cur = v2.as_ref();
-        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 2).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+        assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(got[0].partitions[0].offset, 3);
         assert_eq!(
             got[0].partitions[0].leader_epoch,
@@ -7167,10 +7208,21 @@ mod tests {
         assert!(cur.is_empty(), "v2 request leftover-empty");
 
         let mut v5 = BytesMut::new();
-        encode_offset_commit_request(&mut v5, 5, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v5,
+            5,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_ne!(v4.as_ref(), v5.as_ref(), "v5 drops RetentionTimeMs");
         let mut cur = v5.as_ref();
-        let (_gid, _mid, got) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        let (_gid, _mid, got, retention) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(
             got[0].partitions[0].leader_epoch,
             RecordBatch::NO_PARTITION_LEADER_EPOCH
@@ -7178,10 +7230,21 @@ mod tests {
         assert!(cur.is_empty(), "v5 request leftover-empty");
 
         let mut v6 = BytesMut::new();
-        encode_offset_commit_request(&mut v6, 6, "g", 7, "m1", Some("ignored"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v6,
+            6,
+            "g",
+            7,
+            "m1",
+            Some("ignored"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_ne!(v5.as_ref(), v6.as_ref(), "v6 adds CommittedLeaderEpoch");
         let mut cur = v6.as_ref();
-        let (_gid, _mid, got) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        let (_gid, _mid, got, retention) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(got[0].partitions[0].leader_epoch, 4);
         assert!(cur.is_empty(), "v6 request leftover-empty");
 
@@ -7198,8 +7261,17 @@ mod tests {
         assert!(cur.is_empty(), "v3 response leftover-empty");
 
         v2.clear();
-        let err =
-            encode_offset_commit_request(&mut v2, 0, "g", 7, "m1", None, &topics).unwrap_err();
+        let err = encode_offset_commit_request(
+            &mut v2,
+            0,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
             "v0 is not spoken, got {err}"
@@ -7211,14 +7283,120 @@ mod tests {
     }
 
     #[test]
+    fn offset_commit_retention_time_matches_java() {
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 3,
+                leader_epoch: 4,
+                metadata: String::new(),
+            }],
+        }];
+        for version in [2_i16, 3, 4] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, 3_600_000, &topics)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_, _, got, retention) = decode_offset_commit_request(&mut cur, version).unwrap();
+            assert_eq!(got[0].partitions[0].offset, 3);
+            assert_eq!(retention, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} RetentionTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(&mut buf, 5, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, retention) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v5 RetentionTimeMs leftover-empty"
+        );
+        assert_eq!(
+            retention, DEFAULT_RETENTION_TIME,
+            "OffsetCommit v5 omits RetentionTimeMs even when the body has a non-default value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_offset_commit_request(&mut with, 2, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
+        let mut default = BytesMut::new();
+        encode_offset_commit_request(
+            &mut default,
+            2,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &default[..],
+            "v2 RetentionTimeMs is not always the JSON default -1"
+        );
+        let mut v5_nonzero = BytesMut::new();
+        encode_offset_commit_request(&mut v5_nonzero, 5, "g", 7, "m1", None, 3_600_000, &topics)
+            .unwrap();
+        let mut v5_default = BytesMut::new();
+        encode_offset_commit_request(
+            &mut v5_default,
+            5,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        assert_eq!(
+            &v5_nonzero[..],
+            &v5_default[..],
+            "v5 encode omits RetentionTimeMs even when the body has a non-default value"
+        );
+
+        for version in [8_i16, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, 3_600_000, &topics)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_, _, _, retention) = decode_offset_commit_request(&mut cur, version).unwrap();
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} RetentionTimeMs leftover-empty"
+            );
+            assert_eq!(
+                retention, DEFAULT_RETENTION_TIME,
+                "OffsetCommit v{version} omits RetentionTimeMs even when the body has a non-default value"
+            );
+        }
+    }
+
+    #[test]
     fn offset_commit_v7_batches_partitions_and_consumes_epoch_metadata() {
         let topics = offset_commit_topics();
         let mut buf = BytesMut::new();
-        encode_offset_commit_request(&mut buf, 7, "g", 7, "m1", None, &topics).unwrap();
+        encode_offset_commit_request(
+            &mut buf,
+            7,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         let mut cur = &buf[..];
-        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 7).unwrap();
+        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 7).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got, topics);
+        assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert!(
             cur.is_empty(),
             "v7 decoder must consume leader epoch and metadata; leftover {} bytes",
@@ -7236,11 +7414,22 @@ mod tests {
     fn offset_commit_v8_roundtrip_is_leftover_empty() {
         let topics = offset_commit_topics();
         let mut req = BytesMut::new();
-        encode_offset_commit_request(&mut req, 8, "g", 7, "m1", Some("i"), &topics).unwrap();
+        encode_offset_commit_request(
+            &mut req,
+            8,
+            "g",
+            7,
+            "m1",
+            Some("i"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         let mut cur = &req[..];
-        let (gid, mid, got) = decode_offset_commit_request(&mut cur, 8).unwrap();
+        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 8).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got, topics);
+        assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert!(
             cur.is_empty(),
             "v8 decoder must consume compact strings and tagged fields; leftover {} bytes",
@@ -7262,9 +7451,29 @@ mod tests {
     fn offset_commit_v9_matches_v8_layout() {
         let topics = offset_commit_topics();
         let mut v8 = BytesMut::new();
-        encode_offset_commit_request(&mut v8, 8, "g", 7, "m1", None, &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v8,
+            8,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         let mut v9 = BytesMut::new();
-        encode_offset_commit_request(&mut v9, 9, "g", 7, "m1", None, &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v9,
+            9,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_eq!(&v8[..], &v9[..], "OffsetCommit v9 request matches v8");
 
         v8.clear();
@@ -7293,19 +7502,57 @@ mod tests {
             }],
         }];
         let mut buf = BytesMut::new();
-        encode_offset_commit_request(&mut buf, 8, "g", 7, "m1", None, &topics).unwrap();
+        encode_offset_commit_request(
+            &mut buf,
+            8,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_eq!(&buf[..], REQ);
         let mut v7 = BytesMut::new();
-        encode_offset_commit_request(&mut v7, 7, "g", 7, "m1", None, &topics).unwrap();
+        encode_offset_commit_request(
+            &mut v7,
+            7,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
         assert_ne!(&buf[..], &v7[..], "OffsetCommit v8 must not be classic v7");
         assert!(
-            encode_offset_commit_request(&mut BytesMut::new(), 1, "g", 7, "m1", None, &topics)
-                .is_err(),
+            encode_offset_commit_request(
+                &mut BytesMut::new(),
+                1,
+                "g",
+                7,
+                "m1",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &topics
+            )
+            .is_err(),
             "OffsetCommit v0–v1 are not spoken"
         );
         assert!(
-            encode_offset_commit_request(&mut BytesMut::new(), 10, "g", 7, "m1", None, &topics)
-                .is_err(),
+            encode_offset_commit_request(
+                &mut BytesMut::new(),
+                10,
+                "g",
+                7,
+                "m1",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &topics
+            )
+            .is_err(),
             "OffsetCommit v10+ is not spoken"
         );
     }
@@ -7452,7 +7699,17 @@ mod tests {
             HashMap::from([(("a".into(), 0), 2), (("b".into(), 1), 3)])
         );
         let mut buf = BytesMut::new();
-        encode_offset_commit_request(&mut buf, 2, "g", 7, "m1", None, &two).unwrap();
+        encode_offset_commit_request(
+            &mut buf,
+            2,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &two,
+        )
+        .unwrap();
         let mut cur = buf.as_ref();
         let decoded = decode_offset_commit_request(&mut cur, 2).unwrap().2;
         assert_eq!(decoded, two);
@@ -7466,7 +7723,17 @@ mod tests {
             cur.remaining()
         );
         buf.clear();
-        encode_offset_commit_request(&mut buf, 8, "g", 7, "m1", None, &two).unwrap();
+        encode_offset_commit_request(
+            &mut buf,
+            8,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &two,
+        )
+        .unwrap();
         let mut cur = buf.as_ref();
         let decoded = decode_offset_commit_request(&mut cur, 8).unwrap().2;
         assert_eq!(decoded, two);
@@ -7510,6 +7777,7 @@ mod tests {
             7,
             "m1",
             Some("ignored"),
+            DEFAULT_RETENTION_TIME,
             &offset_commit_topics(),
         )
         .unwrap();
@@ -7525,8 +7793,17 @@ mod tests {
         for (version, instance) in [(7_i16, Some("i")), (8, Some("i"))] {
             OffsetCommitRequest::build(version, instance).unwrap();
             let mut buf = BytesMut::new();
-            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", instance, &topics)
-                .unwrap();
+            encode_offset_commit_request(
+                &mut buf,
+                version,
+                "g",
+                7,
+                "m1",
+                instance,
+                DEFAULT_RETENTION_TIME,
+                &topics,
+            )
+            .unwrap();
             let mut cur = buf.as_ref();
             let decoded = decode_offset_commit_request(&mut cur, version).unwrap().2;
             assert_eq!(decoded, topics);
@@ -7539,7 +7816,17 @@ mod tests {
         for version in [2_i16, 6, 7, 8] {
             OffsetCommitRequest::build(version, None).unwrap();
             let mut buf = BytesMut::new();
-            encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, &topics).unwrap();
+            encode_offset_commit_request(
+                &mut buf,
+                version,
+                "g",
+                7,
+                "m1",
+                None,
+                DEFAULT_RETENTION_TIME,
+                &topics,
+            )
+            .unwrap();
             let mut cur = buf.as_ref();
             let decoded = decode_offset_commit_request(&mut cur, version).unwrap().2;
             assert_eq!(decoded, topics);

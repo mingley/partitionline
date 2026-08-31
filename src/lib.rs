@@ -124,7 +124,9 @@
 //! below v4). `ErrorMessage` stays the JSON default (null); official Java
 //! also sets the English `Errors.message` string. Throttle is the JSON
 //! default (`0`).
-//! OffsetCommit v2–v9 (v2–v4 [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
+//! OffsetCommit v2–v9 (v2–v4 RetentionTimeMs round-trips, including a
+//! non-default value; v5+ omits the field even when the body is non-default
+//! and decode fills [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
 //! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
