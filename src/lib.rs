@@ -163,6 +163,10 @@
 //! `OffsetFetchRequest.Builder` Topics from a partition list (`None` is
 //! all partitions; a later entry for the same topic appends; first-seen
 //! topic order; duplicate pairs kept);
+//! [`protocol::group::OffsetFetchRequest::build`] is Java
+//! `OffsetFetchRequest.Builder.build` (`requireStable` below v7 with
+//! `throwOnFetchStableOffsetsUnsupported` is `UnsupportedVersionException`;
+//! otherwise Java falls back to false; encode still omits);
 //! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
 //! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus

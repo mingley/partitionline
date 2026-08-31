@@ -2851,6 +2851,29 @@ impl OffsetFetchRequest {
         })
     }
 
+    /// Java `OffsetFetchRequest.Builder.build` RequireStable check.
+    ///
+    /// `requireStable` below v7 with `throwOnFetchStableOffsetsUnsupported`
+    /// is `UnsupportedVersionException`. Otherwise Java falls back to
+    /// false (`log.trace`). Encode still omits the field below v7; this
+    /// is the Builder check. v7+ returns `require_stable` as-is. Batched
+    /// groups below v8 and null Topics below v2 stay on encode.
+    pub fn build(
+        version: i16,
+        require_stable: bool,
+        throw_on_fetch_stable_offsets_unsupported: bool,
+    ) -> Result<bool> {
+        if require_stable && version < 7 {
+            if throw_on_fetch_stable_offsets_unsupported {
+                return Err(Error::Unsupported(format!(
+                    "Broker unexpectedly doesn't support requireStable flag on version {version}"
+                )));
+            }
+            return Ok(false);
+        }
+        Ok(require_stable)
+    }
+
     fn topic_partitions(topics: &[OffsetFetchTopic]) -> Vec<(String, i32)> {
         let mut partitions = Vec::new();
         for topic in topics {
@@ -8013,6 +8036,63 @@ mod tests {
             "OffsetFetch v2 null from_partitions leftover-empty; leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn offset_fetch_request_build_matches_java() {
+        assert!(!OffsetFetchRequest::build(6, false, true).unwrap());
+        assert!(!OffsetFetchRequest::build(6, true, false).unwrap());
+        assert!(OffsetFetchRequest::build(7, true, true).unwrap());
+        assert!(OffsetFetchRequest::build(7, true, false).unwrap());
+        assert!(!OffsetFetchRequest::build(7, false, true).unwrap());
+        let v6 = OffsetFetchRequest::build(6, true, true).unwrap_err();
+        assert!(
+            matches!(v6, Error::Unsupported(_)),
+            "v6 requireStable with throwOnFetchStableOffsetsUnsupported is Java UnsupportedVersionException, got {v6}"
+        );
+        assert!(
+            v6.to_string()
+                .contains("doesn't support requireStable flag on version 6"),
+            "got {v6}"
+        );
+        let req = offset_fetch_one_topic();
+        encode_offset_fetch_request(&mut BytesMut::new(), 6, "g", None, -1, true, Some(&req))
+            .unwrap();
+        assert!(
+            OffsetFetchRequest::build(6, true, true).is_err(),
+            "encode omits RequireStable below v7; Builder.build rejects it when throwOnFetchStableOffsetsUnsupported"
+        );
+
+        for version in [7_i16, 8] {
+            assert!(OffsetFetchRequest::build(version, true, false).unwrap());
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_request(&mut buf, version, "g", None, -1, true, Some(&req))
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, decoded, stable) = decode_offset_fetch_request(&mut cur, version).unwrap();
+            assert!(stable);
+            assert_eq!(decoded.as_deref(), Some(req.as_slice()));
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [1_i16, 6, 7, 9] {
+            assert!(!OffsetFetchRequest::build(version, false, false).unwrap());
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_request(&mut buf, version, "g", None, -1, false, Some(&req))
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, decoded, stable) = decode_offset_fetch_request(&mut cur, version).unwrap();
+            assert!(!stable);
+            assert_eq!(decoded.as_deref(), Some(req.as_slice()));
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Builder.build empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
