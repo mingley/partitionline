@@ -12881,6 +12881,8 @@ impl AssignReplicasToDirsResponseDirectory {
 /// compact `Directories` with a nested per-partition ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssignReplicasToDirsResponse {
+    /// AssignReplicasToDirs `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Log directories.
@@ -12891,9 +12893,16 @@ impl AssignReplicasToDirsResponse {
     /// Construct [`Self`].
     pub fn new(error_code: i16, directories: Vec<AssignReplicasToDirsResponseDirectory>) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             directories,
         }
+    }
+
+    /// AssignReplicasToDirs `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -13032,11 +13041,14 @@ pub fn decode_assign_replicas_to_dirs_request<B: Buf>(
 }
 
 /// Encode an AssignReplicasToDirs response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`AssignReplicasToDirsResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_assign_replicas_to_dirs_response(
     buf: &mut BytesMut,
     resp: &AssignReplicasToDirsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_array_len(buf, true, Some(resp.directories.len()))?;
     for dir in &resp.directories {
@@ -13059,10 +13071,12 @@ pub fn encode_assign_replicas_to_dirs_response(
 }
 
 /// Decode an AssignReplicasToDirs response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AssignReplicasToDirsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut directories = Vec::with_capacity(n);
@@ -13094,6 +13108,7 @@ pub fn decode_assign_replicas_to_dirs_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(AssignReplicasToDirsResponse {
+        throttle_time_ms,
         error_code,
         directories,
     })
@@ -25972,6 +25987,46 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "PushTelemetry v0 ErrorCode body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AssignReplicasToDirsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0). Official Java
+        // AssignReplicasToDirsRequest.getErrorResponse /
+        // AssignReplicasToDirsResponse.throttleTimeMs set / read it.
+        // Encode writes AssignReplicasToDirsResponse.throttle_time_ms
+        // (JSON default 0; AssignReplicasToDirsResponse::new fills 0).
+        // This crate speaks v0 only. Empty-directory bodies stay
+        // leftover-empty. This is not PushTelemetry ThrottleTimeMs.
+        let zero = AssignReplicasToDirsResponse::new(crate::error::NOT_CONTROLLER, vec![]);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_assign_replicas_to_dirs_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert_eq!(got.throttle_time_ms(), 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "AssignReplicasToDirs v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "AssignReplicasToDirsResponse::new still fills ThrottleTimeMs 0"
         );
     }
 

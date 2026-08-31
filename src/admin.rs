@@ -12036,6 +12036,7 @@ mod tests {
             )],
         );
         assert_eq!(assigned.error_code(), 0);
+        assert_eq!(assigned.throttle_time_ms(), 0);
         assert_eq!(assigned.directories()[0].id(), Uuid::from_bytes([0x11; 16]));
         assert_eq!(
             assigned.directories()[0].topics()[0].topic_id(),
