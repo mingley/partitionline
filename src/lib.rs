@@ -2216,6 +2216,9 @@
 //! [`DescribeShareGroupOffsetsGroup::all`] is official nullable Topics
 //! (`None` lists every topic-partition). Share-offset result getters
 //! cover Describe/Alter/Delete ShareGroupOffsets v0.
+//! [`AlteredShareGroupOffsets::error_counts`] is Java
+//! `AlterShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
+//! plus each partition-level code, including `NONE`);
 //! [`Admin::describe_share_group_offsets_timeout`] /
 //! [`Admin::list_share_group_offsets_timeout`] are Java
 //! `ListShareGroupOffsetsOptions.timeoutMs` (RPC deadline;

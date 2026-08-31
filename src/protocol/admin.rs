@@ -11580,6 +11580,28 @@ impl AlteredShareGroupOffsets {
     pub fn topics(&self) -> &[AlteredShareGroupOffsetsTopic] {
         &self.topics
     }
+
+    /// Java `AlterShareGroupOffsetsResponse.errorCounts`.
+    ///
+    /// Counts the top-level `errorCode` (including `NONE`) plus each
+    /// partition-level code (including `NONE`). Topics have no
+    /// `errorCode`. Java `AlterShareGroupOffsetsResponse` has no
+    /// `error()` helper. This is not DeleteShareGroupOffsets /
+    /// DescribeShareGroupOffsets / ShareAcknowledge /
+    /// AlterPartitionReassignments `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        let mut counts = HashMap::new();
+        let count = counts.entry(self.error_code).or_insert(0);
+        *count += 1;
+        for topic in &self.topics {
+            for partition in &topic.partitions {
+                let count = counts.entry(partition.error_code).or_insert(0);
+                *count += 1;
+            }
+        }
+        counts
+    }
 }
 
 /// AlterShareGroupOffsets v0 (flexible from v0; KIP-932).
@@ -26691,6 +26713,72 @@ mod tests {
             zero.throttle_time_ms(),
             0,
             "AlteredShareGroupOffsets::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn alter_share_group_offsets_response_error_counts_matches_java() {
+        // Java 4.1.0 AlterShareGroupOffsetsResponse.errorCounts:
+        // updateErrorCounts(map, Errors.forCode(data.errorCode())) then
+        // each partition errorCode, including NONE. Official Java
+        // AlterShareGroupOffsetsResponse.errorCounts (4.1.0; 4.0.0 404
+        // as the current name). Topics have no errorCode. Java
+        // AlterShareGroupOffsetsResponse has no error() helper. This
+        // crate speaks 0. This is not DeleteShareGroupOffsets
+        // errorCounts / DescribeShareGroupOffsets errorCounts /
+        // ShareAcknowledge errorCounts / AlterPartitionReassignments
+        // errorCounts.
+        assert_eq!(
+            AlteredShareGroupOffsets::new(0).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = AlteredShareGroupOffsets {
+            throttle_time_ms: 0,
+            error_code: crate::error::NOT_COORDINATOR,
+            error_message: None,
+            topics: vec![AlteredShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [7u8; 16],
+                partitions: vec![
+                    AlteredShareGroupOffsetsPartition {
+                        partition_index: 0,
+                        error_code: 0,
+                        error_message: None,
+                    },
+                    AlteredShareGroupOffsetsPartition {
+                        partition_index: 1,
+                        error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                        error_message: None,
+                    },
+                ],
+            }],
+        };
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([
+                (crate::error::NOT_COORDINATOR, 1),
+                (0, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ])
+        );
+        let mut resp = BytesMut::new();
+        encode_alter_share_group_offsets_response(&mut resp, &full).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_alter_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([
+                (crate::error::NOT_COORDINATOR, 1),
+                (0, 1),
+                (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
+            ]),
+            "AlterShareGroupOffsets v0 errorCounts must count top-level plus partitions"
+        );
+        assert!(
+            cur.is_empty(),
+            "AlterShareGroupOffsets v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
