@@ -849,7 +849,7 @@
 //! `nCopies`). MatchingAcls stay the JSON default (empty); `ErrorMessage`
 //! stays the JSON default (null); official Java also sets the English
 //! `Errors.message` string. Throttle is the JSON default (`0`)),
-//! AddPartitionsToTxn v0–v3 (v3 flexible;
+//! AddPartitionsToTxn v0–v3 (v3 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::txn::AddPartitionsToTxnResponse::should_client_throttle`] is Java
 //! `AddPartitionsToTxnResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::AddPartitionsToTxnResponse::error_counts`] is Java
@@ -870,8 +870,8 @@
 //! [`protocol::txn::AddPartitionsToTxnPartitionResult::error`] are Java
 //! `AddPartitionsToTxnRequest.getErrorResponse` / `errorResponseForTopics`
 //! (one topic / Topics / partition body). Nested body is PartitionIndex
-//! and PartitionErrorCode (`ResultsByTopicV3AndBelow`). Throttle is the
-//! JSON default (`0`);
+//! and PartitionErrorCode (`ResultsByTopicV3AndBelow`). ThrottleTimeMs is JSON `0+`;
+//! [`protocol::txn::encode_add_partitions_to_txn_topics_response`] still writes `0`;
 //! [`protocol::txn::AddPartitionsToTxnRequest::partitions`] is Java
 //! `AddPartitionsToTxnRequest.getPartitions` (each `(topic, partition)`
 //! in request order);
