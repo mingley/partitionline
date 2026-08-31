@@ -2452,6 +2452,37 @@ impl OffsetFetchGroup {
     }
 }
 
+/// Java `OffsetFetchRequest` helpers.
+pub struct OffsetFetchRequest;
+
+impl OffsetFetchRequest {
+    /// Java `OffsetFetchRequest.groupIdsToPartitions`.
+    ///
+    /// Each group id maps to that group's `(topic, partition)` list.
+    /// `None` Topics is `None` (every committed partition). `Some` empty
+    /// is an empty list, not all partitions. A later group overwrites an
+    /// earlier one for the same id (Java `HashMap.put`).
+    #[must_use]
+    pub fn group_ids_to_partitions(
+        groups: &[OffsetFetchGroup],
+    ) -> HashMap<String, Option<Vec<(String, i32)>>> {
+        let mut group_ids_to_partitions = HashMap::new();
+        for group in groups {
+            let tp_list = group.topics.as_ref().map(|topics| {
+                let mut partitions = Vec::new();
+                for topic in topics {
+                    for &partition in &topic.partitions {
+                        partitions.push((topic.topic.clone(), partition));
+                    }
+                }
+                partitions
+            });
+            let _prev = group_ids_to_partitions.insert(group.group_id.clone(), tp_list);
+        }
+        group_ids_to_partitions
+    }
+}
+
 /// One group's OffsetFetch v8+ result (KIP-709).
 ///
 /// [`Self::error`] is Java `OffsetFetchRequest.getErrorResponse` one group
@@ -6339,6 +6370,79 @@ mod tests {
             v9.as_ref(),
             v9_empty.as_ref(),
             "v9 null Topics differs from empty"
+        );
+    }
+
+    #[test]
+    fn offset_fetch_group_ids_to_partitions_matches_java() {
+        // Java OffsetFetchRequest.groupIdsToPartitions: each group id maps
+        // to that group's (topic, partition) list. Null Topics is null.
+        // Empty Topics is empty, not all partitions. Later groups
+        // overwrite the same id (HashMap.put).
+        assert!(OffsetFetchRequest::group_ids_to_partitions(&[]).is_empty());
+        let all = OffsetFetchGroup::new("all", None);
+        let empty = OffsetFetchGroup::new("empty", Some(Vec::new()));
+        let one = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_partitions(&[all, empty, one]),
+            HashMap::from([
+                ("all".into(), None),
+                ("empty".into(), Some(Vec::new())),
+                ("g".into(), Some(vec![("t".into(), 0)])),
+            ])
+        );
+        let first = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        let second = OffsetFetchGroup::new(
+            "g",
+            Some(vec![OffsetFetchTopic {
+                topic: "b".into(),
+                partitions: vec![1, 2],
+            }]),
+        );
+        let other = OffsetFetchGroup::new(
+            "h",
+            Some(vec![OffsetFetchTopic {
+                topic: "c".into(),
+                partitions: vec![3],
+            }]),
+        );
+        let two = vec![first, second, other];
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_partitions(&two),
+            HashMap::from([
+                ("g".into(), Some(vec![("b".into(), 1), ("b".into(), 2)])),
+                ("h".into(), Some(vec![("c".into(), 3)])),
+            ])
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_request(&mut buf, 8, &two, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, 8).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_partitions(&decoded),
+            OffsetFetchRequest::group_ids_to_partitions(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v8 groupIdsToPartitions leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_request(&mut buf, 9, &two, false).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, stable) = decode_offset_fetch_groups_request(&mut cur, 9).unwrap();
+        assert!(!stable);
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetFetchRequest::group_ids_to_partitions(&decoded),
+            OffsetFetchRequest::group_ids_to_partitions(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v9 groupIdsToPartitions leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

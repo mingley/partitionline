@@ -134,6 +134,10 @@
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
 //! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
 //! (`None` Topics is every committed partition; `Some` empty is not);
+//! [`protocol::group::OffsetFetchRequest::group_ids_to_partitions`] is Java
+//! `OffsetFetchRequest.groupIdsToPartitions` (group id to
+//! `(topic, partition)` list; `None` Topics is `None`; a later group
+//! overwrites);
 //! [`protocol::group::OffsetFetchResponse::error_counts`] is Java
 //! `OffsetFetchResponse.errorCounts` (v8+ group-level plus partitions;
 //! v2–v7 top-level plus partitions; v1 first non-partition error plus
