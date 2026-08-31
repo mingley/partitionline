@@ -12722,6 +12722,26 @@ impl ListConfigResourcesRequest {
             ])
         }
     }
+
+    /// Java `ListConfigResourcesRequest.Builder.build`.
+    ///
+    /// v0 is `UnsupportedVersionException` unless the ResourceTypes set
+    /// is exactly `CLIENT_METRICS` (Java `HashSet`; duplicates collapse).
+    /// Encode still omits ResourceTypes on v0; this is the Builder check.
+    /// v1 does not check ResourceTypes. This crate speaks 0–1. This is
+    /// not [`Self::supported_resource_types`] / [`Self::error_response`]
+    /// / ListGroups `Builder.build`.
+    pub fn build(version: i16, resource_types: &[i8]) -> Result<()> {
+        if version == 0 {
+            let types: BTreeSet<i8> = resource_types.iter().copied().collect();
+            if types.len() != 1 || !types.contains(&RESOURCE_CLIENT_METRICS) {
+                return Err(Error::Unsupported(
+                    "The v0 ListConfigResources only supports CLIENT_METRICS".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Reject ListConfigResources versions this crate does not speak.
@@ -27752,6 +27772,73 @@ mod tests {
             ListConfigResourcesRequest::supported_resource_types(1),
             "v0 CLIENT_METRICS-only is not the v1 set"
         );
+    }
+
+    #[test]
+    fn list_config_resources_request_build_matches_java() {
+        // Java 4.1.0 ListConfigResourcesRequest.Builder.build: v0 is
+        // UnsupportedVersionException unless HashSet(resourceTypes) is
+        // size 1 and contains CLIENT_METRICS. Official Java
+        // ListConfigResourcesRequest.Builder.build (4.1.0; 4.0.0 404 as
+        // the current name). Encode still omits ResourceTypes on v0.
+        // v1 does not check ResourceTypes. This crate speaks 0-1. This
+        // is not supportedResourceTypes / getErrorResponse / ListGroups
+        // Builder.build.
+        ListConfigResourcesRequest::build(0, &[RESOURCE_CLIENT_METRICS]).unwrap();
+        ListConfigResourcesRequest::build(0, &[RESOURCE_CLIENT_METRICS, RESOURCE_CLIENT_METRICS])
+            .unwrap();
+        ListConfigResourcesRequest::build(1, &[]).unwrap();
+        ListConfigResourcesRequest::build(1, &[RESOURCE_TOPIC]).unwrap();
+        ListConfigResourcesRequest::build(1, &[RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC]).unwrap();
+        let empty = ListConfigResourcesRequest::build(0, &[]).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "v0 empty ResourceTypes is Java UnsupportedVersionException, got {empty}"
+        );
+        assert!(
+            empty
+                .to_string()
+                .contains("The v0 ListConfigResources only supports CLIENT_METRICS"),
+            "got {empty}"
+        );
+        let topic = ListConfigResourcesRequest::build(0, &[RESOURCE_TOPIC]).unwrap_err();
+        assert!(
+            matches!(topic, Error::Unsupported(_)),
+            "v0 TOPIC is Java UnsupportedVersionException, got {topic}"
+        );
+        let both = ListConfigResourcesRequest::build(0, &[RESOURCE_CLIENT_METRICS, RESOURCE_TOPIC])
+            .unwrap_err();
+        assert!(
+            matches!(both, Error::Unsupported(_)),
+            "v0 CLIENT_METRICS plus TOPIC is Java UnsupportedVersionException, got {both}"
+        );
+        encode_list_config_resources_request(&mut BytesMut::new(), 0, &[RESOURCE_TOPIC]).unwrap();
+        assert!(
+            ListConfigResourcesRequest::build(0, &[RESOURCE_TOPIC]).is_err(),
+            "encode omits ResourceTypes on v0; Builder.build rejects a non-CLIENT_METRICS set"
+        );
+
+        for version in 0..=1_i16 {
+            ListConfigResourcesRequest::build(version, &[RESOURCE_CLIENT_METRICS]).unwrap();
+            let mut buf = BytesMut::new();
+            encode_list_config_resources_request(&mut buf, version, &[RESOURCE_CLIENT_METRICS])
+                .unwrap();
+            let mut cur = &buf[..];
+            let got = decode_list_config_resources_request(&mut cur, version).unwrap();
+            if version == 0 {
+                assert!(
+                    got.is_empty(),
+                    "v0 omits ResourceTypes even when CLIENT_METRICS"
+                );
+            } else {
+                assert_eq!(got, vec![RESOURCE_CLIENT_METRICS]);
+            }
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
