@@ -11066,6 +11066,8 @@ impl AlteredShareGroupOffsetsTopic {
 /// the request and no Groups array on the response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlteredShareGroupOffsets {
+    /// AlterShareGroupOffsets `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message, when present.
@@ -11078,10 +11080,17 @@ impl AlteredShareGroupOffsets {
     /// Construct [`Self`].
     pub fn new(error_code: i16) -> Self {
         Self {
+            throttle_time_ms: 0,
             error_code,
             error_message: None,
             topics: Vec::new(),
         }
+    }
+
+    /// AlterShareGroupOffsets `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 
     /// Kafka error code (`0` is success).
@@ -11197,11 +11206,14 @@ pub fn decode_alter_share_group_offsets_request<B: Buf>(
 }
 
 /// Encode an AlterShareGroupOffsets response.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`AlteredShareGroupOffsets::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_alter_share_group_offsets_response(
     buf: &mut BytesMut,
     resp: &AlteredShareGroupOffsets,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_compact_string(buf, resp.error_message.as_deref())?;
     buf::put_array_len(buf, true, Some(resp.topics.len()))?;
@@ -11222,10 +11234,12 @@ pub fn encode_alter_share_group_offsets_response(
 }
 
 /// Decode an AlterShareGroupOffsets response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_alter_share_group_offsets_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AlteredShareGroupOffsets> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_compact_string(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
@@ -11255,6 +11269,7 @@ pub fn decode_alter_share_group_offsets_response<B: Buf>(
     }
     buf::skip_tagged_fields(buf)?;
     Ok(AlteredShareGroupOffsets {
+        throttle_time_ms,
         error_code,
         error_message,
         topics,
@@ -21789,10 +21804,12 @@ mod tests {
             std::slice::from_ref(&altered_part)
         );
         let altered = AlteredShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             topics: vec![altered_topic.clone()],
         };
+        assert_eq!(altered.throttle_time_ms(), 0);
         assert_eq!(altered.error_code(), 0);
         assert!(altered.error_message().is_none());
         assert_eq!(altered.topics(), std::slice::from_ref(&altered_topic));
@@ -24674,6 +24691,7 @@ mod tests {
         );
 
         let resp = AlteredShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             topics: vec![AlteredShareGroupOffsetsTopic {
@@ -24757,6 +24775,7 @@ mod tests {
         );
 
         let with_part = AlteredShareGroupOffsets {
+            throttle_time_ms: 0,
             error_code: crate::error::NOT_COORDINATOR,
             error_message: None,
             topics: vec![AlteredShareGroupOffsetsTopic {
@@ -24793,6 +24812,51 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "AlterShareGroupOffsets v0 first-partition body must be leftover-empty"
+        );
+    }
+
+    #[test]
+    fn alter_share_group_offsets_response_throttle_time_ms_matches_java() {
+        // Kafka 4.1.0 AlterShareGroupOffsetsResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on the spoken v0). Official Java
+        // AlterShareGroupOffsetsRequest.getErrorResponse /
+        // AlterShareGroupOffsetsResponse.throttleTimeMs set / read it.
+        // Encode writes AlteredShareGroupOffsets.throttle_time_ms
+        // (JSON default 0; AlteredShareGroupOffsets::new fills 0).
+        // This crate speaks v0 only. This is not
+        // DescribeShareGroupOffsets / DeleteShareGroupOffsets
+        // ThrottleTimeMs.
+        let zero = AlteredShareGroupOffsets::new(crate::error::NOT_COORDINATOR);
+        let with = AlteredShareGroupOffsets {
+            throttle_time_ms: 3_600_000,
+            error_code: crate::error::NOT_COORDINATOR,
+            error_message: None,
+            topics: Vec::new(),
+        };
+        let mut buf = BytesMut::new();
+        encode_alter_share_group_offsets_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_alter_share_group_offsets_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "AlterShareGroupOffsets v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_alter_share_group_offsets_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_alter_share_group_offsets_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms(),
+            0,
+            "AlteredShareGroupOffsets::new still fills ThrottleTimeMs 0"
         );
     }
 
