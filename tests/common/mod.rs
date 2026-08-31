@@ -4089,11 +4089,11 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                         st.alter_reassignments_not_controller.saturating_add(1);
                     encode_alter_partition_reassignments_response(
                         &mut body,
-                        &AlterPartitionReassignmentsResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            error_message: Some("Not controller".into()),
-                            results: Vec::new(),
-                        },
+                        &AlterPartitionReassignmentsResponse::new(
+                            error::NOT_CONTROLLER,
+                            Some("Not controller".into()),
+                            Vec::new(),
+                        ),
                     )
                     .unwrap();
                 } else {
@@ -4134,11 +4134,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     }
                     encode_alter_partition_reassignments_response(
                         &mut body,
-                        &AlterPartitionReassignmentsResponse {
-                            error_code: 0,
-                            error_message: None,
-                            results,
-                        },
+                        &AlterPartitionReassignmentsResponse::new(0, None, results),
                     )
                     .unwrap();
                 }

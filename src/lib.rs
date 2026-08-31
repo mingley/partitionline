@@ -1614,7 +1614,8 @@
 //! plus each partition-level code, including `NONE`).
 //! [`protocol::admin::AlterPartitionReassignmentsResponse::should_client_throttle`]
 //! is Java `AlterPartitionReassignmentsResponse.shouldClientThrottle`
-//! (always).
+//! (always). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::AlterPartitionReassignmentsResponse::new`] fills `0`.
 //! [`Admin::list_partition_reassignments_timeout`] is Java
 //! `ListPartitionReassignmentsOptions.timeoutMs`.
 //! [`Admin::list_partition_reassignments_all`] is Java
