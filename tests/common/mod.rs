@@ -5770,7 +5770,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.sync_group_calls = st.sync_group_calls.saturating_add(1);
                     st.last_sync_group_version = Some(header.api_version);
                 }
-                let (gid, member_id, assignments) =
+                let (gid, member_id, assignments, ..) =
                     decode_sync_group_request(&mut frame, header.api_version).unwrap();
                 let notify = state.lock().assign_notify.clone();
                 if !assignments.is_empty() {
