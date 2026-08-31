@@ -75,6 +75,31 @@ impl ConsumerGroupHeartbeatRequest {
     /// `Builder.build` rejects SubscribedTopicRegex on v0.
     pub const REGEX_RESOLUTION_NOT_SUPPORTED_MSG: &'static str = "The cluster does not support regular expressions resolution on ConsumerGroupHeartbeat API version 0. It must be upgraded to use ConsumerGroupHeartbeat API version >= 1 to allow to subscribe to a SubscriptionPattern.";
 
+    /// Java `ConsumerGroupHeartbeatRequest.getErrorResponse`.
+    ///
+    /// ThrottleTimeMs is `throttle_time_ms`. ErrorCode is `error_code`.
+    /// Other fields stay at JSON defaults (ErrorMessage / MemberId null,
+    /// MemberEpoch `0`, HeartbeatIntervalMs `0`, Assignment null). Encode
+    /// still writes the struct fields independently. This crate speaks
+    /// 0–1. This is not [`ConsumerGroupHeartbeatResponse::error_counts`] /
+    /// ShareGroupHeartbeat / ShareFetch / ShareAcknowledge
+    /// getErrorResponse.
+    #[must_use]
+    pub fn error_response(
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> ConsumerGroupHeartbeatResponse {
+        ConsumerGroupHeartbeatResponse {
+            throttle_time_ms,
+            error_code,
+            error_message: None,
+            member_id: None,
+            member_epoch: 0,
+            heartbeat_interval_ms: 0,
+            assignment: None,
+        }
+    }
+
     /// Java `ConsumerMembershipManager.leaveGroupEpoch`.
     ///
     /// `Some` (including empty) is a static member (`Optional.isPresent`).
@@ -734,6 +759,68 @@ mod tests {
             &with_buf[..],
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ConsumerGroupHeartbeat response matches v0"
+        );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_request_error_response_matches_java() {
+        // Java 4.0 ConsumerGroupHeartbeatRequest.getErrorResponse:
+        // ThrottleTimeMs from the argument, ErrorCode from the exception,
+        // other fields at JSON defaults. Official Java
+        // ConsumerGroupHeartbeatRequest.getErrorResponse. Encode still
+        // writes the struct fields independently. This crate speaks 0-1.
+        // This is not errorCounts / ShareGroupHeartbeat /
+        // ShareFetch / ShareAcknowledge getErrorResponse.
+        let err = ConsumerGroupHeartbeatRequest::error_response(16, 3_600_000);
+        assert_eq!(err.throttle_time_ms, 3_600_000);
+        assert_eq!(err.error_code, 16);
+        assert!(err.error_message.is_none());
+        assert!(err.member_id.is_none());
+        assert_eq!(err.member_epoch, 0);
+        assert_eq!(err.heartbeat_interval_ms, 0);
+        assert!(err.assignment.is_none());
+        assert_eq!(
+            ConsumerGroupHeartbeatRequest::error_response(0, 0),
+            ConsumerGroupHeartbeatResponse {
+                throttle_time_ms: 0,
+                error_code: 0,
+                error_message: None,
+                member_id: None,
+                member_epoch: 0,
+                heartbeat_interval_ms: 0,
+                assignment: None,
+            }
+        );
+        leftover_consumer_group_heartbeat_error_response(0, &err);
+        leftover_consumer_group_heartbeat_error_response(
+            0,
+            &ConsumerGroupHeartbeatRequest::error_response(0, 0),
+        );
+        leftover_consumer_group_heartbeat_error_response(1, &err);
+        leftover_consumer_group_heartbeat_error_response(
+            1,
+            &ConsumerGroupHeartbeatRequest::error_response(0, 0),
+        );
+    }
+
+    fn leftover_consumer_group_heartbeat_error_response(
+        version: i16,
+        resp: &ConsumerGroupHeartbeatResponse,
+    ) {
+        let mut buf = BytesMut::new();
+        encode_consumer_group_heartbeat_response(&mut buf, version, resp).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_consumer_group_heartbeat_response(&mut cur, version).unwrap();
+        assert_eq!(got, *resp);
+        let empty = if resp.error_code == 0 && resp.throttle_time_ms == 0 {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ConsumerGroupHeartbeat v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
