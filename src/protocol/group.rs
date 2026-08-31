@@ -1,7 +1,7 @@
 //! Consumer group codecs: FindCoordinator, Join/Sync/Heartbeat/Leave,
 //! OffsetCommit/OffsetFetch, OffsetDelete, and ConsumerProtocol assignment.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -2919,6 +2919,84 @@ impl OffsetFetchRequest {
             return Ok(false);
         }
         Ok(require_stable)
+    }
+
+    /// Java `OffsetFetchRequest.getErrorResponse`.
+    ///
+    /// v1 fills each request partition via [`FetchedOffset::error`]
+    /// (`INVALID_OFFSET` / `NO_METADATA`); duplicate `(topic, partition)`
+    /// keys are unique (Java `HashMap.put`). Null Topics is
+    /// [`Error::protocol`] (Java `NullPointerException`). v2–v7 omit
+    /// partitions (top-level ErrorCode). Below v8 is the
+    /// [`Self::groups`] singleton (extra groups dropped). v8+ is one empty
+    /// Topics group per unique GroupId; duplicate ids keep the first
+    /// (Java `HashMap.put` values are the same error). Distinct from
+    /// [`OffsetFetchGroup::error_results`], which keeps duplicate ids, and
+    /// from [`OffsetFetchTopic::error_result`], which keeps duplicate
+    /// partitions. Throttle is the JSON default (`0`).
+    pub fn error_response(
+        version: i16,
+        groups: &[OffsetFetchGroup],
+        error_code: i16,
+    ) -> Result<Vec<OffsetFetchGroupResult>> {
+        if version >= 8 {
+            let mut order = Vec::new();
+            let mut seen = HashSet::new();
+            for group in groups {
+                if seen.insert(group.group_id.clone()) {
+                    order.push(group.group_id.clone());
+                }
+            }
+            return Ok(order
+                .into_iter()
+                .map(|group_id| OffsetFetchGroupResult::error(group_id, error_code))
+                .collect());
+        }
+        let rewritten = Self::groups(version, groups);
+        let Some(group) = rewritten.first() else {
+            return Ok(Vec::new());
+        };
+        if version < 2 {
+            let Some(topics) = group.topics.as_deref() else {
+                return Err(Error::protocol(format!(
+                    "null Topics for OffsetFetch v{version} getErrorResponse"
+                )));
+            };
+            let mut order = Vec::new();
+            let mut by_topic: HashMap<String, Vec<FetchedOffset>> = HashMap::new();
+            let mut seen = HashSet::new();
+            for topic in topics {
+                for &partition in &topic.partitions {
+                    if !seen.insert((topic.topic.clone(), partition)) {
+                        continue;
+                    }
+                    by_topic
+                        .entry(topic.topic.clone())
+                        .or_insert_with(|| {
+                            order.push(topic.topic.clone());
+                            Vec::new()
+                        })
+                        .push(FetchedOffset::error(partition, error_code));
+                }
+            }
+            let topics = order
+                .into_iter()
+                .filter_map(|topic| {
+                    by_topic
+                        .remove(&topic)
+                        .map(|partitions| FetchedOffsetTopic { topic, partitions })
+                })
+                .collect();
+            return Ok(vec![OffsetFetchGroupResult {
+                group_id: group.group_id.clone(),
+                topics,
+                error_code,
+            }]);
+        }
+        Ok(vec![OffsetFetchGroupResult::error(
+            group.group_id.clone(),
+            error_code,
+        )])
     }
 
     fn topic_partitions(topics: &[OffsetFetchTopic]) -> Vec<(String, i32)> {
@@ -8311,6 +8389,170 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "OffsetFetch v{version} isAllPartitionsForGroup empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn offset_fetch_request_error_response_matches_java() {
+        // Java OffsetFetchRequest.getErrorResponse: v1 fills unique
+        // partitions from data.topics() (null is NPE). v2–v7 omit
+        // partitions. Below v8 is the groups() singleton. v8+ unique
+        // GroupId (HashMap.put); error_results keeps duplicates.
+        let named = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+        let all = OffsetFetchGroup::new("g", None);
+        let extra = OffsetFetchGroup::new("h", None);
+        let null_v1 =
+            OffsetFetchRequest::error_response(1, std::slice::from_ref(&all), 16).unwrap_err();
+        assert!(
+            null_v1.to_string().contains("null Topics"),
+            "v1 null Topics is Java NullPointerException, got {null_v1}"
+        );
+
+        let v1 = OffsetFetchRequest::error_response(1, std::slice::from_ref(&named), 16).unwrap();
+        assert_eq!(
+            v1,
+            vec![OffsetFetchGroupResult {
+                group_id: "g".into(),
+                topics: vec![FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::error(0, 16)],
+                }],
+                error_code: 16,
+            }]
+        );
+        let dup_part = OffsetFetchTopic {
+            topic: "t".into(),
+            partitions: vec![0, 0, 1],
+        };
+        let v1_dup = OffsetFetchRequest::error_response(
+            1,
+            std::slice::from_ref(&OffsetFetchGroup::new("g", Some(vec![dup_part.clone()]))),
+            16,
+        )
+        .unwrap();
+        assert_eq!(
+            v1_dup.first().map(|g| g.topics.as_slice()),
+            Some(
+                [FetchedOffsetTopic {
+                    topic: "t".into(),
+                    partitions: vec![FetchedOffset::error(0, 16), FetchedOffset::error(1, 16)],
+                }]
+                .as_slice()
+            ),
+            "v1 duplicate (topic, partition) is unique"
+        );
+        assert_eq!(
+            OffsetFetchTopic {
+                topic: "t".into(),
+                partitions: vec![0, 0, 1],
+            }
+            .error_result(1, 16)
+            .partitions
+            .len(),
+            3,
+            "error_result keeps duplicate partitions"
+        );
+        let v1_drop =
+            OffsetFetchRequest::error_response(1, &[named.clone(), extra.clone()], 16).unwrap();
+        assert_eq!(v1_drop.len(), 1, "below v8 extra groups are dropped");
+
+        let v2 = OffsetFetchRequest::error_response(2, std::slice::from_ref(&named), 16).unwrap();
+        assert_eq!(v2, vec![OffsetFetchGroupResult::error("g", 16)]);
+        assert!(v2.first().is_some_and(|g| g.topics.is_empty()));
+        let v2_all = OffsetFetchRequest::error_response(2, std::slice::from_ref(&all), 16).unwrap();
+        assert_eq!(v2_all, vec![OffsetFetchGroupResult::error("g", 16)]);
+
+        let v8 =
+            OffsetFetchRequest::error_response(8, &[named.clone(), extra.clone()], 16).unwrap();
+        assert_eq!(
+            v8,
+            vec![
+                OffsetFetchGroupResult::error("g", 16),
+                OffsetFetchGroupResult::error("h", 16),
+            ]
+        );
+        let dup_id =
+            OffsetFetchRequest::error_response(8, &[named.clone(), all.clone()], 16).unwrap();
+        assert_eq!(
+            dup_id,
+            vec![OffsetFetchGroupResult::error("g", 16)],
+            "v8+ duplicate GroupId is unique"
+        );
+        assert_eq!(
+            OffsetFetchGroup::error_results(&[named.clone(), all.clone()], 16).len(),
+            2,
+            "error_results keeps duplicate ids"
+        );
+        assert!(OffsetFetchRequest::error_response(8, &[], 16)
+            .unwrap()
+            .is_empty());
+
+        for version in [1_i16, 2, 7] {
+            let got = OffsetFetchRequest::error_response(version, std::slice::from_ref(&named), 16)
+                .unwrap();
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            if version < 2 {
+                assert_eq!(
+                    decoded.first().map(|g| g.topics.as_slice()),
+                    got.first().map(|g| g.topics.as_slice())
+                );
+                assert_eq!(
+                    decoded.first().map(|g| g.error_code),
+                    Some(0),
+                    "v1 has no top-level ErrorCode on the wire"
+                );
+            } else {
+                assert_eq!(
+                    decoded.first().map(|g| g.error_code),
+                    got.first().map(|g| g.error_code)
+                );
+                assert!(
+                    decoded.first().is_some_and(|g| g.topics.is_empty()),
+                    "v2–v7 omit partitions"
+                );
+                assert_eq!(
+                    decoded.first().map(|g| g.group_id.as_str()),
+                    Some(""),
+                    "v1–v7 have no Groups on the wire"
+                );
+            }
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Request.getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [8_i16, 9] {
+            let got =
+                OffsetFetchRequest::error_response(version, &[named.clone(), extra.clone()], 16)
+                    .unwrap();
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, got);
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Request.getErrorResponse leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [8_i16, 9] {
+            let got = OffsetFetchRequest::error_response(version, &[], 16).unwrap();
+            assert!(got.is_empty());
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
+            let mut cur = buf.as_ref();
+            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "OffsetFetch v{version} Request.getErrorResponse empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }

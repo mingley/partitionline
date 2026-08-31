@@ -207,8 +207,12 @@
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
 //! `OffsetFetchRequest.getErrorResponse` one group / Groups on v8+
-//! (empty Topics; request partitions are not copied). Throttle is the
-//! JSON default (`0`)),
+//! (empty Topics; request partitions are not copied);
+//! [`protocol::group::OffsetFetchRequest::error_response`] is Java
+//! `OffsetFetchRequest.getErrorResponse` (v1 fills unique partitions;
+//! null Topics is [`Error::protocol`]; v2–v7 omit partitions; below v8
+//! is the `groups` singleton; v8+ unique GroupId; `error_results` keeps
+//! duplicate ids). Throttle is the JSON default (`0`)),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
 //! [`protocol::group::HeartbeatRequest::build`] is Java
 //! `HeartbeatRequest.Builder.build` (a present `group.instance.id`
