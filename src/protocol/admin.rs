@@ -16107,6 +16107,17 @@ impl ExpireDelegationTokenResponse {
         HashMap::from([(self.error_code, 1)])
     }
 
+    /// Java `ExpireDelegationTokenResponse.hasError`.
+    ///
+    /// `error() != NONE`. Java `error()` is `Errors.forCode` only
+    /// (identity on i16; not mapped). This is not [`Self::error_counts`]
+    /// / getErrorResponse / Create / Renew / DescribeDelegationToken
+    /// `hasError`.
+    #[must_use]
+    pub const fn has_error(&self) -> bool {
+        self.error_code != 0
+    }
+
     /// Kafka error code (`0` is success).
     #[must_use]
     pub fn error_code(&self) -> i16 {
@@ -32811,6 +32822,55 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn expire_delegation_token_response_has_error_matches_java() {
+        // Java 4.0 ExpireDelegationTokenResponse.hasError is
+        // error() != Errors.NONE. Official Java
+        // ExpireDelegationTokenResponse.hasError. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). This crate
+        // speaks 1-2. This is not errorCounts / getErrorResponse /
+        // CreateDelegationToken hasError / RenewDelegationToken
+        // hasError / DescribeDelegationToken hasError.
+        assert!(
+            !ExpireDelegationTokenResponse::new(0, 1_700_000_000_000).has_error(),
+            "NONE is not hasError"
+        );
+        let full = ExpireDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_EXPIRED,
+            1_700_000_000_000,
+        );
+        assert!(full.has_error());
+        for version in 1..=2_i16 {
+            let mut resp = BytesMut::new();
+            encode_expire_delegation_token_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_expire_delegation_token_response(&mut cur, version).unwrap();
+            assert!(
+                decoded.has_error(),
+                "ExpireDelegationToken v{version} hasError must follow the decoded ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "ExpireDelegationToken v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        let mut none_buf = BytesMut::new();
+        encode_expire_delegation_token_response(
+            &mut none_buf,
+            1,
+            &ExpireDelegationTokenResponse::new(0, 1_700_000_000_000),
+        )
+        .unwrap();
+        let mut err_buf = BytesMut::new();
+        encode_expire_delegation_token_response(&mut err_buf, 1, &full).unwrap();
+        assert_ne!(
+            &none_buf[..],
+            &err_buf[..],
+            "v1 ErrorCode is not always NONE"
+        );
     }
 
     #[test]

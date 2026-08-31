@@ -927,6 +927,8 @@
 //! [`protocol::admin::ExpireDelegationTokenResponse::error_counts`] is Java
 //! `ExpireDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::ExpireDelegationTokenResponse::has_error`] is Java
+//! `ExpireDelegationTokenResponse.hasError` (`error() != NONE`);
 //! [`protocol::admin::ExpireDelegationTokenRequest::error_response`] is Java
 //! `ExpireDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON
 //! default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`)),
