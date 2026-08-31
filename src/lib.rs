@@ -720,6 +720,10 @@
 //! `FetchResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`). Crate decode currently
 //! discards the top-level code; crate encode writes `0`.
+//! [`protocol::fetch::FetchResponse::to_message`] is Java
+//! `FetchResponse.toMessage` Responses (consecutive `matchingTopic`:
+//! non-zero `topic_id` matches by id, else by name; key partition
+//! overwrites the body).
 //! [`protocol::fetch::DEFAULT_RESPONSE_MAX_BYTES`] /
 //! [`protocol::fetch::is_from_follower`] are Java
 //! `FetchRequest.DEFAULT_RESPONSE_MAX_BYTES` / `isFromFollower`.

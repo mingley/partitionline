@@ -416,6 +416,42 @@ impl FetchResponse {
         }
         counts
     }
+
+    /// Java `FetchResponse.toMessage` Responses grouping used by public `of`.
+    ///
+    /// `entries` are `(topic_id, topic, partition)` plus a body. Java
+    /// `setPartitionIndex` copies the key partition onto each body.
+    /// Consecutive entries batch into one topic when `matchingTopic`: a
+    /// non-zero previous `topic_id` matches by id; otherwise the previous
+    /// name matches. A later entry for the same topic after a different
+    /// topic starts a new group (unlike ShareFetch `LinkedHashMap` by
+    /// id). Throttle, top-level error, session id, and NodeEndpoints
+    /// stay with crate encode (`0` / empty).
+    #[must_use]
+    pub fn to_message(entries: &[([u8; 16], &str, i32, FetchedPartition)]) -> Vec<FetchedTopic> {
+        let mut topics: Vec<FetchedTopic> = Vec::new();
+        for (topic_id, topic, partition, body) in entries {
+            let mut body = body.clone();
+            body.partition = *partition;
+            if let Some(prev) = topics.last_mut() {
+                let matches = if prev.topic_id != [0u8; 16] {
+                    prev.topic_id == *topic_id
+                } else {
+                    prev.topic == *topic
+                };
+                if matches {
+                    prev.partitions.push(body);
+                    continue;
+                }
+            }
+            topics.push(FetchedTopic {
+                topic: (*topic).to_string(),
+                topic_id: *topic_id,
+                partitions: vec![body],
+            });
+        }
+        topics
+    }
 }
 
 /// One topic in a Fetch response.
@@ -1221,6 +1257,106 @@ mod tests {
         assert_eq!(
             same,
             HashMap::from([(crate::error::NOT_LEADER_OR_FOLLOWER, 2)])
+        );
+    }
+
+    #[test]
+    fn fetch_response_to_message_matches_java() {
+        // Java FetchResponse.toMessage: consecutive matchingTopic only
+        // (non-zero previous topicId matches by id, else by name).
+        // Non-adjacent same topic starts a new group (unlike ShareFetch).
+        assert!(FetchResponse::to_message(&[]).is_empty());
+        let a = [1u8; 16];
+        let b = [2u8; 16];
+        let z = [0u8; 16];
+        let body0 = FetchedPartition::partition_response(99, 0);
+        let body1 =
+            FetchedPartition::partition_response(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let body2 = FetchedPartition::partition_response(2, 0);
+        let grouped = FetchResponse::to_message(&[
+            (a, "alpha", 0, body0.clone()),
+            (b, "beta", 1, body1.clone()),
+            (a, "alpha", 3, body2.clone()),
+        ]);
+        assert_eq!(grouped.len(), 3, "non-adjacent same topicId stays split");
+        let first = grouped.first().expect("first topic");
+        assert_eq!(first.topic, "alpha");
+        assert_eq!(first.topic_id, a);
+        assert_eq!(first.partitions.len(), 1);
+        assert_eq!(
+            first.partitions.first().map(|part| part.partition),
+            Some(0),
+            "setPartitionIndex copies the key partition onto the body"
+        );
+        assert_eq!(body0.partition, 99);
+        let second = grouped.get(1).expect("second topic");
+        assert_eq!(second.topic, "beta");
+        assert_eq!(second.topic_id, b);
+        assert_eq!(
+            second.partitions.first().map(|part| part.error_code),
+            Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+        let third = grouped.get(2).expect("third topic");
+        assert_eq!(third.topic, "alpha");
+        assert_eq!(third.topic_id, a);
+        assert_eq!(third.partitions.first().map(|part| part.partition), Some(3));
+        let consecutive = FetchResponse::to_message(&[
+            (a, "alpha", 0, body0.clone()),
+            (a, "other", 2, body2.clone()),
+        ]);
+        assert_eq!(consecutive.len(), 1, "non-zero topicId matches by id");
+        let only = consecutive.first().expect("one topic");
+        assert_eq!(only.topic, "alpha");
+        assert_eq!(only.partitions.len(), 2);
+        assert_eq!(only.partitions.get(1).map(|part| part.partition), Some(2));
+        let by_name = FetchResponse::to_message(&[
+            (z, "t", 0, body0.clone()),
+            (a, "t", 4, body2.clone()),
+            (z, "u", 5, body1.clone()),
+        ]);
+        assert_eq!(by_name.len(), 2, "zero previous topicId matches by name");
+        let named_t = by_name.first().expect("t");
+        assert_eq!(named_t.topic, "t");
+        assert_eq!(named_t.topic_id, z);
+        assert_eq!(named_t.partitions.len(), 2);
+        assert_eq!(
+            named_t.partitions.get(1).map(|part| part.partition),
+            Some(4)
+        );
+        let named_u = by_name.get(1).expect("u");
+        assert_eq!(named_u.topic, "u");
+        assert_eq!(named_u.partitions.len(), 1);
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 11, &by_name).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 11).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v11 toMessage leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        assert_eq!(decoded.len(), 2);
+        assert_eq!(decoded.first().map(|topic| topic.topic.as_str()), Some("t"));
+        assert_eq!(decoded.get(1).map(|topic| topic.topic.as_str()), Some("u"));
+        buf.clear();
+        encode_fetch_response(&mut buf, 13, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v13 toMessage leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        assert_eq!(decoded.len(), 3);
+        assert_eq!(decoded.first().map(|topic| topic.topic_id), Some(a));
+        assert_eq!(decoded.get(1).map(|topic| topic.topic_id), Some(b));
+        assert_eq!(decoded.get(2).map(|topic| topic.topic_id), Some(a));
+        assert_eq!(
+            decoded
+                .get(2)
+                .and_then(|topic| topic.partitions.first())
+                .map(|part| part.partition),
+            Some(3)
         );
     }
 
