@@ -657,9 +657,11 @@
 //! `FetchRequest.getErrorResponse` (one topic; v13 and later omit partitions).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
+//! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
 //! [`protocol::fetch::FetchedPartition::is_diverging_epoch`] are Java
 //! `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
-//! `isDivergingEpoch`.
+//! `divergingEpoch` / `isDivergingEpoch` (`None` is empty `Optional`;
+//! epoch `< 0` is empty);
 //! [`protocol::fetch::FetchedPartition::records_size`] is Java
 //! `FetchResponse.recordsSize` (`0` when records are empty);
 //! [`protocol::fetch::FetchResponse::should_client_throttle`] is Java

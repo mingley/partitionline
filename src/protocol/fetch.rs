@@ -227,8 +227,9 @@ impl FetchTopic {
 /// are Java `FetchResponse` sentinels (`-1`).
 /// [`Self::partition_response`] is Java `FetchResponse.partitionResponse`.
 /// [`Self::preferred_read_replica()`] / [`Self::is_preferred_replica`] /
-/// [`Self::is_diverging_epoch`] are Java `FetchResponse.preferredReadReplica`
-/// / `isPreferredReplica` / `isDivergingEpoch`. Omitted v12+
+/// [`Self::diverging_epoch()`] / [`Self::is_diverging_epoch`] are Java
+/// `FetchResponse.preferredReadReplica` / `isPreferredReplica` /
+/// `divergingEpoch` / `isDivergingEpoch`. Omitted v12+
 /// CurrentLeader fills [`MetadataResponse::NO_LEADER_ID`] /
 /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; omitted DivergingEpoch fills
 /// [`EpochEndOffset::UNDEFINED_EPOCH`] /
@@ -313,10 +314,19 @@ impl FetchedPartition {
         self.preferred_read_replica().is_some()
     }
 
+    /// Java `FetchResponse.divergingEpoch` (`None` is empty `Optional`).
+    ///
+    /// Epoch `< 0` is empty (JSON default [`EpochEndOffset::UNDEFINED_EPOCH`]).
+    /// The pair is `(epoch, end_offset)`.
+    #[must_use]
+    pub fn diverging_epoch(&self) -> Option<(i32, i64)> {
+        (self.diverging_epoch >= 0).then_some((self.diverging_epoch, self.diverging_end_offset))
+    }
+
     /// Java `FetchResponse.isDivergingEpoch`.
     #[must_use]
     pub fn is_diverging_epoch(&self) -> bool {
-        self.diverging_epoch >= 0
+        self.diverging_epoch().is_some()
     }
 
     /// Java `FetchResponse.recordsSize`.
@@ -875,6 +885,7 @@ mod tests {
         assert!(none.records.is_empty());
         assert_eq!(none.preferred_read_replica(), None);
         assert!(!none.is_preferred_replica());
+        assert_eq!(none.diverging_epoch(), None);
         assert!(!none.is_diverging_epoch());
         assert_eq!(none.records_size().unwrap(), 0);
         let unknown =
@@ -953,6 +964,8 @@ mod tests {
         assert_eq!(pref.preferred_read_replica(), Some(2));
         assert!(pref.is_preferred_replica());
         pref.diverging_epoch = 3;
+        pref.diverging_end_offset = 12;
+        assert_eq!(pref.diverging_epoch(), Some((3, 12)));
         assert!(pref.is_diverging_epoch());
     }
 
@@ -1971,6 +1984,8 @@ mod tests {
         let (got, endpoints) = decode_fetch_response(&mut cur, 16).unwrap();
         assert_eq!(got[0].partitions[0].diverging_epoch, 3);
         assert_eq!(got[0].partitions[0].diverging_end_offset, 12);
+        assert_eq!(got[0].partitions[0].diverging_epoch(), Some((3, 12)));
+        assert!(got[0].partitions[0].is_diverging_epoch());
         assert_eq!(
             got[0].partitions[0].current_leader_id,
             MetadataResponse::NO_LEADER_ID
