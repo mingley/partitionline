@@ -3313,6 +3313,7 @@ fn encode_not_coordinator(api_key: i16, api_version: i16, body: &mut BytesMut) {
             body,
             api_version,
             &ShareGroupHeartbeatResponse {
+                throttle_time_ms: 0,
                 error_code: NC,
                 error_message: None,
                 member_id: None,
@@ -5453,6 +5454,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     &mut body,
                     version,
                     &ShareGroupHeartbeatResponse {
+                        throttle_time_ms: 0,
                         error_code: 0,
                         error_message: None,
                         member_id: Some(member_id),

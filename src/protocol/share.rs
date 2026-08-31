@@ -62,6 +62,8 @@ impl ShareGroupHeartbeatRequest {
 /// ShareGroupHeartbeat response.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareGroupHeartbeatResponse {
+    /// ShareGroupHeartbeat `ThrottleTimeMs` (JSON `0+`). JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// Broker error message.
@@ -727,13 +729,16 @@ pub fn decode_share_group_heartbeat_request<B: Buf>(
 }
 
 /// Encode a flexible ShareGroupHeartbeat response (v0–v1). Same fields.
+///
+/// ThrottleTimeMs is JSON `0+` (from [`ShareGroupHeartbeatResponse::throttle_time_ms`];
+/// JSON default `0`).
 pub fn encode_share_group_heartbeat_response(
     buf: &mut BytesMut,
     version: i16,
     resp: &ShareGroupHeartbeatResponse,
 ) -> crate::error::Result<()> {
     let flexible = share_group_heartbeat_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf::put_string(buf, flexible, resp.error_message.as_deref())?;
     buf::put_string(buf, flexible, resp.member_id.as_deref())?;
@@ -766,12 +771,14 @@ pub fn encode_share_group_heartbeat_response(
 }
 
 /// Decode a flexible ShareGroupHeartbeat response (v0–v1).
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire).
 pub fn decode_share_group_heartbeat_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<ShareGroupHeartbeatResponse> {
     let flexible = share_group_heartbeat_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_string(buf, flexible)?;
     let member_id = buf::get_string(buf, flexible)?;
@@ -807,6 +814,7 @@ pub fn decode_share_group_heartbeat_response<B: Buf>(
         buf::skip_tagged_fields(buf)?;
     }
     Ok(ShareGroupHeartbeatResponse {
+        throttle_time_ms,
         error_code,
         error_message,
         member_id,
@@ -1793,6 +1801,7 @@ mod tests {
         assert_eq!(decoded.subscribed_topic_names, Some(vec!["t".into()]));
 
         let resp = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             member_id: Some("m1".into()),
@@ -1871,6 +1880,7 @@ mod tests {
         assert_eq!(ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH, 0);
 
         let resp = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
             error_code: 0,
             error_message: None,
             member_id: Some("m1".into()),
@@ -1894,6 +1904,65 @@ mod tests {
         assert!(
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn share_group_heartbeat_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareGroupHeartbeatResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on every spoken version). Official Java
+        // ShareGroupHeartbeatRequest.getErrorResponse /
+        // ShareGroupHeartbeatResponse.throttleTimeMs set / read it.
+        // Encode writes ShareGroupHeartbeatResponse.throttle_time_ms
+        // (JSON default 0). v0 and v1 bodies match. This is not
+        // ShareFetch / ShareAcknowledge ThrottleTimeMs.
+        let zero = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        let with = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 3_600_000,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: None,
+        };
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_heartbeat_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_share_group_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ShareGroupHeartbeat v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_buf = BytesMut::new();
+        encode_share_group_heartbeat_response(&mut with_buf, 0, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_share_group_heartbeat_response(&mut zero_buf, 0, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_group_heartbeat_response(&mut v1_with, 1, &with).unwrap();
+        assert_eq!(
+            &with_buf[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareGroupHeartbeat has no AcquisitionLockTimeoutMs"
         );
     }
 
