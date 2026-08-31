@@ -2441,6 +2441,51 @@ impl OffsetFetchResponse {
             groups.first().map(|g| g.topics.as_slice()).unwrap_or(&[]),
         ))
     }
+
+    /// Java `OffsetFetchResponse` constructor from a group list and version.
+    ///
+    /// v8+ returns `groups` as-is. Below v8 Java requires exactly one
+    /// group (`UnsupportedVersionException` otherwise) and copies that
+    /// group's Topics. On versions before 2, a non-NONE group error
+    /// replaces every partition body with [`FetchedOffset::INVALID_OFFSET`]
+    /// / [`FetchedOffset::NO_METADATA`] /
+    /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] and that group error
+    /// (those versions have no top-level error field).
+    pub fn from_groups(
+        version: i16,
+        groups: &[OffsetFetchGroupResult],
+    ) -> Result<Vec<OffsetFetchGroupResult>> {
+        if version >= 8 {
+            return Ok(groups.to_vec());
+        }
+        let [group] = groups else {
+            return Err(Error::Unsupported(format!(
+                "Version {version} of OffsetFetchResponse only supports one group."
+            )));
+        };
+        if version < 2 && group.error_code != 0 {
+            let topics = group
+                .topics
+                .iter()
+                .map(|topic| FetchedOffsetTopic {
+                    topic: topic.topic.clone(),
+                    partitions: topic
+                        .partitions
+                        .iter()
+                        .map(|partition| {
+                            FetchedOffset::error(partition.partition, group.error_code)
+                        })
+                        .collect(),
+                })
+                .collect();
+            return Ok(vec![OffsetFetchGroupResult {
+                group_id: group.group_id.clone(),
+                topics,
+                error_code: group.error_code,
+            }]);
+        }
+        Ok(vec![group.clone()])
+    }
 }
 
 /// Topic + committed offsets from OffsetFetch v1–v9.
@@ -4741,6 +4786,113 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v8 partitionDataMap leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_from_groups_matches_java() {
+        // Java OffsetFetchResponse(List, short): v8+ keeps groups. Below
+        // v8 requires exactly one group (UnsupportedVersionException).
+        // v1 with a non-NONE group error rewrites every partition body
+        // (no top-level error field).
+        let empty = OffsetFetchResponse::from_groups(7, &[]).unwrap_err();
+        assert!(
+            matches!(empty, Error::Unsupported(_)),
+            "empty groups below v8 is Java UnsupportedVersionException, got {empty}"
+        );
+        assert!(
+            empty.to_string().contains("only supports one group"),
+            "got {empty}"
+        );
+        let two = [
+            OffsetFetchGroupResult {
+                group_id: "g".into(),
+                topics: Vec::new(),
+                error_code: 0,
+            },
+            OffsetFetchGroupResult {
+                group_id: "h".into(),
+                topics: Vec::new(),
+                error_code: 0,
+            },
+        ];
+        let two_err = OffsetFetchResponse::from_groups(7, &two).unwrap_err();
+        assert!(
+            matches!(two_err, Error::Unsupported(_)),
+            "two groups below v8 is Java UnsupportedVersionException, got {two_err}"
+        );
+        assert_eq!(OffsetFetchResponse::from_groups(8, &two).unwrap(), two);
+        let partition = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        let v1_err = [OffsetFetchGroupResult {
+            group_id: String::new(),
+            topics: vec![FetchedOffsetTopic {
+                topic: "t".into(),
+                partitions: vec![partition.clone()],
+            }],
+            error_code: crate::error::NOT_COORDINATOR,
+        }];
+        let rewritten = OffsetFetchResponse::from_groups(1, &v1_err).unwrap();
+        let rewritten_part = rewritten
+            .first()
+            .and_then(|g| g.topics.first())
+            .and_then(|t| t.partitions.first())
+            .expect("rewritten partition");
+        assert_eq!(
+            rewritten_part,
+            &FetchedOffset::error(0, crate::error::NOT_COORDINATOR)
+        );
+        assert_eq!(
+            rewritten.first().map(|g| g.error_code),
+            Some(crate::error::NOT_COORDINATOR)
+        );
+        let v2_err = OffsetFetchResponse::from_groups(2, &v1_err).unwrap();
+        assert_eq!(
+            v2_err, v1_err,
+            "v2+ copies partitions when the group has an error"
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 1, &rewritten).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 1).unwrap();
+        assert_eq!(
+            decoded.first().map(|g| g.topics.as_slice()),
+            rewritten.first().map(|g| g.topics.as_slice())
+        );
+        assert_eq!(
+            decoded.first().map(|g| g.error_code),
+            Some(0),
+            "v1 wire has no top-level error"
+        );
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v1 from_groups leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 2, &v2_err).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        assert_eq!(decoded, v2_err);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v2 from_groups leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 8, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, OffsetFetchResponse::from_groups(8, &two).unwrap());
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v8 from_groups leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

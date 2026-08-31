@@ -157,6 +157,10 @@
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
 //! partition overwrites);
+//! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
+//! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
+//! v8 exactly one group; v1 rewrites partitions when the group has an
+//! error);
 //! [`protocol::group::OffsetFetchGroup::error_result`] /
 //! [`protocol::group::OffsetFetchGroup::error_results`] /
 //! [`protocol::group::OffsetFetchGroupResult::error`] are Java
@@ -862,6 +866,10 @@
 //! `OffsetFetchResponse.partitionDataMap` (v1–v7 ignore `group_id`; v8+
 //! first matching group; missing group is [`Error::protocol`]; a later
 //! partition overwrites).
+//! [`protocol::group::OffsetFetchResponse::from_groups`] is Java
+//! `OffsetFetchResponse` constructor from a group list (v8+ as-is; below
+//! v8 exactly one group; v1 rewrites partitions when the group has an
+//! error).
 //! [`OffsetAndMetadata::NO_METADATA`] /
 //! [`OffsetAndMetadata::INVALID_OFFSET`] are the client-type copies (assign
 //! uses that sentinel when OffsetFetch omits a partition, then
