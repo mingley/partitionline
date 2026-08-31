@@ -537,7 +537,8 @@
 //! `ShareAcknowledgeRequest.Builder.forConsumer` Topics (group by topic
 //! id; first-seen id and partition order; duplicate `(id, partition)`
 //! replaces the batches)),
-//! ConsumerGroupDescribe v0–v1 (v1 MemberType; FindCoordinator v4+ CoordinatorKeys of N;
+//! ConsumerGroupDescribe v0–v1 (v1 MemberType; ThrottleTimeMs is JSON `0+`;
+//! FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::ConsumerGroupDescribeRequest::error_described_group_list`] is Java
 //! `ConsumerGroupDescribeRequest.getErrorDescribedGroupList` (each id through
 //! [`DescribedConsumerGroup::new`]);

@@ -11274,7 +11274,7 @@ impl Admin {
             )
             .await
         }?;
-        let results = decode_consumer_group_describe_response(&mut body.clone(), version)?;
+        let (results, ..) = decode_consumer_group_describe_response(&mut body.clone(), version)?;
         let mut by_id: HashMap<String, VecDeque<DescribedConsumerGroup>> = HashMap::new();
         for g in results {
             by_id.entry(g.group_id.clone()).or_default().push_back(g);

@@ -8552,13 +8552,30 @@ fn decode_consumer_group_member<B: Buf>(buf: &mut B, version: i16) -> Result<Con
 }
 
 /// Encode a ConsumerGroupDescribe response (v0–1). MemberType is v1+.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`).
 pub fn encode_consumer_group_describe_response(
     buf: &mut BytesMut,
     version: i16,
     groups: &[DescribedConsumerGroup],
 ) -> crate::error::Result<()> {
+    encode_consumer_group_describe_response_with_throttle(buf, version, groups, 0)
+}
+
+/// Encode ConsumerGroupDescribe v0–v1 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// Response v1 adds MemberType INT8 on each member. Empty-member
+/// bodies match v0.
+pub fn encode_consumer_group_describe_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[DescribedConsumerGroup],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     consumer_group_describe_spoken(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(groups.len()))?;
     for g in groups {
         buf.put_i16(g.error_code);
@@ -8580,12 +8597,15 @@ pub fn encode_consumer_group_describe_response(
 }
 
 /// Decode a ConsumerGroupDescribe response.
+///
+/// Returns `(groups, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). v0 fills each member `member_type` = `-1`.
 pub fn decode_consumer_group_describe_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DescribedConsumerGroup>> {
+) -> Result<(Vec<DescribedConsumerGroup>, i32)> {
     consumer_group_describe_spoken(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
@@ -8616,7 +8636,7 @@ pub fn decode_consumer_group_describe_response<B: Buf>(
         });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(groups)
+    Ok((groups, throttle_time_ms))
 }
 
 /// One member in a classic DescribeGroups (api 15) group.
@@ -22994,7 +23014,9 @@ mod tests {
         encode_consumer_group_describe_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_consumer_group_describe_response(&mut cur, 1).unwrap(),
+            decode_consumer_group_describe_response(&mut cur, 1)
+                .unwrap()
+                .0,
             resp
         );
         assert!(
@@ -23040,7 +23062,9 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_consumer_group_describe_response(&mut cur, 1).unwrap(),
+            decode_consumer_group_describe_response(&mut cur, 1)
+                .unwrap()
+                .0,
             resp
         );
         assert!(
@@ -23099,7 +23123,7 @@ mod tests {
             "v1 adds MemberType INT8 after TargetAssignment"
         );
         let mut cur = &v0[..];
-        let got = decode_consumer_group_describe_response(&mut cur, 0).unwrap();
+        let (got, ..) = decode_consumer_group_describe_response(&mut cur, 0).unwrap();
         assert!(
             !cur.has_remaining(),
             "ConsumerGroupDescribe v0 response must be leftover-empty"
@@ -23109,9 +23133,68 @@ mod tests {
             "v0 has no MemberType; decode fills -1"
         );
         let mut cur = &v1[..];
-        let got = decode_consumer_group_describe_response(&mut cur, 1).unwrap();
+        let (got, ..) = decode_consumer_group_describe_response(&mut cur, 1).unwrap();
         assert_eq!(got[0].members[0].member_type, 1);
         assert!(!cur.has_remaining());
+    }
+
+    #[test]
+    fn consumer_group_describe_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ConsumerGroupDescribeResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on every spoken version). Official Java
+        // ConsumerGroupDescribeRequest.getErrorResponse /
+        // ConsumerGroupDescribeResponse.throttleTimeMs set / read it.
+        // encode_consumer_group_describe_response still writes the JSON
+        // default 0. Empty-member error bodies match on v0 and v1
+        // (MemberType is v1+ on each member). This is not
+        // ShareGroupDescribe ThrottleTimeMs.
+        let groups = ConsumerGroupDescribeRequest::error_described_group_list(
+            ["g"],
+            crate::error::NOT_COORDINATOR,
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_consumer_group_describe_response_with_throttle(
+                &mut buf, version, &groups, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_consumer_group_describe_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, groups);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ConsumerGroupDescribe v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_consumer_group_describe_response_with_throttle(&mut with, 0, &groups, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_consumer_group_describe_response_with_throttle(&mut zero, 0, &groups, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_consumer_group_describe_response(&mut conv, 0, &groups).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_consumer_group_describe_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_consumer_group_describe_response_with_throttle(&mut v1_with, 1, &groups, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); empty-member ConsumerGroupDescribe response matches v0"
+        );
     }
 
     #[test]
