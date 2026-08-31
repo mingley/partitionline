@@ -10403,13 +10403,30 @@ fn decode_share_group_member<B: Buf>(buf: &mut B, flexible: bool) -> Result<Shar
 }
 
 /// Encode a ShareGroupDescribe response (`version` 0–1).
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). v0 and v1 bodies match.
 pub fn encode_share_group_describe_response(
     buf: &mut BytesMut,
     version: i16,
     groups: &[DescribedShareGroup],
 ) -> crate::error::Result<()> {
+    encode_share_group_describe_response_with_throttle(buf, version, groups, 0)
+}
+
+/// Encode ShareGroupDescribe v0–v1 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 is `"1"` (v0 removed).
+/// This crate speaks 0–1. v0 and v1 bodies match.
+pub fn encode_share_group_describe_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[DescribedShareGroup],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = share_group_describe_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(groups.len()))?;
     for g in groups {
         buf.put_i16(g.error_code);
@@ -10435,12 +10452,15 @@ pub fn encode_share_group_describe_response(
 }
 
 /// Decode a ShareGroupDescribe response (`version` 0–1).
+///
+/// Returns `(groups, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_share_group_describe_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DescribedShareGroup>> {
+) -> Result<(Vec<DescribedShareGroup>, i32)> {
     let flexible = share_group_describe_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut groups = Vec::with_capacity(n);
     for _ in 0..n {
@@ -10475,7 +10495,7 @@ pub fn decode_share_group_describe_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(groups)
+    Ok((groups, throttle_time_ms))
 }
 
 /// One requested topic in DescribeShareGroupOffsets (api 90).
@@ -24145,7 +24165,7 @@ mod tests {
         encode_share_group_describe_response(&mut buf, 1, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_describe_response(&mut cur, 1).unwrap(),
+            decode_share_group_describe_response(&mut cur, 1).unwrap().0,
             resp
         );
         assert!(
@@ -24197,7 +24217,7 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_share_group_describe_response(&mut cur, 1).unwrap(),
+            decode_share_group_describe_response(&mut cur, 1).unwrap().0,
             resp
         );
         assert!(
@@ -24247,7 +24267,7 @@ mod tests {
         assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 response bodies match");
         let mut cur = v0.as_ref();
         assert_eq!(
-            decode_share_group_describe_response(&mut cur, 0).unwrap(),
+            decode_share_group_describe_response(&mut cur, 0).unwrap().0,
             resp
         );
         assert!(!cur.has_remaining(), "v0 response leftover-empty");
@@ -24256,6 +24276,64 @@ mod tests {
         assert!(
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn share_group_describe_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareGroupDescribeResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on every spoken version). Official Java
+        // ShareGroupDescribeRequest.getErrorResponse /
+        // ShareGroupDescribeResponse.throttleTimeMs set / read it.
+        // encode_share_group_describe_response still writes the JSON
+        // default 0. v0 and v1 bodies match. This is not
+        // ConsumerGroupDescribe ThrottleTimeMs.
+        let groups = ShareGroupDescribeRequest::error_described_group_list(
+            ["g"],
+            crate::error::NOT_COORDINATOR,
+        );
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_group_describe_response_with_throttle(
+                &mut buf, version, &groups, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_share_group_describe_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, groups);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ShareGroupDescribe v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_group_describe_response_with_throttle(&mut with, 0, &groups, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_share_group_describe_response_with_throttle(&mut zero, 0, &groups, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_group_describe_response(&mut conv, 0, &groups).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_share_group_describe_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_group_describe_response_with_throttle(&mut v1_with, 1, &groups, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareGroupDescribe response matches v0"
         );
     }
 

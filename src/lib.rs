@@ -415,7 +415,8 @@
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
-//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields; FindCoordinator v4+ CoordinatorKeys of N;
+//! ShareGroupDescribe v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
+//! ThrottleTimeMs is JSON `0+`; FindCoordinator v4+ CoordinatorKeys of N;
 //! [`protocol::admin::ShareGroupDescribeRequest::error_described_group_list`] is Java
 //! `ShareGroupDescribeRequest.getErrorDescribedGroupList` (each id through
 //! [`DescribedShareGroup::new`]);
