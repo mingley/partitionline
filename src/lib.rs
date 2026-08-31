@@ -1077,7 +1077,10 @@
 //! Java `FeatureUpdate` constructor rejects maxVersionLevel 0 with
 //! `UpgradeType.UPGRADE` and a negative maxVersionLevel (checked at
 //! UpdateFeatures encode). [`FeatureUpdate::is_delete_request`] is Java
-//! `UpdateFeaturesRequest.FeatureUpdateItem.isDeleteRequest`. Java `SupportedVersionRange` /
+//! `UpdateFeaturesRequest.FeatureUpdateItem.isDeleteRequest`.
+//! [`protocol::admin::UpdateFeaturesRequest::get_feature`] /
+//! [`protocol::admin::UpdateFeaturesRequest::feature_updates`] are Java
+//! `getFeature` / `featureUpdates`. Java `SupportedVersionRange` /
 //! `FinalizedVersionRange` constructors reject a negative min or max, or
 //! max below min.
 //! [`ScramMechanism`] / [`ScramCredentialInfo`] /
@@ -1593,6 +1596,13 @@
 //! constructor rejects maxVersionLevel 0 with `UpgradeType.UPGRADE` and a
 //! negative maxVersionLevel; `Admin::update_features` rejects an empty
 //! list and a blank feature name).
+//! [`protocol::admin::UpdateFeaturesRequest::get_feature`] /
+//! [`protocol::admin::UpdateFeaturesRequest::feature_updates`] are Java
+//! `UpdateFeaturesRequest.getFeature` / `featureUpdates` (v0 is
+//! `AllowDowngrade` → `SAFE_DOWNGRADE` / `UPGRADE`; v1+ is
+//! `UpgradeType.fromCode`, unknown codes become `0`; missing name is
+//! [`Error::protocol`]; duplicate names all become the first match;
+//! encode still writes FeatureUpdates as-is).
 //! [`protocol::admin::UpdateFeaturesResponse::create_with_errors`] /
 //! [`protocol::admin::UpdateFeaturesResponse::error`] /
 //! [`protocol::admin::UpdatableFeatureResult::error`] are Java

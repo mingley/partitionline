@@ -4785,6 +4785,80 @@ impl UpdateFeaturesResponse {
     }
 }
 
+/// Java `UpdateFeaturesRequest` helpers.
+pub struct UpdateFeaturesRequest;
+
+impl UpdateFeaturesRequest {
+    /// Java `UpdateFeaturesRequest.getFeature`.
+    ///
+    /// First matching `Feature` name (Java `FeatureUpdates.find`). A
+    /// missing name is [`Error::protocol`] (Java NPE on the null
+    /// `FeatureUpdateKey`). v0 rewrites `UpgradeType` from
+    /// `AllowDowngrade` (`true` is [`UPGRADE_TYPE_SAFE_DOWNGRADE`],
+    /// `false` is [`UPGRADE_TYPE_UPGRADE`]) and ignores a stored
+    /// `UpgradeType`. v1+ is `UpgradeType.fromCode` on the stored
+    /// `UpgradeType` (unknown codes, including Java `UNKNOWN` `0`,
+    /// become `0`) and sets `AllowDowngrade` from `UpgradeType != 1`.
+    /// Encode still writes FeatureUpdates as-is (`AllowDowngrade` on
+    /// v0, `UpgradeType` on v1+).
+    pub fn get_feature(
+        version: i16,
+        updates: &[FeatureUpdateKey],
+        name: &str,
+    ) -> Result<FeatureUpdateKey> {
+        updates
+            .iter()
+            .find(|update| update.name == name)
+            .map(|update| feature_update_item(version, update))
+            .ok_or_else(|| Error::protocol(format!("null FeatureUpdateKey for {name}")))
+    }
+
+    /// Java `UpdateFeaturesRequest.featureUpdates`.
+    ///
+    /// Each FeatureUpdates entry is [`Self::get_feature`] of that
+    /// entry's name. Duplicate names all become the first match
+    /// (Java `find` then `FeatureUpdateItem`). Empty is empty.
+    /// Encode still writes FeatureUpdates as-is.
+    #[must_use]
+    pub fn feature_updates(version: i16, updates: &[FeatureUpdateKey]) -> Vec<FeatureUpdateKey> {
+        updates
+            .iter()
+            .map(|update| {
+                updates
+                    .iter()
+                    .find(|candidate| candidate.name == update.name)
+                    .map(|found| feature_update_item(version, found))
+                    .unwrap_or_else(|| feature_update_item(version, update))
+            })
+            .collect()
+    }
+}
+
+/// Java `UpdateFeaturesRequest.getFeature` rewrite of one found key.
+fn feature_update_item(version: i16, update: &FeatureUpdateKey) -> FeatureUpdateKey {
+    if version == 0 {
+        FeatureUpdateKey {
+            name: update.name.clone(),
+            max_version_level: update.max_version_level,
+            allow_downgrade: update.allow_downgrade,
+            upgrade_type: upgrade_type_from_allow_downgrade(update.allow_downgrade),
+        }
+    } else {
+        let upgrade_type = match update.upgrade_type {
+            UPGRADE_TYPE_UPGRADE | UPGRADE_TYPE_SAFE_DOWNGRADE | UPGRADE_TYPE_UNSAFE_DOWNGRADE => {
+                update.upgrade_type
+            }
+            _ => 0,
+        };
+        FeatureUpdateKey {
+            name: update.name.clone(),
+            max_version_level: update.max_version_level,
+            allow_downgrade: upgrade_type != UPGRADE_TYPE_UPGRADE,
+            upgrade_type,
+        }
+    }
+}
+
 /// Check that UpdateFeatures `version` is spoken (0–2).
 ///
 /// Flexible from v0. v0 encodes `AllowDowngrade`. v1+ replaces it with
@@ -19446,6 +19520,127 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "UpdateFeatures v{version} empty createWithErrors leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn update_features_request_get_feature_matches_java() {
+        // Java UpdateFeaturesRequest.getFeature: first matching Feature
+        // name (find). Missing is NPE. v0 rewrites UpgradeType from
+        // AllowDowngrade. v1+ is UpgradeType.fromCode (unknown → 0).
+        // featureUpdates maps each name through getFeature, so duplicate
+        // names all become the first match. Encode still writes
+        // FeatureUpdates as-is.
+        assert!(UpdateFeaturesRequest::feature_updates(0, &[]).is_empty());
+        assert!(UpdateFeaturesRequest::feature_updates(1, &[]).is_empty());
+        let missing = UpdateFeaturesRequest::get_feature(0, &[], "f").unwrap_err();
+        assert!(
+            matches!(missing, Error::Protocol(_)),
+            "missing Feature is Java NPE, got {missing}"
+        );
+        assert!(
+            missing.to_string().contains("null FeatureUpdateKey for f"),
+            "got {missing}"
+        );
+
+        let mismatch = FeatureUpdateKey {
+            name: "f".into(),
+            max_version_level: 1,
+            allow_downgrade: true,
+            upgrade_type: UPGRADE_TYPE_UPGRADE,
+        };
+        let v0 =
+            UpdateFeaturesRequest::get_feature(0, std::slice::from_ref(&mismatch), "f").unwrap();
+        assert_eq!(v0.name, "f");
+        assert_eq!(v0.max_version_level, 1);
+        assert!(v0.allow_downgrade);
+        assert_eq!(v0.upgrade_type, UPGRADE_TYPE_SAFE_DOWNGRADE);
+        let v1 =
+            UpdateFeaturesRequest::get_feature(1, std::slice::from_ref(&mismatch), "f").unwrap();
+        assert!(!v1.allow_downgrade);
+        assert_eq!(v1.upgrade_type, UPGRADE_TYPE_UPGRADE);
+        let v2 =
+            UpdateFeaturesRequest::get_feature(2, std::slice::from_ref(&mismatch), "f").unwrap();
+        assert_eq!(v2, v1);
+
+        let unknown = FeatureUpdateKey {
+            name: "f".into(),
+            max_version_level: 1,
+            allow_downgrade: false,
+            upgrade_type: 99,
+        };
+        let v0_unknown =
+            UpdateFeaturesRequest::get_feature(0, std::slice::from_ref(&unknown), "f").unwrap();
+        assert!(!v0_unknown.allow_downgrade);
+        assert_eq!(v0_unknown.upgrade_type, UPGRADE_TYPE_UPGRADE);
+        let v1_unknown =
+            UpdateFeaturesRequest::get_feature(1, std::slice::from_ref(&unknown), "f").unwrap();
+        assert!(v1_unknown.allow_downgrade);
+        assert_eq!(v1_unknown.upgrade_type, 0);
+
+        let first = FeatureUpdateKey::new("f", 17, false);
+        let later = FeatureUpdateKey {
+            name: "f".into(),
+            max_version_level: 1,
+            allow_downgrade: true,
+            upgrade_type: UPGRADE_TYPE_UNSAFE_DOWNGRADE,
+        };
+        let other = FeatureUpdateKey::new("g", 1, true);
+        let dup = vec![first.clone(), later, other.clone()];
+        let found = UpdateFeaturesRequest::get_feature(1, &dup, "f").unwrap();
+        assert_eq!(found, first);
+        let grouped = UpdateFeaturesRequest::feature_updates(1, &dup);
+        assert_eq!(grouped, vec![first.clone(), first.clone(), other.clone()]);
+        let v0_grouped = UpdateFeaturesRequest::feature_updates(0, &dup);
+        assert_eq!(
+            v0_grouped,
+            vec![
+                FeatureUpdateKey::new("f", 17, false),
+                FeatureUpdateKey::new("f", 17, false),
+                FeatureUpdateKey::new("g", 1, true),
+            ]
+        );
+
+        let named = vec![FeatureUpdateKey::new("f", 1, false)];
+        for version in [0_i16, 1, 2] {
+            let got = UpdateFeaturesRequest::get_feature(version, &named, "f").unwrap();
+            assert_eq!(got, FeatureUpdateKey::new("f", 1, false));
+            let grouped = UpdateFeaturesRequest::feature_updates(version, &named);
+            assert_eq!(grouped, named);
+            let mut buf = BytesMut::new();
+            encode_update_features_request(&mut buf, version, 1000, &named, false).unwrap();
+            let mut cur = buf.as_ref();
+            let (timeout, decoded, validate) =
+                decode_update_features_request(&mut cur, version).unwrap();
+            assert_eq!(timeout, 1000);
+            assert!(!validate);
+            assert_eq!(
+                UpdateFeaturesRequest::get_feature(version, &decoded, "f").unwrap(),
+                got
+            );
+            assert!(
+                !cur.has_remaining(),
+                "UpdateFeatures v{version} getFeature leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [0_i16, 1, 2] {
+            let grouped = UpdateFeaturesRequest::feature_updates(version, &[]);
+            assert!(grouped.is_empty());
+            let mut buf = BytesMut::new();
+            encode_update_features_request(&mut buf, version, 1000, &[], false).unwrap();
+            let mut cur = buf.as_ref();
+            let (timeout, decoded, validate) =
+                decode_update_features_request(&mut cur, version).unwrap();
+            assert_eq!(timeout, 1000);
+            assert!(!validate);
+            assert!(decoded.is_empty());
+            assert!(UpdateFeaturesRequest::feature_updates(version, &decoded).is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "UpdateFeatures v{version} getFeature empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
