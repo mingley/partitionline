@@ -2313,6 +2313,9 @@
 //! `DescribeShareGroupOffsetsResponse.errorCounts` (group-level non-`NONE`
 //! last-wins on `groupId`, plus every partition code including `NONE`;
 //! there is no top-level `errorCode`);
+//! [`protocol::admin::DescribeShareGroupOffsetsResponse::has_group_error`] is Java
+//! `DescribeShareGroupOffsetsResponse.hasGroupError` (`true` when any matching
+//! `groupId` has a non-`NONE` group-level code; partition codes are ignored);
 //! [`protocol::admin::DescribeShareGroupOffsetsRequest::error_response`] is Java
 //! `DescribeShareGroupOffsetsRequest.getErrorResponse` (copies group ids;
 //! empty Topics; ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`;

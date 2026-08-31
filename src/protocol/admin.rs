@@ -11333,9 +11333,9 @@ impl DescribeShareGroupOffsetsResponse {
     /// on duplicate `groupId` (Java `HashMap.put`). Every partition
     /// `errorCode` is counted, including `NONE`. There is no top-level
     /// `errorCode`. Java `DescribeShareGroupOffsetsResponse` has no
-    /// `error()` helper. This is not AlterShareGroupOffsets /
-    /// DeleteShareGroupOffsets / ShareGroupDescribe / OffsetFetch
-    /// `errorCounts`.
+    /// `error()` helper. This is not [`Self::has_group_error`] /
+    /// AlterShareGroupOffsets / DeleteShareGroupOffsets /
+    /// ShareGroupDescribe / OffsetFetch `errorCounts`.
     #[must_use]
     pub fn error_counts(groups: &[DescribedShareGroupOffsets]) -> HashMap<i16, i32> {
         let mut group_level = HashMap::new();
@@ -11359,6 +11359,23 @@ impl DescribeShareGroupOffsetsResponse {
         }
         counts
     }
+
+    /// Java `DescribeShareGroupOffsetsResponse.hasGroupError`.
+    ///
+    /// `true` when any matching `groupId` has a non-`NONE` group-level
+    /// `errorCode`. Java fills `groupLevelErrors` only when
+    /// `errorCode() != NONE` (`HashMap.put` last-wins the exception;
+    /// `NONE` does not put, so an earlier non-`NONE` still counts).
+    /// Partition-level codes are ignored. A missing `groupId` is
+    /// `false`. Java `groupError` returns `Throwable` (not mapped).
+    /// Java `getErrorDescribedGroup` is not mapped. This is not
+    /// [`Self::error_counts`] / getErrorResponse.
+    #[must_use]
+    pub fn has_group_error(groups: &[DescribedShareGroupOffsets], group_id: &str) -> bool {
+        groups
+            .iter()
+            .any(|group| group.group_id == group_id && group.error_code != 0)
+    }
 }
 
 /// Java `DescribeShareGroupOffsetsRequest` helpers.
@@ -11375,6 +11392,7 @@ impl DescribeShareGroupOffsetsRequest {
     /// (JSON default `0`; convenience encode writes `0`). Official Java
     /// `getErrorResponse` sets `throttleTimeMs` from the argument. This
     /// is not [`DescribeShareGroupOffsetsResponse::error_counts`] /
+    /// [`DescribeShareGroupOffsetsResponse::has_group_error`] /
     /// `getErrorDescribedGroup` / ListTransactions `getErrorResponse`.
     #[must_use]
     pub fn error_response<I>(group_ids: I, error_code: i16) -> Vec<DescribedShareGroupOffsets>
@@ -27580,6 +27598,114 @@ mod tests {
     }
 
     #[test]
+    fn describe_share_group_offsets_response_has_group_error_matches_java() {
+        // Java 4.1.0 DescribeShareGroupOffsetsResponse.hasGroupError:
+        // groupLevelErrors.containsKey(groupId). The data constructor
+        // puts only when group.errorCode() != NONE (HashMap.put
+        // last-wins the exception; NONE does not put). Partition-level
+        // codes are ignored. Official Java
+        // DescribeShareGroupOffsetsResponse.hasGroupError (4.1.0;
+        // 4.0.0 404 as the current name). Java groupError returns
+        // Throwable (not mapped). Java getErrorDescribedGroup is not
+        // mapped. This crate speaks 0. This is not errorCounts /
+        // getErrorResponse / AlterShareGroupOffsets /
+        // DeleteShareGroupOffsets.
+        assert!(
+            !DescribeShareGroupOffsetsResponse::has_group_error(&[], "g"),
+            "empty Groups is not hasGroupError"
+        );
+        assert!(
+            !DescribeShareGroupOffsetsResponse::has_group_error(
+                &[DescribedShareGroupOffsets::new("g", 0)],
+                "g"
+            ),
+            "group-level NONE is not hasGroupError"
+        );
+        assert!(
+            !DescribeShareGroupOffsetsResponse::has_group_error(
+                &[DescribedShareGroupOffsets::new(
+                    "g",
+                    crate::error::GROUP_AUTHORIZATION_FAILED
+                )],
+                "missing"
+            ),
+            "a missing groupId is not hasGroupError"
+        );
+        assert!(DescribeShareGroupOffsetsResponse::has_group_error(
+            &[DescribedShareGroupOffsets::new(
+                "g",
+                crate::error::GROUP_AUTHORIZATION_FAILED
+            )],
+            "g"
+        ));
+        let first_error_then_none = vec![
+            DescribedShareGroupOffsets::new("g", crate::error::GROUP_AUTHORIZATION_FAILED),
+            DescribedShareGroupOffsets::new("g", 0),
+        ];
+        assert!(
+            DescribeShareGroupOffsetsResponse::has_group_error(&first_error_then_none, "g"),
+            "group-level NONE does not HashMap.put, so the earlier non-NONE still counts"
+        );
+        let part_err = DescribedShareGroupOffsets {
+            group_id: "g".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [5u8; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartition {
+                    partition_index: 0,
+                    start_offset: -1,
+                    leader_epoch: -1,
+                    error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    error_message: None,
+                }],
+            }],
+            error_code: 0,
+            error_message: None,
+        };
+        assert!(
+            !DescribeShareGroupOffsetsResponse::has_group_error(
+                std::slice::from_ref(&part_err),
+                "g"
+            ),
+            "partition-level error with group-level NONE is not hasGroupError"
+        );
+        let full = DescribedShareGroupOffsets {
+            group_id: "g".into(),
+            topics: vec![DescribedShareGroupOffsetsTopic {
+                topic_name: "t".into(),
+                topic_id: [6u8; 16],
+                partitions: vec![DescribedShareGroupOffsetsPartition {
+                    partition_index: 0,
+                    start_offset: -1,
+                    leader_epoch: -1,
+                    error_code: 0,
+                    error_message: None,
+                }],
+            }],
+            error_code: crate::error::GROUP_AUTHORIZATION_FAILED,
+            error_message: None,
+        };
+        assert!(DescribeShareGroupOffsetsResponse::has_group_error(
+            std::slice::from_ref(&full),
+            "g"
+        ));
+        let mut resp = BytesMut::new();
+        encode_describe_share_group_offsets_response(&mut resp, std::slice::from_ref(&full))
+            .unwrap();
+        let mut cur = &resp[..];
+        let (decoded, ..) = decode_describe_share_group_offsets_response(&mut cur).unwrap();
+        assert!(
+            DescribeShareGroupOffsetsResponse::has_group_error(&decoded, "g"),
+            "DescribeShareGroupOffsets v0 hasGroupError must follow the decoded group-level ErrorCode"
+        );
+        assert!(
+            cur.is_empty(),
+            "DescribeShareGroupOffsets v0 hasGroupError leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
     fn describe_share_group_offsets_request_error_response_matches_java() {
         // Java 4.1.0 DescribeShareGroupOffsetsRequest.getErrorResponse:
         // new DescribeShareGroupOffsetsResponse(throttleTimeMs,
@@ -27591,8 +27717,9 @@ mod tests {
         // DescribeShareGroupOffsetsRequest.getErrorResponse (4.1.0;
         // 4.0.0 404 as the current name). Official Java sets
         // throttleTimeMs from the argument; convenience encode writes
-        // 0. Java getErrorDescribedGroup / hasGroupError / groupError
-        // are not mapped. This crate speaks 0. Group-level ErrorCode
+        // 0. Java getErrorDescribedGroup / groupError (Throwable) are
+        // not mapped. hasGroupError is mapped separately. This crate
+        // speaks 0. Group-level ErrorCode
         // is per-group at bytes 8-9 on leftover-empty empty-Topics
         // fixture "g". This is not errorCounts / ListTransactions
         // getErrorResponse / AlterShareGroupOffsets getErrorResponse.
