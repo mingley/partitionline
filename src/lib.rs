@@ -451,11 +451,14 @@
 //! [`protocol::api::ApiVersionsResponse::api_version`] /
 //! [`protocol::api::ApiVersionsResponse::UNKNOWN_FINALIZED_FEATURES_EPOCH`] /
 //! [`protocol::api::ApiVersionsResponse::should_client_throttle`] /
+//! [`protocol::api::ApiVersionsResponse::error_counts`] /
 //! [`protocol::api::ApiVersionsResponse::intersect`] /
 //! [`protocol::api::ApiVersionsResponse::create_finalized_feature_keys`] /
 //! [`protocol::api::ApiVersionsResponse::maybe_filter_supported_feature_keys`] are Java
 //! `ApiVersionsResponse.apiVersion` / `UNKNOWN_FINALIZED_FEATURES_EPOCH` /
-//! `shouldClientThrottle` / `intersect` (`null` is `None`; mismatched api
+//! `shouldClientThrottle` / `errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`; api keys /
+//! features are not counted) / `intersect` (`null` is `None`; mismatched api
 //! keys are `IllegalArgumentException`) / `createFinalizedFeatureKeys`
 //! (level `0` is omitted; last-wins name; first-seen order; encode still
 //! writes FinalizedFeatures as-is) / `maybeFilterSupportedFeatureKeys`

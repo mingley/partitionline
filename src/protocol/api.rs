@@ -142,6 +142,18 @@ impl ApiVersionsResponse {
         version >= 2
     }
 
+    /// Java `ApiVersionsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `errorCounts(Errors.forCode)` / `Collections.singletonMap`). Api
+    /// keys and features are not counted. Java `ApiVersionsResponse`
+    /// has no `error()` helper. This is not Metadata / Produce
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
+
     /// Java `ApiVersionsResponse.zkMigrationReady`.
     #[must_use]
     pub fn zk_migration_ready(&self) -> bool {
@@ -3468,6 +3480,84 @@ mod tests {
         assert_eq!(finalized.name(), "metadata.version");
         assert_eq!(finalized.max_version_level(), 20);
         assert_eq!(finalized.min_version_level(), 1);
+    }
+
+    #[test]
+    fn api_versions_response_error_counts_matches_java() {
+        // Java ApiVersionsResponse.errorCounts:
+        // errorCounts(Errors.forCode(this.data.errorCode())), including
+        // NONE (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java ApiVersionsResponse.errorCounts. Java
+        // ApiVersionsResponse has no error() helper. Api keys and
+        // features are not counted. This is not Metadata errorCounts /
+        // Produce errorCounts / SaslHandshake errorCounts.
+        let none = ApiVersionsResponse {
+            error_code: 0,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            }],
+            finalized_features_epoch: Some(1),
+            finalized_features: vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }],
+            zk_migration_ready: false,
+        };
+        assert_eq!(
+            none.error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = ApiVersionsResponse {
+            error_code: crate::error::INVALID_REQUEST,
+            api_keys: vec![ApiVersion {
+                api_key: 18,
+                min_version: 0,
+                max_version: 4,
+            }],
+            throttle_time_ms: 0,
+            supported_features: vec![SupportedFeatureKey {
+                name: "metadata.version".into(),
+                min_version: 1,
+                max_version: 20,
+            }],
+            finalized_features_epoch: Some(1),
+            finalized_features: vec![FinalizedFeatureKey {
+                name: "metadata.version".into(),
+                max_version_level: 20,
+                min_version_level: 1,
+            }],
+            zk_migration_ready: false,
+        };
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::INVALID_REQUEST, 1)])
+        );
+        for version in 0..=4_i16 {
+            let mut resp = BytesMut::new();
+            encode_api_versions_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_api_versions_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::INVALID_REQUEST, 1)]),
+                "ApiVersions v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ApiVersions v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
