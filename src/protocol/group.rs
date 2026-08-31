@@ -2480,6 +2480,40 @@ impl OffsetFetchResponse {
             .collect()
     }
 
+    /// Java `OffsetFetchResponse(int, Map, Map)` Groups (v8+).
+    ///
+    /// Each outer entry is one group. Inner `(topic, PartitionData)`
+    /// grouping is [`Self::from_partition_data`]. A group in `errors`
+    /// but not in `response_data` is omitted (Java iterates
+    /// `responseData.entrySet`). A group in `response_data` missing from
+    /// `errors` is [`Error::protocol`] (Java `NullPointerException` on
+    /// `errors.get`). Group order is iterator order (Java outer
+    /// `HashMap.entrySet` order is unspecified). Throttle is not part of
+    /// this helper (crate encode writes the JSON default `0`).
+    pub fn from_groups_partition_data<'a, I, J>(
+        errors: &HashMap<String, i16>,
+        response_data: I,
+    ) -> Result<Vec<OffsetFetchGroupResult>>
+    where
+        I: IntoIterator<Item = (&'a str, J)>,
+        J: IntoIterator<Item = (&'a str, FetchedOffset)>,
+    {
+        let mut groups = Vec::new();
+        for (group_id, partitions) in response_data {
+            let Some(&error_code) = errors.get(group_id) else {
+                return Err(Error::protocol(format!(
+                    "no group named {group_id} in OffsetFetchResponse errors"
+                )));
+            };
+            groups.push(OffsetFetchGroupResult {
+                group_id: group_id.to_string(),
+                topics: Self::from_partition_data(partitions),
+                error_code,
+            });
+        }
+        Ok(groups)
+    }
+
     /// Java `OffsetFetchResponse` constructor from a group list and version.
     ///
     /// v8+ returns `groups` as-is. Below v8 Java requires exactly one
@@ -5053,6 +5087,94 @@ mod tests {
         assert!(
             cur.is_empty(),
             "OffsetFetch v6 from_partition_data leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn offset_fetch_response_from_groups_partition_data_matches_java() {
+        // Java OffsetFetchResponse(int, Map, Map) v8+: iterate
+        // responseData, group inner partitions like (Errors, Map),
+        // errors.get(groupId).code(). A group only in errors is omitted.
+        // A group in responseData missing from errors is NPE.
+        let errors = HashMap::from([
+            ("g".into(), 0i16),
+            ("h".into(), crate::error::NOT_COORDINATOR),
+            ("unused".into(), crate::error::GROUP_AUTHORIZATION_FAILED),
+        ]);
+        assert!(OffsetFetchResponse::from_groups_partition_data(
+            &errors,
+            std::iter::empty::<(&str, Vec<(&str, FetchedOffset)>)>(),
+        )
+        .unwrap()
+        .is_empty());
+        let missing = OffsetFetchResponse::from_groups_partition_data(
+            &errors,
+            [("missing", Vec::<(&str, FetchedOffset)>::new())],
+        )
+        .unwrap_err();
+        assert!(
+            matches!(missing, Error::Protocol(_)),
+            "missing errors.get is Java NullPointerException, got {missing}"
+        );
+        let a0 = FetchedOffset {
+            partition: 0,
+            offset: 5,
+            leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+            metadata: "m".into(),
+            error_code: 0,
+        };
+        let b2 = FetchedOffset::new(2, 7, 0);
+        let a1 = FetchedOffset::error(1, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let grouped = OffsetFetchResponse::from_groups_partition_data(
+            &errors,
+            [
+                (
+                    "g",
+                    vec![("a", a0.clone()), ("b", b2.clone()), ("a", a1.clone())],
+                ),
+                ("h", Vec::new()),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            grouped,
+            vec![
+                OffsetFetchGroupResult {
+                    group_id: "g".into(),
+                    topics: OffsetFetchResponse::from_partition_data([
+                        ("a", a0),
+                        ("b", b2),
+                        ("a", a1),
+                    ]),
+                    error_code: 0,
+                },
+                OffsetFetchGroupResult {
+                    group_id: "h".into(),
+                    topics: Vec::new(),
+                    error_code: crate::error::NOT_COORDINATOR,
+                },
+            ]
+        );
+        assert_eq!(grouped.len(), 2, "unused errors entry is omitted");
+        let mut buf = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut buf, 8, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v8 from_groups_partition_data leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_offset_fetch_groups_response(&mut buf, 9, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_fetch_groups_response(&mut cur, 9).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "OffsetFetch v9 from_groups_partition_data leftover-empty; leftover {} bytes",
             cur.len()
         );
     }
