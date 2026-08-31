@@ -3276,8 +3276,9 @@ impl OffsetCommitResponse {
 /// v2–v4 send `retention_time_ms` after MemberId. v5 omits retention even
 /// when the body has a non-default value; decode fills
 /// [`DEFAULT_RETENTION_TIME`]. v6 CommittedLeaderEpoch. v7
-/// GroupInstanceId. v8 flexible. v9 matches v8. This crate speaks 2–9.
-/// v0–v1 and v10+ are not spoken.
+/// GroupInstanceId. Below v7 GroupInstanceId is omitted even when the
+/// body has an instance id; decode fills `None`. v8 flexible. v9 matches
+/// v8. This crate speaks 2–9. v0–v1 and v10+ are not spoken.
 #[expect(
     clippy::too_many_arguments,
     reason = "OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together"
@@ -3332,22 +3333,30 @@ pub fn encode_offset_commit_request(
     Ok(())
 }
 
-/// Decode OffsetCommit: `(group_id, member_id, topics, retention_time_ms)`.
+/// Decode OffsetCommit: `(group_id, member_id, topics, retention_time_ms,
+/// group_instance_id)`.
 ///
 /// Decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`] for
 /// omitted `CommittedLeaderEpoch`. RetentionTimeMs is omitted outside
-/// v2–v4; decode fills [`DEFAULT_RETENTION_TIME`].
+/// v2–v4; decode fills [`DEFAULT_RETENTION_TIME`]. Below v7
+/// GroupInstanceId is omitted; decode fills `None`.
+#[expect(
+    clippy::type_complexity,
+    reason = "OffsetCommit decode returns group, member, topics, retention, and instance together"
+)]
 pub fn decode_offset_commit_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, String, Vec<OffsetTopic>, i64)> {
+) -> Result<(String, String, Vec<OffsetTopic>, i64, Option<String>)> {
     let flexible = offset_commit_flexible(version)?;
     let group = buf::get_string(buf, flexible)?.unwrap_or_default();
     let _gen = buf::get_i32(buf)?;
     let member = buf::get_string(buf, flexible)?.unwrap_or_default();
-    if version >= 7 {
-        let _inst = buf::get_string(buf, flexible)?;
-    }
+    let inst = if version >= 7 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
     let retention_time_ms = if (2..=4).contains(&version) {
         buf::get_i64(buf)?
     } else {
@@ -3386,7 +3395,7 @@ pub fn decode_offset_commit_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group, member, topics, retention_time_ms))
+    Ok((group, member, topics, retention_time_ms, inst))
 }
 
 /// Encode OffsetCommit v2–v9. Throttle is `0` on v3+.
@@ -7203,7 +7212,7 @@ mod tests {
         assert_eq!(v2.as_ref(), v3.as_ref(), "v2 and v3 request bodies match");
         assert_eq!(v3.as_ref(), v4.as_ref(), "v3 and v4 request bodies match");
         let mut cur = v2.as_ref();
-        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        let (gid, mid, got, retention, ..) = decode_offset_commit_request(&mut cur, 2).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(got[0].partitions[0].offset, 3);
@@ -7227,7 +7236,7 @@ mod tests {
         .unwrap();
         assert_ne!(v4.as_ref(), v5.as_ref(), "v5 drops RetentionTimeMs");
         let mut cur = v5.as_ref();
-        let (_gid, _mid, got, retention) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        let (_gid, _mid, got, retention, ..) = decode_offset_commit_request(&mut cur, 5).unwrap();
         assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(
             got[0].partitions[0].leader_epoch,
@@ -7249,7 +7258,7 @@ mod tests {
         .unwrap();
         assert_ne!(v5.as_ref(), v6.as_ref(), "v6 adds CommittedLeaderEpoch");
         let mut cur = v6.as_ref();
-        let (_gid, _mid, got, retention) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        let (_gid, _mid, got, retention, ..) = decode_offset_commit_request(&mut cur, 6).unwrap();
         assert_eq!(retention, DEFAULT_RETENTION_TIME);
         assert_eq!(got[0].partitions[0].leader_epoch, 4);
         assert!(cur.is_empty(), "v6 request leftover-empty");
@@ -7304,7 +7313,8 @@ mod tests {
             encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, 3_600_000, &topics)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_, _, got, retention) = decode_offset_commit_request(&mut cur, version).unwrap();
+            let (_, _, got, retention, ..) =
+                decode_offset_commit_request(&mut cur, version).unwrap();
             assert_eq!(got[0].partitions[0].offset, 3);
             assert_eq!(retention, 3_600_000);
             assert!(
@@ -7316,7 +7326,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_commit_request(&mut buf, 5, "g", 7, "m1", None, 3_600_000, &topics).unwrap();
         let mut cur = buf.as_ref();
-        let (_, _, _, retention) = decode_offset_commit_request(&mut cur, 5).unwrap();
+        let (_, _, _, retention, ..) = decode_offset_commit_request(&mut cur, 5).unwrap();
         assert!(
             cur.is_empty(),
             "OffsetCommit v5 RetentionTimeMs leftover-empty"
@@ -7371,7 +7381,7 @@ mod tests {
             encode_offset_commit_request(&mut buf, version, "g", 7, "m1", None, 3_600_000, &topics)
                 .unwrap();
             let mut cur = buf.as_ref();
-            let (_, _, _, retention) = decode_offset_commit_request(&mut cur, version).unwrap();
+            let (_, _, _, retention, ..) = decode_offset_commit_request(&mut cur, version).unwrap();
             assert!(
                 cur.is_empty(),
                 "OffsetCommit v{version} RetentionTimeMs leftover-empty"
@@ -7381,6 +7391,179 @@ mod tests {
                 "OffsetCommit v{version} omits RetentionTimeMs even when the body has a non-default value"
             );
         }
+    }
+
+    #[test]
+    fn offset_commit_group_instance_id_matches_java() {
+        let topics = [OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition {
+                partition: 0,
+                offset: 3,
+                leader_epoch: 4,
+                metadata: String::new(),
+            }],
+        }];
+        for version in [7_i16, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_commit_request(
+                &mut buf,
+                version,
+                "g",
+                7,
+                "m1",
+                Some("i"),
+                DEFAULT_RETENTION_TIME,
+                &topics,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, mid, got, retention, inst) =
+                decode_offset_commit_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
+            assert_eq!(got[0].partitions[0].offset, 3);
+            assert_eq!(retention, DEFAULT_RETENTION_TIME);
+            assert_eq!(inst.as_deref(), Some("i"));
+            assert!(
+                cur.is_empty(),
+                "OffsetCommit v{version} GroupInstanceId leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(
+            &mut buf,
+            2,
+            "g",
+            7,
+            "m1",
+            Some("i"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 2).unwrap();
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v2 GroupInstanceId leftover-empty"
+        );
+        assert_eq!(
+            inst, None,
+            "OffsetCommit v2 omits GroupInstanceId even when the body has an instance id"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(
+            &mut buf,
+            6,
+            "g",
+            7,
+            "m1",
+            Some("i"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 6).unwrap();
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v6 GroupInstanceId leftover-empty"
+        );
+        assert_eq!(
+            inst, None,
+            "OffsetCommit v6 omits GroupInstanceId even when the body has an instance id"
+        );
+
+        let mut with = BytesMut::new();
+        encode_offset_commit_request(
+            &mut with,
+            7,
+            "g",
+            7,
+            "m1",
+            Some("i"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        let mut none = BytesMut::new();
+        encode_offset_commit_request(
+            &mut none,
+            7,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v7 GroupInstanceId is not always the JSON default null"
+        );
+        let mut v6_with = BytesMut::new();
+        encode_offset_commit_request(
+            &mut v6_with,
+            6,
+            "g",
+            7,
+            "m1",
+            Some("i"),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        let mut v6_none = BytesMut::new();
+        encode_offset_commit_request(
+            &mut v6_none,
+            6,
+            "g",
+            7,
+            "m1",
+            None,
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        assert_eq!(
+            &v6_with[..],
+            &v6_none[..],
+            "v6 encode omits GroupInstanceId even when the body has an instance id"
+        );
+        assert_ne!(
+            &v6_with[..],
+            &with[..],
+            "v7 adds GroupInstanceId after MemberId"
+        );
+
+        let mut empty = BytesMut::new();
+        encode_offset_commit_request(
+            &mut empty,
+            7,
+            "g",
+            7,
+            "m1",
+            Some(""),
+            DEFAULT_RETENTION_TIME,
+            &topics,
+        )
+        .unwrap();
+        let mut cur = empty.as_ref();
+        let (_, _, _, _, inst) = decode_offset_commit_request(&mut cur, 7).unwrap();
+        assert_eq!(inst.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "OffsetCommit v7 empty GroupInstanceId leftover-empty"
+        );
+        assert_ne!(
+            &empty[..],
+            &none[..],
+            "empty GroupInstanceId is still present (Java != null)"
+        );
     }
 
     #[test]
@@ -7399,7 +7582,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = &buf[..];
-        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 7).unwrap();
+        let (gid, mid, got, retention, ..) = decode_offset_commit_request(&mut cur, 7).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got, topics);
         assert_eq!(retention, DEFAULT_RETENTION_TIME);
@@ -7432,7 +7615,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = &req[..];
-        let (gid, mid, got, retention) = decode_offset_commit_request(&mut cur, 8).unwrap();
+        let (gid, mid, got, retention, ..) = decode_offset_commit_request(&mut cur, 8).unwrap();
         assert_eq!((gid.as_str(), mid.as_str()), ("g", "m1"));
         assert_eq!(got, topics);
         assert_eq!(retention, DEFAULT_RETENTION_TIME);

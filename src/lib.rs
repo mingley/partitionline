@@ -127,7 +127,10 @@
 //! OffsetCommit v2–v9 (v2–v4 RetentionTimeMs round-trips, including a
 //! non-default value; v5+ omits the field even when the body is non-default
 //! and decode fills [`protocol::group::DEFAULT_RETENTION_TIME`]; v6+ epoch;
-//! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId; v8+ flexible; v9 KIP-848 errors;
+//! decode below v6 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; v7 GroupInstanceId;
+//! v7+ round-trips GroupInstanceId; below v7 encode omits it even when
+//! the body has an instance id and decode fills `None`;
+//! v8+ flexible; v9 KIP-848 errors;
 //! [`protocol::group::OffsetCommitResponse::should_client_throttle`] is Java
 //! `OffsetCommitResponse.shouldClientThrottle` (v4+);
 //! [`protocol::group::OffsetCommitResponse::error_counts`] is Java
