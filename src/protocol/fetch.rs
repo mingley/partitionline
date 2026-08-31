@@ -91,8 +91,11 @@ pub const fn replica_id_from_data(replica_id: i32, replica_state_replica_id: i32
 
 /// Java `FetchMetadata` (incremental fetch session id and epoch).
 ///
-/// Encode writes [`Self::LEGACY`] (`session_id` 0 / `epoch` `-1`): close any
-/// session and do not create one. [`Display`] is Java `toString`
+/// [`encode_fetch_request`] writes [`Self::LEGACY`] (`session_id` 0 /
+/// `epoch` `-1`): close any session and do not create one.
+/// [`encode_fetch_request_with_session`] writes this value on v7+. Below
+/// v7 SessionId / SessionEpoch are omitted even when this is not
+/// LEGACY; decode fills [`Self::LEGACY`]. [`Display`] is Java `toString`
 /// (`(sessionId=INVALID, epoch=FINAL)`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FetchMetadata {
@@ -687,7 +690,8 @@ pub struct FetchedTopic {
 
 /// Fetch v4–v11 (classic) or v12–v17 (flexible). LastFetchedEpoch is v12+.
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
-/// is v5+. CurrentLeaderEpoch is v9+. RackId is v11+.
+/// is v5+. CurrentLeaderEpoch is v9+. RackId is v11+. Session is
+/// [`FetchMetadata::LEGACY`].
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, and rack together"
@@ -702,6 +706,40 @@ pub fn encode_fetch_request(
     topics: &[FetchTopic],
     rack_id: Option<&str>,
 ) -> crate::error::Result<()> {
+    encode_fetch_request_with_session(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        FetchMetadata::LEGACY,
+    )
+}
+
+/// Encode Fetch v4–v17 with [`FetchMetadata`].
+///
+/// SessionId / SessionEpoch are v7+. Below v7 they are omitted even when
+/// `session` is not [`FetchMetadata::LEGACY`]. Decode fills
+/// [`FetchMetadata::LEGACY`]. ForgottenTopicsData stays empty. Kafka 4.0
+/// `validVersions` is `4-17`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, and session together"
+)]
+pub fn encode_fetch_request_with_session(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    session: FetchMetadata,
+) -> crate::error::Result<()> {
     let flexible = fetch_flexible(version)?;
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
@@ -714,8 +752,8 @@ pub fn encode_fetch_request(
     buf.put_i32(max_bytes);
     buf.put_i8(isolation_level);
     if version >= 7 {
-        buf.put_i32(FetchMetadata::LEGACY.session_id());
-        buf.put_i32(FetchMetadata::LEGACY.epoch());
+        buf.put_i32(session.session_id());
+        buf.put_i32(session.epoch());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -903,16 +941,17 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
     ))
 }
 
-/// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id)`.
+/// Decode Fetch: `(isolation_level, max_bytes, topics, rack_id, session)`.
 ///
 /// `last_fetched_epoch` is [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]
 /// below v12. `current_leader_epoch` is the same below v9. SessionId /
-/// SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset is v5+.
-/// RackId is v11+; below v11 decode fills empty.
+/// SessionEpoch / ForgottenTopicsData are v7+. Below v7 SessionId /
+/// SessionEpoch are omitted; decode fills [`FetchMetadata::LEGACY`].
+/// LogStartOffset is v5+. RackId is v11+; below v11 decode fills empty.
 pub fn decode_fetch_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i8, i32, Vec<FetchTopic>, String)> {
+) -> Result<(i8, i32, Vec<FetchTopic>, String, FetchMetadata)> {
     let flexible = fetch_flexible(version)?;
     if version <= 14 {
         let _replica = buf::get_i32(buf)?;
@@ -921,10 +960,11 @@ pub fn decode_fetch_request<B: Buf>(
     let _min_bytes = buf::get_i32(buf)?;
     let max_bytes = buf::get_i32(buf)?;
     let isolation = buf::get_i8(buf)?;
-    if version >= 7 {
-        let _session_id = buf::get_i32(buf)?;
-        let _session_epoch = buf::get_i32(buf)?;
-    }
+    let session = if version >= 7 {
+        FetchMetadata::new(buf::get_i32(buf)?, buf::get_i32(buf)?)
+    } else {
+        FetchMetadata::LEGACY
+    };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -993,7 +1033,7 @@ pub fn decode_fetch_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((isolation, max_bytes, topics, rack))
+    Ok((isolation, max_bytes, topics, rack, session))
 }
 
 /// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
@@ -1453,7 +1493,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &topics, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, decoded, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert_eq!(decoded.len(), 1);
             assert!(
                 !cur.has_remaining(),
@@ -1467,7 +1507,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &[], None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, decoded, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert!(
                 !cur.has_remaining(),
@@ -1787,7 +1827,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &named, None).unwrap();
         let mut cur = buf.as_ref();
-        let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, 11).unwrap();
+        let (_iso, _max, decoded, ..) = decode_fetch_request(&mut cur, 11).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v11 fetchData leftover-empty; leftover {} bytes",
@@ -1804,7 +1844,7 @@ mod tests {
         buf.clear();
         encode_fetch_request(&mut buf, 13, 10, 1, 1024, 0, &id_topics, None).unwrap();
         let mut cur = buf.as_ref();
-        let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, 13).unwrap();
+        let (_iso, _max, decoded, ..) = decode_fetch_request(&mut cur, 13).unwrap();
         assert!(
             cur.is_empty(),
             "Fetch v13 fetchData leftover-empty; leftover {} bytes",
@@ -1888,7 +1928,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} forgottenTopics leftover-empty; leftover {} bytes",
@@ -1901,7 +1941,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
@@ -1993,7 +2033,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Builder.build forgotten leftover-empty; leftover {} bytes",
@@ -2007,7 +2047,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &fetch, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Builder.build forgotten empty leftover-empty; leftover {} bytes",
@@ -2103,7 +2143,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &grouped, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Builder.build Topics leftover-empty; leftover {} bytes",
@@ -2120,7 +2160,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &grouped, None).unwrap();
             let mut cur = buf.as_ref();
-            let (_iso, _max, _decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            let (_iso, _max, ..) = decode_fetch_request(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "Fetch v{version} Builder.build Topics empty leftover-empty; leftover {} bytes",
@@ -2353,7 +2393,7 @@ mod tests {
             "v8 encode omits CurrentLeaderEpoch and RackId even when the body has values"
         );
         let mut cur = v8.as_ref();
-        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 8).unwrap();
+        let (_, _, decoded, rack, ..) = decode_fetch_request(&mut cur, 8).unwrap();
         assert_eq!(
             decoded[0].partitions[0].current_leader_epoch,
             RecordBatch::NO_PARTITION_LEADER_EPOCH
@@ -2364,7 +2404,7 @@ mod tests {
         let mut v9 = BytesMut::new();
         encode_fetch_request(&mut v9, 9, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
         let mut cur = v9.as_ref();
-        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 9).unwrap();
+        let (_, _, decoded, rack, ..) = decode_fetch_request(&mut cur, 9).unwrap();
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert!(rack.is_empty());
         assert!(cur.is_empty(), "Fetch v9 CurrentLeaderEpoch leftover-empty");
@@ -2384,14 +2424,14 @@ mod tests {
             "v10 encode omits RackId even when the body has a rack"
         );
         let mut cur = v10.as_ref();
-        let (_, _, _, rack) = decode_fetch_request(&mut cur, 10).unwrap();
+        let (_, _, _, rack, ..) = decode_fetch_request(&mut cur, 10).unwrap();
         assert!(rack.is_empty());
         assert!(cur.is_empty(), "Fetch v10 RackId leftover-empty");
 
         let mut v11 = BytesMut::new();
         encode_fetch_request(&mut v11, 11, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
         let mut cur = v11.as_ref();
-        let (_, _, decoded, rack) = decode_fetch_request(&mut cur, 11).unwrap();
+        let (_, _, decoded, rack, ..) = decode_fetch_request(&mut cur, 11).unwrap();
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
         assert_eq!(rack, "az1");
         assert!(cur.is_empty(), "Fetch v11 RackId leftover-empty");
@@ -2410,7 +2450,7 @@ mod tests {
         let mut v7 = BytesMut::new();
         encode_fetch_request(&mut v7, 7, 10, 1, 1024, 0, &req, Some("az1")).unwrap();
         let mut cur = v4.as_ref();
-        let (_, _, decoded, _) = decode_fetch_request(&mut cur, 4).unwrap();
+        let (_, _, decoded, ..) = decode_fetch_request(&mut cur, 4).unwrap();
         assert_eq!(
             decoded[0].partitions[0].current_leader_epoch,
             RecordBatch::NO_PARTITION_LEADER_EPOCH
@@ -2432,7 +2472,7 @@ mod tests {
             "v7 adds SessionId / SessionEpoch / ForgottenTopicsData"
         );
         let mut cur = v7.as_ref();
-        let (_, _, decoded, _) = decode_fetch_request(&mut cur, 7).unwrap();
+        let (_, _, decoded, ..) = decode_fetch_request(&mut cur, 7).unwrap();
         assert_eq!(
             decoded[0].partitions[0].current_leader_epoch,
             RecordBatch::NO_PARTITION_LEADER_EPOCH
@@ -2573,6 +2613,119 @@ mod tests {
     }
 
     #[test]
+    fn fetch_request_session_matches_java() {
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 3,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        let session = FetchMetadata::new(12, 3);
+        for version in [7_i16, 8, 11, 12, 15, 17] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_session(
+                &mut buf, version, 10, 1, 1024, 0, &topics, None, session,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., got) = decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(got, session);
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} SessionId / SessionEpoch leftover-empty"
+            );
+        }
+
+        for version in [4_i16, 5, 6] {
+            let mut buf = BytesMut::new();
+            encode_fetch_request_with_session(
+                &mut buf, version, 10, 1, 1024, 0, &topics, None, session,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., got) = decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(
+                got,
+                FetchMetadata::LEGACY,
+                "Fetch v{version} omits SessionId / SessionEpoch even when the body is non-LEGACY"
+            );
+            assert!(
+                cur.is_empty(),
+                "Fetch v{version} SessionId / SessionEpoch leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_fetch_request_with_session(&mut with, 7, 10, 1, 1024, 0, &topics, None, session)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_fetch_request_with_session(
+            &mut zero,
+            7,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v7 SessionId / SessionEpoch are not always LEGACY"
+        );
+        let mut conv = BytesMut::new();
+        encode_fetch_request(&mut conv, 7, 10, 1, 1024, 0, &topics, None).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_fetch_request still writes FetchMetadata LEGACY"
+        );
+
+        let mut v6_with = BytesMut::new();
+        encode_fetch_request_with_session(&mut v6_with, 6, 10, 1, 1024, 0, &topics, None, session)
+            .unwrap();
+        let mut v6_legacy = BytesMut::new();
+        encode_fetch_request_with_session(
+            &mut v6_legacy,
+            6,
+            10,
+            1,
+            1024,
+            0,
+            &topics,
+            None,
+            FetchMetadata::LEGACY,
+        )
+        .unwrap();
+        assert_eq!(
+            &v6_with[..],
+            &v6_legacy[..],
+            "v6 encode omits SessionId / SessionEpoch even when the body is non-LEGACY"
+        );
+        let mut v8_with = BytesMut::new();
+        encode_fetch_request_with_session(&mut v8_with, 8, 10, 1, 1024, 0, &topics, None, session)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v8_with[..],
+            "v7 and v8 both write SessionId / SessionEpoch; do not confuse with v9 CurrentLeaderEpoch, v11 RackId, or v12 flexible"
+        );
+        assert_ne!(
+            &v6_with[..],
+            &with[..],
+            "v7 adds SessionId / SessionEpoch / ForgottenTopicsData"
+        );
+    }
+
+    #[test]
     fn fetch_request_sends_current_leader_epoch() {
         let topics = vec![FetchTopic {
             topic: "t".into(),
@@ -2596,7 +2749,7 @@ mod tests {
         assert_eq!(session.get_i32(), FetchMetadata::LEGACY.session_id());
         assert_eq!(session.get_i32(), FetchMetadata::LEGACY.epoch());
         let mut cur = &buf[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 11).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 11).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
@@ -2652,7 +2805,8 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_fetch_request(&mut buf, 11, 10, 1, 1024, 0, &topics, Some("az1")).unwrap();
-        let (_iso, _max_bytes, _decoded, rack) = decode_fetch_request(&mut &buf[..], 11).unwrap();
+        let (_iso, _max_bytes, _decoded, rack, ..) =
+            decode_fetch_request(&mut &buf[..], 11).unwrap();
         assert_eq!(rack, "az1");
     }
 
@@ -2874,7 +3028,7 @@ mod tests {
         let mut req = BytesMut::new();
         encode_fetch_request(&mut req, 12, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
         let mut cur = &req[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 12).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 12).unwrap();
         assert_eq!(iso, 1);
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].partitions[0].current_leader_epoch, 7);
@@ -2986,7 +3140,7 @@ mod tests {
         let mut req = BytesMut::new();
         encode_fetch_request(&mut req, 14, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
         let mut cur = &req[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 14).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 14).unwrap();
         assert_eq!(iso, 1);
         assert_eq!(max_bytes, 1024);
         assert!(decoded[0].topic.is_empty());
@@ -3108,7 +3262,7 @@ mod tests {
         crate::protocol::buf::put_string(&mut buf, true, Some("")).unwrap();
         crate::protocol::buf::put_empty_tagged_fields(&mut buf);
         let mut cur = &buf[..];
-        let (iso, max_bytes, topics, rack) = decode_fetch_request(&mut cur, 14).unwrap();
+        let (iso, max_bytes, topics, rack, ..) = decode_fetch_request(&mut cur, 14).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(max_bytes, 1024);
         assert!(topics.is_empty());
@@ -3125,7 +3279,7 @@ mod tests {
         let mut req = BytesMut::new();
         encode_fetch_request(&mut req, 15, 10, 1, 1024, 1, &req_topics, Some("az1")).unwrap();
         let mut cur = &req[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 15).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 15).unwrap();
         assert_eq!(iso, 1);
         assert_eq!(max_bytes, 1024);
         assert!(decoded[0].topic.is_empty());
@@ -3235,7 +3389,7 @@ mod tests {
             "Fetch v16 request layout must match v15"
         );
         let mut cur = &v16[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 16).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 16).unwrap();
         assert_eq!(iso, 1);
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].topic_id, SAMPLE_TOPIC_ID);
@@ -3520,7 +3674,7 @@ mod tests {
             "Fetch v17 consumer request must omit ReplicaDirectoryId and match v16"
         );
         let mut cur = &v17[..];
-        let (iso, max_bytes, decoded, rack) = decode_fetch_request(&mut cur, 17).unwrap();
+        let (iso, max_bytes, decoded, rack, ..) = decode_fetch_request(&mut cur, 17).unwrap();
         assert_eq!(iso, 1);
         assert_eq!(max_bytes, 1024);
         assert_eq!(decoded[0].topic_id, SAMPLE_TOPIC_ID);

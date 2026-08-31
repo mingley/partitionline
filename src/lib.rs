@@ -963,7 +963,13 @@
 //! v16 CurrentLeader / NodeEndpoints, KIP-951; v17 omits ReplicaDirectoryId, KIP-853;
 //! v12+ LastFetchedEpoch from the last consumed batch, KIP-320;
 //! decode below v12 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`];
-//! SessionId / ForgottenTopicsData are v7+; request LogStartOffset is v5+;
+//! SessionId / SessionEpoch / ForgottenTopicsData are v7+;
+//! [`protocol::fetch::encode_fetch_request_with_session`] round-trips a
+//! non-LEGACY session on v7+; below v7 encode omits SessionId / SessionEpoch
+//! even when the body is non-LEGACY and decode fills
+//! [`protocol::fetch::FetchMetadata::LEGACY`];
+//! [`protocol::fetch::encode_fetch_request`] still writes LEGACY;
+//! request LogStartOffset is v5+;
 //! CurrentLeaderEpoch is v9+; RackId and response PreferredReadReplica are
 //! v11+; response LogStartOffset is v5+; below those versions encode omits
 //! the field even when the body has a value and decode fills the JSON
@@ -1045,7 +1051,10 @@
 //! v15 untagged ReplicaId; v15+ ReplicaState; static uses untagged when it
 //! is not `-1`; encode still writes [`protocol::fetch::CONSUMER_REPLICA_ID`]).
 //! [`protocol::fetch::FetchMetadata`] is Java `FetchMetadata`
-//! ([`protocol::fetch::FetchMetadata::LEGACY`] on Fetch requests).
+//! (v7+ round-trips SessionId / SessionEpoch, including a non-LEGACY
+//! value; below v7 encode omits them even when the body is non-LEGACY
+//! and decode fills [`protocol::fetch::FetchMetadata::LEGACY`];
+//! [`protocol::fetch::encode_fetch_request`] still writes LEGACY).
 //! [`protocol::header::RequestHeader`] `Display` is Java
 //! `RequestHeader.toString` (`apiKey` is the Kafka 4.0 `ApiKeys` enum
 //! name; null `clientId` prints `null`). [`protocol::header::RequestHeader::size`]

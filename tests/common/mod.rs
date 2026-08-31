@@ -4968,7 +4968,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 .unwrap();
             }
             FETCH => {
-                let (iso, max_bytes, req, rack) =
+                let (iso, max_bytes, req, rack, ..) =
                     decode_fetch_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_fetch_isolation = iso;
