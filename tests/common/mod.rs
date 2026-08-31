@@ -5549,6 +5549,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                                     error_code: 0,
                                     error_message: None,
                                     acknowledge_error_code: 0,
+                                    acknowledge_error_message: None,
                                     current_leader_id: 0,
                                     current_leader_epoch: 0,
                                     records: share_record_batches(taken, epoch),
