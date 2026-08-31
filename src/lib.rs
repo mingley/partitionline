@@ -700,6 +700,9 @@
 //! `FetchResponse.shouldClientThrottle` (v8+).
 //! [`protocol::fetch::FetchResponse::topic_ids`] is Java
 //! `FetchResponse.topicIds` (skips zeros).
+//! [`protocol::fetch::FetchResponse::response_data`] is Java
+//! `FetchResponse.responseData` (v4–v12 use the topic name; v13+ looks up
+//! `topic_id` and skips a missing name; a later partition overwrites).
 //! [`protocol::fetch::FetchResponse::error_counts`] is Java
 //! `FetchResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`). Crate decode currently

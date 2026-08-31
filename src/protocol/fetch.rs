@@ -368,6 +368,36 @@ impl FetchResponse {
             .collect()
     }
 
+    /// Java `FetchResponse.responseData`.
+    ///
+    /// v4–v12 use each topic's name. v13+ looks up `topic_id` in
+    /// `topic_names` and skips a topic whose id is missing (Java `name
+    /// != null`). A later partition overwrites the same pair (Java
+    /// `LinkedHashMap.put`).
+    #[must_use]
+    pub fn response_data(
+        version: i16,
+        topics: &[FetchedTopic],
+        topic_names: &HashMap<[u8; 16], String>,
+    ) -> HashMap<(String, i32), FetchedPartition> {
+        let mut response_data = HashMap::new();
+        for topic in topics {
+            let name = if version < 13 {
+                Some(topic.topic.as_str())
+            } else {
+                topic_names.get(&topic.topic_id).map(String::as_str)
+            };
+            let Some(name) = name else {
+                continue;
+            };
+            for partition in &topic.partitions {
+                let _prev = response_data
+                    .insert((name.to_string(), partition.partition), partition.clone());
+            }
+        }
+        response_data
+    }
+
     /// Java `FetchResponse.errorCounts`.
     ///
     /// Counts the top-level `errorCode` (including `NONE`) plus each
@@ -1070,6 +1100,91 @@ mod tests {
         assert_eq!(
             FetchResponse::topic_ids(&[topic([0; 16]), topic([1; 16]), topic([2; 16])]),
             HashSet::from([[1; 16], [2; 16]])
+        );
+    }
+
+    #[test]
+    fn fetch_response_response_data_matches_java() {
+        // Java FetchResponse.responseData: v4–v12 use topic(). v13+
+        // looks up topicId in topicNames and skips a missing name
+        // (name != null). LinkedHashMap.put overwrites the same pair.
+        let p0 = FetchedPartition::partition_response(0, 0);
+        let p1 = FetchedPartition::partition_response(1, crate::error::NOT_LEADER_OR_FOLLOWER);
+        let overwrite =
+            FetchedPartition::partition_response(0, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let named = vec![
+            FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![p0.clone(), p1.clone()],
+            },
+            FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![overwrite.clone()],
+            },
+        ];
+        let empty_names = HashMap::new();
+        assert!(FetchResponse::response_data(12, &[], &empty_names).is_empty());
+        let v12 = FetchResponse::response_data(12, &named, &empty_names);
+        assert_eq!(v12.len(), 2);
+        assert_eq!(
+            v12.get(&("t".into(), 0)).map(|p| p.error_code),
+            Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+        assert_eq!(
+            v12.get(&("t".into(), 1)).map(|p| p.error_code),
+            Some(crate::error::NOT_LEADER_OR_FOLLOWER)
+        );
+        let topic_id = [1u8; 16];
+        let id_topics = vec![FetchedTopic {
+            topic: String::new(),
+            topic_id,
+            partitions: vec![p0.clone(), p1.clone()],
+        }];
+        assert!(FetchResponse::response_data(13, &id_topics, &empty_names).is_empty());
+        let names = HashMap::from([(topic_id, "resolved".into())]);
+        let v13 = FetchResponse::response_data(13, &id_topics, &names);
+        assert_eq!(v13.len(), 2);
+        assert_eq!(
+            v13.get(&("resolved".into(), 0)).map(|p| p.partition),
+            Some(0)
+        );
+        assert_eq!(
+            v13.get(&("resolved".into(), 1)).map(|p| p.partition),
+            Some(1)
+        );
+        let mut buf = BytesMut::new();
+        encode_fetch_response(&mut buf, 11, &named).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 11).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v11 responseData leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let decoded_map = FetchResponse::response_data(11, &decoded, &empty_names);
+        assert_eq!(decoded_map.len(), 2);
+        assert_eq!(
+            decoded_map.get(&("t".into(), 0)).map(|p| p.error_code),
+            Some(crate::error::UNKNOWN_TOPIC_OR_PARTITION)
+        );
+        buf.clear();
+        encode_fetch_response(&mut buf, 13, &id_topics).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, _endpoints) = decode_fetch_response(&mut cur, 13).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Fetch v13 responseData leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let decoded_map = FetchResponse::response_data(13, &decoded, &names);
+        assert_eq!(decoded_map.len(), 2);
+        assert_eq!(
+            decoded_map
+                .get(&("resolved".into(), 0))
+                .map(|p| p.error_code),
+            Some(0)
         );
     }
 
