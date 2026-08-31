@@ -83,6 +83,19 @@ pub struct ShareGroupHeartbeatResponse {
     pub assignment: Option<Vec<ShareTopicPartitions>>,
 }
 
+impl ShareGroupHeartbeatResponse {
+    /// Java `ShareGroupHeartbeatResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Assignment is not counted. This is
+    /// not ConsumerGroupHeartbeat / Heartbeat / ShareFetch
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
+}
+
 /// One contiguous offset range in ShareAcknowledge / ShareFetch acks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AcknowledgementBatch {
@@ -2250,6 +2263,65 @@ mod tests {
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareGroupHeartbeat has no AcquisitionLockTimeoutMs"
         );
+    }
+
+    #[test]
+    fn share_group_heartbeat_response_error_counts_matches_java() {
+        // Java ShareGroupHeartbeatResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java ShareGroupHeartbeatResponse.errorCounts.
+        // Java ShareGroupHeartbeatResponse has no error() helper.
+        // Assignment is not counted. This is not ConsumerGroupHeartbeat
+        // errorCounts / Heartbeat errorCounts / ShareFetch errorCounts.
+        let none = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: Some(vec![ShareTopicPartitions {
+                topic_id: [7u8; 16],
+                partitions: vec![0, 1],
+            }]),
+        };
+        assert_eq!(
+            none.error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = ShareGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: crate::error::GROUP_MAX_SIZE_REACHED,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: Some(vec![ShareTopicPartitions {
+                topic_id: [7u8; 16],
+                partitions: vec![0, 1],
+            }]),
+        };
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::GROUP_MAX_SIZE_REACHED, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_share_group_heartbeat_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_share_group_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::GROUP_MAX_SIZE_REACHED, 1)]),
+                "ShareGroupHeartbeat v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ShareGroupHeartbeat v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

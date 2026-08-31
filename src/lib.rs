@@ -491,6 +491,9 @@
 //! ShareGroupHeartbeat v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
 //! request RackId is JSON `0+` (nullable compact STRING after MemberEpoch; JSON default null);
 //! ThrottleTimeMs is JSON `0+`;
+//! [`protocol::share::ShareGroupHeartbeatResponse::error_counts`] is Java
+//! `ShareGroupHeartbeatResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`protocol::share::ShareGroupHeartbeatRequest::LEAVE_GROUP_MEMBER_EPOCH`] /
 //! [`protocol::share::ShareGroupHeartbeatRequest::JOIN_GROUP_MEMBER_EPOCH`]
 //! are Java `ShareGroupHeartbeatRequest` join/leave epochs),
