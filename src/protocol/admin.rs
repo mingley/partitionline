@@ -1415,7 +1415,9 @@ impl DeleteTopicState {
 
     /// Java `DeleteTopicsRequest.getErrorResponse` one topic.
     ///
-    /// Throttle on the response is the JSON default (`0`).
+    /// ThrottleTimeMs is a top-level field
+    /// ([`DeleteTopicsRequest::error_response`]); below v1 it is omitted
+    /// even when that value is non-zero.
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> TopicResult {
         TopicResult::error(error_code, self.name.as_deref(), self.topic_id)
@@ -1501,6 +1503,28 @@ impl DeleteTopicsRequest {
         } else {
             topics.to_vec()
         }
+    }
+
+    /// Java `DeleteTopicsRequest.getErrorResponse`.
+    ///
+    /// Copies each topic name and TopicId through
+    /// [`DeleteTopicState::error_result`]. `ErrorMessage` stays the JSON
+    /// default (null); official Java does not set it. ThrottleTimeMs is
+    /// written on v1+ from `throttle_time_ms`. Below v1 the field is
+    /// omitted even when that value is non-zero (Java only calls
+    /// `setThrottleTimeMs` when `version() >= 1`). Decode fills `0`.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[DeleteTopicState],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results: Vec<TopicResult> = topics
+            .iter()
+            .map(|topic| topic.error_result(error_code))
+            .collect();
+        encode_delete_topics_response_with_throttle(buf, version, &results, throttle_time_ms)
     }
 }
 
@@ -1603,14 +1627,31 @@ pub fn decode_delete_topics_states_request<B: Buf>(
 }
 
 /// Encode a DeleteTopics response.
+///
+/// Throttle is the JSON default (`0`) on v1+.
 pub fn encode_delete_topics_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[TopicResult],
 ) -> crate::error::Result<()> {
+    encode_delete_topics_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode DeleteTopics v0–v6 with ThrottleTimeMs.
+///
+/// Below v1 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v4+ is flexible. v5 writes ErrorMessage. v6
+/// writes TopicId. Kafka 4.0 `validVersions` is `1-6` (v0 removed); this
+/// crate still speaks 0–6.
+pub fn encode_delete_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[TopicResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_topics_flexible(version)?;
     if version >= 1 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
@@ -1642,14 +1683,16 @@ pub fn encode_delete_topics_response(
 }
 
 /// Decode a DeleteTopics response.
+///
+/// Returns `(topics, throttle_time_ms)`. Below v1 ThrottleTimeMs is
+/// omitted; decode fills `0`. Below v5 ErrorMessage is `None`. Below v6
+/// TopicId is zeros.
 pub fn decode_delete_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<TopicResult>> {
+) -> Result<(Vec<TopicResult>, i32)> {
     let flexible = delete_topics_flexible(version)?;
-    if version >= 1 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1685,7 +1728,7 @@ pub fn decode_delete_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// `true` when DescribeConfigs `version` is flexible.
@@ -17300,7 +17343,10 @@ mod tests {
         buf.clear();
         encode_delete_topics_response(&mut buf, 3, &results).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_topics_response(&mut cur, 3).unwrap(), results);
+        assert_eq!(
+            decode_delete_topics_response(&mut cur, 3).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v3 response must be leftover-empty"
@@ -17328,7 +17374,10 @@ mod tests {
         buf.clear();
         encode_delete_topics_response(&mut buf, 4, &results).unwrap();
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_topics_response(&mut cur, 4).unwrap(), results);
+        assert_eq!(
+            decode_delete_topics_response(&mut cur, 4).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v4 response must be leftover-empty"
@@ -17423,7 +17472,7 @@ mod tests {
         let mut err = BytesMut::new();
         encode_delete_topics_response(&mut err, 6, &results).unwrap();
         let mut cur = err.as_ref();
-        let decoded = decode_delete_topics_response(&mut cur, 6).unwrap();
+        let (decoded, ..) = decode_delete_topics_response(&mut cur, 6).unwrap();
         assert_eq!(decoded, results);
         assert!(
             !cur.has_remaining(),
@@ -17681,13 +17730,16 @@ mod tests {
             "DeleteTopics v5 response must include ErrorMessage"
         );
         let mut cur = &v5[..];
-        assert_eq!(decode_delete_topics_response(&mut cur, 5).unwrap(), results);
+        assert_eq!(
+            decode_delete_topics_response(&mut cur, 5).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v5 response must be leftover-empty"
         );
         let mut cur = &v4[..];
-        let got4 = decode_delete_topics_response(&mut cur, 4).unwrap();
+        let (got4, ..) = decode_delete_topics_response(&mut cur, 4).unwrap();
         assert_eq!(got4[0].error_code, 3);
         assert_eq!(got4[0].error_message, None);
         assert!(
@@ -17719,7 +17771,10 @@ mod tests {
             "DeleteTopics v6 response must include TopicId"
         );
         let mut cur = &v6[..];
-        assert_eq!(decode_delete_topics_response(&mut cur, 6).unwrap(), results);
+        assert_eq!(
+            decode_delete_topics_response(&mut cur, 6).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v6 response must be leftover-empty"
@@ -17742,7 +17797,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_delete_topics_response(&mut buf, version, &results).unwrap();
             let mut cur = &buf[..];
-            let got = decode_delete_topics_response(&mut cur, version).unwrap();
+            let (got, ..) = decode_delete_topics_response(&mut cur, version).unwrap();
             assert_eq!(got[0].error_code, crate::error::NOT_CONTROLLER);
             if version >= 5 {
                 assert_eq!(got[0].error_message.as_deref(), Some("Not controller"));
@@ -17752,6 +17807,94 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "DeleteTopics v{version} NOT_CONTROLLER must be leftover-empty"
+            );
+        }
+    }
+
+    #[test]
+    fn delete_topics_throttle_time_ms_matches_java() {
+        let topics = [DeleteTopicState::by_name("t")];
+        let err: Vec<TopicResult> = topics.iter().map(|topic| topic.error_result(16)).collect();
+        for version in [1_i16, 2, 3, 4, 5, 6] {
+            let mut buf = BytesMut::new();
+            DeleteTopicsRequest::error_response(&mut buf, version, &topics, 16, 3_600_000).unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_delete_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(decoded.iter().all(|r| r.error_message.is_none()));
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DeleteTopics v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        DeleteTopicsRequest::error_response(&mut buf, 0, &topics, 16, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_delete_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "DeleteTopics v0 ThrottleTimeMs leftover-empty"
+        );
+        assert_eq!(
+            throttle, 0,
+            "DeleteTopics v0 omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+
+        let mut with = BytesMut::new();
+        encode_delete_topics_response_with_throttle(&mut with, 1, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_delete_topics_response_with_throttle(&mut zero, 1, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_topics_response(&mut conv, 1, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_delete_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_delete_topics_response_with_throttle(&mut v0_with, 0, &err, 3_600_000).unwrap();
+        let mut v0_zero = BytesMut::new();
+        encode_delete_topics_response_with_throttle(&mut v0_zero, 0, &err, 0).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_zero[..],
+            "v0 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v0_with[..],
+            &with[..],
+            "v1 adds ThrottleTimeMs; do not confuse with v4 flexible, v5 ErrorMessage, or v6 TopicId"
+        );
+
+        for version in [0_i16, 1, 4, 6] {
+            let mut expected = BytesMut::new();
+            encode_delete_topics_response_with_throttle(&mut expected, version, &err, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            DeleteTopicsRequest::error_response(&mut got, version, &topics, 16, 3_600_000).unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "DeleteTopics v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_delete_topics_response(&mut cur, version).unwrap();
+            if version >= 1 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "DeleteTopics v{version} getErrorResponse leftover-empty"
             );
         }
     }
@@ -18315,7 +18458,10 @@ mod tests {
             "throttle + topic-array length must not look like error 41"
         );
         let mut cur = &buf[..];
-        assert_eq!(decode_delete_topics_response(&mut cur, 3).unwrap(), results);
+        assert_eq!(
+            decode_delete_topics_response(&mut cur, 3).unwrap().0,
+            results
+        );
         assert!(
             !cur.has_remaining(),
             "DeleteTopics v3 NOT_CONTROLLER must be leftover-empty"

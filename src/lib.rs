@@ -517,6 +517,13 @@
 //! [`protocol::admin::TopicResult::error`] /
 //! [`protocol::admin::DeleteTopicState::error_result`] are Java
 //! `DeleteTopicsRequest.getErrorResponse` (one topic);
+//! [`protocol::admin::DeleteTopicsRequest::error_response`] is Java
+//! `DeleteTopicsRequest.getErrorResponse` (copies names / TopicIds;
+//! `ErrorMessage` stays JSON-null; v1+ writes the `throttleTimeMs`
+//! argument; below v1 omits it);
+//! v1+ round-trips ThrottleTimeMs; below v1 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::admin::encode_delete_topics_response`] still writes `0`;
 //! [`protocol::admin::DeleteTopicsRequest::topic_ids`] /
 //! [`protocol::admin::DeleteTopicsRequest::topic_names`] /
 //! [`protocol::admin::DeleteTopicsRequest::topics`] are Java

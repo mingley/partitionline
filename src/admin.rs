@@ -3739,7 +3739,7 @@ impl Admin {
                 }
                 Err(e) => return Err(e),
             };
-            let results = decode_delete_topics_response(&mut body.clone(), version)?;
+            let (results, ..) = decode_delete_topics_response(&mut body.clone(), version)?;
             if results
                 .iter()
                 .any(|r| r.error_code == error::NOT_CONTROLLER)
