@@ -1426,7 +1426,11 @@
 //! empty Topics).
 //! [`protocol::group::OffsetDeleteResponse::error_counts`] is Java
 //! `OffsetDeleteResponse.errorCounts` (top-level `errorCode` plus each
-//! partition-level code, including `NONE`).
+//! partition-level code, including `NONE`);
+//! [`protocol::group::OffsetDeleteResponse::merge`] is Java
+//! `OffsetDeleteResponse.Builder.merge` (replace when the new top-level
+//! ErrorCode is not `NONE` or current Topics are empty; otherwise append
+//! topics / partitions; overlapping partitions are not checked).
 //! [`Admin::delete_offsets_timeout`] / [`Admin::delete_consumer_group_offsets_timeout`]
 //! are Java `DeleteConsumerGroupOffsetsOptions.timeoutMs` (RPC deadline;
 //! OffsetDelete has no TimeoutMs).

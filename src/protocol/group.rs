@@ -3334,7 +3334,39 @@ impl OffsetDeleteRequest {
 }
 
 /// Java `OffsetDeleteResponse` helpers.
+///
+/// [`Self::merge`] is Java `OffsetDeleteResponse.Builder.merge`.
 pub struct OffsetDeleteResponse;
+
+fn offset_delete_group_results(results: &[OffsetDeleteResult]) -> Vec<(String, Vec<(i32, i16)>)> {
+    let mut groups: Vec<(String, Vec<(i32, i16)>)> = Vec::new();
+    for r in results {
+        if let Some(i) = groups.iter().position(|(topic, _)| topic == &r.topic) {
+            if let Some((_, parts)) = groups.get_mut(i) {
+                parts.push((r.partition, r.error_code));
+            }
+        } else {
+            groups.push((r.topic.clone(), vec![(r.partition, r.error_code)]));
+        }
+    }
+    groups
+}
+
+fn offset_delete_flatten_results(
+    groups: Vec<(String, Vec<(i32, i16)>)>,
+) -> Vec<OffsetDeleteResult> {
+    let mut out = Vec::new();
+    for (topic, parts) in groups {
+        for (partition, error_code) in parts {
+            out.push(OffsetDeleteResult::new(
+                topic.clone(),
+                partition,
+                error_code,
+            ));
+        }
+    }
+    out
+}
 
 impl OffsetDeleteResponse {
     /// Java `OffsetDeleteResponse.shouldClientThrottle`.
@@ -3357,6 +3389,36 @@ impl OffsetDeleteResponse {
             *count += 1;
         }
         counts
+    }
+
+    /// Java `OffsetDeleteResponse.Builder.merge`.
+    ///
+    /// If `new_error` is not `NONE`, the result is `new_results` (current
+    /// Topics are discarded). If `current` has no topics, the result is
+    /// `new_results`. Otherwise new topics are appended and partitions of
+    /// an existing topic are appended to that topic. Java does not check
+    /// for overlapping partitions. Topic order is first-seen.
+    #[must_use]
+    pub fn merge(
+        current_error: i16,
+        current: &[OffsetDeleteResult],
+        new_error: i16,
+        new_results: &[OffsetDeleteResult],
+    ) -> (i16, Vec<OffsetDeleteResult>) {
+        if new_error != crate::error::NONE || current.is_empty() {
+            return (new_error, new_results.to_vec());
+        }
+        let mut groups = offset_delete_group_results(current);
+        for (name, parts) in offset_delete_group_results(new_results) {
+            if let Some(i) = groups.iter().position(|(topic, _)| topic == &name) {
+                if let Some((_, existing)) = groups.get_mut(i) {
+                    existing.extend(parts);
+                }
+            } else {
+                groups.push((name, parts));
+            }
+        }
+        (current_error, offset_delete_flatten_results(groups))
     }
 }
 
@@ -6765,6 +6827,112 @@ mod tests {
             &got[..],
             &with_topics[..],
             "getErrorResponse must not copy request partitions"
+        );
+    }
+
+    #[test]
+    fn offset_delete_response_merge_matches_java() {
+        // Java OffsetDeleteResponse.Builder.merge: replace when the new
+        // top-level ErrorCode is not NONE, or when current Topics are
+        // empty. Otherwise append topics / partitions (no overlap check).
+        let t1_p0 = OffsetDeleteResult::new("t1", 0, 0);
+        let t1_p1 = OffsetDeleteResult::new("t1", 1, crate::error::GROUP_SUBSCRIBED_TO_TOPIC);
+        let t2_p0 = OffsetDeleteResult::new("t2", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION);
+        let current = vec![t1_p0.clone()];
+        let new_same_topic = vec![t1_p1.clone()];
+        let (err, merged) = OffsetDeleteResponse::merge(0, &current, 0, &new_same_topic);
+        assert_eq!(err, 0, "merge keeps current ErrorCode when new is NONE");
+        assert_eq!(merged, vec![t1_p0.clone(), t1_p1.clone()]);
+        let mut got = BytesMut::new();
+        encode_offset_delete_response(&mut got, err, &merged).unwrap();
+        let mut cur = &got[..];
+        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(decoded_err, 0);
+        assert_eq!(decoded, merged);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete merge same-topic leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let (err, merged) = OffsetDeleteResponse::merge(0, &current, 0, &[t2_p0.clone()]);
+        assert_eq!(err, 0);
+        assert_eq!(merged, vec![t1_p0.clone(), t2_p0.clone()]);
+        got.clear();
+        encode_offset_delete_response(&mut got, err, &merged).unwrap();
+        let mut cur = &got[..];
+        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(decoded_err, 0);
+        assert_eq!(decoded, merged);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete merge new-topic leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let (err, replaced) =
+            OffsetDeleteResponse::merge(0, &current, crate::error::NOT_COORDINATOR, &[]);
+        assert_eq!(err, crate::error::NOT_COORDINATOR);
+        assert!(
+            replaced.is_empty(),
+            "non-NONE new ErrorCode replaces current Topics"
+        );
+        got.clear();
+        encode_offset_delete_response(&mut got, err, &replaced).unwrap();
+        let mut expected = BytesMut::new();
+        OffsetDeleteRequest::error_response(&mut expected, crate::error::NOT_COORDINATOR).unwrap();
+        assert_eq!(
+            &got[..],
+            &expected[..],
+            "non-NONE merge must match empty-Topics getErrorResponse"
+        );
+        let mut cur = &got[..];
+        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(decoded_err, crate::error::NOT_COORDINATOR);
+        assert!(decoded.is_empty());
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete merge replace leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let (err, from_empty) =
+            OffsetDeleteResponse::merge(crate::error::NOT_COORDINATOR, &[], 0, &current);
+        assert_eq!(err, 0, "empty current Topics takes new ErrorCode");
+        assert_eq!(from_empty, current);
+        got.clear();
+        encode_offset_delete_response(&mut got, err, &from_empty).unwrap();
+        let mut cur = &got[..];
+        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(decoded_err, 0);
+        assert_eq!(decoded, current);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete merge empty-current leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+
+        let (err, empty_both) = OffsetDeleteResponse::merge(0, &[], 0, &[]);
+        assert_eq!(err, 0);
+        assert!(empty_both.is_empty());
+        let interleaved_new = vec![t2_p0.clone(), t1_p1.clone()];
+        let (err, grouped) = OffsetDeleteResponse::merge(0, &current, 0, &interleaved_new);
+        assert_eq!(err, 0);
+        assert_eq!(
+            grouped,
+            vec![t1_p0, t1_p1, t2_p0],
+            "new partitions of an existing topic append onto that topic"
+        );
+        got.clear();
+        encode_offset_delete_response(&mut got, err, &grouped).unwrap();
+        let mut cur = &got[..];
+        let (decoded_err, decoded) = decode_offset_delete_response(&mut cur).unwrap();
+        assert_eq!(decoded_err, 0);
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "OffsetDelete merge grouped leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
