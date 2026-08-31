@@ -105,6 +105,27 @@ impl FindCoordinatorResponse {
         counts
     }
 
+    /// Java `FindCoordinatorResponse.hasError`.
+    ///
+    /// `error() != NONE` on the **top-level** `errorCode`. v1–v3 fold
+    /// that field into the single [`CoordinatorResult`]. v4+ has no
+    /// top-level ErrorCode on the wire (JSON default `NONE`), so
+    /// coordinator-level codes are ignored. Empty Coordinators is
+    /// `false`. Java `error()` is `Errors.forCode` only (identity on
+    /// i16; not mapped). This crate speaks 1–6. This is not
+    /// [`Self::error_counts`] / [`Self::coordinator_by_key`] /
+    /// getErrorResponse / OffsetFetch `hasError`.
+    #[must_use]
+    pub fn has_error(version: i16, coordinators: &[CoordinatorResult]) -> bool {
+        if version >= MIN_BATCHED_VERSION {
+            false
+        } else {
+            coordinators
+                .first()
+                .is_some_and(|coordinator| coordinator.error_code != 0)
+        }
+    }
+
     /// Java `FindCoordinatorResponse.prepareErrorResponse`.
     ///
     /// One [`CoordinatorResult`] per key: copies `Key`, sets ErrorCode,
@@ -4860,6 +4881,86 @@ mod tests {
             )]),
             HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
         );
+    }
+
+    #[test]
+    fn find_coordinator_response_has_error_matches_java() {
+        // Java 4.0 FindCoordinatorResponse.hasError is error() != NONE
+        // on the top-level errorCode. Official Java
+        // FindCoordinatorResponse.hasError. Java error() is
+        // Errors.forCode only (identity on i16; not mapped). v1-v3 fold
+        // that field into the single CoordinatorResult. v4+ has no
+        // top-level ErrorCode on the wire (JSON default NONE), so
+        // coordinator-level codes are ignored. This crate speaks 1-6.
+        // This is not errorCounts / coordinatorByKey / getErrorResponse
+        // / OffsetFetch hasError.
+        let none = CoordinatorResult::error(0);
+        let err = CoordinatorResult::error(crate::error::COORDINATOR_NOT_AVAILABLE);
+        let batched_err =
+            CoordinatorResult::error_for_key(crate::error::COORDINATOR_NOT_AVAILABLE, "g");
+        assert!(
+            !FindCoordinatorResponse::has_error(1, &[]),
+            "empty Coordinators is not hasError (JSON default NONE)"
+        );
+        assert!(
+            !FindCoordinatorResponse::has_error(1, std::slice::from_ref(&none)),
+            "v1 top-level NONE is not hasError"
+        );
+        assert!(FindCoordinatorResponse::has_error(
+            1,
+            std::slice::from_ref(&err)
+        ));
+        for version in 1..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_find_coordinator_response_coordinators(
+                &mut resp,
+                version,
+                std::slice::from_ref(&err),
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (decoded, ..) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            assert!(
+                FindCoordinatorResponse::has_error(version, &decoded),
+                "FindCoordinator v{version} hasError must follow the decoded top-level ErrorCode"
+            );
+            assert_eq!(
+                &resp[4..6],
+                crate::error::COORDINATOR_NOT_AVAILABLE.to_be_bytes(),
+                "FindCoordinator v{version} top-level ErrorCode is at bytes 4-5"
+            );
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in 4..=6_i16 {
+            assert!(
+                !FindCoordinatorResponse::has_error(version, std::slice::from_ref(&batched_err)),
+                "v{version} coordinator-level error is not top-level hasError"
+            );
+            let mut resp = BytesMut::new();
+            encode_find_coordinator_response_coordinators(
+                &mut resp,
+                version,
+                std::slice::from_ref(&batched_err),
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (decoded, ..) =
+                decode_find_coordinator_response_coordinators(&mut cur, version).unwrap();
+            assert!(
+                !FindCoordinatorResponse::has_error(version, &decoded),
+                "FindCoordinator v{version} hasError ignores Coordinators[].ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "FindCoordinator v{version} hasError leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

@@ -131,6 +131,9 @@
 //! [`protocol::group::FindCoordinatorResponse::error_counts`] is Java
 //! `FindCoordinatorResponse.errorCounts` (each `Coordinators[]` code,
 //! including `NONE`; empty Coordinators falls back to top-level `NONE`);
+//! [`protocol::group::FindCoordinatorResponse::has_error`] is Java
+//! `FindCoordinatorResponse.hasError` (top-level `errorCode` only; v4+
+//! coordinator codes are ignored);
 //! [`protocol::group::FindCoordinatorResponse::coordinator_by_key`] is Java
 //! `FindCoordinatorResponse.coordinatorByKey` (v4+ first matching `Key`;
 //! v0–v3 stuffs `key` into the folded top-level coordinator; empty
