@@ -223,8 +223,11 @@
 //! generation resolution (higher generation keeps the partition; the same
 //! generation revokes it from both);
 //! [`protocol::group::JoinGroupResponse::is_leader`] /
-//! [`protocol::group::JoinGroupResponse::should_client_throttle`] are Java
-//! `JoinGroupResponse.isLeader` / `shouldClientThrottle`;
+//! [`protocol::group::JoinGroupResponse::should_client_throttle`] /
+//! [`protocol::group::JoinGroupResponse::protocol_name`] are Java
+//! `JoinGroupResponse.isLeader` / `shouldClientThrottle` /
+//! `JoinGroupResponse(JoinGroupResponseData, short)` ProtocolName
+//! (below v7 null becomes empty; v7+ empty becomes null);
 //! [`protocol::group::JoinGroupRequest::error_response`] is Java
 //! `JoinGroupRequest.getErrorResponse` ([`protocol::group::JoinGroupRequest::UNKNOWN_GENERATION_ID`] /
 //! [`protocol::group::JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`] / [`protocol::group::JoinGroupRequest::UNKNOWN_MEMBER_ID`];

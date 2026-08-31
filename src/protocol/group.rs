@@ -1136,6 +1136,23 @@ impl JoinGroupResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 3
     }
+
+    /// Java `JoinGroupResponse(JoinGroupResponseData, short)` ProtocolName rewrite.
+    ///
+    /// Below v7 a null name becomes empty (those versions have no nullable
+    /// ProtocolName). v7+ an empty name becomes null. Other values stay
+    /// as given. Encode of [`JoinGroupRequest::UNKNOWN_PROTOCOL_NAME`]
+    /// already writes null on v7+.
+    #[must_use]
+    pub fn protocol_name(version: i16, protocol_name: Option<&str>) -> Option<&str> {
+        if version < 7 && protocol_name.is_none() {
+            Some("")
+        } else if version >= 7 && protocol_name == Some("") {
+            None
+        } else {
+            protocol_name
+        }
+    }
 }
 
 /// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
@@ -6449,6 +6466,77 @@ mod tests {
             "v6 empty ProtocolName leftover {} bytes",
             cur.len()
         );
+    }
+
+    #[test]
+    fn join_group_response_protocol_name_matches_java() {
+        assert_eq!(JoinGroupResponse::protocol_name(6, None), Some(""));
+        assert_eq!(JoinGroupResponse::protocol_name(6, Some("")), Some(""));
+        assert_eq!(
+            JoinGroupResponse::protocol_name(6, Some("range")),
+            Some("range")
+        );
+        assert_eq!(JoinGroupResponse::protocol_name(7, Some("")), None);
+        assert_eq!(JoinGroupResponse::protocol_name(7, None), None);
+        assert_eq!(
+            JoinGroupResponse::protocol_name(7, Some("range")),
+            Some("range")
+        );
+        assert_eq!(
+            JoinGroupResponse::protocol_name(2, None),
+            Some(JoinGroupRequest::UNKNOWN_PROTOCOL_NAME)
+        );
+
+        for version in [2_i16, 6, 7, 9] {
+            let rewritten = JoinGroupResponse::protocol_name(version, Some(""));
+            let mut buf = BytesMut::new();
+            encode_join_group_response(
+                &mut buf,
+                version,
+                16,
+                JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                rewritten.unwrap_or(""),
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                &[],
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, _, protocol, _, _, _, _) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} protocolName leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in [2_i16, 6, 7, 9] {
+            let rewritten = JoinGroupResponse::protocol_name(version, None);
+            let mut buf = BytesMut::new();
+            encode_join_group_response(
+                &mut buf,
+                version,
+                16,
+                JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                rewritten.unwrap_or(""),
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                &[],
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (err, _, protocol, _, _, _, _) =
+                decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(err, 16);
+            assert_eq!(protocol, JoinGroupRequest::UNKNOWN_PROTOCOL_NAME);
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} protocolName empty leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
