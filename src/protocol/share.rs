@@ -1641,6 +1641,31 @@ impl ShareAcknowledgeRequest {
         }
         topics
     }
+
+    /// Java `ShareAcknowledgeRequest.getErrorResponse`.
+    ///
+    /// Empty Responses. ThrottleTimeMs is `throttle_time_ms` (JSON `0+`).
+    /// Top-level ErrorCode is `error_code`. Official Java sets
+    /// `throttleTimeMs` from the argument.
+    /// [`encode_share_acknowledge_response`] still writes `0`. This crate
+    /// speaks 0–1. This is not
+    /// [`ShareAcknowledgeResponsePartition::partition_response`] /
+    /// [`ShareAcknowledgeResponse::error_counts`] / ShareFetch
+    /// getErrorResponse.
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        encode_share_acknowledge_topics_response_with_throttle(
+            buf,
+            version,
+            error_code,
+            &[],
+            throttle_time_ms,
+        )
+    }
 }
 
 /// ShareAcknowledge with several topics in one request (`version` 0–1).
@@ -4307,6 +4332,61 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ShareAcknowledge has no AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_acknowledge_request_error_response_matches_java() {
+        // Java 4.0 ShareAcknowledgeRequest.getErrorResponse: empty
+        // Responses, ThrottleTimeMs from the argument, top-level
+        // ErrorCode from the exception. Official Java
+        // ShareAcknowledgeRequest.getErrorResponse.
+        // encode_share_acknowledge_response still writes ThrottleTimeMs
+        // 0. This crate speaks 0-1. This is not partitionResponse /
+        // errorCounts / ShareFetch getErrorResponse.
+        leftover_error_response(0, 16, 3_600_000);
+        leftover_error_response(0, 0, 0);
+        leftover_error_response(1, 16, 3_600_000);
+        leftover_error_response(1, 0, 0);
+        let mut named = BytesMut::new();
+        ShareAcknowledgeRequest::error_response(&mut named, 0, 16, 0).unwrap();
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_response(&mut conv, 0, 16).unwrap();
+        assert_eq!(
+            &named[..],
+            &conv[..],
+            "encode_share_acknowledge_response still writes ThrottleTimeMs 0"
+        );
+        let mut with = BytesMut::new();
+        ShareAcknowledgeRequest::error_response(&mut with, 0, 16, 3_600_000).unwrap();
+        assert_ne!(
+            &with[..],
+            &conv[..],
+            "getErrorResponse ThrottleTimeMs is not always the JSON default 0"
+        );
+    }
+
+    fn leftover_error_response(version: i16, error_code: i16, throttle_time_ms: i32) {
+        let mut buf = BytesMut::new();
+        ShareAcknowledgeRequest::error_response(&mut buf, version, error_code, throttle_time_ms)
+            .unwrap();
+        let mut cur = buf.as_ref();
+        let (got_error, topics, endpoints, got_throttle, error_message) =
+            decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+        assert_eq!(got_error, error_code);
+        assert!(topics.is_empty());
+        assert!(endpoints.is_empty());
+        assert_eq!(got_throttle, throttle_time_ms);
+        assert!(error_message.is_none());
+        let empty = if error_code == 0 && throttle_time_ms == 0 {
+            "empty "
+        } else {
+            ""
+        };
+        assert!(
+            cur.is_empty(),
+            "ShareAcknowledge v{version} getErrorResponse {empty}leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

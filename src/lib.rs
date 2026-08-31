@@ -656,6 +656,9 @@
 //! the top-level ErrorCode (empty Responses);
 //! [`protocol::share::encode_share_acknowledge_response`] still writes
 //! ThrottleTimeMs `0`;
+//! [`protocol::share::ShareAcknowledgeRequest::error_response`] is Java
+//! `ShareAcknowledgeRequest.getErrorResponse` (empty Responses;
+//! ThrottleTimeMs from the argument);
 //! top-level ErrorMessage is JSON `0+` (nullable compact STRING; not
 //! partition ErrorMessage); v0 and v1 bodies match;
 //! [`protocol::share::encode_share_acknowledge_topics_response_with_error_message`]
