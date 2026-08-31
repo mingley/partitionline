@@ -2570,6 +2570,29 @@ impl LeaveGroupRequest {
             members.to_vec()
         }
     }
+
+    /// Java `LeaveGroupRequest.Builder.build`.
+    ///
+    /// Empty members is `IllegalArgumentException` (Java the Builder
+    /// constructor). More than one member below v3 is
+    /// `UnsupportedVersionException`. Encode still rejects those cases;
+    /// this is the Builder rewrite. Below v3 the body is the first
+    /// member's `memberId` only (instance id and reason stay unset).
+    /// v3+ is the Members list as-is. This crate speaks 0–5. This is
+    /// not [`Self::members`] / [`Self::error_response`] / JoinGroup
+    /// `Builder.build`.
+    pub fn build(version: i16, members: &[LeaveGroupMember]) -> Result<Vec<LeaveGroupMember>> {
+        if members.is_empty() {
+            return Err(Error::protocol("leaving members should not be empty"));
+        }
+        if version < 3 && members.len() != 1 {
+            return Err(Error::Unsupported(format!(
+                "Version {version} leave group request only supports single member instance than {} members",
+                members.len()
+            )));
+        }
+        Ok(Self::members(version, members))
+    }
 }
 
 /// Java `LeaveGroupResponse` helpers.
@@ -13675,5 +13698,142 @@ mod tests {
             "got {batched}"
         );
         encode_leave_group_request_members(&mut BytesMut::new(), 3, "g", &two).unwrap();
+    }
+
+    #[test]
+    fn leave_group_request_build_matches_java() {
+        // Java 4.0 LeaveGroupRequest.Builder.build: empty members is
+        // IllegalArgumentException (the Builder constructor); more than
+        // one member below v3 is UnsupportedVersionException; below v3
+        // the body is the first member's memberId only. Official Java
+        // LeaveGroupRequest.Builder.build. Encode still rejects empty
+        // and batched members below v3. This crate speaks 0-5. This is
+        // not members / getErrorResponse / JoinGroup Builder.build.
+        let empty = LeaveGroupRequest::build(5, &[]).unwrap_err();
+        assert!(
+            matches!(empty, Error::Protocol(_)),
+            "empty members is Java IllegalArgumentException, got {empty}"
+        );
+        assert!(
+            empty
+                .to_string()
+                .contains("leaving members should not be empty"),
+            "got {empty}"
+        );
+        let two = [
+            LeaveGroupMember {
+                member_id: "m1".into(),
+                group_instance_id: Some("i1".into()),
+                reason: Some("r1".into()),
+            },
+            LeaveGroupMember {
+                member_id: "m2".into(),
+                group_instance_id: None,
+                reason: None,
+            },
+        ];
+        let batched = LeaveGroupRequest::build(0, &two).unwrap_err();
+        assert!(
+            matches!(batched, Error::Unsupported(_)),
+            "v0 with two members is Java UnsupportedVersionException, got {batched}"
+        );
+        assert!(
+            batched
+                .to_string()
+                .contains("only supports single member instance than 2 members"),
+            "got {batched}"
+        );
+        let encode_batched =
+            encode_leave_group_request_members(&mut BytesMut::new(), 0, "g", &two).unwrap_err();
+        assert!(
+            matches!(encode_batched, Error::Unsupported(_)),
+            "encode also rejects two members below v3"
+        );
+        let one = LeaveGroupMember {
+            member_id: "m".into(),
+            group_instance_id: Some("i".into()),
+            reason: Some("closed".into()),
+        };
+        assert_eq!(
+            LeaveGroupRequest::build(2, std::slice::from_ref(&one)).unwrap(),
+            vec![LeaveGroupMember {
+                member_id: "m".into(),
+                group_instance_id: None,
+                reason: None,
+            }],
+            "v2 copies memberId only"
+        );
+        assert_eq!(
+            LeaveGroupRequest::build(3, &two).unwrap(),
+            two.to_vec(),
+            "v3 Members is as-is"
+        );
+        assert_eq!(
+            LeaveGroupRequest::build(5, std::slice::from_ref(&one)).unwrap(),
+            vec![one.clone()],
+            "v5 keeps instance id and reason"
+        );
+
+        for version in 0..=2_i16 {
+            let built = LeaveGroupRequest::build(version, std::slice::from_ref(&one)).unwrap();
+            let mut buf = BytesMut::new();
+            encode_leave_group_request_members(&mut buf, version, "g", &built).unwrap();
+            let mut via_one = BytesMut::new();
+            encode_leave_group_request_members(
+                &mut via_one,
+                version,
+                "g",
+                std::slice::from_ref(&one),
+            )
+            .unwrap();
+            assert_eq!(
+                buf.as_ref(),
+                via_one.as_ref(),
+                "v{version} encode omits instance id and reason; Builder.build strips them"
+            );
+            let mut cur = &buf[..];
+            let (gid, decoded) = decode_leave_group_request_version(&mut cur, version).unwrap();
+            assert_eq!(gid, "g");
+            assert_eq!(decoded, built);
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+        for version in 3..=5_i16 {
+            let built = LeaveGroupRequest::build(version, &two).unwrap();
+            assert_eq!(built, two.to_vec());
+            let mut buf = BytesMut::new();
+            encode_leave_group_request_members(&mut buf, version, "g", &built).unwrap();
+            let mut cur = &buf[..];
+            let (gid, decoded) = decode_leave_group_request_version(&mut cur, version).unwrap();
+            assert_eq!(gid, "g");
+            if version >= 5 {
+                assert_eq!(decoded, two.to_vec());
+            } else {
+                assert_eq!(
+                    decoded,
+                    vec![
+                        LeaveGroupMember {
+                            member_id: "m1".into(),
+                            group_instance_id: Some("i1".into()),
+                            reason: None,
+                        },
+                        LeaveGroupMember {
+                            member_id: "m2".into(),
+                            group_instance_id: None,
+                            reason: None,
+                        },
+                    ],
+                    "v{version} omits Reason"
+                );
+            }
+            assert!(
+                cur.is_empty(),
+                "LeaveGroup v{version} Builder.build leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 }

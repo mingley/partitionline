@@ -386,6 +386,10 @@
 //! not copied; v1+ writes the `throttleTimeMs` argument; below v1 omits it);
 //! [`protocol::group::LeaveGroupRequest::members`] is Java
 //! `LeaveGroupRequest.members` (v0–v2 singleton `member_id`; v3+ Members);
+//! [`protocol::group::LeaveGroupRequest::build`] is Java
+//! `LeaveGroupRequest.Builder.build` (empty members is
+//! `IllegalArgumentException`; more than one member below v3 is
+//! `UnsupportedVersionException`; below v3 copies `memberId` only);
 //! [`protocol::group::LeaveGroupResponse::should_client_throttle`] is Java
 //! `LeaveGroupResponse.shouldClientThrottle` (v2+);
 //! [`protocol::group::LeaveGroupResponse::error_counts`] is Java
