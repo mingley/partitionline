@@ -4599,7 +4599,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_delete_acls_filter_results(&mut body, version, &results).unwrap();
             }
             LIST_OFFSETS => {
-                let (iso, topics, timeout_ms) =
+                let (iso, topics, timeout_ms, ..) =
                     decode_list_offsets_topics_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_list_offsets_isolation = Some(iso);

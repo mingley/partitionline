@@ -524,6 +524,7 @@ fn list_offsets_flexible(version: i16) -> Result<bool> {
 
 /// Encode ListOffsets with one or more topics (v1–v5 classic, v6–v10 flexible).
 /// `timeout_ms` is written at v10+ (KIP-1075); ignored below.
+/// ReplicaId is still [`CONSUMER_REPLICA_ID`].
 pub fn encode_list_offsets_topics_request(
     buf: &mut BytesMut,
     version: i16,
@@ -531,8 +532,33 @@ pub fn encode_list_offsets_topics_request(
     topics: &[ListOffsetsTopicRequest],
     timeout_ms: i32,
 ) -> crate::error::Result<()> {
+    encode_list_offsets_topics_request_with_replica_id(
+        buf,
+        version,
+        isolation_level,
+        topics,
+        timeout_ms,
+        CONSUMER_REPLICA_ID,
+    )
+}
+
+/// Encode ListOffsets with ReplicaId.
+///
+/// ReplicaId is JSON `0+` (INT32 first field). Official Java
+/// `ListOffsetsRequest.replicaId()` / `ListOffsetsRequestData.replicaId`.
+/// [`encode_list_offsets_topics_request`] still writes
+/// [`CONSUMER_REPLICA_ID`]. This is not Fetch ReplicaId /
+/// OffsetForLeaderEpoch ReplicaId.
+pub fn encode_list_offsets_topics_request_with_replica_id(
+    buf: &mut BytesMut,
+    version: i16,
+    isolation_level: i8,
+    topics: &[ListOffsetsTopicRequest],
+    timeout_ms: i32,
+    replica_id: i32,
+) -> crate::error::Result<()> {
     let flexible = list_offsets_flexible(version)?;
-    buf.put_i32(CONSUMER_REPLICA_ID);
+    buf.put_i32(replica_id);
     if version >= 2 {
         buf.put_i8(isolation_level);
     }
@@ -573,7 +599,7 @@ pub fn decode_list_offsets_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i8, String, i32, i32, i64)> {
-    let (isolation, topics, _timeout_ms) = decode_list_offsets_topics_request(buf, version)?;
+    let (isolation, topics, _timeout_ms, ..) = decode_list_offsets_topics_request(buf, version)?;
     let t = topics
         .first()
         .ok_or_else(|| Error::protocol("empty ListOffsets topics"))?;
@@ -592,14 +618,16 @@ pub fn decode_list_offsets_request<B: Buf>(
 
 /// Decode ListOffsets topics (v1–v5 classic, v6–v10 flexible).
 ///
-/// Returns `(isolation_level, topics, timeout_ms)`. Isolation is `0`
-/// below v2. `timeout_ms` is `Some` at v10+ (KIP-1075) and `None` below.
+/// Returns `(isolation_level, topics, timeout_ms, replica_id)`. Isolation
+/// is `0` below v2. `timeout_ms` is `Some` at v10+ (KIP-1075) and `None`
+/// below. ReplicaId is JSON `0+` (INT32 first field; official Java
+/// `ListOffsetsRequest.replicaId()`).
 pub fn decode_list_offsets_topics_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(i8, Vec<ListOffsetsTopicRequest>, Option<i32>)> {
+) -> Result<(i8, Vec<ListOffsetsTopicRequest>, Option<i32>, i32)> {
     let flexible = list_offsets_flexible(version)?;
-    let _replica = buf::get_i32(buf)?;
+    let replica_id = buf::get_i32(buf)?;
     let isolation = if version >= 2 { buf::get_i8(buf)? } else { 0 };
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
@@ -637,7 +665,7 @@ pub fn decode_list_offsets_topics_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((isolation, topics, timeout_ms))
+    Ok((isolation, topics, timeout_ms, replica_id))
 }
 
 /// Encode a single-topic, single-partition ListOffsets response.
@@ -1048,7 +1076,7 @@ mod tests {
         let mut req = BytesMut::new();
         encode_list_offsets_topics_request(&mut req, 4, 0, &req_topics, 0).unwrap();
         let mut cur = &req[..];
-        let (iso, got, timeout) = decode_list_offsets_topics_request(&mut cur, 4).unwrap();
+        let (iso, got, timeout, ..) = decode_list_offsets_topics_request(&mut cur, 4).unwrap();
         assert_eq!(iso, 0);
         assert_eq!(got, req_topics);
         assert_eq!(timeout, None);
@@ -1118,7 +1146,7 @@ mod tests {
             "ListOffsets v10 request must consume TimeoutMs before tagged fields"
         );
         let mut cur = &req[..];
-        let (_, _, timeout) = decode_list_offsets_topics_request(&mut cur, 10).unwrap();
+        let (_, _, timeout, ..) = decode_list_offsets_topics_request(&mut cur, 10).unwrap();
         assert_eq!(timeout, Some(1500));
         req.clear();
         assert!(
@@ -1481,11 +1509,61 @@ mod tests {
         }
     }
 
+    #[test]
+    fn list_offsets_request_replica_id_matches_java() {
+        // Kafka 4.0 ListOffsetsRequest.json ReplicaId is versions 0+
+        // (INT32 first field). Official Java ListOffsetsRequest.replicaId()
+        // / ListOffsetsRequestData.replicaId read it. Encode previously
+        // always wrote CONSUMER_REPLICA_ID; decode discarded it. This crate
+        // speaks 1–10. This is not Fetch ReplicaId / OffsetForLeaderEpoch
+        // ReplicaId.
+        let topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![ListOffsetsPartitionRequest::new(0, 0, LATEST_TIMESTAMP)],
+        )];
+        for version in [1_i16, 2, 6, 10] {
+            let mut buf = BytesMut::new();
+            encode_list_offsets_topics_request_with_replica_id(&mut buf, version, 0, &topics, 0, 7)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (.., replica_id) = decode_list_offsets_topics_request(&mut cur, version).unwrap();
+            assert_eq!(replica_id, 7);
+            assert!(
+                cur.is_empty(),
+                "ListOffsets request v{version} ReplicaId leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_list_offsets_topics_request_with_replica_id(&mut with, 1, 0, &topics, 0, 7).unwrap();
+        let mut consumer = BytesMut::new();
+        encode_list_offsets_topics_request(&mut consumer, 1, 0, &topics, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &consumer[..],
+            "v1 ReplicaId is not always CONSUMER_REPLICA_ID"
+        );
+        let (.., replica_id) =
+            decode_list_offsets_topics_request(&mut consumer.as_ref(), 1).unwrap();
+        assert_eq!(replica_id, CONSUMER_REPLICA_ID);
+
+        let mut v6_with = BytesMut::new();
+        encode_list_offsets_topics_request_with_replica_id(&mut v6_with, 6, 0, &topics, 0, 7)
+            .unwrap();
+        let mut v6_consumer = BytesMut::new();
+        encode_list_offsets_topics_request(&mut v6_consumer, 6, 0, &topics, 0).unwrap();
+        assert_ne!(
+            &v6_with[..],
+            &v6_consumer[..],
+            "v6 ReplicaId is not always CONSUMER_REPLICA_ID"
+        );
+    }
+
     fn leftover_for_consumer(version: i16, isolation: i8, topics: &[ListOffsetsTopicRequest]) {
         let mut buf = BytesMut::new();
         encode_list_offsets_topics_request(&mut buf, version, isolation, topics, 0).unwrap();
         let mut cur = buf.as_ref();
-        let (decoded_isolation, decoded, timeout) =
+        let (decoded_isolation, decoded, timeout, ..) =
             decode_list_offsets_topics_request(&mut cur, version).unwrap();
         if version >= 2 {
             assert_eq!(decoded_isolation, isolation);

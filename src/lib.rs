@@ -1876,6 +1876,10 @@
 //! the wire value is negative).
 //! [`Admin::list_offsets`] is Java `listOffsets` ([`OffsetAndTimestamp`] /
 //! [`OffsetSpec`]; one RPC per leader; ListOffsets v1–v10;
+//! request ReplicaId is JSON `0+` (decode returns it last;
+//! [`protocol::offsets::encode_list_offsets_topics_request_with_replica_id`];
+//! convenience encode still writes [`protocol::offsets::CONSUMER_REPLICA_ID`];
+//! official Java `ListOffsetsRequest.replicaId()`);
 //! decode below v4 fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]).
 //! [`protocol::offsets::ListOffsetsPartition`] getters / `Display` match
 //! Java `ListOffsetsResult.ListOffsetsResultInfo` (`leaderEpoch` is
