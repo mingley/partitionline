@@ -372,6 +372,11 @@
 //! `ShareFetchRequest.forgottenTopics` (looks up `topic_id` and keeps a
 //! missing name as `None`; duplicates are kept; encode still writes empty
 //! ForgottenTopicsData);
+//! [`protocol::share::ShareFetchRequest::update_forgotten_data`] is Java
+//! `ShareFetchRequest.Builder.updateForgottenData` (group by topic id;
+//! first-seen id order; later partitions append; grouped entries are
+//! appended to the existing list, including a second entry for the same
+//! id; encode still writes empty ForgottenTopicsData);
 //! [`protocol::share::ShareFetchResponse::to_message`] is Java
 //! `ShareFetchResponse.toMessage` Responses (group by `topic_id` in
 //! first-seen order; key partition overwrites the body);

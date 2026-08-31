@@ -108,7 +108,9 @@ pub struct ShareFetchTopic {
 ///
 /// Java `ShareFetchRequestData.ForgottenTopic`. Encode still writes an
 /// empty ForgottenTopicsData array; this type is the in-memory list
-/// [`ShareFetchRequest::forgotten_topics`] reads.
+/// [`ShareFetchRequest::forgotten_topics`] reads and
+/// [`ShareFetchRequest::update_forgotten_data`] builds from a forget
+/// list.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareForgottenTopic {
     /// Topic id (UUID).
@@ -141,6 +143,49 @@ impl ShareFetchRequest {
             }
         }
         to_forget
+    }
+
+    /// Java `ShareFetchRequest.Builder.updateForgottenData`.
+    ///
+    /// Groups the forget list by topic id (Java `HashMap`; first-seen id
+    /// order — `HashMap.forEach` order is unspecified). Partitions for
+    /// the same id append (`ArrayList`, duplicates kept). The grouped
+    /// entries are **appended** to `forgotten` (a second call with the
+    /// same id is another list entry, not a merge). Encode still writes
+    /// an empty ForgottenTopicsData array. Distinct from
+    /// [`Self::forgotten_topics`], which flattens an already-built list
+    /// and looks up names, and from
+    /// [`crate::protocol::fetch::FetchRequest::forgotten_from_removed`],
+    /// which groups by topic **name**.
+    #[must_use]
+    pub fn update_forgotten_data<I>(
+        forgotten: &[ShareForgottenTopic],
+        forget: I,
+    ) -> Vec<ShareForgottenTopic>
+    where
+        I: IntoIterator<Item = ([u8; 16], i32)>,
+    {
+        let mut out = forgotten.to_vec();
+        let mut order: Vec<[u8; 16]> = Vec::new();
+        let mut by_id: HashMap<[u8; 16], Vec<i32>> = HashMap::new();
+        for (topic_id, partition) in forget {
+            by_id
+                .entry(topic_id)
+                .or_insert_with(|| {
+                    order.push(topic_id);
+                    Vec::new()
+                })
+                .push(partition);
+        }
+        for topic_id in order {
+            if let Some(partitions) = by_id.remove(&topic_id) {
+                out.push(ShareForgottenTopic {
+                    topic_id,
+                    partitions,
+                });
+            }
+        }
+        out
     }
 }
 
@@ -2047,6 +2092,96 @@ mod tests {
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} forgottenTopics empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+    }
+
+    #[test]
+    fn share_fetch_request_update_forgotten_data_matches_java() {
+        // Java ShareFetchRequest.Builder.updateForgottenData: HashMap by
+        // topic id; partitions append (duplicates kept). Grouped entries
+        // are appended to ForgottenTopicsData (same id is a second list
+        // entry, not a merge). Encode still writes empty ForgottenTopicsData.
+        let none: Vec<([u8; 16], i32)> = Vec::new();
+        assert!(ShareFetchRequest::update_forgotten_data(&[], none.clone()).is_empty());
+
+        let id_a = [1u8; 16];
+        let id_b = [2u8; 16];
+        let forget = [(id_a, 0i32), (id_b, 1), (id_a, 2), (id_a, 0)];
+        let grouped = ShareFetchRequest::update_forgotten_data(&[], forget);
+        assert_eq!(
+            grouped,
+            vec![
+                ShareForgottenTopic {
+                    topic_id: id_a,
+                    partitions: vec![0, 2, 0],
+                },
+                ShareForgottenTopic {
+                    topic_id: id_b,
+                    partitions: vec![1],
+                },
+            ]
+        );
+
+        let existing = [ShareForgottenTopic {
+            topic_id: id_a,
+            partitions: vec![9],
+        }];
+        let appended = ShareFetchRequest::update_forgotten_data(&existing, forget);
+        assert_eq!(
+            appended,
+            vec![
+                ShareForgottenTopic {
+                    topic_id: id_a,
+                    partitions: vec![9],
+                },
+                ShareForgottenTopic {
+                    topic_id: id_a,
+                    partitions: vec![0, 2, 0],
+                },
+                ShareForgottenTopic {
+                    topic_id: id_b,
+                    partitions: vec![1],
+                },
+            ],
+            "a second call with the same id appends, it does not merge"
+        );
+
+        let fetch = vec![ShareFetchTopic {
+            topic_id: id_a,
+            partitions: vec![ShareFetchPartition {
+                partition: 0,
+                acknowledgements: vec![],
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let got = ShareFetchRequest::update_forgotten_data(&[], forget);
+            assert_eq!(got.len(), 2);
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, _mid, _epoch, _max, _decoded) =
+                decode_share_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} updateForgottenData leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [0_i16, 1] {
+            let got = ShareFetchRequest::update_forgotten_data(&[], none.clone());
+            assert!(got.is_empty());
+            let mut buf = BytesMut::new();
+            encode_share_fetch_request(&mut buf, version, "sg", "m1", 0, 10, 1, 1024, 16, &fetch)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (_gid, _mid, _epoch, _max, _decoded) =
+                decode_share_fetch_request(&mut cur, version).unwrap();
+            assert!(
+                !cur.has_remaining(),
+                "ShareFetch v{version} updateForgottenData empty leftover-empty; leftover {} bytes",
                 cur.remaining()
             );
         }
