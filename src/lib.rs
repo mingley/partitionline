@@ -774,6 +774,9 @@
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
 //! empty input is empty `Entries`, not null; throttle unused);
+//! [`protocol::admin::DescribeClientQuotasResponse::error_counts`] is Java
+//! `DescribeClientQuotasResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`protocol::admin::AlterClientQuotasResponse::error_counts`] is Java
 //! `AlterClientQuotasResponse.errorCounts` (per-entry codes, including `NONE`);
 //! ThrottleTimeMs is JSON `0+`;
@@ -2291,6 +2294,9 @@
 //! `DescribeClientQuotasResponse.fromQuotaEntities` (type/name pairs
 //! plus values into `Entries`; `ErrorCode` `0`; `ErrorMessage` null;
 //! empty input is empty `Entries`, not null; throttle unused).
+//! [`protocol::admin::DescribeClientQuotasResponse::error_counts`] is Java
+//! `DescribeClientQuotasResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`).
 //! [`ClientQuotaAlteration::error_result`] /
 //! [`ClientQuotaAlterationResult::error`] /
 //! [`ClientQuotaAlterationResult::error_results`] are Java

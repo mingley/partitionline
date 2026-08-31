@@ -6469,6 +6469,17 @@ impl DescribeClientQuotasResponse {
     pub fn entries(&self) -> Option<&[ClientQuotaEntry]> {
         self.entries.as_deref()
     }
+
+    /// Java `DescribeClientQuotasResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Quota entries are not counted. This
+    /// is not [`Self::error`] (Java `getErrorResponse`) / AlterClientQuotas
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// One quota key to set or remove (AlterClientQuotas).
@@ -23058,6 +23069,61 @@ mod tests {
             from_entities.throttle_time_ms, 0,
             "DescribeClientQuotasResponse::from_quota_entities still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn describe_client_quotas_response_error_counts_matches_java() {
+        // Java DescribeClientQuotasResponse.errorCounts:
+        // errorCounts(Errors.forCode(data.errorCode())), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java DescribeClientQuotasResponse.errorCounts. Java
+        // DescribeClientQuotasResponse has no error() helper (crate
+        // error() is getErrorResponse). Quota entries are not counted.
+        // This is not AlterClientQuotas errorCounts /
+        // DescribeClientQuotasResponse.error (getErrorResponse).
+        let with_entries = DescribeClientQuotasResponse::from_quota_entities([(
+            vec![("client-id", Some("c"))],
+            vec![("producer_byte_rate", 1024.0)],
+        )]);
+        assert_eq!(
+            with_entries.error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            DescribeClientQuotasResponse::new(
+                crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                None,
+                Some(vec![ClientQuotaEntry::new(Vec::new(), Vec::new())]),
+            )
+            .error_counts(),
+            HashMap::from([(crate::error::CLUSTER_AUTHORIZATION_FAILED, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_client_quotas_response(
+                &mut resp,
+                version,
+                &DescribeClientQuotasResponse::new(
+                    crate::error::CLUSTER_AUTHORIZATION_FAILED,
+                    None,
+                    Some(vec![ClientQuotaEntry::new(Vec::new(), Vec::new())]),
+                ),
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_describe_client_quotas_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::CLUSTER_AUTHORIZATION_FAILED, 1)]),
+                "DescribeClientQuotas v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeClientQuotas v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
