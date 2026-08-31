@@ -7703,8 +7703,10 @@ impl TransactionState {
     /// Sets `TransactionalId` and `ErrorCode`. Other fields are JSON
     /// defaults: empty `TransactionState`, `TransactionTimeoutMs` `0`,
     /// `TransactionStartTimeMs` `0`, `ProducerId` `0`, `ProducerEpoch`
-    /// `0`, empty `Topics`. Throttle on the response is the JSON default
-    /// (`0`).
+    /// `0`, empty `Topics`. Throttle is the JSON default (`0`) from
+    /// convenience encode; official Java also sets `throttleTimeMs` from
+    /// the argument. [`encode_describe_transactions_response`] still
+    /// writes `0`.
     #[must_use]
     pub fn error(transactional_id: impl Into<String>, error_code: i16) -> Self {
         Self {
@@ -7844,11 +7846,26 @@ pub fn decode_describe_transactions_request<B: Buf>(buf: &mut B) -> Result<Vec<S
 }
 
 /// Encode a DescribeTransactions response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on spoken v0 (JSON `0+`).
 pub fn encode_describe_transactions_response(
     buf: &mut BytesMut,
     states: &[TransactionState],
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    encode_describe_transactions_response_with_throttle(buf, states, 0)
+}
+
+/// Encode DescribeTransactions v0 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on spoken v0. Kafka 4.0
+/// `validVersions` is `"0"`. This crate speaks 0. v1+ is not spoken.
+/// There is no top-level ErrorCode.
+pub fn encode_describe_transactions_response_with_throttle(
+    buf: &mut BytesMut,
+    states: &[TransactionState],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, true, Some(states.len()))?;
     for s in states {
         buf.put_i16(s.error_code);
@@ -7874,8 +7891,13 @@ pub fn encode_describe_transactions_response(
 }
 
 /// Decode a DescribeTransactions response.
-pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<TransactionState>> {
-    let _th = buf::get_i32(buf)?;
+///
+/// Returns `(states, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). There is no top-level ErrorCode.
+pub fn decode_describe_transactions_response<B: Buf>(
+    buf: &mut B,
+) -> Result<(Vec<TransactionState>, i32)> {
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut states = Vec::with_capacity(n);
     for _ in 0..n {
@@ -7911,7 +7933,7 @@ pub fn decode_describe_transactions_response<B: Buf>(buf: &mut B) -> Result<Vec<
         });
     }
     buf::skip_tagged_fields(buf)?;
-    Ok(states)
+    Ok((states, throttle_time_ms))
 }
 
 /// `true` when ListTransactions `version` is flexible (all spoken versions).
@@ -22341,7 +22363,7 @@ mod tests {
         encode_describe_transactions_response(&mut buf, &err_list).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_describe_transactions_response(&mut cur).unwrap(),
+            decode_describe_transactions_response(&mut cur).unwrap().0,
             err_list
         );
         assert!(
@@ -23154,6 +23176,46 @@ mod tests {
     }
 
     #[test]
+    fn describe_transactions_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 DescribeTransactionsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0; first field). Official Java
+        // DescribeTransactionsRequest.getErrorResponse /
+        // DescribeTransactionsResponse.throttleTimeMs set / read it.
+        // encode_describe_transactions_response still writes 0.
+        // Empty-TransactionStates only one version. There is no top-level
+        // ErrorCode. This crate speaks v0 only. This is not
+        // AllocateProducerIds ThrottleTimeMs.
+        let states: Vec<TransactionState> = vec![];
+        let mut buf = BytesMut::new();
+        encode_describe_transactions_response_with_throttle(&mut buf, &states, 3_600_000).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded, throttle) = decode_describe_transactions_response(&mut cur).unwrap();
+        assert_eq!(decoded, states);
+        assert_eq!(throttle, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "DescribeTransactions v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with = BytesMut::new();
+        encode_describe_transactions_response_with_throttle(&mut with, &states, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_transactions_response_with_throttle(&mut zero, &states, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_transactions_response(&mut conv, &states).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_transactions_response still writes ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn describe_transactions_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 65
@@ -23208,7 +23270,7 @@ mod tests {
         encode_describe_transactions_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_transactions_response(&mut cur).unwrap(),
+            decode_describe_transactions_response(&mut cur).unwrap().0,
             resp
         );
         assert!(
@@ -23247,7 +23309,7 @@ mod tests {
         );
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_transactions_response(&mut cur).unwrap(),
+            decode_describe_transactions_response(&mut cur).unwrap().0,
             resp
         );
         assert!(

@@ -547,6 +547,8 @@
 //! ListTransactions v0–v1 (v1 DurationFilter, KIP-994;
 //! Java `ListTransactionsRequest.Builder.build` rejects a non-negative
 //! DurationFilter on v0),
+//! DescribeTransactions v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::encode_describe_transactions_response`] still writes `0`),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
 //! [`protocol::admin::CreateTopicsResponse::should_client_throttle`] is Java
 //! `CreateTopicsResponse.shouldClientThrottle` (v3+);
@@ -1835,7 +1837,9 @@
 //! is Java `OptionalLong` (`None` when the wire value is negative).
 //! [`TransactionState::error`] / [`TransactionState::error_results`] are Java
 //! `DescribeTransactionsRequest.getErrorResponse` (one transactional.id /
-//! the `TransactionStates` list).
+//! the `TransactionStates` list). ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::encode_describe_transactions_response`] still writes `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`protocol::admin::DescribeTransactionsResponse::error_counts`] is Java
 //! `DescribeTransactionsResponse.errorCounts` (per-transactional-id codes, including `NONE`).
 //! [`Admin::describe_transactions_timeout`] is Java

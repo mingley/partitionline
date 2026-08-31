@@ -11414,7 +11414,7 @@ impl Admin {
             )
             .await
         }?;
-        let results = decode_describe_transactions_response(&mut body.clone())?;
+        let (results, ..) = decode_describe_transactions_response(&mut body.clone())?;
         let mut by_id: HashMap<String, VecDeque<TransactionState>> = HashMap::new();
         for t in results {
             by_id
