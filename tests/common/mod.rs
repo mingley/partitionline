@@ -4465,11 +4465,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     // 41 only. Do not hand out a PID block on the wrong node.
                     encode_allocate_producer_ids_response(
                         &mut body,
-                        &AllocateProducerIdsResponse {
-                            error_code: error::NOT_CONTROLLER,
-                            producer_id_start: 0,
-                            producer_id_len: 0,
-                        },
+                        &AllocateProducerIdsResponse::new(error::NOT_CONTROLLER, 0, 0),
                     )
                     .unwrap();
                 } else {
@@ -4480,11 +4476,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                     st.last_allocate_producer_ids = Some((broker_id, broker_epoch, start, len));
                     encode_allocate_producer_ids_response(
                         &mut body,
-                        &AllocateProducerIdsResponse {
-                            error_code: 0,
-                            producer_id_start: start,
-                            producer_id_len: len,
-                        },
+                        &AllocateProducerIdsResponse::new(0, start, len),
                     )
                     .unwrap();
                 }

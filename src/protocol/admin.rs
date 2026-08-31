@@ -7554,12 +7554,28 @@ pub fn decode_describe_producers_response<B: Buf>(
 /// AllocateProducerIds v0 response (top-level error after throttle).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocateProducerIdsResponse {
+    /// AllocateProducerIds `ThrottleTimeMs` (JSON `0+`). First field.
+    /// JSON default is `0`.
+    pub throttle_time_ms: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
     /// First producer id in the allocated block.
     pub producer_id_start: i64,
     /// Number of producer ids in the allocated block.
     pub producer_id_len: i32,
+}
+
+impl AllocateProducerIdsResponse {
+    /// Construct [`Self`].
+    #[must_use]
+    pub fn new(error_code: i16, producer_id_start: i64, producer_id_len: i32) -> Self {
+        Self {
+            throttle_time_ms: 0,
+            error_code,
+            producer_id_start,
+            producer_id_len,
+        }
+    }
 }
 
 /// AllocateProducerIds v0 (flexible from v0; KIP-730).
@@ -7593,11 +7609,15 @@ pub fn decode_allocate_producer_ids_request<B: Buf>(buf: &mut B) -> Result<(i32,
 }
 
 /// Encode an AllocateProducerIds response.
+///
+/// ThrottleTimeMs is JSON `0+` (`resp.throttle_time_ms`; JSON default
+/// `0`). Kafka 4.0 `validVersions` is `"0"`. This crate speaks 0. v1+
+/// is not spoken. Top-level ErrorCode is at bytes 4–5.
 pub fn encode_allocate_producer_ids_response(
     buf: &mut BytesMut,
     resp: &AllocateProducerIdsResponse,
 ) -> crate::error::Result<()> {
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.producer_id_start);
     buf.put_i32(resp.producer_id_len);
@@ -7606,15 +7626,19 @@ pub fn encode_allocate_producer_ids_response(
 }
 
 /// Decode an AllocateProducerIds response.
+///
+/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode
+/// is at bytes 4–5.
 pub fn decode_allocate_producer_ids_response<B: Buf>(
     buf: &mut B,
 ) -> Result<AllocateProducerIdsResponse> {
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let producer_id_start = buf::get_i64(buf)?;
     let producer_id_len = buf::get_i32(buf)?;
     buf::skip_tagged_fields(buf)?;
     Ok(AllocateProducerIdsResponse {
+        throttle_time_ms,
         error_code,
         producer_id_start,
         producer_id_len,
@@ -23011,6 +23035,46 @@ mod tests {
     }
 
     #[test]
+    fn allocate_producer_ids_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 AllocateProducerIdsResponse.json ThrottleTimeMs is
+        // versions 0+ (INT32 on spoken v0; first field). Official Java
+        // AllocateProducerIdsRequest.getErrorResponse /
+        // AllocateProducerIdsResponse.throttleTimeMs set / read it.
+        // Encode writes AllocateProducerIdsResponse.throttle_time_ms
+        // (JSON default 0; AllocateProducerIdsResponse::new fills 0).
+        // Top-level ErrorCode is at bytes 4–5. Only one spoken version.
+        // This crate speaks v0 only. This is not DescribeProducers
+        // ThrottleTimeMs.
+        let zero = AllocateProducerIdsResponse::new(0, 0, 0);
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut buf, &with).unwrap();
+        let mut cur = buf.as_ref();
+        let got = decode_allocate_producer_ids_response(&mut cur).unwrap();
+        assert_eq!(got, with);
+        assert_eq!(got.throttle_time_ms, 3_600_000);
+        assert!(
+            cur.is_empty(),
+            "AllocateProducerIds v0 ThrottleTimeMs leftover-empty"
+        );
+
+        let mut with_buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_allocate_producer_ids_response(&mut zero_buf, &zero).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "AllocateProducerIdsResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
     fn allocate_producer_ids_v0_matches_kafka_protocol_0_18() {
         // Independent encode from kafka-protocol 0.18.0 (client encodes the
         // request; broker encodes the response). Apache JSON api 67
@@ -23026,11 +23090,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_allocate_producer_ids_request(&mut buf, 7, 42).unwrap();
         assert_eq!(&buf[..], REQ);
-        let resp = AllocateProducerIdsResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            producer_id_start: 0,
-            producer_id_len: 0,
-        };
+        let resp = AllocateProducerIdsResponse::new(crate::error::NOT_CONTROLLER, 0, 0);
         buf.clear();
         encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
         assert_eq!(&buf[..], RESP_41);
@@ -23049,11 +23109,7 @@ mod tests {
             "AllocateProducerIds v0 request must be leftover-empty"
         );
 
-        let resp = AllocateProducerIdsResponse {
-            error_code: 0,
-            producer_id_start: 1000,
-            producer_id_len: 1000,
-        };
+        let resp = AllocateProducerIdsResponse::new(0, 1000, 1000);
         buf.clear();
         encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
         let mut cur = &buf[..];
@@ -23076,11 +23132,7 @@ mod tests {
         // UpdateFeatures (same byte offset, different fields after 41),
         // AlterClientQuotas (41 at bytes 5-6), AlterUserScramCredentials
         // (41 after compact User), or OffsetDelete (error before throttle).
-        let resp = AllocateProducerIdsResponse {
-            error_code: crate::error::NOT_CONTROLLER,
-            producer_id_start: 0,
-            producer_id_len: 0,
-        };
+        let resp = AllocateProducerIdsResponse::new(crate::error::NOT_CONTROLLER, 0, 0);
         let mut buf = BytesMut::new();
         encode_allocate_producer_ids_response(&mut buf, &resp).unwrap();
         let b4 = buf.get(4).copied().unwrap();

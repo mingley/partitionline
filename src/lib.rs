@@ -675,6 +675,7 @@
 //! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored)),
+//! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`),
 //! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`),
@@ -2110,7 +2111,9 @@
 //! `UnregisterBrokerResponse.shouldClientThrottle` (always).
 //! [`Admin::allocate_producer_ids_timeout`] is the crate-first
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
-//! `allocateProducerIds`. [`Admin::new`] does not require that API,
+//! `allocateProducerIds`. ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! [`protocol::admin::AllocateProducerIdsResponse::new`] fills `0`.
+//! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument. [`Admin::new`] does not require that API,
 //! UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
 //! DescribeUserScramCredentials, AlterReplicaLogDirs, DescribeLogDirs,
