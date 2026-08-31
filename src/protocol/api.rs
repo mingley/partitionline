@@ -1833,6 +1833,30 @@ impl ProduceRequest {
                 .collect(),
         )
     }
+
+    /// Java `ProduceRequest.errorCounts(Throwable)`.
+    ///
+    /// Singleton map of `error_code` to the number of unique
+    /// `(topic, partition)` keys in `partitionSizes` (a later duplicate
+    /// pair is one key; Java `int` wrap). Empty Topics is
+    /// `{error_code: 0}`, not an empty map. Distinct from
+    /// [`Self::error_response`], which is `None` when `acks` is `0`; this
+    /// count does not look at acks. Distinct from
+    /// [`ProduceResponse::error_counts`], which counts partition error
+    /// codes on a response.
+    #[must_use]
+    pub fn error_counts(topics: &[ProduceTopicData], error_code: i16) -> HashMap<i16, i32> {
+        let mut seen: HashSet<(String, i32)> = HashSet::new();
+        let mut n = 0i32;
+        for topic in topics {
+            for partition in &topic.partitions {
+                if seen.insert((topic.topic.clone(), partition.index)) {
+                    n = n.wrapping_add(1);
+                }
+            }
+        }
+        HashMap::from([(error_code, n)])
+    }
 }
 
 /// Java `ProduceResponse` helpers.
@@ -2490,6 +2514,98 @@ mod tests {
         assert_eq!(per_request.len(), 3, "error_result keeps every partition");
         leftover_empty_produce_error_response(3, &parts, &empty);
         leftover_empty_produce_error_response(9, &parts, &empty);
+    }
+
+    #[test]
+    fn produce_request_error_counts_matches_java() {
+        // Java ProduceRequest.errorCounts(Throwable): singleton map of
+        // Errors.forException to partitionSizes().size() (unique TP keys).
+        // Empty Topics is {error: 0}, not empty. acks is not consulted
+        // (unlike getErrorResponse).
+        let rec = Record {
+            offset: 0,
+            timestamp: 1,
+            key: None,
+            value: Some(Bytes::from_static(b"x")),
+            headers: vec![],
+        };
+        let batch = RecordBatch::from_records(vec![rec]);
+        let dup = [
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![ProducePartitionData {
+                    index: 0,
+                    records: batch.clone(),
+                }],
+            },
+            ProduceTopicData {
+                topic: "a".into(),
+                partitions: vec![
+                    ProducePartitionData {
+                        index: 0,
+                        records: batch.clone(),
+                    },
+                    ProducePartitionData {
+                        index: 1,
+                        records: batch,
+                    },
+                ],
+            },
+        ];
+        assert_eq!(
+            ProduceRequest::error_counts(&[], crate::error::CORRUPT_MESSAGE),
+            HashMap::from([(crate::error::CORRUPT_MESSAGE, 0)]),
+            "empty Topics is a singleton 0, not an empty map"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+            HashMap::from([(crate::error::UNKNOWN_TOPIC_OR_PARTITION, 2)]),
+            "duplicate (topic, partition) is one partitionSizes key"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+                .get(&crate::error::CORRUPT_MESSAGE)
+                .copied(),
+            Some(2),
+            "acks is not consulted; getErrorResponse would be None for acks 0"
+        );
+        assert_eq!(
+            ProduceRequest::error_counts(&dup, 0),
+            HashMap::from([(0, 2)]),
+            "NONE is still a map key"
+        );
+        assert!(
+            ProduceResponse::error_counts(&[]).is_empty(),
+            "response errorCounts on empty is empty, unlike request errorCounts"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_produce_request(&mut buf, 3, None, 0, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 Request.errorCounts").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 9, None, 0, 1000, &dup).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 9).unwrap().3;
+        leftover_empty(&cur, "Produce v9 Request.errorCounts").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            ProduceRequest::error_counts(&dup, crate::error::CORRUPT_MESSAGE)
+        );
+        buf.clear();
+        encode_produce_request(&mut buf, 3, None, 1, 1000, &[]).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_produce_request(&mut cur, 3).unwrap().3;
+        leftover_empty(&cur, "Produce v3 Request.errorCounts empty").unwrap();
+        assert_eq!(
+            ProduceRequest::error_counts(&decoded, crate::error::CORRUPT_MESSAGE),
+            HashMap::from([(crate::error::CORRUPT_MESSAGE, 0)])
+        );
     }
 
     fn leftover_empty_produce_error_response(
