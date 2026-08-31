@@ -13004,6 +13004,37 @@ impl GetTelemetrySubscriptionsResponse {
     }
 }
 
+/// Java `GetTelemetrySubscriptionsRequest` helpers.
+pub struct GetTelemetrySubscriptionsRequest;
+
+impl GetTelemetrySubscriptionsRequest {
+    /// Java `GetTelemetrySubscriptionsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. ClientInstanceId stays the JSON
+    /// default (zeros). SubscriptionId / compression types / push
+    /// interval / max bytes / delta temporality / requested metrics stay
+    /// JSON defaults. Request ClientInstanceId is not copied.
+    /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`GetTelemetrySubscriptionsResponse::new`] fills `0`). Official
+    /// Java `getErrorResponse` sets `throttleTimeMs` from the argument.
+    /// This is not [`GetTelemetrySubscriptionsResponse::error_counts`] /
+    /// ListConfigResources `getErrorResponse` / PushTelemetry
+    /// `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> GetTelemetrySubscriptionsResponse {
+        GetTelemetrySubscriptionsResponse::new(
+            error_code,
+            [0u8; 16],
+            0,
+            Vec::new(),
+            0,
+            0,
+            false,
+            Vec::new(),
+        )
+    }
+}
+
 /// GetTelemetrySubscriptions v0 (flexible from v0; KIP-714).
 ///
 /// Official Apache JSON (`apiKey: 71`, request `listeners: ["broker"]`,
@@ -28121,6 +28152,63 @@ mod tests {
             cur.is_empty(),
             "GetTelemetrySubscriptions v0 errorCounts leftover-empty; leftover {} bytes",
             cur.len()
+        );
+    }
+
+    #[test]
+    fn get_telemetry_subscriptions_request_error_response_matches_java() {
+        // Java 4.0 GetTelemetrySubscriptionsRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // ClientInstanceId / SubscriptionId / compression types / push
+        // interval / max bytes / delta temporality / requested metrics
+        // stay JSON defaults. Request ClientInstanceId is not copied.
+        // Official Java GetTelemetrySubscriptionsRequest.getErrorResponse.
+        // Official Java sets throttleTimeMs from the argument;
+        // GetTelemetrySubscriptionsResponse::new fills 0. This crate
+        // speaks 0. This is not errorCounts / ListConfigResources
+        // getErrorResponse / PushTelemetry getErrorResponse.
+        let err = GetTelemetrySubscriptionsRequest::error_response(
+            crate::error::THROTTLING_QUOTA_EXCEEDED,
+        );
+        assert_eq!(err.error_code, crate::error::THROTTLING_QUOTA_EXCEEDED);
+        assert_eq!(err.client_instance_id, [0u8; 16]);
+        assert_eq!(err.subscription_id, 0);
+        assert!(err.accepted_compression_types.is_empty());
+        assert_eq!(err.push_interval_ms, 0);
+        assert_eq!(err.telemetry_max_bytes, 0);
+        assert!(!err.delta_temporality);
+        assert!(err.requested_metrics.is_empty());
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "GetTelemetrySubscriptionsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut resp = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut resp, &err).unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_get_telemetry_subscriptions_response(&mut cur).unwrap();
+        assert_eq!(decoded, err);
+        assert!(
+            cur.is_empty(),
+            "GetTelemetrySubscriptions v0 getErrorResponse leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut with_buf, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut zero_buf, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_get_telemetry_subscriptions_response(&mut conv, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
         );
     }
 

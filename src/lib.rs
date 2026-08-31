@@ -827,7 +827,11 @@
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `Collections.singletonMap`)),
+//! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::GetTelemetrySubscriptionsRequest::error_response`] is Java
+//! `GetTelemetrySubscriptionsRequest.getErrorResponse` (JSON defaults for
+//! ClientInstanceId / subscription fields; ThrottleTimeMs JSON `0+`;
+//! convenience fills `0`)),
 //! PushTelemetry v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::PushTelemetryResponse::error_counts`] is Java
 //! `PushTelemetryResponse.errorCounts` (top-level `errorCode` only,
