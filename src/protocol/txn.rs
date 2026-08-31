@@ -1404,6 +1404,54 @@ impl WriteTxnMarkersResponse {
         }
         errors
     }
+
+    /// Java `WriteTxnMarkersResponse(Map)`.
+    ///
+    /// Groups each producer's `(topic, partition, error)` triples by
+    /// topic name. A later entry for the same topic appends (Java
+    /// `HashMap.getOrDefault` then `partitions().add`). Topic order
+    /// within a producer is first-seen (Java `HashMap.values` order is
+    /// unspecified). Producer order is iterator order (Java outer
+    /// `HashMap.entrySet` order is unspecified). Java outer map keys
+    /// are unique; this helper emits one marker per outer entry.
+    /// Duplicate partitions for the same pair are kept (`ArrayList`).
+    #[must_use]
+    pub fn from_errors<'a, I, J>(errors: I) -> Vec<WritableTxnMarkerResult>
+    where
+        I: IntoIterator<Item = (i64, J)>,
+        J: IntoIterator<Item = (&'a str, i32, i16)>,
+    {
+        let mut markers = Vec::new();
+        for (producer_id, partitions) in errors {
+            let mut topic_order: Vec<String> = Vec::new();
+            let mut by_topic: HashMap<String, Vec<WritableTxnMarkerPartitionResult>> =
+                HashMap::new();
+            for (topic, partition_index, error_code) in partitions {
+                by_topic
+                    .entry(topic.to_string())
+                    .or_insert_with(|| {
+                        topic_order.push(topic.to_string());
+                        Vec::new()
+                    })
+                    .push(WritableTxnMarkerPartitionResult {
+                        partition_index,
+                        error_code,
+                    });
+            }
+            markers.push(WritableTxnMarkerResult {
+                producer_id,
+                topics: topic_order
+                    .into_iter()
+                    .filter_map(|name| {
+                        by_topic
+                            .remove(&name)
+                            .map(|partitions| WritableTxnMarkerTopicResult { name, partitions })
+                    })
+                    .collect(),
+            });
+        }
+        markers
+    }
 }
 
 /// `true` when WriteTxnMarkers `version` is flexible (v1).
@@ -1992,6 +2040,117 @@ mod tests {
         assert!(
             cur.is_empty(),
             "WriteTxnMarkers v1 errorsByProducerId leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_from_errors_matches_java() {
+        // Java WriteTxnMarkersResponse(Map): HashMap.getOrDefault by
+        // topic name, then partitions().add. Empty map is empty. A later
+        // entry for the same name appends even when another topic sits
+        // between. One marker per outer entry. Duplicate partitions
+        // for the same pair are kept (ArrayList).
+        assert!(WriteTxnMarkersResponse::from_errors(std::iter::empty::<(
+            i64,
+            std::iter::Empty<(&str, i32, i16)>
+        )>())
+        .is_empty());
+        let grouped = WriteTxnMarkersResponse::from_errors([
+            (
+                1000i64,
+                vec![
+                    ("a", 0, crate::error::UNKNOWN_TOPIC_OR_PARTITION),
+                    ("b", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+                    ("a", 1, 0i16),
+                ],
+            ),
+            (2000, vec![("c", 3, 0)]),
+        ]);
+        assert_eq!(
+            grouped,
+            vec![
+                WritableTxnMarkerResult {
+                    producer_id: 1000,
+                    topics: vec![
+                        WritableTxnMarkerTopicResult {
+                            name: "a".into(),
+                            partitions: vec![
+                                WritableTxnMarkerPartitionResult {
+                                    partition_index: 0,
+                                    error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                                },
+                                WritableTxnMarkerPartitionResult {
+                                    partition_index: 1,
+                                    error_code: 0,
+                                },
+                            ],
+                        },
+                        WritableTxnMarkerTopicResult {
+                            name: "b".into(),
+                            partitions: vec![WritableTxnMarkerPartitionResult {
+                                partition_index: 0,
+                                error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+                            }],
+                        },
+                    ],
+                },
+                WritableTxnMarkerResult {
+                    producer_id: 2000,
+                    topics: vec![WritableTxnMarkerTopicResult {
+                        name: "c".into(),
+                        partitions: vec![WritableTxnMarkerPartitionResult {
+                            partition_index: 3,
+                            error_code: 0,
+                        }],
+                    }],
+                },
+            ]
+        );
+        let dup = WriteTxnMarkersResponse::from_errors([(
+            1000i64,
+            [
+                ("t", 0, 0i16),
+                ("t", 0, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ],
+        )]);
+        assert_eq!(
+            dup,
+            vec![WritableTxnMarkerResult {
+                producer_id: 1000,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "t".into(),
+                    partitions: vec![
+                        WritableTxnMarkerPartitionResult {
+                            partition_index: 0,
+                            error_code: 0,
+                        },
+                        WritableTxnMarkerPartitionResult {
+                            partition_index: 0,
+                            error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+                        },
+                    ],
+                }],
+            }]
+        );
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_response(&mut buf, 0, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 from_errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, 1, &grouped).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded, grouped);
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 from_errors leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

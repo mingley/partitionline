@@ -1544,7 +1544,11 @@
 //! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::txn::WriteTxnMarkersResponse::errors_by_producer_id`] is Java
 //! `WriteTxnMarkersResponse.errorsByProducerId` (producer id to
-//! `(topic, partition)` codes; a later marker overwrites).
+//! `(topic, partition)` codes; a later marker overwrites);
+//! [`protocol::txn::WriteTxnMarkersResponse::from_errors`] is Java
+//! `WriteTxnMarkersResponse` constructor from an errors map (group by
+//! topic name; a later entry for the same topic appends; first-seen
+//! topic order).
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
 //! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).
