@@ -860,7 +860,9 @@
 //! AssignReplicasToDirs v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
 //! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;
-//! ThrottleTimeMs JSON `0+`; convenience fills `0`)),
+//! ThrottleTimeMs JSON `0+`; convenience fills `0`);
+//! [`protocol::admin::AssignReplicasToDirsRequest::MAX_ASSIGNMENTS_PER_REQUEST`] is Java
+//! `AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST` (`2250`)),
 //! AlterReplicaLogDirs v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::AlterReplicaLogDirsResponse::should_client_throttle`] is Java
 //! `AlterReplicaLogDirsResponse.shouldClientThrottle` (v1+);
@@ -2485,6 +2487,8 @@
 //! [`protocol::admin::AssignReplicasToDirsRequest::error_response`] is Java
 //! `AssignReplicasToDirsRequest.getErrorResponse` (empty Directories;
 //! ThrottleTimeMs JSON `0+`; convenience fills `0`).
+//! [`protocol::admin::AssignReplicasToDirsRequest::MAX_ASSIGNMENTS_PER_REQUEST`] is Java
+//! `AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST` (`2250`).
 //! [`Admin::alter_replica_log_dirs_timeout`] is Java
 //! `AlterReplicaLogDirsOptions.timeoutMs` (RPC deadline;
 //! AlterReplicaLogDirs has no TimeoutMs).

@@ -13661,6 +13661,13 @@ pub struct AssignReplicasToDirsRequest {
 }
 
 impl AssignReplicasToDirsRequest {
+    /// Java `AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST`.
+    ///
+    /// Chosen so a request with 10 directory IDs still fits in a
+    /// single TCP packet (64KB). Encode does not enforce this cap.
+    /// This is not [`Self::error_response`].
+    pub const MAX_ASSIGNMENTS_PER_REQUEST: i32 = 2250;
+
     /// Construct [`Self`].
     pub fn new(
         broker_id: i32,
@@ -29896,6 +29903,30 @@ mod tests {
             &conv[..],
             &zero_buf[..],
             "error_response still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn assign_replicas_to_dirs_max_assignments_per_request_matches_java() {
+        // Java 4.0 AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST
+        // is 2250 (a request with 10 directory IDs still fits in 64KB).
+        // Official Java AssignReplicasToDirsRequest.MAX_ASSIGNMENTS_PER_REQUEST.
+        // Encode does not enforce the cap. This crate speaks 0. This is
+        // not getErrorResponse / errorCounts.
+        assert_eq!(
+            AssignReplicasToDirsRequest::MAX_ASSIGNMENTS_PER_REQUEST,
+            2250
+        );
+        let req = AssignReplicasToDirsRequest::new(7, -1, Vec::new());
+        let mut buf = BytesMut::new();
+        encode_assign_replicas_to_dirs_request(&mut buf, &req).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_assign_replicas_to_dirs_request(&mut cur).unwrap();
+        assert_eq!(decoded, req);
+        assert!(
+            cur.is_empty(),
+            "AssignReplicasToDirs v0 MAX_ASSIGNMENTS_PER_REQUEST leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
