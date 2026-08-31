@@ -456,6 +456,11 @@
 //! spoken version); round-trips a non-zero value;
 //! [`protocol::share::encode_share_fetch_response_with_throttle`] writes
 //! it; [`protocol::share::encode_share_fetch_response`] still writes `0`;
+//! top-level ErrorMessage is JSON `0+` (nullable compact STRING; not
+//! partition ErrorMessage);
+//! [`protocol::share::encode_share_fetch_response_with_error_message`]
+//! writes it; [`protocol::share::encode_share_fetch_response`] still
+//! writes null;
 //! [`protocol::share::ShareFetchResponse::error_counts`] is Java
 //! `ShareFetchResponse.errorCounts` (top-level `errorCode` plus each
 //! partition-level code, including `NONE`). Crate decode currently fails
