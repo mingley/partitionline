@@ -1845,7 +1845,11 @@
 //! sets the English `Errors.message` string.
 //! [`protocol::admin::ListPartitionReassignmentsResponse::should_client_throttle`]
 //! is Java `ListPartitionReassignmentsResponse.shouldClientThrottle`
-//! (always). ThrottleTimeMs is JSON `0+`; encode writes the field;
+//! (always).
+//! [`protocol::admin::ListPartitionReassignmentsResponse::error_counts`] is Java
+//! `ListPartitionReassignmentsResponse.errorCounts` (top-level `errorCode`
+//! only, including `NONE`; Java `Collections.singletonMap`).
+//! ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::ListPartitionReassignmentsResponse::new`] fills `0`.
 //! [`Admin::incremental_alter_configs`] / [`Admin::alter_configs`] take
 //! [`ConfigResource`] / [`ConfigResourceType`].

@@ -4781,6 +4781,17 @@ impl ListPartitionReassignmentsResponse {
     pub const fn should_client_throttle(_version: i16) -> bool {
         true
     }
+
+    /// Java `ListPartitionReassignmentsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Topics / partitions are not counted.
+    /// This is not [`Self::error`] (Java `getErrorResponse`) /
+    /// AlterPartitionReassignments `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 fn put_compact_i32_array(buf: &mut BytesMut, items: &[i32]) -> crate::error::Result<()> {
@@ -16904,6 +16915,54 @@ mod tests {
         assert_eq!(
             top.error_counts(),
             HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+    }
+
+    #[test]
+    fn list_partition_reassignments_response_error_counts_matches_java() {
+        // Java ListPartitionReassignmentsResponse.errorCounts:
+        // errorCounts(Errors.forCode(data.errorCode())), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java ListPartitionReassignmentsResponse.errorCounts.
+        // Java ListPartitionReassignmentsResponse has no error() helper
+        // (crate error() is getErrorResponse). Topics / partitions are
+        // not counted. This is not AlterPartitionReassignments
+        // errorCounts / ListPartitionReassignmentsResponse.error.
+        let topics = vec![OngoingTopicReassignment::new(
+            "t",
+            vec![OngoingPartitionReassignment::new(0)],
+        )];
+        assert_eq!(
+            ListPartitionReassignmentsResponse::new(0, None, topics.clone()).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            ListPartitionReassignmentsResponse::new(
+                crate::error::NOT_CONTROLLER,
+                None,
+                topics.clone(),
+            )
+            .error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+        let mut resp = BytesMut::new();
+        encode_list_partition_reassignments_response(
+            &mut resp,
+            &ListPartitionReassignmentsResponse::new(crate::error::NOT_CONTROLLER, None, topics),
+        )
+        .unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_list_partition_reassignments_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)]),
+            "ListPartitionReassignments v0 errorCounts must count the decoded code"
+        );
+        assert!(
+            cur.is_empty(),
+            "ListPartitionReassignments v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
