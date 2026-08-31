@@ -1013,6 +1013,9 @@
 //! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+);
 //! [`protocol::txn::EndTxnResponse::should_client_throttle`] is Java
 //! `EndTxnResponse.shouldClientThrottle` (v1+);
+//! [`protocol::txn::EndTxnResponse::error_counts`] is Java
+//! `EndTxnResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! EndTxn decode below v5 fills [`RecordBatch::NO_PRODUCER_ID`] /
 //! [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`);
 //! [`TransactionResult`] is Java `TransactionResult` (`ABORT` / `COMMIT`)),

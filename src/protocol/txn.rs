@@ -52,6 +52,16 @@ impl EndTxnResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 1
     }
+
+    /// Java `EndTxnResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). This is not Heartbeat / SyncGroup /
+    /// JoinGroup / InitProducerId / AddOffsetsToTxn `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
 }
 
 /// Java `TransactionResult` (EndTxn committed flag / WriteTxnMarkers
@@ -3538,6 +3548,48 @@ mod tests {
             &v5[..],
             "v5 getErrorResponse includes ProducerId / ProducerEpoch JSON defaults"
         );
+    }
+
+    #[test]
+    fn end_txn_response_error_counts_matches_java() {
+        // Java EndTxnResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java EndTxnResponse.errorCounts.
+        // This is not EndTxnResponse.error / Heartbeat errorCounts /
+        // SyncGroup errorCounts / JoinGroup errorCounts /
+        // InitProducerId errorCounts / AddOffsetsToTxn errorCounts.
+        assert_eq!(
+            EndTxnResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            EndTxnResponse::error_counts(crate::error::NOT_COORDINATOR),
+            HashMap::from([(crate::error::NOT_COORDINATOR, 1)])
+        );
+        for version in 0..=5_i16 {
+            let mut resp = BytesMut::new();
+            encode_end_txn_response(
+                &mut resp,
+                version,
+                crate::error::NOT_COORDINATOR,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_end_txn_response(&mut cur, version).unwrap();
+            assert_eq!(
+                EndTxnResponse::error_counts(err),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "EndTxn v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "EndTxn v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
