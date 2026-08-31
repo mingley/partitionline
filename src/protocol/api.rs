@@ -862,31 +862,35 @@ impl From<NodeEndpoint> for Broker {
     }
 }
 
-/// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
-pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes> {
-    let mut inner = BytesMut::new();
-    buf::put_array_len(&mut inner, true, Some(endpoints.len()))?;
+/// Compact array of NodeEndpoint (nested tagged fields).
+///
+/// ShareFetch / ShareAcknowledge write this array untagged (JSON `0+`).
+/// Produce / Fetch wrap it in tagged field 0.
+pub(crate) fn put_compact_node_endpoints(
+    buf: &mut BytesMut,
+    endpoints: &[NodeEndpoint],
+) -> Result<()> {
+    buf::put_array_len(buf, true, Some(endpoints.len()))?;
     for e in endpoints {
-        inner.put_i32(e.node_id);
-        buf::put_string(&mut inner, true, Some(e.host.as_str()))?;
-        inner.put_i32(e.port);
-        buf::put_string(&mut inner, true, e.rack.as_deref())?;
-        buf::put_empty_tagged_fields(&mut inner);
+        buf.put_i32(e.node_id);
+        buf::put_string(buf, true, Some(e.host.as_str()))?;
+        buf.put_i32(e.port);
+        buf::put_string(buf, true, e.rack.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
     }
-    Ok(inner.freeze())
+    Ok(())
 }
 
-/// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
-pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> {
-    let mut cur = value.as_ref();
-    let n = buf::get_array_len(&mut cur, true)?.unwrap_or(0);
+/// Decode a compact NodeEndpoint array. Nested tagged fields are skipped.
+pub(crate) fn get_compact_node_endpoints<B: Buf>(buf: &mut B) -> Result<Vec<NodeEndpoint>> {
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
-        let node_id = buf::get_i32(&mut cur)?;
-        let host = buf::get_string(&mut cur, true)?.unwrap_or_default();
-        let port = buf::get_i32(&mut cur)?;
-        let rack = buf::get_string(&mut cur, true)?;
-        buf::skip_tagged_fields(&mut cur)?;
+        let node_id = buf::get_i32(buf)?;
+        let host = buf::get_string(buf, true)?.unwrap_or_default();
+        let port = buf::get_i32(buf)?;
+        let rack = buf::get_string(buf, true)?;
+        buf::skip_tagged_fields(buf)?;
         out.push(NodeEndpoint {
             node_id,
             host,
@@ -894,6 +898,20 @@ pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> 
             rack,
         });
     }
+    Ok(out)
+}
+
+/// Compact array of NodeEndpoint (nested tagged fields). Leftover-empty.
+pub(crate) fn encode_node_endpoints(endpoints: &[NodeEndpoint]) -> Result<Bytes> {
+    let mut inner = BytesMut::new();
+    put_compact_node_endpoints(&mut inner, endpoints)?;
+    Ok(inner.freeze())
+}
+
+/// Decode compact NodeEndpoints. Nested tagged fields must be leftover-empty.
+pub(crate) fn decode_node_endpoints(value: &Bytes) -> Result<Vec<NodeEndpoint>> {
+    let mut cur = value.as_ref();
+    let out = get_compact_node_endpoints(&mut cur)?;
     leftover_empty(&cur, "NodeEndpoints")?;
     Ok(out)
 }

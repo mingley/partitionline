@@ -423,6 +423,9 @@
 //! ForgottenTopicsData is JSON `0+`;
 //! [`protocol::share::encode_share_fetch_request_with_forgotten`] round-trips
 //! the list; [`protocol::share::encode_share_fetch_request`] still writes empty;
+//! response NodeEndpoints is JSON `0+` (untagged compact array);
+//! [`protocol::share::encode_share_fetch_response_with_endpoints`] round-trips
+//! the list; [`protocol::share::encode_share_fetch_response`] still writes empty;
 //! [`ShareRequestMetadata`] is Java `ShareRequestMetadata`
 //! ([`ShareRequestMetadata::INITIAL_EPOCH`] / [`ShareRequestMetadata::FINAL_EPOCH`]
 //! / [`ShareRequestMetadata::next_epoch`]; `nextEpoch` wraps `i32::MAX` to `1`.
@@ -433,7 +436,11 @@
 //! AcknowledgeErrorCode, AcknowledgeErrorMessage, CurrentLeader, and Records
 //! at JSON defaults (null / 0 / 0/0 / null). Crate encode writes ErrorMessage
 //! null, AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
-//! id 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
+//! id 1 epoch 0, empty Records, empty AcquiredRecords.
+//! [`protocol::share::encode_share_fetch_response_with_endpoints`]
+//! round-trips NodeEndpoints (JSON `0+` untagged compact array;
+//! [`protocol::share::encode_share_fetch_response`] still writes empty;
+//! not Fetch v16 tagged field 0).
 //! v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
 //! (crate encode). Throttle is the JSON default (`0`);
 //! [`protocol::share::ShareFetchResponse::error_counts`] is Java

@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
+use super::api::NodeEndpoint;
 use super::buf;
 use super::records::{self, RecordBatch};
 use crate::error::{Error, Result};
@@ -347,7 +348,9 @@ pub struct AcquiredRange {
 /// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
 /// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
 /// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader id
-/// 1 epoch 0, empty Records, empty AcquiredRecords, empty NodeEndpoints.
+/// 1 epoch 0, empty Records, empty AcquiredRecords. NodeEndpoints stay
+/// empty on [`encode_share_fetch_response`];
+/// [`encode_share_fetch_response_with_endpoints`] writes a non-empty list.
 /// v1 AcquisitionLockTimeoutMs is 15000. Top-level ErrorCode stays 0
 /// (crate encode). Throttle is the JSON default (`0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -370,8 +373,10 @@ impl ShareFetchedPartition {
     /// AcknowledgeErrorMessage, CurrentLeader, and Records at JSON defaults
     /// (null / 0 / 0/0 / null). Crate encode writes ErrorMessage null,
     /// AcknowledgeErrorCode 0, AcknowledgeErrorMessage null, CurrentLeader
-    /// id 1 epoch 0, empty Records, empty AcquiredRecords, empty
-    /// NodeEndpoints. v1 AcquisitionLockTimeoutMs is 15000. Top-level
+    /// id 1 epoch 0, empty Records, empty AcquiredRecords. NodeEndpoints
+    /// stay empty on [`encode_share_fetch_response`];
+    /// [`encode_share_fetch_response_with_endpoints`] writes a non-empty
+    /// list. v1 AcquisitionLockTimeoutMs is 15000. Top-level
     /// ErrorCode stays 0 (crate encode). Throttle is the JSON default
     /// (`0`).
     #[must_use]
@@ -1023,11 +1028,30 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// [`ShareFetchedPartition::partition_response`] is Java
 /// `ShareFetchResponse.partitionResponse` (PartitionIndex and ErrorCode;
 /// crate encode writes CurrentLeader id 1 epoch 0 and v1
-/// AcquisitionLockTimeoutMs 15000).
+/// AcquisitionLockTimeoutMs 15000). NodeEndpoints stay empty
+/// ([`encode_share_fetch_response_with_endpoints`] writes a non-empty
+/// list). NodeEndpoints is JSON `0+` (untagged compact array, not Fetch
+/// v16 tagged field 0).
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[ShareFetchedTopic],
+) -> crate::error::Result<()> {
+    encode_share_fetch_response_with_endpoints(buf, version, topics, &[])
+}
+
+/// Encode ShareFetch plus NodeEndpoints.
+///
+/// NodeEndpoints is JSON `0+` (on the wire for every spoken version).
+/// Inner layout matches Produce / Fetch (`NodeId` INT32 + `Host` compact
+/// STRING + `Port` INT32 + `Rack` compact nullable STRING + nested tagged
+/// fields). [`encode_share_fetch_response`] still writes empty. This is
+/// not Fetch v16 tagged field 0.
+pub fn encode_share_fetch_response_with_endpoints(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ShareFetchedTopic],
+    endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
     buf.put_i32(0);
@@ -1069,18 +1093,22 @@ pub fn encode_share_fetch_response(
             buf::put_empty_tagged_fields(buf);
         }
     }
-    buf::put_array_len(buf, flexible, Some(0))?;
+    super::api::put_compact_node_endpoints(buf, endpoints)?;
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
     Ok(())
 }
 
-/// Decode a ShareFetch response (`version` 0–1) into topic/partition bodies.
+/// Decode a ShareFetch response (`version` 0–1):
+/// `(topics, node_endpoints)`.
+///
+/// NodeEndpoints is JSON `0+` (untagged compact array). Decode currently
+/// fails on a non-zero top-level ErrorCode and does not return it.
 pub fn decode_share_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<ShareFetchedTopic>> {
+) -> Result<(Vec<ShareFetchedTopic>, Vec<NodeEndpoint>)> {
     let flexible = share_fetch_flexible(version)?;
     let _th = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
@@ -1148,20 +1176,11 @@ pub fn decode_share_fetch_response<B: Buf>(
             partitions,
         });
     }
-    let nodes = buf::get_array_len(buf, flexible)?.unwrap_or(0);
-    for _ in 0..nodes {
-        let _id = buf::get_i32(buf)?;
-        let _h = buf::get_string(buf, flexible)?;
-        let _p = buf::get_i32(buf)?;
-        let _r = buf::get_string(buf, flexible)?;
-        if flexible {
-            buf::skip_tagged_fields(buf)?;
-        }
-    }
+    let endpoints = super::api::get_compact_node_endpoints(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(topics)
+    Ok((topics, endpoints))
 }
 
 fn share_acknowledge_flexible(version: i16) -> Result<bool> {
@@ -1645,7 +1664,7 @@ mod tests {
         }];
         let mut buf = BytesMut::new();
         encode_share_fetch_response(&mut buf, 1, &topics).unwrap();
-        let decoded = decode_share_fetch_response(&mut &buf[..], 1).unwrap();
+        let (decoded, ..) = decode_share_fetch_response(&mut &buf[..], 1).unwrap();
         assert_eq!(decoded[0].partitions[0].acquired[0].first_offset, 0);
         assert_eq!(
             decoded[0].partitions[0].records[0].records[0]
@@ -1920,13 +1939,77 @@ mod tests {
             "v1 AcquisitionLockTimeoutMs is absent on v0"
         );
         let mut cur = v0.as_ref();
-        assert_eq!(decode_share_fetch_response(&mut cur, 0).unwrap(), resp);
+        let (decoded, endpoints) = decode_share_fetch_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, resp);
+        assert!(endpoints.is_empty());
         assert!(!cur.has_remaining(), "v0 response leftover-empty");
         v0.clear();
         let err = encode_share_fetch_response(&mut v0, 2, &resp).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
             "v2 response is not spoken, got {err}"
+        );
+    }
+
+    #[test]
+    fn share_fetch_response_node_endpoints_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareFetchResponse.json NodeEndpoints is
+        // versions 0+ (untagged compact array on every spoken version).
+        // Inner layout matches Produce / Fetch NodeEndpoint. This is not
+        // Fetch v16 tagged field 0. encode_share_fetch_response still
+        // writes empty.
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        let endpoints = [crate::protocol::api::NodeEndpoint {
+            node_id: 3,
+            host: "h".into(),
+            port: 1,
+            rack: Some("r".into()),
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response_with_endpoints(&mut buf, version, &topics, &endpoints)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (got, eps) = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(got, topics);
+            assert_eq!(eps, endpoints);
+            assert!(
+                cur.is_empty(),
+                "ShareFetch v{version} NodeEndpoints leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_response_with_endpoints(&mut with, 0, &topics, &endpoints).unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_fetch_response_with_endpoints(&mut empty, 0, &topics, &[]).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareFetch NodeEndpoints is not always empty"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_response(&mut conv, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "encode_share_fetch_response still writes empty NodeEndpoints"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_response_with_endpoints(&mut v1_with, 1, &topics, &endpoints).unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 NodeEndpoints share compact layout; v1 still adds AcquisitionLockTimeoutMs"
         );
     }
 
@@ -1953,10 +2036,8 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_fetch_response(&mut buf, version, &topics).unwrap();
             let mut cur = buf.as_ref();
-            assert_eq!(
-                decode_share_fetch_response(&mut cur, version).unwrap(),
-                topics
-            );
+            let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, topics);
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} partitionResponse leftover-empty; leftover {} bytes",
@@ -1968,10 +2049,8 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_fetch_response(&mut buf, version, &empty).unwrap();
             let mut cur = buf.as_ref();
-            assert_eq!(
-                decode_share_fetch_response(&mut cur, version).unwrap(),
-                empty
-            );
+            let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, empty);
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} empty partitionResponse leftover-empty; leftover {} bytes",
@@ -2012,7 +2091,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_fetch_response(&mut buf, version, &topics).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_share_fetch_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
             assert!(
                 !cur.has_remaining(),
                 "ShareFetch v{version} recordsSize leftover-empty; leftover {} bytes",
@@ -2383,7 +2462,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_fetch_response(&mut buf, version, &topics).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_share_fetch_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
             assert_eq!(decoded, topics);
             assert_eq!(
                 ShareFetchResponse::response_data(&decoded, &names),
@@ -2965,7 +3044,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_share_fetch_response(&mut buf, version, &grouped).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_share_fetch_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_share_fetch_response(&mut cur, version).unwrap();
             assert_eq!(decoded, grouped);
             assert!(
                 !cur.has_remaining(),

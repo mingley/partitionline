@@ -1021,7 +1021,7 @@ impl ShareGroup {
                 Err(e) => return Err(e),
             };
             let fetched = match decode_share_fetch_response(&mut body, version) {
-                Ok(f) => f,
+                Ok((f, ..)) => f,
                 Err(e) => {
                     if share_session_reset(&e) || share_leader_retriable(&e) {
                         self.reset_node_session(node);
