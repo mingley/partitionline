@@ -349,6 +349,9 @@
 //! `JoinGroupResponse.isLeader` / `shouldClientThrottle` /
 //! `JoinGroupResponse(JoinGroupResponseData, short)` ProtocolName
 //! (below v7 null becomes empty; v7+ empty becomes null);
+//! [`protocol::group::JoinGroupResponse::error_counts`] is Java
+//! `JoinGroupResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! v7+ round-trips ProtocolType; below v7 encode omits it even when
 //! the body has a value and decode fills `None`;
 //! [`protocol::group::encode_join_group_response`] still writes null;

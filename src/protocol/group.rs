@@ -1205,6 +1205,16 @@ impl JoinGroupResponse {
             protocol_name
         }
     }
+
+    /// Java `JoinGroupResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). This is not Heartbeat / SyncGroup /
+    /// InitProducerId / EndTxn / AddOffsetsToTxn `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
 }
 
 /// One JoinGroup Protocols entry (Java `partition.assignment.strategy`).
@@ -8227,6 +8237,51 @@ mod tests {
             &v9[..],
             "v9 getErrorResponse must include SkipAssignment"
         );
+    }
+
+    #[test]
+    fn join_group_response_error_counts_matches_java() {
+        // Java JoinGroupResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java JoinGroupResponse.errorCounts.
+        // This is not JoinGroupResponse.error / Heartbeat errorCounts /
+        // SyncGroup errorCounts / InitProducerId errorCounts / EndTxn
+        // errorCounts / AddOffsetsToTxn errorCounts.
+        assert_eq!(
+            JoinGroupResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            JoinGroupResponse::error_counts(crate::error::REBALANCE_IN_PROGRESS),
+            HashMap::from([(crate::error::REBALANCE_IN_PROGRESS, 1)])
+        );
+        for version in 2..=9_i16 {
+            let mut resp = BytesMut::new();
+            encode_join_group_response(
+                &mut resp,
+                version,
+                crate::error::NOT_COORDINATOR,
+                JoinGroupRequest::UNKNOWN_GENERATION_ID,
+                JoinGroupRequest::UNKNOWN_PROTOCOL_NAME,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                JoinGroupRequest::UNKNOWN_MEMBER_ID,
+                &[],
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (err, ..) = decode_join_group_response(&mut cur, version).unwrap();
+            assert_eq!(
+                JoinGroupResponse::error_counts(err),
+                HashMap::from([(crate::error::NOT_COORDINATOR, 1)]),
+                "JoinGroup v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "JoinGroup v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]
