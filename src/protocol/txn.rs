@@ -676,6 +676,25 @@ impl TxnOffsetCommitResponse {
         counts
     }
 
+    /// Java `TxnOffsetCommitResponse.errors`.
+    ///
+    /// Each `(topic, partition)` maps to that partition's error code
+    /// (including `NONE`). A later partition overwrites an earlier one
+    /// for the same pair (Java `HashMap.put`).
+    #[must_use]
+    pub fn errors(topics: &[TxnOffsetCommitResponseTopic]) -> HashMap<(String, i32), i16> {
+        let mut error_map = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let _prev = error_map.insert(
+                    (topic.topic.clone(), partition.partition),
+                    partition.error_code,
+                );
+            }
+        }
+        error_map
+    }
+
     /// Java `TxnOffsetCommitResponse.Builder.merge`.
     ///
     /// If `current` has no topics, the result is `new_topics`. Otherwise
@@ -1569,6 +1588,83 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn txn_offset_commit_response_errors_matches_java() {
+        // Java TxnOffsetCommitResponse.errors: each (topic, partition)
+        // maps to that partition's error code. A later partition
+        // overwrites the same pair (HashMap.put).
+        assert!(TxnOffsetCommitResponse::errors(&[]).is_empty());
+        let one = vec![TxnOffsetCommitResponseTopic {
+            topic: "t".into(),
+            partitions: vec![
+                TxnOffsetCommitResponsePartition::error(0, 0),
+                TxnOffsetCommitResponsePartition::error(1, crate::error::NOT_LEADER_OR_FOLLOWER),
+            ],
+        }];
+        assert_eq!(
+            TxnOffsetCommitResponse::errors(&one),
+            HashMap::from([
+                (("t".into(), 0), 0),
+                (("t".into(), 1), crate::error::NOT_LEADER_OR_FOLLOWER),
+            ])
+        );
+        let two = vec![
+            TxnOffsetCommitResponseTopic {
+                topic: "a".into(),
+                partitions: vec![TxnOffsetCommitResponsePartition::error(
+                    0,
+                    crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                )],
+            },
+            TxnOffsetCommitResponseTopic {
+                topic: "a".into(),
+                partitions: vec![TxnOffsetCommitResponsePartition::error(
+                    0,
+                    crate::error::NOT_LEADER_OR_FOLLOWER,
+                )],
+            },
+            TxnOffsetCommitResponseTopic {
+                topic: "b".into(),
+                partitions: vec![TxnOffsetCommitResponsePartition::error(3, 0)],
+            },
+        ];
+        assert_eq!(
+            TxnOffsetCommitResponse::errors(&two),
+            HashMap::from([
+                (("a".into(), 0), crate::error::NOT_LEADER_OR_FOLLOWER),
+                (("b".into(), 3), 0),
+            ])
+        );
+        let mut buf = BytesMut::new();
+        encode_txn_offset_commit_topics_response(&mut buf, 0, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            TxnOffsetCommitResponse::errors(&decoded),
+            TxnOffsetCommitResponse::errors(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v0 errors leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_txn_offset_commit_topics_response(&mut buf, 3, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_txn_offset_commit_topics_response(&mut cur, 3).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            TxnOffsetCommitResponse::errors(&decoded),
+            TxnOffsetCommitResponse::errors(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "TxnOffsetCommit v3 errors leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

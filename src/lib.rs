@@ -560,6 +560,9 @@
 //! `TxnOffsetCommitResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::TxnOffsetCommitResponse::error_counts`] is Java
 //! `TxnOffsetCommitResponse.errorCounts` (partition-level codes, including `NONE`);
+//! [`protocol::txn::TxnOffsetCommitResponse::errors`] is Java
+//! `TxnOffsetCommitResponse.errors` (`(topic, partition)` codes; a later
+//! partition overwrites);
 //! [`protocol::txn::TxnOffsetCommitResponse::merge`] is Java
 //! `TxnOffsetCommitResponse.Builder.merge` (replace when current Topics are
 //! empty; otherwise append topics / partitions; overlapping partitions are
