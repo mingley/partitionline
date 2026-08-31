@@ -526,8 +526,9 @@ impl ShareFetchResponse {
 /// [`Self::partition_response`] is Java `ShareAcknowledgeResponse.partitionResponse`
 /// (`PartitionIndex` and `ErrorCode`). Official Java leaves ErrorMessage
 /// and CurrentLeader at JSON defaults (null / 0/0). Crate encode writes
-/// ErrorMessage null, CurrentLeader from the partition fields (JSON
-/// default 0/0). NodeEndpoints stay empty on
+/// ErrorMessage from the partition fields (JSON default null),
+/// CurrentLeader from the partition fields (JSON default 0/0).
+/// NodeEndpoints stay empty on
 /// [`encode_share_acknowledge_topics_response`];
 /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes a
 /// non-empty list.
@@ -541,6 +542,10 @@ pub struct ShareAcknowledgeResponsePartition {
     pub partition: i32,
     /// Kafka error code (`0` is success).
     pub error_code: i16,
+    /// ShareAcknowledge partition `ErrorMessage` (JSON `0+` nullable compact
+    /// STRING). JSON default is null. This is not the top-level
+    /// `ErrorMessage`.
+    pub error_message: Option<String>,
     /// ShareAcknowledge CurrentLeader `LeaderId` (JSON `0+` untagged nested
     /// `LeaderIdAndEpoch`). JSON default is `0` (`-1` means unknown).
     pub current_leader_id: i32,
@@ -554,8 +559,9 @@ impl ShareAcknowledgeResponsePartition {
     ///
     /// Sets `PartitionIndex` and `ErrorCode`. Official Java leaves
     /// ErrorMessage and CurrentLeader at JSON defaults (null / 0/0).
-    /// Crate encode writes ErrorMessage null, CurrentLeader from the
-    /// partition fields (JSON default 0/0). NodeEndpoints stay empty on
+    /// Crate encode writes ErrorMessage from the partition fields (JSON
+    /// default null), CurrentLeader from the partition fields (JSON
+    /// default 0/0). NodeEndpoints stay empty on
     /// [`encode_share_acknowledge_topics_response`];
     /// [`encode_share_acknowledge_topics_response_with_endpoints`] writes
     /// a non-empty list. Top-level ErrorCode stays 0 (crate encode
@@ -565,6 +571,7 @@ impl ShareAcknowledgeResponsePartition {
         Self {
             partition,
             error_code,
+            error_message: None,
             current_leader_id: 0,
             current_leader_epoch: 0,
         }
@@ -1464,13 +1471,16 @@ pub fn encode_share_acknowledge_response(
 /// bodies.
 ///
 /// Throttle is the JSON default (`0`). Top-level ErrorMessage is null.
-/// Each partition is PartitionIndex and ErrorCode; ErrorMessage is null
-/// and CurrentLeader is taken from the partition fields (JSON default
-/// id 0 epoch 0). NodeEndpoints stay empty
+/// Each partition is PartitionIndex and ErrorCode; ErrorMessage is taken
+/// from the partition fields (JSON default null) and CurrentLeader is
+/// taken from the partition fields (JSON default id 0 epoch 0).
+/// NodeEndpoints stay empty
 /// ([`encode_share_acknowledge_topics_response_with_endpoints`]
 /// writes a non-empty list). NodeEndpoints is JSON `0+` (untagged compact
 /// array, not Fetch v16 tagged field 0). CurrentLeader is JSON `0+`
 /// (untagged nested `LeaderIdAndEpoch`, not Fetch v12+ tagged field 1).
+/// Partition ErrorMessage is JSON `0+` (nullable compact STRING, not the
+/// top-level ErrorMessage).
 /// [`ShareAcknowledgeResponsePartition::partition_response`] is
 /// Java `ShareAcknowledgeResponse.partitionResponse`.
 pub fn encode_share_acknowledge_topics_response(
@@ -1491,6 +1501,8 @@ pub fn encode_share_acknowledge_topics_response(
 /// still writes empty. v0 and v1 bodies match. This is not Fetch v16
 /// tagged field 0. CurrentLeader is JSON `0+` (untagged nested
 /// `LeaderIdAndEpoch` from each partition, not Fetch v12+ tagged field 1).
+/// Partition ErrorMessage is JSON `0+` (nullable compact STRING from each
+/// partition, not the top-level ErrorMessage).
 pub fn encode_share_acknowledge_topics_response_with_endpoints(
     buf: &mut BytesMut,
     version: i16,
@@ -1509,7 +1521,7 @@ pub fn encode_share_acknowledge_topics_response_with_endpoints(
         for p in &t.partitions {
             buf.put_i32(p.partition);
             buf.put_i16(p.error_code);
-            buf::put_string(buf, flexible, None)?;
+            buf::put_string(buf, flexible, p.error_message.as_deref())?;
             encode_leader(buf, p.current_leader_id, p.current_leader_epoch);
             if flexible {
                 buf::put_empty_tagged_fields(buf);
@@ -1540,8 +1552,9 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
 /// `(error_code, topics, node_endpoints)`.
 ///
 /// Does not fail on a non-zero top-level or partition ErrorCode; callers
-/// decide. Throttle is ignored (crate encode writes `0`). ErrorMessage
-/// is not stored. CurrentLeader is JSON `0+` (untagged nested
+/// decide. Throttle is ignored (crate encode writes `0`). Top-level
+/// ErrorMessage is not stored. Partition ErrorMessage is JSON `0+`
+/// (nullable compact STRING). CurrentLeader is JSON `0+` (untagged nested
 /// `LeaderIdAndEpoch`). NodeEndpoints is JSON `0+` (untagged
 /// compact array).
 pub fn decode_share_acknowledge_topics_response<B: Buf>(
@@ -1561,7 +1574,7 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let part_error = buf::get_i16(buf)?;
-            let _m = buf::get_string(buf, flexible)?;
+            let error_message = buf::get_string(buf, flexible)?;
             let (current_leader_id, current_leader_epoch) = decode_leader(buf)?;
             if flexible {
                 buf::skip_tagged_fields(buf)?;
@@ -1569,6 +1582,7 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
             partitions.push(ShareAcknowledgeResponsePartition {
                 partition,
                 error_code: part_error,
+                error_message,
                 current_leader_id,
                 current_leader_epoch,
             });
@@ -2648,6 +2662,7 @@ mod tests {
             ShareAcknowledgeResponsePartition {
                 partition: 3,
                 error_code: crate::error::UNKNOWN_TOPIC_ID,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
             }
@@ -2719,6 +2734,7 @@ mod tests {
             partitions: vec![ShareAcknowledgeResponsePartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
             }],
@@ -2800,6 +2816,7 @@ mod tests {
             partitions: vec![ShareAcknowledgeResponsePartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 0,
                 current_leader_epoch: 0,
             }],
@@ -2809,6 +2826,7 @@ mod tests {
             partitions: vec![ShareAcknowledgeResponsePartition {
                 partition: 0,
                 error_code: 6,
+                error_message: None,
                 current_leader_id: 2,
                 current_leader_epoch: 7,
             }],
@@ -2863,6 +2881,114 @@ mod tests {
             &with[..],
             &v1_with[..],
             "v0 and v1 CurrentLeader layout match; ShareAcknowledge has no AcquisitionLockTimeoutMs"
+        );
+    }
+
+    #[test]
+    fn share_acknowledge_response_error_message_matches_java() {
+        // Kafka 4.0.0 / 4.1 ShareAcknowledgeResponse.json partition
+        // ErrorMessage is versions 0+ (nullable compact STRING on every
+        // spoken version). Official Java
+        // ShareAcknowledgeResponse.partitionResponse leaves it at JSON
+        // null. Apache ShareAcknowledgeResponse.java has no errorMessage
+        // helper. v0 and v1 bodies match. This is not the top-level
+        // ErrorMessage. This is not ShareFetch ErrorMessage (ShareFetch v1
+        // still adds AcquisitionLockTimeoutMs).
+        let defaults = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        let with_msg = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: Some("e".into()),
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        let with_empty = vec![ShareAcknowledgeResponseTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareAcknowledgeResponsePartition {
+                partition: 0,
+                error_code: 6,
+                error_message: Some(String::new()),
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_acknowledge_topics_response(&mut buf, version, 0, &with_msg).unwrap();
+            let mut cur = buf.as_ref();
+            let (top, got, ..) =
+                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
+            assert_eq!(top, 0);
+            assert_eq!(got, with_msg);
+            assert!(
+                cur.is_empty(),
+                "ShareAcknowledge v{version} ErrorMessage leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut with, 0, 0, &with_msg).unwrap();
+        let mut empty = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut empty, 0, 0, &defaults).unwrap();
+        assert_ne!(
+            &with[..],
+            &empty[..],
+            "ShareAcknowledge ErrorMessage is not always null"
+        );
+
+        let mut empty_present = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut empty_present, 0, 0, &with_empty).unwrap();
+        assert_ne!(
+            &empty_present[..],
+            &empty[..],
+            "empty-but-present ErrorMessage is not JSON null"
+        );
+        let mut cur = empty_present.as_ref();
+        let (top, got, ..) = decode_share_acknowledge_topics_response(&mut cur, 0).unwrap();
+        assert_eq!(top, 0);
+        assert_eq!(got, with_empty);
+        assert!(
+            cur.is_empty(),
+            "ShareAcknowledge v0 ErrorMessage leftover-empty"
+        );
+
+        let pr = ShareAcknowledgeResponsePartition::partition_response(0, 6);
+        assert!(pr.error_message.is_none());
+        let mut conv = BytesMut::new();
+        encode_share_acknowledge_topics_response(
+            &mut conv,
+            0,
+            0,
+            &[ShareAcknowledgeResponseTopic {
+                topic_id: [7u8; 16],
+                partitions: vec![pr],
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            &conv[..],
+            &empty[..],
+            "partition_response still writes ErrorMessage null"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_acknowledge_topics_response(&mut v1_with, 1, 0, &with_msg).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 ErrorMessage layout match; ShareAcknowledge has no AcquisitionLockTimeoutMs"
         );
     }
 
@@ -2939,12 +3065,14 @@ mod tests {
                         ShareAcknowledgeResponsePartition {
                             partition: 0,
                             error_code: 0,
+                            error_message: None,
                             current_leader_id: 0,
                             current_leader_epoch: 0,
                         },
                         ShareAcknowledgeResponsePartition {
                             partition: 3,
                             error_code: 0,
+                            error_message: None,
                             current_leader_id: 0,
                             current_leader_epoch: 0,
                         },
@@ -2955,6 +3083,7 @@ mod tests {
                     partitions: vec![ShareAcknowledgeResponsePartition {
                         partition: 1,
                         error_code: crate::error::UNKNOWN_TOPIC_ID,
+                        error_message: None,
                         current_leader_id: 0,
                         current_leader_epoch: 0,
                     }],
