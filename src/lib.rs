@@ -711,7 +711,7 @@
 //! RenewDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::RenewDelegationTokenResponse::should_client_throttle`] is Java
 //! `RenewDelegationTokenResponse.shouldClientThrottle` (v1+)),
-//! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible;
+//! ExpireDelegationToken v1–v2 (v1 classic; v2 flexible; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::ExpireDelegationTokenResponse::should_client_throttle`] is Java
 //! `ExpireDelegationTokenResponse.shouldClientThrottle` (v1+)),
 //! DescribeDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 TokenRequester;

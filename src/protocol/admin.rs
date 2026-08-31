@@ -15009,7 +15009,8 @@ impl ExpireDelegationTokenRequest {
 /// ExpireDelegationToken (api 40) v1–v2 response body.
 ///
 /// **ErrorCode is top-level**, first field — not after throttle.
-/// Official JSON places `ThrottleTimeMs` last. This is a single token
+/// Official JSON places `ThrottleTimeMs` last (`0+` INT32; encode writes
+/// [`Self::throttle_time_ms`]; [`Self::new`] fills `0`). This is a single token
 /// expiry, not a token array: there is no first-token ErrorCode.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpireDelegationTokenResponse {
@@ -15017,6 +15018,9 @@ pub struct ExpireDelegationTokenResponse {
     pub error_code: i16,
     /// Expiry time in milliseconds since the Unix epoch.
     pub expiry_timestamp_ms: i64,
+    /// ExpireDelegationToken `ThrottleTimeMs` (JSON `0+`). Last field
+    /// after `ExpiryTimestampMs`. JSON default is `0`.
+    pub throttle_time_ms: i32,
 }
 
 impl ExpireDelegationTokenResponse {
@@ -15025,6 +15029,7 @@ impl ExpireDelegationTokenResponse {
         Self {
             error_code,
             expiry_timestamp_ms,
+            throttle_time_ms: 0,
         }
     }
 
@@ -15044,6 +15049,12 @@ impl ExpireDelegationTokenResponse {
     #[must_use]
     pub fn expiry_timestamp(&self) -> i64 {
         self.expiry_timestamp_ms
+    }
+
+    /// ExpireDelegationToken `ThrottleTimeMs` (JSON `0+`).
+    #[must_use]
+    pub fn throttle_time_ms(&self) -> i32 {
+        self.throttle_time_ms
     }
 }
 
@@ -15148,7 +15159,7 @@ pub fn encode_expire_delegation_token_response(
     let flexible = expire_delegation_token_flexible(version)?;
     buf.put_i16(resp.error_code);
     buf.put_i64(resp.expiry_timestamp_ms);
-    buf.put_i32(0);
+    buf.put_i32(resp.throttle_time_ms);
     if flexible {
         buf::put_empty_tagged_fields(buf);
     }
@@ -15163,13 +15174,14 @@ pub fn decode_expire_delegation_token_response<B: Buf>(
     let flexible = expire_delegation_token_flexible(version)?;
     let error_code = buf::get_i16(buf)?;
     let expiry_timestamp_ms = buf::get_i64(buf)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
     Ok(ExpireDelegationTokenResponse {
         error_code,
         expiry_timestamp_ms,
+        throttle_time_ms,
     })
 }
 
@@ -28550,6 +28562,57 @@ mod tests {
         assert!(
             !cur.has_remaining(),
             "v2 request must be leftover-empty; a later-version field would leave leftover"
+        );
+    }
+
+    #[test]
+    fn expire_delegation_token_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 ExpireDelegationTokenResponse.json ThrottleTimeMs
+        // is versions 0+ (INT32 on spoken v1–v2; last field after
+        // ExpiryTimestampMs). Kafka 4.0 removed v0. Official Java
+        // ExpireDelegationTokenRequest.getErrorResponse /
+        // ExpireDelegationTokenResponse.throttleTimeMs set / read it.
+        // Encode writes ExpireDelegationTokenResponse.throttle_time_ms
+        // (JSON default 0; ExpireDelegationTokenResponse::new fills 0).
+        // KIP-219 only changes shouldClientThrottle (v1+). ErrorCode is
+        // first (bytes 0–1). Empty-expiry v1 != v2 (classic vs
+        // compact+tagged). This crate speaks 1–2. This is not
+        // RenewDelegationToken ThrottleTimeMs.
+        let zero = ExpireDelegationTokenResponse::new(
+            crate::error::DELEGATION_TOKEN_REQUEST_NOT_ALLOWED,
+            0,
+        );
+        let mut with = zero.clone();
+        with.throttle_time_ms = 3_600_000;
+        for version in [1, 2] {
+            let mut buf = BytesMut::new();
+            encode_expire_delegation_token_response(&mut buf, version, &with).unwrap();
+            let mut cur = buf.as_ref();
+            let got = decode_expire_delegation_token_response(&mut cur, version).unwrap();
+            assert_eq!(got, with);
+            assert_eq!(got.throttle_time_ms, 3_600_000);
+            assert_eq!(got.throttle_time_ms(), 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "ExpireDelegationToken v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with_v1 = BytesMut::new();
+        encode_expire_delegation_token_response(&mut with_v1, 1, &with).unwrap();
+        let mut zero_v1 = BytesMut::new();
+        encode_expire_delegation_token_response(&mut zero_v1, 1, &zero).unwrap();
+        assert_ne!(
+            &with_v1[..],
+            &zero_v1[..],
+            "v1 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut with_v2 = BytesMut::new();
+        encode_expire_delegation_token_response(&mut with_v2, 2, &with).unwrap();
+        assert_ne!(&with_v1[..], &with_v2[..], "v2 adds tagged fields");
+        assert_eq!(
+            zero.throttle_time_ms, 0,
+            "ExpireDelegationTokenResponse::new still fills ThrottleTimeMs 0"
         );
     }
 
