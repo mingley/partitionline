@@ -9887,6 +9887,16 @@ impl ListGroupsResponse {
     pub const fn should_client_throttle(version: i16) -> bool {
         version >= 2
     }
+
+    /// Java `ListGroupsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Listed groups are not counted. This
+    /// is not DeleteGroups / DescribeGroups `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// Java `ListGroupsRequest` helpers.
@@ -16345,6 +16355,58 @@ mod tests {
                 (crate::error::NOT_COORDINATOR, 1),
             ])
         );
+    }
+
+    #[test]
+    fn list_groups_response_error_counts_matches_java() {
+        // Java ListGroupsResponse.errorCounts:
+        // errorCounts(Errors.forCode(data.errorCode())), including NONE
+        // (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java ListGroupsResponse.errorCounts. Java
+        // ListGroupsResponse has no error() helper. Listed groups are
+        // not counted. This is not DeleteGroups errorCounts /
+        // DescribeGroups errorCounts / SaslHandshake errorCounts.
+        assert_eq!(
+            ListGroupsResponse {
+                error_code: 0,
+                groups: Vec::new(),
+            }
+            .error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            ListGroupsResponse {
+                error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
+                groups: vec![ListedGroup::new("g")],
+            }
+            .error_counts(),
+            HashMap::from([(crate::error::COORDINATOR_NOT_AVAILABLE, 1)])
+        );
+        for version in 0..=5_i16 {
+            let mut resp = BytesMut::new();
+            encode_list_groups_response(
+                &mut resp,
+                version,
+                &ListGroupsResponse {
+                    error_code: crate::error::COORDINATOR_NOT_AVAILABLE,
+                    groups: vec![ListedGroup::new("g")],
+                },
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (decoded, ..) = decode_list_groups_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::COORDINATOR_NOT_AVAILABLE, 1)]),
+                "ListGroups v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ListGroups v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

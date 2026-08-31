@@ -722,6 +722,9 @@
 //! ListGroups v0–v5 (v3 flexible; v4 StatesFilter / GroupState; v5 TypesFilter / GroupType;
 //! [`protocol::admin::ListGroupsResponse::should_client_throttle`] is Java
 //! `ListGroupsResponse.shouldClientThrottle` (v2+);
+//! [`protocol::admin::ListGroupsResponse::error_counts`] is Java
+//! `ListGroupsResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`protocol::admin::ListGroupsRequest::error_response`] is Java
 //! `ListGroupsRequest.getErrorResponse` (empty Groups; request filters are
 //! not copied; v1+ writes the `throttleTimeMs` argument; below v1 omits it);
