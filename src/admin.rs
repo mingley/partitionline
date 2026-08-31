@@ -8085,7 +8085,7 @@ impl Admin {
                     };
                     let results =
                         match decode_offset_fetch_groups_response(&mut body.clone(), version) {
-                            Ok(r) => r,
+                            Ok((r, ..)) => r,
                             Err(e) if e.broker_code().is_some_and(error::coordinator_retriable) => {
                                 self.group_coord = None;
                                 let _ = self.conns.remove(&node);

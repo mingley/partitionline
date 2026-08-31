@@ -3089,7 +3089,7 @@ impl OffsetFetchRequest {
     /// (Java `HashMap.put` values are the same error). Distinct from
     /// [`OffsetFetchGroup::error_results`], which keeps duplicate ids, and
     /// from [`OffsetFetchTopic::error_result`], which keeps duplicate
-    /// partitions. Throttle is the JSON default (`0`).
+    /// partitions.
     pub fn error_response(
         version: i16,
         groups: &[OffsetFetchGroup],
@@ -4014,10 +4014,26 @@ pub fn encode_offset_fetch_response(
 /// v1–v7 write the first group's Topics and ErrorCode. More than one
 /// group below v8 is Java `UnsupportedVersionException`. Empty `groups`
 /// writes an empty Topics array (v1–v7) or Groups length 0 (v8+).
+/// Throttle is `0` on v3+.
 pub fn encode_offset_fetch_groups_response(
     buf: &mut BytesMut,
     version: i16,
     groups: &[OffsetFetchGroupResult],
+) -> crate::error::Result<()> {
+    encode_offset_fetch_groups_response_with_throttle(buf, version, groups, 0)
+}
+
+/// Encode OffsetFetch v1–v9 with ThrottleTimeMs.
+///
+/// Below v3 ThrottleTimeMs is omitted even when the body has a non-zero
+/// value. Decode fills `0`. v1–v7 write the first group's Topics and
+/// ErrorCode. More than one group below v8 is Java
+/// `UnsupportedVersionException`. v6+ is flexible.
+pub fn encode_offset_fetch_groups_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[OffsetFetchGroupResult],
+    throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = offset_fetch_flexible(version)?;
     if version < 8 && groups.len() > 1 {
@@ -4026,7 +4042,7 @@ pub fn encode_offset_fetch_groups_response(
         )));
     }
     if version >= 3 {
-        buf.put_i32(0);
+        buf.put_i32(throttle_time_ms);
     }
     if version <= 7 {
         let first = groups.first();
@@ -4059,7 +4075,7 @@ pub fn decode_offset_fetch_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<FetchedOffsetTopic>> {
-    let groups = decode_offset_fetch_groups_response(buf, version)?;
+    let (groups, ..) = decode_offset_fetch_groups_response(buf, version)?;
     let first = groups.into_iter().next().unwrap_or(OffsetFetchGroupResult {
         group_id: String::new(),
         topics: Vec::new(),
@@ -4071,18 +4087,17 @@ pub fn decode_offset_fetch_response<B: Buf>(
     Ok(first.topics)
 }
 
-/// Decode OffsetFetch v1–v9: every group's Topics and ErrorCode.
+/// Decode OffsetFetch v1–v9: `(groups, throttle_time_ms)`.
 ///
-/// Does not fail on a non-zero group ErrorCode; callers decide. Throttle
-/// is v3+. v1–v7 yield one group with an empty `group_id`.
+/// Does not fail on a non-zero group ErrorCode; callers decide. Below v3
+/// ThrottleTimeMs is omitted; decode fills `0`. v1–v7 yield one group
+/// with an empty `group_id`.
 pub fn decode_offset_fetch_groups_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<OffsetFetchGroupResult>> {
+) -> Result<(Vec<OffsetFetchGroupResult>, i32)> {
     let flexible = offset_fetch_flexible(version)?;
-    if version >= 3 {
-        let _throttle = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };
     let groups = if version <= 7 {
         let topics = decode_fetched_offset_topics(buf, version, flexible)?;
         let error_code = if version >= 2 { buf::get_i16(buf)? } else { 0 };
@@ -4110,7 +4125,7 @@ pub fn decode_offset_fetch_groups_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(groups)
+    Ok((groups, throttle_time_ms))
 }
 
 /// Topic + partitions for OffsetDelete (api 47) v0.
@@ -5257,7 +5272,7 @@ mod tests {
         )
         .unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
         assert_eq!(
             decoded,
             vec![OffsetFetchGroupResult {
@@ -5560,7 +5575,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, groups).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             assert_eq!(
                 OffsetFetchResponse::error(version, &decoded),
                 OffsetFetchResponse::error(version, groups)
@@ -5575,7 +5590,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, &[]).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             assert_eq!(
                 OffsetFetchResponse::error(version, &decoded),
                 OffsetFetchResponse::error(version, &[])
@@ -5692,7 +5707,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_fetch_groups_response(&mut buf, 2, &v2).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, v2);
         assert_eq!(
             OffsetFetchResponse::partition_data_map(2, &decoded, "ignored").unwrap(),
@@ -5706,7 +5721,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 8, &v8).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, v8);
         assert_eq!(
             OffsetFetchResponse::partition_data_map(8, &decoded, "g").unwrap(),
@@ -5776,7 +5791,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_fetch_groups_response(&mut buf, 2, &groups).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, groups);
         assert_eq!(
             decoded.first().map(|g| g.topics.as_slice()),
@@ -5790,7 +5805,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 6, &groups).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 6).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 6).unwrap();
         assert_eq!(decoded, groups);
         assert!(
             cur.is_empty(),
@@ -5868,7 +5883,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_fetch_groups_response(&mut buf, 8, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -5878,7 +5893,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 9, &grouped).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 9).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 9).unwrap();
         assert_eq!(decoded, grouped);
         assert!(
             cur.is_empty(),
@@ -5957,7 +5972,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_fetch_groups_response(&mut buf, 1, &rewritten).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 1).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 1).unwrap();
         assert_eq!(
             decoded.first().map(|g| g.topics.as_slice()),
             rewritten.first().map(|g| g.topics.as_slice())
@@ -5975,7 +5990,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 2, &v2_err).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, v2_err);
         assert!(
             cur.is_empty(),
@@ -5985,7 +6000,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 8, &two).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, OffsetFetchResponse::from_groups(8, &two).unwrap());
         assert!(
             cur.is_empty(),
@@ -9377,7 +9392,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             if version < 2 {
                 assert_eq!(
                     decoded.first().map(|g| g.topics.as_slice()),
@@ -9416,7 +9431,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             assert_eq!(decoded, got);
             assert!(
                 !cur.has_remaining(),
@@ -9430,7 +9445,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, &got).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             assert!(decoded.is_empty());
             assert!(
                 !cur.has_remaining(),
@@ -9473,7 +9488,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_offset_fetch_groups_response(&mut buf, version, &err).unwrap();
             let mut cur = buf.as_ref();
-            let decoded = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
             assert_eq!(decoded, err);
             assert!(
                 cur.is_empty(),
@@ -9499,7 +9514,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_offset_fetch_groups_response(&mut buf, 8, &empty).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
         assert!(decoded.is_empty());
         assert!(
             cur.is_empty(),
@@ -9508,6 +9523,130 @@ mod tests {
         );
         const ZERO: &[u8] = &[0x00, 0x00, 0x00, 0x00, 0x01, 0x00];
         assert_eq!(&buf[..], ZERO);
+    }
+
+    #[test]
+    fn offset_fetch_throttle_time_ms_matches_java() {
+        let groups = [OffsetFetchGroupResult::error("g", 16)];
+        for version in [3_i16, 4, 6, 7, 8, 9] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response_with_throttle(
+                &mut buf, version, &groups, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            if version >= 8 {
+                assert_eq!(decoded, groups);
+            } else {
+                assert_eq!(
+                    decoded,
+                    vec![OffsetFetchGroupResult {
+                        group_id: String::new(),
+                        topics: Vec::new(),
+                        error_code: 16,
+                    }]
+                );
+            }
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "OffsetFetch v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        for version in [1_i16, 2] {
+            let mut buf = BytesMut::new();
+            encode_offset_fetch_groups_response_with_throttle(
+                &mut buf, version, &groups, 3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            assert!(
+                cur.is_empty(),
+                "OffsetFetch v{version} ThrottleTimeMs leftover-empty"
+            );
+            assert_eq!(
+                throttle, 0,
+                "OffsetFetch v{version} omits ThrottleTimeMs even when the body has a non-zero value"
+            );
+            if version == 1 {
+                assert_eq!(decoded.first().map(|g| g.error_code), Some(0));
+            } else {
+                assert_eq!(decoded.first().map(|g| g.error_code), Some(16));
+            }
+        }
+
+        let mut with = BytesMut::new();
+        encode_offset_fetch_groups_response_with_throttle(&mut with, 3, &groups, 3_600_000)
+            .unwrap();
+        let mut zero = BytesMut::new();
+        encode_offset_fetch_groups_response_with_throttle(&mut zero, 3, &groups, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v3 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_offset_fetch_groups_response(&mut conv, 3, &groups).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_offset_fetch_groups_response still writes ThrottleTimeMs 0"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_offset_fetch_groups_response_with_throttle(&mut v2_with, 2, &groups, 3_600_000)
+            .unwrap();
+        let mut v2_zero = BytesMut::new();
+        encode_offset_fetch_groups_response_with_throttle(&mut v2_zero, 2, &groups, 0).unwrap();
+        assert_eq!(
+            &v2_with[..],
+            &v2_zero[..],
+            "v2 encode omits ThrottleTimeMs even when the body has a non-zero value"
+        );
+        assert_ne!(
+            &v2_with[..],
+            &with[..],
+            "v3 adds ThrottleTimeMs before Topics"
+        );
+
+        for version in [2_i16, 3, 8] {
+            let named = OffsetFetchGroup::new("g", Some(offset_fetch_one_topic()));
+            let err = OffsetFetchRequest::error_response(version, std::slice::from_ref(&named), 16)
+                .unwrap();
+            let mut expected = BytesMut::new();
+            encode_offset_fetch_groups_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            encode_offset_fetch_groups_response_with_throttle(
+                &mut got, version, &groups, 3_600_000,
+            )
+            .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "OffsetFetch v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (_, throttle) = decode_offset_fetch_groups_response(&mut cur, version).unwrap();
+            if version >= 3 {
+                assert_eq!(throttle, 3_600_000);
+            } else {
+                assert_eq!(throttle, 0);
+            }
+            assert!(
+                cur.is_empty(),
+                "OffsetFetch v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]
@@ -9576,7 +9715,7 @@ mod tests {
         buf.clear();
         encode_offset_fetch_groups_response(&mut buf, 8, &resp).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
+        let (decoded, ..) = decode_offset_fetch_groups_response(&mut cur, 8).unwrap();
         assert_eq!(decoded, resp);
         assert!(
             cur.is_empty(),

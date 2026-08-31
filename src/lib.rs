@@ -228,7 +228,10 @@
 //! `OffsetFetchRequest.getErrorResponse` (v1 fills unique partitions;
 //! null Topics is [`Error::protocol`]; v2–v7 omit partitions; below v8
 //! is the `groups` singleton; v8+ unique GroupId; `error_results` keeps
-//! duplicate ids). Throttle is the JSON default (`0`)),
+//! duplicate ids);
+//! v3+ round-trips ThrottleTimeMs; below v3 encode omits it even when
+//! the body has a non-zero value and decode fills `0`;
+//! [`protocol::group::encode_offset_fetch_groups_response`] still writes `0`),
 //! Heartbeat v0–v4 (v1+ throttle; v3 GroupInstanceId; v4 flexible;
 //! [`protocol::group::HeartbeatRequest::build`] is Java
 //! `HeartbeatRequest.Builder.build` (a present `group.instance.id`
