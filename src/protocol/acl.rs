@@ -1490,6 +1490,16 @@ impl DescribeAclsResponse {
         version >= 1
     }
 
+    /// Java `DescribeAclsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Resource / ACE codes are not counted.
+    /// This is not CreateAcls / DeleteAcls `errorCounts`.
+    #[must_use]
+    pub fn error_counts(error_code: i16) -> HashMap<i16, i32> {
+        HashMap::from([(error_code, 1)])
+    }
+
     /// Java `DescribeAclsResponse.aclsResources`.
     ///
     /// Groups bindings that share a [`ResourcePattern`]. Duplicate ACEs
@@ -2933,6 +2943,47 @@ mod tests {
             &v3_with[..],
             "empty-Resources ErrorCode bodies: v2 == v3"
         );
+    }
+
+    #[test]
+    fn describe_acls_response_error_counts_matches_java() {
+        // Java DescribeAclsResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java DescribeAclsResponse.errorCounts.
+        // This is not DescribeAclsResponse.error (ApiError) / CreateAcls
+        // errorCounts / DeleteAcls errorCounts / EndTxn errorCounts.
+        assert_eq!(
+            DescribeAclsResponse::error_counts(0),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            DescribeAclsResponse::error_counts(crate::error::SECURITY_DISABLED),
+            HashMap::from([(crate::error::SECURITY_DISABLED, 1)])
+        );
+        let acls: Vec<AclBinding> = vec![];
+        for version in 0..=3_i16 {
+            let mut resp = BytesMut::new();
+            encode_describe_acls_response_with_error_code(
+                &mut resp,
+                version,
+                &acls,
+                crate::error::SECURITY_DISABLED,
+            )
+            .unwrap();
+            let mut cur = &resp[..];
+            let (.., err) = decode_describe_acls_response(&mut cur, version).unwrap();
+            assert_eq!(
+                DescribeAclsResponse::error_counts(err),
+                HashMap::from([(crate::error::SECURITY_DISABLED, 1)]),
+                "DescribeAcls v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "DescribeAcls v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

@@ -914,6 +914,9 @@
 //! [`protocol::acl::DeleteAclsResponse::error_counts`] is Java
 //! `DeleteAclsResponse.errorCounts` (filter-level codes, including `NONE`;
 //! matching-ACL codes are not counted);
+//! [`protocol::acl::DescribeAclsResponse::error_counts`] is Java
+//! `DescribeAclsResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`AclCreationResult::error`] / [`AclCreationResult::error_results`] are Java
 //! `CreateAclsRequest.getErrorResponse` (one result / `nCopies`). Request
 //! bindings are not copied; `ErrorMessage` stays the JSON default (null);
