@@ -471,6 +471,9 @@
 //! getters),
 //! ConsumerGroupHeartbeat v0–v1 (v1 SubscribedTopicRegex / KIP-1082 member id;
 //! ThrottleTimeMs is JSON `0+`;
+//! [`protocol::cgheartbeat::ConsumerGroupHeartbeatResponse::error_counts`] is Java
+//! `ConsumerGroupHeartbeatResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! RebalanceTimeoutMs is JSON `0+` (decode returns it; encode writes
 //! `rebalance_timeout_ms`; JSON default `-1` means unchanged; join sends
 //! `max.poll.interval.ms`);

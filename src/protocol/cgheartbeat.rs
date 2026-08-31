@@ -1,5 +1,7 @@
 //! ConsumerGroupHeartbeat (KIP-848, api key 68). Flexible v0–v1.
 
+use std::collections::HashMap;
+
 use bytes::{Buf, BufMut, BytesMut};
 
 use super::buf;
@@ -102,6 +104,18 @@ pub struct ConsumerGroupHeartbeatResponse {
     pub heartbeat_interval_ms: i32,
     /// New assignment, or `None` when unchanged.
     pub assignment: Option<Vec<TopicPartitions>>,
+}
+
+impl ConsumerGroupHeartbeatResponse {
+    /// Java `ConsumerGroupHeartbeatResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). Assignment is not counted. This is
+    /// not Heartbeat / ShareGroupHeartbeat `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// Check that ConsumerGroupHeartbeat `version` is spoken (0–1).
@@ -314,6 +328,8 @@ fn decode_topic_partitions<B: Buf>(buf: &mut B) -> Result<Option<Vec<TopicPartit
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+
     use bytes::Buf;
 
     fn join_req() -> ConsumerGroupHeartbeatRequest {
@@ -719,5 +735,64 @@ mod tests {
             &v1_with[..],
             "v0 and v1 both write ThrottleTimeMs (JSON 0+); ConsumerGroupHeartbeat response matches v0"
         );
+    }
+
+    #[test]
+    fn consumer_group_heartbeat_response_error_counts_matches_java() {
+        // Java ConsumerGroupHeartbeatResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java ConsumerGroupHeartbeatResponse.errorCounts.
+        // Java ConsumerGroupHeartbeatResponse has no error() helper.
+        // Assignment is not counted. This is not Heartbeat errorCounts /
+        // ShareGroupHeartbeat errorCounts.
+        let none = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: 0,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: Some(vec![TopicPartitions {
+                topic_id: [7u8; 16],
+                partitions: vec![0, 1],
+            }]),
+        };
+        assert_eq!(
+            none.error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let fenced = ConsumerGroupHeartbeatResponse {
+            throttle_time_ms: 0,
+            error_code: crate::error::FENCED_MEMBER_EPOCH,
+            error_message: None,
+            member_id: Some("m1".into()),
+            member_epoch: 1,
+            heartbeat_interval_ms: 5000,
+            assignment: Some(vec![TopicPartitions {
+                topic_id: [7u8; 16],
+                partitions: vec![0, 1],
+            }]),
+        };
+        assert_eq!(
+            fenced.error_counts(),
+            HashMap::from([(crate::error::FENCED_MEMBER_EPOCH, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_consumer_group_heartbeat_response(&mut resp, version, &fenced).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_consumer_group_heartbeat_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::FENCED_MEMBER_EPOCH, 1)]),
+                "ConsumerGroupHeartbeat v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ConsumerGroupHeartbeat v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 }
