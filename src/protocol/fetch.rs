@@ -508,6 +508,34 @@ impl FetchRequest {
             Ok((replica_id, replica_state_replica_id))
         }
     }
+
+    /// Java `FetchRequest.Builder.build` ReplicaId / ReplicaState.
+    ///
+    /// Below v15 untagged ReplicaId is `replica_id` and ReplicaState stays
+    /// at JSON defaults ([`CONSUMER_REPLICA_ID`], `-1`). v15+ untagged
+    /// ReplicaId stays [`CONSUMER_REPLICA_ID`] and ReplicaState takes
+    /// `replica_id` and `replica_epoch`. MaxBytes below v3 is
+    /// [`DEFAULT_RESPONSE_MAX_BYTES`] (this crate speaks v4+, so that
+    /// rewrite is a no-op). ForgottenTopicsData is
+    /// [`Self::forgotten_from_removed`]. Topics are
+    /// [`Self::topics_from_fetch_data`].
+    /// [`encode_fetch_request_with_replica_id`] still writes untagged
+    /// ReplicaId on v4–v14 and omits ReplicaState on v15+. This crate
+    /// speaks 4–17. This is not [`replica_id`] / [`replica_id_from_data`]
+    /// / [`Self::simple_build`] / [`Self::for_consumer`] /
+    /// [`Self::for_replica`].
+    #[must_use]
+    pub const fn replica_for_build(
+        version: i16,
+        replica_id: i32,
+        replica_epoch: i64,
+    ) -> (i32, i32, i64) {
+        if version < 15 {
+            (replica_id, CONSUMER_REPLICA_ID, -1)
+        } else {
+            (CONSUMER_REPLICA_ID, replica_id, replica_epoch)
+        }
+    }
 }
 
 fn add_to_forgotten_topic_map<'a, I>(
@@ -3197,6 +3225,127 @@ mod tests {
         assert!(
             cur.is_empty(),
             "Fetch v{version} SimpleBuilder.build {empty}leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn fetch_request_replica_for_build_matches_java() {
+        // Java 4.0 FetchRequest.Builder.build ReplicaId / ReplicaState:
+        // below v15 untagged ReplicaId is the builder replica id and
+        // ReplicaState stays at JSON defaults (-1, -1). v15+ untagged
+        // ReplicaId stays -1 and ReplicaState takes replicaId and
+        // replicaEpoch. Official Java FetchRequest.Builder.build.
+        // MaxBytes below v3 is DEFAULT_RESPONSE_MAX_BYTES (crate speaks
+        // v4+). Encode still writes untagged ReplicaId on v4-v14 and
+        // omits ReplicaState on v15+. This crate speaks 4-17. This is
+        // not replicaId() / replicaId(data) / SimpleBuilder.build /
+        // forConsumer / forReplica.
+        assert_eq!(
+            FetchRequest::replica_for_build(4, CONSUMER_REPLICA_ID, -1),
+            (CONSUMER_REPLICA_ID, CONSUMER_REPLICA_ID, -1)
+        );
+        assert_eq!(
+            FetchRequest::replica_for_build(4, 7, 3),
+            (7, CONSUMER_REPLICA_ID, -1)
+        );
+        assert_eq!(
+            FetchRequest::replica_for_build(14, 7, 3),
+            (7, CONSUMER_REPLICA_ID, -1)
+        );
+        assert_eq!(
+            FetchRequest::replica_for_build(17, 7, 3),
+            (CONSUMER_REPLICA_ID, 7, 3)
+        );
+        let topics = [FetchTopic {
+            topic: "t".into(),
+            topic_id: [7u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                log_start_offset: INVALID_LOG_START_OFFSET,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        leftover_replica_for_build(4, 7, 3, &topics);
+        leftover_replica_for_build(4, 7, 3, &[]);
+        leftover_replica_for_build(14, 7, 3, &topics);
+        leftover_replica_for_build(14, 7, 3, &[]);
+        leftover_replica_for_build(17, 7, 3, &topics);
+        leftover_replica_for_build(17, 7, 3, &[]);
+    }
+
+    fn leftover_replica_for_build(
+        version: i16,
+        replica_id: i32,
+        replica_epoch: i64,
+        topics: &[FetchTopic],
+    ) {
+        let (untagged, ..) = FetchRequest::replica_for_build(version, replica_id, replica_epoch);
+        let max_wait_ms = 500;
+        let min_bytes = 1;
+        let mut buf = BytesMut::new();
+        encode_fetch_request_with_replica_id(
+            &mut buf,
+            version,
+            max_wait_ms,
+            min_bytes,
+            DEFAULT_RESPONSE_MAX_BYTES,
+            0,
+            topics,
+            None,
+            untagged,
+        )
+        .unwrap();
+        let mut cur = buf.as_ref();
+        let (
+            isolation,
+            max_bytes,
+            decoded,
+            rack,
+            session,
+            forgotten,
+            got_wait,
+            got_min,
+            got_replica,
+        ) = decode_fetch_request(&mut cur, version).unwrap();
+        if version <= 14 {
+            assert_eq!(got_replica, untagged);
+        } else {
+            assert_eq!(got_replica, CONSUMER_REPLICA_ID);
+        }
+        assert_eq!(isolation, 0, "Java IsolationLevel.READ_UNCOMMITTED");
+        assert_eq!(max_bytes, DEFAULT_RESPONSE_MAX_BYTES);
+        assert_eq!(got_wait, max_wait_ms);
+        assert_eq!(got_min, min_bytes);
+        assert_eq!(decoded.len(), topics.len());
+        if let Some(topic) = topics.first() {
+            let got = decoded.first().expect("one topic");
+            if version < 13 {
+                assert_eq!(got.topic, topic.topic);
+            } else {
+                assert!(got.topic.is_empty());
+                assert_eq!(got.topic_id, topic.topic_id);
+            }
+            assert_eq!(got.partitions.len(), topic.partitions.len());
+            assert_eq!(
+                got.partitions.first().map(|p| p.partition),
+                topic.partitions.first().map(|p| p.partition)
+            );
+        }
+        assert!(forgotten.is_empty());
+        if version >= 7 {
+            assert_eq!(session, FetchMetadata::LEGACY);
+        }
+        if version >= 11 {
+            assert!(rack.is_empty());
+        }
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "Fetch v{version} Builder.build replica {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

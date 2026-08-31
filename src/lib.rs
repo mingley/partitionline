@@ -1441,6 +1441,9 @@
 //! `FetchRequest.SimpleBuilder.build` (untagged ReplicaId must be `< 0`;
 //! below v15 copy ReplicaState.ReplicaId into ReplicaId and reset
 //! ReplicaState).
+//! [`protocol::fetch::FetchRequest::replica_for_build`] is Java
+//! `FetchRequest.Builder.build` ReplicaId / ReplicaState (untagged
+//! ReplicaId below v15; ReplicaState on v15+).
 //! [`protocol::fetch::FetchedPartition::preferred_read_replica()`] /
 //! [`protocol::fetch::FetchedPartition::is_preferred_replica`] /
 //! [`protocol::fetch::FetchedPartition::diverging_epoch()`] /
