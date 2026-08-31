@@ -2541,6 +2541,28 @@ pub const DEFAULT_MEMBER_ID: &str = "";
 /// Java `OffsetCommitRequest.DEFAULT_RETENTION_TIME` (v2–v4 RetentionTimeMs).
 pub const DEFAULT_RETENTION_TIME: i64 = -1;
 
+/// Java `OffsetCommitRequest` helpers.
+pub struct OffsetCommitRequest;
+
+impl OffsetCommitRequest {
+    /// Java `OffsetCommitRequest.offsets`.
+    ///
+    /// Each `(topic, partition)` maps to that committed offset. A later
+    /// partition overwrites an earlier one for the same pair (Java
+    /// `HashMap.put`).
+    #[must_use]
+    pub fn offsets(topics: &[OffsetTopic]) -> HashMap<(String, i32), i64> {
+        let mut offsets = HashMap::new();
+        for topic in topics {
+            for partition in &topic.partitions {
+                let _prev =
+                    offsets.insert((topic.topic.clone(), partition.partition), partition.offset);
+            }
+        }
+        offsets
+    }
+}
+
 /// Java `OffsetCommitResponse` helpers.
 pub struct OffsetCommitResponse;
 
@@ -5875,6 +5897,68 @@ mod tests {
                 0
             );
         }
+    }
+
+    #[test]
+    fn offset_commit_offsets_matches_java() {
+        // Java OffsetCommitRequest.offsets: each (topic, partition) maps
+        // to that committed offset. Later partitions overwrite the same
+        // pair (HashMap.put).
+        assert!(OffsetCommitRequest::offsets(&[]).is_empty());
+        let one = vec![OffsetTopic {
+            topic: "t".into(),
+            partitions: vec![OffsetPartition::new(0, 10), OffsetPartition::new(3, 20)],
+        }];
+        assert_eq!(
+            OffsetCommitRequest::offsets(&one),
+            HashMap::from([(("t".into(), 0), 10), (("t".into(), 3), 20)])
+        );
+        let two = vec![
+            OffsetTopic {
+                topic: "a".into(),
+                partitions: vec![OffsetPartition::new(0, 1)],
+            },
+            OffsetTopic {
+                topic: "a".into(),
+                partitions: vec![OffsetPartition::new(0, 2)],
+            },
+            OffsetTopic {
+                topic: "b".into(),
+                partitions: vec![OffsetPartition::new(1, 3)],
+            },
+        ];
+        assert_eq!(
+            OffsetCommitRequest::offsets(&two),
+            HashMap::from([(("a".into(), 0), 2), (("b".into(), 1), 3)])
+        );
+        let mut buf = BytesMut::new();
+        encode_offset_commit_request(&mut buf, 2, "g", 7, "m1", None, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_commit_request(&mut cur, 2).unwrap().2;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetCommitRequest::offsets(&decoded),
+            OffsetCommitRequest::offsets(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "OffsetCommit v2 offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
+        buf.clear();
+        encode_offset_commit_request(&mut buf, 8, "g", 7, "m1", None, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_offset_commit_request(&mut cur, 8).unwrap().2;
+        assert_eq!(decoded, two);
+        assert_eq!(
+            OffsetCommitRequest::offsets(&decoded),
+            OffsetCommitRequest::offsets(&two)
+        );
+        assert!(
+            !cur.has_remaining(),
+            "OffsetCommit v8 offsets leftover-empty; leftover {} bytes",
+            cur.remaining()
+        );
     }
 
     #[test]

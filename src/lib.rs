@@ -126,7 +126,10 @@
 //! [`protocol::group::OffsetCommitResponsePartition::error`] are Java
 //! `OffsetCommitRequest.getErrorResponse` (one topic / Topics / partition
 //! body). Nested body is PartitionIndex + ErrorCode. Throttle is the JSON
-//! default (`0`)),
+//! default (`0`);
+//! [`protocol::group::OffsetCommitRequest::offsets`] is Java
+//! `OffsetCommitRequest.offsets` (`(topic, partition)` to committed offset;
+//! a later partition overwrites)),
 //! OffsetFetch v1–v9 (v2 top-level error; v3 throttle; v5 epoch; v6+ flexible; v7 RequireStable; v8 Groups; v9 MemberId;
 //! [`protocol::group::OffsetFetchGroup::is_all_partitions`] is Java
 //! `OffsetFetchRequest.isAllPartitions` / `isAllPartitionsForGroup`
