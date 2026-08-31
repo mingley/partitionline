@@ -594,6 +594,8 @@ impl fmt::Display for CreatedTopicConfig {
 /// [`Self::error_result`] is Java `DescribeConfigsRequest.getErrorResponse`
 /// one resource (copy `ResourceName` / `ResourceType`; Configs stay JSON
 /// default empty; `ErrorMessage` stays the JSON default, null).
+/// ThrottleTimeMs is a top-level field
+/// ([`DescribeConfigsRequest::error_response`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResource {
     /// Kafka resource type (`CONFIG_RESOURCE_TOPIC`, …).
@@ -611,7 +613,8 @@ impl DescribeConfigsResource {
     /// `ErrorMessage` is the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Configs stay JSON
     /// default empty. Request `configurationKeys` are not copied.
-    /// Throttle on the response is the JSON default (`0`).
+    /// ThrottleTimeMs is a top-level field
+    /// ([`DescribeConfigsRequest::error_response`]).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> DescribeConfigsResult {
         DescribeConfigsResult::error(self.resource_type, self.name.clone(), error_code)
@@ -916,7 +919,8 @@ impl fmt::Display for Config {
 ///
 /// [`Self::error`] is Java `DescribeConfigsRequest.getErrorResponse` one
 /// resource (`ErrorMessage` stays the JSON default, null; Configs stay
-/// JSON default empty).
+/// JSON default empty). ThrottleTimeMs is a top-level field
+/// ([`DescribeConfigsRequest::error_response`]).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DescribeConfigsResult {
     /// Per-resource error code (`0` is success).
@@ -937,7 +941,8 @@ impl DescribeConfigsResult {
     /// Sets `ResourceType`, `ResourceName`, and `ErrorCode`.
     /// `ErrorMessage` is the JSON default (null); official Java also
     /// sets the English `Errors.message` string. Configs stay JSON
-    /// default empty. Throttle on the response is the JSON default (`0`).
+    /// default empty. ThrottleTimeMs is a top-level field
+    /// ([`DescribeConfigsRequest::error_response`]).
     #[must_use]
     pub fn error(resource_type: i8, name: impl Into<String>, error_code: i16) -> Self {
         Self {
@@ -1733,11 +1738,13 @@ pub fn decode_delete_topics_response<B: Buf>(
 
 /// `true` when DescribeConfigs `version` is flexible.
 ///
-/// v0–v3 are classic. v1 adds IncludeSynonyms / ConfigSource / Synonyms.
-/// v2 is the same layout as v1 (quota throttle timing). v3 adds
-/// IncludeDocumentation, ConfigType, and Documentation (KIP-226).
-/// v4 is the first flexible version. Kafka 4.0 `validVersions` is
-/// `1-4` (v0 removed). This crate speaks 0–4. v5+ is not spoken.
+/// v0–v3 are classic. ThrottleTimeMs is JSON `0+` (on the wire for
+/// v0–v4). v1 adds IncludeSynonyms / ConfigSource / Synonyms.
+/// v2 is the same layout as v1 (quota throttle timing; KIP-219
+/// `shouldClientThrottle` is v2+). v3 adds IncludeDocumentation,
+/// ConfigType, and Documentation (KIP-226). v4 is the first flexible
+/// version. Kafka 4.0 `validVersions` is `1-4` (v0 removed). This crate
+/// speaks 0–4. v5+ is not spoken.
 fn describe_configs_flexible(version: i16) -> Result<bool> {
     match version {
         0..=3 => Ok(false),
@@ -1839,14 +1846,57 @@ pub fn decode_describe_configs_request<B: Buf>(
     Ok((resources, include_synonyms, include_documentation))
 }
 
+/// Java `DescribeConfigsRequest` helpers.
+pub struct DescribeConfigsRequest;
+
+impl DescribeConfigsRequest {
+    /// Java `DescribeConfigsRequest.getErrorResponse`.
+    ///
+    /// Copies each resource name and type through
+    /// [`DescribeConfigsResource::error_result`]. `ErrorMessage` stays the
+    /// JSON default (null); official Java also sets the English
+    /// `Errors.message` string. Configs stay JSON default empty.
+    /// ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        resources: &[DescribeConfigsResource],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results = DescribeConfigsResult::error_results(resources, error_code);
+        encode_describe_configs_response_with_throttle(buf, version, &results, throttle_time_ms)
+    }
+}
+
 /// Encode a DescribeConfigs response.
+///
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). v4 adds compact arrays/strings plus tagged fields.
 pub fn encode_describe_configs_response(
     buf: &mut BytesMut,
     version: i16,
     results: &[DescribeConfigsResult],
 ) -> crate::error::Result<()> {
+    encode_describe_configs_response_with_throttle(buf, version, results, 0)
+}
+
+/// Encode DescribeConfigs v0–v4 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version,
+/// including v0. KIP-219 only changes
+/// [`DescribeConfigsResponse::should_client_throttle`] (v2+). v4 is
+/// flexible. Kafka 4.0 `validVersions` is `1-4` (v0 removed); this crate
+/// still speaks 0–4.
+pub fn encode_describe_configs_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    results: &[DescribeConfigsResult],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = describe_configs_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(results.len()))?;
     for r in results {
         buf.put_i16(r.error_code);
@@ -1894,12 +1944,15 @@ pub fn encode_describe_configs_response(
 }
 
 /// Decode a DescribeConfigs response.
+///
+/// Returns `(results, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire).
 pub fn decode_describe_configs_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DescribeConfigsResult>> {
+) -> Result<(Vec<DescribeConfigsResult>, i32)> {
     let flexible = describe_configs_flexible(version)?;
-    let _throttle = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut out = Vec::with_capacity(n);
     for _ in 0..n {
@@ -1974,7 +2027,7 @@ pub fn decode_describe_configs_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(out)
+    Ok((out, throttle_time_ms))
 }
 
 /// Incremental AlterConfigs op: set a key (Java `AlterConfigOp.OpType.SET`).
@@ -18513,7 +18566,7 @@ mod tests {
         encode_describe_configs_response(&mut buf, 1, &results).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 1).unwrap(),
+            decode_describe_configs_response(&mut cur, 1).unwrap().0,
             results
         );
         assert!(
@@ -18563,7 +18616,7 @@ mod tests {
         encode_describe_configs_response(&mut buf, 1, &err_results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 1).unwrap(),
+            decode_describe_configs_response(&mut cur, 1).unwrap().0,
             err_results
         );
         assert!(
@@ -18575,7 +18628,7 @@ mod tests {
         encode_describe_configs_response(&mut buf, 4, &err_results).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            decode_describe_configs_response(&mut cur, 4).unwrap().0,
             err_results
         );
         assert!(
@@ -18587,7 +18640,7 @@ mod tests {
         encode_describe_configs_response(&mut buf, 4, &empty).unwrap();
         let mut cur = buf.as_ref();
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            decode_describe_configs_response(&mut cur, 4).unwrap().0,
             empty
         );
         assert!(
@@ -18618,7 +18671,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_describe_configs_response(&mut buf, 0, &results).unwrap();
         let mut cur = &buf[..];
-        let decoded = decode_describe_configs_response(&mut cur, 0).unwrap();
+        let (decoded, ..) = decode_describe_configs_response(&mut cur, 0).unwrap();
         assert_eq!(decoded[0].entries[0].source, CONFIG_SOURCE_DEFAULT);
         assert!(decoded[0].entries[0].synonyms.is_empty());
         assert!(
@@ -18707,7 +18760,7 @@ mod tests {
         );
         let mut cur = &v3r[..];
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 3).unwrap(),
+            decode_describe_configs_response(&mut cur, 3).unwrap().0,
             results
         );
         assert!(
@@ -18715,7 +18768,7 @@ mod tests {
             "DescribeConfigs v3 response must be leftover-empty"
         );
         let mut cur = &v2r[..];
-        let got2 = decode_describe_configs_response(&mut cur, 2).unwrap();
+        let (got2, ..) = decode_describe_configs_response(&mut cur, 2).unwrap();
         assert_eq!(got2[0].entries[0].config_type, CONFIG_TYPE_UNKNOWN);
         assert_eq!(got2[0].entries[0].documentation, None);
         assert!(
@@ -18760,7 +18813,7 @@ mod tests {
         encode_describe_configs_response(&mut buf, 4, &results).unwrap();
         let mut cur = &buf[..];
         assert_eq!(
-            decode_describe_configs_response(&mut cur, 4).unwrap(),
+            decode_describe_configs_response(&mut cur, 4).unwrap().0,
             results
         );
         assert!(
@@ -18774,6 +18827,94 @@ mod tests {
             &v3r[..],
             "DescribeConfigs v4 response must not be classic v3"
         );
+    }
+
+    #[test]
+    fn describe_configs_throttle_time_ms_matches_java() {
+        let resources = [DescribeConfigsResource {
+            resource_type: RESOURCE_TOPIC,
+            name: "t".into(),
+            keys: Some(vec!["cleanup.policy".into()]),
+        }];
+        let err = DescribeConfigsResult::error_results(&resources, 16);
+        assert!(err
+            .first()
+            .and_then(|r| r.error_message.as_deref())
+            .is_none());
+        for version in [0_i16, 1, 2, 3, 4] {
+            let mut buf = BytesMut::new();
+            DescribeConfigsRequest::error_response(&mut buf, version, &resources, 16, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) = decode_describe_configs_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeConfigs v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_describe_configs_response_with_throttle(&mut with, 0, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_describe_configs_response_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_describe_configs_response(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_describe_configs_response still writes ThrottleTimeMs 0"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_describe_configs_response_with_throttle(&mut v1_with, 1, &err, 3_600_000).unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); empty Configs; do not confuse with v1 ConfigSource/Synonyms or v4 flexible"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_describe_configs_response_with_throttle(&mut v3_with, 3, &err, 3_600_000).unwrap();
+        assert_eq!(
+            &v1_with[..],
+            &v3_with[..],
+            "v1–v3 error Results match (empty Configs; v3 ConfigType/Documentation are inside Configs)"
+        );
+        let mut v4_with = BytesMut::new();
+        encode_describe_configs_response_with_throttle(&mut v4_with, 4, &err, 3_600_000).unwrap();
+        assert_ne!(
+            &v3_with[..],
+            &v4_with[..],
+            "v4 adds compact arrays/strings plus tagged fields"
+        );
+
+        for version in [0_i16, 1, 2, 3, 4] {
+            let mut expected = BytesMut::new();
+            encode_describe_configs_response_with_throttle(&mut expected, version, &err, 3_600_000)
+                .unwrap();
+            let mut got = BytesMut::new();
+            DescribeConfigsRequest::error_response(&mut got, version, &resources, 16, 3_600_000)
+                .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "DescribeConfigs v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (decoded, throttle) = decode_describe_configs_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(decoded.iter().all(|r| r.error_message.is_none()));
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DescribeConfigs v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]

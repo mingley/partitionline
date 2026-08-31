@@ -667,7 +667,14 @@
 //! `DescribeConfigsResponse.errorCounts` (per-resource codes, including `NONE`);
 //! [`protocol::admin::DescribeConfigsResponse::result_map`] is Java
 //! `DescribeConfigsResponse.resultMap` (ConfigResource to each result;
-//! unknown resource types are UNKNOWN)),
+//! unknown resource types are UNKNOWN);
+//! [`protocol::admin::DescribeConfigsRequest::error_response`] is Java
+//! `DescribeConfigsRequest.getErrorResponse` (copies names / types;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument);
+//! ThrottleTimeMs is JSON `0+` (on the wire for every spoken version,
+//! including v0); round-trips a non-zero value;
+//! [`protocol::admin::encode_describe_configs_response`] still writes `0`),
 //! CreatePartitions v0–v3 (v2+ flexible; v3 KIP-599;
 //! [`protocol::admin::CreatePartitionsResponse::should_client_throttle`] is Java
 //! `CreatePartitionsResponse.shouldClientThrottle` (v1+);
@@ -1577,6 +1584,10 @@
 //! Configs stay JSON default empty. `ErrorMessage` stays the JSON
 //! default (null); official Java also sets the English `Errors.message`
 //! string.
+//! [`protocol::admin::DescribeConfigsRequest::error_response`] is Java
+//! `DescribeConfigsRequest.getErrorResponse` (copies names / types;
+//! `ErrorMessage` stays JSON-null; always writes the `throttleTimeMs`
+//! argument).
 //! [`ConfigEntry::source`] / [`ConfigEntry::config_type`] /
 //! [`ConfigEntry::is_default`] / [`CreatedTopicConfig::is_default`] are Java
 //! `ConfigEntry.source` / `type` / `isDefault` ([`ConfigSource`] /

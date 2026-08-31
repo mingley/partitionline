@@ -4202,7 +4202,8 @@ impl Admin {
                 timeout,
             )
             .await?;
-        decode_describe_configs_response(&mut body.clone(), version)
+        let (results, ..) = decode_describe_configs_response(&mut body.clone(), version)?;
+        Ok(results)
     }
 
     /// Increase partition count (`CreatePartitions`).
