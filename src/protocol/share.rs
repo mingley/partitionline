@@ -358,8 +358,10 @@ pub struct AcquiredRange {
 /// v1 AcquisitionLockTimeoutMs is JSON `1+`
 /// ([`encode_share_fetch_response_with_acquisition_lock_timeout`];
 /// [`encode_share_fetch_response`] still writes 15000). Top-level
-/// ErrorCode stays 0 (crate encode). ThrottleTimeMs is JSON `0+`
-/// ([`encode_share_fetch_response_with_throttle`];
+/// ErrorCode is JSON `0+`
+/// ([`encode_share_fetch_response_with_error_code`];
+/// [`encode_share_fetch_response`] still writes `0`). ThrottleTimeMs is
+/// JSON `0+` ([`encode_share_fetch_response_with_throttle`];
 /// [`encode_share_fetch_response`] still writes `0`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShareFetchedPartition {
@@ -407,8 +409,10 @@ impl ShareFetchedPartition {
     /// list. v1 AcquisitionLockTimeoutMs is JSON `1+`
     /// ([`encode_share_fetch_response_with_acquisition_lock_timeout`];
     /// [`encode_share_fetch_response`] still writes 15000). Top-level
-    /// ErrorCode stays 0 (crate encode). ThrottleTimeMs is JSON `0+`
-    /// ([`encode_share_fetch_response_with_throttle`];
+    /// ErrorCode is JSON `0+`
+    /// ([`encode_share_fetch_response_with_error_code`];
+    /// [`encode_share_fetch_response`] still writes `0`). ThrottleTimeMs
+    /// is JSON `0+` ([`encode_share_fetch_response_with_throttle`];
     /// [`encode_share_fetch_response`] still writes `0`).
     #[must_use]
     pub fn partition_response(partition: i32, error_code: i16) -> Self {
@@ -457,9 +461,9 @@ impl ShareFetchResponse {
     /// Java `ShareFetchResponse.errorCounts`.
     ///
     /// Counts the top-level `errorCode` (including `NONE`) plus each
-    /// partition-level code (including `NONE`). Crate decode currently
-    /// fails on a non-zero top-level code and does not return it; crate
-    /// encode writes `0`.
+    /// partition-level code (including `NONE`). Decode returns the
+    /// top-level code and does not fail on a non-zero value. Convenience
+    /// encode still writes `0`.
     #[must_use]
     pub fn error_counts(error_code: i16, topics: &[ShareFetchedTopic]) -> HashMap<i16, i32> {
         let mut counts = HashMap::new();
@@ -1094,7 +1098,9 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// Encode a successful ShareFetch response (`version` 0–1).
 ///
 /// v1 adds AcquisitionLockTimeoutMs after ErrorMessage. v0 omits it.
-/// Top-level ErrorCode is 0.
+/// Top-level ErrorCode is 0 on this helper
+/// ([`encode_share_fetch_response_with_error_code`] writes a non-zero
+/// code).
 /// [`ShareFetchedPartition::partition_response`] is Java
 /// `ShareFetchResponse.partitionResponse` (PartitionIndex and ErrorCode;
 /// crate encode writes CurrentLeader from the partition fields, JSON
@@ -1113,7 +1119,9 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
 /// STRING; [`encode_share_fetch_response_with_error_message`]; this helper
 /// still writes null). AcquisitionLockTimeoutMs is JSON `1+`
 /// ([`encode_share_fetch_response_with_acquisition_lock_timeout`]; this
-/// helper still writes 15000 on v1).
+/// helper still writes 15000 on v1). Top-level ErrorCode is JSON `0+`
+/// ([`encode_share_fetch_response_with_error_code`]; this helper still
+/// writes `0`).
 pub fn encode_share_fetch_response(
     buf: &mut BytesMut,
     version: i16,
@@ -1145,7 +1153,7 @@ pub fn encode_share_fetch_response_with_endpoints(
     topics: &[ShareFetchedTopic],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, endpoints, 0, None, 15_000)
+    encode_share_fetch_response_full(buf, version, topics, endpoints, 0, None, 15_000, 0)
 }
 
 /// Encode ShareFetch v0–v1 with ThrottleTimeMs.
@@ -1161,7 +1169,7 @@ pub fn encode_share_fetch_response_with_throttle(
     topics: &[ShareFetchedTopic],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, &[], throttle_time_ms, None, 15_000)
+    encode_share_fetch_response_full(buf, version, topics, &[], throttle_time_ms, None, 15_000, 0)
 }
 
 /// Encode ShareFetch v0–v1 with top-level ErrorMessage.
@@ -1170,16 +1178,15 @@ pub fn encode_share_fetch_response_with_throttle(
 /// version). JSON default is null. [`encode_share_fetch_response`] still
 /// writes null. ThrottleTimeMs stays `0` and NodeEndpoints stay empty.
 /// This is not partition ErrorMessage, not AcknowledgeErrorMessage, and
-/// not ShareAcknowledge top-level ErrorMessage. Decode currently fails on
-/// a non-zero top-level ErrorCode and does not return it; crate encode of
-/// this helper still writes ErrorCode `0`.
+/// not ShareAcknowledge top-level ErrorMessage. This helper still writes
+/// ErrorCode `0`.
 pub fn encode_share_fetch_response_with_error_message(
     buf: &mut BytesMut,
     version: i16,
     topics: &[ShareFetchedTopic],
     error_message: Option<&str>,
 ) -> crate::error::Result<()> {
-    encode_share_fetch_response_full(buf, version, topics, &[], 0, error_message, 15_000)
+    encode_share_fetch_response_full(buf, version, topics, &[], 0, error_message, 15_000, 0)
 }
 
 /// Encode ShareFetch v0–v1 with AcquisitionLockTimeoutMs.
@@ -1207,9 +1214,35 @@ pub fn encode_share_fetch_response_with_acquisition_lock_timeout(
         0,
         None,
         acquisition_lock_timeout_ms,
+        0,
     )
 }
 
+/// Encode ShareFetch v0–v1 with top-level ErrorCode.
+///
+/// ErrorCode is JSON `0+` (INT16 after ThrottleTimeMs). JSON default is
+/// `0`. [`encode_share_fetch_response`] still writes `0`. Decode returns
+/// it and does not fail on a non-zero code. Official Java
+/// `ShareFetchResponse.of` / `toMessage` / `error` /
+/// `ShareFetchRequest.getErrorResponse` set it. ThrottleTimeMs stays `0`,
+/// ErrorMessage stays null, NodeEndpoints stay empty, and v1
+/// AcquisitionLockTimeoutMs stays 15000 on this helper.
+/// [`encode_share_fetch_error`] still writes empty Responses and v1
+/// AcquisitionLockTimeoutMs `0`. This is not partition `ErrorCode` and
+/// not ShareAcknowledge ErrorCode.
+pub fn encode_share_fetch_response_with_error_code(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[ShareFetchedTopic],
+    error_code: i16,
+) -> crate::error::Result<()> {
+    encode_share_fetch_response_full(buf, version, topics, &[], 0, None, 15_000, error_code)
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch response body fields are a single wire encode"
+)]
 fn encode_share_fetch_response_full(
     buf: &mut BytesMut,
     version: i16,
@@ -1218,10 +1251,11 @@ fn encode_share_fetch_response_full(
     throttle_time_ms: i32,
     error_message: Option<&str>,
     acquisition_lock_timeout_ms: i32,
+    error_code: i16,
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
     buf.put_i32(throttle_time_ms);
-    buf.put_i16(0);
+    buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
     if version >= 1 {
         buf.put_i32(acquisition_lock_timeout_ms);
@@ -1268,17 +1302,17 @@ fn encode_share_fetch_response_full(
 
 /// Decode a ShareFetch response (`version` 0–1):
 /// `(topics, node_endpoints, throttle_time_ms, error_message,
-/// acquisition_lock_timeout_ms)`.
+/// acquisition_lock_timeout_ms, error_code)`.
 ///
 /// NodeEndpoints is JSON `0+` (untagged compact array). ThrottleTimeMs is
 /// JSON `0+` (always on the wire). Top-level ErrorMessage is JSON `0+`
 /// (nullable compact STRING). AcquisitionLockTimeoutMs is JSON `1+`
-/// (INT32 after ErrorMessage). v0 omits it; decode fills `0`. Decode
-/// currently fails on a non-zero top-level ErrorCode and does not return
-/// it.
+/// (INT32 after ErrorMessage). v0 omits it; decode fills `0`. ErrorCode
+/// is JSON `0+` (INT16 after ThrottleTimeMs). Decode does not fail on a
+/// non-zero top-level ErrorCode; callers decide.
 #[expect(
     clippy::type_complexity,
-    reason = "ShareFetch response decode returns topics, node endpoints, throttle, ErrorMessage, and AcquisitionLockTimeoutMs together"
+    reason = "ShareFetch response decode returns topics, node endpoints, throttle, ErrorMessage, AcquisitionLockTimeoutMs, and ErrorCode together"
 )]
 pub fn decode_share_fetch_response<B: Buf>(
     buf: &mut B,
@@ -1289,14 +1323,12 @@ pub fn decode_share_fetch_response<B: Buf>(
     i32,
     Option<String>,
     i32,
+    i16,
 )> {
     let flexible = share_fetch_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
-    let err = buf::get_i16(buf)?;
+    let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_string(buf, flexible)?;
-    if err != 0 {
-        return Err(crate::error::Error::broker(err, "ShareFetch"));
-    }
     let acquisition_lock_timeout_ms = if version >= 1 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -1370,6 +1402,7 @@ pub fn decode_share_fetch_response<B: Buf>(
         throttle_time_ms,
         error_message,
         acquisition_lock_timeout_ms,
+        error_code,
     ))
 }
 
@@ -1531,9 +1564,10 @@ pub fn encode_share_fetch_error(
 /// `ShareFetchRequest.getErrorResponse` / `ShareFetchResponse.of` sets it.
 /// Convenience encode still writes `0`. Empty Responses and NodeEndpoints.
 /// ErrorMessage stays null. v1 AcquisitionLockTimeoutMs stays `0` (Java
-/// `of` last argument), not 15000. Decode currently fails on a non-zero
-/// top-level ErrorCode. This is not
-/// [`encode_share_fetch_response_with_throttle`].
+/// `of` last argument), not 15000. Decode returns the top-level ErrorCode
+/// and does not fail on a non-zero code. This is not
+/// [`encode_share_fetch_response_with_throttle`] and not
+/// [`encode_share_fetch_response_with_error_code`].
 pub fn encode_share_fetch_error_with_throttle(
     buf: &mut BytesMut,
     version: i16,
@@ -2257,11 +2291,11 @@ mod tests {
         // endpoints, 0). ThrottleTimeMs is JSON 0+ INT32 first field.
         // encode_share_fetch_error still writes 0. v1
         // AcquisitionLockTimeoutMs stays 0 on this path (Java of last
-        // argument), not the success-path 15000. Decode currently fails
-        // on a non-zero top-level ErrorCode. Empty-Responses v0 != v1
-        // (AcquisitionLockTimeoutMs). Top-level ErrorCode is at bytes
-        // 4–5. This crate speaks 0–1. This is not ShareFetch
-        // success-path / ShareAcknowledge / Fetch ThrottleTimeMs.
+        // argument), not the success-path 15000. Decode returns the
+        // top-level ErrorCode and does not fail on a non-zero code.
+        // Empty-Responses v0 != v1 (AcquisitionLockTimeoutMs). Top-level
+        // ErrorCode is at bytes 4–5. This crate speaks 0–1. This is not
+        // ShareFetch success-path / ShareAcknowledge / Fetch ThrottleTimeMs.
         let err = crate::error::INVALID_SHARE_SESSION_EPOCH;
         for version in [0_i16, 1] {
             let mut buf = BytesMut::new();
@@ -3015,9 +3049,8 @@ mod tests {
         // Apache ShareFetchResponse.java has no errorMessage helper.
         // encode_share_fetch_response still writes null. This is not
         // partition ErrorMessage, not AcknowledgeErrorMessage, and not
-        // ShareAcknowledge top-level ErrorMessage. Decode currently fails
-        // on a non-zero top-level ErrorCode; crate encode of this helper
-        // still writes ErrorCode 0.
+        // ShareAcknowledge top-level ErrorMessage. Convenience encode of
+        // this helper still writes ErrorCode 0.
         let topics = vec![ShareFetchedTopic {
             topic_id: [7u8; 16],
             partitions: vec![ShareFetchedPartition {
@@ -3097,7 +3130,7 @@ mod tests {
             "empty-but-present top-level ErrorMessage is not JSON null"
         );
         let mut cur = empty_present.as_ref();
-        let (got, .., msg, _) = decode_share_fetch_response(&mut cur, 0).unwrap();
+        let (got, .., msg, _, _) = decode_share_fetch_response(&mut cur, 0).unwrap();
         assert_eq!(got, topics);
         assert_eq!(msg.as_deref(), Some(""));
         assert!(
@@ -3124,8 +3157,9 @@ mod tests {
         // acquisitionLockTimeout as an argument (not a named constant).
         // encode_share_fetch_response still writes 15000 on v1. v0 omits
         // even when the body is non-zero and decode fills 0. Error-path
-        // encode still writes 0 (Java of last argument). Decode currently
-        // fails on a non-zero top-level ErrorCode. This crate speaks 0–1.
+        // encode still writes 0 (Java of last argument). Decode returns
+        // the top-level ErrorCode and does not fail on a non-zero code.
+        // This crate speaks 0–1.
         // This is not ThrottleTimeMs / top-level ErrorMessage /
         // ShareAcknowledge.
         let topics = vec![ShareFetchedTopic {
@@ -3149,7 +3183,7 @@ mod tests {
             )
             .unwrap();
             let mut cur = buf.as_ref();
-            let (got, endpoints, throttle, msg, lock) =
+            let (got, endpoints, throttle, msg, lock, ..) =
                 decode_share_fetch_response(&mut cur, version).unwrap();
             assert_eq!(got, topics);
             assert!(endpoints.is_empty());
@@ -3266,6 +3300,127 @@ mod tests {
             &v0_with[..],
             &with[..],
             "v1 adds AcquisitionLockTimeoutMs after ErrorMessage"
+        );
+    }
+
+    #[test]
+    fn share_fetch_response_error_code_matches_java() {
+        // Kafka 4.1 ShareFetchResponse.json ErrorCode is versions 0+
+        // (INT16 after ThrottleTimeMs). JSON default is 0. Official Java
+        // ShareFetchResponse.of / toMessage / error /
+        // ShareFetchRequest.getErrorResponse set it.
+        // encode_share_fetch_response still writes 0. Decode returns it
+        // and does not fail on a non-zero code. v1 AcquisitionLockTimeoutMs
+        // stays 15000 on this helper; error-path encode still writes 0
+        // (Java of last argument) and empty Responses. This crate speaks
+        // 0–1. This is not partition ErrorCode / ThrottleTimeMs /
+        // ShareAcknowledge ErrorCode.
+        let err = crate::error::INVALID_SHARE_SESSION_EPOCH;
+        let topics = vec![ShareFetchedTopic {
+            topic_id: [7u8; 16],
+            partitions: vec![ShareFetchedPartition {
+                partition: 0,
+                error_code: 6,
+                error_message: None,
+                acknowledge_error_code: 0,
+                acknowledge_error_message: None,
+                current_leader_id: 0,
+                current_leader_epoch: 0,
+                records: Vec::new(),
+                acquired: Vec::new(),
+            }],
+        }];
+        for version in [0_i16, 1] {
+            let mut buf = BytesMut::new();
+            encode_share_fetch_response_with_error_code(&mut buf, version, &topics, err).unwrap();
+            let mut cur = buf.as_ref();
+            let (got, endpoints, throttle, msg, lock, error_code) =
+                decode_share_fetch_response(&mut cur, version).unwrap();
+            assert_eq!(got, topics);
+            assert!(endpoints.is_empty());
+            assert_eq!(throttle, 0);
+            assert_eq!(msg, None);
+            if version >= 1 {
+                assert_eq!(lock, 15_000);
+            } else {
+                assert_eq!(lock, 0);
+            }
+            assert_eq!(error_code, err);
+            assert_ne!(
+                error_code, 6,
+                "top-level ErrorCode is not partition ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "ShareFetch v{version} ErrorCode leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_share_fetch_response_with_error_code(&mut with, 0, &topics, err).unwrap();
+        let mut zero = BytesMut::new();
+        encode_share_fetch_response_with_error_code(&mut zero, 0, &topics, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ErrorCode is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_share_fetch_response(&mut conv, 0, &topics).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_share_fetch_response still writes ErrorCode 0"
+        );
+        let mut lock_zero = BytesMut::new();
+        encode_share_fetch_response_with_acquisition_lock_timeout(&mut lock_zero, 0, &topics, 0)
+            .unwrap();
+        assert_eq!(
+            &lock_zero[..],
+            &zero[..],
+            "encode_share_fetch_response_with_acquisition_lock_timeout still writes ErrorCode 0"
+        );
+        assert_eq!(
+            &with[..4],
+            &0i32.to_be_bytes(),
+            "ShareFetch success-path ThrottleTimeMs stays 0 on this helper"
+        );
+        assert_eq!(
+            &with[4..6],
+            &err.to_be_bytes(),
+            "ShareFetch ErrorCode is at bytes 4–5"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_share_fetch_response_with_error_code(&mut v1_with, 1, &topics, err).unwrap();
+        assert_ne!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ErrorCode (JSON 0+); v1 still adds AcquisitionLockTimeoutMs"
+        );
+
+        let mut err_path = BytesMut::new();
+        encode_share_fetch_error(&mut err_path, 1, err).unwrap();
+        assert_ne!(
+            &v1_with[..],
+            &err_path[..],
+            "success-path ErrorCode helper is not encode_share_fetch_error (lock 15000 vs 0, topics vs empty)"
+        );
+        let mut err_cur = err_path.as_ref();
+        let (got, endpoints, throttle, msg, lock, error_code) =
+            decode_share_fetch_response(&mut err_cur, 1).unwrap();
+        assert!(got.is_empty());
+        assert!(endpoints.is_empty());
+        assert_eq!(throttle, 0);
+        assert_eq!(msg, None);
+        assert_eq!(
+            lock, 0,
+            "ShareFetch error v1 AcquisitionLockTimeoutMs stays 0"
+        );
+        assert_eq!(error_code, err);
+        assert!(
+            err_cur.is_empty(),
+            "ShareFetch error v1 ErrorCode leftover-empty"
         );
     }
 

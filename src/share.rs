@@ -1020,8 +1020,8 @@ impl ShareGroup {
                 }
                 Err(e) => return Err(e),
             };
-            let fetched = match decode_share_fetch_response(&mut body, version) {
-                Ok((f, ..)) => f,
+            let (fetched, .., error_code) = match decode_share_fetch_response(&mut body, version) {
+                Ok(decoded) => decoded,
                 Err(e) => {
                     if share_session_reset(&e) || share_leader_retriable(&e) {
                         self.reset_node_session(node);
@@ -1029,6 +1029,13 @@ impl ShareGroup {
                     return Err(e);
                 }
             };
+            if error_code != 0 {
+                let e = Error::broker(error_code, "ShareFetch");
+                if share_session_reset(&e) || share_leader_retriable(&e) {
+                    self.reset_node_session(node);
+                }
+                return Err(e);
+            }
             for topic in &fetched {
                 for part in &topic.partitions {
                     if part.error_code != 0 {

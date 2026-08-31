@@ -473,8 +473,12 @@
 //! round-trips NodeEndpoints (JSON `0+` untagged compact array;
 //! [`protocol::share::encode_share_fetch_response`] still writes empty;
 //! not Fetch v16 tagged field 0).
-//! Top-level ErrorCode stays 0
-//! (crate encode). ThrottleTimeMs is JSON `0+` (on the wire for every
+//! Top-level ErrorCode is JSON `0+` (INT16 after ThrottleTimeMs);
+//! round-trips a non-zero value;
+//! [`protocol::share::encode_share_fetch_response_with_error_code`] writes
+//! it; [`protocol::share::encode_share_fetch_response`] still writes `0`;
+//! decode returns it and does not fail on a non-zero code.
+//! ThrottleTimeMs is JSON `0+` (on the wire for every
 //! spoken version); round-trips a non-zero value;
 //! [`protocol::share::encode_share_fetch_response_with_throttle`] writes
 //! it; [`protocol::share::encode_share_fetch_response`] still writes `0`;
@@ -489,8 +493,8 @@
 //! writes null;
 //! [`protocol::share::ShareFetchResponse::error_counts`] is Java
 //! `ShareFetchResponse.errorCounts` (top-level `errorCode` plus each
-//! partition-level code, including `NONE`). Crate decode currently fails
-//! on a non-zero top-level code and does not return it;
+//! partition-level code, including `NONE`). Decode returns the top-level
+//! code and does not fail on a non-zero value;
 //! [`protocol::share::ShareFetchResponse::response_data`] is Java
 //! `ShareFetchResponse.responseData` (looks up `topic_id`; skips a missing
 //! name; a later partition overwrites);
