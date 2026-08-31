@@ -7622,6 +7622,17 @@ impl AllocateProducerIdsResponse {
             producer_id_len,
         }
     }
+
+    /// Java `AllocateProducerIdsResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `Collections.singletonMap`). ProducerIdStart / ProducerIdLen are
+    /// not counted. This is not InitProducerId / DescribeCluster
+    /// `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// AllocateProducerIds v0 (flexible from v0; KIP-730).
@@ -23386,6 +23397,43 @@ mod tests {
         assert_eq!(
             zero.throttle_time_ms, 0,
             "AllocateProducerIdsResponse::new still fills ThrottleTimeMs 0"
+        );
+    }
+
+    #[test]
+    fn allocate_producer_ids_response_error_counts_matches_java() {
+        // Java AllocateProducerIdsResponse.errorCounts:
+        // Collections.singletonMap(Errors.forCode(data.errorCode()), 1),
+        // including NONE. Official Java AllocateProducerIdsResponse.errorCounts.
+        // Java error() is Errors.forCode only (identity on i16; not mapped).
+        // ProducerIdStart / ProducerIdLen are not counted. This is not
+        // InitProducerId errorCounts / DescribeCluster errorCounts.
+        assert_eq!(
+            AllocateProducerIdsResponse::new(0, 1000, 1000).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        assert_eq!(
+            AllocateProducerIdsResponse::new(crate::error::NOT_CONTROLLER, 0, 0).error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)])
+        );
+        let mut resp = BytesMut::new();
+        encode_allocate_producer_ids_response(
+            &mut resp,
+            &AllocateProducerIdsResponse::new(crate::error::NOT_CONTROLLER, 1000, 1000),
+        )
+        .unwrap();
+        let mut cur = &resp[..];
+        let decoded = decode_allocate_producer_ids_response(&mut cur).unwrap();
+        assert_eq!(
+            decoded.error_counts(),
+            HashMap::from([(crate::error::NOT_CONTROLLER, 1)]),
+            "AllocateProducerIds v0 errorCounts must count the decoded code"
+        );
+        assert!(
+            cur.is_empty(),
+            "AllocateProducerIds v0 errorCounts leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 

@@ -781,7 +781,10 @@
 //! [`protocol::admin::AlterClientQuotasRequest::entries`] is Java
 //! `AlterClientQuotasRequest.entries` (duplicate EntityType last-wins;
 //! leftover Value on remove is ignored)),
-//! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`),
+//! AllocateProducerIds v0 (ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::AllocateProducerIdsResponse::error_counts`] is Java
+//! `AllocateProducerIdsResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! UnregisterBroker v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::UnregisterBrokerResponse::new`] fills `0`),
 //! DescribeCluster v0–v2 (v1 EndpointType, v2 IsFenced; ThrottleTimeMs is JSON `0+`;
@@ -2333,6 +2336,9 @@
 //! AllocateProducerIds (api 67) RPC deadline; Java `Admin` has no
 //! `allocateProducerIds`. ThrottleTimeMs is JSON `0+`; encode writes the field;
 //! [`protocol::admin::AllocateProducerIdsResponse::new`] fills `0`.
+//! [`protocol::admin::AllocateProducerIdsResponse::error_counts`] is Java
+//! `AllocateProducerIdsResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`).
 //! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument. [`Admin::new`] does not require that API,
 //! UnregisterBroker, DescribeProducers, DescribeCluster, UpdateFeatures,
 //! DescribeClientQuotas, AlterClientQuotas, AlterUserScramCredentials,
