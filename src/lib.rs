@@ -657,7 +657,10 @@
 //! [`protocol::admin::ListTransactionsResponse::new`] fills `0`;
 //! [`protocol::admin::ListTransactionsResponse::error_counts`] is Java
 //! `ListTransactionsResponse.errorCounts` (top-level `errorCode` only,
-//! including `NONE`; Java `updateErrorCounts`)),
+//! including `NONE`; Java `updateErrorCounts`);
+//! [`protocol::admin::ListTransactionsRequest::error_response`] is Java
+//! `ListTransactionsRequest.getErrorResponse` (empty UnknownStateFilters /
+//! TransactionStates; ThrottleTimeMs JSON `0+`; convenience fills `0`)),
 //! DescribeTransactions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::encode_describe_transactions_response`] still writes `0`),
 //! CreateTopics v0–v7 (v5+ flexible; v5 KIP-525 configs; v7 TopicId;
@@ -2123,6 +2126,9 @@
 //! [`protocol::admin::ListTransactionsResponse::error_counts`] is Java
 //! `ListTransactionsResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `updateErrorCounts`).
+//! [`protocol::admin::ListTransactionsRequest::error_response`] is Java
+//! `ListTransactionsRequest.getErrorResponse` (empty UnknownStateFilters /
+//! TransactionStates; request filters are not copied).
 //! Official Java `getErrorResponse` sets `throttleTimeMs` from the argument.
 //! [`Admin::list_transactions_all`] is Java `listTransactions()`.
 //! [`TransactionListing::state`] is Java `TransactionListing.state` as

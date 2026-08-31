@@ -8215,6 +8215,26 @@ impl ListTransactionsResponse {
     }
 }
 
+/// Java `ListTransactionsRequest` helpers.
+pub struct ListTransactionsRequest;
+
+impl ListTransactionsRequest {
+    /// Java `ListTransactionsRequest.getErrorResponse`.
+    ///
+    /// Sets the top-level `ErrorCode`. UnknownStateFilters and
+    /// TransactionStates stay empty. Request StateFilters /
+    /// ProducerIdFilters / DurationFilter are not copied.
+    /// ThrottleTimeMs is JSON `0+` (JSON default `0`;
+    /// [`ListTransactionsResponse::new`] fills `0`). Official Java
+    /// `getErrorResponse` sets `throttleTimeMs` from the argument. This
+    /// is not [`ListTransactionsResponse::error_counts`] / DescribeCluster
+    /// `getErrorResponse` / UnregisterBroker `getErrorResponse`.
+    #[must_use]
+    pub fn error_response(error_code: i16) -> ListTransactionsResponse {
+        ListTransactionsResponse::new(error_code, Vec::new(), Vec::new())
+    }
+}
+
 /// Encode a ListTransactions v0–v1 request.
 ///
 /// Java `ListTransactionsRequest.Builder.build` rejects a non-negative
@@ -24526,6 +24546,88 @@ mod tests {
                 cur.len()
             );
         }
+    }
+
+    #[test]
+    fn list_transactions_request_error_response_matches_java() {
+        // Java 4.0 ListTransactionsRequest.getErrorResponse:
+        // Errors.forException then setErrorCode / setThrottleTimeMs.
+        // UnknownStateFilters and TransactionStates stay empty. Request
+        // StateFilters / ProducerIdFilters / DurationFilter are not
+        // copied. Official Java ListTransactionsRequest.getErrorResponse.
+        // Official Java sets throttleTimeMs from the argument;
+        // ListTransactionsResponse::new fills 0. Java has no error()
+        // helper. This crate speaks 0-1. Empty-TransactionStates v0 ==
+        // v1 (both flexible; same response fields). Top-level ErrorCode
+        // is at bytes 4-5. This is not errorCounts / DescribeCluster
+        // getErrorResponse / UnregisterBroker getErrorResponse.
+        assert_eq!(
+            ListTransactionsRequest::error_response(0),
+            ListTransactionsResponse::new(0, Vec::new(), Vec::new())
+        );
+        let err = ListTransactionsRequest::error_response(crate::error::INVALID_REQUEST);
+        assert_eq!(
+            err,
+            ListTransactionsResponse::new(crate::error::INVALID_REQUEST, Vec::new(), Vec::new())
+        );
+        assert!(
+            err.unknown_state_filters.is_empty(),
+            "getErrorResponse must not invent UnknownStateFilters"
+        );
+        assert!(
+            err.transaction_states.is_empty(),
+            "getErrorResponse must not invent TransactionStates"
+        );
+        assert_eq!(
+            err.throttle_time_ms, 0,
+            "ListTransactionsResponse::new still fills ThrottleTimeMs 0"
+        );
+        let mut v0 = BytesMut::new();
+        for version in 0..=1_i16 {
+            let mut buf = BytesMut::new();
+            encode_list_transactions_response(&mut buf, version, &err).unwrap();
+            assert_eq!(
+                &buf[4..6],
+                crate::error::INVALID_REQUEST.to_be_bytes(),
+                "ListTransactions v{version} ErrorCode is at bytes 4-5"
+            );
+            let mut cur = buf.as_ref();
+            let decoded = decode_list_transactions_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert!(
+                cur.is_empty(),
+                "ListTransactions v{version} getErrorResponse leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+            if version == 0 {
+                v0.extend_from_slice(&buf);
+            }
+        }
+        let mut v1 = BytesMut::new();
+        encode_list_transactions_response(&mut v1, 1, &err).unwrap();
+        assert_eq!(
+            &v0[..],
+            &v1[..],
+            "empty-TransactionStates v0 and v1 bodies match (both flexible; same fields)"
+        );
+        let mut with = err.clone();
+        with.throttle_time_ms = 3_600_000;
+        let mut with_buf = BytesMut::new();
+        encode_list_transactions_response(&mut with_buf, 0, &with).unwrap();
+        let mut zero_buf = BytesMut::new();
+        encode_list_transactions_response(&mut zero_buf, 0, &err).unwrap();
+        assert_ne!(
+            &with_buf[..],
+            &zero_buf[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_list_transactions_response(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero_buf[..],
+            "error_response still fills ThrottleTimeMs 0"
+        );
     }
 
     #[test]
