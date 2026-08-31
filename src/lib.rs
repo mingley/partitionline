@@ -884,10 +884,12 @@
 //! `AddOffsetsToTxnResponse.shouldClientThrottle` (v1+);
 //! [`protocol::txn::encode_add_offsets_to_txn_response`] still writes `0`), EndTxn v0–v5
 //! (v3+ flexible; v4 TRANSACTION_ABORTABLE; v5 ProducerId / ProducerEpoch;
+//! ThrottleTimeMs is JSON `0+`;
+//! [`protocol::txn::encode_end_txn_response`] still writes `0`;
 //! [`protocol::txn::EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2`];
 //! [`protocol::txn::EndTxnRequest::error_response`] is Java
 //! `EndTxnRequest.getErrorResponse` ([`RecordBatch::NO_PRODUCER_ID`] /
-//! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+; throttle JSON default 0);
+//! [`RecordBatch::NO_PRODUCER_EPOCH`] on v5+);
 //! [`protocol::txn::EndTxnResponse::should_client_throttle`] is Java
 //! `EndTxnResponse.shouldClientThrottle` (v1+);
 //! EndTxn decode below v5 fills [`RecordBatch::NO_PRODUCER_ID`] /

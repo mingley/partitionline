@@ -29,7 +29,9 @@ impl EndTxnRequest {
     ///
     /// Producer id / epoch stay the JSON defaults
     /// ([`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`])
-    /// on v5+. Throttle is the JSON default (`0`).
+    /// on v5+. ThrottleTimeMs is JSON `0+`; convenience encode still
+    /// writes `0`. Official Java `getErrorResponse` sets
+    /// `throttleTimeMs` from the argument.
     pub fn error_response(buf: &mut BytesMut, version: i16, error_code: i16) -> Result<()> {
         encode_end_txn_response(
             buf,
@@ -746,8 +748,10 @@ pub fn decode_end_txn_request<B: Buf>(
 
 /// Encode EndTxn: throttle `0`, error code, and v5+ producer id / epoch.
 ///
-/// Java `EndTxnResponseData` defaults ProducerId / ProducerEpoch to
-/// [`RecordBatch::NO_PRODUCER_ID`] / [`RecordBatch::NO_PRODUCER_EPOCH`].
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). Java `EndTxnResponseData` defaults ProducerId /
+/// ProducerEpoch to [`RecordBatch::NO_PRODUCER_ID`] /
+/// [`RecordBatch::NO_PRODUCER_EPOCH`].
 pub fn encode_end_txn_response(
     buf: &mut BytesMut,
     version: i16,
@@ -755,8 +759,26 @@ pub fn encode_end_txn_response(
     producer_id: i64,
     producer_epoch: i16,
 ) -> Result<()> {
+    encode_end_txn_response_with_throttle(buf, version, error, producer_id, producer_epoch, 0)
+}
+
+/// Encode EndTxn v0–v5 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version.
+/// v0–v2 are classic. v3–v5 are flexible. v4 is the same layout
+/// (KIP-890 TRANSACTION_ABORTABLE). v5 adds ProducerId / ProducerEpoch
+/// (KIP-890 Part 2). Kafka 4.0 `validVersions` is `0-5`. This crate
+/// speaks 0–5. v6+ is not spoken. Top-level ErrorCode is at bytes 4–5.
+pub fn encode_end_txn_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    error: i16,
+    producer_id: i64,
+    producer_epoch: i16,
+    throttle_time_ms: i32,
+) -> Result<()> {
     let flexible = end_txn_flexible(version)?;
-    buf.put_i32(0);
+    buf.put_i32(throttle_time_ms);
     buf.put_i16(error);
     if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
         buf.put_i64(producer_id);
@@ -768,13 +790,14 @@ pub fn encode_end_txn_response(
     Ok(())
 }
 
-/// Decode EndTxn: `(error, producer_id, producer_epoch)`.
+/// Decode EndTxn: `(error, producer_id, producer_epoch, throttle_time_ms)`.
 ///
 /// Below v5, producer id and epoch are [`RecordBatch::NO_PRODUCER_ID`] /
-/// [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`).
-pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i64, i16)> {
+/// [`RecordBatch::NO_PRODUCER_EPOCH`] (JSON default `-1`). ThrottleTimeMs
+/// is JSON `0+` (always on the wire). Top-level ErrorCode is at bytes 4–5.
+pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16, i64, i16, i32)> {
     let flexible = end_txn_flexible(version)?;
-    let _th = buf::get_i32(buf)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
     let err = buf::get_i16(buf)?;
     let (producer_id, producer_epoch) =
         if version > EndTxnRequest::LAST_STABLE_VERSION_BEFORE_TRANSACTION_V2 {
@@ -785,7 +808,7 @@ pub fn decode_end_txn_response<B: Buf>(buf: &mut B, version: i16) -> Result<(i16
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((err, producer_id, producer_epoch))
+    Ok((err, producer_id, producer_epoch, throttle_time_ms))
 }
 
 /// Java `TxnOffsetCommitRequest` version helpers (KIP-890 transaction V2).
@@ -3163,6 +3186,154 @@ mod tests {
     }
 
     #[test]
+    fn end_txn_response_throttle_time_ms_matches_java() {
+        // Kafka 4.0.0 EndTxnResponse.json ThrottleTimeMs is versions 0+
+        // (INT32 on spoken v0–v5; first field). Official Java
+        // EndTxnRequest.getErrorResponse / EndTxnResponse.throttleTimeMs
+        // set / read it. encode_end_txn_response still writes the JSON
+        // default 0. KIP-219 only changes shouldClientThrottle (v1+).
+        // Empty-error v0 == v1 == v2 (classic); v3 == v4 (flexible;
+        // TRANSACTION_ABORTABLE same layout); v5 adds ProducerId /
+        // ProducerEpoch. Top-level ErrorCode is at bytes 4–5. This crate
+        // speaks 0–5. This is not AddOffsetsToTxn ThrottleTimeMs.
+        for version in [0, 1, 2, 3, 4, 5] {
+            let mut buf = BytesMut::new();
+            encode_end_txn_response_with_throttle(
+                &mut buf,
+                version,
+                0,
+                RecordBatch::NO_PRODUCER_ID,
+                RecordBatch::NO_PRODUCER_EPOCH,
+                3_600_000,
+            )
+            .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, pid, epoch, throttle) =
+                decode_end_txn_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, 0);
+            assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
+            assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "EndTxn v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut with,
+            0,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        let mut zero = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut zero,
+            0,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            0,
+        )
+        .unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_end_txn_response(
+            &mut conv,
+            0,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+        )
+        .unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_end_txn_response still writes ThrottleTimeMs 0"
+        );
+
+        let mut v1_with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut v1_with,
+            1,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        let mut v2_with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut v2_with,
+            2,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "empty-error ThrottleTimeMs bodies: v0 == v1"
+        );
+        assert_eq!(
+            &v1_with[..],
+            &v2_with[..],
+            "empty-error ThrottleTimeMs bodies: v1 == v2"
+        );
+        let mut v3_with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut v3_with,
+            3,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(&v2_with[..], &v3_with[..], "v3 adds compact tagged fields");
+        let mut v4_with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut v4_with,
+            4,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        assert_eq!(
+            &v3_with[..],
+            &v4_with[..],
+            "empty-error ThrottleTimeMs bodies: v3 == v4"
+        );
+        let mut v5_with = BytesMut::new();
+        encode_end_txn_response_with_throttle(
+            &mut v5_with,
+            5,
+            0,
+            RecordBatch::NO_PRODUCER_ID,
+            RecordBatch::NO_PRODUCER_EPOCH,
+            3_600_000,
+        )
+        .unwrap();
+        assert_ne!(
+            &v4_with[..],
+            &v5_with[..],
+            "v5 adds ProducerId / ProducerEpoch"
+        );
+    }
+
+    #[test]
     fn end_txn_roundtrip() {
         let mut buf = BytesMut::new();
         encode_end_txn_request(&mut buf, 0, "tx", 9, 1, true).unwrap();
@@ -3185,7 +3356,8 @@ mod tests {
             (
                 0,
                 RecordBatch::NO_PRODUCER_ID,
-                RecordBatch::NO_PRODUCER_EPOCH
+                RecordBatch::NO_PRODUCER_EPOCH,
+                0
             )
         );
         assert!(cur.is_empty());
@@ -3218,7 +3390,8 @@ mod tests {
             (
                 0,
                 RecordBatch::NO_PRODUCER_ID,
-                RecordBatch::NO_PRODUCER_EPOCH
+                RecordBatch::NO_PRODUCER_EPOCH,
+                0
             )
         );
         assert!(
@@ -3243,7 +3416,7 @@ mod tests {
         let mut resp = BytesMut::new();
         encode_end_txn_response(&mut resp, 5, 0, 9, 2).unwrap();
         let mut cur = &resp[..];
-        assert_eq!(decode_end_txn_response(&mut cur, 5).unwrap(), (0, 9, 2));
+        assert_eq!(decode_end_txn_response(&mut cur, 5).unwrap(), (0, 9, 2, 0));
         assert!(
             cur.is_empty(),
             "EndTxn v5 response must consume ProducerId, ProducerEpoch, and tagged fields"
@@ -3297,7 +3470,8 @@ mod tests {
 
     #[test]
     fn end_txn_error_response_matches_java() {
-        // Java EndTxnRequest.getErrorResponse: error + throttle JSON default 0.
+        // Java EndTxnRequest.getErrorResponse sets throttleTimeMs from
+        // the argument. Crate convenience encode still writes 0.
         // ProducerId / ProducerEpoch stay JSON defaults (-1) on v5+.
         for version in [0_i16, 3, 5] {
             let mut expected = BytesMut::new();
@@ -3317,7 +3491,7 @@ mod tests {
                 "EndTxn v{version} getErrorResponse must match sentinel encode"
             );
             let mut cur = &got[..];
-            let (err, pid, epoch) = decode_end_txn_response(&mut cur, version).unwrap();
+            let (err, pid, epoch, ..) = decode_end_txn_response(&mut cur, version).unwrap();
             assert_eq!(err, 16);
             assert_eq!(pid, RecordBatch::NO_PRODUCER_ID);
             assert_eq!(epoch, RecordBatch::NO_PRODUCER_EPOCH);

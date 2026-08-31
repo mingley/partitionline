@@ -1731,7 +1731,7 @@ impl Producer {
             |body| Ok(decode_end_txn_response(&mut { body }, end_txn_version)?.0),
         )
         .await?;
-        let (err, new_pid, new_epoch) =
+        let (err, new_pid, new_epoch, ..) =
             decode_end_txn_response(&mut body.clone(), end_txn_version)?;
         if err != 0 {
             return Err(Error::broker(err, "EndTxn"));
