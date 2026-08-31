@@ -916,6 +916,8 @@
 //! [`protocol::admin::RenewDelegationTokenResponse::error_counts`] is Java
 //! `RenewDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`);
+//! [`protocol::admin::RenewDelegationTokenResponse::has_error`] is Java
+//! `RenewDelegationTokenResponse.hasError` (`error() != NONE`);
 //! [`protocol::admin::RenewDelegationTokenRequest::error_response`] is Java
 //! `RenewDelegationTokenRequest.getErrorResponse` (ExpiryTimestampMs JSON
 //! default `0`; ThrottleTimeMs JSON `0+`; convenience fills `0`)),
