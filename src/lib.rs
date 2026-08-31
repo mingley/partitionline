@@ -865,6 +865,10 @@
 //! [`protocol::fetch::is_consumer`] / [`protocol::fetch::is_valid_broker_id`] /
 //! [`protocol::fetch::describe_replica_id`] are Java `FetchRequest.isConsumer` /
 //! `isValidBrokerId` / `describeReplicaId`.
+//! [`protocol::fetch::replica_id`] / [`protocol::fetch::replica_id_from_data`]
+//! are Java `FetchRequest.replicaId()` / `replicaId(FetchRequestData)` (below
+//! v15 untagged ReplicaId; v15+ ReplicaState; static uses untagged when it
+//! is not `-1`; encode still writes [`protocol::fetch::CONSUMER_REPLICA_ID`]).
 //! [`protocol::fetch::FetchMetadata`] is Java `FetchMetadata`
 //! ([`protocol::fetch::FetchMetadata::LEGACY`] on Fetch requests).
 //! [`protocol::header::RequestHeader`] `Display` is Java

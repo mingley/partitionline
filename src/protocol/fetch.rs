@@ -60,6 +60,35 @@ pub fn describe_replica_id(replica_id: i32) -> String {
     }
 }
 
+/// Java `FetchRequest.replicaId()` (instance).
+///
+/// Below v15 this is the untagged ReplicaId. v15+ is ReplicaState.ReplicaId
+/// (KIP-903). Encode still writes [`CONSUMER_REPLICA_ID`] through v14 and
+/// omits ReplicaState for consumers.
+#[must_use]
+pub const fn replica_id(version: i16, replica_id: i32, replica_state_replica_id: i32) -> i32 {
+    if version < 15 {
+        replica_id
+    } else {
+        replica_state_replica_id
+    }
+}
+
+/// Java `FetchRequest.replicaId(FetchRequestData)` (static).
+///
+/// Untagged ReplicaId when it is not `-1` ([`CONSUMER_REPLICA_ID`]);
+/// otherwise ReplicaState.ReplicaId. Distinct from [`replica_id`]: v15+
+/// with a non-`-1` untagged id still returns ReplicaState there, and v14
+/// with `-1` still returns ReplicaState here.
+#[must_use]
+pub const fn replica_id_from_data(replica_id: i32, replica_state_replica_id: i32) -> i32 {
+    if replica_id != CONSUMER_REPLICA_ID {
+        replica_id
+    } else {
+        replica_state_replica_id
+    }
+}
+
 /// Java `FetchMetadata` (incremental fetch session id and epoch).
 ///
 /// Encode writes [`Self::LEGACY`] (`session_id` 0 / `epoch` `-1`): close any
@@ -1220,6 +1249,69 @@ mod tests {
         assert!(!is_from_follower(DEBUGGING_CONSUMER_ID));
         assert!(!is_from_follower(FUTURE_LOCAL_REPLICA_ID));
         assert_eq!(is_from_follower(1), is_valid_broker_id(1));
+    }
+
+    #[test]
+    fn fetch_request_replica_id_matches_java() {
+        // Java FetchRequest.replicaId() uses untagged ReplicaId below v15
+        // and ReplicaState.ReplicaId on v15+. Static replicaId(data) uses
+        // untagged when it is not -1. Encode still writes CONSUMER_REPLICA_ID
+        // through v14 and omits ReplicaState for consumers.
+        assert_eq!(replica_id(14, CONSUMER_REPLICA_ID, 7), CONSUMER_REPLICA_ID);
+        assert_eq!(replica_id(15, CONSUMER_REPLICA_ID, 7), 7);
+        assert_eq!(replica_id(14, 3, 7), 3);
+        assert_eq!(replica_id(15, 3, 7), 7);
+        assert_eq!(replica_id_from_data(CONSUMER_REPLICA_ID, 7), 7);
+        assert_eq!(replica_id_from_data(3, 7), 3);
+        assert_eq!(
+            replica_id_from_data(DEBUGGING_CONSUMER_ID, 7),
+            DEBUGGING_CONSUMER_ID
+        );
+        assert_eq!(replica_id(15, DEBUGGING_CONSUMER_ID, 7), 7);
+        assert_eq!(
+            replica_id(14, DEBUGGING_CONSUMER_ID, 7),
+            DEBUGGING_CONSUMER_ID
+        );
+
+        let topics = vec![FetchTopic {
+            topic: "t".into(),
+            topic_id: [0u8; 16],
+            partitions: vec![FetchPartition {
+                partition: 0,
+                current_leader_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                fetch_offset: 0,
+                last_fetched_epoch: RecordBatch::NO_PARTITION_LEADER_EPOCH,
+                partition_max_bytes: 1024,
+            }],
+        }];
+        for version in [14_i16, 15] {
+            let selected = replica_id(version, CONSUMER_REPLICA_ID, CONSUMER_REPLICA_ID);
+            assert_eq!(selected, CONSUMER_REPLICA_ID);
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &topics, None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert_eq!(decoded.len(), 1);
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} replicaId leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
+        for version in [14_i16, 17] {
+            let from_data = replica_id_from_data(CONSUMER_REPLICA_ID, CONSUMER_REPLICA_ID);
+            assert_eq!(from_data, CONSUMER_REPLICA_ID);
+            let mut buf = BytesMut::new();
+            encode_fetch_request(&mut buf, version, 10, 1, 1024, 0, &[], None).unwrap();
+            let mut cur = buf.as_ref();
+            let (_iso, _max, decoded, _rack) = decode_fetch_request(&mut cur, version).unwrap();
+            assert!(decoded.is_empty());
+            assert!(
+                !cur.has_remaining(),
+                "Fetch v{version} replicaId empty leftover-empty; leftover {} bytes",
+                cur.remaining()
+            );
+        }
     }
 
     #[test]
