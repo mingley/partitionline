@@ -835,6 +835,9 @@
 //! CreateDelegationToken v1–v3 (v1 classic; v2+ flexible; v3 owner/requester; ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::CreateDelegationTokenResponse::should_client_throttle`] is Java
 //! `CreateDelegationTokenResponse.shouldClientThrottle` (v1+);
+//! [`protocol::admin::CreateDelegationTokenResponse::error_counts`] is Java
+//! `CreateDelegationTokenResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`);
 //! [`CreateDelegationTokenResponse::error`] /
 //! [`CreateDelegationTokenResponse::prepare_response`] are Java
 //! `CreateDelegationTokenRequest.getErrorResponse` /
