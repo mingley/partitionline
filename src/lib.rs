@@ -2276,6 +2276,9 @@
 //! [`AlteredShareGroupOffsets::error_counts`] is Java
 //! `AlterShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
 //! plus each partition-level code, including `NONE`);
+//! [`protocol::admin::AlterShareGroupOffsetsRequest::error_response`] is Java
+//! `AlterShareGroupOffsetsRequest.getErrorResponse` (empty Responses;
+//! ErrorMessage JSON-null; ThrottleTimeMs JSON `0+`; convenience fills `0`);
 //! [`DeletedShareGroupOffsets::error_counts`] is Java
 //! `DeleteShareGroupOffsetsResponse.errorCounts` (top-level `errorCode`
 //! plus each topic-level code, including `NONE`);
