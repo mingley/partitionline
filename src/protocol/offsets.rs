@@ -360,6 +360,40 @@ impl ListOffsetsRequest {
             })
             .collect()
     }
+
+    /// Java `ListOffsetsRequest.Builder.forConsumer`.
+    ///
+    /// Oldest ListOffsets version a consumer builder will negotiate.
+    /// Else-if first match: tiered storage (v9) wins over earliest-local
+    /// (v8) over max-timestamp (v7) over `READ_COMMITTED` (v2) over
+    /// timestamp (v1). All false is `0` (Java still returns `0` even
+    /// though Kafka 4.0 `validVersions` is `1-10`; this crate speaks
+    /// 1–10). Isolation is a `bool` (`true` is `READ_COMMITTED`) so
+    /// this module does not import [`crate::IsolationLevel`]. ReplicaId
+    /// is always [`CONSUMER_REPLICA_ID`]. The two-argument Java
+    /// `forConsumer` is this call with the last three flags `false`.
+    #[must_use]
+    pub const fn for_consumer(
+        require_timestamp: bool,
+        read_committed: bool,
+        require_max_timestamp: bool,
+        require_earliest_local_timestamp: bool,
+        require_tiered_storage_timestamp: bool,
+    ) -> i16 {
+        if require_tiered_storage_timestamp {
+            9
+        } else if require_earliest_local_timestamp {
+            8
+        } else if require_max_timestamp {
+            7
+        } else if read_committed {
+            2
+        } else if require_timestamp {
+            1
+        } else {
+            0
+        }
+    }
 }
 
 /// Java `ListOffsetsResponse` helpers.
@@ -1221,6 +1255,107 @@ mod tests {
         assert!(
             cur.is_empty(),
             "ListOffsets v6 toListOffsetsTopics leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+    }
+
+    #[test]
+    fn list_offsets_request_for_consumer_matches_java() {
+        // Java ListOffsetsRequest.Builder.forConsumer: else-if first
+        // match among flags. All false is 0 even though Kafka 4.0
+        // validVersions is 1-10. Isolation is independent of min
+        // version (READ_COMMITTED still writes isolation 1 when a
+        // higher flag wins). ReplicaId is CONSUMER_REPLICA_ID.
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, false, false, false),
+            0
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(true, false, false, false, false),
+            1
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(true, true, false, false, false),
+            2,
+            "READ_COMMITTED wins over timestamp"
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, true, false, false, false),
+            2
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(true, true, true, false, false),
+            7,
+            "max-timestamp wins over READ_COMMITTED"
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, true, false, false),
+            7
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(true, true, true, true, false),
+            8,
+            "earliest-local wins over max-timestamp"
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, false, true, false),
+            8
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(true, true, true, true, true),
+            9,
+            "tiered wins over earliest-local"
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, false, false, true),
+            9
+        );
+        assert_eq!(
+            ListOffsetsRequest::for_consumer(false, false, false, true, true),
+            9
+        );
+
+        let epoch = RecordBatch::NO_PARTITION_LEADER_EPOCH;
+        let topics = [ListOffsetsTopicRequest::new(
+            "t",
+            vec![ListOffsetsPartitionRequest::new(
+                0,
+                epoch,
+                EARLIEST_TIMESTAMP,
+            )],
+        )];
+
+        // min 0 is not spoken; leftover-empty at v1. Isolation is
+        // omitted below v2 (decode fills 0).
+        leftover_for_consumer(1, 0, &topics);
+        leftover_for_consumer(1, 0, &[]);
+        leftover_for_consumer(2, 1, &topics);
+        leftover_for_consumer(2, 1, &[]);
+        leftover_for_consumer(7, 0, &topics);
+        leftover_for_consumer(7, 0, &[]);
+        leftover_for_consumer(8, 0, &topics);
+        leftover_for_consumer(8, 0, &[]);
+        leftover_for_consumer(9, 1, &topics);
+        leftover_for_consumer(9, 1, &[]);
+    }
+
+    fn leftover_for_consumer(version: i16, isolation: i8, topics: &[ListOffsetsTopicRequest]) {
+        let mut buf = BytesMut::new();
+        encode_list_offsets_topics_request(&mut buf, version, isolation, topics, 0).unwrap();
+        let mut cur = buf.as_ref();
+        let (decoded_isolation, decoded, timeout) =
+            decode_list_offsets_topics_request(&mut cur, version).unwrap();
+        if version >= 2 {
+            assert_eq!(decoded_isolation, isolation);
+        } else {
+            assert_eq!(decoded_isolation, 0);
+        }
+        assert_eq!(decoded.as_slice(), topics);
+        assert!(timeout.is_none(), "forConsumer does not set TimeoutMs");
+        let empty = if topics.is_empty() { "empty " } else { "" };
+        assert!(
+            cur.is_empty(),
+            "ListOffsets v{version} Builder.forConsumer {empty}leftover-empty; leftover {} bytes",
             cur.len()
         );
     }

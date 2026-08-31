@@ -1553,7 +1553,11 @@
 //! that appear more than once);
 //! [`protocol::offsets::ListOffsetsRequest::to_list_offsets_topics`] is Java
 //! `ListOffsetsRequest.toListOffsetsTopics` (group by name; a later
-//! entry for the same topic appends; first-seen topic order).
+//! entry for the same topic appends; first-seen topic order);
+//! [`protocol::offsets::ListOffsetsRequest::for_consumer`] is Java
+//! `ListOffsetsRequest.Builder.forConsumer` (else-if first match:
+//! tiered v9, earliest-local v8, max-timestamp v7, `READ_COMMITTED`
+//! v2, timestamp v1; all false is `0`).
 //! [`Admin::list_offsets_with_isolation`] is Java `listOffsets` plus
 //! `ListOffsetsOptions.isolationLevel`.
 //! [`Admin::list_offsets_timeout`] / [`Admin::list_offsets_with_isolation_timeout`]
