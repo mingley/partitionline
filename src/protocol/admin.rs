@@ -12661,12 +12661,25 @@ impl ListConfigResourcesResponse {
     /// Top-level `errorCode` only, including `NONE` (Java
     /// `errorCounts(Errors.forCode)` / `Collections.singletonMap`).
     /// Config resources are not counted (no per-resource `errorCode`).
-    /// Java `error()` is `ApiError` from the top-level code (not
-    /// mapped). This is not GetTelemetrySubscriptions / PushTelemetry
+    /// [`Self::error`] is Java `error()` (`ApiError` from the top-level
+    /// code). This is not GetTelemetrySubscriptions / PushTelemetry
     /// / DescribeConfigs `errorCounts`.
     #[must_use]
     pub fn error_counts(&self) -> HashMap<i16, i32> {
         HashMap::from([(self.error_code, 1)])
+    }
+
+    /// Java `ListConfigResourcesResponse.error`.
+    ///
+    /// `ApiError(Errors.forCode(errorCode))`. Unknown codes become
+    /// [`crate::error::UNKNOWN_SERVER_ERROR`]. The JSON has no
+    /// ErrorMessage; this crate fills a null message. Official Java's
+    /// one-arg `ApiError(Errors)` also sets the English `Errors.message`
+    /// string. This is not [`Self::error_counts`] / DescribeAcls `error`
+    /// / DescribeConfigs `error`.
+    #[must_use]
+    pub fn error(&self) -> ApiError {
+        ApiError::from_code(self.error_code, None)
     }
 }
 
@@ -27536,9 +27549,9 @@ mod tests {
         // Official Java ListConfigResourcesResponse.errorCounts (4.1.0;
         // 4.0.0 404 as the current name). Config resources are not
         // counted (no per-resource errorCode). Java error() is ApiError
-        // from the top-level code (not mapped). This crate speaks 0-1
-        // (v0 Kafka 4.0 ListClientMetricsResources; v1 Kafka 4.1). This
-        // is not GetTelemetrySubscriptions errorCounts / PushTelemetry
+        // from the top-level code. This crate speaks 0-1 (v0 Kafka 4.0
+        // ListClientMetricsResources; v1 Kafka 4.1). This is not
+        // GetTelemetrySubscriptions errorCounts / PushTelemetry
         // errorCounts / DescribeConfigs errorCounts.
         let resources = vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)];
         assert_eq!(
@@ -27564,6 +27577,53 @@ mod tests {
             assert!(
                 cur.is_empty(),
                 "ListConfigResources v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
+    }
+
+    #[test]
+    fn list_config_resources_response_error_matches_java() {
+        // Java 4.1.0 ListConfigResourcesResponse.error:
+        // new ApiError(Errors.forCode(data.errorCode())). Official Java
+        // ListConfigResourcesResponse.error (4.1.0; 4.0.0 404 as the
+        // current name). JSON has no ErrorMessage; this crate fills a
+        // null message. Official Java's one-arg ApiError(Errors) also
+        // sets the English Errors.message string. Unknown codes become
+        // UNKNOWN_SERVER_ERROR (Java Errors.forCode). This crate speaks
+        // 0-1. This is not errorCounts / DescribeAcls error /
+        // DescribeConfigs error.
+        assert_eq!(
+            ListConfigResourcesResponse::new(0, Vec::new()).error(),
+            crate::error::ApiError::NONE,
+            "NONE plus null message is ApiError.NONE"
+        );
+        let resources = vec![ListedConfigResource::new("cfg", RESOURCE_CLIENT_METRICS)];
+        let full = ListConfigResourcesResponse::new(crate::error::INVALID_REQUEST, resources);
+        assert_eq!(
+            full.error(),
+            crate::error::ApiError::from_code(crate::error::INVALID_REQUEST, None)
+        );
+        assert_eq!(
+            ListConfigResourcesResponse::new(999, Vec::new())
+                .error()
+                .error(),
+            crate::error::UNKNOWN_SERVER_ERROR,
+            "unknown ErrorCode is Java Errors.forCode UNKNOWN_SERVER_ERROR"
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_list_config_resources_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error(),
+                crate::error::ApiError::from_code(crate::error::INVALID_REQUEST, None),
+                "ListConfigResources v{version} error must wrap the decoded ErrorCode"
+            );
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} error leftover-empty; leftover {} bytes",
                 cur.len()
             );
         }
