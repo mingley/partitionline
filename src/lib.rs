@@ -1462,7 +1462,10 @@
 //! [`protocol::txn::WritableTxnMarker`] `Display` is Java
 //! `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
 //! [`protocol::txn::WriteTxnMarkersResponse::error_counts`] is Java
-//! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`).
+//! `WriteTxnMarkersResponse.errorCounts` (partition-level codes, including `NONE`);
+//! [`protocol::txn::WriteTxnMarkersResponse::errors_by_producer_id`] is Java
+//! `WriteTxnMarkersResponse.errorsByProducerId` (producer id to
+//! `(topic, partition)` codes; a later marker overwrites).
 //! [`Admin::abort_transaction_timeout`] is Java
 //! `AbortTransactionOptions.timeoutMs` (RPC deadline; WriteTxnMarkers has
 //! no TimeoutMs; caps `NOT_LEADER_OR_FOLLOWER`).

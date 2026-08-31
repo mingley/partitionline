@@ -1258,6 +1258,32 @@ impl WriteTxnMarkersResponse {
         }
         counts
     }
+
+    /// Java `WriteTxnMarkersResponse.errorsByProducerId`.
+    ///
+    /// Each producer id maps to `(topic, partition)` error codes. A later
+    /// marker overwrites an earlier one for the same producer id (Java
+    /// `HashMap.put`). A later partition overwrites an earlier one for
+    /// the same pair.
+    #[must_use]
+    pub fn errors_by_producer_id(
+        markers: &[WritableTxnMarkerResult],
+    ) -> HashMap<i64, HashMap<(String, i32), i16>> {
+        let mut errors = HashMap::new();
+        for marker in markers {
+            let mut topic_partition_errors = HashMap::new();
+            for topic in &marker.topics {
+                for partition in &topic.partitions {
+                    let _prev = topic_partition_errors.insert(
+                        (topic.name.clone(), partition.partition_index),
+                        partition.error_code,
+                    );
+                }
+            }
+            let _prev = errors.insert(marker.producer_id, topic_partition_errors);
+        }
+        errors
+    }
 }
 
 /// `true` when WriteTxnMarkers `version` is flexible (v1).
@@ -1665,6 +1691,111 @@ mod tests {
                 (crate::error::NOT_LEADER_OR_FOLLOWER, 1),
                 (crate::error::UNKNOWN_TOPIC_OR_PARTITION, 1),
             ])
+        );
+    }
+
+    #[test]
+    fn write_txn_markers_errors_by_producer_id_matches_java() {
+        // Java WriteTxnMarkersResponse.errorsByProducerId: each producer
+        // id maps to (topic, partition) error codes. Later markers
+        // overwrite the same producer id (HashMap.put). Later partitions
+        // overwrite the same pair.
+        assert!(WriteTxnMarkersResponse::errors_by_producer_id(&[]).is_empty());
+        let one = vec![WritableTxnMarkerResult {
+            producer_id: 1000,
+            topics: vec![WritableTxnMarkerTopicResult {
+                name: "t".into(),
+                partitions: vec![
+                    WritableTxnMarkerPartitionResult {
+                        partition_index: 0,
+                        error_code: 0,
+                    },
+                    WritableTxnMarkerPartitionResult {
+                        partition_index: 1,
+                        error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+                    },
+                ],
+            }],
+        }];
+        assert_eq!(
+            WriteTxnMarkersResponse::errors_by_producer_id(&one),
+            HashMap::from([(
+                1000,
+                HashMap::from([
+                    (("t".into(), 0), 0),
+                    (("t".into(), 1), crate::error::NOT_LEADER_OR_FOLLOWER),
+                ])
+            )])
+        );
+        let two = vec![
+            WritableTxnMarkerResult {
+                producer_id: 1000,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "a".into(),
+                    partitions: vec![WritableTxnMarkerPartitionResult {
+                        partition_index: 0,
+                        error_code: crate::error::UNKNOWN_TOPIC_OR_PARTITION,
+                    }],
+                }],
+            },
+            WritableTxnMarkerResult {
+                producer_id: 1000,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "b".into(),
+                    partitions: vec![WritableTxnMarkerPartitionResult {
+                        partition_index: 0,
+                        error_code: crate::error::NOT_LEADER_OR_FOLLOWER,
+                    }],
+                }],
+            },
+            WritableTxnMarkerResult {
+                producer_id: 2000,
+                topics: vec![WritableTxnMarkerTopicResult {
+                    name: "c".into(),
+                    partitions: vec![WritableTxnMarkerPartitionResult {
+                        partition_index: 3,
+                        error_code: 0,
+                    }],
+                }],
+            },
+        ];
+        assert_eq!(
+            WriteTxnMarkersResponse::errors_by_producer_id(&two),
+            HashMap::from([
+                (
+                    1000,
+                    HashMap::from([(("b".into(), 0), crate::error::NOT_LEADER_OR_FOLLOWER)])
+                ),
+                (2000, HashMap::from([(("c".into(), 3), 0)])),
+            ])
+        );
+        let mut buf = BytesMut::new();
+        encode_write_txn_markers_response(&mut buf, 0, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 0).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            WriteTxnMarkersResponse::errors_by_producer_id(&decoded),
+            WriteTxnMarkersResponse::errors_by_producer_id(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v0 errorsByProducerId leftover-empty; leftover {} bytes",
+            cur.len()
+        );
+        buf.clear();
+        encode_write_txn_markers_response(&mut buf, 1, &two).unwrap();
+        let mut cur = buf.as_ref();
+        let decoded = decode_write_txn_markers_response(&mut cur, 1).unwrap();
+        assert_eq!(decoded, two);
+        assert_eq!(
+            WriteTxnMarkersResponse::errors_by_producer_id(&decoded),
+            WriteTxnMarkersResponse::errors_by_producer_id(&two)
+        );
+        assert!(
+            cur.is_empty(),
+            "WriteTxnMarkers v1 errorsByProducerId leftover-empty; leftover {} bytes",
+            cur.len()
         );
     }
 
