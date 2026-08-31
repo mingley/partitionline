@@ -5799,7 +5799,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 encode_sync_group_response(&mut body, header.api_version, 0, &asg).unwrap();
             }
             HEARTBEAT => {
-                let (gid, _gen, member_id) =
+                let (gid, _gen, member_id, ..) =
                     decode_heartbeat_request(&mut frame, header.api_version).unwrap();
                 let mut st = state.lock();
                 st.last_heartbeat_version = Some(header.api_version);

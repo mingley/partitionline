@@ -225,6 +225,8 @@
 //! [`protocol::group::HeartbeatRequest::build`] is Java
 //! `HeartbeatRequest.Builder.build` (a present `group.instance.id`
 //! below v3 is `UnsupportedVersionException`; encode still omits);
+//! v3+ round-trips GroupInstanceId; below v3 encode omits it even when
+//! the body has an instance id and decode fills `None`;
 //! [`protocol::group::HeartbeatResponse::should_client_throttle`] is Java
 //! `HeartbeatResponse.shouldClientThrottle` (v2+)),
 //! SyncGroup v0–v5 (v1+ throttle; v3 GroupInstanceId; v4+ flexible; v5 ProtocolType / ProtocolName;

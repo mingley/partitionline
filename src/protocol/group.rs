@@ -1736,6 +1736,8 @@ impl HeartbeatRequest {
 /// v0–v2 are GroupId + GenerationId + MemberId (v1 and v2 match v0).
 /// v3 GroupInstanceId. v4 flexible. This crate speaks 0–4. v5+ is not
 /// spoken.
+/// Below v3 GroupInstanceId is omitted even when the body has an instance
+/// id. Decode fills `None`.
 pub fn encode_heartbeat_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1757,22 +1759,26 @@ pub fn encode_heartbeat_request(
     Ok(())
 }
 
-/// Decode Heartbeat: `(group_id, generation_id, member_id)`.
+/// Decode Heartbeat: `(group_id, generation_id, member_id, group_instance_id)`.
+///
+/// Below v3 GroupInstanceId is omitted; decode fills `None`.
 pub fn decode_heartbeat_request<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<(String, i32, String)> {
+) -> Result<(String, i32, String, Option<String>)> {
     let flexible = heartbeat_flexible(version)?;
     let g = buf::get_string(buf, flexible)?.unwrap_or_default();
     let gen = buf::get_i32(buf)?;
     let m = buf::get_string(buf, flexible)?.unwrap_or_default();
-    if version >= 3 {
-        let _inst = buf::get_string(buf, flexible)?;
-    }
+    let inst = if version >= 3 {
+        buf::get_string(buf, flexible)?
+    } else {
+        None
+    };
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((g, gen, m))
+    Ok((g, gen, m, inst))
 }
 
 /// Encode Heartbeat v0–v4. Throttle is `0` on v1+.
@@ -9193,11 +9199,11 @@ mod tests {
         assert_eq!(v0.as_ref(), v1.as_ref(), "v0 and v1 request bodies match");
         assert_eq!(v1.as_ref(), v2.as_ref(), "v1 and v2 request bodies match");
         let mut cur = v0.as_ref();
-        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 0).unwrap();
+        let (gid, gen, mid, ..) = decode_heartbeat_request(&mut cur, 0).unwrap();
         assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
         assert!(cur.is_empty(), "v0 request leftover-empty");
         let mut cur = v2.as_ref();
-        let (_gid, _gen, mid) = decode_heartbeat_request(&mut cur, 2).unwrap();
+        let (_gid, _gen, mid, ..) = decode_heartbeat_request(&mut cur, 2).unwrap();
         assert_eq!(mid, "m1");
         assert!(cur.is_empty(), "v2 request leftover-empty");
 
@@ -9238,7 +9244,7 @@ mod tests {
         let mut buf = BytesMut::new();
         encode_heartbeat_request(&mut buf, 3, "g", 7, "m1", Some("i")).unwrap();
         let mut cur = &buf[..];
-        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 3).unwrap();
+        let (gid, gen, mid, ..) = decode_heartbeat_request(&mut cur, 3).unwrap();
         assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
         assert!(
             cur.is_empty(),
@@ -9258,7 +9264,7 @@ mod tests {
         let mut req = BytesMut::new();
         encode_heartbeat_request(&mut req, 4, "g", 7, "m1", Some("i")).unwrap();
         let mut cur = &req[..];
-        let (gid, gen, mid) = decode_heartbeat_request(&mut cur, 4).unwrap();
+        let (gid, gen, mid, ..) = decode_heartbeat_request(&mut cur, 4).unwrap();
         assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
         assert!(
             cur.is_empty(),
@@ -9345,7 +9351,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_heartbeat_request(&mut buf, version, "g", 7, "m1", Some("i")).unwrap();
             let mut cur = buf.as_ref();
-            let (gid, gen, mid) = decode_heartbeat_request(&mut cur, version).unwrap();
+            let (gid, gen, mid, ..) = decode_heartbeat_request(&mut cur, version).unwrap();
             assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
             assert!(
                 !cur.has_remaining(),
@@ -9358,7 +9364,7 @@ mod tests {
             let mut buf = BytesMut::new();
             encode_heartbeat_request(&mut buf, version, "g", 7, "m1", None).unwrap();
             let mut cur = buf.as_ref();
-            let (gid, gen, mid) = decode_heartbeat_request(&mut cur, version).unwrap();
+            let (gid, gen, mid, ..) = decode_heartbeat_request(&mut cur, version).unwrap();
             assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
             assert!(
                 !cur.has_remaining(),
@@ -9366,6 +9372,94 @@ mod tests {
                 cur.remaining()
             );
         }
+    }
+
+    #[test]
+    fn heartbeat_group_instance_id_matches_java() {
+        for version in [3_i16, 4] {
+            let mut buf = BytesMut::new();
+            encode_heartbeat_request(&mut buf, version, "g", 7, "m1", Some("i")).unwrap();
+            let mut cur = buf.as_ref();
+            let (gid, gen, mid, inst) = decode_heartbeat_request(&mut cur, version).unwrap();
+            assert_eq!((gid.as_str(), gen, mid.as_str()), ("g", 7, "m1"));
+            assert_eq!(inst.as_deref(), Some("i"));
+            assert!(
+                cur.is_empty(),
+                "Heartbeat v{version} GroupInstanceId leftover-empty"
+            );
+        }
+
+        let mut buf = BytesMut::new();
+        encode_heartbeat_request(&mut buf, 0, "g", 7, "m1", Some("i")).unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, inst) = decode_heartbeat_request(&mut cur, 0).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Heartbeat v0 GroupInstanceId leftover-empty"
+        );
+        assert_eq!(
+            inst, None,
+            "Heartbeat v0 omits GroupInstanceId even when the body has an instance id"
+        );
+
+        let mut buf = BytesMut::new();
+        encode_heartbeat_request(&mut buf, 2, "g", 7, "m1", Some("i")).unwrap();
+        let mut cur = buf.as_ref();
+        let (_, _, _, inst) = decode_heartbeat_request(&mut cur, 2).unwrap();
+        assert!(
+            cur.is_empty(),
+            "Heartbeat v2 GroupInstanceId leftover-empty"
+        );
+        assert_eq!(
+            inst, None,
+            "Heartbeat v2 omits GroupInstanceId even when the body has an instance id"
+        );
+
+        let mut with = BytesMut::new();
+        encode_heartbeat_request(&mut with, 3, "g", 7, "m1", Some("i")).unwrap();
+        let mut none = BytesMut::new();
+        encode_heartbeat_request(&mut none, 3, "g", 7, "m1", None).unwrap();
+        assert_ne!(
+            &with[..],
+            &none[..],
+            "v3 GroupInstanceId is not always the JSON default null"
+        );
+        let mut v0_with = BytesMut::new();
+        encode_heartbeat_request(&mut v0_with, 0, "g", 7, "m1", Some("i")).unwrap();
+        let mut v0_none = BytesMut::new();
+        encode_heartbeat_request(&mut v0_none, 0, "g", 7, "m1", None).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v0_none[..],
+            "v0 encode omits GroupInstanceId even when the body has an instance id"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_heartbeat_request(&mut v2_with, 2, "g", 7, "m1", Some("i")).unwrap();
+        assert_eq!(
+            &v0_with[..],
+            &v2_with[..],
+            "v0–v2 Heartbeat requests omit GroupInstanceId"
+        );
+        assert_ne!(
+            &v2_with[..],
+            &with[..],
+            "v3 adds GroupInstanceId after MemberId"
+        );
+
+        let mut empty = BytesMut::new();
+        encode_heartbeat_request(&mut empty, 3, "g", 7, "m1", Some("")).unwrap();
+        let mut cur = empty.as_ref();
+        let (_, _, _, inst) = decode_heartbeat_request(&mut cur, 3).unwrap();
+        assert_eq!(inst.as_deref(), Some(""));
+        assert!(
+            cur.is_empty(),
+            "Heartbeat v3 empty GroupInstanceId leftover-empty"
+        );
+        assert_ne!(
+            &empty[..],
+            &none[..],
+            "empty GroupInstanceId is still present (Java != null)"
+        );
     }
 
     fn sync_req(assignments: &[(String, Vec<u8>)]) -> SyncGroupRequest<'_> {
