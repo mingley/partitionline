@@ -3031,9 +3031,10 @@ pub fn decode_alter_configs_resource_results<B: Buf>(
 
 /// `true` when DeleteRecords `version` is flexible.
 ///
-/// v0–v1 are classic (v1 response adds ThrottleTimeMs). v2 is the first
-/// flexible version. Kafka 4.0 `validVersions` is `0-2`. This crate
-/// speaks 0–2. v3+ is not spoken.
+/// v0–v1 are classic. ThrottleTimeMs is JSON `0+` (on the wire for every
+/// spoken version). [`DeleteRecordsResponse::should_client_throttle`] is
+/// v1+ (KIP-219). v2 is the first flexible version. Kafka 4.0
+/// `validVersions` is `0-2`. This crate speaks 0–2. v3+ is not spoken.
 fn delete_records_flexible(version: i16) -> Result<bool> {
     match version {
         0 | 1 => Ok(false),
@@ -3050,6 +3051,29 @@ pub struct DeleteRecordsRequest;
 impl DeleteRecordsRequest {
     /// Java `DeleteRecordsRequest.HIGH_WATERMARK`.
     pub const HIGH_WATERMARK: i64 = -1;
+
+    /// Java `DeleteRecordsRequest.getErrorResponse`.
+    ///
+    /// Copies each topic name and partition index. Each partition is
+    /// [`DeletedRecordsPartition::error`] (`INVALID_LOW_WATERMARK`).
+    /// ThrottleTimeMs is written on every spoken version from
+    /// `throttle_time_ms` (Java always calls `setThrottleTimeMs`).
+    pub fn error_response(
+        buf: &mut BytesMut,
+        version: i16,
+        topics: &[DeleteRecordsTopic],
+        error_code: i16,
+        throttle_time_ms: i32,
+    ) -> crate::error::Result<()> {
+        let results: Vec<DeletedRecordsTopic> =
+            topics.iter().map(|t| t.error_result(error_code)).collect();
+        encode_delete_records_topics_response_with_throttle(
+            buf,
+            version,
+            &results,
+            throttle_time_ms,
+        )
+    }
 }
 
 /// Java `DeleteRecordsResponse` helpers.
@@ -3102,8 +3126,8 @@ pub struct DeleteRecordsTopic {
 impl DeleteRecordsTopic {
     /// Java `DeleteRecordsRequest.getErrorResponse` one topic.
     ///
-    /// Each partition is [`DeletedRecordsPartition::error`]. Throttle on the
-    /// response is the JSON default (`0`).
+    /// Each partition is [`DeletedRecordsPartition::error`]. ThrottleTimeMs
+    /// is a top-level field ([`DeleteRecordsRequest::error_response`]).
     #[must_use]
     pub fn error_result(&self, error_code: i16) -> DeletedRecordsTopic {
         DeletedRecordsTopic {
@@ -3262,8 +3286,8 @@ pub fn decode_delete_records_topics_request<B: Buf>(
 
 /// Encode a DeleteRecords response (one topic/partition).
 ///
-/// ThrottleTimeMs is encoded from v1 (KIP-219). v2 adds compact arrays/
-/// strings plus tagged fields.
+/// ThrottleTimeMs is the JSON default (`0`) on every spoken version
+/// (JSON `0+`). v2 adds compact arrays/strings plus tagged fields.
 pub fn encode_delete_records_response(
     buf: &mut BytesMut,
     version: i16,
@@ -3287,15 +3311,30 @@ pub fn encode_delete_records_response(
 }
 
 /// Encode DeleteRecords v0–2 for every topic/partition.
+///
+/// Throttle is the JSON default (`0`).
 pub fn encode_delete_records_topics_response(
     buf: &mut BytesMut,
     version: i16,
     topics: &[DeletedRecordsTopic],
 ) -> crate::error::Result<()> {
+    encode_delete_records_topics_response_with_throttle(buf, version, topics, 0)
+}
+
+/// Encode DeleteRecords v0–v2 with ThrottleTimeMs.
+///
+/// ThrottleTimeMs is JSON `0+`: written on every spoken version,
+/// including v0. KIP-219 only changes
+/// [`DeleteRecordsResponse::should_client_throttle`] (v1+). v2 is
+/// flexible.
+pub fn encode_delete_records_topics_response_with_throttle(
+    buf: &mut BytesMut,
+    version: i16,
+    topics: &[DeletedRecordsTopic],
+    throttle_time_ms: i32,
+) -> crate::error::Result<()> {
     let flexible = delete_records_flexible(version)?;
-    if version >= 1 {
-        buf.put_i32(0);
-    }
+    buf.put_i32(throttle_time_ms);
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf::put_string(buf, flexible, Some(&t.topic))?;
@@ -3323,7 +3362,7 @@ pub fn decode_delete_records_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<(i32, i64, i16)> {
-    let topics = decode_delete_records_topics_response(buf, version)?;
+    let (topics, ..) = decode_delete_records_topics_response(buf, version)?;
     let mut partition = 0i32;
     let mut low_watermark = 0i64;
     let mut error_code = 0i16;
@@ -3339,16 +3378,15 @@ pub fn decode_delete_records_response<B: Buf>(
 
 /// Decode DeleteRecords v0–2: every topic/partition.
 ///
-/// Throttle is v1+. Does not fail on a non-zero partition ErrorCode;
+/// Returns `(topics, throttle_time_ms)`. ThrottleTimeMs is JSON `0+`
+/// (always on the wire). Does not fail on a non-zero partition ErrorCode;
 /// callers decide.
 pub fn decode_delete_records_topics_response<B: Buf>(
     buf: &mut B,
     version: i16,
-) -> Result<Vec<DeletedRecordsTopic>> {
+) -> Result<(Vec<DeletedRecordsTopic>, i32)> {
     let flexible = delete_records_flexible(version)?;
-    if version >= 1 {
-        let _th = buf::get_i32(buf)?;
-    }
+    let throttle_time_ms = buf::get_i32(buf)?;
     let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(tn);
     for _ in 0..tn {
@@ -3376,7 +3414,7 @@ pub fn decode_delete_records_topics_response<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok(topics)
+    Ok((topics, throttle_time_ms))
 }
 
 /// DescribeCluster endpoint type: brokers (KIP-919).
@@ -16614,7 +16652,7 @@ mod tests {
         let mut err = BytesMut::new();
         encode_delete_records_topics_response(&mut err, 2, std::slice::from_ref(&result)).unwrap();
         let mut cur = err.as_ref();
-        let decoded = decode_delete_records_topics_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_delete_records_topics_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, vec![result]);
         assert!(
             !cur.has_remaining(),
@@ -18720,10 +18758,10 @@ mod tests {
         );
         let mut v0r = BytesMut::new();
         encode_delete_records_response(&mut v0r, 0, "t", 0, 5, 0).unwrap();
-        assert_ne!(
+        assert_eq!(
             &v1r[..],
             &v0r[..],
-            "DeleteRecords v1 response must include ThrottleTimeMs"
+            "DeleteRecords v0 and v1 both write ThrottleTimeMs (JSON 0+)"
         );
         let mut cur = &v0r[..];
         let (p0, low0, err0) = decode_delete_records_response(&mut cur, 0).unwrap();
@@ -18802,12 +18840,108 @@ mod tests {
         buf.clear();
         encode_delete_records_topics_response(&mut buf, 2, &resp).unwrap();
         let mut cur = buf.as_ref();
-        let decoded = decode_delete_records_topics_response(&mut cur, 2).unwrap();
+        let (decoded, ..) = decode_delete_records_topics_response(&mut cur, 2).unwrap();
         assert_eq!(decoded, resp);
         assert!(
             !cur.has_remaining(),
             "DeleteRecords v2 Topics-of-2 response leftover-empty"
         );
+    }
+
+    #[test]
+    fn delete_records_throttle_time_ms_matches_java() {
+        let topics = [DeleteRecordsTopic {
+            topic: "t".into(),
+            partitions: vec![
+                DeleteRecordsPartition {
+                    partition: 0,
+                    offset: 5,
+                },
+                DeleteRecordsPartition {
+                    partition: 1,
+                    offset: DeleteRecordsRequest::HIGH_WATERMARK,
+                },
+            ],
+        }];
+        let err = topics
+            .iter()
+            .map(|topic| topic.error_result(16))
+            .collect::<Vec<_>>();
+        for version in [0_i16, 1, 2] {
+            let mut buf = BytesMut::new();
+            DeleteRecordsRequest::error_response(&mut buf, version, &topics, 16, 3_600_000)
+                .unwrap();
+            let mut cur = buf.as_ref();
+            let (decoded, throttle) =
+                decode_delete_records_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DeleteRecords v{version} ThrottleTimeMs leftover-empty"
+            );
+        }
+
+        let mut with = BytesMut::new();
+        encode_delete_records_topics_response_with_throttle(&mut with, 0, &err, 3_600_000).unwrap();
+        let mut zero = BytesMut::new();
+        encode_delete_records_topics_response_with_throttle(&mut zero, 0, &err, 0).unwrap();
+        assert_ne!(
+            &with[..],
+            &zero[..],
+            "v0 ThrottleTimeMs is not always the JSON default 0"
+        );
+        let mut conv = BytesMut::new();
+        encode_delete_records_topics_response(&mut conv, 0, &err).unwrap();
+        assert_eq!(
+            &conv[..],
+            &zero[..],
+            "encode_delete_records_topics_response still writes ThrottleTimeMs 0"
+        );
+        let mut v1_with = BytesMut::new();
+        encode_delete_records_topics_response_with_throttle(&mut v1_with, 1, &err, 3_600_000)
+            .unwrap();
+        assert_eq!(
+            &with[..],
+            &v1_with[..],
+            "v0 and v1 both write ThrottleTimeMs (JSON 0+); do not confuse with v2 flexible"
+        );
+        let mut v2_with = BytesMut::new();
+        encode_delete_records_topics_response_with_throttle(&mut v2_with, 2, &err, 3_600_000)
+            .unwrap();
+        assert_ne!(
+            &v1_with[..],
+            &v2_with[..],
+            "v2 adds compact arrays/strings plus tagged fields"
+        );
+
+        for version in [0_i16, 1, 2] {
+            let mut expected = BytesMut::new();
+            encode_delete_records_topics_response_with_throttle(
+                &mut expected,
+                version,
+                &err,
+                3_600_000,
+            )
+            .unwrap();
+            let mut got = BytesMut::new();
+            DeleteRecordsRequest::error_response(&mut got, version, &topics, 16, 3_600_000)
+                .unwrap();
+            assert_eq!(
+                &got[..],
+                &expected[..],
+                "DeleteRecords v{version} getErrorResponse must match with_throttle encode"
+            );
+            let mut cur = got.as_ref();
+            let (decoded, throttle) =
+                decode_delete_records_topics_response(&mut cur, version).unwrap();
+            assert_eq!(decoded, err);
+            assert_eq!(throttle, 3_600_000);
+            assert!(
+                cur.is_empty(),
+                "DeleteRecords v{version} getErrorResponse leftover-empty"
+            );
+        }
     }
 
     #[test]

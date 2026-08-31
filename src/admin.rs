@@ -6897,7 +6897,7 @@ impl Admin {
             )
             .await
         }?;
-        let resp = decode_delete_records_topics_response(&mut body.clone(), version)?;
+        let (resp, ..) = decode_delete_records_topics_response(&mut body.clone(), version)?;
         let mut by_key: HashMap<(String, i32), VecDeque<(i64, i16)>> = HashMap::new();
         for t in resp {
             for p in t.partitions {

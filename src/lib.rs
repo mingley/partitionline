@@ -703,7 +703,13 @@
 //! `DeleteRecordsResponse.errorCounts` (partition-level codes, including `NONE`);
 //! [`protocol::admin::DeletedRecordsPartition::error`] /
 //! [`protocol::admin::DeleteRecordsTopic::error_result`] are Java
-//! `DeleteRecordsRequest.getErrorResponse` (partition body / one topic)),
+//! `DeleteRecordsRequest.getErrorResponse` (partition body / one topic);
+//! [`protocol::admin::DeleteRecordsRequest::error_response`] is Java
+//! `DeleteRecordsRequest.getErrorResponse` (copies names / indexes;
+//! `INVALID_LOW_WATERMARK`; always writes the `throttleTimeMs` argument);
+//! ThrottleTimeMs is JSON `0+` (on the wire for every spoken version,
+//! including v0); round-trips a non-zero value;
+//! [`protocol::admin::encode_delete_records_topics_response`] still writes `0`),
 //! CreateAcls / DescribeAcls / DeleteAcls v0–v3 (v1 ResourcePatternType; v2+ flexible;
 //! [`protocol::acl::CreateAclsResponse::should_client_throttle`] /
 //! [`protocol::acl::DescribeAclsResponse::should_client_throttle`] /
