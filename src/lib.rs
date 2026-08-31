@@ -307,6 +307,9 @@
 //! [`protocol::share::ShareFetchResponse::response_data`] is Java
 //! `ShareFetchResponse.responseData` (looks up `topic_id`; skips a missing
 //! name; a later partition overwrites);
+//! [`protocol::share::ShareFetchResponse::to_message`] is Java
+//! `ShareFetchResponse.toMessage` Responses (group by `topic_id` in
+//! first-seen order; key partition overwrites the body);
 //! [`protocol::share::ShareFetchedPartition::records_size`] is Java
 //! `ShareFetchResponse.recordsSize` (`0` when records are empty)),
 //! ShareAcknowledge v0–v1 (v0 Kafka 4.0 early access; v1 Kafka 4.1 stable; same fields;
