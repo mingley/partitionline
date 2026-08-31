@@ -12575,6 +12575,19 @@ impl ListConfigResourcesResponse {
             config_resources,
         }
     }
+
+    /// Java `ListConfigResourcesResponse.errorCounts`.
+    ///
+    /// Top-level `errorCode` only, including `NONE` (Java
+    /// `errorCounts(Errors.forCode)` / `Collections.singletonMap`).
+    /// Config resources are not counted (no per-resource `errorCode`).
+    /// Java `error()` is `ApiError` from the top-level code (not
+    /// mapped). This is not GetTelemetrySubscriptions / PushTelemetry
+    /// / DescribeConfigs `errorCounts`.
+    #[must_use]
+    pub fn error_counts(&self) -> HashMap<i16, i32> {
+        HashMap::from([(self.error_code, 1)])
+    }
 }
 
 /// Reject ListConfigResources versions this crate does not speak.
@@ -27168,6 +27181,47 @@ mod tests {
             zero.throttle_time_ms, 0,
             "ListConfigResourcesResponse::new still fills ThrottleTimeMs 0"
         );
+    }
+
+    #[test]
+    fn list_config_resources_response_error_counts_matches_java() {
+        // Java 4.1.0 ListConfigResourcesResponse.errorCounts:
+        // errorCounts(Errors.forCode(data.errorCode())), including
+        // NONE (AbstractResponse.errorCounts is Collections.singletonMap).
+        // Official Java ListConfigResourcesResponse.errorCounts (4.1.0;
+        // 4.0.0 404 as the current name). Config resources are not
+        // counted (no per-resource errorCode). Java error() is ApiError
+        // from the top-level code (not mapped). This crate speaks 0-1
+        // (v0 Kafka 4.0 ListClientMetricsResources; v1 Kafka 4.1). This
+        // is not GetTelemetrySubscriptions errorCounts / PushTelemetry
+        // errorCounts / DescribeConfigs errorCounts.
+        let resources = vec![ListedConfigResource::new("r", RESOURCE_CLIENT_METRICS)];
+        assert_eq!(
+            ListConfigResourcesResponse::new(0, resources.clone()).error_counts(),
+            HashMap::from([(0, 1)]),
+            "NONE is a singleton 1, not an empty map"
+        );
+        let full = ListConfigResourcesResponse::new(crate::error::UNSUPPORTED_VERSION, resources);
+        assert_eq!(
+            full.error_counts(),
+            HashMap::from([(crate::error::UNSUPPORTED_VERSION, 1)])
+        );
+        for version in 0..=1_i16 {
+            let mut resp = BytesMut::new();
+            encode_list_config_resources_response(&mut resp, version, &full).unwrap();
+            let mut cur = &resp[..];
+            let decoded = decode_list_config_resources_response(&mut cur, version).unwrap();
+            assert_eq!(
+                decoded.error_counts(),
+                HashMap::from([(crate::error::UNSUPPORTED_VERSION, 1)]),
+                "ListConfigResources v{version} errorCounts must count the decoded code"
+            );
+            assert!(
+                cur.is_empty(),
+                "ListConfigResources v{version} errorCounts leftover-empty; leftover {} bytes",
+                cur.len()
+            );
+        }
     }
 
     #[test]

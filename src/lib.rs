@@ -807,7 +807,10 @@
 //! [`protocol::admin::DescribeClusterResponse::error_counts`] is Java
 //! `DescribeClusterResponse.errorCounts` (top-level `errorCode` only,
 //! including `NONE`; Java `Collections.singletonMap`)),
-//! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`),
+//! ListConfigResources v0–v1 (v0 ListClientMetricsResources; v1 ResourceTypes; ThrottleTimeMs is JSON `0+`;
+//! [`protocol::admin::ListConfigResourcesResponse::error_counts`] is Java
+//! `ListConfigResourcesResponse.errorCounts` (top-level `errorCode` only,
+//! including `NONE`; Java `Collections.singletonMap`)),
 //! GetTelemetrySubscriptions v0 (ThrottleTimeMs is JSON `0+`;
 //! [`protocol::admin::GetTelemetrySubscriptionsResponse::error_counts`] is Java
 //! `GetTelemetrySubscriptionsResponse.errorCounts` (top-level `errorCode` only,
